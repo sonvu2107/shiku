@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 250" width="600" height="250">
+  <!-- Background circle -->
+  <circle cx="90" cy="125" r="75" fill="#000000"/>
+  
+  <!-- White "S" in circle -->
+  <text x="90" y="160" font-family="Arial, sans-serif" font-size="100" font-weight="bold" text-anchor="middle" fill="#ffffff">S</text>
+  
+  <!-- "hiku" text -->
+  <text x="190" y="170" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="#000000">hiku</text>
+</svg>

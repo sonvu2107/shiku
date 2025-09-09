@@ -1,0 +1,18 @@
+# Node
+node_modules/
+.env
+*.log
+
+# Build
+client/dist/
+server/tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vite
+client/.vite
+
+# Railway
+railway.json

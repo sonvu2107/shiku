@@ -1,0 +1,151 @@
+import { useState } from "react";
+import { api } from "../api";
+import { useNavigate, Link } from "react-router-dom";
+import { setAuthToken } from "../utils/auth";
+import Logo from "../components/Logo";
+import { UserPlus, Mail, Lock, User } from "lucide-react";
+
+export default function Register({ setUser }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  async function submit(e) {
+    e.preventDefault();
+    setErr("");
+    setLoading(true);
+    try {
+      const data = await api("/api/auth/register-token", { method: "POST", body: { name, email, password } });
+      // Lưu token cho fallback với IP
+      if (data.token) setAuthToken(data.token);
+      if (setUser) setUser(data.user);
+      navigate("/");
+    } catch (e) { 
+      setErr(e.message); 
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-slate-100 flex items-center justify-center">
+      <div className="w-full max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-8 items-center">
+        
+        {/* Left Side - Branding */}
+        <div className="text-center lg:text-left space-y-6 px-4">
+          <div className="flex items-center justify-center lg:justify-start">
+            <Logo size="large" showText={true} />
+          </div>
+          <p className="text-xl text-gray-700 leading-relaxed">
+            Tham gia cộng đồng blogger và bắt đầu hành trình chia sẻ câu chuyện của bạn.
+          </p>
+          <div className="hidden lg:block space-y-4">
+            <div className="flex items-center gap-3 text-gray-600">
+              <span>Tạo trang cá nhân miễn phí</span>
+            </div>
+            <div className="flex items-center gap-3 text-gray-600">
+              <span>Kết nối với mọi người</span>
+            </div>
+            <div className="flex items-center gap-3 text-gray-600">
+              <span>Công cụ viết bài hiện đại</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Register Form */}
+        <div className="w-full max-w-md mx-auto px-4">
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Tạo tài khoản</h2>
+              <p className="text-gray-600">Bắt đầu hành trình viết blog của bạn</p>
+            </div>
+
+            <form onSubmit={submit} className="space-y-4">
+              {/* Name Input */}
+              <div className="relative">
+                <User size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Họ và tên"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200"
+                  required
+                />
+              </div>
+
+              {/* Email Input */}
+              <div className="relative">
+                <Mail size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200"
+                  required
+                />
+              </div>
+
+              {/* Password Input */}
+              <div className="relative">
+                <Lock size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="password"
+                  placeholder="Mật khẩu (tối thiểu 6 ký tự)"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200"
+                  required
+                  minLength="6"
+                />
+              </div>
+
+              {/* Error Message */}
+              {err && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {err}
+                </div>
+              )}
+
+              {/* Register Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gray-800 hover:bg-gray-900 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <UserPlus size={20} />
+                )}
+                {loading ? "Đang tạo tài khoản..." : "Đăng ký"}
+              </button>
+
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white text-gray-500">Đã có tài khoản?</span>
+                </div>
+              </div>
+
+              {/* Login Link */}
+              <Link
+                to="/login"
+                className="w-full bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-center"
+              >
+                Đăng nhập
+              </Link>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
