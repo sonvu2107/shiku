@@ -3,6 +3,12 @@ import { api } from "../api";
 import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import BanNotification from "./BanNotification";
 
+const roleIcons = {
+  solo: "/assets/Sung-tick.png",
+  sybau: "/assets/Sybau-tick.png",
+  keeper: "/assets/moxumxue.png"
+};
+
 export default function CommentSection({ postId, initialComments = [], user }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
@@ -19,42 +25,45 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showDropdown && !event.target.closest('.comment-dropdown')) {
+      if (showDropdown && !event.target.closest(".comment-dropdown")) {
         setShowDropdown(null);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showDropdown]);
 
   useEffect(() => {
-    // Organize comments into tree structure
     const organizeComments = (commentList) => {
       const commentMap = {};
       const rootComments = [];
-
-      // First pass: create comment objects
-      commentList.forEach(comment => {
+      commentList.forEach((comment) => {
         commentMap[comment._id] = { ...comment, replies: [] };
       });
-
-      // Second pass: organize into tree
-      commentList.forEach(comment => {
+      commentList.forEach((comment) => {
         if (comment.parent) {
           if (commentMap[comment.parent._id || comment.parent]) {
-            commentMap[comment.parent._id || comment.parent].replies.push(commentMap[comment._id]);
+            commentMap[comment.parent._id || comment.parent].replies.push(
+              commentMap[comment._id]
+            );
           }
         } else {
           rootComments.push(commentMap[comment._id]);
         }
       });
-
       return rootComments;
     };
-
-    setComments(organizeComments(initialComments));
-  }, [initialComments]);
+    const fetchComments = async () => {
+      try {
+        const res = await api(`/api/comments/post/${postId}`);
+        setComments(organizeComments(res.items));
+      } catch (err) {
+        console.error("Lỗi load comments:", err);
+      }
+    };
+    fetchComments();
+  }, [postId]);
 
   const handleSubmitComment = async (e) => {
     e.preventDefault();
@@ -66,9 +75,12 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         method: "POST",
         body: { content: newComment }
       });
-      
+
       // Add new comment to the top
-      setComments(prev => [{ ...response.comment, replies: [] }, ...prev]);
+      setComments((prev) => [
+        { ...response.comment, replies: [] },
+        ...prev
+      ]);
       setNewComment("");
     } catch (error) {
       if (error.banInfo) {
@@ -89,7 +101,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
     setLoading(true);
     try {
       let content = replyContent;
-      
+
       // Add mention if replying to someone
       if (mentionUser && !content.startsWith(`@${mentionUser.name}`)) {
         content = `@${mentionUser.name} ${content}`;
@@ -101,15 +113,20 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       });
 
       // Add reply to the specific comment
-      setComments(prev => prev.map(comment => 
-        addReplyToComment(comment, parentId, { ...response.comment, replies: [] })
-      ));
-      
+      setComments((prev) =>
+        prev.map((comment) =>
+          addReplyToComment(comment, parentId, {
+            ...response.comment,
+            replies: []
+          })
+        )
+      );
+
       setReplyContent("");
       setReplyingTo(null);
-      
+
       // Auto expand replies to show the new reply
-      setExpandedReplies(prev => new Set([...prev, parentId]));
+      setExpandedReplies((prev) => new Set([...prev, parentId]));
     } catch (error) {
       alert("Lỗi khi trả lời: " + error.message);
     } finally {
@@ -137,10 +154,12 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       });
 
       // Update comment in state
-      setComments(prev => prev.map(comment => 
-        updateCommentInTree(comment, commentId, response.comment)
-      ));
-      
+      setComments((prev) =>
+        prev.map((comment) =>
+          updateCommentInTree(comment, commentId, response.comment)
+        )
+      );
+
       setEditingComment(null);
       setEditContent("");
     } catch (error) {
@@ -157,7 +176,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
     if (comment.replies && comment.replies.length > 0) {
       return {
         ...comment,
-        replies: comment.replies.map(reply => 
+        replies: comment.replies.map((reply) =>
           updateCommentInTree(reply, commentId, updatedComment)
         )
       };
@@ -176,12 +195,14 @@ export default function CommentSection({ postId, initialComments = [], user }) {
     }
     return {
       ...comment,
-      replies: comment.replies.map(reply => addReplyToComment(reply, parentId, newReply))
+      replies: comment.replies.map((reply) =>
+        addReplyToComment(reply, parentId, newReply)
+      )
     };
   };
 
   const toggleReplies = (commentId) => {
-    setExpandedReplies(prev => {
+    setExpandedReplies((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(commentId)) {
         newSet.delete(commentId);
@@ -192,26 +213,24 @@ export default function CommentSection({ postId, initialComments = [], user }) {
     });
   };
 
-  // ...existing code...
-
-  // Xóa bình luận khỏi cây
   function removeCommentFromTree(commentList, commentId) {
     return commentList
-      .filter(comment => comment._id !== commentId)
-      .map(comment => ({
+      .filter((comment) => comment._id !== commentId)
+      .map((comment) => ({
         ...comment,
-        replies: comment.replies ? removeCommentFromTree(comment.replies, commentId) : []
+        replies: comment.replies
+          ? removeCommentFromTree(comment.replies, commentId)
+          : []
       }));
   }
 
-  // Hàm xóa bình luận
   async function handleDeleteComment(commentId) {
     setLoading(true);
     try {
       await api(`/api/comments/${commentId}`, {
         method: "DELETE"
       });
-      setComments(prev => removeCommentFromTree(prev, commentId));
+      setComments((prev) => removeCommentFromTree(prev, commentId));
     } catch (error) {
       alert("Lỗi khi xóa bình luận: " + error.message);
     } finally {
@@ -222,20 +241,35 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   const renderComment = (comment, level = 0) => {
     const isExpanded = expandedReplies.has(comment._id);
     const hasReplies = comment.replies && comment.replies.length > 0;
-    
-    return (
-      <div key={comment._id} className={`${level > 0 ? 'ml-12' : ''}`}>
+
+  // Debug: log role của user khi render comment
+  console.log('Comment author:', comment.author?.name, 'Role:', comment.author?.role);
+  return (
+      <div key={comment._id} className={`${level > 0 ? "ml-12" : ""}`}>
         {/* Main Comment */}
         <div className="flex gap-3 py-2">
-          <img 
-            src={comment.author?.avatarUrl || `https://ui-avatars.io/api/?name=${encodeURIComponent(comment.author?.name || 'User')}&background=3b82f6&color=ffffff&size=40`}
+          <img
+            src={
+              comment.author?.avatarUrl ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                comment.author?.name || "User"
+              )}&background=3b82f6&color=ffffff&size=40`
+            }
             alt={comment.author?.name}
             className="w-10 h-10 rounded-full object-cover flex-shrink-0"
           />
           <div className="flex-1 min-w-0">
             <div className="bg-gray-100 rounded-2xl px-4 py-2">
-              <div className="font-semibold text-sm text-gray-900">
-                {comment.author?.name}
+              <div className="font-semibold text-sm text-gray-900 flex items-center gap-1">
+                  {comment.author?.name}
+                  {/* Hiện tích xanh chỉ với role đặc biệt */}
+                  {comment.author?.role && ["solo", "sybau", "keeper"].includes(comment.author.role) && (
+                    <img
+                      src={roleIcons[comment.author.role]}
+                      alt="Tích xanh"
+                      className="w-4 h-4 rounded-full"
+                    />
+                  )}
               </div>
               {editingComment === comment._id ? (
                 <div className="mt-2">
@@ -268,14 +302,14 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                 </div>
               )}
             </div>
-            
+
             {/* Comment Actions */}
             <div className="flex items-center gap-4 mt-1 ml-4">
               <span className="text-xs text-gray-500">
-                {new Date(comment.createdAt).toLocaleDateString('vi-VN')}
+                {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
               </span>
               {user && (
-                <button 
+                <button
                   onClick={() => {
                     setReplyingTo(comment._id);
                     setReplyContent(`@${comment.author?.name} `);
@@ -286,13 +320,17 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                 </button>
               )}
               <div className="relative comment-dropdown">
-                <button 
-                  onClick={() => setShowDropdown(showDropdown === comment._id ? null : comment._id)}
+                <button
+                  onClick={() =>
+                    setShowDropdown(
+                      showDropdown === comment._id ? null : comment._id
+                    )
+                  }
                   className="text-xs text-gray-600 hover:text-gray-800"
                 >
                   <MoreHorizontal size={14} />
                 </button>
-                
+
                 {showDropdown === comment._id && (
                   <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded shadow-lg z-10 min-w-24">
                     {user && user._id === comment.author._id && (
@@ -303,19 +341,25 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                         Sửa
                       </button>
                     )}
-                    {(user && (user._id === comment.author._id || user.role === "admin")) && (
-                      <button
-                        onClick={() => {
-                          if (window.confirm("Bạn có chắc muốn xóa bình luận này?")) {
-                            handleDeleteComment(comment._id);
-                          }
-                          setShowDropdown(null);
-                        }}
-                        className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-100"
-                      >
-                        Xóa
-                      </button>
-                    )}
+                    {user &&
+                      (user._id === comment.author._id ||
+                        user.role === "admin") && (
+                        <button
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                "Bạn có chắc muốn xóa bình luận này?"
+                              )
+                            ) {
+                              handleDeleteComment(comment._id);
+                            }
+                            setShowDropdown(null);
+                          }}
+                          className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-100"
+                        >
+                          Xóa
+                        </button>
+                      )}
                   </div>
                 )}
               </div>
@@ -327,20 +371,31 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                 onClick={() => toggleReplies(comment._id)}
                 className="flex items-center gap-2 mt-2 ml-4 text-sm font-semibold text-blue-600 hover:text-blue-800"
               >
-                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                {isExpanded ? 'Ẩn phản hồi' : `${comment.replies.length} phản hồi`}
+                {isExpanded ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
+                {isExpanded ? "Ẩn phản hồi" : `${comment.replies.length} phản hồi`}
               </button>
             )}
 
             {/* Reply Input */}
             {replyingTo === comment._id && user && (
-              <form 
-                onSubmit={(e) => handleSubmitReply(e, comment._id, comment.author)}
+              <form
+                onSubmit={(e) =>
+                  handleSubmitReply(e, comment._id, comment.author)
+                }
                 className="mt-3 ml-4"
               >
                 <div className="flex gap-2">
-                  <img 
-                    src={user?.avatarUrl || `https://ui-avatars.io/api/?name=${encodeURIComponent(user?.name || 'User')}&background=3b82f6&color=ffffff&size=32`}
+                  <img
+                    src={
+                      user?.avatarUrl ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        user?.name || "User"
+                      )}&background=3b82f6&color=ffffff&size=32`
+                    }
                     alt={user?.name}
                     className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                   />
@@ -380,7 +435,9 @@ export default function CommentSection({ postId, initialComments = [], user }) {
             {/* Nested Replies */}
             {isExpanded && hasReplies && (
               <div className="mt-3">
-                {comment.replies.map(reply => renderComment(reply, level + 1))}
+                {comment.replies.map((reply) =>
+                  renderComment(reply, level + 1)
+                )}
               </div>
             )}
           </div>
@@ -402,8 +459,13 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       {/* Comment Input */}
       <form onSubmit={handleSubmitComment} className="space-y-3">
         <div className="flex gap-3">
-          <img 
-            src={user?.avatarUrl || `https://ui-avatars.io/api/?name=${encodeURIComponent(user?.name || 'User')}&background=3b82f6&color=ffffff&size=40`}
+          <img
+            src={
+              user?.avatarUrl ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                user?.name || "User"
+              )}&background=3b82f6&color=ffffff&size=40`
+            }
             alt={user?.name}
             className="w-10 h-10 rounded-full object-cover flex-shrink-0"
           />
@@ -431,8 +493,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       {/* Comments List */}
       <div className="space-y-2">
         {comments.length > 0 ? (
-          comments.map(comment => renderComment(comment))
-
+          comments.map((comment) => renderComment(comment))
         ) : (
           <div className="text-center py-8 text-gray-500">
             Chưa có bình luận nào. Hãy là người đầu tiên!
@@ -442,7 +503,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
 
       {/* Ban Notification */}
       {showBanNotification && (
-        <BanNotification 
+        <BanNotification
           banInfo={banInfo}
           onClose={() => setShowBanNotification(false)}
         />

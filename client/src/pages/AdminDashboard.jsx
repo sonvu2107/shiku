@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import AdminFeedback from "./AdminFeedback";
 import { api } from "../api";
 import { useNavigate } from "react-router-dom";
-import { 
-  BarChart3, 
-  Users, 
-  FileText, 
-  Eye, 
-  MessageCircle, 
-  Heart, 
+import {
+  BarChart3,
+  Users,
+  FileText,
+  Eye,
+  MessageCircle,
+  Heart,
   Crown,
   Edit,
   Trash2,
@@ -82,6 +82,21 @@ export default function AdminDashboard() {
     }
   }
 
+  async function updateUserRole(userId, newRole) {
+    if (!window.confirm(`Bạn có chắc muốn đổi role user này thành ${newRole}?`)) return;
+    try {
+      await api(`/api/admin/users/${userId}/role`, {
+        method: "PUT",
+        body: { role: newRole }
+      });
+      await loadUsers();
+      alert("Đã cập nhật role cho user!");
+    } catch (err) {
+      alert("Lỗi: " + err.message);
+    }
+  }
+
+
   async function deleteUser(userId) {
     if (!window.confirm("Bạn có chắc muốn xóa người dùng này? Tất cả bài viết và bình luận của họ sẽ bị xóa!")) return;
     try {
@@ -98,18 +113,18 @@ export default function AdminDashboard() {
       alert("Vui lòng nhập lý do cấm!");
       return;
     }
-    
+
     try {
       const banDurationMinutes = duration === "permanent" ? null : parseInt(duration);
       await api("/api/admin/ban-user", {
         method: "POST",
         body: { userId, banDurationMinutes, reason }
       });
-      
+
       // Reset form and refresh users list
       setBanForm({ userId: "", duration: "", reason: "" });
       await loadUsers();
-      
+
       alert("Đã cấm người dùng!");
     } catch (e) {
       alert("Lỗi: " + e.message);
@@ -123,10 +138,10 @@ export default function AdminDashboard() {
         method: "POST",
         body: { userId }
       });
-      
+
       // Refresh users list
       await loadUsers();
-      
+
       alert("Đã gỡ cấm người dùng!");
     } catch (e) {
       alert("Lỗi: " + e.message);
@@ -135,7 +150,7 @@ export default function AdminDashboard() {
 
   async function sendNotification(type) {
     const { title, message, targetRole } = notificationForm;
-    
+
     if (!title.trim() || !message.trim()) {
       alert("Vui lòng nhập tiêu đề và nội dung!");
       return;
@@ -143,7 +158,7 @@ export default function AdminDashboard() {
 
     try {
       const endpoint = type === "system" ? "/api/notifications/system" : "/api/notifications/broadcast";
-      const body = type === "system" 
+      const body = type === "system"
         ? { title, message, targetRole: targetRole || null }
         : { title, message };
 
@@ -190,7 +205,7 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab("users")}
           >
             <Users size={18} />
-            Quản lý User
+            Người dùng
           </button>
           <button
             className={`px-4 py-2 font-medium flex items-center gap-2 ${activeTab === "bans" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
@@ -238,8 +253,8 @@ export default function AdminDashboard() {
                       Tháng này: {stats.overview.totalPosts.thisMonth}
                     </div>
                     <div className={`flex items-center ${stats.overview.totalPosts.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {stats.overview.totalPosts.growth >= 0 ? 
-                        <TrendingUp size={14} className="mr-1" /> : 
+                      {stats.overview.totalPosts.growth >= 0 ?
+                        <TrendingUp size={14} className="mr-1" /> :
                         <TrendingDown size={14} className="mr-1" />
                       }
                       {Math.abs(stats.overview.totalPosts.growth)}% so với tháng trước
@@ -477,24 +492,43 @@ export default function AdminDashboard() {
                           className="w-8 h-8 rounded-full object-cover"
                         />
                       </td>
-                      <td className="px-4 py-2 font-medium">{u.name}</td>
+                      <td className="px-4 py-2 font-medium flex items-center gap-2">
+                        {u.name}
+                        {u.isVerified && (
+                          <img
+                            src={
+                              u.role === "solo" ? "/assets/Sung-tick.png"
+                                : u.role === "sybau" ? "/assets/Sybau-tick.png"
+                                  : u.role === "keeper" ? "/assets/moxumxue.png"
+                                    : "/assets/default-tick.png"
+                            }
+                            alt="Tích xanh"
+                            className="inline w-5 h-5 ml-1"
+                          />
+                        )}
+                      </td>
                       <td className="px-4 py-2">{u.email}</td>
                       <td className="px-4 py-2">
-                        <span className={`px-2 py-1 rounded-full text-xs ${u.role === "admin" ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}`}>
-                          {u.role === "admin" ? "Admin" : "User"}
-                        </span>
+                        <select
+                          value={u.role}
+                          onChange={async (e) => {
+                            const newRole = e.target.value;
+                            await updateUserRole(u._id, newRole);
+                          }}
+                          disabled={u._id === user._id}
+                          className="btn-outline btn-sm"
+                        >
+                          <option value="user">User</option>
+                          <option value="solo">Anh sung solo</option>
+                          <option value="sybau">Ahh Sybau</option>
+                          <option value="keeper">Hero great tomb guard keeper</option>
+                          <option value="admin">Admin</option>
+                        </select>
                       </td>
                       <td className="px-4 py-2 text-sm">{new Date(u.createdAt).toLocaleDateString()}</td>
                       <td className="px-4 py-2">{u.postCount}</td>
                       <td className="px-4 py-2">
                         <div className="flex gap-2">
-                          <button
-                            className="btn-outline btn-sm text-blue-600"
-                            onClick={() => toggleUserRole(u._id, u.role)}
-                            disabled={u._id === user._id}
-                          >
-                            {u.role === "admin" ? "Hạ quyền" : "Lên Admin"}
-                          </button>
                           <button
                             className="btn-outline btn-sm text-red-600"
                             onClick={() => deleteUser(u._id)}
@@ -512,134 +546,148 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Ban Management Tab */}
-        {activeTab === "bans" && (
-          <div className="pt-4">
-            <h2 className="text-xl font-bold mb-4">Quản lý cấm người dùng</h2>
-            
-            {/* Ban Form */}
-            <div className="bg-gray-50 p-4 rounded-lg mb-6">
-              <h3 className="font-semibold mb-3">Cấm người dùng</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <select 
-                  value={banForm.userId} 
-                  onChange={(e) => setBanForm({...banForm, userId: e.target.value})}
-                  className="input"
-                >
-                  <option value="">Chọn người dùng</option>
-                  {users.filter(u => u.role !== "admin" && u._id !== user._id).map(u => (
-                    <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
-                  ))}
-                </select>
-                
-                <select 
-                  value={banForm.duration} 
-                  onChange={(e) => setBanForm({...banForm, duration: e.target.value})}
-                  className="input"
-                >
-                  <option value="">Chọn thời gian cấm</option>
-                  <option value="15">15 phút</option>
-                  <option value="30">30 phút</option>
-                  <option value="60">1 giờ</option>
-                  <option value="180">3 giờ</option>
-                  <option value="360">6 giờ</option>
-                  <option value="720">12 giờ</option>
-                  <option value="1440">1 ngày</option>
-                  <option value="4320">3 ngày</option>
-                  <option value="10080">1 tuần</option>
-                  <option value="permanent">Vĩnh viễn</option>
-                </select>
-                
-                <input 
-                  type="text"
-                  placeholder="Lý do cấm..."
-                  value={banForm.reason}
-                  onChange={(e) => setBanForm({...banForm, reason: e.target.value})}
-                  className="input"
-                />
-                
-                <button 
-                  onClick={() => banUser(banForm.userId, banForm.duration, banForm.reason)}
-                  disabled={!banForm.userId || !banForm.duration || !banForm.reason}
-                  className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                >
-                  Cấm
-                </button>
-              </div>
-            </div>
+{/* Ban Management Tab */}
+{activeTab === "bans" && (
+  <div className="pt-4">
+    <h2 className="text-xl font-bold mb-4">Quản lý cấm người dùng</h2>
 
-            {/* Banned Users List */}
-            <div className="overflow-x-auto">
-              <h3 className="font-semibold mb-3">Danh sách người dùng bị cấm</h3>
-              <table className="w-full border-collapse border">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left border">Người dùng</th>
-                    <th className="px-4 py-2 text-left border">Lý do</th>
-                    <th className="px-4 py-2 text-left border">Thời gian cấm</th>
-                    <th className="px-4 py-2 text-left border">Hết hạn</th>
-                    <th className="px-4 py-2 text-left border">Trạng thái</th>
-                    <th className="px-4 py-2 text-left border">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.filter(u => u.isBanned).map(u => (
-                    <tr key={u._id} className="border">
-                      <td className="px-4 py-2 border">
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=cccccc&color=222222&size=32`}
-                            alt="avatar"
-                            className="w-6 h-6 rounded-full object-cover"
-                          />
-                          <span className="font-medium">{u.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2 border">{u.banReason}</td>
-                      <td className="px-4 py-2 border text-sm">
-                        {u.bannedAt ? new Date(u.bannedAt).toLocaleString() : "N/A"}
-                      </td>
-                      <td className="px-4 py-2 border text-sm">
-                        {u.banExpiresAt ? new Date(u.banExpiresAt).toLocaleString() : "Vĩnh viễn"}
-                      </td>
-                      <td className="px-4 py-2 border">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          !u.banExpiresAt ? "bg-red-100 text-red-800" : 
-                          new Date() < new Date(u.banExpiresAt) ? "bg-orange-100 text-orange-800" : "bg-green-100 text-green-800"
-                        }`}>
-                          {!u.banExpiresAt ? "Vĩnh viễn" : 
-                           new Date() < new Date(u.banExpiresAt) ? "Đang cấm" : "Hết hạn"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 border">
-                        <button
-                          className="btn-outline btn-sm text-green-600"
-                          onClick={() => unbanUser(u._id)}
-                        >
-                          Gỡ cấm
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {users.filter(u => u.isBanned).length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  Không có người dùng nào bị cấm
+    {/* Ban Form */}
+    <div className="bg-gray-50 p-4 rounded-lg mb-6">
+      <h3 className="font-semibold mb-3">Cấm người dùng</h3>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Chọn user */}
+        <select
+          value={banForm.userId}
+          onChange={(e) => setBanForm({ ...banForm, userId: e.target.value })}
+          className="input"
+        >
+          <option value="">Chọn người dùng</option>
+          {users.filter(u => u.role !== "admin" && u._id !== user._id).map(u => (
+            <option key={u._id} value={u._id}>
+              {u.name} ({u.email})
+            </option>
+          ))}
+        </select>
+
+        {/* Thời gian cấm */}
+        <select
+          value={banForm.duration}
+          onChange={(e) => setBanForm({ ...banForm, duration: e.target.value })}
+          className="input"
+        >
+          <option value="">Chọn thời gian cấm</option>
+          <option value="15">15 phút</option>
+          <option value="30">30 phút</option>
+          <option value="60">1 giờ</option>
+          <option value="180">3 giờ</option>
+          <option value="360">6 giờ</option>
+          <option value="720">12 giờ</option>
+          <option value="1440">1 ngày</option>
+          <option value="4320">3 ngày</option>
+          <option value="10080">1 tuần</option>
+          <option value="permanent">Vĩnh viễn</option>
+        </select>
+
+        {/* Lý do */}
+        <input
+          type="text"
+          value={banForm.reason}
+          onChange={(e) => setBanForm({ ...banForm, reason: e.target.value })}
+          placeholder="Nhập lý do cấm..."
+          className="input"
+        />
+
+        <button
+          onClick={() => banUser(banForm.userId, banForm.duration, banForm.reason)}
+          className="btn bg-red-600 text-white"
+          disabled={!banForm.userId || !banForm.duration || !banForm.reason.trim()}
+        >
+          Cấm
+        </button>
+      </div>
+    </div>
+
+    {/* Banned Users List */}
+    <div className="overflow-x-auto">
+      <h3 className="font-semibold mb-3">Danh sách người dùng bị cấm</h3>
+      <table className="w-full border-collapse border">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-2 text-left border">Người dùng</th>
+            <th className="px-4 py-2 text-left border">Lý do</th>
+            <th className="px-4 py-2 text-left border">Thời gian cấm</th>
+            <th className="px-4 py-2 text-left border">Hết hạn</th>
+            <th className="px-4 py-2 text-left border">Trạng thái</th>
+            <th className="px-4 py-2 text-left border">Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.filter(u => u.isBanned).map(u => (
+            <tr key={u._id} className="border">
+              <td className="px-4 py-2 border">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=cccccc&color=222222&size=32`}
+                    alt="avatar"
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                  <span className="font-medium">{u.name}</span>
                 </div>
-              )}
-            </div>
-          </div>
-        )}
+              </td>
+              <td className="px-4 py-2 border">{u.banReason}</td>
+              <td className="px-4 py-2 border text-sm">
+                {u.bannedAt ? new Date(u.bannedAt).toLocaleString() : "N/A"}
+              </td>
+              <td className="px-4 py-2 border text-sm">
+                {u.banExpiresAt ? new Date(u.banExpiresAt).toLocaleString() : "Vĩnh viễn"}
+              </td>
+              <td className="px-4 py-2 border">
+                <span
+                  className={`px-2 py-1 rounded-full text-xs ${
+                    !u.banExpiresAt
+                      ? "bg-red-100 text-red-800"
+                      : new Date() < new Date(u.banExpiresAt)
+                      ? "bg-orange-100 text-orange-800"
+                      : "bg-green-100 text-green-800"
+                  }`}
+                >
+                  {!u.banExpiresAt
+                    ? "Vĩnh viễn"
+                    : new Date() < new Date(u.banExpiresAt)
+                    ? "Đang cấm"
+                    : "Hết hạn"}
+                </span>
+              </td>
+              <td className="px-4 py-2 border">
+                <button
+                  className="btn-outline btn-sm text-green-600"
+                  onClick={() => unbanUser(u._id)}
+                >
+                  Gỡ cấm
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {users.filter(u => u.isBanned).length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          Không có người dùng nào bị cấm
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
 
         {/* Notifications Tab */}
         {activeTab === "notifications" && (
           <div className="pt-4">
             <h2 className="text-xl font-bold mb-4">Gửi thông báo</h2>
-            
+
             {/* Notification Forms */}
             <div className="grid gap-6 lg:grid-cols-2">
-              
+
               {/* System Notification */}
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h3 className="font-semibold mb-3 text-blue-800">Thông báo hệ thống</h3>
@@ -648,27 +696,27 @@ export default function AdminDashboard() {
                     type="text"
                     placeholder="Tiêu đề thông báo..."
                     value={notificationForm.title}
-                    onChange={(e) => setNotificationForm({...notificationForm, title: e.target.value})}
+                    onChange={(e) => setNotificationForm({ ...notificationForm, title: e.target.value })}
                     className="input w-full"
                   />
-                  
+
                   <textarea
                     placeholder="Nội dung thông báo..."
                     value={notificationForm.message}
-                    onChange={(e) => setNotificationForm({...notificationForm, message: e.target.value})}
+                    onChange={(e) => setNotificationForm({ ...notificationForm, message: e.target.value })}
                     className="input w-full h-20 resize-none"
                   />
-                  
+
                   <select
                     value={notificationForm.targetRole}
-                    onChange={(e) => setNotificationForm({...notificationForm, targetRole: e.target.value})}
+                    onChange={(e) => setNotificationForm({ ...notificationForm, targetRole: e.target.value })}
                     className="input w-full"
                   >
                     <option value="">Tất cả người dùng</option>
                     <option value="admin">Chỉ Admin</option>
                     <option value="user">Chỉ User thường</option>
                   </select>
-                  
+
                   <button
                     onClick={() => sendNotification("system")}
                     className="btn bg-blue-600 text-white w-full hover:bg-blue-700"
@@ -687,17 +735,17 @@ export default function AdminDashboard() {
                     type="text"
                     placeholder="Tiêu đề thông báo..."
                     value={notificationForm.title}
-                    onChange={(e) => setNotificationForm({...notificationForm, title: e.target.value})}
+                    onChange={(e) => setNotificationForm({ ...notificationForm, title: e.target.value })}
                     className="input w-full"
                   />
-                  
+
                   <textarea
                     placeholder="Nội dung thông báo..."
                     value={notificationForm.message}
-                    onChange={(e) => setNotificationForm({...notificationForm, message: e.target.value})}
+                    onChange={(e) => setNotificationForm({ ...notificationForm, message: e.target.value })}
                     className="input w-full h-20 resize-none"
                   />
-                  
+
                   <button
                     onClick={() => sendNotification("broadcast")}
                     className="btn bg-green-600 text-white w-full hover:bg-green-700"

@@ -16,6 +16,7 @@ import AdminFeedback from "./pages/AdminFeedback.jsx";
 import Settings from "./pages/Settings.jsx";
 import Support from "./pages/Support.jsx";
 import NotificationHistory from "./pages/NotificationHistory.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { api } from "./api.js";
 import { getAuthToken } from "./utils/auth.js";
@@ -90,6 +91,7 @@ export default function App() {
             <Route path="/admin/feedback" element={<ProtectedRoute user={user}><AdminFeedback /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute user={user}><Settings /></ProtectedRoute>} />
             <Route path="/support" element={<ProtectedRoute user={user}><Support /></ProtectedRoute>} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>

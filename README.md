@@ -1,104 +1,66 @@
-# Fullstack Blog (Express + MongoDB + React + Vite)
+# Shiku Blog & Chat
 
-Một blog tối giản, đủ chức năng: đăng ký/đăng nhập (JWT), viết/sửa/xoá bài, tag, tìm kiếm, bình luận, like, ảnh cover, upload ảnh (local hoặc Cloudinary), phân trang.
+Một nền tảng blog + chat hiện đại, fullstack: đăng ký/đăng nhập (JWT), viết/sửa/xoá bài, tag, tìm kiếm, bình luận, like, upload ảnh (local/Cloudinary), phân trang, chat Messenger-style, admin dashboard, feedback, settings, support, phân quyền, responsive, deploy Railway.
 
-## 1) Yêu cầu
-- Node.js 18+
-- Tài khoản MongoDB Atlas (hoặc MongoDB local)
-- (Tuỳ chọn) Cloudinary để lưu ảnh
+## Tính năng chính
+- Đăng ký/Đăng nhập/JWT
+- Quản lý bài viết: tạo, sửa, xoá, like, bình luận, tag, tìm kiếm
+- Upload ảnh: local hoặc Cloudinary
+- Chat Messenger-style: popup, dropdown, gửi ảnh, xem lịch sử
+- Admin Dashboard: quản lý user, cấm user, gửi thông báo, xem góp ý
+- Trang Settings: quản lý tài khoản, đổi mật khẩu, xoá tài khoản
+- Trang Support: gửi góp ý/feedback
+- Phân quyền: user thường, admin
+- Responsive UI, sticky header, infinite scroll
+- Tìm kiếm user/bài viết, dropdown chat, popup chat
+- Triển khai Railway, cấu hình CI/CD
 
-## 2) Cấu trúc
+## Cấu trúc thư mục
 ```
-blog-fullstack/
-├─ server/               # API Express + MongoDB
+MyBlog/
+├─ client/      # React + Vite + Tailwind
 │  ├─ src/
-│  │  ├─ config/db.js
-│  │  ├─ middleware/ (auth, limiter, error)
-│  │  ├─ models/ (User, Post, Comment)
-│  │  ├─ routes/ (auth, posts, comments, uploads)
+│  │  ├─ pages/ (Home, Login, Register, Profile, Settings, Support, AdminDashboard, Chat...)
+│  │  ├─ components/ (Navbar, ChatDropdown, ChatPopup, PostCard, ...)
+│  │  ├─ api.js, styles.css
+│  └─ public/
+├─ server/      # Node.js + Express + MongoDB
+│  ├─ src/
+│  │  ├─ models/ (User, Post, Comment, Message, Notification, ...)
+│  │  ├─ routes/ (auth, posts, comments, messages, notifications, feedback, ...)
+│  │  ├─ services/ (NotificationService, ...)
 │  │  └─ index.js
 │  └─ .env.example
-└─ client/               # React + Vite + Tailwind
-   └─ src/ (pages, components, api.js)
+├─ railway.json # Railway deploy config
+├─ .gitignore
+└─ README.md
 ```
 
-## 3) Chạy local
-
-### 3.1 Backend
+## Hướng dẫn chạy local
+### Backend
 ```bash
 cd server
-cp .env.example .env
-# sửa .env: MONGODB_URI, JWT_SECRET, CORS_ORIGIN (http://localhost:5173)
-npm i
-npm run start   # hoặc: npm run dev (nếu đã cài nodemon)
-```
-
-Backend chạy ở `http://localhost:4000`.
-
-### 3.2 Frontend
-```bash
-cd client
-npm i
-# tạo file .env ở thư mục client nếu muốn cấu hình:
-# VITE_API_URL=http://localhost:4000
+cp .env.example .env # điền MONGODB_URI, JWT_SECRET, CLOUDINARY_URL
+npm install
 npm run dev
 ```
+Backend chạy ở `http://localhost:4000`
 
-Frontend chạy ở `http://localhost:5173`.
-
-## 4) Endpoints chính
-- `POST /api/auth/register` { name, email, password }
-- `POST /api/auth/login` { email, password }
-- `GET  /api/auth/me` (Bearer token)
-- `GET  /api/posts` ?page ?limit ?q ?tag ?author ?status
-- `GET  /api/posts/slug/:slug`
-- `POST /api/posts` (auth) { title, content, tags[], coverUrl, status }
-- `PUT  /api/posts/:id` (auth)
-- `DELETE /api/posts/:id` (auth)
-- `POST /api/posts/:id/like` (auth)
-- `GET  /api/comments/post/:postId`
-- `POST /api/comments/post/:postId` (auth)
-- `DELETE /api/comments/:id` (auth)
-
-## 5) Upload ảnh
-Mặc định lưu file vào thư mục `server/uploads` và truy cập qua `/uploads/<tên_file>`.
-Nếu cấu hình Cloudinary trong `.env` (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) thì ảnh sẽ được up lên Cloudinary và trả về `secure_url`.
-
-## 6) Triển khai
-- **Backend**: Railway/Render/Fly… (Node server). Set env giống `.env.example`. Bật CORS_ORIGIN với domain của frontend.
-- **Frontend**: Netlify/Vercel/GitHub Pages. Set `VITE_API_URL` trỏ tới domain backend.
-
-## 7) Ghi chú
-- Đây là khung sườn sạch để bắt đầu. Bạn có thể bổ sung: phân quyền admin UI, sitemap/SEO, RSS, slug tuỳ biến, editor nâng cao, xác thực email, refresh token, v.v.
-- Mọi phần tử UI đã viết bằng Tailwind (tối giản) để bạn dễ chỉnh.
-
-# MyBlog
-
-## Deploy & Development
-
-- Frontend: React + Vite (client/)
-- Backend: Node.js + Express (server/)
-- Database: MongoDB
-- Styling: Tailwind CSS
-
-### Local Development
+### Frontend
 ```bash
 cd client
 npm install
 npm run dev
-
-cd ../server
-npm install
-npm run dev
 ```
+Frontend chạy ở `http://localhost:5173`
 
-### Deploy on Railway
+## Deploy Railway
 1. Push code lên GitHub: [sonvu2107/shiku](https://github.com/sonvu2107/shiku)
 2. Truy cập https://railway.app, tạo project mới, kết nối với repo.
 3. Thiết lập biến môi trường `.env` cho server (MongoDB URI, JWT secret, Cloudinary, ...).
 4. Railway sẽ tự động build và deploy.
 
-### Environment Variables
+## Biến môi trường
 - Tạo file `.env` trong `server/` với các biến:
 ```
 MONGODB_URI=...
@@ -106,6 +68,18 @@ JWT_SECRET=...
 CLOUDINARY_URL=...
 ```
 
-### Notes
-- Đảm bảo đã có file `.gitignore` để không push thông tin nhạy cảm.
-- Đã có sẵn cấu hình cho Railway và Vite.
+## Các endpoint chính
+- Đăng nhập/Đăng ký: `/api/auth/register`, `/api/auth/login`, `/api/auth/me`
+- Bài viết: `/api/posts`, `/api/posts/:id`, `/api/posts/slug/:slug`, `/api/posts/:id/like`
+- Bình luận: `/api/comments/post/:postId`, `/api/comments/:id`
+- Chat: `/api/messages`, `/api/conversations`, ...
+- Thông báo: `/api/notifications`, `/api/notifications/system`, `/api/notifications/broadcast`
+- Góp ý/feedback: `/api/support/feedback`
+- Quản lý user: `/api/admin/users`, `/api/admin/ban-user`, `/api/admin/unban-user`
+
+## Ghi chú
+- UI sử dụng Tailwind, tối ưu responsive, sticky header, infinite scroll
+- Đã có Messenger-style chat popup, dropdown, phân quyền, admin dashboard, feedback
+- Không còn dark mode ở Settings
+- Đã có .gitignore, railway.json, hướng dẫn deploy
+- Nếu cần thêm hướng dẫn CI/CD, badge, hoặc tính năng mới, hãy liên hệ!

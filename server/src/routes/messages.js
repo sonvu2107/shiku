@@ -173,10 +173,21 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
           leftAt: null
         }
       }
-    });
+    }).populate('participants.user', 'blockedUsers');
 
     if (!conversation) {
       return res.status(403).json({ message: "Không có quyền truy cập cuộc trò chuyện này" });
+    }
+
+    // Kiểm tra block giữa các thành viên (chỉ cho phép gửi nếu không ai block nhau)
+    const currentUser = await User.findById(req.user._id).select('blockedUsers');
+    const otherParticipants = conversation.participants.filter(p => p.user._id.toString() !== req.user._id.toString());
+    for (const p of otherParticipants) {
+      const iBlockedThem = currentUser.blockedUsers?.map(id => id.toString()).includes(p.user._id.toString());
+      const theyBlockedMe = p.user.blockedUsers?.map(id => id.toString()).includes(req.user._id.toString());
+      if (iBlockedThem || theyBlockedMe) {
+        return res.status(403).json({ message: "Bạn hoặc người này đã chặn nhau, không thể gửi tin nhắn." });
+      }
     }
 
     const messageData = {

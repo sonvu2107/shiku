@@ -1,3 +1,47 @@
+import { Router } from "express";
+const router = Router();
+import crypto from "crypto";
+import { sendEmail } from "../utils/sendEmail.js";
+router.post("/forgot-password", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Vui lòng nhập email" });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: "Email không tồn tại" });
+
+    // Tạo mã token reset
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 1000 * 60 * 30;
+    await user.save();
+
+    // Gửi email thật
+    const resetLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`;
+    await sendEmail({
+      to: email,
+      subject: "Đặt lại mật khẩu Shiku",
+      html: `<p>Chào bạn,<br/>Bạn vừa yêu cầu đặt lại mật khẩu. Nhấn vào link bên dưới để đặt lại mật khẩu mới:</p>
+      <p><a href='${resetLink}'>Đặt lại mật khẩu</a></p>
+      <p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`
+    });
+    res.json({ message: "Đã gửi email hướng dẫn đặt lại mật khẩu!" });
+  } catch (e) { next(e); }
+});
+
+// Đặt lại mật khẩu qua token
+router.post("/reset-password", async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: "Thiếu thông tin" });
+    const user = await User.findOne({ resetPasswordToken: token, resetPasswordExpires: { $gt: Date.now() } });
+    if (!user) return res.status(400).json({ error: "Token không hợp lệ hoặc đã hết hạn" });
+    user.password = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+    res.json({ message: "Đã đặt lại mật khẩu thành công!" });
+  } catch (e) { next(e); }
+});
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -7,7 +51,6 @@ import { authRequired } from "../middleware/auth.js";
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 
-const router = express.Router();
 const upload = multer({ dest: "tmp/" });
 
 // Update profile

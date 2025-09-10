@@ -63,7 +63,7 @@ router.get('/:id', authRequired, async (req, res) => {
     const { id } = req.params;
     
     const user = await User.findById(id)
-      .select('-password -email') // Không trả về password và email
+      .select('-password -email') 
       .populate('friends', 'name avatarUrl isOnline lastSeen');
 
     if (!user) {
@@ -92,16 +92,54 @@ router.get('/:id', authRequired, async (req, res) => {
 
     console.log('Debug pending request:', pendingRequest);
 
+    // Kiểm tra trạng thái block hai chiều
+    const currentUser = await User.findById(currentUserId).select('blockedUsers');
+    const iBlockedThem = currentUser.blockedUsers?.map(id => id.toString()).includes(user._id.toString());
+    const theyBlockedMe = user.blockedUsers?.map(id => id.toString()).includes(currentUserId);
     res.json({
       user: {
         ...user.toObject(),
         isFriend,
         hasPendingRequest: !!pendingRequest,
         pendingRequestDirection: pendingRequest ? 
-          (pendingRequest.from.toString() === currentUserId ? 'sent' : 'received') : null
+          (pendingRequest.from.toString() === currentUserId ? 'sent' : 'received') : null,
+        iBlockedThem,
+        theyBlockedMe
       }
     });
 
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Chặn user
+router.post('/block/:id', authRequired, async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    if (targetId === req.user._id.toString()) {
+      return res.status(400).json({ message: 'Không thể tự chặn bản thân.' });
+    }
+    // Thêm vào danh sách blockedUsers nếu chưa có
+    await User.findByIdAndUpdate(req.user._id, {
+      $addToSet: { blockedUsers: targetId },
+      $pull: { friends: targetId } // Nếu là bạn thì hủy kết bạn
+    });
+    // Nếu muốn 2 chiều, có thể thêm targetId cũng chặn lại req.user._id
+    res.json({ message: 'Đã chặn người dùng.' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Bỏ chặn user
+router.post('/unblock/:id', authRequired, async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    await User.findByIdAndUpdate(req.user._id, {
+      $pull: { blockedUsers: targetId }
+    });
+    res.json({ message: 'Đã bỏ chặn người dùng.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

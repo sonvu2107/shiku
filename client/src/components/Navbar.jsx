@@ -118,7 +118,7 @@ export default function Navbar({ user, setUser }) {
                             onClick={() => navigate(`/user/${user._id}`)}
                           >
                             <img
-                              src={user.avatarUrl || `https://ui-avatars.io/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
                               alt={user.name}
                               className="w-8 h-8 rounded-full"
                             />

@@ -6,6 +6,7 @@ const EmoteSchema = new mongoose.Schema({
   type: { type: String, required: true } // Ví dụ: 👍, ❤️, 😂, 😮, 😢, 😡
 }, { _id: false });
 
+
 const PostSchema = new mongoose.Schema({
   author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   title: { type: String, required: true, trim: true },
@@ -14,9 +15,18 @@ const PostSchema = new mongoose.Schema({
   coverUrl: { type: String, default: "" },
   tags: [{ type: String, index: true }],
   status: { type: String, enum: ["private", "published"], default: "published" },
-  emotes: [EmoteSchema],   // chỉ còn emotes, bỏ likes
-  views: { type: Number, default: 0 }
+  emotes: [EmoteSchema],
+  views: { type: Number, default: 0 },
+  isEdited: { type: Boolean, default: false }
 }, { timestamps: true });
+
+// Đánh dấu bài đã chỉnh sửa nếu không phải là bài mới
+PostSchema.pre("save", function(next) {
+  if (!this.isNew) {
+    this.isEdited = true;
+  }
+  next();
+});
 
 PostSchema.pre("validate", function(next) {
   if (!this.slug && this.title) {

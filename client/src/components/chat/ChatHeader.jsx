@@ -76,20 +76,32 @@ export default function ChatHeader({
     return otherParticipant?.nickname || otherParticipant?.user?.name || otherParticipant?.name || 'Unknown User';
   };
 
-  const getAvatarUrl = () => {
-    if (isGroup) {
-      return null;
-    }
-    
-    const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
-    
-    const otherParticipant = conversation.participants?.find(p => {
-      const participantId = p.user?._id || p.user?.id || p._id || p.id;
-      return participantId !== currentUserId;
-    });
-    
-    return otherParticipant?.user?.avatarUrl || otherParticipant?.avatarUrl || '/default-avatar.png';
-  };
+const getAvatarUrl = () => {
+  if (isGroup) return null;
+
+  const currentUserId =
+    currentUser?.user?._id ||
+    currentUser?.user?.id ||
+    currentUser?._id ||
+    currentUser?.id;
+
+  const otherParticipant = conversation.participants?.find((p) => {
+    const participantId = p.user?._id || p.user?.id || p._id || p.id;
+    return participantId !== currentUserId;
+  });
+
+  const user = otherParticipant?.user || otherParticipant;
+
+  if (user?.avatarUrl && user.avatarUrl.trim() !== "") {
+    return user.avatarUrl;
+  }
+  if (user?.name) {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      user.name
+    )}&background=3b82f6&color=ffffff&size=40`;
+  }
+  return "/default-avatar.png";
+};
 
   if (!conversation) {
     return (

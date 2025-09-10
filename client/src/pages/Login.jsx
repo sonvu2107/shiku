@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { api } from "../api";
 import { useNavigate, Link } from "react-router-dom";
@@ -11,6 +10,11 @@ export default function Login({ setUser }) {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState(false);
   const navigate = useNavigate();
 
   async function submit(e) {
@@ -113,9 +117,13 @@ export default function Login({ setUser }) {
 
               {/* Forgot Password */}
               <div className="text-center">
-                <a href="#" className="text-gray-600 hover:text-gray-800 text-sm font-medium">
+                <button
+                  type="button"
+                  className="text-gray-600 hover:text-gray-800 text-sm font-medium underline"
+                  onClick={() => setShowForgot(true)}
+                >
                   Quên mật khẩu?
-                </a>
+                </button>
               </div>
 
               {/* Divider */}
@@ -139,6 +147,58 @@ export default function Login({ setUser }) {
           </div>
         </div>
       </div>
+
+      {/* Modal Quên mật khẩu */}
+      {showForgot && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+              onClick={() => setShowForgot(false)}
+            >
+              &times;
+            </button>
+            <h2 className="text-lg font-bold mb-2">Quên mật khẩu</h2>
+            <p className="text-sm text-gray-500 mb-4">Nhập email để nhận hướng dẫn đặt lại mật khẩu.</p>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setForgotLoading(true);
+                setForgotError("");
+                try {
+                  await api("/api/auth/forgot-password", {
+                    method: "POST",
+                    body: { email: forgotEmail }
+                  });
+                  setForgotSuccess(true);
+                } catch (err) {
+                  setForgotError(err.message || "Lỗi gửi yêu cầu");
+                } finally {
+                  setForgotLoading(false);
+                }
+              }}
+            >
+              <input
+                type="email"
+                required
+                placeholder="Email của bạn"
+                value={forgotEmail}
+                onChange={e => setForgotEmail(e.target.value)}
+                className="w-full px-3 py-2 border rounded mb-3"
+              />
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white py-2 rounded font-semibold"
+                disabled={forgotLoading}
+              >
+                {forgotLoading ? "Đang gửi..." : "Gửi yêu cầu"}
+              </button>
+              {forgotError && <div className="text-red-600 text-sm mt-2">{forgotError}</div>}
+              {forgotSuccess && <div className="text-green-600 text-sm mt-2">Đã gửi email hướng dẫn đặt lại mật khẩu!</div>}
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
