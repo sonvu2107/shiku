@@ -497,9 +497,9 @@ export default function AdminDashboard() {
                         {u.isVerified && (
                           <img
                             src={
-                              u.role === "solo" ? "/assets/Sung-tick.png"
+                              u.role === "sololeveling" ? "/assets/Sung-tick.png"
                                 : u.role === "sybau" ? "/assets/Sybau-tick.png"
-                                  : u.role === "keeper" ? "/assets/moxumxue.png"
+                                  : u.role === "moxumexue" ? "/assets/moxumxue.png"
                                     : "/assets/default-tick.png"
                             }
                             alt="Tích xanh"
@@ -519,9 +519,9 @@ export default function AdminDashboard() {
                           className="btn-outline btn-sm"
                         >
                           <option value="user">User</option>
-                          <option value="solo">Anh sung solo</option>
+                          <option value="sololeveling">Anh sung solo</option>
                           <option value="sybau">Ahh Sybau</option>
-                          <option value="keeper">Hero great tomb guard keeper</option>
+                          <option value="moxumxue">Hero great tomb guard keeper</option>
                           <option value="admin">Admin</option>
                         </select>
                       </td>

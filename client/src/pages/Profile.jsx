@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, uploadImage } from "../api";
+import UserName from "../components/UserName";
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -90,24 +91,7 @@ export default function Profile() {
 
           {/* Tên + tick */}
           <div className="flex items-center gap-2 mt-2">
-            <div className="text-xl font-bold">{form.name}</div>
-            {(user?.role === "solo" ||
-              user?.role === "sybau" ||
-              user?.role === "keeper") && (
-              <img
-                src={
-                  user?.role === "solo"
-                    ? "/assets/Sung-tick.png"
-                    : user?.role === "sybau"
-                    ? "/assets/Sybau-tick.png"
-                    : user?.role === "keeper"
-                    ? "/assets/moxumxue.png"
-                    : "/assets/default-tick.png"
-                }
-                alt="Tích xanh"
-                className="w-5 h-5 rounded-full border border-gray-300"
-              />
-            )}
+            <UserName user={user} className="text-xl font-bold" />
           </div>
 
           {avatarUploading && (

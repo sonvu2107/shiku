@@ -18,7 +18,7 @@ export default function EditPost() {
       setLoading(true);
       setErr("");
       console.log('Loading post with ID:', id);
-      
+
       const data = await api(`/api/posts/edit/${id}`);
       console.log('Loaded post:', data.post);
       setPost(data.post);
@@ -38,7 +38,7 @@ export default function EditPost() {
     try {
       const formData = new FormData();
       formData.append("image", file);
-      
+
       const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
       const response = await fetch(`${API_URL}/api/uploads/image`, {
         method: "POST",
@@ -49,7 +49,7 @@ export default function EditPost() {
       });
 
       if (!response.ok) throw new Error("Upload failed");
-      
+
       const data = await response.json();
       setPost({ ...post, coverUrl: data.url });
     } catch (error) {
@@ -68,13 +68,13 @@ export default function EditPost() {
   }
 
   if (loading) return <div className="w-full px-6 py-6"><div className="card max-w-4xl mx-auto">Đang tải...</div></div>;
-  
+
   if (err) return <div className="w-full px-6 py-6"><div className="card max-w-4xl mx-auto text-red-600">Lỗi: {err}</div></div>;
 
   if (!post) return <div className="w-full px-6 py-6"><div className="card max-w-4xl mx-auto">Không tìm thấy bài viết</div></div>;
 
   return (
-  <div className="w-full px-6 py-6 pt-20">
+    <div className="w-full px-6 py-6 pt-20">
       <div className="card max-w-4xl mx-auto space-y-3">
         <h1 className="text-2xl font-bold">Sửa bài</h1>
         <form onSubmit={save} className="space-y-3">
@@ -93,7 +93,7 @@ export default function EditPost() {
               <option value="private">Riêng tư</option>
             </select>
           </div>
-          
+
           {/* Image upload section */}
           <div className="flex items-center gap-4">
             <div className="flex-1">
@@ -111,9 +111,9 @@ export default function EditPost() {
             </div>
             {post.coverUrl && (
               <div className="relative">
-                <img 
-                  src={post.coverUrl} 
-                  alt="Cover preview" 
+                <img
+                  src={post.coverUrl}
+                  alt="Cover preview"
                   className="w-16 h-16 object-cover rounded-lg"
                 />
                 <button
@@ -126,7 +126,7 @@ export default function EditPost() {
               </div>
             )}
           </div>
-          
+
           <Editor value={post.content} onChange={v => setPost({ ...post, content: v })} />
           {err && <div className="text-red-600 text-sm">{err}</div>}
           <button className="btn">Lưu</button>

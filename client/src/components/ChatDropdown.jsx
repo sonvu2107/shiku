@@ -25,6 +25,33 @@ export default function ChatDropdown({ onOpenChat }) {
     }
   }
 
+  const getAvatar = (conv) => {
+    const isGroup = conv.conversationType === "group";
+
+    if (isGroup) {
+      return conv.groupAvatar || "/default-avatar.png";
+    }
+
+    const otherUser = conv.otherParticipants?.[0]?.user;
+    const name = otherUser?.name || "Không tên";
+
+    if (otherUser?.avatarUrl && otherUser.avatarUrl.trim() !== "") {
+      return otherUser.avatarUrl;
+    }
+
+    // fallback ui-avatars
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      name
+    )}&background=3b82f6&color=ffffff`;
+  };
+
+  const getName = (conv) => {
+    if (conv.conversationType === "group") {
+      return conv.groupName || "Nhóm";
+    }
+    return conv.otherParticipants?.[0]?.user?.name || "Không tên";
+  };
+
   return (
     <div className="relative">
       <button
@@ -43,38 +70,46 @@ export default function ChatDropdown({ onOpenChat }) {
             ) : conversations.length === 0 ? (
               <div className="p-4 text-gray-500">Không có hội thoại nào</div>
             ) : (
-              conversations.map(conv => (
-                <div
-                  key={conv._id}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b"
-                  onClick={() => onOpenChat(conv)}
-                >
-                  {(() => {
-                    const isGroup = conv.conversationType === 'group';
-                    const avatar = isGroup
-                      ? conv.groupAvatar || '/default-avatar.png'
-                      : (conv.otherParticipants?.[0]?.user?.avatarUrl || '/default-avatar.png');
-                    const name = isGroup
-                      ? conv.groupName || 'Nhóm'
-                      : (conv.otherParticipants?.[0]?.user?.name || 'Không tên');
-                    return (
-                      <>
-                        <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover" />
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900">{name}</div>
-                          <div className="text-xs text-gray-500">{conv.lastMessage?.content || "Chưa có tin nhắn"}</div>
-                        </div>
-                        <div className="text-xs text-gray-400">{conv.updatedAt ? new Date(conv.updatedAt).toLocaleTimeString() : ""}</div>
-                      </>
-                    );
-                  })()}
-                </div>
-              ))
+              conversations.map((conv) => {
+                const avatar = getAvatar(conv);
+                const name = getName(conv);
+
+                return (
+                  <div
+                    key={conv._id}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b"
+                    onClick={() => onOpenChat(conv)}
+                  >
+                    <img
+                      src={avatar}
+                      alt={name}
+                      className="w-10 h-10 rounded-full object-cover"
+                      onError={(e) => {
+                        e.target.src = "/default-avatar.png";
+                      }}
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{name}</div>
+                      <div className="text-xs text-gray-500">
+                        {conv.lastMessage?.content || "Chưa có tin nhắn"}
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {conv.updatedAt
+                        ? new Date(conv.updatedAt).toLocaleTimeString()
+                        : ""}
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
           <button
             className="w-full py-3 text-center text-blue-600 font-medium hover:bg-blue-50 border-t"
-            onClick={() => { setOpen(false); window.location.href = '/chat'; }}
+            onClick={() => {
+              setOpen(false);
+              window.location.href = "/chat";
+            }}
           >
             Xem tất cả tin nhắn
           </button>

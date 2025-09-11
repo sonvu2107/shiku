@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import FriendCard from '../components/FriendCard';
 import FriendRequestCard from '../components/FriendRequestCard';
-import { 
-  Users, 
-  UserPlus, 
-  UserCheck, 
-  UserX, 
+import {
+  Users,
+  UserPlus,
+  UserCheck,
+  UserX,
   Search,
   Clock,
   Circle
@@ -130,15 +130,15 @@ export default function Friends() {
 
   const getLastSeenText = (lastSeen, isOnline) => {
     if (isOnline) return 'Đang online';
-    
+
     if (!lastSeen) return 'Chưa có thông tin';
-    
+
     const now = new Date();
     const lastSeenDate = new Date(lastSeen);
-    
+
     // Kiểm tra lastSeenDate có hợp lệ không
     if (isNaN(lastSeenDate.getTime())) return 'Chưa có thông tin';
-    
+
     const diffMs = now - lastSeenDate;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
@@ -164,9 +164,9 @@ export default function Friends() {
             <Circle size={12} className="absolute -bottom-1 -right-1 fill-green-500 text-green-500" />
           )}
         </div>
-        
+
         <div className="flex-1">
-          <h3 
+          <h3
             className="font-semibold cursor-pointer hover:text-blue-600 transition-colors"
             onClick={() => navigate(`/user/${user._id}`)}
           >
@@ -212,16 +212,16 @@ export default function Friends() {
   );
 
   return (
-  <div className="w-full px-6 py-6 pt-24">
+    <div className="w-full px-6 py-6 pt-24">
       <div className="max-w-4xl mx-auto space-y-6">
-        
+
         {/* Header */}
         <div className="card">
           <h1 className="text-3xl font-bold mb-4 flex items-center gap-3">
             <Users size={32} />
             Bạn bè
           </h1>
-          
+
           {/* Search */}
           <div className="relative">
             <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -281,8 +281,8 @@ export default function Friends() {
             <div className="grid gap-4 md:grid-cols-2">
               {friends.length > 0 ? (
                 friends.map(friend => (
-                  <FriendCard 
-                    key={friend._id} 
+                  <FriendCard
+                    key={friend._id}
                     friend={friend}
                     onRemoveFriend={removeFriend}
                     showOnlineStatus={true}
@@ -298,8 +298,8 @@ export default function Friends() {
             <div className="space-y-4">
               {requests.length > 0 ? (
                 requests.map(request => (
-                  <FriendRequestCard 
-                    key={request._id} 
+                  <FriendRequestCard
+                    key={request._id}
                     request={request}
                     onAccept={acceptRequest}
                     onReject={rejectRequest}

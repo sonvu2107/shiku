@@ -54,7 +54,7 @@ export default function Home({ user }) {
     try {
       const publishedData = await api(`/api/posts?page=1&limit=100&q=${encodeURIComponent(q)}&status=published`);
       let allItems = publishedData.items;
-      
+
       // If user is logged in, also load their private posts and merge
       if (user) {
         try {
@@ -64,10 +64,10 @@ export default function Home({ user }) {
           console.log('Cannot load private posts:', privateError.message);
         }
       }
-      
+
       // Apply sorting
       allItems = sortPosts(allItems, sortBy);
-      
+
       setItems(allItems);
       setHasMore(publishedData.pages > 1);
       setPage(2); // Next page to load
@@ -82,12 +82,12 @@ export default function Home({ user }) {
 
   async function loadMore() {
     if (loadingMore || !hasMore) return;
-    
+
     setLoadingMore(true);
     try {
       const publishedData = await api(`/api/posts?page=${page}&limit=100&q=${encodeURIComponent(q)}&status=published`);
       const newItems = sortPosts(publishedData.items, sortBy);
-      
+
       setItems(prev => [...prev, ...newItems]);
       setHasMore(page < publishedData.pages);
       setPage(prev => prev + 1);
@@ -101,7 +101,7 @@ export default function Home({ user }) {
   // Function to sort posts
   const sortPosts = (posts, sortType) => {
     const sortedPosts = [...posts];
-    
+
     switch (sortType) {
       case 'newest':
         return sortedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -129,7 +129,7 @@ export default function Home({ user }) {
   const getSortLabel = (type) => {
     const labels = {
       newest: 'Mới nhất',
-      oldest: 'Cũ nhất', 
+      oldest: 'Cũ nhất',
       mostViewed: 'Xem nhiều nhất',
       leastViewed: 'Xem ít nhất'
     };
@@ -148,17 +148,17 @@ export default function Home({ user }) {
             <div className="h-3 bg-gray-200 rounded animate-pulse w-20"></div>
           </div>
         </div>
-        
+
         {/* Content skeleton */}
         <div className="space-y-2 mb-4">
           <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
           <div className="h-4 bg-gray-200 rounded animate-pulse w-4/5"></div>
           <div className="h-4 bg-gray-200 rounded animate-pulse w-3/5"></div>
         </div>
-        
+
         {/* Image skeleton */}
         <div className="h-64 bg-gray-200 rounded-lg animate-pulse mb-4"></div>
-        
+
         {/* Actions skeleton */}
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           <div className="flex space-x-6">
@@ -171,16 +171,16 @@ export default function Home({ user }) {
     </div>
   );
 
-      {/* Sticky Header */}
+  {/* Sticky Header */ }
   return (
-  <div className="min-h-screen bg-gray-50 pt-16">
-  <div className="bg-white border-b border-gray-200 shadow-sm">
+    <div className="min-h-screen bg-gray-50 pt-16">
+      <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-bold text-gray-900">Bảng tin</h1>
             </div>
-            
+
             <div className="relative sort-dropdown">
               <button
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
@@ -190,7 +190,7 @@ export default function Home({ user }) {
                 <span className="hidden sm:inline">{getSortLabel(sortBy)}</span>
                 <ArrowUpDown size={14} className="opacity-60" />
               </button>
-              
+
               {showSortDropdown && (
                 <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1">
                   {[
@@ -205,9 +205,8 @@ export default function Home({ user }) {
                         setSortBy(option.key);
                         setShowSortDropdown(false);
                       }}
-                      className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors ${
-                        sortBy === option.key ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-500' : 'text-gray-700'
-                      }`}
+                      className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors ${sortBy === option.key ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-500' : 'text-gray-700'
+                        }`}
                     >
                       {option.icon}
                       <span className="text-sm font-medium">{option.label}</span>
@@ -222,9 +221,9 @@ export default function Home({ user }) {
 
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
-        
+
         {/* Post Creator */}
-  <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-2 overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-2 overflow-hidden">
           <PostCreator user={user} />
         </div>
 
@@ -246,8 +245,8 @@ export default function Home({ user }) {
                   // Add ref to last element for infinite scroll
                   if (index === items.length - 1) {
                     return (
-                      <div 
-                        key={post._id} 
+                      <div
+                        key={post._id}
                         ref={lastPostElementRef}
                         className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden"
                       >
@@ -256,8 +255,8 @@ export default function Home({ user }) {
                     );
                   } else {
                     return (
-                      <div 
-                        key={post._id} 
+                      <div
+                        key={post._id}
                         className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden"
                       >
                         <PostCard post={post} />
@@ -265,7 +264,7 @@ export default function Home({ user }) {
                     );
                   }
                 })}
-                
+
                 {/* Loading more indicator */}
                 {loadingMore && (
                   <div className="flex justify-center py-8">
@@ -275,7 +274,7 @@ export default function Home({ user }) {
                     </div>
                   </div>
                 )}
-                
+
                 {/* End of feed message */}
                 {!hasMore && items.length > 0 && (
                   <div className="text-center py-8">

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { User, Calendar, Eye, Heart, MessageCircle, Tag, Lock, Globe } from "lucide-react";
 import { api } from "../api";
+import UserName from "./UserName";
 
 export default function PostCard({ post }) {
   const navigate = useNavigate();
@@ -68,11 +69,11 @@ export default function PostCard({ post }) {
       </Link>
       <div className="flex items-center gap-4 text-sm text-gray-600">
         <Link 
-          to={`/user/${post.author?._id}`} 
+          to={`/user/${post.author?._id}`}
           className="flex items-center gap-1 hover:text-blue-600 transition-colors"
         >
           <User size={14} />
-          {post.author?.name}
+          <UserName user={post.author} />
         </Link>
         <span className="flex items-center gap-1">
           <Calendar size={14} />

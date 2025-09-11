@@ -1,4 +1,3 @@
-
 import express from "express";
 import User from "../models/User.js";
 import Post from "../models/Post.js";
@@ -7,7 +6,6 @@ import { authRequired } from "../middleware/auth.js";
 import NotificationService from "../services/NotificationService.js";
 const router = express.Router();
 
-
 // Middleware kiểm tra quyền admin
 const adminRequired = (req, res, next) => {
   if (req.user.role !== "admin") {
@@ -15,23 +13,6 @@ const adminRequired = (req, res, next) => {
   }
   next();
 };
-
-// Set tích xanh cho user
-router.post("/set-verified", authRequired, adminRequired, async (req, res, next) => {
-  try {
-    const { userId, isVerified } = req.body;
-    if (!userId || typeof isVerified !== "boolean") {
-      return res.status(400).json({ error: "Thiếu thông tin userId hoặc trạng thái tích xanh" });
-    }
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ error: "User không tồn tại" });
-    }
-    user.isVerified = isVerified;
-    await user.save();
-    res.json({ message: `Đã cập nhật tích xanh cho user ${user.name}`, user });
-  } catch (e) { next(e); }
-});
 
 // Ban user
 router.post("/ban-user", authRequired, adminRequired, async (req, res, next) => {
@@ -63,7 +44,7 @@ router.post("/ban-user", authRequired, adminRequired, async (req, res, next) => 
     
     await user.save();
 
-    // Create ban notification
+    //Tạo thông báo cấm
     try {
       await NotificationService.createBanNotification(user, req.user, reason, banExpiresAt);
     } catch (notifError) {
@@ -109,7 +90,7 @@ router.post("/unban-user", authRequired, adminRequired, async (req, res, next) =
     
     await user.save();
 
-    // Create unban notification
+    // Tạo thông báo gỡ cấm
     try {
       await NotificationService.createUnbanNotification(user, req.user);
     } catch (notifError) {
@@ -385,7 +366,7 @@ router.get("/users", authRequired, adminRequired, async (req, res, next) => {
 router.put("/users/:id/role", authRequired, adminRequired, async (req, res, next) => {
   try {
     const { role } = req.body;
-    if (!["user", "admin", "solo", "sybau", "keeper"].includes(role)) {
+    if (!["user", "admin", "sololeveling", "sybau", "moxumxue"].includes(role)) {
       return res.status(400).json({ error: "Quyền không hợp lệ" });
     }
 

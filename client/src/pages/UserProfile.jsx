@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { UserPlus, UserMinus, UserCheck, Calendar, Heart } from "lucide-react";
 import MessageButton from "../components/MessageButton";
+import UserName from "../components/UserName";
 
 export default function UserProfile() {
   const { userId } = useParams();
@@ -325,16 +326,7 @@ export default function UserProfile() {
           />
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-1">
-              {user.name}
-              {(user.role === "solo" ||
-                user.role === "sybau" ||
-                user.role === "keeper") && (
-                <img
-                  src={roleIcons[user.role]}
-                  alt="Tích xanh"
-                  className="w-6 h-6 rounded-full"
-                />
-              )}
+              <UserName user={user} className="text-2xl font-bold text-gray-800" />
             </h1>
             <p className="text-gray-600 mb-3">
               {profile.friendshipStatus === "friends"

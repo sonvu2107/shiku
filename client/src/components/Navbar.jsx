@@ -224,7 +224,7 @@ export default function Navbar({ user, setUser }) {
                         />
                         <div>
                           <div className="font-semibold text-gray-900">{user.name}</div>
-                          <Link to={`/profile`} className="text-blue-600 text-sm hover:underline" onClick={()=>setShowProfileMenu(false)}>Xem tất cả trang cá nhân</Link>
+                          <Link to={`/profile`} className="text-dark-600 text-sm hover:underline" onClick={()=>setShowProfileMenu(false)}>Xem tất cả trang cá nhân</Link>
                         </div>
                       </div>
                     </div>

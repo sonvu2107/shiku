@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { api } from "../api";
 import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import BanNotification from "./BanNotification";
+import UserName from "./UserName";
 
 const roleIcons = {
   solo: "/assets/Sung-tick.png",
@@ -261,15 +262,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
           <div className="flex-1 min-w-0">
             <div className="bg-gray-100 rounded-2xl px-4 py-2">
               <div className="font-semibold text-sm text-gray-900 flex items-center gap-1">
-                  {comment.author?.name}
-                  {/* Hiện tích xanh chỉ với role đặc biệt */}
-                  {comment.author?.role && ["solo", "sybau", "keeper"].includes(comment.author.role) && (
-                    <img
-                      src={roleIcons[comment.author.role]}
-                      alt="Tích xanh"
-                      className="w-4 h-4 rounded-full"
-                    />
-                  )}
+                  <UserName user={comment.author} />
               </div>
               {editingComment === comment._id ? (
                 <div className="mt-2">

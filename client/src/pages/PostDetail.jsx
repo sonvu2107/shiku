@@ -4,6 +4,7 @@ import { api } from "../api";
 import ReactMarkdown from "react-markdown";
 import CommentSection from "../components/CommentSection";
 import { Expand, X, Lock, Globe } from "lucide-react";
+import UserName from "../components/UserName";
 
 const roleIcons = {
   solo: "/assets/Sung-tick.png",
@@ -36,7 +37,16 @@ export default function PostDetail() {
   const [showEmote, setShowEmote] = useState(false);
   const [user, setUser] = useState(null);
   const [showImageModal, setShowImageModal] = useState(false);
-  const emotes = ["👍", "😂", "❤️", "😮", "😢", "😡"];
+  // Map emoji ký tự sang tên file gif
+  const emoteMap = {
+    "👍": "like.gif",
+    "😂": "haha.gif",
+    "❤️": "care.gif",
+    "😮": "wow.gif",
+    "😢": "sad.gif",
+    "😡": "angry.gif"
+  };
+  const emotes = Object.keys(emoteMap);
 
   useEffect(() => {
     console.log("🔄 useEffect load triggered, slug:", slug, "data exists:", !!data);
@@ -76,6 +86,7 @@ export default function PostDetail() {
     try {
       await api(`/api/posts/${data.post._id}/emote`, { method: "POST", body: { emote } });
       await load();
+      setShowEmote(false);
     } catch (e) {
       alert(e.message);
     }
@@ -149,14 +160,7 @@ export default function PostDetail() {
         {/* Tên + tick xanh */}
         <div className="text-sm text-gray-600 mb-3 flex items-center gap-1">
           <Link to={`/user/${p.author?._id}`} className="hover:text-blue-600 font-medium flex items-center gap-1">
-            {p.author?.name}
-            {p.author?.role && roleIcons[p.author.role] && (
-              <img
-                src={roleIcons[p.author.role]}
-                alt="Tích xanh"
-                className="w-4 h-4 rounded-full ml-1"
-              />
-            )}
+            <UserName user={p.author} />
           </Link>
           • {new Date(p.createdAt).toLocaleString()}
           {p.isEdited === true && <span className="text-gray-500"> (đã chỉnh sửa)</span>} • {p.views} lượt xem
@@ -192,8 +196,8 @@ export default function PostDetail() {
             <span className="ml-2 flex gap-2">
               {Object.entries(counts).map(([emo, count]) =>
                 count > 0 ? (
-                  <span key={emo}>
-                    {emo} {count}
+                  <span key={emo} className="flex items-center gap-1">
+                    <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-6 h-6 inline-block align-middle" /> {count}
                   </span>
                 ) : null
               )}
@@ -202,8 +206,8 @@ export default function PostDetail() {
           {showEmote && (
             <div className="flex gap-2 mt-2">
               {emotes.map(e => (
-                <button key={e} className="btn-outline" type="button" onClick={() => emote(e)}>
-                  {e}
+                <button key={e} className="btn-outline flex items-center gap-1" type="button" onClick={() => emote(e)}>
+                  <img src={`/assets/${emoteMap[e]}`} alt={e} className="w-6 h-6 inline-block align-middle" />
                 </button>
               ))}
             </div>
