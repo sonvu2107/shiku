@@ -12,7 +12,7 @@ const router = express.Router();
 // List with filters & search
 router.get("/", authOptional, async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, tag, author, q, status = "published" } = req.query;
+    const { page = 1, limit = 100, tag, author, q, status = "published" } = req.query;
     const filter = {};
 
     if (status === "private") {

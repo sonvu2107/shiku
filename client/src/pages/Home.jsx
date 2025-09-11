@@ -52,7 +52,7 @@ export default function Home({ user }) {
   async function loadInitial() {
     setLoading(true);
     try {
-      const publishedData = await api(`/api/posts?page=1&limit=10&q=${encodeURIComponent(q)}&status=published`);
+      const publishedData = await api(`/api/posts?page=1&limit=100&q=${encodeURIComponent(q)}&status=published`);
       let allItems = publishedData.items;
       
       // If user is logged in, also load their private posts and merge
@@ -85,7 +85,7 @@ export default function Home({ user }) {
     
     setLoadingMore(true);
     try {
-      const publishedData = await api(`/api/posts?page=${page}&limit=10&q=${encodeURIComponent(q)}&status=published`);
+      const publishedData = await api(`/api/posts?page=${page}&limit=100&q=${encodeURIComponent(q)}&status=published`);
       const newItems = sortPosts(publishedData.items, sortBy);
       
       setItems(prev => [...prev, ...newItems]);
