@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { api } from "../api";
 import ReactMarkdown from "react-markdown";
 import CommentSection from "../components/CommentSection";
-import { Expand, X, Lock, Globe, ThumbsUp } from "lucide-react";
+import { Expand, X, Eye, Lock, Globe, ThumbsUp } from "lucide-react";
 import UserName from "../components/UserName";
 
 const roleIcons = {
@@ -13,6 +13,34 @@ const roleIcons = {
 };
 
 export default function PostDetail() {
+  // Hàm trả về thời gian chi tiết cho tooltip
+  function formatFullDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+  // Hiển thị thời gian dạng 'x giờ trước', 'x ngày trước', 'x tháng trước'
+  function formatTimeAgo(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    const diffMonth = Math.floor(diffDay / 30);
+    if (diffMonth >= 1) return `${diffMonth} tháng trước`;
+    if (diffDay >= 1) return `${diffDay} ngày trước`;
+    if (diffHour >= 1) return `${diffHour} giờ trước`;
+    if (diffMin >= 1) return `${diffMin} phút trước`;
+    return 'Vừa xong';
+  }
   const { slug } = useParams();
   const navigate = useNavigate();
   const [data, setDataRaw] = useState(null);
@@ -151,8 +179,8 @@ export default function PostDetail() {
   return (
     <div className="w-full px-6 py-6 space-y-4 pt-20">
       <div className="card max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-1">
+        {/* Header: avatar + tên user */}
+        <div className="flex items-center gap-2 mb-0">
           <Link to={`/user/${p.author?._id}`}>
             <img
               src={
@@ -165,23 +193,23 @@ export default function PostDetail() {
               className="w-8 h-8 rounded-full object-cover border border-gray-300 bg-gray-100"
             />
           </Link>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            {p.title}
-            {p.status === "private" ? (
-              <Lock size={20} className="text-gray-500" />
-            ) : (
-              <Globe size={20} className="text-green-500" />
-            )}
-          </h1>
+          <span className="font-semibold text-gray-900 text-base mr-2"><UserName user={p.author} /></span>
         </div>
-
-        {/* Info */}
-        <div className="text-sm text-gray-600 mb-3 flex items-center gap-1">
-          <UserName user={p.author} />
-          • {new Date(p.createdAt).toLocaleString()}
-          {p.isEdited && <span className="text-gray-500"> (đã chỉnh sửa)</span>} •{" "}
-          {p.views} lượt xem
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3 ml-10">
+          <span
+            title={formatFullDate(p.createdAt)}
+            className="cursor-pointer"
+          >
+            {formatTimeAgo(p.createdAt)}
+          </span>
+          {p.status === "private" ? (
+            <Lock size={16} className="text-gray-500" />
+          ) : (
+            <Globe size={16} className="text-green-500" />
+          )}
         </div>
+        {/* Tiêu đề */}
+        <h1 className="text-xl font-bold mb-2">{p.title}</h1>
 
         {/* Cover removed. Only files are shown as media. */}
 

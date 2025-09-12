@@ -20,7 +20,7 @@ export default function PostCard({ post }) {
   };
   const emotes = Object.keys(emoteMap);
 
-  // ✅ Ưu tiên coverUrl (image) → file đầu tiên (image/video)
+  //Ưu tiên coverUrl (image) → file đầu tiên (image/video)
   const getDisplayMedia = () => {
     if (post.coverUrl) {
       // Tìm type của coverUrl trong files
