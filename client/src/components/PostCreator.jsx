@@ -9,11 +9,12 @@ export default function PostCreator({ user }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
-  const [coverUrl, setCoverUrl] = useState("");
+  const [files, setFiles] = useState([]);
   const [status, setStatus] = useState("published");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [coverUrl, setCoverUrl] = useState("");
   const [showPrivacyDropdown, setShowPrivacyDropdown] = useState(false);
   const [showBanNotification, setShowBanNotification] = useState(false);
   const [banInfo, setBanInfo] = useState(null);
@@ -30,10 +31,10 @@ export default function PostCreator({ user }) {
 
     setLoading(true);
     try {
-      const tagsArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      const tagsArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag);
       const post = await api("/api/posts", {
         method: "POST",
-        body: { title, content, tags: tagsArray, coverUrl, status }
+        body: { title, content, tags: tagsArray, files, status, coverUrl }
       });
       setShowModal(false);
       resetForm();
@@ -60,23 +61,23 @@ export default function PostCreator({ user }) {
     setTitle("");
     setContent("");
     setTags("");
-    setCoverUrl("");
+    setFiles([]);
     setStatus("published");
+    setCoverUrl("");
     setErr("");
     setShowPrivacyDropdown(false);
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
+  const handleFilesUpload = async (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    if (!selectedFiles.length) return;
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append("image", file);
+      selectedFiles.forEach(f => formData.append("files", f));
 
       const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
-      const response = await fetch(`${API_URL}/api/uploads/image`, {
+      const response = await fetch(`${API_URL}/api/uploads/media`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -85,11 +86,19 @@ export default function PostCreator({ user }) {
       });
 
       if (!response.ok) throw new Error("Upload failed");
-
       const data = await response.json();
-      setCoverUrl(data.url);
+          if (data.files) {
+            setFiles(prev => {
+              const newFiles = [...prev, ...data.files];
+              // Nếu chưa có coverUrl thì chọn file đầu tiên là ảnh làm cover
+              if (!coverUrl) {
+                const firstImage = newFiles.find(f => f.type === "image");
+              }
+              return newFiles;
+            });
+          }
     } catch (error) {
-      setErr("Lỗi upload ảnh: " + error.message);
+      setErr("Lỗi upload file: " + error.message);
     } finally {
       setUploading(false);
     }
@@ -136,9 +145,10 @@ export default function PostCreator({ user }) {
             </div>
 
             <form onSubmit={handleSubmit} className="p-4 space-y-4">
+              {/* Avatar + Privacy */}
               <div className="flex items-center gap-3 mb-4">
                 <img
-                  src={user?.avatarUrl || `https://ui-avatars.io/api/?name=${encodeURIComponent(userDisplayName)}&background=3b82f6&color=ffffff&size=40`}
+                  src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=3b82f6&color=ffffff&size=40`}
                   alt={userDisplayName}
                   className="w-10 h-10 rounded-full object-cover"
                 />
@@ -196,6 +206,7 @@ export default function PostCreator({ user }) {
                 </div>
               </div>
 
+              {/* Title */}
               <div>
                 <input
                   type="text"
@@ -206,6 +217,7 @@ export default function PostCreator({ user }) {
                 />
               </div>
 
+              {/* Content */}
               <div>
                 <textarea
                   placeholder={`${userDisplayName} ơi, bạn đang nghĩ gì thế?`}
@@ -216,39 +228,45 @@ export default function PostCreator({ user }) {
                 />
               </div>
 
-              {/* Image upload section */}
-              <div className="flex items-center gap-4">
+              {/* Upload section: ảnh/video + preview */}
+              <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex-1">
                   <label className="btn-outline flex items-center gap-2 cursor-pointer w-fit">
                     <Image size={18} />
-                    <span>{uploading ? "Đang tải..." : "Thêm ảnh"}</span>
+                    <span>{uploading ? "Đang tải..." : "Thêm ảnh/video"}</span>
                     <input
                       type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
+                      accept="image/*,video/*"
+                      multiple
+                      onChange={handleFilesUpload}
                       disabled={uploading}
                       className="hidden"
                     />
                   </label>
                 </div>
-                {coverUrl && (
-                  <div className="relative">
-                    <img
-                      src={coverUrl}
-                      alt="Cover preview"
-                      className="w-16 h-16 object-cover rounded-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setCoverUrl("")}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
-                    >
-                      ×
-                    </button>
+                {files.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {files.map((f, idx) => (
+                      <div key={idx} className="relative">
+                        {f.type === "image" ? (
+                          <img src={f.url} alt="preview" className="w-16 h-16 object-cover rounded-lg" />
+                        ) : (
+                          <video src={f.url} controls className="w-16 h-16 object-cover rounded-lg" />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setFiles(files.filter((_, i) => i !== idx))}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
 
+              {/* Tags */}
               <div>
                 <input
                   type="text"
@@ -265,6 +283,7 @@ export default function PostCreator({ user }) {
                 </div>
               )}
 
+              {/* Actions */}
               <div className="flex justify-end gap-2 pt-4">
                 <button
                   type="button"

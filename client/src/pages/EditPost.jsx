@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useNavigate, useParams } from "react-router-dom";
 import Editor from "../components/Editor";
-import { Image } from "lucide-react";
+import { Image, Video } from "lucide-react";
 
 export default function EditPost() {
   const { id } = useParams();
@@ -13,47 +13,52 @@ export default function EditPost() {
   const navigate = useNavigate();
 
   useEffect(() => { load(); }, [id]);
+
   const load = async () => {
     try {
       setLoading(true);
       setErr("");
-      console.log('Loading post with ID:', id);
-
       const data = await api(`/api/posts/edit/${id}`);
-      console.log('Loaded post:', data.post);
       setPost(data.post);
     } catch (err) {
-      console.error('Load error:', err);
       setErr(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
+  // Multi-file upload (images/videos)
+  const handleFilesUpload = async (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    if (!selectedFiles.length) return;
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append("image", file);
-
+      selectedFiles.forEach(f => formData.append("files", f));
       const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
-      const response = await fetch(`${API_URL}/api/uploads/image`, {
+      const response = await fetch(`${API_URL}/api/uploads/media`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: formData,
       });
-
       if (!response.ok) throw new Error("Upload failed");
+      const data = await response.json(); // {files: [{url, type}, ...]}
 
-      const data = await response.json();
-      setPost({ ...post, coverUrl: data.url });
+      setPost(prev => {
+        const updated = { ...prev };
+        updated.files = [...(updated.files || []), ...data.files];
+        // Luôn set coverUrl là file đầu tiên trong files (bất kể loại)
+        if (updated.files.length > 0) {
+          updated.coverUrl = updated.files[0].url;
+        } else {
+          updated.coverUrl = "";
+        }
+        return updated;
+      });
     } catch (error) {
-      setErr("Lỗi upload ảnh: " + error.message);
+      setErr("Lỗi upload file: " + error.message);
     } finally {
       setUploading(false);
     }
@@ -68,9 +73,7 @@ export default function EditPost() {
   }
 
   if (loading) return <div className="w-full px-6 py-6"><div className="card max-w-4xl mx-auto">Đang tải...</div></div>;
-
   if (err) return <div className="w-full px-6 py-6"><div className="card max-w-4xl mx-auto text-red-600">Lỗi: {err}</div></div>;
-
   if (!post) return <div className="w-full px-6 py-6"><div className="card max-w-4xl mx-auto">Không tìm thấy bài viết</div></div>;
 
   return (
@@ -80,51 +83,61 @@ export default function EditPost() {
         <form onSubmit={save} className="space-y-3">
           <div>
             <label>Tiêu đề</label>
-            <input value={post.title} onChange={e => setPost({ ...post, title: e.target.value })} />
+            <input 
+              value={post.title} 
+              onChange={e => setPost({ ...post, title: e.target.value })} 
+            />
           </div>
           <div>
             <label>Tags</label>
-            <input value={(post.tags || []).join(", ")} onChange={e => setPost({ ...post, tags: e.target.value.split(",").map(s => s.trim()) })} />
+            <input 
+              value={(post.tags || []).join(", ")} 
+              onChange={e => setPost({ ...post, tags: e.target.value.split(",").map(s => s.trim()) })} 
+            />
           </div>
           <div>
             <label>Trạng thái</label>
-            <select value={post.status} onChange={e => setPost({ ...post, status: e.target.value })}>
+            <select 
+              value={post.status} 
+              onChange={e => setPost({ ...post, status: e.target.value })}
+            >
               <option value="published">Công khai</option>
               <option value="private">Riêng tư</option>
             </select>
           </div>
 
-          {/* Image upload section */}
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <label className="btn-outline flex items-center gap-2 cursor-pointer w-fit">
-                <Image size={18} />
-                <span>{uploading ? "Đang tải..." : "Thêm ảnh"}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={uploading}
-                  className="hidden"
-                />
-              </label>
+          {/* Multi-file upload section */}
+          <div className="flex flex-col gap-2">
+            <label className="btn-outline flex items-center gap-2 cursor-pointer w-fit">
+              <Image size={18} />
+              <Video size={18} />
+              <span>{uploading ? "Đang tải..." : "Thêm ảnh/video"}</span>
+              <input
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                onChange={handleFilesUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+            </label>
+            {/* Preview all files */}
+            <div className="flex gap-3 flex-wrap mt-2">
+              {(post.files || []).map((file, idx) => (
+                <div key={idx} className="relative">
+                  {file.type === "image" ? (
+                    <img src={file.url} alt="preview" className="w-16 h-16 object-cover rounded-lg" />
+                  ) : (
+                    <video src={file.url} className="w-16 h-16 object-cover rounded-lg" controls />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPost({ ...post, files: post.files.filter((_, i) => i !== idx) })}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
+                  >×</button>
+                </div>
+              ))}
             </div>
-            {post.coverUrl && (
-              <div className="relative">
-                <img
-                  src={post.coverUrl}
-                  alt="Cover preview"
-                  className="w-16 h-16 object-cover rounded-lg"
-                />
-                <button
-                  type="button"
-                  onClick={() => setPost({ ...post, coverUrl: "" })}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
-                >
-                  ×
-                </button>
-              </div>
-            )}
           </div>
 
           <Editor value={post.content} onChange={v => setPost({ ...post, content: v })} />

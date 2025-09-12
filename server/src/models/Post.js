@@ -13,6 +13,12 @@ const PostSchema = new mongoose.Schema({
   slug: { type: String, required: true, unique: true, index: true },
   content: { type: String, required: true },
   coverUrl: { type: String, default: "" },
+  files: [
+    {
+      url: { type: String, required: true },
+      type: { type: String, enum: ["image", "video"], required: true }
+    }
+  ],
   tags: [{ type: String, index: true }],
   status: { type: String, enum: ["private", "published"], default: "published" },
   emotes: [EmoteSchema],

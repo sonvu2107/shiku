@@ -149,12 +149,20 @@ router.get("/edit/:id", authRequired, async (req, res, next) => {
 // Create
 router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
   try {
-    const { title, content, tags = [], coverUrl = "", status = "published" } = req.body;
+    const { title, content, tags = [], coverUrl = "", status = "published", files = [] } = req.body;
     if (!title || !content) return res.status(400).json({ error: "Vui lòng nhập tiêu đề và nội dung" });
     if (!["private", "published"].includes(status)) {
       return res.status(400).json({ error: "Trạng thái không hợp lệ" });
     }
-    const post = await Post.create({ author: req.user._id, title, content, tags, coverUrl, status });
+    const post = await Post.create({
+      author: req.user._id,
+      title,
+      content,
+      tags,
+      coverUrl,
+      status,
+      files
+    });
     res.json({ post });
   } catch (e) {
     next(e);
@@ -169,11 +177,12 @@ router.put("/:id", authRequired, checkBanStatus, async (req, res, next) => {
     if (post.author.toString() !== req.user._id.toString() && req.user.role !== "admin") {
       return res.status(403).json({ error: "Bạn không có quyền chỉnh sửa bài viết này" });
     }
-    const { title, content, tags, coverUrl, status } = req.body;
+      const { title, content, tags, coverUrl, status, files } = req.body;
     if (title !== undefined) post.title = title;
     if (content !== undefined) post.content = content;
     if (Array.isArray(tags)) post.tags = tags;
     if (coverUrl !== undefined) post.coverUrl = coverUrl;
+      if (Array.isArray(files)) post.files = files;
     if (status !== undefined) {
       if (!["private", "published"].includes(status)) {
         return res.status(400).json({ error: "Trạng thái không hợp lệ" });
@@ -223,9 +232,9 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
       post.emotes.push({ user: req.user._id, type: emote });
     }
 
-  await post.save();
-  await post.populate("emotes.user", "name avatarUrl role");
-  res.json({ emotes: post.emotes });
+    await post.save();
+    await post.populate("emotes.user", "name avatarUrl role");
+    res.json({ emotes: post.emotes });
   } catch (e) {
     next(e);
   }

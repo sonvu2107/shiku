@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Calendar, Eye, MessageCircle, Tag, Lock, Globe, ThumbsUp } from "lucide-react";
+import { User, Calendar, Eye, MessageCircle, Lock, Globe, ThumbsUp } from "lucide-react";
 import { api } from "../api";
 import UserName from "./UserName";
 
@@ -9,6 +9,7 @@ export default function PostCard({ post }) {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const [showEmotePopup, setShowEmotePopup] = useState(false);
   const emotePopupTimeout = useRef();
+
   const emoteMap = {
     "👍": "like.gif",
     "❤️": "care.gif",
@@ -19,14 +20,21 @@ export default function PostCard({ post }) {
   };
   const emotes = Object.keys(emoteMap);
 
-  const getFirstImageFromContent = (content) => {
-    if (!content) return null;
-    const imageMatch = content.match(/!\[.*?\]\((.*?)\)/);
-    return imageMatch ? imageMatch[1] : null;
-  };
-
-  const getDisplayImage = () => {
-    return post.coverUrl || getFirstImageFromContent(post.content);
+  // ✅ Ưu tiên coverUrl (image) → file đầu tiên (image/video)
+  const getDisplayMedia = () => {
+    if (post.coverUrl) {
+      // Tìm type của coverUrl trong files
+      const found = Array.isArray(post.files)
+        ? post.files.find(f => f.url === post.coverUrl)
+        : null;
+      if (found) return { url: post.coverUrl, type: found.type };
+      // Nếu không tìm thấy, mặc định là image
+      return { url: post.coverUrl, type: "image" };
+    }
+    if (Array.isArray(post.files) && post.files.length > 0) {
+      return post.files[0];
+    }
+    return null;
   };
 
   async function deletePost() {
@@ -40,7 +48,7 @@ export default function PostCard({ post }) {
 
   async function togglePostStatus() {
     const newStatus = post.status === 'private' ? 'published' : 'private';
-    const confirmMessage = newStatus === 'private' 
+    const confirmMessage = newStatus === 'private'
       ? "Bạn có chắc muốn chuyển bài viết này thành riêng tư?"
       : "Bạn có chắc muốn công khai bài viết này?";
     
@@ -66,10 +74,6 @@ export default function PostCard({ post }) {
       if (res.emotes) {
         setEmotesState(res.emotes);
       }
-      // Nếu có callback thì gọi để cập nhật ngoài Home nếu cần
-      if (typeof onUpdate === "function") {
-        onUpdate();
-      }
     } catch (e) {
       alert(e.message);
     }
@@ -87,17 +91,25 @@ export default function PostCard({ post }) {
   const counts = countEmotes();
   const totalEmotes = Object.values(counts).reduce((a, b) => a + b, 0);
 
-  const displayImage = getDisplayImage();
+  const displayMedia = getDisplayMedia();
 
   return (
     <div className="card flex flex-col gap-2">
-      {displayImage && (
+      {displayMedia && (
         <div className="w-full aspect-[16/10] overflow-hidden rounded-xl">
-          <img 
-            src={displayImage} 
-            alt="" 
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
-          />
+          {displayMedia.type === "video" ? (
+            <video 
+              src={displayMedia.url} 
+              className="w-full h-full object-cover"
+              controls
+            />
+          ) : (
+            <img 
+              src={displayMedia.url} 
+              alt="" 
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
+            />
+          )}
         </div>
       )}
       <Link to={`/post/${post.slug}`} className="text-xl font-semibold hover:underline flex items-center gap-2">
@@ -125,10 +137,10 @@ export default function PostCard({ post }) {
           {post.views || 0}
         </span>
       </div>
-      {/* Emote bar giống Facebook */}
+
+      {/* Emote bar */}
       <div className="flex items-center justify-between py-2 border-b border-gray-200">
         <div className="flex items-center gap-1">
-          {/* Hiển thị các emote đã thả */}
           {Object.entries(counts)
             .filter(([_, count]) => count > 0)
             .slice(0, 2)
@@ -139,8 +151,8 @@ export default function PostCard({ post }) {
             <span className="ml-1 font-semibold text-gray-800 ">{totalEmotes.toLocaleString()}</span>
           )}
         </div>
-        {/* Không hiển thị lượt xem ở emote bar nữa */}
       </div>
+
       {/* Action bar */}
       <div className="flex items-center justify-between py-2">
         <div
@@ -153,7 +165,7 @@ export default function PostCard({ post }) {
             emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 400);
           }}
         >
-          <button className="btn-outline flex items-center gap-2" type="button" onClick={() => emote("👍")}> 
+          <button className="btn-outline flex items-center gap-2" type="button" onClick={() => setShowEmotePopup(true)}> 
             <ThumbsUp size={18} />
             <span>Thích</span>
           </button>
@@ -179,6 +191,7 @@ export default function PostCard({ post }) {
           <span>Bình luận</span>
         </button>
       </div>
+
       {/* Action buttons for post owner and admin */}
       {user && (user._id === post.author?._id || user.role === "admin") && (
         <div className="mt-2 pt-2 border-t border-gray-200 flex gap-2">
