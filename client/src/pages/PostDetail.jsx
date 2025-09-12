@@ -221,32 +221,66 @@ export default function PostDetail() {
         {/* Hiển thị preview media trong bài */}
         {allMedia.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-4">
-            {allMedia.map((m, idx) => (
-              <div
-                key={idx}
-                className="w-36 h-36 relative cursor-pointer"
-                onClick={() => {
-                  setCurrentIndex(idx);
-                  setShowMediaModal(true);
-                }}
-              >
-                {m.type === "video" ? (
-                  <video
-                    src={m.url}
-                    className="w-full h-full object-cover rounded"
-                    muted
-                    playsInline
-                    controls
-                  />
-                ) : (
-                  <img
-                    src={m.url}
-                    className="w-full h-full object-cover rounded"
-                    alt="media"
-                  />
-                )}
-              </div>
-            ))}
+            {allMedia.slice(0, 3).map((m, idx) => {
+              // Nếu là ảnh thứ 3 và còn nhiều hơn 3 ảnh, hiển thị overlay +N
+              if (idx === 2 && allMedia.length > 3) {
+                return (
+                  <div
+                    key={idx}
+                    className="w-64 h-32 relative cursor-pointer"
+                    onClick={() => {
+                      setCurrentIndex(idx);
+                      setShowMediaModal(true);
+                    }}
+                  >
+                    {m.type === "video" ? (
+                      <video
+                        src={m.url}
+                        className="w-full h-full object-cover rounded"
+                        muted
+                        playsInline
+                        controls
+                      />
+                    ) : (
+                      <img
+                        src={m.url}
+                        className="w-full h-full object-cover rounded"
+                        alt="media"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded text-white text-2xl font-bold">
+                      +{allMedia.length - 3}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div
+                  key={idx}
+                  className="w-64 h-32 relative cursor-pointer"
+                  onClick={() => {
+                    setCurrentIndex(idx);
+                    setShowMediaModal(true);
+                  }}
+                >
+                  {m.type === "video" ? (
+                    <video
+                      src={m.url}
+                      className="w-full h-full object-cover rounded"
+                      muted
+                      playsInline
+                      controls
+                    />
+                  ) : (
+                    <img
+                      src={m.url}
+                      className="w-full h-full object-cover rounded"
+                      alt="media"
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
