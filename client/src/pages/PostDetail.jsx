@@ -1,9 +1,9 @@
-import { useRef, useEffect, useState, useMemo } from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { api } from "../api";
 import ReactMarkdown from "react-markdown";
 import CommentSection from "../components/CommentSection";
-import { Expand, X, Lock, Globe } from "lucide-react";
+import { Expand, X, Lock, Globe, ThumbsUp } from "lucide-react";
 import UserName from "../components/UserName";
 
 const roleIcons = {
@@ -17,6 +17,9 @@ export default function PostDetail() {
   const navigate = useNavigate();
   const [data, setDataRaw] = useState(null);
   const [loading, setLoading] = useState(true);
+  // State cho popup emote
+  const [showEmoteList, setShowEmoteList] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
 
   const setData = (updater) => {
     console.log("🔥 setData called:", typeof updater === "function" ? "function" : updater, "\nStack:", new Error().stack);
@@ -40,13 +43,15 @@ export default function PostDetail() {
   // Map emoji ký tự sang tên file gif
   const emoteMap = {
     "👍": "like.gif",
-    "😂": "haha.gif",
     "❤️": "care.gif",
+    "😂": "haha.gif",
     "😮": "wow.gif",
     "😢": "sad.gif",
     "😡": "angry.gif"
   };
   const emotes = Object.keys(emoteMap);
+  const [showEmotePopup, setShowEmotePopup] = React.useState(false);
+  const emotePopupTimeout = React.useRef();
 
   useEffect(() => {
     console.log("🔄 useEffect load triggered, slug:", slug, "data exists:", !!data);
@@ -190,30 +195,117 @@ export default function PostDetail() {
         </div>
 
         {/* Emotes + Actions */}
-        <div className="mt-4 flex items-center gap-2 flex-wrap">
-          <button className="btn-outline flex items-center gap-2" type="button" onClick={() => setShowEmote(!showEmote)}>
-            Biểu cảm
-            <span className="ml-2 flex gap-2">
-              {Object.entries(counts).map(([emo, count]) =>
-                count > 0 ? (
-                  <span key={emo} className="flex items-center gap-1">
-                    <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-6 h-6 inline-block align-middle" /> {count}
-                  </span>
-                ) : null
-              )}
-            </span>
-          </button>
-          {showEmote && (
-            <div className="flex gap-2 mt-2">
-              {emotes.map(e => (
-                <button key={e} className="btn-outline flex items-center gap-1" type="button" onClick={() => emote(e)}>
-                  <img src={`/assets/${emoteMap[e]}`} alt={e} className="w-6 h-6 inline-block align-middle" />
-                </button>
+        <div className="mt-4 flex flex-col gap-2 flex-wrap">
+          {/* Emote bar giống Home: hiển thị các emote đã thả và tổng số */}
+          <div className="flex items-center gap-1 mb-2">
+            {Object.entries(counts)
+              .filter(([_, count]) => count > 0)
+              .slice(0, 2)
+              .map(([emo]) => (
+                <img key={emo} src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-6 h-6 inline-block align-middle" />
               ))}
+            {Object.values(counts).reduce((a, b) => a + b, 0) > 0 && (
+              <span
+                className="ml-1 font-semibold text-dark-800 dark:text-dark-100 cursor-pointer"
+                onClick={() => setShowEmoteList(true)}
+              >
+                {Object.values(counts).reduce((a, b) => a + b, 0).toLocaleString()}
+              </span>
+            )}
+            {/* Popup danh sách người đã thả emote */}
+            {showEmoteList && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={() => setShowEmoteList(false)}>
+                <div className="bg-white text-gray-900 rounded-xl shadow-2xl p-0 min-w-[350px] max-w-[95vw] relative" onClick={e => e.stopPropagation()}>
+                  {/* Header tabs */}
+                  <div className="flex items-center border-b border-dark-700 px-6 pt-5 pb-2 gap-2">
+                    <button
+                      className={`font-semibold px-2 py-1 rounded transition-all ${activeTab === 'all' ? 'bg-dark-800 text-primary' : ''}`}
+                      onClick={() => setActiveTab('all')}
+                    >Tất cả</button>
+                    {Object.entries(counts)
+                      .filter(([_, count]) => count > 0)
+                      .map(([emo]) => (
+                        <button
+                          key={emo}
+                          className={`flex items-center gap-1 px-2 py-1 rounded transition-all ${activeTab === emo ? 'bg-dark-800 text-primary' : ''}`}
+                          onClick={() => setActiveTab(emo)}
+                        >
+                          <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-5 h-5" />
+                          <span>{counts[emo]}</span>
+                        </button>
+                      ))}
+                  </div>
+                  {/* Close button */}
+                  <button className="absolute top-3 right-4 text-2xl text-gray-400 hover:text-white" onClick={() => setShowEmoteList(false)}>&#10005;</button>
+                  {/* User list */}
+                  <div className="px-6 py-3 max-h-[60vh] overflow-y-auto">
+                    {(() => {
+                      let emoteUsers;
+                      if (activeTab === 'all') {
+                        emoteUsers = p.emotes;
+                      } else {
+                        emoteUsers = p.emotes.filter(e => e.type === activeTab);
+                      }
+                      if (emoteUsers.length === 0) return <div className="text-gray-400">Chưa có ai thả cảm xúc này.</div>;
+                      return emoteUsers.map((e, idx) => {
+                        const user = e.user || {};
+                        const avatar = user.avatarUrl
+                          ? user.avatarUrl
+                          : user.name
+                            ? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff&size=40`
+                            : '/assets/admin.jpg';
+                        return (
+                          <div key={idx} className="flex gap-3 py-2 border-b border-dark-800 items-center">
+                            <img
+                              src={avatar}
+                              alt={user.name || "Người dùng"}
+                              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                            />
+                            <UserName user={user} className="font-semibold text-sm text-gray-900" />
+                            <div className="flex-1"></div>
+                            <img
+                              src={`/assets/${emoteMap[e.type]}`}
+                              alt={e.type}
+                              className="w-5 h-5 ml-2"
+                            />
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div
+              className="relative inline-block"
+              onMouseEnter={() => {
+                if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
+                setShowEmotePopup(true);
+              }}
+              onMouseLeave={() => {
+                emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 400);
+              }}
+            >
+              <button className="btn-outline flex items-center gap-2" type="button" onClick={() => emote("👍")}> 
+                <ThumbsUp size={18} />
+                <span>Thích</span>
+              </button>
+              {showEmotePopup && (
+                <div
+                  className="absolute bottom-full left-0 mb-2 flex gap-2 bg-white p-2 rounded-xl shadow z-10 border border-gray-200"
+                  style={{ minWidth: 340, maxWidth: 400, justifyContent: "center" }}
+                >
+                  {emotes.map(e => (
+                    <button key={e} className="hover:scale-110 transition-transform" type="button" onClick={() => { emote(e); setShowEmotePopup(false); }}>
+                      <img src={`/assets/${emoteMap[e]}`} alt={e} className="w-8 h-8" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-          {user && (user._id === p.author?._id || user.role === "admin") && (
-            <div className="flex gap-2">
+            {user && (user._id === p.author?._id || user.role === "admin") && (
               <button className="btn-outline flex items-center gap-1" type="button" onClick={togglePostStatus}>
                 {p.status === "private" ? (
                   <>
@@ -227,14 +319,18 @@ export default function PostDetail() {
                   </>
                 )}
               </button>
+            )}
+            {user && (user._id === p.author?._id || user.role === "admin") && (
               <button className="btn-outline" type="button" onClick={() => navigate(`/edit/${p._id}`)}>
                 Sửa bài
               </button>
+            )}
+            {user && (user._id === p.author?._id || user.role === "admin") && (
               <button className="btn-outline text-red-600" type="button" onClick={deletePost}>
                 Xóa bài
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 

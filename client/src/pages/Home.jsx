@@ -243,6 +243,9 @@ export default function Home({ user }) {
               <div className="space-y-6">
                 {items.map((post, index) => {
                   // Add ref to last element for infinite scroll
+                  const handleUpdate = () => {
+                    loadInitial();
+                  };
                   if (index === items.length - 1) {
                     return (
                       <div
@@ -250,7 +253,7 @@ export default function Home({ user }) {
                         ref={lastPostElementRef}
                         className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden"
                       >
-                        <PostCard post={post} />
+                        <PostCard post={post} onUpdate={handleUpdate} />
                       </div>
                     );
                   } else {
@@ -259,7 +262,7 @@ export default function Home({ user }) {
                         key={post._id}
                         className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden"
                       >
-                        <PostCard post={post} />
+                        <PostCard post={post} onUpdate={handleUpdate} />
                       </div>
                     );
                   }

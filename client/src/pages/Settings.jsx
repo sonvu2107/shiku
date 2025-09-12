@@ -47,12 +47,12 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen pt-20 bg-gray-50 dark:bg-gray-900 dark:text-white">
+    <div className="min-h-screen pt-20 bg-gray-50">
       <div className="max-w-5xl mx-auto px-4">
         {/* Header */}
-        <div className="card mb-6 rounded-2xl p-6 shadow-sm border bg-white border-gray-200 text-black dark:bg-gray-800 dark:text-white dark:border-gray-700">
+        <div className="card mb-6 rounded-2xl p-6 shadow-sm border bg-white border-gray-200 text-black">
           <h1 className="text-2xl font-bold">Cài đặt tài khoản</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm text-gray-500">
             Các tùy chọn riêng tư và bảo mật cho tài khoản của bạn.
           </p>
         </div>
@@ -62,7 +62,7 @@ export default function Settings() {
           <button
               className={`px-4 py-2 rounded-lg font-semibold border transition-colors ${activeTab === "blocked"
                   ? "bg-black text-white"
-                  : "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
+                  : "bg-gray-100 text-gray-900"
                 }`}
             onClick={() => setActiveTab("blocked")}
           >
@@ -71,7 +71,7 @@ export default function Settings() {
           <button
               className={`px-4 py-2 rounded-lg font-semibold border transition-colors ${activeTab === "privacy"
                   ? "bg-black text-white"
-                  : "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
+                  : "bg-gray-100 text-gray-900"
                 }`}
             onClick={() => setActiveTab("privacy")}
           >
@@ -81,10 +81,10 @@ export default function Settings() {
 
         {/* Blocked Users */}
         {activeTab === "blocked" && (
-          <div className="card rounded-2xl p-6 shadow-sm border bg-white border-gray-200 text-black dark:bg-gray-800 dark:text-white dark:border-gray-700">
+          <div className="card rounded-2xl p-6 shadow-sm border bg-white border-gray-200 text-black">
             <h2 className="text-lg font-semibold mb-4">Người bạn đã chặn</h2>
             {blockedUsers.length === 0 ? (
-              <div className="text-gray-500 dark:text-gray-400">
+              <div className="text-gray-500 ">
                 Bạn chưa chặn ai.
               </div>
             ) : (
@@ -116,7 +116,7 @@ export default function Settings() {
 
         {/* Privacy Settings */}
         {activeTab === "privacy" && (
-          <div className="card rounded-2xl p-6 shadow-sm border bg-white border-gray-200 text-black dark:bg-gray-800 dark:text-white dark:border-gray-700">
+          <div className="card rounded-2xl p-6 shadow-sm border bg-white border-gray-200 text-black">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h2 className="text-lg font-semibold mb-4">Đổi email</h2>
@@ -138,7 +138,7 @@ export default function Settings() {
                 }}>
                   <div className="flex flex-col gap-2 mb-4 max-w-md">
                     <label htmlFor="newEmail" className="font-medium">Email mới</label>
-                    <input type="email" id="newEmail" name="newEmail" className="px-3 py-2 rounded border bg-gray-50 dark:bg-gray-900" required value={newEmail} onChange={e => setNewEmail(e.target.value)} />
+                    <input type="email" id="newEmail" name="newEmail" className="px-3 py-2 rounded border bg-gray-50" required value={newEmail} onChange={e => setNewEmail(e.target.value)} />
                   </div>
                   <button type="submit" className="px-6 py-2 rounded-lg bg-black text-white font-semibold text-sm transition-colors hover:bg-gray-900" disabled={emailLoading}>{emailLoading ? "Đang lưu..." : "Lưu email"}</button>
                 </form>
@@ -164,11 +164,11 @@ export default function Settings() {
                 }}>
                   <div className="flex flex-col gap-2 mb-4 max-w-md">
                     <label htmlFor="currentPassword" className="font-medium">Mật khẩu hiện tại</label>
-                    <input type="password" id="currentPassword" name="currentPassword" className="px-3 py-2 rounded border bg-gray-50 dark:bg-gray-900" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
+                    <input type="password" id="currentPassword" name="currentPassword" className="px-3 py-2 rounded border bg-gray-50" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
                   </div>
                   <div className="flex flex-col gap-2 mb-4 max-w-md">
                     <label htmlFor="newPassword" className="font-medium">Mật khẩu mới</label>
-                    <input type="password" id="newPassword" name="newPassword" className="px-3 py-2 rounded border bg-gray-50 dark:bg-gray-900" required value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                    <input type="password" id="newPassword" name="newPassword" className="px-3 py-2 rounded border bg-gray-50" required value={newPassword} onChange={e => setNewPassword(e.target.value)} />
                   </div>
                   <button type="submit" className="px-6 py-2 rounded-lg bg-black text-white font-semibold text-sm transition-colors hover:bg-gray-900" disabled={passwordLoading}>{passwordLoading ? "Đang lưu..." : "Lưu mật khẩu"}</button>
                 </form>

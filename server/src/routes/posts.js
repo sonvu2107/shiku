@@ -62,8 +62,14 @@ router.get("/", authOptional, async (req, res, next) => {
       });
     }
 
+    // Thêm số lượng bình luận cho mỗi bài
+    const itemsWithCommentCount = await Promise.all(items.map(async post => {
+      const commentCount = await Comment.countDocuments({ post: post._id });
+      return { ...post.toObject(), commentCount };
+    }));
+
     const count = items.length;
-    res.json({ items, total: count, page: Number(page), pages: Math.ceil(count / Number(limit)) });
+    res.json({ items: itemsWithCommentCount, total: count, page: Number(page), pages: Math.ceil(count / Number(limit)) });
   } catch (e) {
     next(e);
   }
@@ -76,7 +82,9 @@ router.get("/slug/:slug", async (req, res, next) => {
       { slug: req.params.slug, status: "published" },
       { $inc: { views: 1 } },
       { new: true }
-    ).populate("author", "name avatarUrl role blockedUsers");
+    )
+      .populate("author", "name avatarUrl role blockedUsers")
+      .populate("emotes.user", "name avatarUrl role");
 
     // If not found, check private
     if (!post) {
@@ -84,7 +92,9 @@ router.get("/slug/:slug", async (req, res, next) => {
         { slug: req.params.slug, status: "private" },
         { $inc: { views: 1 } },
         { new: true }
-      ).populate("author", "name avatarUrl role blockedUsers");
+      )
+        .populate("author", "name avatarUrl role blockedUsers")
+        .populate("emotes.user", "name avatarUrl role");
 
       if (post) {
         if (!req.headers.authorization && !req.cookies?.token) {
@@ -113,7 +123,10 @@ router.get("/slug/:slug", async (req, res, next) => {
       .populate("parent", "_id")
       .sort({ createdAt: -1 });
 
-    res.json({ post, comments });
+    // Populate emotes.user kèm role
+    await post.populate("emotes.user", "name avatarUrl role");
+
+    res.json({ post: { ...post.toObject(), commentCount: comments.length }, comments });
   } catch (e) {
     next(e);
   }
@@ -210,8 +223,9 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
       post.emotes.push({ user: req.user._id, type: emote });
     }
 
-    await post.save();
-    res.json({ emotes: post.emotes });
+  await post.save();
+  await post.populate("emotes.user", "name avatarUrl role");
+  res.json({ emotes: post.emotes });
   } catch (e) {
     next(e);
   }
