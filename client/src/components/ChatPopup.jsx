@@ -44,8 +44,9 @@ export default function ChatPopup({ conversation, onClose }) {
 
   const isGroup = conversation.conversationType === "group";
   const avatar = isGroup
-    ? conversation.groupAvatar || "/default-avatar.png"
-    : (conversation.otherParticipants?.[0]?.user?.avatarUrl || "/default-avatar.png");
+    ? conversation.groupAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conversation.groupName || 'Nhóm')}&background=cccccc&color=222222&size=64`
+    : (conversation.otherParticipants?.[0]?.user?.avatarUrl
+        || `https://ui-avatars.com/api/?name=${encodeURIComponent(conversation.otherParticipants?.[0]?.user?.name || 'Không tên')}&background=cccccc&color=222222&size=64`);
   const name = isGroup
     ? conversation.groupName || "Nhóm"
     : (conversation.otherParticipants?.[0]?.user?.name || "Không tên");
@@ -54,7 +55,7 @@ export default function ChatPopup({ conversation, onClose }) {
     <div className="w-80 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-2 border-b bg-gray-50 rounded-t-xl">
-        <img src={avatar} alt={name} className="w-9 h-9 rounded-full object-cover" />
+  <img src={avatar} alt={name} className="w-9 h-9 rounded-full object-cover" />
         <div className="flex-1 font-semibold text-gray-900">{name}</div>
         <button className="p-1 hover:bg-gray-200 rounded-full"><Phone size={18} /></button>
         <button className="p-1 hover:bg-gray-200 rounded-full"><Video size={18} /></button>
@@ -98,7 +99,15 @@ export default function ChatPopup({ conversation, onClose }) {
                 return (
                   <div key={msg._id || idx} className="mb-2 flex justify-start">
                     <div className="flex items-start gap-2">
-                      <img src={msg.sender?.avatarUrl || '/default-avatar.png'} alt={msg.sender?.name || ''} className="w-7 h-7 rounded-full object-cover mt-1" />
+                      <img
+                        src={
+                          msg.sender?.avatarUrl
+                            ? msg.sender.avatarUrl
+                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.sender?.name || 'Không tên')}&background=cccccc&color=222222&size=64`
+                        }
+                        alt={msg.sender?.name || ''}
+                        className="w-7 h-7 rounded-full object-cover mt-1"
+                      />
                       <div className="flex flex-col items-start">
                         <div className="text-xs text-gray-700 font-semibold mb-1">{msg.sender?.name || 'Không tên'}</div>
                         {msg.messageType === "image" ? (
