@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import ChatDropdown from "./ChatDropdown";
 import ChatPopup from "./ChatPopup";
+import { ChatPopupWithCallModal } from "./ChatPopup";
 
 export default function Navbar({ user, setUser }) {
   const [openPopups, setOpenPopups] = useState([]);
@@ -96,7 +97,7 @@ export default function Navbar({ user, setUser }) {
               <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input 
                 type="text"
-                placeholder="Tìm kiếm..."
+                placeholder=""
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 maxLength={100}
@@ -163,7 +164,6 @@ export default function Navbar({ user, setUser }) {
               type="submit"
               className="btn flex items-center gap-2 px-3 py-2"
             >
-              <Search size={18} />
               Tìm
             </button>
           </form>
@@ -267,9 +267,8 @@ export default function Navbar({ user, setUser }) {
         </div>
         {/* Popup chat Messenger */}
         {openPopups.map((conv, idx) => (
-          <div style={{ position: 'fixed', bottom: 16, right: 16 + idx * 340, zIndex: 100 + idx }}>
-            <ChatPopup
-              key={conv._id}
+          <div key={conv._id || idx} style={{ position: 'fixed', bottom: 16, right: 16 + idx * 340, zIndex: 100 + idx }}>
+            <ChatPopupWithCallModal
               conversation={conv}
               onClose={() => setOpenPopups(popups => popups.filter(p => p._id !== conv._id))}
             />
@@ -285,7 +284,7 @@ export default function Navbar({ user, setUser }) {
               <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input 
                 type="text"
-                placeholder="Tìm kiếm..."
+                placeholder=""
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200"

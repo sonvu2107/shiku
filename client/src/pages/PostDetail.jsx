@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from "react";
+import MenuActions from "../components/MenuActions";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { api } from "../api";
 import ReactMarkdown from "react-markdown";
@@ -178,9 +179,20 @@ export default function PostDetail() {
 
   return (
     <div className="w-full px-6 py-6 space-y-4 pt-20">
-      <div className="card max-w-4xl mx-auto">
+  <div className="card max-w-4xl mx-auto relative">
         {/* Header: avatar + tên user */}
         <div className="flex items-center gap-2 mb-0">
+        {/* Menu 3 chấm góc phải */}
+        {user && (user._id === p.author?._id || user.role === "admin") && (
+          <div className="absolute top-4 right-4 z-10">
+            <MenuActions
+              onToggleStatus={togglePostStatus}
+              onEdit={() => navigate(`/edit/${p._id}`)}
+              onDelete={deletePost}
+              isPrivate={p.status === "private"}
+            />
+          </div>
+        )}
           <Link to={`/user/${p.author?._id}`}>
             <img
               src={
@@ -219,68 +231,84 @@ export default function PostDetail() {
         </div>
 
         {/* Hiển thị preview media trong bài */}
-        {allMedia.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {allMedia.slice(0, 3).map((m, idx) => {
-              // Nếu là ảnh thứ 3 và còn nhiều hơn 3 ảnh, hiển thị overlay +N
-              if (idx === 2 && allMedia.length > 3) {
-                return (
-                  <div
-                    key={idx}
-                    className="w-64 h-32 relative cursor-pointer"
-                    onClick={() => {
-                      setCurrentIndex(idx);
-                      setShowMediaModal(true);
-                    }}
-                  >
-                    {m.type === "video" ? (
-                      <video
-                        src={m.url}
-                        className="w-full h-full object-cover rounded"
-                        muted
-                        playsInline
-                        controls
-                      />
-                    ) : (
-                      <img
-                        src={m.url}
-                        className="w-full h-full object-cover rounded"
-                        alt="media"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded text-white text-2xl font-bold">
-                      +{allMedia.length - 3}
-                    </div>
+        {allMedia.length === 1 && (
+          <div className="mt-4">
+            <div
+              className="w-full rounded-xl overflow-hidden cursor-pointer"
+              onClick={() => {
+                setCurrentIndex(0);
+                setShowMediaModal(true);
+              }}
+            >
+              {allMedia[0].type === "video" ? (
+                <video
+                  src={allMedia[0].url}
+                  className="w-full object-contain max-h-[70vh]"
+                  controls
+                />
+              ) : (
+                <img
+                  src={allMedia[0].url}
+                  className="w-full object-contain max-h-[70vh]"
+                  alt="media"
+                />
+              )}
+            </div>
+          </div>
+        )}
+        {allMedia.length > 1 && (
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            <div
+              className="col-span-2 row-span-2 h-64 rounded-xl overflow-hidden cursor-pointer"
+              onClick={() => {
+                setCurrentIndex(0);
+                setShowMediaModal(true);
+              }}
+            >
+              {allMedia[0].type === "video" ? (
+                <video
+                  src={allMedia[0].url}
+                  className="w-full h-full object-cover"
+                  controls
+                />
+              ) : (
+                <img
+                  src={allMedia[0].url}
+                  className="w-full h-full object-cover"
+                  alt="media"
+                />
+              )}
+            </div>
+            {allMedia.slice(1, 3).map((m, idx) => (
+              <div
+                key={idx + 1}
+                className="h-36 rounded-xl overflow-hidden relative cursor-pointer"
+                onClick={() => {
+                  setCurrentIndex(idx + 1);
+                  setShowMediaModal(true);
+                }}
+              >
+                {m.type === "video" ? (
+                  <video
+                    src={m.url}
+                    className="w-full h-full object-cover"
+                    controls
+                  />
+                ) : (
+                  <img
+                    src={m.url}
+                    className="w-full h-full object-cover"
+                    alt="media"
+                  />
+                )}
+                {/* Nếu là ảnh cuối và còn nhiều hơn 3 ảnh, overlay số lượng */}
+                {idx === 1 && allMedia.length > 3 && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded text-white text-2xl font-bold">
+                    +{allMedia.length - 3} ảnh
                   </div>
-                );
-              }
-              return (
-                <div
-                  key={idx}
-                  className="w-64 h-32 relative cursor-pointer"
-                  onClick={() => {
-                    setCurrentIndex(idx);
-                    setShowMediaModal(true);
-                  }}
-                >
-                  {m.type === "video" ? (
-                    <video
-                      src={m.url}
-                      className="w-full h-full object-cover rounded"
-                      muted
-                      playsInline
-                      controls
-                    />
-                  ) : (
-                    <img
-                      src={m.url}
-                      className="w-full h-full object-cover rounded"
-                      alt="media"
-                    />
-                  )}
-                </div>
-              );
-            })}
+                )}
+              </div>
+            ))}
           </div>
         )}
 
@@ -415,25 +443,7 @@ export default function PostDetail() {
             </div>
 
             {/* Toggle / Edit / Delete */}
-            {user && (user._id === p.author?._id || user.role === "admin") && (
-              <>
-                <button className="btn-outline" onClick={togglePostStatus}>
-                  {p.status === "private" ? "Công khai" : "Riêng tư"}
-                </button>
-                <button
-                  className="btn-outline"
-                  onClick={() => navigate(`/edit/${p._id}`)}
-                >
-                  Sửa bài
-                </button>
-                <button
-                  className="btn-outline text-red-600"
-                  onClick={deletePost}
-                >
-                  Xóa bài
-                </button>
-              </>
-            )}
+            {/* Đã gộp vào menu 3 chấm */}
           </div>
         </div>
       </div>
