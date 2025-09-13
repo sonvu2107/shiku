@@ -99,6 +99,17 @@ app.use(errorHandler);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
+  // Xử lý sự kiện call-offer (WebRTC signaling)
+  socket.on('call-offer', ({ offer, conversationId }) => {
+    // Phát tới tất cả thành viên trong phòng trừ người gọi
+    socket.to(`conversation-${conversationId}`).emit('call-offer', {
+      offer,
+      conversationId,
+      caller: socket.user || {}, // Nếu có thông tin user trên socket
+      isVideo: offer?.type === 'video' // hoặc truyền từ client
+    });
+    console.log(`📞 call-offer sent to conversation-${conversationId}`);
+  });
   console.log('🔌 User connected:', socket.id);
 
   // Join user to their personal room for notifications
