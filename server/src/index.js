@@ -47,17 +47,26 @@ const PORT = process.env.PORT || 4000;
 // middlewares
 app.use(helmet());
 app.use(cookieParser());
-app.use(cors({ 
-  origin: [
-    "http://localhost:5173", 
-    "http://localhost:5174",
-    "http://172.29.100.73:5173",
-    "http://172.29.100.73:5174",
-    "http://192.168.0.101:5173",
-    "http://192.168.0.101:5174",
-    ...(process.env.CORS_ORIGIN?.split(",") || [])
-  ], 
-  credentials: true 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://172.29.100.73:5173",
+  "http://172.29.100.73:5174",
+  "http://192.168.0.101:5173",
+  "http://192.168.0.101:5174",
+  ...(process.env.CORS_ORIGIN?.split(",") || [])
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn("❌ Blocked by CORS:", origin);
+      callback(new Error("Not allowed by CORS: " + origin));
+    }
+  },
+  credentials: true
 }));
 app.use(express.json({ limit: "10mb" }));
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
