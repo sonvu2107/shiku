@@ -20,22 +20,25 @@ import ResetPassword from "./pages/ResetPassword.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { api } from "./api.js";
 import { getAuthToken } from "./utils/auth.js";
+import socketService from "./socket";   // ✅ import socket
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
-  
-  // Các trang không hiển thị navbar
-  const hideNavbarPages = ['/login', '/register'];
+
+  const hideNavbarPages = ["/login", "/register"];
   const shouldHideNavbar = hideNavbarPages.includes(location.pathname);
-  
+
   useEffect(() => {
-    // Chỉ gọi /me nếu có token trong localStorage
     const token = getAuthToken();
     if (token) {
       api("/api/auth/me")
-        .then(res => setUser(res.user))
+        .then(res => {
+          setUser(res.user);
+          // ✅ connect socket khi có user
+          socketService.connect(res.user);
+        })
         .catch(() => setUser(null))
         .finally(() => setLoading(false));
     } else {
@@ -54,28 +57,30 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      {!shouldHideNavbar && location.pathname !== '/chat' && <Navbar user={user} setUser={setUser} />}
-      
+      {!shouldHideNavbar && location.pathname !== "/chat" && (
+        <Navbar user={user} setUser={setUser} />
+      )}
+
       {shouldHideNavbar ? (
-        // Layout full màn hình cho login/register
         <Routes>
           <Route path="/login" element={<Login setUser={setUser} />} />
           <Route path="/register" element={<Register setUser={setUser} />} />
         </Routes>
-      ) : location.pathname === '/chat' ? (
-        // Layout đặc biệt cho chat - full screen với navbar
+      ) : location.pathname === "/chat" ? (
         <div className="h-screen flex flex-col">
           <div className="flex-shrink-0">
             <Navbar user={user} setUser={setUser} />
           </div>
           <div className="flex-1 overflow-hidden">
             <Routes>
-              <Route path="/chat" element={<ProtectedRoute user={user}><Chat /></ProtectedRoute>} />
+              <Route
+                path="/chat"
+                element={<ProtectedRoute user={user}><Chat /></ProtectedRoute>}
+              />
             </Routes>
           </div>
         </div>
       ) : (
-        // Layout thông thường cho các trang khác
         <div className="w-full">
           <Routes>
             <Route path="/" element={user ? <Home user={user} /> : <Navigate to="/login" />} />

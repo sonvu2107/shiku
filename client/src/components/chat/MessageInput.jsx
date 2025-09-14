@@ -75,7 +75,7 @@ export default function MessageInput({ onSendMessage }) {
 
   const handleEmoteSelect = (emote) => {
     // Send emote as a separate message
-    onSendMessage(message.trim() || 'đã gửi một emote', 'emote', emote);
+    onSendMessage(message.trim() || '~', 'emote', emote);
     setMessage('');
     setShowEmotePicker(false);
   };

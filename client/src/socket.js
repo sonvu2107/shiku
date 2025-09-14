@@ -3,6 +3,54 @@ import { io } from "socket.io-client";
 const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 class SocketService {
+  // WebRTC signaling events for call/video call
+  onCallOffer(callback) {
+    if (this.socket) {
+      this.socket.on('call-offer', callback);
+    }
+  }
+
+  emitCallOffer(offer, conversationId) {
+    if (this.socket) {
+      this.socket.emit('call-offer', { offer, conversationId });
+    }
+  }
+
+  onCallAnswer(callback) {
+    if (this.socket) {
+      this.socket.on('call-answer', callback);
+    }
+  }
+
+  emitCallAnswer(answer, conversationId) {
+    if (this.socket) {
+      this.socket.emit('call-answer', { answer, conversationId });
+    }
+  }
+
+  onCallCandidate(callback) {
+    if (this.socket) {
+      this.socket.on('call-candidate', callback);
+    }
+  }
+
+  emitCallCandidate(candidate, conversationId) {
+    if (this.socket) {
+      this.socket.emit('call-candidate', { candidate, conversationId });
+    }
+  }
+
+  emitCallEnd(conversationId) {
+    if (this.socket) {
+      this.socket.emit('call-end', { conversationId });
+    }
+  }
+
+  onCallEnd(callback) {
+    if (this.socket) {
+      this.socket.on('call-end', callback);
+    }
+  }
   constructor() {
     this.socket = null;
     this.currentConversation = null;
