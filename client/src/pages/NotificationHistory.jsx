@@ -166,41 +166,47 @@ export default function NotificationHistory() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto p-4 sm:p-6">
+      <div className="max-w-5xl mx-auto p-3 sm:p-6">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <button
                 onClick={() => navigate(-1)}
-                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-xl transition-colors touch-target"
               >
-                <ArrowLeft size={20} />
+                <ArrowLeft size={18} className="sm:w-5 sm:h-5" />
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800 mb-1">Lịch sử thông báo</h1>
-                <p className="text-gray-500 text-sm">Quản lý và theo dõi tất cả thông báo của bạn</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">Lịch sử thông báo</h1>
+                <p className="text-gray-500 text-xs sm:text-sm">Quản lý và theo dõi tất cả thông báo của bạn</p>
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 hover:border-blue-300 rounded-xl transition-all font-medium"
+                  className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 hover:border-blue-300 rounded-xl transition-all font-medium text-sm sm:text-base touch-target"
                 >
-                  <CheckCheck size={16} />
-                  <span className="whitespace-nowrap">Đánh dấu tất cả đã đọc ({unreadCount})</span>
+                  <CheckCheck size={14} className="sm:w-4 sm:h-4" />
+                  <span className="whitespace-nowrap">
+                    <span className="hidden sm:inline">Đánh dấu tất cả đã đọc ({unreadCount})</span>
+                    <span className="sm:hidden">Đọc hết ({unreadCount})</span>
+                  </span>
                 </button>
               )}
               
               {selectedNotifications.length > 0 && (
                 <button
                   onClick={deleteSelected}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 rounded-xl transition-all font-medium"
+                  className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 rounded-xl transition-all font-medium text-sm sm:text-base touch-target"
                 >
-                  <Trash2 size={16} />
-                  <span className="whitespace-nowrap">Xóa đã chọn ({selectedNotifications.length})</span>
+                  <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                  <span className="whitespace-nowrap">
+                    <span className="hidden sm:inline">Xóa đã chọn ({selectedNotifications.length})</span>
+                    <span className="sm:hidden">Xóa ({selectedNotifications.length})</span>
+                  </span>
                 </button>
               )}
             </div>
@@ -208,8 +214,8 @@ export default function NotificationHistory() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-wrap gap-2 sm:gap-4 overflow-x-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex gap-2 sm:gap-4 overflow-x-auto scrollbar-hide">
             {[
               { key: "all", label: "Tất cả", count: notifications.length },
               { key: "unread", label: "Chưa đọc", count: unreadCount },
@@ -218,14 +224,14 @@ export default function NotificationHistory() {
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key)}
-                className={`px-6 py-3 rounded-lg border-2 transition-all duration-200 whitespace-nowrap font-medium ${
+                className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 transition-all duration-200 whitespace-nowrap font-medium text-sm sm:text-base touch-target ${
                   filter === tab.key
                     ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
                     : "border-gray-200 text-gray-600 hover:text-gray-800 hover:border-gray-300 hover:bg-gray-50"
                 }`}
               >
-                <span className="mr-2">{tab.label}</span>
-                <span className={`text-sm px-2 py-1 rounded-full ${
+                <span className="mr-1 sm:mr-2">{tab.label}</span>
+                <span className={`text-xs sm:text-sm px-2 py-1 rounded-full ${
                   filter === tab.key 
                     ? "bg-blue-200 text-blue-800" 
                     : "bg-gray-200 text-gray-600"
@@ -320,20 +326,20 @@ export default function NotificationHistory() {
                       onClick={() => handleNotificationClick(notification)}
                     >
                       <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-semibold text-gray-800 leading-tight text-base">
+                        <h3 className="font-semibold text-gray-800 leading-tight text-sm sm:text-base truncate pr-2">
                           {notification.title}
                         </h3>
-                        <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                        <div className="flex items-center gap-1 sm:gap-2 ml-2 flex-shrink-0">
                           {!notification.read && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 markAsRead(notification._id);
                               }}
-                              className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-all"
+                              className="text-blue-600 hover:text-blue-800 p-1.5 sm:p-2 rounded-lg hover:bg-blue-50 transition-all touch-target"
                               title="Đánh dấu đã đọc"
                             >
-                              <Check size={16} />
+                              <Check size={14} className="sm:w-4 sm:h-4" />
                             </button>
                           )}
                           <button
@@ -341,24 +347,24 @@ export default function NotificationHistory() {
                               e.stopPropagation();
                               deleteNotification(notification._id);
                             }}
-                            className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-all"
+                            className="text-red-600 hover:text-red-800 p-1.5 sm:p-2 rounded-lg hover:bg-red-50 transition-all touch-target"
                             title="Xóa thông báo"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={14} className="sm:w-4 sm:h-4" />
                           </button>
                         </div>
                       </div>
                       
-                      <p className="text-gray-600 mb-4 leading-relaxed">
+                      <p className="text-gray-600 mb-4 leading-relaxed text-sm sm:text-base line-clamp-2">
                         {notification.message}
                       </p>
                       
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400 font-medium bg-gray-100 px-3 py-1 rounded-full">
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
+                        <span className="text-gray-400 font-medium bg-gray-100 px-2 sm:px-3 py-1 rounded-full">
                           {getTimeAgo(notification.createdAt)}
                         </span>
                         {notification.sender && (
-                          <span className="text-gray-500 bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-medium">
+                          <span className="text-gray-500 bg-blue-50 text-blue-700 px-2 sm:px-3 py-1 rounded-full font-medium truncate max-w-[120px] sm:max-w-none" title={notification.sender.name}>
                             từ {notification.sender.name}
                           </span>
                         )}

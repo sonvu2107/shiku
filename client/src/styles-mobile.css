@@ -134,6 +134,14 @@
   max-width: 100px;
 }
 
+/* ==================== TEXT TRUNCATION ==================== */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* ==================== ADMIN DASHBOARD MOBILE ==================== */
 @media (max-width: 640px) {
   .admin-table-mobile {

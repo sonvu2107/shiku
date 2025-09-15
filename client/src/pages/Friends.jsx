@@ -186,58 +186,61 @@ export default function Friends() {
   };
 
   const UserCard = ({ user, showActions = false, isRequest = false, requestId = null, showEmail = true }) => (
-    <div className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-3">
-        <div className="relative">
+    <div className="bg-white border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="relative flex-shrink-0">
           <img
             src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=cccccc&color=222222&size=64`}
             alt={user.name}
-            className="w-12 h-12 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => navigate(`/user/${user._id}`)}
           />
           {user.isOnline && (
-            <Circle size={12} className="absolute -bottom-1 -right-1 fill-green-500 text-green-500" />
+            <Circle size={10} className="absolute -bottom-1 -right-1 fill-green-500 text-green-500 sm:w-3 sm:h-3" />
           )}
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <h3
-            className="font-semibold cursor-pointer hover:text-blue-600 transition-colors"
+            className="font-semibold cursor-pointer hover:text-blue-600 transition-colors text-sm sm:text-base truncate"
             onClick={() => navigate(`/user/${user._id}`)}
+            title={user.name}
           >
             {user.name}
           </h3>
-          {showEmail && <p className="text-sm text-gray-600">{user.email}</p>}
+          {showEmail && <p className="text-xs sm:text-sm text-gray-600 truncate">{user.email}</p>}
           <p className="text-xs text-gray-500 flex items-center gap-1">
-            <Clock size={12} />
-            {getLastSeenText(user.lastSeen, user.isOnline)}
+            <Clock size={10} className="sm:w-3 sm:h-3" />
+            <span className="truncate">{getLastSeenText(user.lastSeen, user.isOnline)}</span>
           </p>
         </div>
 
         {showActions && (
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2 flex-shrink-0">
             {isRequest ? (
               <>
                 <button
                   onClick={() => acceptRequest(requestId)}
-                  className="btn-outline text-green-600 border-green-600 hover:bg-green-50 p-2"
+                  className="btn-outline text-green-600 border-green-600 hover:bg-green-50 p-1.5 sm:p-2 touch-target"
+                  title="Chấp nhận"
                 >
-                  <UserCheck size={16} />
+                  <UserCheck size={14} className="sm:w-4 sm:h-4" />
                 </button>
                 <button
                   onClick={() => rejectRequest(requestId)}
-                  className="btn-outline text-red-600 border-red-600 hover:bg-red-50 p-2"
+                  className="btn-outline text-red-600 border-red-600 hover:bg-red-50 p-1.5 sm:p-2 touch-target"
+                  title="Từ chối"
                 >
-                  <UserX size={16} />
+                  <UserX size={14} className="sm:w-4 sm:h-4" />
                 </button>
               </>
             ) : (
               <button
                 onClick={() => sendFriendRequest(user._id)}
-                className="btn-outline flex items-center gap-2"
+                className="btn-outline flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target"
               >
-                <UserPlus size={16} />
-                Kết bạn
+                <UserPlus size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Kết bạn</span>
               </button>
             )}
           </div>
@@ -247,25 +250,25 @@ export default function Friends() {
   );
 
   return (
-    <div className="w-full px-6 py-6 pt-24">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="w-full px-3 sm:px-6 py-6 pt-20 sm:pt-24">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
 
         {/* Header */}
         <div className="card">
-          <h1 className="text-3xl font-bold mb-4 flex items-center gap-3">
-            <Users size={32} />
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4 flex items-center gap-2 sm:gap-3">
+            <Users size={24} className="sm:w-8 sm:h-8" />
             Bạn bè
           </h1>
 
           {/* Search */}
           <div className="relative">
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Tìm kiếm người dùng..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+              className="pl-10 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent text-sm sm:text-base py-2 sm:py-3"
             />
           </div>
         </div>
@@ -290,24 +293,24 @@ export default function Friends() {
 
         {/* Tabs */}
         <div className="card">
-          <div className="flex border-b mb-4">
+          <div className="flex overflow-x-auto border-b mb-4 scrollbar-hide">
             <button
-              className={`px-4 py-2 font-medium ${activeTab === 'friends' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+              className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target ${activeTab === 'friends' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
               onClick={() => setActiveTab('friends')}
             >
-              Danh sách bạn bè ({friends.length})
+              Bạn bè ({friends.length})
             </button>
             <button
-              className={`px-4 py-2 font-medium ${activeTab === 'requests' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+              className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target ${activeTab === 'requests' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
               onClick={() => setActiveTab('requests')}
             >
               Lời mời ({requests.length})
             </button>
             <button
-              className={`px-4 py-2 font-medium ${activeTab === 'suggestions' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+              className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target ${activeTab === 'suggestions' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
               onClick={() => setActiveTab('suggestions')}
             >
-              Gợi ý kết bạn
+              Gợi ý
             </button>
           </div>
 

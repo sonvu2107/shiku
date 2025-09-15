@@ -188,83 +188,92 @@ export default function UserProfile() {
     switch (profile.friendshipStatus) {
       case "friends":
         return (
-          <div className="flex gap-2">
-            <MessageButton user={profile.user} className="btn flex items-center gap-2" />
+          <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2">
+            <MessageButton user={profile.user} className="btn flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target whitespace-nowrap" />
             <button
               onClick={removeFriend}
-              className="btn-outline text-red-600 border-red-600 hover:bg-red-50 flex items-center gap-2"
+              className="btn-outline text-red-600 border-red-600 hover:bg-red-50 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target whitespace-nowrap"
             >
-              <UserMinus size={18} />
-              Hủy kết bạn
+              <UserMinus size={14} className="sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Hủy kết bạn</span>
+              <span className="sm:hidden">Hủy</span>
             </button>
             <button
               onClick={blockUser}
-              className="btn-outline text-red-600 border-red-600 hover:bg-red-50"
+              className="btn-outline text-red-600 border-red-600 hover:bg-red-50 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target whitespace-nowrap"
             >
-              Chặn người này
+              <span className="hidden sm:inline">Chặn người này</span>
+              <span className="sm:hidden">Chặn</span>
             </button>
           </div>
         );
       case "request_sent":
         return (
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2">
             <button
               onClick={cancelFriendRequest}
-              className="btn-outline flex items-center gap-2"
+              className="btn-outline flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target whitespace-nowrap"
             >
-              <UserCheck size={18} />
-              Hủy lời mời
+              <UserCheck size={14} className="sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Hủy lời mời</span>
+              <span className="sm:hidden">Hủy</span>
             </button>
             <button
               onClick={blockUser}
-              className="btn-outline text-red-600 border-red-600 hover:bg-red-50"
+              className="btn-outline text-red-600 border-red-600 hover:bg-red-50 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target whitespace-nowrap"
             >
-              Chặn người này
+              <span className="hidden sm:inline">Chặn người này</span>
+              <span className="sm:hidden">Chặn</span>
             </button>
           </div>
         );
       case "request_received":
         return (
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2">
             <button
               onClick={acceptFriendRequest}
-              className="btn flex items-center gap-2"
+              className="btn flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target whitespace-nowrap"
             >
-              <UserCheck size={18} />
-              Chấp nhận
+              <UserCheck size={14} className="sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Chấp nhận</span>
+              <span className="sm:hidden">OK</span>
             </button>
             <button
               onClick={rejectFriendRequest}
-              className="btn-outline text-red-600 border-red-600 hover:bg-red-50 flex items-center gap-2"
+              className="btn-outline text-red-600 border-red-600 hover:bg-red-50 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target whitespace-nowrap"
             >
-              <UserMinus size={18} />
-              Từ chối
+              <UserMinus size={14} className="sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Từ chối</span>
+              <span className="sm:hidden">Từ chối</span>
             </button>
-            <MessageButton user={profile.user} className="btn" />
+            <MessageButton user={profile.user} className="btn text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target whitespace-nowrap" />
             <button
               onClick={blockUser}
-              className="btn-outline text-red-600 border-red-600 hover:bg-red-50"
+              className="btn-outline text-red-600 border-red-600 hover:bg-red-50 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target whitespace-nowrap"
             >
-              Chặn người này
+              <span className="hidden sm:inline">Chặn người này</span>
+              <span className="sm:hidden">Chặn</span>
             </button>
           </div>
         );
       default:
         return (
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2">
             <button
               onClick={sendFriendRequest}
-              className="btn flex items-center gap-2"
+              className="btn flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target whitespace-nowrap"
             >
-              <UserPlus size={18} />
-              Kết bạn
+              <UserPlus size={14} className="sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Kết bạn</span>
+              <span className="sm:hidden">Kết bạn</span>
             </button>
-            <MessageButton user={profile.user} className="btn" />
+            <MessageButton user={profile.user} className="btn text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target whitespace-nowrap" />
             <button
               onClick={blockUser}
-              className="btn-outline text-red-600 border-red-600 hover:bg-red-50"
+              className="btn-outline text-red-600 border-red-600 hover:bg-red-50 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target whitespace-nowrap"
             >
-              Chặn người này
+              <span className="hidden sm:inline">Chặn người này</span>
+              <span className="sm:hidden">Chặn</span>
             </button>
           </div>
         );
@@ -321,10 +330,10 @@ export default function UserProfile() {
   }
 
   return (
-    <div className="w-full px-6 py-6 pt-24">
-      <div className="card max-w-2xl mx-auto space-y-6">
+    <div className="w-full px-3 sm:px-6 py-6 pt-20 sm:pt-24">
+      <div className="card max-w-2xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3 sm:gap-4">
           <img
             src={
               user.avatarUrl ||
@@ -333,18 +342,20 @@ export default function UserProfile() {
               )}&background=cccccc&color=222222&size=128`
             }
             alt="avatar"
-            className="w-20 h-20 rounded-full object-cover border-2 border-gray-300 bg-gray-100"
+            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-gray-300 bg-gray-100 flex-shrink-0"
           />
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-1">
-              <UserName user={user} className="text-2xl font-bold text-gray-800" />
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-1">
+              <UserName user={user} className="text-xl sm:text-2xl font-bold text-gray-800" maxLength={20} />
             </h1>
-            <p className="text-gray-600 mb-3">
+            <p className="text-sm sm:text-base text-gray-600 mb-3">
               {profile.friendshipStatus === "friends"
                 ? "Đã là bạn bè"
                 : "Chưa là bạn bè"}
             </p>
-            {renderFriendButton()}
+            <div className="overflow-x-auto">
+              {renderFriendButton()}
+            </div>
           </div>
         </div>
 
