@@ -1,0 +1,169 @@
+/* Mobile Optimization Styles */
+/* Thêm vào file styles.css hiện tại */
+
+/* ==================== MOBILE BREAKPOINTS ==================== */
+@media (max-width: 640px) {
+  /* Mobile-specific container adjustments */
+  .container {
+    @apply px-3;
+  }
+  
+  /* Navbar mobile optimization */
+  .navbar-mobile {
+    @apply px-3 py-2;
+  }
+  
+  .navbar-mobile .search-container {
+    @apply hidden;
+  }
+  
+  .navbar-mobile .mobile-search {
+    @apply block;
+  }
+  
+  /* Chat layout mobile */
+  .chat-mobile {
+    @apply flex-col;
+  }
+  
+  .chat-sidebar-mobile {
+    @apply w-full h-48 border-b border-r-0;
+  }
+  
+  .chat-window-mobile {
+    @apply flex-1;
+  }
+  
+  /* Post cards mobile */
+  .post-card-mobile {
+    @apply mx-2;
+  }
+  
+  .post-card-mobile .aspect-ratio {
+    @apply aspect-[4/3];
+  }
+  
+  /* Form inputs mobile */
+  .input-mobile {
+    @apply text-base py-3 px-4;
+  }
+  
+  /* Buttons mobile */
+  .btn-mobile {
+    @apply min-h-[44px] px-4 py-3 text-base;
+  }
+  
+  /* Modal mobile */
+  .modal-mobile {
+    @apply mx-4 max-w-none;
+  }
+  
+  /* Dropdown mobile */
+  .dropdown-mobile {
+    @apply w-full max-w-[calc(100vw-2rem)];
+  }
+  
+  /* Emote picker mobile */
+  .emote-picker-mobile {
+    @apply w-full max-w-[calc(100vw-2rem)] grid-cols-6;
+  }
+}
+
+/* ==================== TOUCH OPTIMIZATIONS ==================== */
+@media (hover: none) and (pointer: coarse) {
+  /* Touch device optimizations */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  .hover\:scale-105:hover {
+    @apply scale-100;
+  }
+  
+  .hover\:bg-gray-50:hover {
+    @apply bg-transparent;
+  }
+  
+  /* Show touch feedback */
+  .touch-feedback:active {
+    @apply scale-95 bg-gray-100;
+  }
+}
+
+/* ==================== LANDSCAPE MOBILE ==================== */
+@media (max-width: 896px) and (orientation: landscape) {
+  .chat-mobile-landscape {
+    @apply flex-row;
+  }
+  
+  .chat-sidebar-mobile-landscape {
+    @apply w-64 h-full border-r border-b-0;
+  }
+}
+
+/* ==================== ACCESSIBILITY ==================== */
+@media (prefers-reduced-motion: reduce) {
+  .transition-all,
+  .transition-colors,
+  .transition-transform {
+    @apply transition-none;
+  }
+  
+  .animate-spin {
+    @apply animate-none;
+  }
+}
+
+/* ==================== SCROLLBAR HIDE ==================== */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none;  /* Safari and Chrome */
+}
+
+/* ==================== USER NAME TRUNCATION ==================== */
+.user-name-truncate {
+  @apply truncate;
+  max-width: 150px;
+}
+
+.user-name-truncate-mobile {
+  @apply truncate;
+  max-width: 100px;
+}
+
+/* ==================== ADMIN DASHBOARD MOBILE ==================== */
+@media (max-width: 640px) {
+  .admin-table-mobile {
+    @apply text-xs;
+  }
+  
+  .admin-card-mobile {
+    @apply p-3;
+  }
+  
+  .admin-button-mobile {
+    @apply min-h-[36px] px-3 py-2 text-xs;
+  }
+  
+  .admin-stats-mobile {
+    @apply grid-cols-1 gap-3;
+  }
+}
+
+/* ==================== DARK MODE SUPPORT ==================== */
+@media (prefers-color-scheme: dark) {
+  .dark-mode-mobile {
+    @apply bg-gray-900 text-white;
+  }
+  
+  .dark-mode-mobile .card {
+    @apply bg-gray-800 border-gray-700;
+  }
+  
+  .dark-mode-mobile .input-mobile {
+    @apply bg-gray-700 border-gray-600 text-white;
+  }
+}

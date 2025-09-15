@@ -270,17 +270,17 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="w-full px-6 py-6 pt-20 space-y-6">
+    <div className="w-full px-3 sm:px-6 py-6 pt-20 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="card max-w-7xl mx-auto">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">QUẢN LÝ NGƯỜI DÙNG</h1>
-            <div className="text-gray-600">Chào mừng, {user?.name}!</div>
+            <h1 className="text-xl sm:text-3xl font-bold mb-2">QUẢN LÝ NGƯỜI DÙNG</h1>
+            <div className="text-sm sm:text-base text-gray-600">Chào mừng, {user?.name}!</div>
           </div>
           <button
             onClick={refreshAllData}
-            className="btn-outline btn-sm flex items-center gap-2"
+            className="btn-outline btn-sm flex items-center gap-2 w-full sm:w-auto justify-center touch-target"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -292,48 +292,48 @@ export default function AdminDashboard() {
 
       {/* Tab Navigation */}
       <div className="card max-w-7xl mx-auto">
-        <div className="flex border-b">
+        <div className="flex overflow-x-auto border-b scrollbar-hide">
           <button
-            className={`px-4 py-2 font-medium flex items-center gap-2 ${activeTab === "stats" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "stats" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("stats")}
           >
-            <BarChart3 size={18} />
-            Thống kê
+            <BarChart3 size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="text-sm sm:text-base">Thống kê</span>
           </button>
           <button
-            className={`px-4 py-2 font-medium flex items-center gap-2 ${activeTab === "users" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "users" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("users")}
           >
-            <Users size={18} />
-            Người dùng
+            <Users size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="text-sm sm:text-base">Người dùng</span>
           </button>
           <button
-            className={`px-4 py-2 font-medium flex items-center gap-2 ${activeTab === "bans" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "bans" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("bans")}
           >
-            <Crown size={18} />
-            Quản lý Cấm
+            <Crown size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="text-sm sm:text-base">Cấm</span>
           </button>
           <button
-            className={`px-4 py-2 font-medium flex items-center gap-2 ${activeTab === "notifications" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "notifications" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("notifications")}
           >
-            <Bell size={18} />
-            Thông báo
+            <Bell size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="text-sm sm:text-base">Thông báo</span>
           </button>
           <button
-            className={`px-4 py-2 font-medium flex items-center gap-2 ${activeTab === "online" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "online" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("online")}
           >
-            <Wifi size={18} />
-            Số lượng truy cập
+            <Wifi size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="text-sm sm:text-base">Truy cập</span>
           </button>
           <button
-            className={`px-4 py-2 font-medium flex items-center gap-2 ${activeTab === "feedback" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "feedback" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("feedback")}
           >
-            <MessageCircle size={18} />
-            Góp ý người dùng
+            <MessageCircle size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="text-sm sm:text-base">Góp ý</span>
           </button>
         </div>
       </div>
@@ -343,17 +343,17 @@ export default function AdminDashboard() {
         {/* Stats Tab */}
         {activeTab === "stats" && stats && (
           <div className="pt-4">
-            <h2 className="text-xl font-bold mb-4">Thống kê tổng quan</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <h2 className="text-lg sm:text-xl font-bold mb-4">Thống kê tổng quan</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
               {/* Bài viết */}
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <FileText className="text-blue-600" size={24} />
-                  <div className="text-2xl font-bold text-blue-600">
+                  <FileText className="text-blue-600 sm:w-6 sm:h-6" size={20} />
+                  <div className="text-xl sm:text-2xl font-bold text-blue-600">
                     {stats.overview ? stats.overview.totalPosts.count : stats.totalPosts}
                   </div>
                 </div>
-                <div className="text-gray-600">Tổng bài viết</div>
+                <div className="text-sm sm:text-base text-gray-600">Tổng bài viết</div>
                 {stats.overview && (
                   <div className="mt-2 text-sm">
                     <div className="text-gray-500">
@@ -615,32 +615,32 @@ export default function AdminDashboard() {
         {/* Users Tab */}
         {activeTab === "users" && (
           <div className="pt-4">
-            <h2 className="text-xl font-bold mb-4">Quản lý người dùng ({users.length})</h2>
+            <h2 className="text-lg sm:text-xl font-bold mb-4">Quản lý người dùng ({users.length})</h2>
             <div className="overflow-x-auto">
-              <table className="w-full border border-gray-200">
+              <table className="w-full border border-gray-200 min-w-[600px]">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left">Avatar</th>
-                    <th className="px-4 py-2 text-left">Tên</th>
-                    <th className="px-4 py-2 text-left">Email</th>
-                    <th className="px-4 py-2 text-left">Quyền</th>
-                    <th className="px-4 py-2 text-left">Ngày tham gia</th>
-                    <th className="px-4 py-2 text-left">Số bài viết</th>
-                    <th className="px-4 py-2 text-left">Hành động</th>
+                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Avatar</th>
+                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Tên</th>
+                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm hidden sm:table-cell">Email</th>
+                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Quyền</th>
+                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm hidden md:table-cell">Ngày tham gia</th>
+                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm hidden lg:table-cell">Số bài viết</th>
+                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map(u => (
                     <tr key={u._id} className="border-t">
-                      <td className="px-4 py-2">
+                      <td className="px-2 sm:px-4 py-2">
                         <img
                           src={u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=cccccc&color=222222&size=40`}
                           alt="avatar"
-                          className="w-8 h-8 rounded-full object-cover"
+                          className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover"
                         />
                       </td>
-                      <td className="px-4 py-2 font-medium flex items-center gap-2">
-                        {u.name}
+                      <td className="px-2 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2">
+                        <span className="text-xs sm:text-sm truncate">{u.name}</span>
                         {u.isVerified && (
                           <img
                             src={
@@ -650,12 +650,12 @@ export default function AdminDashboard() {
                                     : "/assets/default-tick.png"
                             }
                             alt="Tích xanh"
-                            className="inline w-5 h-5 ml-1"
+                            className="inline w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
                           />
                         )}
                       </td>
-                      <td className="px-4 py-2">{u.email}</td>
-                      <td className="px-4 py-2">
+                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm hidden sm:table-cell truncate max-w-[150px]">{u.email}</td>
+                      <td className="px-2 sm:px-4 py-2">
                         <select
                           value={u.role}
                           onChange={async (e) => {
@@ -663,25 +663,26 @@ export default function AdminDashboard() {
                             await updateUserRole(u._id, newRole);
                           }}
                           disabled={u._id === user._id}
-                          className="btn-outline btn-sm"
+                          className="btn-outline btn-xs sm:btn-sm text-xs sm:text-sm touch-target"
                         >
                           <option value="user">User</option>
-                          <option value="sololeveling">Anh sung solo</option>
-                          <option value="sybau">Ahh Sybau</option>
-                          <option value="moxumxue">Hero great tomb guard keeper</option>
+                          <option value="sololeveling">Solo</option>
+                          <option value="sybau">Sybau</option>
+                          <option value="moxumxue">Keeper</option>
                           <option value="admin">Admin</option>
                         </select>
                       </td>
-                      <td className="px-4 py-2 text-sm">{new Date(u.createdAt).toLocaleDateString()}</td>
-                      <td className="px-4 py-2">{u.postCount}</td>
-                      <td className="px-4 py-2">
-                        <div className="flex gap-2">
+                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm hidden md:table-cell">{new Date(u.createdAt).toLocaleDateString()}</td>
+                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm hidden lg:table-cell">{u.postCount}</td>
+                      <td className="px-2 sm:px-4 py-2">
+                        <div className="flex gap-1 sm:gap-2">
                           <button
-                            className="btn-outline btn-sm text-red-600"
+                            className="btn-outline btn-xs sm:btn-sm text-red-600 touch-target"
                             onClick={() => deleteUser(u._id)}
                             disabled={u._id === user._id}
                           >
-                            Xóa
+                            <span className="hidden sm:inline">Xóa</span>
+                            <span className="sm:hidden">🗑️</span>
                           </button>
                         </div>
                       </td>

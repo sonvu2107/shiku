@@ -51,21 +51,23 @@ export default function ChatWindow({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {conversation ? (
         <>
           {/* Header */}
-          <ChatHeader 
-            conversation={conversation} 
-            currentUser={currentUser}
-            onUpdateConversation={onUpdateConversation}
-            onLeaveConversation={onLeaveConversation}
-            onDeleteConversation={onDeleteConversation}
-            onAddMembers={onAddMembers}
-          />
+          <div className="flex-shrink-0">
+            <ChatHeader 
+              conversation={conversation} 
+              currentUser={currentUser}
+              onUpdateConversation={onUpdateConversation}
+              onLeaveConversation={onLeaveConversation}
+              onDeleteConversation={onDeleteConversation}
+              onAddMembers={onAddMembers}
+            />
+          </div>
 
           {/* Messages scrollable */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             <MessageList
               messages={messages}
               currentUser={currentUser}
@@ -78,19 +80,19 @@ export default function ChatWindow({
           </div>
 
           {/* Input */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 border-t border-gray-200 bg-white">
             <MessageInput onSendMessage={handleSendMessage} />
           </div>
         </>
       ) : (
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
+        <div className="flex-1 flex items-center justify-center bg-gray-50 p-4">
           <div className="text-center">
-            <div className="text-6xl mb-4">💬</div>
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+            <div className="text-4xl sm:text-6xl mb-4">💬</div>
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-600 mb-2">
               Chọn một cuộc trò chuyện
             </h3>
-            <p className="text-gray-500">
-              Chọn từ danh sách bên trái hoặc tạo cuộc trò chuyện mới
+            <p className="text-sm sm:text-base text-gray-500">
+              Chọn từ danh sách bên trên hoặc tạo cuộc trò chuyện mới
             </p>
           </div>
         </div>

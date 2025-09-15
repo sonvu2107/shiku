@@ -139,30 +139,30 @@ export default function MessageInput({ onSendMessage }) {
 
       {/* Emote picker */}
       {showEmotePicker && (
-        <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-4 max-h-48 overflow-y-auto z-10">
-          <div className="grid grid-cols-8 gap-2">
+        <div className="absolute bottom-full left-2 right-2 sm:left-4 sm:right-4 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-4 max-h-48 overflow-y-auto z-10 emote-picker-mobile">
+          <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
             {EMOTES.map((emote, index) => (
-              <button
-                key={index}
-                onClick={() => handleEmoteSelect(emote)}
-                className="p-2 text-2xl hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                {emote}
-              </button>
+            <button
+              key={index}
+              onClick={() => handleEmoteSelect(emote)}
+              className="p-2 text-xl sm:text-2xl hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-target"
+            >
+              {emote}
+            </button>
             ))}
           </div>
         </div>
       )}
 
       {/* Input area */}
-      <form onSubmit={handleSubmit} className="p-3">
-        <div className="flex items-end space-x-3">
+      <form onSubmit={handleSubmit} className="p-3 sm:p-4">
+        <div className="flex items-end space-x-2 sm:space-x-3">
           {/* Action buttons */}
           <div className="flex space-x-1">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+              className="p-2 text-blue-500 hover:bg-blue-50 active:bg-blue-100 rounded-full transition-colors touch-target"
               title="Gửi hình ảnh"
             >
               <Image size={20} />
@@ -171,10 +171,10 @@ export default function MessageInput({ onSendMessage }) {
             <button
               type="button"
               onClick={() => setShowEmotePicker(!showEmotePicker)}
-              className={`p-2 rounded-full transition-colors ${
+              className={`p-2 rounded-full transition-colors touch-target ${
                 showEmotePicker 
                   ? 'text-blue-600 bg-blue-50' 
-                  : 'text-blue-500 hover:bg-blue-50'
+                  : 'text-blue-500 hover:bg-blue-50 active:bg-blue-100'
               }`}
               title="Chọn emote"
             >
@@ -190,7 +190,7 @@ export default function MessageInput({ onSendMessage }) {
               onChange={handleTextareaChange}
               onKeyPress={handleKeyPress}
               placeholder="Aa"
-              className="w-full max-h-32 px-4 py-3 bg-gray-100 rounded-2xl resize-none focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 border-0 placeholder-gray-500"
+              className="w-full max-h-32 px-4 py-3 bg-gray-100 rounded-2xl resize-none focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 border-0 placeholder-gray-500 text-base"
               rows={1}
               style={{ minHeight: '44px' }}
             />
@@ -200,7 +200,7 @@ export default function MessageInput({ onSendMessage }) {
           {(message.trim() || selectedImage) && (
             <button
               type="submit"
-              className="p-2 bg-blue-500 text-white hover:bg-blue-600 rounded-full transition-all duration-200 transform hover:scale-105"
+              className="p-2 bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 touch-target"
               title="Gửi tin nhắn"
             >
               <Send size={20} />

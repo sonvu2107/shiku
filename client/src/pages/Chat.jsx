@@ -350,17 +350,17 @@ export default function Chat() {
   };
 
   return (
-  <div className="h-full bg-white pt-20">
-      <div className="h-full flex">
+  <div className="h-full bg-white pt-16 sm:pt-20">
+      <div className="h-full flex flex-col sm:flex-row chat-mobile">
         {/* Sidebar */}
-        <div className="w-72 border-r border-gray-100 flex flex-col bg-white">
+        <div className="w-full sm:w-72 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col bg-white chat-sidebar-mobile">
           {/* Header */}
           <div className="px-3 py-2 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <h1 className="text-lg font-semibold text-gray-900">Chat</h1>
               <button
                 onClick={() => setShowNewConversationModal(true)}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                className="p-2 text-blue-600 hover:bg-blue-50 active:bg-blue-100 rounded-full transition-colors touch-target"
                 title="Tạo cuộc trò chuyện mới"
               >
                 <Plus className="w-5 h-5" />
@@ -368,7 +368,7 @@ export default function Chat() {
             </div>
           </div>
           {/* Conversation List */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto max-h-48 sm:max-h-none">
             <ConversationList
               conversations={conversations}
               selectedConversation={selectedConversation}
@@ -379,7 +379,7 @@ export default function Chat() {
           </div>
         </div>
         {/* Chat Window */}
-        <div className="flex-1 bg-gray-50 flex flex-col">
+        <div className="flex-1 bg-gray-50 flex flex-col chat-window-mobile min-h-0">
           {selectedConversation ? (
             <ChatWindow
               conversation={selectedConversation}
@@ -395,14 +395,14 @@ export default function Chat() {
               onAddMembers={handleAddMembers}
             />
           ) : (
-            <div className="h-full flex items-center justify-center">
+            <div className="h-full flex items-center justify-center p-4">
               <div className="text-center">
-                <div className="text-6xl mb-4">💬</div>
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                <div className="text-4xl sm:text-6xl mb-4">💬</div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-600 mb-2">
                   Chọn một cuộc trò chuyện
                 </h3>
-                <p className="text-gray-500">
-                  Chọn cuộc trò chuyện từ danh sách bên trái để bắt đầu
+                <p className="text-sm sm:text-base text-gray-500">
+                  Chọn cuộc trò chuyện từ danh sách bên trên để bắt đầu
                 </p>
               </div>
             </div>

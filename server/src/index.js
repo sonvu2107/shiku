@@ -12,7 +12,7 @@ import { Server } from "socket.io"; // WebSocket server
 
 // Import config và middleware
 import { connectDB } from "./config/db.js";
-import { apiLimiter, authLimiter, uploadLimiter, messageLimiter } from "./middleware/rateLimit.js";
+import { apiLimiter, authLimiter, uploadLimiter, messageLimiter, postsLimiter } from "./middleware/rateLimit.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { requestTimeout } from "./middleware/timeout.js";
 
@@ -165,7 +165,7 @@ app.get("/health", (req, res) => {
 // Mount tất cả API routes with specific rate limiting
 app.use("/api/auth", authLimiter, authRoutes); // Authentication & authorization
 app.use("/api/auth", authTokenRoutes); // Token validation
-app.use("/api/posts", postRoutes); // Blog posts CRUD
+app.use("/api/posts", postsLimiter, postRoutes); // Blog posts CRUD with specific rate limiting
 app.use("/api/comments", commentRoutes); // Comments system
 app.use("/api/uploads", uploadLimiter, uploadRoutes); // File uploads
 app.use("/api/admin", adminRoutes); // Admin panel

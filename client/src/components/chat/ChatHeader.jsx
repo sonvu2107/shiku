@@ -178,7 +178,7 @@ const getAvatarUrl = () => {
             </div>
           ) : (
             <div>
-              <h3 className="font-semibold text-gray-900 text-sm">{getDisplayName()}</h3>
+              <h3 className="font-semibold text-gray-900 text-sm truncate max-w-[200px]" title={getDisplayName()}>{getDisplayName()}</h3>
               {isGroup && (
                 <p className="text-xs text-gray-500">{memberCount} thành viên</p>
               )}

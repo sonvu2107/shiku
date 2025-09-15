@@ -23,11 +23,25 @@ router.get("/", authOptional, async (req, res, next) => {
       filter.status = "private";
       filter.author = req.user._id;
       // Cũng loại trừ bài đăng private trong group khỏi trang Home
-      filter.group = { $exists: false };
+      filter.$and = [
+        {
+          $or: [
+            { group: { $exists: false } },
+            { group: null }
+          ]
+        }
+      ];
     } else {
       filter.status = "published";
       // Loại trừ bài đăng trong group khỏi trang Home (chỉ hiện bài đăng không thuộc group nào)
-      filter.group = { $exists: false };
+      filter.$and = [
+        {
+          $or: [
+            { group: { $exists: false } },
+            { group: null }
+          ]
+        }
+      ];
     }
 
     if (tag) filter.tags = tag;
@@ -37,11 +51,13 @@ router.get("/", authOptional, async (req, res, next) => {
       const trimmedQuery = q.trim();
       if (trimmedQuery.length > 0 && trimmedQuery.length <= 100) {
         const escapedQuery = trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        filter.$or = [
-          { title: { $regex: escapedQuery, $options: "i" } },
-          { content: { $regex: escapedQuery, $options: "i" } },
-          { tags: { $regex: escapedQuery, $options: "i" } }
-        ];
+        filter.$and.push({
+          $or: [
+            { title: { $regex: escapedQuery, $options: "i" } },
+            { content: { $regex: escapedQuery, $options: "i" } },
+            { tags: { $regex: escapedQuery, $options: "i" } }
+          ]
+        });
       }
     }
 

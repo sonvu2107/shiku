@@ -150,22 +150,22 @@ export default function NotificationBell({ user }) {
 
       {/* Dropdown */}
       {showDropdown && (
-        <div className="absolute right-0 top-full mt-2 w-96 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-[500px] overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-[500px] overflow-hidden dropdown-mobile">
           {/* Header */}
-          <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white">
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white">
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-gray-800 text-lg">Thông báo</h3>
+              <h3 className="font-bold text-gray-800 text-base sm:text-lg">Thông báo</h3>
               {unreadCount > 0 && (
                 <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium">
                   {unreadCount}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium px-2 py-1 rounded-md hover:bg-blue-100 transition-all"
+                  className="flex items-center gap-1 text-blue-600 hover:text-blue-800 active:text-blue-900 text-sm font-medium px-2 py-1 rounded-md hover:bg-blue-100 active:bg-blue-200 transition-all touch-target"
                   title="Đánh dấu tất cả đã đọc"
                 >
                   <CheckCheck size={14} />
@@ -174,7 +174,7 @@ export default function NotificationBell({ user }) {
               )}
               <button
                 onClick={() => setShowDropdown(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                className="text-gray-400 hover:text-gray-600 active:text-gray-800 p-1 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors touch-target"
               >
                 <X size={16} />
               </button>
@@ -184,22 +184,22 @@ export default function NotificationBell({ user }) {
           {/* Content */}
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
-              <div className="p-6 text-center">
+              <div className="p-4 sm:p-6 text-center">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
                 <div className="text-gray-500 text-sm">Đang tải...</div>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="p-8 text-center">
-                <div className="text-4xl mb-3">🔔</div>
-                <div className="text-gray-500 font-medium mb-1">Không có thông báo nào</div>
-                <div className="text-gray-400 text-sm">Thông báo mới sẽ xuất hiện ở đây</div>
+              <div className="p-6 sm:p-8 text-center">
+                <div className="text-3xl sm:text-4xl mb-3">🔔</div>
+                <div className="text-gray-500 font-medium mb-1 text-sm sm:text-base">Không có thông báo nào</div>
+                <div className="text-gray-400 text-xs sm:text-sm">Thông báo mới sẽ xuất hiện ở đây</div>
               </div>
             ) : (
               notifications.map((notification) => (
                 <div
                   key={notification._id}
                   onClick={() => handleNotificationClick(notification)}
-                  className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-all duration-200 ${
+                  className={`p-3 sm:p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-all duration-200 touch-feedback ${
                     !notification.read ? "bg-blue-50 border-blue-200" : ""
                   }`}
                 >
@@ -211,7 +211,7 @@ export default function NotificationBell({ user }) {
                             <div className="flex-shrink-0">
                               {getNotificationIcon(notification.type)}
                             </div>
-                            <h4 className="font-semibold text-gray-800 text-sm leading-tight">
+                            <h4 className="font-semibold text-gray-800 text-xs sm:text-sm leading-tight">
                               {notification.title}
                             </h4>
                           </div>
@@ -221,7 +221,7 @@ export default function NotificationBell({ user }) {
                                 e.stopPropagation();
                                 markAsRead(notification._id);
                               }}
-                              className="text-blue-600 hover:text-blue-800 p-1 rounded-md hover:bg-blue-100 transition-all flex-shrink-0"
+                              className="text-blue-600 hover:text-blue-800 active:text-blue-900 p-1 rounded-md hover:bg-blue-100 active:bg-blue-200 transition-all flex-shrink-0 touch-target"
                               title="Đánh dấu đã đọc"
                             >
                               <Check size={14} />
@@ -229,7 +229,7 @@ export default function NotificationBell({ user }) {
                           )}
                         </div>
                         <div className="ml-6">
-                          <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed mb-3">
+                          <p className="text-gray-600 text-xs sm:text-sm line-clamp-2 leading-relaxed mb-2 sm:mb-3">
                             {notification.message}
                           </p>
                           <div className="flex items-center justify-between">
@@ -251,7 +251,7 @@ export default function NotificationBell({ user }) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-semibold text-gray-800 text-sm leading-tight pr-2">
+                            <h4 className="font-semibold text-gray-800 text-xs sm:text-sm leading-tight pr-2">
                               {notification.title}
                             </h4>
                             {!notification.read && (
@@ -260,14 +260,14 @@ export default function NotificationBell({ user }) {
                                   e.stopPropagation();
                                   markAsRead(notification._id);
                                 }}
-                                className="text-blue-600 hover:text-blue-800 p-1 rounded-md hover:bg-blue-100 transition-all flex-shrink-0"
+                                className="text-blue-600 hover:text-blue-800 active:text-blue-900 p-1 rounded-md hover:bg-blue-100 active:bg-blue-200 transition-all flex-shrink-0 touch-target"
                                 title="Đánh dấu đã đọc"
                               >
                                 <Check size={14} />
                               </button>
                             )}
                           </div>
-                          <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed mb-3">
+                          <p className="text-gray-600 text-xs sm:text-sm line-clamp-2 leading-relaxed mb-2 sm:mb-3">
                             {notification.message}
                           </p>
                           <div className="flex items-center justify-between">
@@ -291,13 +291,13 @@ export default function NotificationBell({ user }) {
 
           {/* Footer - Outside scroll area */}
           {notifications.length > 0 && (
-            <div className="border-t border-gray-200 bg-gray-50 p-4">
+            <div className="border-t border-gray-200 bg-gray-50 p-3 sm:p-4">
               <button
                 onClick={() => {
                   setShowDropdown(false);
                   navigate("/notifications");
                 }}
-                className="w-full text-blue-600 hover:text-blue-800 text-sm font-semibold py-3 px-4 rounded-lg hover:bg-blue-100 transition-all duration-200 border border-blue-200 hover:border-blue-300"
+                className="w-full text-blue-600 hover:text-blue-800 active:text-blue-900 text-sm font-semibold py-3 px-4 rounded-lg hover:bg-blue-100 active:bg-blue-200 transition-all duration-200 border border-blue-200 hover:border-blue-300 active:border-blue-400 touch-target"
               >
                 Xem tất cả thông báo
               </button>

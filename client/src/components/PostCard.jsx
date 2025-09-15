@@ -144,9 +144,9 @@ export default function PostCard({ post }) {
   const displayMedia = getDisplayMedia();
 
   return (
-    <div className="card flex flex-col gap-2">
+    <div className="card flex flex-col gap-2 post-card-mobile">
       {displayMedia && (
-        <div className="w-full aspect-[16/10] overflow-hidden rounded-xl">
+        <div className="w-full aspect-[16/10] sm:aspect-[16/10] aspect-ratio overflow-hidden rounded-xl">
           {displayMedia.type === "video" ? (
             <video 
               src={displayMedia.url} 
@@ -230,8 +230,8 @@ export default function PostCard({ post }) {
           </button>
           {showEmotePopup && (
             <div
-              className="absolute bottom-full left-0 mb-2 flex gap-2 bg-white p-2 rounded-xl shadow z-10 border border-gray-200"
-              style={{ minWidth: 340, maxWidth: 400, justifyContent: "center" }}
+              className="absolute bottom-full left-0 mb-2 flex gap-2 bg-white p-2 rounded-xl shadow z-10 border border-gray-200 emote-picker-mobile"
+              style={{ minWidth: '280px', maxWidth: '400px', justifyContent: "center" }}
             >
               {emotes.map(e => (
                 <button key={e} className="hover:scale-110 transition-transform" type="button" onClick={() => { emote(e); setShowEmotePopup(false); }}>
