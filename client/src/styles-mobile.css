@@ -67,6 +67,14 @@
   .emote-picker-mobile {
     @apply w-full max-w-[calc(100vw-2rem)] grid-cols-6;
   }
+  
+  .emote-picker {
+    @apply max-w-[calc(100vw-4rem)] right-0 left-auto;
+  }
+  
+  .emote-picker .flex {
+    @apply flex-wrap gap-0.5;
+  }
 }
 
 /* ==================== TOUCH OPTIMIZATIONS ==================== */
@@ -155,6 +163,86 @@
   
   .mobile-search-dropdown .touch-target {
     @apply min-h-[44px];
+  }
+}
+
+/* ==================== COMMENT SECTION ==================== */
+.comment-section-mobile {
+  @apply overflow-hidden;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.comment-content {
+  @apply break-words;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* Emote display overflow fix */
+.emote-display {
+  @apply flex flex-wrap gap-1 max-w-full overflow-hidden;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.emote-item {
+  @apply flex-shrink-0;
+  max-width: 80px;
+}
+
+/* ==================== EMOTE PICKER ==================== */
+.emote-picker-mobile {
+  @apply max-w-full;
+  min-width: 200px;
+  max-width: calc(100vw - 2rem);
+}
+
+@media (max-width: 640px) {
+  .comment-section-mobile {
+    @apply px-2;
+  }
+  
+  .comment-actions-mobile {
+    @apply flex-wrap gap-1;
+  }
+  
+  .comment-reply-mobile {
+    @apply ml-2;
+  }
+  
+  /* Mobile emote display fixes */
+  .emote-display {
+    @apply max-w-[calc(100vw-4rem)] gap-0.5;
+  }
+  
+  .emote-item {
+    @apply text-xs px-1.5 py-0.5;
+    max-width: 60px;
+  }
+  
+  /* Nested comment emote fixes */
+  .comment-nested .emote-display {
+    @apply max-w-[calc(100vw-6rem)];
+  }
+  
+  .comment-nested .emote-item {
+    @apply text-xs px-1 py-0.5;
+    max-width: 50px;
+  }
+  
+  /* Emote picker mobile fixes */
+  .emote-picker-mobile {
+    @apply left-0 right-0;
+    max-width: calc(100vw - 1rem);
+    transform: translateX(0);
+  }
+  
+  .emote-picker-mobile .flex {
+    @apply justify-center;
   }
 }
 

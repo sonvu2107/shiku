@@ -18,15 +18,15 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
   const navigate = useNavigate();
   
   return (
-    <div className="bg-white rounded-lg border p-4 space-y-3">
+    <div className="bg-white rounded-lg border p-3 sm:p-4 space-y-3">
       {/* Header với avatar và thông tin */}
-      <div className="flex items-center gap-3">
-        <div className="relative">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="relative flex-shrink-0">
           {/* Avatar với click để xem profile */}
           <img
             src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=cccccc&color=222222&size=64`}
             alt="avatar"
-            className="w-12 h-12 rounded-full object-cover border border-gray-300 bg-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-300 bg-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => navigate(`/user/${friend._id}`)}
           />
           
@@ -34,8 +34,8 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
           {showOnlineStatus && (
             <div className="absolute -bottom-1 -right-1">
               <Circle 
-                size={16} 
-                className={`${
+                size={12} 
+                className={`sm:w-4 sm:h-4 ${
                   friend.isOnline 
                     ? 'text-green-500 fill-green-500' 
                     : 'text-gray-400 fill-gray-400'
@@ -46,14 +46,15 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
         </div>
         
         {/* Thông tin tên và trạng thái */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <Link 
             to={`/user/${friend._id}`}
-            className="font-semibold text-gray-800 hover:text-blue-600"
+            className="font-semibold text-gray-800 hover:text-blue-600 text-sm sm:text-base truncate block"
+            title={friend.name}
           >
             {friend.name}
           </Link>
-          <div className="text-sm text-gray-500">
+          <div className="text-xs sm:text-sm text-gray-500 truncate">
             {friend.isOnline ? (
               <span className="text-green-600">● Đang hoạt động</span>
             ) : (
@@ -64,23 +65,25 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
       </div>
 
       {/* Action buttons */}
-      <div className="flex gap-2">
+      <div className="flex gap-1 sm:gap-2">
         {/* Message button */}
         <MessageButton 
           user={friend} 
-          className="flex-1 btn flex items-center justify-center gap-2" 
+          className="flex-1 btn flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-2.5 touch-target" 
         >
-          <MessageCircle size={16} />
-          Nhắn tin
+          <MessageCircle size={14} className="sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline">Nhắn tin</span>
+          <span className="sm:hidden">Chat</span>
         </MessageButton>
         
         {/* Remove friend button */}
         <button
           onClick={() => onRemoveFriend(friend._id)}
-          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 transition-colors"
+          className="px-2 sm:px-4 py-2 sm:py-2.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 rounded-lg flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm touch-target"
         >
-          <UserMinus size={16} />
-          Hủy kết bạn
+          <UserMinus size={14} className="sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline">Hủy kết bạn</span>
+          <span className="sm:hidden">Hủy</span>
         </button>
       </div>
     </div>
