@@ -142,6 +142,22 @@
   overflow: hidden;
 }
 
+/* ==================== MOBILE SEARCH ==================== */
+.mobile-search-dropdown {
+  @apply shadow-xl;
+  max-height: 320px;
+}
+
+@media (max-width: 640px) {
+  .mobile-search-dropdown {
+    @apply text-xs;
+  }
+  
+  .mobile-search-dropdown .touch-target {
+    @apply min-h-[44px];
+  }
+}
+
 /* ==================== ADMIN DASHBOARD MOBILE ==================== */
 @media (max-width: 640px) {
   .admin-table-mobile {

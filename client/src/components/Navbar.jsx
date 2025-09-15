@@ -21,6 +21,7 @@ import {
   LogIn,        // Icon đăng nhập
   UserPlus,     // Icon đăng ký
   Search,       // Icon tìm kiếm
+  X,            // Icon đóng
   Users,        // Icon bạn bè
   MessageCircle, // Icon tin nhắn/support
   UserCheck     // Icon groups
@@ -224,8 +225,9 @@ export default function Navbar({ user, setUser }) {
           <button
             onClick={() => setShowMobileSearch(!showMobileSearch)}
             className="md:hidden btn-outline p-2 touch-target mobile-search"
+            title="Tìm kiếm"
           >
-            <Search size={18} />
+            <Search size={16} />
           </button>
           
           {/* Desktop Navigation - Hidden on mobile */}
@@ -339,22 +341,102 @@ export default function Navbar({ user, setUser }) {
         <div className="md:hidden border-t bg-white px-3 sm:px-6 py-3">
           <form onSubmit={handleSearch} className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input 
                 type="text"
-                placeholder="Tìm kiếm..."
+                placeholder="Tìm kiếm người dùng, bài viết..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200 input-mobile"
+                className="pl-10 pr-4 py-2.5 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-sm"
                 autoFocus
               />
+              {/* Mobile search results dropdown */}
+              {searchQuery.trim() && (
+                (searchResults.length > 0 || searchPosts.length > 0) && (
+                  <div className="absolute left-0 top-full mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto mobile-search-dropdown">
+                    {/* Kết quả user */}
+                    {searchResults.length > 0 && (
+                      <>
+                        <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 font-medium">Người dùng</div>
+                        {searchResults.map(user => (
+                          <div
+                            key={user._id}
+                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:bg-gray-100 cursor-pointer touch-target border-b border-gray-100 last:border-b-0"
+                            onClick={() => {
+                              navigate(`/user/${user._id}`);
+                              setShowMobileSearch(false);
+                              setSearchQuery("");
+                            }}
+                          >
+                            <img
+                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                              alt={user.name}
+                              className="w-8 h-8 rounded-full flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 text-sm truncate">{user.name}</div>
+                              <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {/* Kết quả bài viết: chỉ hiện nếu không có user nào khớp */}
+                    {searchResults.length === 0 && searchPosts.length > 0 && (
+                      <>
+                        <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 font-medium">Bài viết</div>
+                        {searchPosts.map(post => (
+                          <div
+                            key={post._id}
+                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:bg-gray-100 cursor-pointer touch-target border-b border-gray-100 last:border-b-0"
+                            onClick={() => {
+                              navigate(`/post/${post.slug || post._id}`);
+                              setShowMobileSearch(false);
+                              setSearchQuery("");
+                            }}
+                          >
+                            <img
+                              src={post.coverUrl || '/default-avatar.png'}
+                              alt={post.title}
+                              className="w-8 h-8 rounded flex-shrink-0 object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 text-sm truncate">{post.title}</div>
+                              <div className="text-xs text-gray-500 truncate">{post.author?.name || ''}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {searchLoading && (
+                      <div className="px-3 py-4 text-center text-gray-500 text-sm">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        Đang tìm kiếm...
+                      </div>
+                    )}
+                    {searchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0 && !searchLoading && (
+                      <div className="px-3 py-4 text-center text-gray-500 text-sm">
+                        Không tìm thấy kết quả nào
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
             </div>
             <button 
               type="submit"
-              className="btn flex items-center gap-2 px-3 py-3 btn-mobile"
+              className="btn flex items-center gap-1 sm:gap-2 px-3 py-2.5 text-sm touch-target"
             >
-              <Search size={18} />
+              <Search size={16} />
               <span className="hidden sm:inline">Tìm</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowMobileSearch(false)}
+              className="btn-outline p-2.5 touch-target"
+              title="Đóng tìm kiếm"
+            >
+              <X size={16} />
             </button>
           </form>
         </div>
