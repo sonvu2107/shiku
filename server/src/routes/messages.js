@@ -233,9 +233,23 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
 
     // Emit realtime message to conversation room
     const io = req.app.get('io');
-    console.log('🔥 Emitting new-message to room:', `conversation-${conversationId}`);
-    console.log('🔥 Message data:', message);
-    io.to(`conversation-${conversationId}`).emit('new-message', message);
+    console.log('📤 Server: Emitting message to room:', `conversation-${conversationId}`);
+    
+    // Ensure message has conversationId field for client
+    const socketMessageData = {
+      ...message.toObject(),
+      conversationId: conversationId
+    };
+    
+    console.log('📤 Server: Message data:', {
+      id: socketMessageData._id,
+      content: socketMessageData.content,
+      conversationId: socketMessageData.conversationId,
+      sender: socketMessageData.sender
+    });
+    
+    io.to(`conversation-${conversationId}`).emit('new-message', socketMessageData);
+    console.log('📤 Server: Message emitted successfully');
 
     res.status(201).json(message);
   } catch (error) {

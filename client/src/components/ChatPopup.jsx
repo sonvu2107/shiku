@@ -4,6 +4,7 @@ import CallIncomingModal from "./CallIncomingModal";
 import { api } from "../api";
 import { getUserInfo } from "../utils/auth";
 import socketService from "../socket";
+import callManager from "../utils/callManager";
 import { X, Phone, Video, ChevronDown, MessageCircle } from "lucide-react";
 
 /**
@@ -21,9 +22,37 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   
   // Join conversation khi có conversationId
   useEffect(() => {
-    if (conversation?._id) {
-      socketService.joinConversation(conversation._id);
-    }
+    const joinConversation = async () => {
+      if (conversation?._id) {
+        await socketService.joinConversation(conversation._id);
+      }
+    };
+    joinConversation();
+  }, [conversation?._id]);
+
+  // Listen for real-time messages
+  useEffect(() => {
+    if (!conversation?._id || !socketService.socket) return;
+    
+    const handleNewMessage = (message) => {
+      // Check if message belongs to current conversation
+      if (message.conversationId === conversation._id || message.conversation === conversation._id) {
+        setMessages(prev => {
+          const exists = prev.some(m => m._id === message._id);
+          if (exists) {
+            return prev;
+          }
+          return [...prev, message];
+        });
+      }
+    };
+
+    // Set up message listener for this conversation
+    socketService.socket.on('new-message', handleNewMessage);
+    
+    return () => {
+      socketService.socket.off('new-message', handleNewMessage);
+    };
   }, [conversation?._id]);
 
   // ==================== STATE MANAGEMENT ====================
@@ -59,17 +88,26 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
-    api(`/api/messages/conversations/${conversation._id}/messages`, {
-      method: "POST",
-      body: { content: input },
-    }).then(() => {
-      setInput("");
-      api(`/api/messages/conversations/${conversation._id}/messages?limit=50`).then((res) =>
-        setMessages(res.messages || [])
-      );
-    });
+    
+    const messageContent = input;
+    setInput(""); // Clear input immediately for better UX
+    
+    try {
+      const response = await api(`/api/messages/conversations/${conversation._id}/messages`, {
+        method: "POST",
+        body: { content: messageContent },
+      });
+      
+      // Add the sent message to the list immediately (optimistic update)
+      if (response.message) {
+        setMessages(prev => [...prev, response.message]);
+      }
+    } catch (error) {
+      // Restore input if sending failed
+      setInput(messageContent);
+    }
   };
 
   const isGroup = conversation.conversationType === "group";
@@ -88,38 +126,42 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       )}&background=cccccc&color=222222&size=64`;
 
   return (
-    <div className="w-80 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col">
+    <div className="w-72 sm:w-80 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col chat-popup-mobile">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b bg-gray-50 rounded-t-xl">
-        <img src={avatar} alt={name} className="w-9 h-9 rounded-full object-cover" />
-        <div className="flex-1 font-semibold text-gray-900">{name}</div>
+      <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border-b bg-gray-50 rounded-t-xl">
+        <img src={avatar} alt={name} className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover flex-shrink-0" />
+        <div className="flex-1 font-semibold text-gray-900 text-sm sm:text-base truncate min-w-0">{name}</div>
+        <div className="flex gap-0.5 sm:gap-1">
+          <button
+            className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
+            onClick={() => {
+              setCallOpen && setCallOpen(true);
+              setIsVideoCall && setIsVideoCall(false);
+            }}
+            title="Gọi thoại"
+          >
+            <Phone size={14} className="sm:w-4 sm:h-4" />
+          </button>
+          <button
+            className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
+            onClick={() => {
+              setCallOpen && setCallOpen(true);
+              setIsVideoCall && setIsVideoCall(true);
+            }}
+            title="Gọi video"
+          >
+            <Video size={14} className="sm:w-4 sm:h-4" />
+          </button>
+        </div>
         <button
-          className="p-1 hover:bg-gray-200 rounded-full"
-          onClick={() => {
-            setCallOpen && setCallOpen(true);
-            setIsVideoCall && setIsVideoCall(false);
-          }}
-        >
-          <Phone size={18} />
-        </button>
-        <button
-          className="p-1 hover:bg-gray-200 rounded-full"
-          onClick={() => {
-            setCallOpen && setCallOpen(true);
-            setIsVideoCall && setIsVideoCall(true);
-          }}
-        >
-          <Video size={18} />
-        </button>
-        <button
-          className="p-1 hover:bg-gray-200 rounded-full"
+          className="p-1 hover:bg-gray-200 rounded-full touch-target"
           onClick={() => setMinimized(true)}
           title="Thu nhỏ"
         >
-          <ChevronDown size={18} />
+          <ChevronDown size={14} className="sm:w-4 sm:h-4" />
         </button>
-        <button className="p-1 hover:bg-gray-200 rounded-full" onClick={onClose}>
-          <X size={18} />
+        <button className="p-1 hover:bg-gray-200 rounded-full touch-target" onClick={onClose}>
+          <X size={14} className="sm:w-4 sm:h-4" />
         </button>
       </div>
 
@@ -232,15 +274,18 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                   const reader = new FileReader();
                   reader.onload = async () => {
                     try {
-                      await api(`/api/messages/conversations/${conversation._id}/messages/image`, {
+                      const response = await api(`/api/messages/conversations/${conversation._id}/messages/image`, {
                         method: "POST",
                         body: { image: reader.result },
                       });
-                      const res = await api(
-                        `/api/messages/conversations/${conversation._id}/messages?limit=50`
-                      );
-                      setMessages(res.messages || []);
-                    } catch {}
+                      
+                      // Add the sent image message to the list immediately (optimistic update)
+                      if (response.message) {
+                        setMessages(prev => [...prev, response.message]);
+                      }
+                    } catch (error) {
+                      // Handle error silently
+                    }
                     setUploading(false);
                   };
                   reader.readAsDataURL(file);
@@ -289,21 +334,35 @@ export function ChatPopupWithCallModal(props) {
   const [incomingOffer, setIncomingOffer] = useState(null);
 
   useEffect(() => {
-    const socket = socketService.socket;
-    if (!socket) return;
-
-    const handleOffer = ({ offer, conversationId, caller, isVideo }) => {
+    const handleOffer = ({ offer, conversationId, caller, callerSocketId, callerInfo, isVideo }) => {
       if (conversationId === props.conversation._id) {
         const myId = getUserInfo()?.id;
-        if (caller === myId) return; // 👈 bỏ qua nếu chính mình là caller
+        const mySocketId = socketService.socket?.id;
+        
+        // Bỏ qua nếu chính mình là caller (kiểm tra cả user ID và socket ID)
+        if (caller === myId || callerSocketId === mySocketId) {
+          return;
+        }
 
-        setIncomingCall({ offer, caller, isVideo });
+        // Validate offer
+        if (!offer || !offer.type || !offer.sdp) {
+          return;
+        }
+
+        const incomingCallData = { 
+          offer, 
+          caller: callerInfo || { name: "Người dùng" }, 
+          isVideo: isVideo || false 
+        };
+        setIncomingCall(incomingCallData);
       }
     };
 
-    socket.on("call-offer", handleOffer);
+    // Sử dụng global call manager thay vì socket trực tiếp
+    callManager.addListener(handleOffer);
+    
     return () => {
-      socket.off("call-offer", handleOffer);
+      callManager.removeListener(handleOffer);
     };
   }, [props.conversation._id]);
 
@@ -314,8 +373,8 @@ export function ChatPopupWithCallModal(props) {
     setIncomingCall(null);
   };
 
-  const handleRejectCall = () => {
-    socketService.emitCallEnd(props.conversation._id);
+  const handleRejectCall = async () => {
+    await socketService.emitCallEnd(props.conversation._id);
     setIncomingCall(null);
   };
 

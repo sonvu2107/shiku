@@ -15,6 +15,8 @@ import { connectDB } from "./config/db.js";
 import { apiLimiter, authLimiter, uploadLimiter, messageLimiter, postsLimiter } from "./middleware/rateLimit.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { requestTimeout } from "./middleware/timeout.js";
+import { authOptional } from "./middleware/auth.js";
+import User from "./models/User.js";
 
 // Import tất cả routes
 import authRoutes from "./routes/auth.js"; // Authentication routes
@@ -30,6 +32,8 @@ import messageRoutes from "./routes/messages.js"; // Chat/messaging routes
 import groupPostsRouter from "./routes/groupPosts.js"; // Group posts routes
 import supportRoutes from "./routes/support.js"; // Support/feedback routes
 import groupRoutes from "./routes/groups.js"; // Groups/communities routes
+import eventRoutes from "./routes/events.js"; // Events routes
+import mediaRoutes from "./routes/media.js"; // Media routes
 
 // Load environment variables
 dotenv.config();
@@ -176,6 +180,8 @@ app.use("/api/messages", messageLimiter, messageRoutes); // Chat/messaging
 app.use("/api/groups", groupPostsRouter); // Group posts
 app.use("/api/support", supportRoutes); // Support tickets
 app.use("/api/groups", groupRoutes); // Groups/communities
+app.use("/api/events", eventRoutes); // Events
+app.use("/api/media", mediaRoutes); // Media
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);
@@ -192,33 +198,112 @@ app.use(errorHandler);
 // Track connected users to prevent memory leaks
 const connectedUsers = new Map();
 
+// Socket authentication middleware
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token;
+    
+    if (token) {
+      try {
+        const jwt = await import("jsonwebtoken");
+        const payload = jwt.default.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(payload.id).select("-password");
+        
+        if (user) {
+          socket.userId = user._id;
+          socket.user = user;
+        }
+      } catch (error) {
+        // Invalid token, continue without authentication
+      }
+    }
+    
+    next();
+  } catch (error) {
+    next();
+  }
+});
+
 io.on("connection", (socket) => {
-  console.log("🔌 User connected:", socket.id);
-  
   // Store connection info
   connectedUsers.set(socket.id, {
-    userId: null,
+    userId: socket.userId,
+    user: socket.user,
     joinedRooms: new Set(),
     connectedAt: new Date()
   });
 
+  // ==================== WEBRTC CALL SIGNALING ====================
+  
   // WebRTC signaling - xử lý call offer với error handling
-  socket.on("call-offer", ({ offer, conversationId }) => {
+  socket.on("call-offer", ({ offer, conversationId, isVideo }) => {
     try {
       if (!conversationId) {
         console.warn("❌ Invalid conversationId in call-offer");
         return;
       }
-      // Gửi offer đến tất cả users khác trong conversation
+      
+      // Gửi offer chỉ đến các users khác trong conversation (không gửi cho chính người gọi)
       socket.to(`conversation-${conversationId}`).emit("call-offer", {
         offer,
         conversationId,
-        caller: socket.user || {}, // Thông tin người gọi
-        isVideo: offer?.type === "video" // Phân biệt voice/video call
+        caller: socket.userId || socket.user?._id || socket.user?.id || "unknown", // User ID của người gọi
+        callerSocketId: socket.id, // Socket ID của người gọi để kiểm tra
+        callerInfo: socket.user || {}, // Thông tin đầy đủ người gọi
+        isVideo: isVideo || false // Phân biệt voice/video call
       });
-      console.log(`📞 call-offer sent to conversation-${conversationId}`);
     } catch (error) {
       console.error("❌ Error handling call-offer:", error);
+    }
+  });
+
+  // Xử lý call answer từ callee
+  socket.on("call-answer", ({ answer, conversationId }) => {
+    try {
+      if (!conversationId) {
+        console.warn("❌ Invalid conversationId in call-answer");
+        return;
+      }
+      // Gửi answer về cho caller
+      socket.to(`conversation-${conversationId}`).emit("call-answer", {
+        answer,
+        conversationId
+      });
+    } catch (error) {
+      console.error("❌ Error handling call-answer:", error);
+    }
+  });
+
+  // Xử lý ICE candidates
+  socket.on("call-candidate", ({ candidate, conversationId }) => {
+    try {
+      if (!conversationId) {
+        console.warn("❌ Invalid conversationId in call-candidate");
+        return;
+      }
+      // Gửi ICE candidate đến các users khác
+      socket.to(`conversation-${conversationId}`).emit("call-candidate", {
+        candidate,
+        conversationId
+      });
+    } catch (error) {
+      console.error("❌ Error handling call-candidate:", error);
+    }
+  });
+
+  // Xử lý kết thúc cuộc gọi
+  socket.on("call-end", ({ conversationId }) => {
+    try {
+      if (!conversationId) {
+        console.warn("❌ Invalid conversationId in call-end");
+        return;
+      }
+      // Thông báo kết thúc cuộc gọi đến tất cả users trong conversation
+      socket.to(`conversation-${conversationId}`).emit("call-end", {
+        conversationId
+      });
+    } catch (error) {
+      console.error("❌ Error handling call-end:", error);
     }
   });
 
@@ -235,7 +320,6 @@ io.on("connection", (socket) => {
         userInfo.userId = userId;
         userInfo.joinedRooms.add(`user-${userId}`);
       }
-      console.log(`👤 User ${userId} joined personal room`);
     } catch (error) {
       console.error("❌ Error in join-user:", error);
     }
@@ -244,18 +328,40 @@ io.on("connection", (socket) => {
   // Join conversation room để nhận messages real-time
   socket.on("join-conversation", (conversationId) => {
     try {
+      console.log('🔥 Server: Join conversation request:', {
+        socketId: socket.id,
+        conversationId,
+        userId: socket.userId
+      });
+      
       if (!conversationId) {
         console.warn("❌ Invalid conversationId in join-conversation");
         return;
       }
+      
       socket.join(`conversation-${conversationId}`);
+      console.log('🔥 Server: Socket joined room:', `conversation-${conversationId}`);
+      
       const userInfo = connectedUsers.get(socket.id);
       if (userInfo) {
         userInfo.joinedRooms.add(`conversation-${conversationId}`);
+        console.log('🔥 Server: Updated user info with room:', userInfo.joinedRooms);
       }
-      console.log(`💬 User ${socket.id} joined conversation: ${conversationId}`);
+      
+      // Emit confirmation về client
+      socket.emit("conversation-joined", { 
+        conversationId,
+        success: true,
+        message: "Successfully joined conversation"
+      });
+      console.log('🔥 Server: Confirmation sent to client');
     } catch (error) {
       console.error("❌ Error in join-conversation:", error);
+      socket.emit("conversation-joined", { 
+        conversationId,
+        success: false,
+        error: error.message
+      });
     }
   });
 
@@ -271,7 +377,6 @@ io.on("connection", (socket) => {
       if (userInfo) {
         userInfo.joinedRooms.delete(`conversation-${conversationId}`);
       }
-      console.log(`🚪 User left conversation: ${conversationId}`);
     } catch (error) {
       console.error("❌ Error in leave-conversation:", error);
     }
@@ -284,13 +389,7 @@ io.on("connection", (socket) => {
 
   // Xử lý khi user disconnect với cleanup
   socket.on("disconnect", (reason) => {
-    console.log("🔌 User disconnected:", socket.id, "Reason:", reason);
-    
     // Clean up user tracking
-    const userInfo = connectedUsers.get(socket.id);
-    if (userInfo) {
-      console.log(`🧹 Cleaning up user ${userInfo.userId}, rooms: ${Array.from(userInfo.joinedRooms)}`);
-    }
     connectedUsers.delete(socket.id);
   });
 });

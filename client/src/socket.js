@@ -26,10 +26,10 @@ class SocketService {
    * @param {Object} offer - WebRTC offer object
    * @param {string} conversationId - ID của conversation
    */
-  emitCallOffer(offer, conversationId) {
-    if (this.socket) {
-      this.socket.emit('call-offer', { offer, conversationId });
-    }
+  async emitCallOffer(offer, conversationId, isVideo = false) {
+    await this.ensureConnectionAndExecute(() => {
+      this.socket.emit('call-offer', { offer, conversationId, isVideo });
+    });
   }
 
   /**
@@ -47,10 +47,10 @@ class SocketService {
    * @param {Object} answer - WebRTC answer object
    * @param {string} conversationId - ID của conversation
    */
-  emitCallAnswer(answer, conversationId) {
-    if (this.socket) {
+  async emitCallAnswer(answer, conversationId) {
+    await this.ensureConnectionAndExecute(() => {
       this.socket.emit('call-answer', { answer, conversationId });
-    }
+    });
   }
 
   /**
@@ -68,20 +68,20 @@ class SocketService {
    * @param {Object} candidate - ICE candidate object
    * @param {string} conversationId - ID của conversation
    */
-  emitCallCandidate(candidate, conversationId) {
-    if (this.socket) {
+  async emitCallCandidate(candidate, conversationId) {
+    await this.ensureConnectionAndExecute(() => {
       this.socket.emit('call-candidate', { candidate, conversationId });
-    }
+    });
   }
 
   /**
    * Gửi signal kết thúc cuộc gọi
    * @param {string} conversationId - ID của conversation
    */
-  emitCallEnd(conversationId) {
-    if (this.socket) {
+  async emitCallEnd(conversationId) {
+    await this.ensureConnectionAndExecute(() => {
       this.socket.emit('call-end', { conversationId });
-    }
+    });
   }
 
   /**
@@ -115,11 +115,23 @@ class SocketService {
     }
 
     // Tạo kết nối mới với authentication token
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn('⚠️ No authentication token found');
+      return null;
+    }
+
+    console.log('🔌 Connecting to Socket.IO server:', SOCKET_URL);
     this.socket = io(SOCKET_URL, {
       auth: {
-        token: localStorage.getItem('token')
+        token: token
       },
-      transports: ['websocket', 'polling'] // Fallback từ websocket sang polling
+      transports: ['websocket', 'polling'], // Fallback từ websocket sang polling
+      autoConnect: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      maxReconnectionAttempts: 5
     });
 
     // Event handlers cho connection
@@ -133,6 +145,27 @@ class SocketService {
 
     this.socket.on('connect_error', (error) => {
       console.error('🔌 Connection error:', error);
+      // Nếu lỗi authentication, có thể token đã hết hạn
+      if (error.message === 'Authentication error' || error.type === 'UnauthorizedError') {
+        console.warn('🔑 Authentication failed - token may be expired');
+        // Có thể trigger logout hoặc refresh token ở đây
+      }
+    });
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log(`🔌 Reconnected after ${attemptNumber} attempts`);
+    });
+
+    this.socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`🔌 Reconnection attempt ${attemptNumber}`);
+    });
+
+    this.socket.on('reconnect_error', (error) => {
+      console.error('🔌 Reconnection error:', error);
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.error('🔌 Failed to reconnect after maximum attempts');
     });
 
     return this.socket;
@@ -149,31 +182,108 @@ class SocketService {
     }
   }
 
+  /**
+   * Kiểm tra socket có kết nối không
+   */
+  isConnected() {
+    return this.socket && this.socket.connected;
+  }
+
+  /**
+   * Kiểm tra và đảm bảo socket connection trước khi thực hiện operation
+   * @param {Function} operation - Function cần thực hiện khi socket đã kết nối
+   * @param {number} retryDelay - Delay trước khi retry (ms)
+   */
+  async ensureConnectionAndExecute(operation, retryDelay = 1000) {
+    if (this.isConnected()) {
+      operation();
+      return;
+    }
+
+    await this.ensureConnection();
+
+    // Retry sau khi reconnect
+    setTimeout(() => {
+      if (this.isConnected()) {
+        operation();
+      }
+    }, retryDelay);
+  }
+
+  /**
+   * Kiểm tra server có đang chạy không
+   * @returns {Promise<boolean>} True nếu server đang chạy
+   */
+  async checkServerStatus() {
+    try {
+      const response = await fetch(`${SOCKET_URL}/health`, {
+        method: 'GET',
+        timeout: 5000
+      });
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Đảm bảo socket được kết nối trước khi thực hiện operation
+   */
+  async ensureConnection() {
+    if (!this.socket || !this.socket.connected) {
+      // Kiểm tra server status trước
+      const serverRunning = await this.checkServerStatus();
+      if (!serverRunning) {
+        return false;
+      }
+      
+      // Thử reconnect nếu có token
+      const token = localStorage.getItem('token');
+      if (token) {
+        this.connect({}); // Reconnect với empty user object
+        return false; // Vẫn return false vì chưa kết nối ngay lập tức
+      } else {
+        return false;
+      }
+    }
+    return true;
+  }
+
   // ==================== CONVERSATION MANAGEMENT ====================
   
   /**
    * Join vào conversation để nhận messages real-time
    * @param {string} conversationId - ID của conversation cần join
    */
-  joinConversation(conversationId) {
-    if (this.socket && conversationId) {
-      console.log('🔥 Socket connected status:', this.socket.connected);
-      console.log('🔥 Socket ID:', this.socket.id);
-      
+  async joinConversation(conversationId) {
+    if (!conversationId) {
+      console.log('❌ No conversation ID provided for join');
+      return;
+    }
+
+    console.log('🔥 Joining conversation room:', conversationId);
+    console.log('🔥 Socket connected:', this.isConnected());
+    console.log('🔥 Current conversation:', this.currentConversation);
+
+    await this.ensureConnectionAndExecute(() => {
       // Rời conversation cũ nếu có
       if (this.currentConversation) {
+        console.log('🔥 Leaving old conversation:', this.currentConversation);
         this.socket.emit('leave-conversation', this.currentConversation);
       }
       
-      console.log('🔥 Joining conversation:', conversationId);
+      console.log('🔥 Emitting join-conversation for:', conversationId);
       this.socket.emit('join-conversation', conversationId);
       this.currentConversation = conversationId;
+      console.log('🔥 Joined conversation room successfully');
       
-      // Log khi join thành công
-      this.socket.on('conversation-joined', (data) => {
-        console.log('🔥 Joined conversation successfully, currentConversation set to:', this.currentConversation);
-      });
-    }
+      // Debug: Check socket rooms after join
+      setTimeout(() => {
+        console.log('🔥 Socket rooms after join:', this.socket.rooms || 'rooms not accessible on client');
+        console.log('🔥 Expected room:', `conversation-${conversationId}`);
+        console.log('🔥 Current conversation:', this.currentConversation);
+      }, 100);
+    }, 2000);
   }
 
   /**
@@ -204,22 +314,12 @@ class SocketService {
    */
   onNewMessage(callback) {
     if (this.socket) {
-      console.log('🔥 Setting up new-message listener on socket:', this.socket.id);
-      console.log('🔥 Socket connected:', this.socket.connected);
-      console.log('🔥 Current conversation:', this.currentConversation);
-      
       // Xóa listener cũ để tránh duplicate
       this.socket.off('new-message');
       
       this.socket.on('new-message', (message) => {
-        console.log('🔥 Received new-message event:', message);
-        console.log('📨 Message conversation ID:', message.conversationId || message.conversation);
-        console.log('📨 Message object keys:', Object.keys(message));
-        console.log('📨 Current conversation ID:', this.currentConversation);
         callback(message);
       });
-    } else {
-      console.warn('⚠️ No socket available for new-message listener');
     }
   }
 

@@ -8,7 +8,7 @@ import ChatHeader from "./ChatHeader";
  * ChatWindow - Component cửa sổ chat chính
  * Bao gồm header, danh sách tin nhắn và input để gửi tin nhắn
  * @param {Object} conversation - Cuộc trò chuyện hiện tại
- * @param {Object} currentUser - User hiện tại
+ * @param {Object} currentUserd - User hiện tại
  * @param {Array} messages - Danh sách tin nhắn
  * @param {boolean} isLoadingMessages - Loading state cho tin nhắn
  * @param {boolean} hasMoreMessages - Có thêm tin nhắn để load
@@ -18,6 +18,8 @@ import ChatHeader from "./ChatHeader";
  * @param {Function} onLeaveConversation - Callback rời cuộc trò chuyện
  * @param {Function} onDeleteConversation - Callback xóa cuộc trò chuyện
  * @param {Function} onAddMembers - Callback thêm thành viên
+ * @param {Function} onVideoCall - Callback gọi video
+ * @param {Function} onVoiceCall - Callback gọi thoại
  */
 export default function ChatWindow({ 
   conversation, 
@@ -30,7 +32,9 @@ export default function ChatWindow({
   onUpdateConversation,
   onLeaveConversation, 
   onDeleteConversation,
-  onAddMembers
+  onAddMembers,
+  onVideoCall,
+  onVoiceCall
 }) {
   // ==================== REFS ====================
   
@@ -63,6 +67,8 @@ export default function ChatWindow({
               onLeaveConversation={onLeaveConversation}
               onDeleteConversation={onDeleteConversation}
               onAddMembers={onAddMembers}
+              onVideoCall={onVideoCall}
+              onVoiceCall={onVoiceCall}
             />
           </div>
 

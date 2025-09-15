@@ -1,5 +1,5 @@
 // Import các dependencies cần thiết
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { removeAuthToken } from "../utils/auth";
@@ -24,7 +24,11 @@ import {
   X,            // Icon đóng
   Users,        // Icon bạn bè
   MessageCircle, // Icon tin nhắn/support
-  UserCheck     // Icon groups
+  UserCheck,    // Icon groups
+  Home,         // Icon trang chủ
+  Compass,      // Icon khám phá
+  Calendar,     // Icon sự kiện
+  Image         // Icon kho media
 } from "lucide-react";
 
 /**
@@ -37,6 +41,7 @@ export default function Navbar({ user, setUser }) {
   // ==================== STATE MANAGEMENT ====================
   const [openPopups, setOpenPopups] = useState([]); // Chat popups đang mở
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Search states
   const [searchQuery, setSearchQuery] = useState(""); // Query tìm kiếm
@@ -129,9 +134,9 @@ export default function Navbar({ user, setUser }) {
   return (
     // Main navbar container - fixed top với shadow
     <div className="bg-white border-b fixed top-0 left-0 w-full z-50 shadow navbar-mobile">
-      <div className="w-full max-w-none px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between">
-        {/* Left side - Logo + Search */}
-        <div className="flex items-center gap-4">
+      <div className="w-full max-w-none px-3 sm:px-6 py-2 sm:py-3 flex items-center">
+        {/* LEFT ZONE: Logo + Search */}
+        <div className="flex items-center gap-2 flex-1">
           <Link to="/" className="font-bold text-xl flex items-center gap-2">
             <span onClick={() => { navigate('/'); window.scrollTo({top:0,behavior:'smooth'}); }} style={{cursor:'pointer',display:'flex',alignItems:'center'}}>
               <Logo size="small" />
@@ -139,7 +144,7 @@ export default function Navbar({ user, setUser }) {
           </Link>
           
           {/* Search bar */}
-          <form onSubmit={handleSearch} className="relative hidden md:flex items-center gap-2 search-container">
+          <form onSubmit={handleSearch} className="relative hidden md:flex items-center gap-1 search-container">
             <div className="relative">
               <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input 
@@ -216,8 +221,85 @@ export default function Navbar({ user, setUser }) {
           </form>
         </div>
 
-        {/* Right side - Navigation */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* CENTER ZONE: Main Menu Icons */}
+        <div className="hidden lg:flex items-center gap-2 justify-center flex-1">
+          {user && (
+            <>
+              <Link 
+                to="/" 
+                className={`p-2 rounded-full transition-colors ${
+                  location.pathname === "/" 
+                    ? "bg-blue-100 text-blue-600" 
+                    : "hover:bg-gray-100"
+                }`}
+                onClick={() => window.scrollTo({top:0,behavior:'smooth'})}
+                title="Trang chủ"
+              >
+                <Home size={22} />
+              </Link>
+              <Link 
+                to="/explore" 
+                className={`p-2 rounded-full transition-colors ${
+                  location.pathname === "/explore" 
+                    ? "bg-blue-100 text-blue-600" 
+                    : "hover:bg-gray-100"
+                }`}
+                title="Khám phá"
+              >
+                <Compass size={22} />
+              </Link>
+              <Link 
+                to="/groups" 
+                className={`p-2 rounded-full transition-colors ${
+                  location.pathname === "/groups" 
+                    ? "bg-blue-100 text-blue-600" 
+                    : "hover:bg-gray-100"
+                }`}
+                title="Nhóm"
+              >
+                <UserCheck size={22} />
+              </Link>
+              <Link 
+                to="/events" 
+                className={`p-2 rounded-full transition-colors ${
+                  location.pathname === "/events" 
+                    ? "bg-blue-100 text-blue-600" 
+                    : "hover:bg-gray-100"
+                }`}
+                title="Sự kiện"
+              >
+                <Calendar size={22} />
+              </Link>
+              <Link 
+                to="/media" 
+                className={`p-2 rounded-full transition-colors ${
+                  location.pathname === "/media" 
+                    ? "bg-blue-100 text-blue-600" 
+                    : "hover:bg-gray-100"
+                }`}
+                title="Kho media"
+              >
+                <Image size={22} />
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* RIGHT ZONE: Friends + Chat + Notifications + Avatar */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end">
+          {/* Friends Icon */}
+          <div className="hidden md:flex items-center gap-2">
+            {user && (
+              <Link to="/friends" className="p-2 rounded-full hover:bg-gray-100 transition-colors relative" title="Bạn bè">
+                <Users size={22} />
+                {pendingRequests > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {pendingRequests}
+                  </span>
+                )}
+              </Link>
+            )}
+          </div>
           {/* Mobile Menu */}
           <MobileMenu user={user} setUser={setUser} />
           
@@ -234,19 +316,6 @@ export default function Navbar({ user, setUser }) {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
-                <Link to="/friends" className="btn-outline flex items-center gap-2 relative">
-                  <Users size={18} />
-                  <span className="hidden sm:block">Bạn bè</span>
-                  {pendingRequests > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {pendingRequests}
-                    </span>
-                  )}
-                </Link>
-                <Link to="/groups" className="btn-outline flex items-center gap-2">
-                  <UserCheck size={18} />
-                  <span className="hidden sm:block">Nhóm</span>
-                </Link>
                 <ChatDropdown onOpenChat={(conv) => {
                   setOpenPopups(prev => {
                     // Nếu đã mở rồi thì đưa lên cuối

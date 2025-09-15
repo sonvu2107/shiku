@@ -26,6 +26,9 @@ import ResetPassword from "./pages/ResetPassword.jsx";
 import Groups from "./pages/Groups.jsx";
 import GroupDetail from "./pages/GroupDetail.jsx";
 import CreateGroup from "./pages/CreateGroup.jsx";
+import Explore from "./pages/Explore.jsx";
+import Events from "./pages/Events.jsx";
+import Media from "./pages/Media.jsx";
 
 // Import các utilities và services
 import { api } from "./api.js";
@@ -172,6 +175,9 @@ export default function App() {
             <Route path="/groups" element={<ProtectedRoute user={user}><Groups /></ProtectedRoute>} />
             <Route path="/groups/:id" element={<ProtectedRoute user={user}><GroupDetail /></ProtectedRoute>} />
             <Route path="/groups/create" element={<ProtectedRoute user={user}><CreateGroup /></ProtectedRoute>} />
+            <Route path="/explore" element={<ProtectedRoute user={user}><Explore /></ProtectedRoute>} />
+            <Route path="/events" element={<ProtectedRoute user={user}><Events /></ProtectedRoute>} />
+            <Route path="/media" element={<ProtectedRoute user={user}><Media /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute user={user}><NotificationHistory /></ProtectedRoute>} />
             
             {/* Trang admin */}

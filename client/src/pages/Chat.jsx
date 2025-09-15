@@ -5,9 +5,13 @@ import ConversationList from "../components/chat/ConversationList";
 import ChatWindow from "../components/chat/ChatWindow";
 import NewConversationModal from "../components/chat/NewConversationModal";
 import AddMembersModal from "../components/chat/AddMembersModal";
+import CallModal from "../components/CallModal";
+import CallIncomingModal from "../components/CallIncomingModal";
 import { chatAPI } from "../chatAPI";
 import { api } from "../api";
 import socketService from "../socket";
+import callManager from "../utils/callManager";
+import { getUserInfo } from "../utils/auth";
 
 /**
  * Chat - Trang chat chính với real-time messaging
@@ -35,6 +39,15 @@ export default function Chat() {
   const [showNewConversationModal, setShowNewConversationModal] = useState(false); // Modal tạo cuộc trò chuyện mới
   const [showAddMembersModal, setShowAddMembersModal] = useState(false); // Modal thêm thành viên
   
+  // Call states
+  const [callOpen, setCallOpen] = useState(false); // Modal cuộc gọi đang diễn ra
+  const [isVideoCall, setIsVideoCall] = useState(true); // Loại cuộc gọi (video/voice)
+  const [incomingCall, setIncomingCall] = useState(null); // Cuộc gọi đến
+  const [incomingOffer, setIncomingOffer] = useState(null); // Offer từ người gọi
+  const [remoteUser, setRemoteUser] = useState(null); // Thông tin người dùng đối phương (1-1)
+  const [groupParticipants, setGroupParticipants] = useState([]); // Danh sách participants trong group call
+  const [isGroupCall, setIsGroupCall] = useState(false); // Có phải group call không
+  
   // User & Loading
   const [currentUser, setCurrentUser] = useState(null); // User hiện tại
   const [isLoading, setIsLoading] = useState(true); // Loading conversations
@@ -43,6 +56,88 @@ export default function Chat() {
     loadCurrentUser();
     loadConversations();
   }, []);
+
+  // Xử lý incoming calls - setup listener sau khi user và socket đã sẵn sàng
+  useEffect(() => {
+    // Chỉ setup listener khi đã có currentUser và socket
+    if (!currentUser || !socketService.socket) {
+      return;
+    }
+    
+    const handleOffer = ({ offer, conversationId, caller, callerSocketId, callerInfo, isVideo }) => {
+      // Chỉ xử lý nếu đang trong conversation được gọi
+      if (conversationId === selectedConversation?._id) {
+        const myId = getUserInfo()?.id;
+        const mySocketId = socketService.socket?.id;
+        
+        // Bỏ qua nếu chính mình là caller (kiểm tra cả user ID và socket ID)
+        if (caller === myId || callerSocketId === mySocketId) {
+          return;
+        }
+
+        // Validate offer
+        if (!offer || !offer.type || !offer.sdp) {
+          return;
+        }
+
+        const incomingCallData = { 
+          offer, 
+          caller: callerInfo || { name: "Người dùng" }, 
+          isVideo: isVideo || false 
+        };
+        setIncomingCall(incomingCallData);
+      }
+    };
+
+    // Setup listener
+    callManager.addListener(handleOffer);
+    
+    return () => {
+      // Cleanup listener khi component unmount hoặc dependencies thay đổi
+      callManager.removeListener(handleOffer);
+    };
+  }, [currentUser, selectedConversation?._id]);
+
+  // Xử lý conversation change và join room
+  useEffect(() => {
+    if (!selectedConversation || !socketService.socket) return;
+    
+    // Listen for conversation-joined confirmation
+    const handleConversationJoined = (data) => {
+      // Conversation joined confirmation
+    };
+    
+    socketService.socket.on('conversation-joined', handleConversationJoined);
+    
+    return () => {
+      socketService.socket.off('conversation-joined', handleConversationJoined);
+    };
+  }, [selectedConversation?._id]);
+
+  // Handle messages for current conversation
+  useEffect(() => {
+    if (!selectedConversation || !socketService.socket) return;
+    
+    const handleNewMessage = (message) => {
+      // Check if message belongs to current conversation
+      if (message.conversationId === selectedConversation._id || message.conversation === selectedConversation._id) {
+        setMessages(prev => {
+          const exists = prev.some(m => m._id === message._id);
+          if (exists) {
+            return prev;
+          }
+          return [...prev, message];
+        });
+      }
+    };
+
+    // Set up message listener for this conversation
+    socketService.socket.on('new-message', handleNewMessage);
+    
+    return () => {
+      socketService.socket.off('new-message', handleNewMessage);
+    };
+  }, [selectedConversation?._id]);
 
   // Khôi phục conversation đã chọn sau khi load conversations
   useEffect(() => {
@@ -64,16 +159,14 @@ export default function Chat() {
       if (currentConversationId) {
         const savedConversation = conversations.find(conv => conv._id === currentConversationId);
         if (savedConversation) {
-          console.log('📍 Restoring saved conversation:', currentConversationId);
           setSelectedConversation(savedConversation);
         } else {
-          console.log('📍 Saved conversation not found in list, clearing:', currentConversationId);
           // Clear saved conversation if it's no longer in the list
           await chatAPI.setCurrentConversation(null);
         }
       }
     } catch (error) {
-      console.error('Lỗi tải cuộc trò chuyện hiện tại:', error);
+      // Handle error silently
     }
   };
 
@@ -81,7 +174,7 @@ export default function Chat() {
     try {
       await chatAPI.setCurrentConversation(conversationId);
     } catch (error) {
-      console.error('Lỗi lưu cuộc trò chuyện hiện tại:', error);
+      // Handle error silently
     }
   };
 
@@ -93,21 +186,8 @@ export default function Chat() {
       // Connect to Socket.IO when user is loaded
       const socket = socketService.connect(user);
       
-      // Setup message listener immediately (even before connect)
+      // Setup global message listener for conversation list updates (only once)
       socketService.onNewMessage((message) => {
-        console.log('📨 Received new message:', message);
-        
-        // Add message to current conversation if it matches
-        setMessages(prev => {
-          // Check if message already exists to avoid duplicates
-          const exists = prev.some(m => m._id === message._id);
-          if (exists) return prev;
-          const newMessages = [...prev, message];
-          
-          
-          return newMessages;
-        });
-        
         // Update conversation list with new last message
         setConversations(prev => 
           prev.map(conv => 
@@ -117,9 +197,18 @@ export default function Chat() {
           ).sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity))
         );
       });
+
+      // Setup reconnect handler to rejoin conversation room
+      if (socket) {
+        socket.on('reconnect', async () => {
+          if (selectedConversation) {
+            await socketService.joinConversation(selectedConversation._id);
+          }
+        });
+      }
       
     } catch (error) {
-      console.error('Lỗi tải thông tin người dùng:', error);
+      // Handle error silently
     }
   };
 
@@ -148,12 +237,18 @@ export default function Chat() {
   }, [location.state, conversations]);
 
   useEffect(() => {
-    if (selectedConversation) {
-      console.log('🔥 Chat: Loading messages and joining conversation:', selectedConversation._id);
-      loadMessages(selectedConversation._id);
-      // Join conversation room for real-time updates
-      socketService.joinConversation(selectedConversation._id);
-    }
+    const handleConversationChange = async () => {
+      if (selectedConversation) {
+        console.log('🔥 Loading messages for conversation:', selectedConversation._id);
+        loadMessages(selectedConversation._id);
+        // Join conversation room for real-time updates
+        console.log('🔥 Joining conversation room:', selectedConversation._id);
+        await socketService.joinConversation(selectedConversation._id);
+        console.log('🔥 Joined conversation room successfully');
+      }
+    };
+
+    handleConversationChange();
     
     return () => {
       // Leave conversation when component unmounts or conversation changes
@@ -161,10 +256,10 @@ export default function Chat() {
     };
   }, [selectedConversation]);
 
-  // Cleanup socket connection on unmount
+  // Cleanup: Only leave conversation when unmounting Chat, don't disconnect socket
   useEffect(() => {
     return () => {
-      socketService.disconnect();
+      socketService.leaveConversation();
     };
   }, []);
 
@@ -174,7 +269,7 @@ export default function Chat() {
       const data = await chatAPI.getConversations();
       setConversations(data.conversations || []);
     } catch (error) {
-      console.error('Lỗi tải danh sách cuộc trò chuyện:', error);
+      // Handle error silently
     } finally {
       setIsLoading(false);
     }
@@ -191,25 +286,15 @@ export default function Chat() {
         setMessages(prev => [...(data.messages || []), ...prev]);
         setCurrentPage(page);
       }
-      console.log('🔄 API response:', data);
-      console.log('🔄 Pagination info:', data.pagination);
-      
       // Use pagination info if available, otherwise fall back to length check
       const hasMore = data.pagination?.hasMore !== undefined 
         ? data.pagination.hasMore 
         : (page === 1 ? (data.messages || []).length > 0 : (data.messages || []).length === 50);
         
       setHasMoreMessages(hasMore);
-      console.log('🔄 loadMessages result:', {
-        page,
-        messagesLoaded: (data.messages || []).length,
-        hasMore,
-        paginationHasMore: data.pagination?.hasMore,
-        totalMessages: page === 1 ? (data.messages || []).length : messages.length + (data.messages || []).length
-      });
       return data.messages || [];
     } catch (error) {
-      console.error('Lỗi tải tin nhắn:', error);
+      // Handle error silently
       return [];
     } finally {
       setIsLoadingMessages(false);
@@ -217,9 +302,14 @@ export default function Chat() {
   };
 
   const handleSendMessage = async (content, type = 'text', emote = null, image = null) => {
-    if (!selectedConversation) return;
+    if (!selectedConversation) {
+      return;
+    }
 
     try {
+      // Ensure user is in conversation room before sending message
+      await socketService.joinConversation(selectedConversation._id);
+      
       let newMessage;
       
       if (image) {
@@ -228,11 +318,28 @@ export default function Chat() {
         newMessage = await chatAPI.sendMessage(selectedConversation._id, content, type, emote);
       }
       
-      // Message will be added via Socket.IO event, no need to add here
-      // Real-time update will handle both local and remote messages
+      // Add message to local state immediately for better UX
+      if (newMessage) {
+        setMessages(prev => {
+          // Check if message already exists to avoid duplicates
+          const exists = prev.some(m => m._id === newMessage._id);
+          if (exists) {
+            return prev;
+          }
+          return [...prev, newMessage];
+        });
+        
+        // Update conversation list with new last message
+        setConversations(prev => 
+          prev.map(conv => 
+            conv._id === selectedConversation._id
+              ? { ...conv, lastMessage: newMessage, lastActivity: newMessage.createdAt }
+              : conv
+          ).sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity))
+        );
+      }
       
     } catch (error) {
-      console.error('Lỗi gửi tin nhắn:', error);
       alert('Có lỗi xảy ra khi gửi tin nhắn');
     }
   };
@@ -243,14 +350,12 @@ export default function Chat() {
       setConversations(prev => [newConversation, ...prev]);
       setSelectedConversation(newConversation);
     } catch (error) {
-      console.error('Lỗi tạo cuộc trò chuyện:', error);
       throw error;
     }
   };
 
   const handleUpdateConversation = async (conversationId, updates) => {
     try {
-      console.log('[Chat.jsx] handleUpdateConversation', { conversationId, updates });
       // Nếu updates không có, chỉ reload lại từ server (trường hợp đổi tên nhóm qua modal)
       if (updates) {
         await chatAPI.updateConversation(conversationId, updates);
@@ -261,22 +366,18 @@ export default function Chat() {
       const updatedConv = updatedConversations.conversations?.find(c => c._id === conversationId);
       if (updatedConv) {
         setSelectedConversation(updatedConv);
-        console.log('[Chat.jsx] Updated selectedConversation:', updatedConv);
       }
     } catch (error) {
-      console.error('Error updating conversation:', error);
       alert('Có lỗi xảy ra khi cập nhật cuộc trò chuyện');
     }
   };
 
   const handleLeaveConversation = async (conversationId) => {
     try {
-      console.log('🚪 Leaving conversation:', conversationId);
       await chatAPI.leaveConversation(conversationId);
       
       // Clear selected conversation immediately if it's the one being left
       if (selectedConversation?._id === conversationId) {
-        console.log('🗑️ Clearing selected conversation');
         setSelectedConversation(null);
         setMessages([]);
         // Clear current conversation in backend too
@@ -349,6 +450,104 @@ export default function Chat() {
     setSelectedConversation(conversation);
   };
 
+  // ==================== CALL HANDLERS ====================
+  
+  const handleVideoCall = async (conversationId) => {
+    if (!selectedConversation) return;
+    
+    // Join conversation room
+    await socketService.joinConversation(conversationId);
+    
+    const isGroup = selectedConversation.conversationType === 'group';
+    const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
+    
+    if (isGroup) {
+      // Group call
+      const participants = selectedConversation.participants
+        ?.filter(p => !p.leftAt)
+        ?.map(p => ({
+          id: p.user?._id || p.user?.id || p._id || p.id,
+          name: p.nickname || p.user?.name || p.name || "Người dùng",
+          avatar: p.user?.avatarUrl || p.avatarUrl,
+          isOnline: true // Assume all are online for now
+        })) || [];
+      
+      setGroupParticipants(participants);
+      setIsGroupCall(true);
+      setRemoteUser(null); // Clear for group call
+    } else {
+      // 1-1 call
+      const otherParticipant = selectedConversation.participants?.find(p => {
+        const participantId = p.user?._id || p.user?.id || p._id || p.id;
+        return participantId !== currentUserId;
+      });
+      
+      setRemoteUser(otherParticipant?.user || otherParticipant || { name: "Người dùng" });
+      setIsGroupCall(false);
+      setGroupParticipants([]); // Clear for 1-1 call
+    }
+    
+    setIsVideoCall(true);
+    setCallOpen(true);
+    
+    // Emit call offer
+    await socketService.emitCallOffer(conversationId, true);
+  };
+
+  const handleVoiceCall = async (conversationId) => {
+    if (!selectedConversation) return;
+    
+    // Join conversation room
+    await socketService.joinConversation(conversationId);
+    
+    const isGroup = selectedConversation.conversationType === 'group';
+    const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
+    
+    if (isGroup) {
+      // Group call
+      const participants = selectedConversation.participants
+        ?.filter(p => !p.leftAt)
+        ?.map(p => ({
+          id: p.user?._id || p.user?.id || p._id || p.id,
+          name: p.nickname || p.user?.name || p.name || "Người dùng",
+          avatar: p.user?.avatarUrl || p.avatarUrl,
+          isOnline: true // Assume all are online for now
+        })) || [];
+      
+      setGroupParticipants(participants);
+      setIsGroupCall(true);
+      setRemoteUser(null); // Clear for group call
+    } else {
+      // 1-1 call
+      const otherParticipant = selectedConversation.participants?.find(p => {
+        const participantId = p.user?._id || p.user?.id || p._id || p.id;
+        return participantId !== currentUserId;
+      });
+      
+      setRemoteUser(otherParticipant?.user || otherParticipant || { name: "Người dùng" });
+      setIsGroupCall(false);
+      setGroupParticipants([]); // Clear for 1-1 call
+    }
+    
+    setIsVideoCall(false);
+    setCallOpen(true);
+    
+    // Emit call offer
+    await socketService.emitCallOffer(conversationId, false);
+  };
+
+  const handleAcceptCall = () => {
+    setCallOpen(true);
+    setIsVideoCall(incomingCall?.isVideo ?? true);
+    setIncomingOffer(incomingCall?.offer || null);
+    setIncomingCall(null);
+  };
+
+  const handleRejectCall = async () => {
+    await socketService.emitCallEnd(selectedConversation?._id);
+    setIncomingCall(null);
+  };
+
   return (
   <div className="h-full bg-white pt-16 sm:pt-20">
       <div className="h-full flex flex-col sm:flex-row chat-mobile">
@@ -393,6 +592,8 @@ export default function Chat() {
               onLeaveConversation={handleLeaveConversation}
               onDeleteConversation={handleDeleteConversation}
               onAddMembers={handleAddMembers}
+              onVideoCall={handleVideoCall}
+              onVoiceCall={handleVoiceCall}
             />
           ) : (
             <div className="h-full flex items-center justify-center p-4">
@@ -427,6 +628,31 @@ export default function Chat() {
           isOpen={showAddMembersModal}
           onClose={() => setShowAddMembersModal(false)}
           onUpdateConversation={handleRefreshConversation}
+        />
+      )}
+
+      {/* Call Modal */}
+      {callOpen && (
+        <CallModal
+          open={callOpen}
+          onClose={() => setCallOpen(false)}
+          isVideo={isVideoCall}
+          remoteUser={remoteUser}
+          conversationId={selectedConversation?._id}
+          incomingOffer={incomingOffer}
+          isGroupCall={isGroupCall}
+          groupParticipants={groupParticipants}
+        />
+      )}
+
+      {/* Incoming Call Modal */}
+      {incomingCall && (
+        <CallIncomingModal
+          open={true}
+          caller={incomingCall.caller}
+          isVideo={incomingCall.isVideo}
+          onAccept={handleAcceptCall}
+          onReject={handleRejectCall}
         />
       )}
     </div>

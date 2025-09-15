@@ -425,7 +425,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
 
                 {/* Emote Picker */}
                 {showEmotePicker === comment._id && (
-                  <div className="absolute top-6 left-0 right-0 sm:right-auto bg-white border rounded-lg shadow-lg p-2 z-50 emote-picker emote-picker-mobile">
+                  <div className="absolute top-6 left-0 right-0 sm:right-auto bg-white border rounded-lg shadow-lg p-2 z-50 emote-picker emote-picker-mobile max-w-[calc(100vw-2rem)] sm:max-w-none">
                     <div className="flex gap-1 flex-wrap justify-center sm:justify-start">
                       {Object.entries(emoteConfig).map(([type, config]) => {
                         const Icon = config.icon;
@@ -434,7 +434,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                           <button
                             key={type}
                             onClick={() => handleEmoteComment(comment._id, type)}
-                            className={`p-1.5 sm:p-1 rounded-full transition-colors touch-target ${
+                            className={`p-1.5 sm:p-1 rounded-full transition-colors touch-target flex-shrink-0 ${
                               isActive 
                                 ? `${config.bgColor} ${config.color}` 
                                 : 'hover:bg-gray-100 active:bg-gray-200'

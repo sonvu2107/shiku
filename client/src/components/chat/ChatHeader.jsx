@@ -193,26 +193,20 @@ const getAvatarUrl = () => {
       {/* Right side - Action buttons */}
       <div className="flex items-center space-x-2">
         {/* Call buttons */}
-        {!isGroup && (
+        {memberCount >= 2 && (
           <>
             <button
-              onClick={() => {
-                alert('Chức năng đang phát triển');
-                onVoiceCall?.(conversation._id);
-              }}
-              className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
-              title="Gọi thoại"
+              onClick={() => onVoiceCall?.(conversation._id)}
+              className="p-2.5 text-blue-500 hover:bg-blue-50 rounded-full transition-all duration-200 hover:scale-110"
+              title={isGroup ? "Gọi thoại nhóm" : "Gọi thoại"}
             >
               <Phone size={18} />
             </button>
             
             <button
-              onClick={() => {
-                alert('Chức năng đang phát triển');
-                onVideoCall?.(conversation._id);
-              }}
-              className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
-              title="Gọi video"
+              onClick={() => onVideoCall?.(conversation._id)}
+              className="p-2.5 text-blue-500 hover:bg-blue-50 rounded-full transition-all duration-200 hover:scale-110"
+              title={isGroup ? "Gọi video nhóm" : "Gọi video"}
             >
               <Video size={18} />
             </button>
