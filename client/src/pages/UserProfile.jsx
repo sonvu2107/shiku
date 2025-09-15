@@ -5,13 +5,24 @@ import { UserPlus, UserMinus, UserCheck, Calendar, Heart } from "lucide-react";
 import MessageButton from "../components/MessageButton";
 import UserName from "../components/UserName";
 
+/**
+ * UserProfile - Trang profile của user khác
+ * Hiển thị thông tin cá nhân, trạng thái bạn bè và các actions
+ * @returns {JSX.Element} Component user profile page
+ */
 export default function UserProfile() {
-  const { userId } = useParams();
+  // ==================== ROUTER & NAVIGATION ====================
+  
+  const { userId } = useParams(); // ID của user từ URL
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState("");
+  
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Profile data
+  const [profile, setProfile] = useState(null); // Thông tin profile user
+  const [loading, setLoading] = useState(true); // Loading state
+  const [actionLoading, setActionLoading] = useState(false); // Loading khi thực hiện actions
+  const [error, setError] = useState(""); // Error message
 
   useEffect(() => {
     loadProfile();

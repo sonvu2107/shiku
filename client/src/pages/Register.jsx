@@ -5,26 +5,50 @@ import { setAuthToken } from "../utils/auth";
 import Logo from "../components/Logo";
 import { UserPlus, Mail, Lock, User } from "lucide-react";
 
+/**
+ * Register - Trang đăng ký tài khoản mới
+ * Có responsive design và branding section tương tự Login
+ * @param {Function} setUser - Function để set user state sau khi đăng ký thành công
+ */
 export default function Register({ setUser }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(false);
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Form states
+  const [name, setName] = useState(""); // Họ và tên
+  const [email, setEmail] = useState(""); // Email
+  const [password, setPassword] = useState(""); // Mật khẩu
+  const [err, setErr] = useState(""); // Error message
+  const [loading, setLoading] = useState(false); // Loading state
   const navigate = useNavigate();
 
+  // ==================== EVENT HANDLERS ====================
+  
+  /**
+   * Xử lý submit form đăng ký
+   * @param {Event} e - Form submit event
+   */
   async function submit(e) {
     e.preventDefault();
-    setErr("");
+    setErr(""); // Clear error cũ
     setLoading(true);
+    
     try {
-      const data = await api("/api/auth/register-token", { method: "POST", body: { name, email, password } });
-      // Lưu token cho fallback với IP
+      // Gọi API đăng ký
+      const data = await api("/api/auth/register-token", { 
+        method: "POST", 
+        body: { name, email, password } 
+      });
+      
+      // Lưu token vào localStorage
       if (data.token) setAuthToken(data.token);
+      
+      // Cập nhật user state toàn cục
       if (setUser) setUser(data.user);
+      
+      // Redirect đến trang chủ
       navigate("/");
     } catch (e) { 
-      setErr(e.message); 
+      setErr(e.message); // Hiển thị error
     } finally {
       setLoading(false);
     }

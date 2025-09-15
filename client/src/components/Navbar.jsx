@@ -1,41 +1,65 @@
+// Import các dependencies cần thiết
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { removeAuthToken } from "../utils/auth";
+
+// Import các components
 import Logo from "./Logo";
 import NotificationBell from "./NotificationBell";
-import { 
-  Crown, 
-  User, 
-  LogOut, 
-  LogIn, 
-  UserPlus,
-  Search,
-  Users,
-  MessageCircle
-} from "lucide-react";
 import ChatDropdown from "./ChatDropdown";
 import ChatPopup from "./ChatPopup";
 import { ChatPopupWithCallModal } from "./ChatPopup";
 
-export default function Navbar({ user, setUser }) {
-  const [openPopups, setOpenPopups] = useState([]);
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showMobileSearch, setShowMobileSearch] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState(0);
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchPosts, setSearchPosts] = useState([]);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
+// Import icons từ Lucide React
+import { 
+  Crown,        // Icon admin
+  User,         // Icon user
+  LogOut,       // Icon đăng xuất
+  LogIn,        // Icon đăng nhập
+  UserPlus,     // Icon đăng ký
+  Search,       // Icon tìm kiếm
+  Users,        // Icon bạn bè
+  MessageCircle, // Icon tin nhắn/support
+  UserCheck     // Icon groups
+} from "lucide-react";
 
-  // Load pending friend requests count
+/**
+ * Navbar - Component thanh điều hướng chính của ứng dụng
+ * Bao gồm logo, search, navigation links, user menu, chat popups
+ * @param {Object} user - Thông tin user hiện tại (null nếu chưa đăng nhập)
+ * @param {Function} setUser - Function để cập nhật user state
+ */
+export default function Navbar({ user, setUser }) {
+  // ==================== STATE MANAGEMENT ====================
+  const [openPopups, setOpenPopups] = useState([]); // Chat popups đang mở
+  const navigate = useNavigate();
+  
+  // Search states
+  const [searchQuery, setSearchQuery] = useState(""); // Query tìm kiếm
+  const [showMobileSearch, setShowMobileSearch] = useState(false); // Hiện search mobile
+  const [searchResults, setSearchResults] = useState([]); // Kết quả search users
+  const [searchLoading, setSearchLoading] = useState(false); // Loading state
+  const [searchPosts, setSearchPosts] = useState([]); // Kết quả search posts
+  
+  // UI states
+  const [pendingRequests, setPendingRequests] = useState(0); // Số lời mời kết bạn
+  const [showProfileMenu, setShowProfileMenu] = useState(false); // Menu profile dropdown
+
+  // ==================== EFFECTS ====================
+  
+  /**
+   * Load số lượng friend requests đang chờ khi user đăng nhập
+   */
   useEffect(() => {
     if (user) {
       loadPendingRequests();
     }
   }, [user]);
 
+  /**
+   * Lấy số lượng friend requests đang chờ phê duyệt
+   */
   async function loadPendingRequests() {
     try {
       const data = await api("/api/friends/requests");
@@ -45,18 +69,26 @@ export default function Navbar({ user, setUser }) {
     }
   }
 
+  // ==================== HANDLERS ====================
+  
+  /**
+   * Xử lý tìm kiếm users và posts
+   * @param {Event} e - Form submit event
+   */
   async function handleSearch(e) {
     e.preventDefault();
     const trimmedQuery = searchQuery.trim();
+    
     if (trimmedQuery && trimmedQuery.length <= 100) {
       setSearchLoading(true);
       try {
-        // Tìm user
+        // Tìm users
         const userRes = await api(`/api/users/search?q=${encodeURIComponent(trimmedQuery)}`);
         setSearchResults(userRes.users || []);
-  // Tìm bài viết
-  const postRes = await api(`/api/posts?q=${encodeURIComponent(trimmedQuery)}`);
-  setSearchPosts(postRes.items || []);
+        
+        // Tìm bài viết
+        const postRes = await api(`/api/posts?q=${encodeURIComponent(trimmedQuery)}`);
+        setSearchPosts(postRes.items || []);
       } catch (err) {
         setSearchResults([]);
         setSearchPosts([]);
@@ -64,24 +96,36 @@ export default function Navbar({ user, setUser }) {
         setSearchLoading(false);
       }
     } else {
+      // Reset kết quả nếu query không hợp lệ
       setSearchResults([]);
       setSearchPosts([]);
     }
   }
 
+  /**
+   * Xử lý đăng xuất user
+   */
   async function logout() {
     try {
+      // Gọi API logout để invalidate session trên server
       await api("/api/auth/logout", { method: "POST" });
     } catch (err) {
       console.error("Logout error:", err);
     }
+    
+    // Xóa token khỏi localStorage
     removeAuthToken(); 
+    // Reset user state
     if (setUser) setUser(null);
+    // Redirect về trang chủ
     navigate("/");
   }
 
+  // ==================== RENDER ====================
+  
   return (
-  <div className="bg-white border-b fixed top-0 left-0 w-full z-50 shadow">
+    // Main navbar container - fixed top với shadow
+    <div className="bg-white border-b fixed top-0 left-0 w-full z-50 shadow">
       <div className="w-full max-w-none px-6 py-3 flex items-center justify-between">
         {/* Left side - Logo + Search */}
         <div className="flex items-center gap-4">
@@ -189,6 +233,10 @@ export default function Navbar({ user, setUser }) {
                     {pendingRequests}
                   </span>
                 )}
+              </Link>
+              <Link to="/groups" className="btn-outline flex items-center gap-2">
+                <UserCheck size={18} />
+                <span className="hidden sm:block">Nhóm</span>
               </Link>
               <ChatDropdown onOpenChat={(conv) => {
                 setOpenPopups(prev => {

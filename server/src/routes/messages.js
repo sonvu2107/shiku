@@ -45,33 +45,49 @@ router.get("/conversations", authRequired, async (req, res) => {
 
     console.log("🔥 Found conversations:", conversations.length);
 
-    // Format conversations with unread count
-    const formattedConversations = await Promise.all(
-      conversations.map(async (conv) => {
-        const unreadCount = await Message.countDocuments({
-          conversation: conv._id,
+    // Optimize unread count calculation with batch query
+    const conversationIds = conversations.map(conv => conv._id);
+    const unreadCounts = await Message.aggregate([
+      {
+        $match: {
+          conversation: { $in: conversationIds },
           'readBy.user': { $ne: req.user._id },
           sender: { $ne: req.user._id }
-        });
+        }
+      },
+      {
+        $group: {
+          _id: "$conversation",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    // Create a map for quick lookup
+    const unreadCountMap = new Map();
+    unreadCounts.forEach(item => {
+      unreadCountMap.set(item._id.toString(), item.count);
+    });
 
-        const otherParticipants = conv.participants.filter(
-          p => p.user._id.toString() !== req.user._id.toString() && !p.leftAt
-        );
+    // Format conversations with unread count
+    const formattedConversations = conversations.map((conv) => {
+      const otherParticipants = conv.participants.filter(
+        p => p.user._id.toString() !== req.user._id.toString() && !p.leftAt
+      );
 
-        return {
-          _id: conv._id,
-          conversationType: conv.conversationType,
-          groupName: conv.groupName,
-          groupAvatar: conv.groupAvatar,
-          participants: conv.participants,
-          otherParticipants,
-          lastMessage: conv.lastMessage,
-          lastActivity: conv.lastActivity,
-          unreadCount,
-          createdAt: conv.createdAt
-        };
-      })
-    );
+      return {
+        _id: conv._id,
+        conversationType: conv.conversationType,
+        groupName: conv.groupName,
+        groupAvatar: conv.groupAvatar,
+        participants: conv.participants,
+        otherParticipants,
+        lastMessage: conv.lastMessage,
+        lastActivity: conv.lastActivity,
+        unreadCount: unreadCountMap.get(conv._id.toString()) || 0,
+        createdAt: conv.createdAt
+      };
+    });
 
     console.log("🔥 Formatted conversations:", formattedConversations.length);
     res.json({ conversations: formattedConversations });

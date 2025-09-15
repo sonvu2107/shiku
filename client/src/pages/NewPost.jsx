@@ -3,20 +3,29 @@ import { api } from "../api";
 import { useNavigate } from "react-router-dom";
 import Editor from "../components/Editor";
 
+/**
+ * NewPost - Trang tạo bài viết mới
+ * Sử dụng Editor component để viết nội dung Markdown
+ * @returns {JSX.Element} Component new post page
+ */
 export default function NewPost() {
-  const [title, setTitle] = useState("");
-  const [tags, setTags] = useState("");
-  const [content, setContent] = useState("");
-  const [coverUrl, setCoverUrl] = useState("");
-  const [status, setStatus] = useState("published");
-  const [err, setErr] = useState("");
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Form states
+  const [title, setTitle] = useState(""); // Tiêu đề bài viết
+  const [tags, setTags] = useState(""); // Tags (phân cách bằng phẩy)
+  const [content, setContent] = useState(""); // Nội dung Markdown
+  const [coverUrl, setCoverUrl] = useState(""); // URL ảnh cover
+  const [status, setStatus] = useState("published"); // Trạng thái (published/private)
+  const [err, setErr] = useState(""); // Error message
+  
   const navigate = useNavigate();
 
   async function submit(e) {
     e.preventDefault();
     setErr("");
     try {
-      const body = { title, content, coverUrl, status, tags: tags.split(",").map(s => s.trim()).filter(Boolean) };
+      const body = { title, content, coverUrl, status, tags: tags.split(",").map(s => s.trim()).filter(Boolean), group: null };
       const data = await api("/api/posts", { method: "POST", body });
       navigate(`/post/${data.post.slug}`);
     } catch (e) { setErr(e.message); }

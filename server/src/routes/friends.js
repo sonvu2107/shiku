@@ -5,7 +5,12 @@ import { authRequired } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Gửi lời mời kết bạn
+/**
+ * POST /send-request - Gửi lời mời kết bạn
+ * Tạo friend request mới giữa 2 users
+ * @param {string} req.body.to - ID của user nhận lời mời
+ * @returns {Object} Friend request đã tạo
+ */
 router.post('/send-request', authRequired, async (req, res) => {
   try {
     const { to } = req.body; // Đổi từ toUserId thành to
@@ -61,7 +66,12 @@ router.post('/send-request', authRequired, async (req, res) => {
   }
 });
 
-// Chấp nhận lời mời kết bạn
+/**
+ * POST /accept-request/:requestId - Chấp nhận lời mời kết bạn
+ * Chỉ người nhận mới có thể chấp nhận lời mời
+ * @param {string} req.params.requestId - ID của friend request
+ * @returns {Object} Friend request đã được chấp nhận
+ */
 router.post('/accept-request/:requestId', authRequired, async (req, res) => {
   try {
     const { requestId } = req.params;
@@ -123,7 +133,12 @@ router.post('/accept-request/:requestId', authRequired, async (req, res) => {
   }
 });
 
-// Từ chối lời mời kết bạn
+/**
+ * POST /reject-request/:requestId - Từ chối lời mời kết bạn
+ * Chỉ người nhận mới có thể từ chối lời mời
+ * @param {string} req.params.requestId - ID của friend request
+ * @returns {Object} Thông báo từ chối thành công
+ */
 router.post('/reject-request/:requestId', authRequired, async (req, res) => {
   try {
     const { requestId } = req.params;
@@ -148,7 +163,11 @@ router.post('/reject-request/:requestId', authRequired, async (req, res) => {
   }
 });
 
-// Lấy danh sách lời mời kết bạn
+/**
+ * GET /requests - Lấy danh sách lời mời kết bạn
+ * Lấy tất cả friend requests pending của user hiện tại
+ * @returns {Array} Danh sách friend requests
+ */
 router.get('/requests', authRequired, async (req, res) => {
   try {
     const userId = req.user._id.toString(); // Convert to string
@@ -165,7 +184,11 @@ router.get('/requests', authRequired, async (req, res) => {
   }
 });
 
-// Lấy danh sách bạn bè
+/**
+ * GET /list - Lấy danh sách bạn bè
+ * Lấy tất cả friends của user hiện tại với thông tin online status
+ * @returns {Array} Danh sách bạn bè
+ */
 router.get('/list', authRequired, async (req, res) => {
   try {
     const userId = req.user._id.toString(); // Convert to string
@@ -187,7 +210,11 @@ router.get('/list', authRequired, async (req, res) => {
   }
 });
 
-// Gợi ý kết bạn
+/**
+ * GET /suggestions - Gợi ý kết bạn
+ * Tìm users chưa là bạn bè và chưa có lời mời pending
+ * @returns {Array} Danh sách gợi ý kết bạn
+ */
 router.get('/suggestions', authRequired, async (req, res) => {
   try {
     const userId = req.user._id.toString(); // Convert to string
@@ -226,7 +253,12 @@ router.get('/suggestions', authRequired, async (req, res) => {
   }
 });
 
-// Bỏ kết bạn
+/**
+ * DELETE /remove/:friendId - Bỏ kết bạn
+ * Xóa khỏi danh sách bạn bè của cả hai bên
+ * @param {string} req.params.friendId - ID của friend cần bỏ
+ * @returns {Object} Thông báo bỏ kết bạn thành công
+ */
 router.delete('/remove/:friendId', authRequired, async (req, res) => {
   try {
     const { friendId } = req.params;
@@ -254,7 +286,12 @@ router.delete('/remove/:friendId', authRequired, async (req, res) => {
   }
 });
 
-// Tìm kiếm người dùng (toàn hệ thống)
+/**
+ * GET /search - Tìm kiếm người dùng (toàn hệ thống)
+ * Tìm kiếm users theo tên hoặc email
+ * @param {string} req.query.q - Từ khóa tìm kiếm
+ * @returns {Array} Danh sách users tìm được
+ */
 router.get('/search', authRequired, async (req, res) => {
   try {
     const { q = '' } = req.query;
@@ -282,7 +319,12 @@ router.get('/search', authRequired, async (req, res) => {
   }
 });
 
-// Tìm kiếm trong danh sách bạn bè
+/**
+ * GET /search-friends - Tìm kiếm trong danh sách bạn bè
+ * Tìm kiếm trong danh sách friends của user hiện tại
+ * @param {string} req.query.q - Từ khóa tìm kiếm
+ * @returns {Array} Danh sách friends tìm được
+ */
 router.get('/search-friends', authRequired, async (req, res) => {
   try {
     const { q } = req.query;

@@ -1,10 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
 
+/**
+ * AdminFeedback - Component hiển thị feedback từ người dùng
+ * Chỉ admin mới có thể xem danh sách góp ý từ người dùng
+ * @returns {JSX.Element} Component admin feedback page
+ */
 export default function AdminFeedback() {
-  const [feedbacks, setFeedbacks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Feedback data
+  const [feedbacks, setFeedbacks] = useState([]); // Danh sách feedback
+  const [loading, setLoading] = useState(true); // Loading state
+  const [error, setError] = useState(""); // Error message
 
   useEffect(() => {
     api("/api/support/feedback")

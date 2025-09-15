@@ -1,11 +1,19 @@
 import React, { useState } from "react";
 import { api } from "../api";
 
+/**
+ * Support - Trang hỗ trợ và góp ý
+ * Cho phép user gửi feedback cho admin
+ * @returns {JSX.Element} Component support page
+ */
 export default function Support() {
-  const [feedback, setFeedback] = useState("");
-  const [sending, setSending] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Form states
+  const [feedback, setFeedback] = useState(""); // Nội dung góp ý
+  const [sending, setSending] = useState(false); // Loading khi gửi
+  const [success, setSuccess] = useState(false); // Trạng thái thành công
+  const [error, setError] = useState(""); // Error message
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -1,18 +1,34 @@
 import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Calendar, Eye, MessageCircle, Lock, Globe, ThumbsUp } from "lucide-react";
+import { User, Calendar, Eye, MessageCircle, Lock, Globe, ThumbsUp, Users } from "lucide-react";
 import { api } from "../api";
 import UserName from "./UserName";
 
+/**
+ * PostCard - Component hiển thị preview của một blog post
+ * Bao gồm media, title, metadata, emotes và action buttons
+ * @param {Object} post - Dữ liệu bài viết
+ * @param {string} post._id - ID của post
+ * @param {string} post.title - Tiêu đề
+ * @param {string} post.slug - URL slug
+ * @param {Object} post.author - Thông tin tác giả
+ * @param {Array} post.emotes - Danh sách emotes
+ * @param {Array} post.files - Media files đính kèm
+ * @param {string} post.status - Trạng thái (published/private)
+ */
 export default function PostCard({ post }) {
+  // ==================== STATE & REFS ====================
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user") || "null");
-  const [showEmotePopup, setShowEmotePopup] = useState(false);
-  const emotePopupTimeout = useRef();
+  const user = JSON.parse(localStorage.getItem("user") || "null"); // Current user
+  const [showEmotePopup, setShowEmotePopup] = useState(false); // Hiện popup emotes
+  const emotePopupTimeout = useRef(); // Timeout cho hover emote popup
 
+  // ==================== CONSTANTS ====================
+  
+  // Mapping emotes với file GIF tương ứng
   const emoteMap = {
     "👍": "like.gif",
-    "❤️": "care.gif",
+    "❤️": "care.gif", 
     "😂": "haha.gif",
     "😮": "wow.gif",
     "😢": "sad.gif",
@@ -20,7 +36,12 @@ export default function PostCard({ post }) {
   };
   const emotes = Object.keys(emoteMap);
 
-  //Ưu tiên coverUrl (image) → file đầu tiên (image/video)
+  // ==================== HELPER FUNCTIONS ====================
+  
+  /**
+   * Lấy media để hiển thị (ưu tiên coverUrl → file đầu tiên)
+   * @returns {Object|null} Media object với url và type
+   */
   const getDisplayMedia = () => {
     if (post.coverUrl) {
       // Tìm type của coverUrl trong files
@@ -31,21 +52,32 @@ export default function PostCard({ post }) {
       // Nếu không tìm thấy, mặc định là image
       return { url: post.coverUrl, type: "image" };
     }
+    // Fallback về file đầu tiên nếu có
     if (Array.isArray(post.files) && post.files.length > 0) {
       return post.files[0];
     }
     return null;
   };
 
+  // ==================== EVENT HANDLERS ====================
+  
+  /**
+   * Xóa bài viết (chỉ owner hoặc admin)
+   */
   async function deletePost() {
     if (!window.confirm("Bạn có chắc muốn xóa bài này?")) return;
     try {
       await api(`/api/posts/${post._id}`, { method: "DELETE" });
       alert("Đã xóa bài viết.");
-      navigate(0);
-    } catch (e) { alert("Lỗi xóa bài"); }
+      navigate(0); // Reload page
+    } catch (e) { 
+      alert("Lỗi xóa bài"); 
+    }
   }
 
+  /**
+   * Toggle trạng thái public/private của bài viết
+   */
   async function togglePostStatus() {
     const newStatus = post.status === 'private' ? 'published' : 'private';
     const confirmMessage = newStatus === 'private'
@@ -60,34 +92,52 @@ export default function PostCard({ post }) {
         body: { status: newStatus } 
       });
       alert(newStatus === 'private' ? "Đã chuyển thành riêng tư" : "Đã công khai bài viết");
-      navigate(0);
+      navigate(0); // Reload page
     } catch (e) { 
       alert("Lỗi: " + e.message); 
     }
   }
 
-  const [emotesState, setEmotesState] = useState(post.emotes || []);
+  // ==================== EMOTE SYSTEM ====================
+  
+  const [emotesState, setEmotesState] = useState(post.emotes || []); // Local emote state
 
+  /**
+   * Thêm/xóa emote cho bài viết
+   * @param {string} emote - Loại emote (emoji)
+   */
   async function emote(emote) {
     try {
-      const res = await api(`/api/posts/${post._id}/emote`, { method: "POST", body: { emote } });
+      const res = await api(`/api/posts/${post._id}/emote`, { 
+        method: "POST", 
+        body: { emote } 
+      });
       if (res.emotes) {
-        setEmotesState(res.emotes);
+        setEmotesState(res.emotes); // Cập nhật local state
       }
     } catch (e) {
       alert(e.message);
     }
   }
 
+  /**
+   * Đếm số lượng từng loại emote
+   * @returns {Object} Object với key là emote và value là số lượng
+   */
   function countEmotes() {
     const counts = {};
     if (!emotesState) return counts;
+    
+    // Khởi tạo counts cho tất cả emotes
     for (const emo of emotes) counts[emo] = 0;
+    
+    // Đếm emotes từ state
     for (const e of emotesState) {
       if (counts[e.type] !== undefined) counts[e.type]++;
     }
     return counts;
   }
+  
   const counts = countEmotes();
   const totalEmotes = Object.values(counts).reduce((a, b) => a + b, 0);
 
@@ -128,6 +178,15 @@ export default function PostCard({ post }) {
           <User size={14} />
           <UserName user={post.author} />
         </Link>
+        {post.group && (
+          <Link 
+            to={`/groups/${post.group._id}`}
+            className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+          >
+            <Users size={14} />
+            <span>{post.group.name}</span>
+          </Link>
+        )}
         <span className="flex items-center gap-1">
           <Calendar size={14} />
           {new Date(post.createdAt).toLocaleDateString()}

@@ -1,29 +1,79 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { Globe, Lock, Image } from "lucide-react";
+import { Globe, Lock, Image, Users } from "lucide-react";
 import BanNotification from "./BanNotification";
 
-export default function PostCreator({ user }) {
-  const [showModal, setShowModal] = useState(false);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [tags, setTags] = useState("");
-  const [files, setFiles] = useState([]);
-  const [status, setStatus] = useState("published");
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [coverUrl, setCoverUrl] = useState("");
-  const [showPrivacyDropdown, setShowPrivacyDropdown] = useState(false);
+/**
+ * PostCreator - Component tạo bài viết mới
+ * Gồm Facebook-style post input và modal tạo bài chi tiết
+ * Hỗ trợ upload media, privacy settings, tags, groups
+ * @param {Object} user - Thông tin user hiện tại
+ * @param {string} groupId - ID của nhóm (nếu đang tạo bài trong nhóm)
+ */
+export default function PostCreator({ user, groupId = null }) {
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Modal và form states
+  const [showModal, setShowModal] = useState(false); // Hiển thị modal tạo bài
+  const [title, setTitle] = useState(""); // Tiêu đề bài viết
+  const [content, setContent] = useState(""); // Nội dung bài viết
+  const [tags, setTags] = useState(""); // Tags (phân cách bằng phẩy)
+  const [files, setFiles] = useState([]); // Media files đã upload
+  const [status, setStatus] = useState("published"); // Trạng thái public/private
+  
+  // UI states
+  const [err, setErr] = useState(""); // Error message
+  const [loading, setLoading] = useState(false); // Loading khi submit
+  const [uploading, setUploading] = useState(false); // Loading khi upload files
+  const [coverUrl, setCoverUrl] = useState(""); // URL ảnh cover
+  const [showPrivacyDropdown, setShowPrivacyDropdown] = useState(false); // Dropdown privacy
+  
+  // Group states
+  const [groups, setGroups] = useState([]); // Danh sách nhóm của user
+  const [selectedGroup, setSelectedGroup] = useState(groupId); // Nhóm được chọn
+  const [showGroupDropdown, setShowGroupDropdown] = useState(false); // Dropdown chọn nhóm
+  
+  // Ban notification states
   const [showBanNotification, setShowBanNotification] = useState(false);
   const [banInfo, setBanInfo] = useState(null);
+  
   const navigate = useNavigate();
 
-  const userDisplayName = user?.name || "Bạn";
+  // ==================== EFFECTS ====================
+  
+  // Load user's groups
+  useEffect(() => {
+    const loadGroups = async () => {
+      try {
+        const response = await api('/api/groups/my-groups', { method: 'GET' });
+        if (response.success) {
+          setGroups(response.data.groups);
+        }
+      } catch (error) {
+        console.error('Error loading groups:', error);
+      }
+    };
 
+    if (user) {
+      loadGroups();
+    }
+  }, [user]);
+
+  // ==================== HELPERS ====================
+  
+  const userDisplayName = user?.name || "Bạn"; // Fallback name
+
+  // ==================== EVENT HANDLERS ====================
+  
+  /**
+   * Xử lý submit form tạo bài viết
+   * @param {Event} e - Form submit event
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate required fields
     if (!title.trim() || !content.trim()) {
       setErr("Vui lòng nhập tiêu đề và nội dung");
       return;
@@ -31,21 +81,36 @@ export default function PostCreator({ user }) {
 
     setLoading(true);
     try {
+      // Parse tags từ string thành array
       const tagsArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag);
+      
+      // Gọi API tạo bài viết
       const post = await api("/api/posts", {
         method: "POST",
-        body: { title, content, tags: tagsArray, files, status, coverUrl }
+        body: { 
+          title, 
+          content, 
+          tags: tagsArray, 
+          files, 
+          status, 
+          coverUrl,
+          group: selectedGroup || null
+        }
       });
+      
+      // Reset form và đóng modal
       setShowModal(false);
       resetForm();
 
+      // Navigate based on post status
       if (status === "private") {
         navigate("/");
         alert("Bài viết riêng tư đã được lưu");
       } else {
-        navigate(`/post/${post.post.slug}`);
+        navigate(`/post/${post.post.slug}`); // Redirect đến bài viết mới
       }
     } catch (error) {
+      // Xử lý ban notification
       if (error.banInfo) {
         setBanInfo(error.banInfo);
         setShowBanNotification(true);
@@ -57,6 +122,9 @@ export default function PostCreator({ user }) {
     }
   };
 
+  /**
+   * Reset tất cả form fields về trạng thái ban đầu
+   */
   const resetForm = () => {
     setTitle("");
     setContent("");
@@ -66,16 +134,25 @@ export default function PostCreator({ user }) {
     setCoverUrl("");
     setErr("");
     setShowPrivacyDropdown(false);
+    setSelectedGroup(groupId); // Reset về group ban đầu
+    setShowGroupDropdown(false);
   };
 
+  /**
+   * Xử lý upload multiple files (images/videos)
+   * @param {Event} e - File input change event
+   */
   const handleFilesUpload = async (e) => {
     const selectedFiles = Array.from(e.target.files);
     if (!selectedFiles.length) return;
+    
     setUploading(true);
     try {
+      // Tạo FormData cho multiple files
       const formData = new FormData();
       selectedFiles.forEach(f => formData.append("files", f));
 
+      // Upload files qua fetch (không qua api helper để handle FormData)
       const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
       const response = await fetch(`${API_URL}/api/uploads/media`, {
         method: "POST",
@@ -87,16 +164,19 @@ export default function PostCreator({ user }) {
 
       if (!response.ok) throw new Error("Upload failed");
       const data = await response.json();
-          if (data.files) {
-            setFiles(prev => {
-              const newFiles = [...prev, ...data.files];
-              // Nếu chưa có coverUrl thì chọn file đầu tiên là ảnh làm cover
-              if (!coverUrl) {
-                const firstImage = newFiles.find(f => f.type === "image");
-              }
-              return newFiles;
-            });
+      
+      // Thêm files đã upload vào state
+      if (data.files) {
+        setFiles(prev => {
+          const newFiles = [...prev, ...data.files];
+          // TODO: Auto-select first image as cover nếu chưa có
+          if (!coverUrl) {
+            const firstImage = newFiles.find(f => f.type === "image");
+            // setCoverUrl(firstImage?.url); // Commented out - có thể implement sau
           }
+          return newFiles;
+        });
+      }
     } catch (error) {
       setErr("Lỗi upload file: " + error.message);
     } finally {
@@ -104,6 +184,9 @@ export default function PostCreator({ user }) {
     }
   };
 
+  /**
+   * Đóng modal và reset form
+   */
   const handleClose = () => {
     setShowModal(false);
     resetForm();
@@ -205,6 +288,65 @@ export default function PostCreator({ user }) {
                   </div>
                 </div>
               </div>
+
+              {/* Group Selection */}
+              {!groupId && groups.length > 0 && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>Đăng trong:</span>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowGroupDropdown(!showGroupDropdown)}
+                      className="bg-gray-100 hover:bg-gray-200 rounded px-2 py-1 flex items-center gap-1 transition-colors"
+                    >
+                      {selectedGroup ? (
+                        <>
+                          <Users size={14} />
+                          <span>{groups.find(g => g._id === selectedGroup)?.name || 'Chọn nhóm'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe size={14} />
+                          <span>Trang cá nhân</span>
+                        </>
+                      )}
+                      <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {showGroupDropdown && (
+                      <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedGroup(null);
+                            setShowGroupDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
+                        >
+                          <Globe size={14} />
+                          <span>Trang cá nhân</span>
+                        </button>
+                        {groups.map((group) => (
+                          <button
+                            key={group._id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedGroup(group._id);
+                              setShowGroupDropdown(false);
+                            }}
+                            className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
+                          >
+                            <Users size={14} />
+                            <span>{group.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Title */}
               <div>

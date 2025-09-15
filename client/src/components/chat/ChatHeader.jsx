@@ -2,6 +2,20 @@ import { useState } from "react";
 import { MoreVertical, Users, Settings, UserPlus, Edit3, LogOut, Trash2, Phone, Video } from "lucide-react";
 import GroupSettingsModal from "./GroupSettingsModal";
 
+/**
+ * ChatHeader - Header của cuộc trò chuyện
+ * Hiển thị thông tin cuộc trò chuyện, avatar, tên và các nút hành động
+ * @param {Object} props - Component props
+ * @param {Object} props.conversation - Dữ liệu cuộc trò chuyện
+ * @param {Object} props.currentUser - Thông tin user hiện tại
+ * @param {Function} props.onUpdateConversation - Callback cập nhật conversation
+ * @param {Function} props.onLeaveConversation - Callback rời khỏi conversation
+ * @param {Function} props.onDeleteConversation - Callback xóa conversation
+ * @param {Function} props.onAddMembers - Callback thêm thành viên
+ * @param {Function} props.onVideoCall - Callback gọi video
+ * @param {Function} props.onVoiceCall - Callback gọi thoại
+ * @returns {JSX.Element} Component chat header
+ */
 export default function ChatHeader({ 
   conversation, 
   currentUser,
@@ -12,10 +26,15 @@ export default function ChatHeader({
   onVideoCall,
   onVoiceCall 
 }) {
-  const [showMenu, setShowMenu] = useState(false);
-  const [showEditName, setShowEditName] = useState(false);
-  const [showGroupSettings, setShowGroupSettings] = useState(false);
-  const [newName, setNewName] = useState(conversation?.name || '');
+  // ==================== STATE MANAGEMENT ====================
+  
+  // UI states
+  const [showMenu, setShowMenu] = useState(false); // Trạng thái hiển thị menu dropdown
+  const [showEditName, setShowEditName] = useState(false); // Trạng thái edit tên nhóm
+  const [showGroupSettings, setShowGroupSettings] = useState(false); // Trạng thái hiển thị group settings
+  
+  // Form states
+  const [newName, setNewName] = useState(conversation?.name || ''); // Tên mới của nhóm
 
   const isGroup = conversation?.conversationType === 'group';
   const activeParticipants = conversation?.participants?.filter(p => !p.leftAt) || [];

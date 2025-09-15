@@ -1,6 +1,18 @@
 import { useState, useRef, useEffect } from "react";
 import { User, Users, ChevronUp } from "lucide-react";
 
+/**
+ * MessageList - Component hiển thị danh sách tin nhắn
+ * Hỗ trợ infinite scroll, auto-scroll và hiển thị tin nhắn theo nhóm
+ * @param {Object} props - Component props
+ * @param {Array} props.messages - Danh sách tin nhắn
+ * @param {Object} props.currentUser - Thông tin user hiện tại
+ * @param {boolean} props.loading - Trạng thái loading
+ * @param {boolean} props.hasMore - Có thêm tin nhắn để load
+ * @param {Function} props.onLoadMore - Callback load thêm tin nhắn
+ * @param {Object} props.conversation - Dữ liệu cuộc trò chuyện
+ * @returns {JSX.Element} Component message list
+ */
 export default function MessageList({ 
   messages, 
   currentUser, 
@@ -9,11 +21,16 @@ export default function MessageList({
   onLoadMore, 
   conversation
 }) {
-  const [showScrollButton, setShowScrollButton] = useState(false);
-  const messagesContainerRef = useRef(null);
-  const topRef = useRef(null);
-  const prevMessagesLength = useRef(messages.length);
-  const prevScrollHeight = useRef(0);
+  // ==================== STATE MANAGEMENT ====================
+  
+  const [showScrollButton, setShowScrollButton] = useState(false); // Hiển thị nút scroll to bottom
+  
+  // ==================== REFS ====================
+  
+  const messagesContainerRef = useRef(null); // Ref container tin nhắn
+  const topRef = useRef(null); // Ref top của container
+  const prevMessagesLength = useRef(messages.length); // Số lượng tin nhắn trước đó
+  const prevScrollHeight = useRef(0); // Chiều cao scroll trước đó
 
   useEffect(() => {
     const container = messagesContainerRef.current;

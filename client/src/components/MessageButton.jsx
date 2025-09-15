@@ -3,8 +3,20 @@ import { MessageCircle } from "lucide-react";
 import { chatAPI } from "../chatAPI";
 import { useNavigate } from "react-router-dom";
 
+/**
+ * MessageButton - Nút nhắn tin cho user
+ * Tạo cuộc trò chuyện riêng tư hoặc chuyển đến cuộc trò chuyện hiện có
+ * @param {Object} props - Component props
+ * @param {Object} props.user - Thông tin user cần nhắn tin
+ * @param {string} props.user._id - ID của user
+ * @param {string} props.user.conversationId - ID cuộc trò chuyện hiện có (nếu có)
+ * @param {string} props.className - CSS classes bổ sung
+ * @returns {JSX.Element} Component message button
+ */
 export default function MessageButton({ user, className = "" }) {
-  const [isLoading, setIsLoading] = useState(false);
+  // ==================== STATE MANAGEMENT ====================
+  
+  const [isLoading, setIsLoading] = useState(false); // Loading state khi tạo conversation
   const navigate = useNavigate();
 
   const handleMessage = async () => {

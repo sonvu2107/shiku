@@ -1,46 +1,79 @@
 import mongoose from "mongoose";
 
+/**
+ * User Schema - Định nghĩa cấu trúc dữ liệu cho users
+ * Bao gồm thông tin cá nhân, authentication, social features, và ban system
+ */
 const UserSchema = new mongoose.Schema({
-  name: { type: String, required: true, trim: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ["user", "admin", "sololeveling", "sybau", "moxumxue"], default: "user" },
-  bio: { type: String, default: "" },
+  // ==================== THÔNG TIN CƠ BẢN ====================
+  name: { type: String, required: true, trim: true }, // Tên hiển thị
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true }, // Email (unique)
+  password: { type: String, required: true }, // Mật khẩu đã hash
+  
+  // ==================== PHÂN QUYỀN ====================
+  role: { 
+    type: String, 
+    enum: ["user", "admin", "sololeveling", "sybau", "moxumxue"], // Các role đặc biệt
+    default: "user" 
+  },
+  
+  // ==================== THÔNG TIN CÁ NHÂN ====================
+  bio: { type: String, default: "" }, // Tiểu sử
   avatarUrl: {
     type: String,
+    // Default avatar từ UI Avatars service
     default: function () {
       return `https://ui-avatars.com/api/?name=User&background=3b82f6&color=ffffff`;
     }
   },
-  birthday: { type: String, default: "" },
-  gender: { type: String, default: "" },
-  hobbies: { type: String, default: "" },
-  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  currentConversation: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation' },
-  isOnline: { type: Boolean, default: false },
-  isVerified: { type: Boolean, default: false },
-  lastSeen: { type: Date, default: Date.now },
-  isBanned: { type: Boolean, default: false },
-  banReason: { type: String, default: "" },
-  bannedAt: { type: Date },
-  banExpiresAt: { type: Date },
-  bannedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  resetPasswordToken: { type: String },
-  resetPasswordExpires: { type: Date }
-}, { timestamps: true });
+  birthday: { type: String, default: "" }, // Ngày sinh
+  gender: { type: String, default: "" }, // Giới tính
+  hobbies: { type: String, default: "" }, // Sở thích
+  
+  // ==================== SOCIAL FEATURES ====================
+  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Danh sách bạn bè
+  blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Users bị block
+  currentConversation: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation' }, // Chat hiện tại
+  
+  // ==================== TRẠNG THÁI ONLINE ====================
+  isOnline: { type: Boolean, default: false }, // Có online không
+  isVerified: { type: Boolean, default: false }, // Tài khoản đã verify
+  lastSeen: { type: Date, default: Date.now }, // Lần cuối online
+  
+  // ==================== BAN SYSTEM ====================
+  isBanned: { type: Boolean, default: false }, // Có bị ban không
+  banReason: { type: String, default: "" }, // Lý do ban
+  bannedAt: { type: Date }, // Thời điểm bị ban
+  banExpiresAt: { type: Date }, // Thời điểm hết ban (null = permanent)
+  bannedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Admin ban
+  
+  // ==================== RESET PASSWORD ====================
+  resetPasswordToken: { type: String }, // Token reset password
+  resetPasswordExpires: { type: Date } // Thời hạn token reset
+}, { 
+  timestamps: true // Tự động thêm createdAt và updatedAt
+});
 
-// Method to check if user is currently banned
+// ==================== INSTANCE METHODS ====================
+
+/**
+ * Kiểm tra user có đang bị ban không
+ * @returns {boolean} true nếu đang bị ban
+ */
 UserSchema.methods.isCurrentlyBanned = function () {
-  if (!this.isBanned) return false;
-  if (!this.banExpiresAt) return true;
-  return new Date() < this.banExpiresAt;
+  if (!this.isBanned) return false; // Không bị đánh dấu ban
+  if (!this.banExpiresAt) return true; // Ban vĩnh viễn
+  return new Date() < this.banExpiresAt; // Kiểm tra thời hạn ban
 };
 
-// Method to get remaining ban time in minutes
+/**
+ * Lấy thời gian ban còn lại tính bằng phút
+ * @returns {number} Số phút còn lại, -1 nếu ban vĩnh viễn, 0 nếu không bị ban
+ */
 UserSchema.methods.getRemainingBanTime = function () {
-  if (!this.isCurrentlyBanned()) return 0;
-  if (!this.banExpiresAt) return -1; // Permanent ban
+  if (!this.isCurrentlyBanned()) return 0; // Không bị ban
+  if (!this.banExpiresAt) return -1; // Ban vĩnh viễn
+  // Tính số phút còn lại
   return Math.max(0, Math.ceil((this.banExpiresAt - new Date()) / (1000 * 60)));
 };
 

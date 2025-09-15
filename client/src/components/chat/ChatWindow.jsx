@@ -4,6 +4,21 @@ import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import ChatHeader from "./ChatHeader";
 
+/**
+ * ChatWindow - Component cửa sổ chat chính
+ * Bao gồm header, danh sách tin nhắn và input để gửi tin nhắn
+ * @param {Object} conversation - Cuộc trò chuyện hiện tại
+ * @param {Object} currentUser - User hiện tại
+ * @param {Array} messages - Danh sách tin nhắn
+ * @param {boolean} isLoadingMessages - Loading state cho tin nhắn
+ * @param {boolean} hasMoreMessages - Có thêm tin nhắn để load
+ * @param {Function} onSendMessage - Callback gửi tin nhắn
+ * @param {Function} onLoadMoreMessages - Callback load thêm tin nhắn
+ * @param {Function} onUpdateConversation - Callback cập nhật cuộc trò chuyện
+ * @param {Function} onLeaveConversation - Callback rời cuộc trò chuyện
+ * @param {Function} onDeleteConversation - Callback xóa cuộc trò chuyện
+ * @param {Function} onAddMembers - Callback thêm thành viên
+ */
 export default function ChatWindow({ 
   conversation, 
   currentUser, 
@@ -17,7 +32,9 @@ export default function ChatWindow({
   onDeleteConversation,
   onAddMembers
 }) {
-  const messagesEndRef = useRef(null);
+  // ==================== REFS ====================
+  
+  const messagesEndRef = useRef(null); // Ref để scroll xuống cuối tin nhắn
 
   useEffect(() => {
     scrollToBottom();

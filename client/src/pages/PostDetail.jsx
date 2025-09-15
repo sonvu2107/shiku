@@ -7,14 +7,28 @@ import CommentSection from "../components/CommentSection";
 import { Expand, X, Eye, Lock, Globe, ThumbsUp } from "lucide-react";
 import UserName from "../components/UserName";
 
+/**
+ * Mapping các role với icon tương ứng (hiện tại chưa sử dụng)
+ */
 const roleIcons = {
   solo: "/assets/Sung-tick.png",
   sybau: "/assets/Sybau-tick.png",
   keeper: "/assets/moxumxue.png"
 };
 
+/**
+ * PostDetail - Trang chi tiết bài viết
+ * Hiển thị nội dung bài viết, media, emotes, comments và các actions
+ * Hỗ trợ media modal carousel và emote system
+ */
 export default function PostDetail() {
-  // Hàm trả về thời gian chi tiết cho tooltip
+  // ==================== UTILITY FUNCTIONS ====================
+  
+  /**
+   * Format thời gian chi tiết cho tooltip
+   * @param {string} dateString - ISO date string
+   * @returns {string} Formatted date string
+   */
   function formatFullDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleString('vi-VN', {
@@ -26,7 +40,12 @@ export default function PostDetail() {
       minute: '2-digit'
     });
   }
-  // Hiển thị thời gian dạng 'x giờ trước', 'x ngày trước', 'x tháng trước'
+  
+  /**
+   * Format thời gian dạng relative (x giờ trước, x ngày trước, etc.)
+   * @param {string} dateString - ISO date string
+   * @returns {string} Relative time string
+   */
   function formatTimeAgo(dateString) {
     const now = new Date();
     const date = new Date(dateString);
@@ -36,6 +55,7 @@ export default function PostDetail() {
     const diffHour = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHour / 24);
     const diffMonth = Math.floor(diffDay / 30);
+    
     if (diffMonth >= 1) return `${diffMonth} tháng trước`;
     if (diffDay >= 1) return `${diffDay} ngày trước`;
     if (diffHour >= 1) return `${diffHour} giờ trước`;

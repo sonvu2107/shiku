@@ -6,20 +6,41 @@ import { getUserInfo } from "../utils/auth";
 import socketService from "../socket";
 import { X, Phone, Video, ChevronDown, MessageCircle } from "lucide-react";
 
+/**
+ * ChatPopup - Popup chat window với khả năng gọi video/voice
+ * Hiển thị cuộc trò chuyện trong popup với các tính năng gọi và gửi tin nhắn
+ * @param {Object} props - Component props
+ * @param {Object} props.conversation - Dữ liệu cuộc trò chuyện
+ * @param {Function} props.onClose - Callback đóng popup
+ * @param {Function} props.setCallOpen - Callback mở modal gọi
+ * @param {Function} props.setIsVideoCall - Callback set loại cuộc gọi
+ * @returns {JSX.Element} Component chat popup
+ */
 export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVideoCall }) {
+  // ==================== EFFECTS ====================
+  
+  // Join conversation khi có conversationId
   useEffect(() => {
     if (conversation?._id) {
       socketService.joinConversation(conversation._id);
     }
   }, [conversation?._id]);
 
-  const [minimized, setMinimized] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const messagesEndRef = useRef(null);
-
-  const me = getUserInfo()?.id || conversation.me;
+  // ==================== STATE MANAGEMENT ====================
+  
+  // UI states
+  const [minimized, setMinimized] = useState(false); // Trạng thái thu nhỏ popup
+  const [uploading, setUploading] = useState(false); // Trạng thái upload ảnh
+  
+  // Message states
+  const [messages, setMessages] = useState([]); // Danh sách tin nhắn
+  const [input, setInput] = useState(""); // Nội dung tin nhắn đang nhập
+  
+  // Refs
+  const messagesEndRef = useRef(null); // Ref để scroll xuống cuối tin nhắn
+  
+  // User info
+  const me = getUserInfo()?.id || conversation.me; // ID của user hiện tại
 
   // tải tin nhắn
   useEffect(() => {

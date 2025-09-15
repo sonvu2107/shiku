@@ -2,16 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { chatAPI } from '../../chatAPI';
 
+/**
+ * AddMembersModal - Modal thêm thành viên vào nhóm chat
+ * Cho phép tìm kiếm và thêm người dùng mới vào cuộc trò chuyện nhóm
+ * @param {Object} props - Component props
+ * @param {Object} props.conversation - Dữ liệu cuộc trò chuyện
+ * @param {boolean} props.isOpen - Trạng thái hiển thị modal
+ * @param {Function} props.onClose - Callback đóng modal
+ * @param {Function} props.onUpdateConversation - Callback cập nhật conversation
+ * @returns {JSX.Element|null} Component modal hoặc null nếu không hiển thị
+ */
 const AddMembersModal = ({ 
   conversation, 
   isOpen, 
   onClose, 
   onUpdateConversation 
 }) => {
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  // ==================== STATE MANAGEMENT ====================
+  
+  // UI states
+  const [loading, setLoading] = useState(false); // Loading state
+  const [isSearching, setIsSearching] = useState(false); // Search loading state
+  
+  // Search states
+  const [searchQuery, setSearchQuery] = useState(''); // Từ khóa tìm kiếm
+  const [searchResults, setSearchResults] = useState([]); // Kết quả tìm kiếm
 
   useEffect(() => {
     if (!isOpen) {

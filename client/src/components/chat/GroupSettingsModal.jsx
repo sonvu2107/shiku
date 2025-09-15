@@ -3,6 +3,17 @@ import { X, UserPlus, UserMinus, Crown, Camera, Users } from 'lucide-react';
 import { chatAPI } from '../../chatAPI';
 import { uploadImage } from '../../api';
 
+/**
+ * GroupSettingsModal - Modal cài đặt nhóm chat
+ * Quản lý thông tin nhóm, thành viên và quyền hạn
+ * @param {Object} props - Component props
+ * @param {Object} props.conversation - Dữ liệu cuộc trò chuyện
+ * @param {Object} props.currentUser - Thông tin user hiện tại
+ * @param {boolean} props.isOpen - Trạng thái hiển thị modal
+ * @param {Function} props.onClose - Callback đóng modal
+ * @param {Function} props.onUpdateConversation - Callback cập nhật conversation
+ * @returns {JSX.Element|null} Component modal hoặc null nếu không hiển thị
+ */
 const GroupSettingsModal = ({ 
   conversation, 
   currentUser, 
@@ -10,9 +21,14 @@ const GroupSettingsModal = ({
   onClose, 
   onUpdateConversation 
 }) => {
-  const [activeTab, setActiveTab] = useState('info');
-  const [conversationDetails, setConversationDetails] = useState(null);
-  const [loading, setLoading] = useState(false);
+  // ==================== STATE MANAGEMENT ====================
+  
+  // UI states
+  const [activeTab, setActiveTab] = useState('info'); // Tab hiện tại: info, members, permissions
+  const [loading, setLoading] = useState(false); // Loading state
+  
+  // Data states
+  const [conversationDetails, setConversationDetails] = useState(null); // Chi tiết conversation
 
   useEffect(() => {
     if (isOpen && conversation) {

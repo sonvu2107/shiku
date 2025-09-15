@@ -3,21 +3,39 @@ import { useNavigate } from "react-router-dom";
 import { Bell, X, Check, CheckCheck } from "lucide-react";
 import { api } from "../api";
 
+/**
+ * NotificationBell - Component chuông thông báo với dropdown
+ * Hiển thị số lượng thông báo chưa đọc và danh sách thông báo
+ * @param {Object} user - Thông tin user hiện tại
+ */
 export default function NotificationBell({ user }) {
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [loading, setLoading] = useState(false);
+  // ==================== STATE MANAGEMENT ====================
+  
+  const [notifications, setNotifications] = useState([]); // Danh sách thông báo
+  const [unreadCount, setUnreadCount] = useState(0); // Số thông báo chưa đọc
+  const [showDropdown, setShowDropdown] = useState(false); // Hiện dropdown
+  const [loading, setLoading] = useState(false); // Loading state
   const navigate = useNavigate();
 
+  // ==================== EFFECTS ====================
+  
+  /**
+   * Load unread count và setup polling khi user đăng nhập
+   */
   useEffect(() => {
     if (user) {
       loadUnreadCount();
+      // Polling mỗi 30 giây để cập nhật unread count
       const interval = setInterval(loadUnreadCount, 30000);
       return () => clearInterval(interval);
     }
   }, [user]);
 
+  // ==================== API FUNCTIONS ====================
+  
+  /**
+   * Load số lượng thông báo chưa đọc
+   */
   const loadUnreadCount = async () => {
     try {
       const data = await api("/api/notifications/unread-count");
@@ -27,6 +45,9 @@ export default function NotificationBell({ user }) {
     }
   };
 
+  /**
+   * Load danh sách thông báo (10 thông báo gần nhất)
+   */
   const loadNotifications = async () => {
     if (loading) return;
     setLoading(true);

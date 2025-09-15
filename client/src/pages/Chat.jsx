@@ -9,18 +9,35 @@ import { chatAPI } from "../chatAPI";
 import { api } from "../api";
 import socketService from "../socket";
 
+/**
+ * Chat - Trang chat chính với real-time messaging
+ * Bao gồm danh sách cuộc trò chuyện, cửa sổ chat và các modals
+ * @returns {JSX.Element} Component chat page
+ */
 export default function Chat() {
-  const location = useLocation();
-  const [conversations, setConversations] = useState([]);
-  const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [showNewConversationModal, setShowNewConversationModal] = useState(false);
-  const [showAddMembersModal, setShowAddMembersModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [hasMoreMessages, setHasMoreMessages] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  // ==================== ROUTER & LOCATION ====================
+  
+  const location = useLocation(); // Để handle state từ MessageButton
+  
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Conversations
+  const [conversations, setConversations] = useState([]); // Danh sách cuộc trò chuyện
+  const [selectedConversation, setSelectedConversation] = useState(null); // Cuộc trò chuyện đang chọn
+  
+  // Messages
+  const [messages, setMessages] = useState([]); // Tin nhắn trong cuộc trò chuyện hiện tại
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false); // Loading tin nhắn
+  const [hasMoreMessages, setHasMoreMessages] = useState(false); // Có thêm tin nhắn để load
+  const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại cho pagination
+  
+  // Modals
+  const [showNewConversationModal, setShowNewConversationModal] = useState(false); // Modal tạo cuộc trò chuyện mới
+  const [showAddMembersModal, setShowAddMembersModal] = useState(false); // Modal thêm thành viên
+  
+  // User & Loading
+  const [currentUser, setCurrentUser] = useState(null); // User hiện tại
+  const [isLoading, setIsLoading] = useState(true); // Loading conversations
 
   useEffect(() => {
     loadCurrentUser();

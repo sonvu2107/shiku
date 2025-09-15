@@ -4,13 +4,24 @@ import { useNavigate, useParams } from "react-router-dom";
 import Editor from "../components/Editor";
 import { Image, Video } from "lucide-react";
 
+/**
+ * EditPost - Trang chỉnh sửa bài viết
+ * Hỗ trợ upload multi-file (ảnh/video) và chỉnh sửa nội dung Markdown
+ * @returns {JSX.Element} Component edit post page
+ */
 export default function EditPost() {
-  const { id } = useParams();
-  const [post, setPost] = useState(null);
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  // ==================== ROUTER & NAVIGATION ====================
+  
+  const { id } = useParams(); // ID bài viết từ URL
   const navigate = useNavigate();
+  
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Post data
+  const [post, setPost] = useState(null); // Dữ liệu bài viết
+  const [err, setErr] = useState(""); // Error message
+  const [loading, setLoading] = useState(true); // Loading state
+  const [uploading, setUploading] = useState(false); // Upload state
 
   useEffect(() => { load(); }, [id]);
 

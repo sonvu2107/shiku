@@ -2,14 +2,25 @@ import React, { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 
+/**
+ * ResetPassword - Trang đặt lại mật khẩu
+ * Sử dụng token từ URL để xác thực và đặt lại mật khẩu mới
+ * @returns {JSX.Element} Component reset password page
+ */
 export default function ResetPassword() {
-  const [params] = useSearchParams();
-  const token = params.get("token");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  // ==================== ROUTER & PARAMS ====================
+  
+  const [params] = useSearchParams(); // URL search params
+  const token = params.get("token"); // Reset token từ URL
   const navigate = useNavigate();
+  
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Form states
+  const [password, setPassword] = useState(""); // Mật khẩu mới
+  const [loading, setLoading] = useState(false); // Loading state
+  const [error, setError] = useState(""); // Error message
+  const [success, setSuccess] = useState(false); // Success state
 
   async function handleSubmit(e) {
     e.preventDefault();

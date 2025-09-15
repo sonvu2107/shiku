@@ -5,30 +5,57 @@ import { setAuthToken } from "../utils/auth";
 import Logo from "../components/Logo";
 import { LogIn, Mail, Lock } from "lucide-react";
 
+/**
+ * Login - Trang đăng nhập với form và modal quên mật khẩu
+ * Có responsive design và branding section
+ * @param {Function} setUser - Function để set user state sau khi login thành công
+ */
 export default function Login({ setUser }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showForgot, setShowForgot] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotError, setForgotError] = useState("");
-  const [forgotSuccess, setForgotSuccess] = useState(false);
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Login form states
+  const [email, setEmail] = useState(""); // Email input
+  const [password, setPassword] = useState(""); // Password input
+  const [err, setErr] = useState(""); // Error message
+  const [loading, setLoading] = useState(false); // Loading state khi đăng nhập
+  
+  // Forgot password modal states
+  const [showForgot, setShowForgot] = useState(false); // Hiện modal quên mật khẩu
+  const [forgotEmail, setForgotEmail] = useState(""); // Email cho forgot password
+  const [forgotLoading, setForgotLoading] = useState(false); // Loading forgot password
+  const [forgotError, setForgotError] = useState(""); // Error cho forgot password
+  const [forgotSuccess, setForgotSuccess] = useState(false); // Success state
+  
   const navigate = useNavigate();
 
+  // ==================== EVENT HANDLERS ====================
+  
+  /**
+   * Xử lý submit form đăng nhập
+   * @param {Event} e - Form submit event
+   */
   async function submit(e) {
     e.preventDefault();
-    setErr("");
+    setErr(""); // Clear error cũ
     setLoading(true);
+    
     try {
-      const data = await api("/api/auth/login-token", { method: "POST", body: { email, password } });
-      // Lưu token cho fallback với IP
+      // Gọi API đăng nhập
+      const data = await api("/api/auth/login-token", { 
+        method: "POST", 
+        body: { email, password } 
+      });
+      
+      // Lưu token vào localStorage
       if (data.token) setAuthToken(data.token);
-      setUser(data.user); // cập nhật user toàn cục
+      
+      // Cập nhật user state toàn cục
+      setUser(data.user);
+      
+      // Redirect đến trang chủ
       navigate("/");
     } catch (e) { 
-      setErr(e.message); 
+      setErr(e.message); // Hiển thị error
     } finally {
       setLoading(false);
     }

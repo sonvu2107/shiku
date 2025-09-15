@@ -3,13 +3,24 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, CheckCheck, Trash2 } from "lucide-react";
 import { api } from "../api";
 
+/**
+ * NotificationHistory - Trang lịch sử thông báo
+ * Hiển thị danh sách thông báo với pagination, filter và bulk actions
+ * @returns {JSX.Element} Component notification history page
+ */
 export default function NotificationHistory() {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [filter, setFilter] = useState("all"); // all, unread, read
-  const [selectedNotifications, setSelectedNotifications] = useState([]);
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Notifications data
+  const [notifications, setNotifications] = useState([]); // Danh sách thông báo
+  const [loading, setLoading] = useState(true); // Loading state
+  const [page, setPage] = useState(1); // Trang hiện tại
+  const [hasMore, setHasMore] = useState(true); // Có thêm thông báo để load
+  
+  // Filter & Selection
+  const [filter, setFilter] = useState("all"); // Filter: all, unread, read
+  const [selectedNotifications, setSelectedNotifications] = useState([]); // Thông báo đã chọn
+  
   const navigate = useNavigate();
 
   useEffect(() => {

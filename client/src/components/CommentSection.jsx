@@ -1,27 +1,60 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
-import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp } from "lucide-react";
+import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp, Smile, Frown, Laugh, Angry } from "lucide-react";
 import BanNotification from "./BanNotification";
 import UserName from "./UserName";
 
+/**
+ * Mapping các role với icon tương ứng (hiện tại chưa sử dụng)
+ */
 const roleIcons = {
   solo: "/assets/Sung-tick.png",
   sybau: "/assets/Sybau-tick.png",
   keeper: "/assets/moxumxue.png"
 };
 
+/**
+ * Mapping các emote types với icon và màu sắc
+ */
+const emoteConfig = {
+  like: { icon: ThumbsUp, color: "text-blue-500", bgColor: "bg-blue-50" },
+  love: { icon: Heart, color: "text-red-500", bgColor: "bg-red-50" },
+  laugh: { icon: Laugh, color: "text-yellow-500", bgColor: "bg-yellow-50" },
+  angry: { icon: Angry, color: "text-orange-500", bgColor: "bg-orange-50" },
+  sad: { icon: Frown, color: "text-gray-500", bgColor: "bg-gray-50" }
+};
+
+/**
+ * CommentSection - Component hiển thị và quản lý bình luận
+ * Hỗ trợ nested comments, reply, edit, delete với tree structure
+ * @param {string} postId - ID của bài viết
+ * @param {Array} initialComments - Danh sách comments ban đầu (optional)
+ * @param {Object} user - Thông tin user hiện tại
+ */
 export default function CommentSection({ postId, initialComments = [], user }) {
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
-  const [replyingTo, setReplyingTo] = useState(null);
-  const [replyContent, setReplyContent] = useState("");
-  const [expandedReplies, setExpandedReplies] = useState(new Set());
-  const [loading, setLoading] = useState(false);
-  const [showBanNotification, setShowBanNotification] = useState(false);
-  const [banInfo, setBanInfo] = useState(null);
-  const [editingComment, setEditingComment] = useState(null);
-  const [editContent, setEditContent] = useState("");
-  const [showDropdown, setShowDropdown] = useState(null);
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Comments data
+  const [comments, setComments] = useState([]); // Danh sách comments đã organize
+  const [newComment, setNewComment] = useState(""); // Nội dung comment mới
+  
+  // Reply system
+  const [replyingTo, setReplyingTo] = useState(null); // ID comment đang reply
+  const [replyContent, setReplyContent] = useState(""); // Nội dung reply
+  const [expandedReplies, setExpandedReplies] = useState(new Set()); // Set các comment đã expand replies
+  
+  // UI states
+  const [loading, setLoading] = useState(false); // Loading state
+  const [showBanNotification, setShowBanNotification] = useState(false); // Hiện ban notification
+  const [banInfo, setBanInfo] = useState(null); // Thông tin ban
+  
+  // Edit system
+  const [editingComment, setEditingComment] = useState(null); // ID comment đang edit
+  const [editContent, setEditContent] = useState(""); // Nội dung edit
+  const [showDropdown, setShowDropdown] = useState(null); // ID comment đang hiện dropdown
+  
+  // Emote system
+  const [showEmotePicker, setShowEmotePicker] = useState(null); // ID comment đang hiện emote picker
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -29,11 +62,14 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       if (showDropdown && !event.target.closest(".comment-dropdown")) {
         setShowDropdown(null);
       }
+      if (showEmotePicker && !event.target.closest(".emote-picker")) {
+        setShowEmotePicker(null);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showDropdown]);
+  }, [showDropdown, showEmotePicker]);
 
   useEffect(() => {
     const organizeComments = (commentList) => {
@@ -239,13 +275,71 @@ export default function CommentSection({ postId, initialComments = [], user }) {
     }
   }
 
+  /**
+   * Xử lý like/unlike comment
+   */
+  async function handleLikeComment(commentId) {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const res = await api(`/api/comments/${commentId}/like`, {
+        method: "POST"
+      });
+      
+      // Cập nhật comment trong state
+      setComments(prev =>
+        prev.map((comment) =>
+          updateCommentInTree(comment, commentId, {
+            likes: res.comment.likes,
+            likeCount: res.likeCount
+          })
+        )
+      );
+    } catch (error) {
+      console.error("Error liking comment:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /**
+   * Xử lý thêm/xóa emote cho comment
+   */
+  async function handleEmoteComment(commentId, emoteType) {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const res = await api(`/api/comments/${commentId}/emote`, {
+        method: "POST",
+        body: { type: emoteType }
+      });
+      
+      // Cập nhật comment trong state
+      setComments(prev =>
+        prev.map((comment) =>
+          updateCommentInTree(comment, commentId, {
+            emotes: res.comment.emotes,
+            emoteCount: res.emoteCount
+          })
+        )
+      );
+      
+      setShowEmotePicker(null);
+    } catch (error) {
+      console.error("Error adding emote:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+
   const renderComment = (comment, level = 0) => {
     const isExpanded = expandedReplies.has(comment._id);
     const hasReplies = comment.replies && comment.replies.length > 0;
 
-  // Debug: log role của user khi render comment
-  console.log('Comment author:', comment.author?.name, 'Role:', comment.author?.role);
-  return (
+    return (
       <div key={comment._id} className={`${level > 0 ? "ml-12" : ""}`}>
         {/* Main Comment */}
         <div className="flex gap-3 py-2">
@@ -296,11 +390,66 @@ export default function CommentSection({ postId, initialComments = [], user }) {
               )}
             </div>
 
-            {/* Comment Actions */}
+            {/* Comment Actions with Like and Emote */}
             <div className="flex items-center gap-4 mt-1 ml-4">
               <span className="text-xs text-gray-500">
                 {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
               </span>
+              
+              {/* Like Button */}
+              <button
+                onClick={() => handleLikeComment(comment._id)}
+                className={`flex items-center gap-1 text-xs transition-colors ${
+                  comment.likes?.some(like => like._id === user?._id) 
+                    ? 'text-blue-600 font-medium' 
+                    : 'text-gray-600 hover:text-blue-600'
+                }`}
+              >
+                <ThumbsUp size={14} className={comment.likes?.some(like => like._id === user?._id) ? 'fill-current' : ''} />
+                {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
+              </button>
+
+              {/* Emote Button */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowEmotePicker(showEmotePicker === comment._id ? null : comment._id)}
+                  className={`flex items-center gap-1 text-xs transition-colors ${
+                    comment.emotes?.some(emote => emote.user._id === user?._id) 
+                      ? 'text-red-600 font-medium' 
+                      : 'text-gray-600 hover:text-red-600'
+                  }`}
+                >
+                  <Smile size={14} />
+                  {comment.emoteCount > 0 && <span>{comment.emoteCount}</span>}
+                </button>
+
+                {/* Emote Picker */}
+                {showEmotePicker === comment._id && (
+                  <div className="absolute top-6 left-0 bg-white border rounded-lg shadow-lg p-2 z-10 emote-picker">
+                    <div className="flex gap-1">
+                      {Object.entries(emoteConfig).map(([type, config]) => {
+                        const Icon = config.icon;
+                        const isActive = comment.emotes?.some(emote => emote.user._id === user?._id && emote.type === type);
+                        return (
+                          <button
+                            key={type}
+                            onClick={() => handleEmoteComment(comment._id, type)}
+                            className={`p-1 rounded-full transition-colors ${
+                              isActive 
+                                ? `${config.bgColor} ${config.color}` 
+                                : 'hover:bg-gray-100'
+                            }`}
+                            title={type}
+                          >
+                            <Icon size={16} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {user && (
                 <button
                   onClick={() => {

@@ -13,22 +13,43 @@ import {
   Circle
 } from 'lucide-react';
 
+/**
+ * Friends - Trang quản lý bạn bè
+ * Bao gồm danh sách bạn bè, lời mời kết bạn, gợi ý kết bạn và tìm kiếm
+ * @returns {JSX.Element} Component friends page
+ */
 export default function Friends() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('friends');
-  const [friends, setFriends] = useState([]);
-  const [requests, setRequests] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(false);
+  
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Tab management
+  const [activeTab, setActiveTab] = useState('friends'); // Tab hiện tại
+  
+  // Data states
+  const [friends, setFriends] = useState([]); // Danh sách bạn bè
+  const [requests, setRequests] = useState([]); // Lời mời kết bạn
+  const [suggestions, setSuggestions] = useState([]); // Gợi ý kết bạn
+  const [searchResults, setSearchResults] = useState([]); // Kết quả tìm kiếm
+  
+  // Search states
+  const [searchQuery, setSearchQuery] = useState(''); // Query tìm kiếm
+  const [loading, setLoading] = useState(false); // Loading state
 
+  // ==================== EFFECTS ====================
+  
+  /**
+   * Load dữ liệu ban đầu khi component mount
+   */
   useEffect(() => {
     loadFriends();
     loadRequests();
     loadSuggestions();
   }, []);
 
+  /**
+   * Tìm kiếm users khi search query thay đổi
+   */
   useEffect(() => {
     if (searchQuery.trim()) {
       searchUsers();
@@ -37,6 +58,11 @@ export default function Friends() {
     }
   }, [searchQuery]);
 
+  // ==================== API FUNCTIONS ====================
+  
+  /**
+   * Load danh sách bạn bè
+   */
   const loadFriends = async () => {
     try {
       const data = await api('/api/friends/list');
@@ -46,6 +72,9 @@ export default function Friends() {
     }
   };
 
+  /**
+   * Load danh sách lời mời kết bạn
+   */
   const loadRequests = async () => {
     try {
       const data = await api('/api/friends/requests');
@@ -55,6 +84,9 @@ export default function Friends() {
     }
   };
 
+  /**
+   * Load danh sách gợi ý kết bạn
+   */
   const loadSuggestions = async () => {
     try {
       const data = await api('/api/friends/suggestions');
@@ -64,6 +96,9 @@ export default function Friends() {
     }
   };
 
+  /**
+   * Tìm kiếm users theo query
+   */
   const searchUsers = async () => {
     try {
       setLoading(true);

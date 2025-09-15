@@ -1,17 +1,29 @@
 import React from "react";
 import { api } from "../api";
 
+/**
+ * Settings - Trang cài đặt tài khoản
+ * Bao gồm quản lý danh sách chặn và bảo mật tài khoản
+ * @returns {JSX.Element} Component settings page
+ */
 export default function Settings() {
-  const [activeTab, setActiveTab] = React.useState("blocked");
-  const [blockedUsers, setBlockedUsers] = React.useState([]);
-  const [privacySetting, setPrivacySetting] = React.useState("everyone");
-  // State cho đổi email
-  const [newEmail, setNewEmail] = React.useState("");
-  const [emailLoading, setEmailLoading] = React.useState(false);
-  // State cho đổi mật khẩu
-  const [currentPassword, setCurrentPassword] = React.useState("");
-  const [newPassword, setNewPassword] = React.useState("");
-  const [passwordLoading, setPasswordLoading] = React.useState(false);
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Tab management
+  const [activeTab, setActiveTab] = React.useState("blocked"); // Tab hiện tại
+  
+  // Blocked users management
+  const [blockedUsers, setBlockedUsers] = React.useState([]); // Danh sách người đã chặn
+  const [privacySetting, setPrivacySetting] = React.useState("everyone"); // Privacy setting (chưa sử dụng)
+  
+  // Email change states
+  const [newEmail, setNewEmail] = React.useState(""); // Email mới
+  const [emailLoading, setEmailLoading] = React.useState(false); // Loading khi đổi email
+  
+  // Password change states
+  const [currentPassword, setCurrentPassword] = React.useState(""); // Mật khẩu hiện tại
+  const [newPassword, setNewPassword] = React.useState(""); // Mật khẩu mới
+  const [passwordLoading, setPasswordLoading] = React.useState(false); // Loading khi đổi mật khẩu
 
   React.useEffect(() => {
     // Lấy danh sách blocked users từ API

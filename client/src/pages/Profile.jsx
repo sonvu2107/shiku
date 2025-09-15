@@ -2,24 +2,46 @@ import { useEffect, useState } from "react";
 import { api, uploadImage } from "../api";
 import UserName from "../components/UserName";
 
+/**
+ * Profile - Trang profile cá nhân của user
+ * Cho phép xem và chỉnh sửa thông tin cá nhân, upload avatar
+ * @returns {JSX.Element} Component profile page
+ */
 export default function Profile() {
-  const [user, setUser] = useState(null);
-  const [editing, setEditing] = useState(false);
+  // ==================== STATE MANAGEMENT ====================
+  
+  const [user, setUser] = useState(null); // Thông tin user hiện tại
+  const [editing, setEditing] = useState(false); // Trạng thái edit mode
   const [form, setForm] = useState({
-    name: "",
-    email: "",
-    birthday: "",
-    gender: "",
-    hobbies: "",
-    avatarUrl: "",
-    password: ""
+    name: "", // Tên hiển thị
+    email: "", // Email
+    birthday: "", // Ngày sinh
+    gender: "", // Giới tính
+    hobbies: "", // Sở thích
+    avatarUrl: "", // URL avatar
+    password: "" // Mật khẩu mới (optional)
   });
-  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false); // Loading khi upload avatar
 
-  useEffect(() => { load(); }, []);
+  // ==================== EFFECTS ====================
+  
+  /**
+   * Load thông tin user khi component mount
+   */
+  useEffect(() => { 
+    load(); 
+  }, []);
+
+  // ==================== API FUNCTIONS ====================
+  
+  /**
+   * Load thông tin user hiện tại và populate form
+   */
   async function load() {
     const res = await api("/api/auth/me");
     setUser(res.user);
+    
+    // Populate form với data từ server
     setForm({
       name: res.user.name || "",
       email: res.user.email || "",
@@ -27,7 +49,7 @@ export default function Profile() {
       gender: res.user.gender || "",
       hobbies: res.user.hobbies || "",
       avatarUrl: res.user.avatarUrl || "",
-      password: ""
+      password: "" // Luôn reset password field
     });
   }
 

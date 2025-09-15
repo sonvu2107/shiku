@@ -1,5 +1,14 @@
 import { Users, User } from "lucide-react";
 
+/**
+ * ConversationList - Component danh sách cuộc trò chuyện
+ * Hiển thị danh sách cuộc trò chuyện với avatar, tên, tin nhắn cuối và thời gian
+ * @param {Array} conversations - Danh sách cuộc trò chuyện
+ * @param {Object} selectedConversation - Cuộc trò chuyện đang chọn
+ * @param {Function} onSelectConversation - Callback khi chọn cuộc trò chuyện
+ * @param {boolean} loading - Loading state
+ * @param {Object} currentUser - User hiện tại
+ */
 export default function ConversationList({ 
   conversations, 
   selectedConversation, 

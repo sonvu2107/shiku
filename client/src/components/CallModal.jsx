@@ -1,5 +1,18 @@
 import React, { useRef, useEffect, useState } from "react";
 
+/**
+ * CallModal - Modal cuộc gọi video/voice với WebRTC
+ * Quản lý kết nối WebRTC, hiển thị video/audio streams
+ * @param {Object} props - Component props
+ * @param {boolean} props.open - Trạng thái hiển thị modal
+ * @param {Function} props.onClose - Callback đóng modal
+ * @param {boolean} props.isVideo - Loại cuộc gọi (video/voice)
+ * @param {Object} props.remoteUser - Thông tin người dùng đối phương
+ * @param {Object} props.socket - Socket.IO instance
+ * @param {string} props.conversationId - ID cuộc trò chuyện
+ * @param {Object} props.incomingOffer - Offer từ người gọi (nếu là callee)
+ * @returns {JSX.Element|null} Component modal hoặc null nếu không hiển thị
+ */
 export default function CallModal({
   open,
   onClose,
@@ -9,11 +22,16 @@ export default function CallModal({
   conversationId,
   incomingOffer
 }) {
-  const localVideoRef = useRef();
-  const remoteVideoRef = useRef();
+  // ==================== REFS & STATE ====================
+  
+  // Video refs
+  const localVideoRef = useRef(); // Video element cho stream local
+  const remoteVideoRef = useRef(); // Video element cho stream remote
+  const peerRef = useRef(); // RTCPeerConnection instance
+  
+  // Call states
   const [callState, setCallState] = useState("connecting"); // connecting | active | ended
-  const [localStream, setLocalStream] = useState(null);
-  const peerRef = useRef();
+  const [localStream, setLocalStream] = useState(null); // Local media stream
 
   useEffect(() => {
     if (!open) return;

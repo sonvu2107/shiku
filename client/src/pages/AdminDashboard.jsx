@@ -14,22 +14,69 @@ import {
   Trash2,
   TrendingUp,
   TrendingDown,
-  Bell
+  Bell,
+  Wifi,
+  WifiOff,
+  UserCheck
 } from "lucide-react";
 
+/**
+ * AdminDashboard - Trang quản trị admin
+ * Bao gồm thống kê, quản lý người dùng, ban/unban, gửi thông báo và xem feedback
+ * @returns {JSX.Element} Component admin dashboard page
+ */
 export default function AdminDashboard() {
-  const [user, setUser] = useState(null);
-  const [stats, setStats] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("stats");
-  const [banForm, setBanForm] = useState({ userId: "", duration: "", reason: "" });
-  const [notificationForm, setNotificationForm] = useState({ title: "", message: "", targetRole: "" });
+  // ==================== STATE MANAGEMENT ====================
+  
+  // User & Auth
+  const [user, setUser] = useState(null); // Admin user hiện tại
+  const [loading, setLoading] = useState(true); // Loading state
+  
+  // Data states
+  const [stats, setStats] = useState(null); // Thống kê tổng quan
+  const [users, setUsers] = useState([]); // Danh sách người dùng
+  const [onlineUsers, setOnlineUsers] = useState([]); // Danh sách người online
+  const [totalVisitors, setTotalVisitors] = useState(0); // Tổng số người đã truy cập
+  const [visitorStats, setVisitorStats] = useState(null); // Thống kê chi tiết visitors
+  const [lastUpdate, setLastUpdate] = useState(new Date()); // Thời gian cập nhật cuối
+  
+  // UI states
+  const [activeTab, setActiveTab] = useState("stats"); // Tab hiện tại
+  
+  // Form states
+  const [banForm, setBanForm] = useState({ 
+    userId: "", // ID user cần ban
+    duration: "", // Thời gian ban (phút)
+    reason: "" // Lý do ban
+  });
+  const [notificationForm, setNotificationForm] = useState({ 
+    title: "", // Tiêu đề thông báo
+    message: "", // Nội dung thông báo
+    targetRole: "" // Role đích (admin/user/all)
+  });
+  
   const navigate = useNavigate();
 
   useEffect(() => {
     checkAdmin();
-  }, []);
+    
+    // Refresh online users every 30 seconds
+    const interval = setInterval(() => {
+      if (activeTab === "online" || activeTab === "stats") {
+        loadOnlineUsers();
+      }
+    }, 30000);
+
+    // Update offline users every 2 minutes
+    const offlineInterval = setInterval(() => {
+      updateOfflineUsers();
+    }, 120000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(offlineInterval);
+    };
+  }, [activeTab]);
 
   async function checkAdmin() {
     try {
@@ -40,7 +87,7 @@ export default function AdminDashboard() {
         return;
       }
       setUser(res.user);
-      await Promise.all([loadStats(), loadUsers()]);
+      await Promise.all([loadStats(), loadUsers(), loadOnlineUsers(), loadTotalVisitors()]);
     } catch (e) {
       alert("Lỗi xác thực!");
       navigate("/login");
@@ -64,6 +111,46 @@ export default function AdminDashboard() {
       setUsers(res.users);
     } catch (e) {
       console.error("Load users error:", e);
+    }
+  }
+
+  async function loadOnlineUsers() {
+    try {
+      const res = await api("/api/admin/online-users");
+      setOnlineUsers(res.onlineUsers || []);
+      setLastUpdate(new Date());
+    } catch (e) {
+      console.error("Load online users error:", e);
+    }
+  }
+
+  async function loadTotalVisitors() {
+    try {
+      const res = await api("/api/admin/total-visitors");
+      setTotalVisitors(res.totalVisitors || 0);
+      setVisitorStats(res);
+    } catch (e) {
+      console.error("Load total visitors error:", e);
+    }
+  }
+
+  // Function để refresh tất cả dữ liệu
+  async function refreshAllData() {
+    await Promise.all([
+      loadStats(),
+      loadUsers(),
+      loadOnlineUsers(),
+      loadTotalVisitors()
+    ]);
+  }
+
+  // Function để cập nhật trạng thái offline cho users không hoạt động
+  async function updateOfflineUsers() {
+    try {
+      await api("/api/admin/update-offline-users", { method: "POST" });
+      await loadOnlineUsers(); // Refresh danh sách online users
+    } catch (e) {
+      console.error("Update offline users error:", e);
     }
   }
 
@@ -186,8 +273,21 @@ export default function AdminDashboard() {
     <div className="w-full px-6 py-6 pt-20 space-y-6">
       {/* Header */}
       <div className="card max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4">QUẢN LÝ NGƯỜI DÙNG</h1>
-        <div className="text-gray-600">Chào mừng, {user?.name}!</div>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">QUẢN LÝ NGƯỜI DÙNG</h1>
+            <div className="text-gray-600">Chào mừng, {user?.name}!</div>
+          </div>
+          <button
+            onClick={refreshAllData}
+            className="btn-outline btn-sm flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Làm mới
+          </button>
+        </div>
       </div>
 
       {/* Tab Navigation */}
@@ -220,6 +320,13 @@ export default function AdminDashboard() {
           >
             <Bell size={18} />
             Thông báo
+          </button>
+          <button
+            className={`px-4 py-2 font-medium flex items-center gap-2 ${activeTab === "online" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            onClick={() => setActiveTab("online")}
+          >
+            <Wifi size={18} />
+            Số lượng truy cập
           </button>
           <button
             className={`px-4 py-2 font-medium flex items-center gap-2 ${activeTab === "feedback" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
@@ -430,6 +537,46 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
+
+              {/* Người online */}
+              <div className="bg-emerald-50 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Wifi className="text-emerald-600" size={24} />
+                  <div className="text-2xl font-bold text-emerald-600">
+                    {onlineUsers.length}
+                  </div>
+                </div>
+                <div className="text-gray-600">Đang online</div>
+                <div className="mt-2 text-sm">
+                  <div className="text-gray-500">
+                    {Math.max(0, users.length - onlineUsers.length)} người offline
+                  </div>
+                </div>
+              </div>
+
+              {/* Tổng lượt truy cập */}
+              <div className="bg-cyan-50 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <UserCheck className="text-cyan-600" size={24} />
+                  <div className="text-2xl font-bold text-cyan-600">
+                    {totalVisitors.toLocaleString()}
+                  </div>
+                </div>
+                <div className="text-gray-600">Tổng lượt truy cập</div>
+                {visitorStats && (
+                  <div className="mt-2 text-sm space-y-1">
+                    <div className="text-gray-500">
+                      {visitorStats.totalUsers} người đã đăng ký
+                    </div>
+                    <div className="text-gray-500">
+                      {visitorStats.usersWithActivity} người đã hoạt động
+                    </div>
+                    <div className="text-gray-500">
+                      {visitorStats.onlineUsers} đang online
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Top Stats */}
@@ -599,7 +746,7 @@ export default function AdminDashboard() {
 
         <button
           onClick={() => banUser(banForm.userId, banForm.duration, banForm.reason)}
-          className="btn bg-red-600 text-white"
+          className="btn bg-red-600 text-white flex items-center justify-center"
           disabled={!banForm.userId || !banForm.duration || !banForm.reason.trim()}
         >
           Cấm
@@ -764,6 +911,146 @@ export default function AdminDashboard() {
                 <li><strong>Thông báo hệ thống:</strong> Thông báo về cập nhật server, bảo trì, thay đổi chính sách (có thể chọn đối tượng)</li>
                 <li><strong>Thông báo từ Admin:</strong> Thông báo cá nhân từ admin đến tất cả người dùng</li>
               </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Visitor Stats Tab */}
+        {activeTab === "online" && (
+          <div className="pt-4">
+            <h2 className="text-xl font-bold mb-4">
+              Thống kê truy cập và người dùng
+            </h2>
+            
+            {/* Visitor Stats Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="bg-emerald-50 p-4 rounded-lg text-center">
+                <Wifi className="text-emerald-600 mx-auto mb-2" size={32} />
+                <div className="text-2xl font-bold text-emerald-600">{onlineUsers.length}</div>
+                <div className="text-gray-600">Đang online</div>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg text-center">
+                <WifiOff className="text-gray-600 mx-auto mb-2" size={32} />
+                <div className="text-2xl font-bold text-gray-600">{Math.max(0, users.length - onlineUsers.length)}</div>
+                <div className="text-gray-600">Offline</div>
+              </div>
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <UserCheck className="text-blue-600 mx-auto mb-2" size={32} />
+                <div className="text-2xl font-bold text-blue-600">{totalVisitors.toLocaleString()}</div>
+                <div className="text-gray-600">Tổng lượt truy cập</div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg text-center">
+                <Users className="text-purple-600 mx-auto mb-2" size={32} />
+                <div className="text-2xl font-bold text-purple-600">{users.length}</div>
+                <div className="text-gray-600">Tổng người dùng</div>
+              </div>
+            </div>
+
+            {/* Detailed Time Stats */}
+            {visitorStats && visitorStats.timeStats && (
+              <div className="bg-white border rounded-lg p-6 mb-6">
+                <h3 className="text-lg font-semibold mb-4">Thống kê theo thời gian</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{visitorStats.timeStats.today}</div>
+                    <div className="text-gray-600">Hôm nay</div>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{visitorStats.timeStats.thisWeek}</div>
+                    <div className="text-gray-600">Tuần này</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">{visitorStats.timeStats.thisMonth}</div>
+                    <div className="text-gray-600">Tháng này</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Online Users List */}
+            <div className="bg-white border rounded-lg">
+              <div className="p-4 border-b">
+                <h3 className="font-semibold">Danh sách người dùng online</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Avatar</th>
+                      <th className="px-4 py-3 text-left">Tên</th>
+                      <th className="px-4 py-3 text-left">Email</th>
+                      <th className="px-4 py-3 text-left">Role</th>
+                      <th className="px-4 py-3 text-left">Trạng thái</th>
+                      <th className="px-4 py-3 text-left">Thời gian online</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {onlineUsers.map(user => (
+                      <tr key={user._id} className="border-t hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <img
+                            src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=cccccc&color=222222&size=40`}
+                            alt="avatar"
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        </td>
+                        <td className="px-4 py-3 font-medium">{user.name}</td>
+                        <td className="px-4 py-3 text-gray-600">{user.email}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            user.role === 'admin' ? 'bg-red-100 text-red-800' :
+                            user.role === 'sololeveling' ? 'bg-purple-100 text-purple-800' :
+                            user.role === 'sybau' ? 'bg-blue-100 text-blue-800' :
+                            user.role === 'moxumxue' ? 'bg-pink-100 text-pink-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {user.role === 'admin' ? 'Admin' :
+                             user.role === 'sololeveling' ? 'Anh sung solo' :
+                             user.role === 'sybau' ? 'Ahh Sybau' :
+                             user.role === 'moxumxue' ? 'Hero great tomb guard keeper' :
+                             'User'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-green-600 font-medium">Online</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-500">
+                          {user.lastSeen ? new Date(user.lastSeen).toLocaleString() : 'Vừa xong'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {onlineUsers.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    Không có người dùng nào đang online
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Refresh Button & Last Update */}
+            <div className="mt-4 flex justify-between items-center">
+              <div className="text-sm text-gray-500">
+                Cập nhật lần cuối: {lastUpdate.toLocaleTimeString()}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => updateOfflineUsers()}
+                  className="btn-outline btn-sm text-orange-600"
+                >
+                  Cập nhật offline
+                </button>
+                <button
+                  onClick={() => loadOnlineUsers()}
+                  className="btn-outline btn-sm"
+                >
+                  Làm mới danh sách
+                </button>
+              </div>
             </div>
           </div>
         )}

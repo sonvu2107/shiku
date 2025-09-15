@@ -22,8 +22,12 @@ router.get("/", authOptional, async (req, res, next) => {
       }
       filter.status = "private";
       filter.author = req.user._id;
+      // Cũng loại trừ bài đăng private trong group khỏi trang Home
+      filter.group = { $exists: false };
     } else {
       filter.status = "published";
+      // Loại trừ bài đăng trong group khỏi trang Home (chỉ hiện bài đăng không thuộc group nào)
+      filter.group = { $exists: false };
     }
 
     if (tag) filter.tags = tag;
@@ -62,10 +66,23 @@ router.get("/", authOptional, async (req, res, next) => {
       });
     }
 
-    // Thêm số lượng bình luận cho mỗi bài
-    const itemsWithCommentCount = await Promise.all(items.map(async post => {
-      const commentCount = await Comment.countDocuments({ post: post._id });
-      return { ...post.toObject(), commentCount };
+    // Thêm số lượng bình luận cho mỗi bài - optimized batch query
+    const postIds = items.map(post => post._id);
+    const commentCounts = await Comment.aggregate([
+      { $match: { post: { $in: postIds } } },
+      { $group: { _id: "$post", count: { $sum: 1 } } }
+    ]);
+    
+    // Create a map for quick lookup
+    const commentCountMap = new Map();
+    commentCounts.forEach(item => {
+      commentCountMap.set(item._id.toString(), item.count);
+    });
+    
+    // Add comment counts to posts
+    const itemsWithCommentCount = items.map(post => ({
+      ...post.toObject(),
+      commentCount: commentCountMap.get(post._id.toString()) || 0
     }));
 
     const count = items.length;
@@ -149,7 +166,7 @@ router.get("/edit/:id", authRequired, async (req, res, next) => {
 // Create
 router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
   try {
-    const { title, content, tags = [], coverUrl = "", status = "published", files = [] } = req.body;
+    const { title, content, tags = [], coverUrl = "", status = "published", files = [], group = null } = req.body;
     if (!title || !content) return res.status(400).json({ error: "Vui lòng nhập tiêu đề và nội dung" });
     if (!["private", "published"].includes(status)) {
       return res.status(400).json({ error: "Trạng thái không hợp lệ" });
@@ -161,7 +178,8 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
       tags,
       coverUrl,
       status,
-      files
+      files,
+      group
     });
     res.json({ post });
   } catch (e) {

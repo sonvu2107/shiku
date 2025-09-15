@@ -2,17 +2,35 @@ import { useState, useEffect } from "react";
 import { X, Search, Users, User, Check, Plus } from "lucide-react";
 import { chatAPI } from "../../chatAPI";
 
+/**
+ * NewConversationModal - Modal tạo cuộc trò chuyện mới
+ * Hỗ trợ tạo private chat và group chat với multi-step wizard
+ * @param {Object} props - Component props
+ * @param {boolean} props.isOpen - Trạng thái hiển thị modal
+ * @param {Function} props.onClose - Callback đóng modal
+ * @param {Function} props.onCreateConversation - Callback tạo conversation
+ * @returns {JSX.Element|null} Component modal hoặc null nếu không hiển thị
+ */
 export default function NewConversationModal({ isOpen, onClose, onCreateConversation }) {
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Step management
   const [step, setStep] = useState(1); // 1: Choose type, 2: Select users, 3: Group settings
   const [conversationType, setConversationType] = useState('private'); // 'private' or 'group'
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [friends, setFriends] = useState([]);
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [groupName, setGroupName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
+  
+  // Search states
+  const [searchTerm, setSearchTerm] = useState(''); // Từ khóa tìm kiếm
+  const [searchResults, setSearchResults] = useState([]); // Kết quả tìm kiếm
   const [searchMode, setSearchMode] = useState('friends'); // 'friends' or 'all'
+  const [isSearching, setIsSearching] = useState(false); // Trạng thái đang tìm kiếm
+  
+  // Data states
+  const [friends, setFriends] = useState([]); // Danh sách bạn bè
+  const [selectedUsers, setSelectedUsers] = useState([]); // Users đã chọn
+  const [groupName, setGroupName] = useState(''); // Tên nhóm
+  
+  // Loading states
+  const [isLoading, setIsLoading] = useState(false); // Loading state chung
 
   // Load friends when modal opens
   useEffect(() => {

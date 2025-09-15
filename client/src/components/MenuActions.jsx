@@ -1,10 +1,24 @@
 import React, { useState, useRef } from "react";
 import { MoreVertical, Lock, Globe, Edit, Trash2 } from "lucide-react";
 
+/**
+ * MenuActions - Menu dropdown với các hành động cho bài viết
+ * Hiển thị menu với các tùy chọn: đổi trạng thái, sửa, xóa bài viết
+ * @param {Object} props - Component props
+ * @param {Function} props.onToggleStatus - Callback đổi trạng thái public/private
+ * @param {Function} props.onEdit - Callback sửa bài viết
+ * @param {Function} props.onDelete - Callback xóa bài viết
+ * @param {boolean} props.isPrivate - Trạng thái hiện tại của bài viết (private/public)
+ * @returns {JSX.Element} Component menu actions
+ */
 export default function MenuActions({ onToggleStatus, onEdit, onDelete, isPrivate }) {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef();
+  // ==================== STATE MANAGEMENT ====================
+  
+  const [open, setOpen] = useState(false); // Trạng thái mở/đóng menu
+  const menuRef = useRef(); // Ref để detect click outside
 
+  // ==================== EFFECTS ====================
+  
   // Đóng menu khi click ra ngoài
   React.useEffect(() => {
     function handleClick(e) {

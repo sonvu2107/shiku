@@ -1,43 +1,86 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api";
 import PostCard from "../components/PostCard";
 import PostCreator from "../components/PostCreator";
 import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2 } from "lucide-react";
 
+/**
+ * Home - Trang chủ hiển thị feed các bài viết
+ * Hỗ trợ infinite scroll, sorting, search và hiển thị cả public + private posts
+ * @param {Object} user - Thông tin user hiện tại
+ */
 export default function Home({ user }) {
-  const [items, setItems] = useState([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Posts data
+  const [items, setItems] = useState([]); // Danh sách bài viết
+  const [page, setPage] = useState(1); // Trang hiện tại cho pagination
+  const [hasMore, setHasMore] = useState(true); // Còn posts để load không
+  const [totalPages, setTotalPages] = useState(0); // Tổng số trang
+  
+  // Loading states
+  const [loading, setLoading] = useState(true); // Loading initial
+  const [loadingMore, setLoadingMore] = useState(false); // Loading more posts
+  const [loadingAll, setLoadingAll] = useState(false); // Loading all posts
+  const [error, setError] = useState(null); // Error state
+  
+  // Search and sorting
   const [searchParams] = useSearchParams();
-  const q = searchParams.get('q') || '';
-  const [sortBy, setSortBy] = useState('newest');
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const observer = useRef();
+  const q = searchParams.get('q') || ''; // Search query từ URL
+  const [sortBy, setSortBy] = useState('newest'); // Kiểu sort hiện tại
+  const [showSortDropdown, setShowSortDropdown] = useState(false); // Hiện dropdown sort
+  
+  // Infinite scroll
+  const observer = useRef(); // IntersectionObserver cho infinite scroll
+  const loadingRef = useRef(false); // Prevent duplicate requests
 
-  // Ref for the last post element (for intersection observer)
+  // ==================== INFINITE SCROLL ====================
+  
+  /**
+   * Ref callback cho element cuối cùng để implement infinite scroll
+   * Sử dụng IntersectionObserver để detect khi user scroll đến cuối
+   */
   const lastPostElementRef = useCallback(node => {
-    if (loadingMore) return;
-    if (observer.current) observer.current.disconnect();
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        loadMore();
+    if (loadingRef.current || !hasMore) return; // Prevent duplicate requests
+    
+    if (observer.current) observer.current.disconnect(); // Disconnect observer cũ
+    
+    // Tạo observer mới với optimized settings
+    observer.current = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !loadingRef.current) {
+          loadMore(); // Load thêm posts khi element cuối xuất hiện
+        }
+      },
+      {
+        root: null,
+        rootMargin: '100px', // Load 100px before element comes into view
+        threshold: 0.1
       }
-    });
-    if (node) observer.current.observe(node);
-  }, [loadingMore, hasMore]);
+    );
+    
+    if (node) observer.current.observe(node); // Observe element mới
+  }, [hasMore]);
 
+  // ==================== EFFECTS ====================
+  
+  /**
+   * Reset và reload posts khi search query, user, hoặc sort thay đổi
+   */
   useEffect(() => {
-    // Reset when search query or sort changes
-    setItems([]);
-    setPage(1);
-    setHasMore(true);
-    loadInitial();
+    setItems([]); // Reset danh sách posts
+    setPage(1); // Reset về trang 1
+    setHasMore(true); // Reset hasMore flag
+    setTotalPages(0); // Reset total pages
+    setError(null); // Clear any errors
+    loadingRef.current = false; // Reset loading ref
+    loadInitial(); // Load posts mới
   }, [q, user, sortBy]);
 
-  // Close dropdown when clicking outside
+  /**
+   * Đóng sort dropdown khi click outside
+   */
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showSortDropdown && !event.target.closest('.sort-dropdown')) {
@@ -49,16 +92,32 @@ export default function Home({ user }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSortDropdown]);
 
-  async function loadInitial() {
+  /**
+   * Cleanup observer on unmount
+   */
+  useEffect(() => {
+    return () => {
+      if (observer.current) {
+        observer.current.disconnect();
+      }
+    };
+  }, []);
+
+  const loadInitial = useCallback(async () => {
     setLoading(true);
+    setError(null);
+    loadingRef.current = true;
+    
     try {
-      const publishedData = await api(`/api/posts?page=1&limit=100&q=${encodeURIComponent(q)}&status=published`);
+      // Balanced approach: Load enough posts for good browsing experience
+      const limit = 50; // Increased from 20 to 50 for better content discovery
+      const publishedData = await api(`/api/posts?page=1&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
       let allItems = publishedData.items;
 
       // If user is logged in, also load their private posts and merge
       if (user) {
         try {
-          const privateData = await api(`/api/posts?page=1&limit=100&status=private&author=${user._id}`);
+          const privateData = await api(`/api/posts?page=1&limit=${limit}&status=private&author=${user._id}`);
           allItems = [...privateData.items, ...allItems];
         } catch (privateError) {
           console.log('Cannot load private posts:', privateError.message);
@@ -69,23 +128,31 @@ export default function Home({ user }) {
       allItems = sortPosts(allItems, sortBy);
 
       setItems(allItems);
+      setTotalPages(publishedData.pages);
       setHasMore(publishedData.pages > 1);
       setPage(2); // Next page to load
     } catch (error) {
       console.error('Error loading posts:', error);
+      setError('Không thể tải bài viết. Vui lòng thử lại.');
       setItems([]);
       setHasMore(false);
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
-  }
+  }, [q, user, sortBy]);
 
-  async function loadMore() {
-    if (loadingMore || !hasMore) return;
+  const loadMore = useCallback(async () => {
+    if (loadingRef.current || !hasMore || loadingMore) return;
 
     setLoadingMore(true);
+    setError(null);
+    loadingRef.current = true;
+    
     try {
-      const publishedData = await api(`/api/posts?page=${page}&limit=100&q=${encodeURIComponent(q)}&status=published`);
+      // Balanced batch size for good browsing experience
+      const limit = 25; // Increased from 15 to 25 for better content discovery
+      const publishedData = await api(`/api/posts?page=${page}&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
       const newItems = sortPosts(publishedData.items, sortBy);
 
       setItems(prev => [...prev, ...newItems]);
@@ -93,13 +160,47 @@ export default function Home({ user }) {
       setPage(prev => prev + 1);
     } catch (error) {
       console.error('Error loading more posts:', error);
+      setError('Không thể tải thêm bài viết. Vui lòng thử lại.');
     } finally {
       setLoadingMore(false);
+      loadingRef.current = false;
     }
-  }
+  }, [page, hasMore, loadingMore, q, sortBy]);
 
-  // Function to sort posts
-  const sortPosts = (posts, sortType) => {
+  // Load all remaining posts at once
+  const loadAllRemaining = useCallback(async () => {
+    if (loadingAll || !hasMore) return;
+
+    setLoadingAll(true);
+    setError(null);
+    loadingRef.current = true;
+    
+    try {
+      const allRemainingPosts = [];
+      let currentPage = page;
+      
+      // Load all remaining pages
+      while (currentPage <= totalPages) {
+        const publishedData = await api(`/api/posts?page=${currentPage}&limit=25&q=${encodeURIComponent(q)}&status=published`);
+        const newItems = sortPosts(publishedData.items, sortBy);
+        allRemainingPosts.push(...newItems);
+        currentPage++;
+      }
+
+      setItems(prev => [...prev, ...allRemainingPosts]);
+      setHasMore(false);
+      setPage(totalPages + 1);
+    } catch (error) {
+      console.error('Error loading all posts:', error);
+      setError('Không thể tải tất cả bài viết. Vui lòng thử lại.');
+    } finally {
+      setLoadingAll(false);
+      loadingRef.current = false;
+    }
+  }, [page, hasMore, loadingAll, totalPages, q, sortBy]);
+
+  // Function to sort posts - memoized for performance
+  const sortPosts = useCallback((posts, sortType) => {
     const sortedPosts = [...posts];
 
     switch (sortType) {
@@ -114,9 +215,10 @@ export default function Home({ user }) {
       default:
         return sortedPosts;
     }
-  };
+  }, []);
 
-  const getSortIcon = (type) => {
+  // Memoized sort functions for performance
+  const getSortIcon = useCallback((type) => {
     switch (type) {
       case 'newest': return <Clock size={16} />;
       case 'oldest': return <Clock size={16} className="rotate-180" />;
@@ -124,9 +226,9 @@ export default function Home({ user }) {
       case 'leastViewed': return <Eye size={16} className="opacity-50" />;
       default: return <TrendingUp size={16} />;
     }
-  };
+  }, []);
 
-  const getSortLabel = (type) => {
+  const getSortLabel = useCallback((type) => {
     const labels = {
       newest: 'Mới nhất',
       oldest: 'Cũ nhất',
@@ -134,10 +236,10 @@ export default function Home({ user }) {
       leastViewed: 'Xem ít nhất'
     };
     return labels[type] || 'Sắp xếp';
-  };
+  }, []);
 
-  // Loading skeleton component
-  const LoadingSkeleton = () => (
+  // Memoized loading skeleton component
+  const LoadingSkeleton = useCallback(() => (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="p-4">
         {/* Header skeleton */}
@@ -169,7 +271,7 @@ export default function Home({ user }) {
         </div>
       </div>
     </div>
-  );
+  ), []);
 
   {/* Sticky Header */ }
   return (
@@ -179,6 +281,11 @@ export default function Home({ user }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-bold text-gray-900">Bảng tin</h1>
+              {items.length > 0 && (
+                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                  {items.length} bài viết
+                </span>
+              )}
             </div>
 
             <div className="relative sort-dropdown">
@@ -236,36 +343,40 @@ export default function Home({ user }) {
           </div>
         )}
 
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+              <TrendingUp size={24} className="text-red-400" />
+            </div>
+            <h3 className="text-lg font-medium text-red-900 mb-2">Có lỗi xảy ra</h3>
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={loadInitial}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Thử lại
+            </button>
+          </div>
+        )}
+
         {/* Posts Feed */}
-        {!loading && (
+        {!loading && !error && (
           <>
             {items.length > 0 ? (
               <div className="space-y-6">
                 {items.map((post, index) => {
-                  // Add ref to last element for infinite scroll
-                  const handleUpdate = () => {
-                    loadInitial();
-                  };
-                  if (index === items.length - 1) {
-                    return (
-                      <div
-                        key={post._id}
-                        ref={lastPostElementRef}
-                        className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden"
-                      >
-                        <PostCard post={post} onUpdate={handleUpdate} />
-                      </div>
-                    );
-                  } else {
-                    return (
-                      <div
-                        key={post._id}
-                        className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden"
-                      >
-                        <PostCard post={post} onUpdate={handleUpdate} />
-                      </div>
-                    );
-                  }
+                  const isLastPost = index === items.length - 1;
+                  
+                  return (
+                    <div
+                      key={post._id}
+                      ref={isLastPost ? lastPostElementRef : null}
+                      className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden"
+                    >
+                      <PostCard post={post} onUpdate={loadInitial} />
+                    </div>
+                  );
                 })}
 
                 {/* Loading more indicator */}
@@ -278,11 +389,41 @@ export default function Home({ user }) {
                   </div>
                 )}
 
+                {/* Load more buttons */}
+                {!loadingMore && !loadingAll && hasMore && (
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center py-4">
+                    <button
+                      onClick={loadMore}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Tải thêm 25 bài viết
+                    </button>
+                    {totalPages - page + 1 > 1 && (
+                      <button
+                        onClick={loadAllRemaining}
+                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        Tải tất cả ({totalPages - page + 1} trang còn lại)
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Loading all indicator */}
+                {loadingAll && (
+                  <div className="flex justify-center py-8">
+                    <div className="flex items-center gap-2 text-gray-500">
+                      <Loader2 size={20} className="animate-spin" />
+                      <span>Đang tải tất cả bài viết...</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* End of feed message */}
                 {!hasMore && items.length > 0 && (
                   <div className="text-center py-8">
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full text-gray-500 text-sm">
-                      <span></span>
+                      <span>✨</span>
                       <span>Bạn đã xem hết tất cả bài viết!</span>
                     </div>
                   </div>

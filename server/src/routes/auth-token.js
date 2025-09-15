@@ -1,4 +1,7 @@
-// Temporary auth endpoints for IP development
+/**
+ * Temporary auth endpoints for IP development
+ * Các endpoint tạm thời cho việc phát triển với IP
+ */
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -6,11 +9,22 @@ import User from "../models/User.js";
 
 const tempRouter = express.Router();
 
+/**
+ * Tạo JWT token cho user
+ * @param {Object} user - User object
+ * @returns {string} JWT token
+ */
 function sign(user) {
   return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 }
 
-// Login with token response
+/**
+ * POST /login-token - Đăng nhập và trả về token
+ * Endpoint tạm thời cho việc phát triển với IP
+ * @param {string} req.body.email - Email đăng nhập
+ * @param {string} req.body.password - Mật khẩu
+ * @returns {Object} User info và JWT token
+ */
 tempRouter.post("/login-token", async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -26,7 +40,14 @@ tempRouter.post("/login-token", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// Register with token response  
+/**
+ * POST /register-token - Đăng ký và trả về token
+ * Endpoint tạm thời cho việc phát triển với IP
+ * @param {string} req.body.name - Tên người dùng
+ * @param {string} req.body.email - Email đăng ký
+ * @param {string} req.body.password - Mật khẩu
+ * @returns {Object} User info và JWT token
+ */
 tempRouter.post("/register-token", async (req, res, next) => {
   try {
     const { name, email, password } = req.body;

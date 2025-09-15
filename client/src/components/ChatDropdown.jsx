@@ -2,10 +2,22 @@ import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { api } from "../api";
 
+/**
+ * ChatDropdown - Dropdown hiển thị danh sách cuộc trò chuyện
+ * Hiển thị danh sách conversations với avatar, tên và tin nhắn cuối
+ * @param {Object} props - Component props
+ * @param {Function} props.onOpenChat - Callback khi click vào conversation
+ * @returns {JSX.Element} Component chat dropdown
+ */
 export default function ChatDropdown({ onOpenChat }) {
-  const [open, setOpen] = useState(false);
-  const [conversations, setConversations] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // ==================== STATE MANAGEMENT ====================
+  
+  // UI states
+  const [open, setOpen] = useState(false); // Trạng thái mở/đóng dropdown
+  const [loading, setLoading] = useState(false); // Loading state
+  
+  // Data states
+  const [conversations, setConversations] = useState([]); // Danh sách conversations
 
   useEffect(() => {
     if (open) {

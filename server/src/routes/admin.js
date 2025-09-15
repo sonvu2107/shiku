@@ -4,9 +4,16 @@ import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
 import { authRequired } from "../middleware/auth.js";
 import NotificationService from "../services/NotificationService.js";
+
 const router = express.Router();
 
-// Middleware kiểm tra quyền admin
+/**
+ * Middleware kiểm tra quyền admin
+ * Chỉ cho phép user có role "admin" truy cập các routes admin
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object  
+ * @param {Function} next - Next middleware function
+ */
 const adminRequired = (req, res, next) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ error: "Chỉ admin mới có quyền truy cập" });
@@ -14,28 +21,40 @@ const adminRequired = (req, res, next) => {
   next();
 };
 
-// Ban user
+/**
+ * POST /ban-user - Cấm người dùng
+ * Admin có thể cấm user với thời gian cụ thể hoặc vĩnh viễn
+ * @param {string} req.body.userId - ID của user cần cấm
+ * @param {number} req.body.banDurationMinutes - Thời gian cấm (phút), null = vĩnh viễn
+ * @param {string} req.body.reason - Lý do cấm
+ * @returns {Object} Thông tin user đã bị cấm
+ */
 router.post("/ban-user", authRequired, adminRequired, async (req, res, next) => {
   try {
     const { userId, banDurationMinutes, reason } = req.body;
     
+    // Kiểm tra thông tin bắt buộc
     if (!userId || !reason) {
       return res.status(400).json({ error: "Thiếu thông tin userId hoặc lý do cấm" });
     }
 
+    // Tìm user cần cấm
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: "User không tồn tại" });
     }
 
+    // Không cho phép cấm admin
     if (user.role === "admin") {
       return res.status(400).json({ error: "Không thể cấm admin" });
     }
 
+    // Tính thời gian hết hạn cấm
     const banExpiresAt = banDurationMinutes 
       ? new Date(Date.now() + banDurationMinutes * 60 * 1000)
       : null; // null = permanent ban
 
+    // Cập nhật thông tin cấm
     user.isBanned = true;
     user.banReason = reason;
     user.bannedAt = new Date();
@@ -44,7 +63,7 @@ router.post("/ban-user", authRequired, adminRequired, async (req, res, next) => 
     
     await user.save();
 
-    //Tạo thông báo cấm
+    // Tạo thông báo cấm cho user
     try {
       await NotificationService.createBanNotification(user, req.user, reason, banExpiresAt);
     } catch (notifError) {
@@ -68,20 +87,28 @@ router.post("/ban-user", authRequired, adminRequired, async (req, res, next) => 
   }
 });
 
-// Unban user
+/**
+ * POST /unban-user - Gỡ cấm người dùng
+ * Admin có thể gỡ cấm user đã bị cấm trước đó
+ * @param {string} req.body.userId - ID của user cần gỡ cấm
+ * @returns {Object} Thông tin user đã được gỡ cấm
+ */
 router.post("/unban-user", authRequired, adminRequired, async (req, res, next) => {
   try {
     const { userId } = req.body;
     
+    // Kiểm tra thông tin bắt buộc
     if (!userId) {
       return res.status(400).json({ error: "Thiếu userId" });
     }
 
+    // Tìm user cần gỡ cấm
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: "User không tồn tại" });
     }
 
+    // Gỡ cấm user
     user.isBanned = false;
     user.banReason = "";
     user.bannedAt = null;
@@ -90,7 +117,7 @@ router.post("/unban-user", authRequired, adminRequired, async (req, res, next) =
     
     await user.save();
 
-    // Tạo thông báo gỡ cấm
+    // Tạo thông báo gỡ cấm cho user
     try {
       await NotificationService.createUnbanNotification(user, req.user);
     } catch (notifError) {
@@ -110,9 +137,15 @@ router.post("/unban-user", authRequired, adminRequired, async (req, res, next) =
   }
 });
 
-// Lấy thống kê tổng quan với phần trăm tăng trưởng
+/**
+ * GET /stats - Lấy thống kê tổng quan với phần trăm tăng trưởng
+ * Cung cấp thống kê chi tiết về posts, users, comments, views, emotes
+ * Bao gồm so sánh tháng này vs tháng trước và top rankings
+ * @returns {Object} Thống kê chi tiết với growth indicators
+ */
 router.get("/stats", authRequired, adminRequired, async (req, res, next) => {
   try {
+    // Tính toán các mốc thời gian
     const now = new Date();
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -412,6 +445,102 @@ router.delete("/users/:id", authRequired, adminRequired, async (req, res, next) 
     await user.deleteOne();
 
     res.json({ message: "User deleted successfully" });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * GET /online-users - Lấy danh sách người dùng đang online
+ * Lấy tất cả users có isOnline = true
+ * @returns {Array} Danh sách users đang online
+ */
+router.get("/online-users", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const onlineUsers = await User.find({ isOnline: true })
+      .select('name email avatarUrl role lastSeen isOnline')
+      .sort({ lastSeen: -1 });
+
+    res.json({ onlineUsers });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * GET /total-visitors - Lấy tổng số lượt truy cập
+ * Tính toán dựa trên số lần login và hoạt động của users
+ * @returns {Object} Thống kê chi tiết về visitors
+ */
+router.get("/total-visitors", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    // Tổng số users đã đăng ký
+    const totalUsers = await User.countDocuments();
+    
+    // Số users đã từng online (có lastSeen)
+    const usersWithActivity = await User.countDocuments({
+      lastSeen: { $exists: true, $ne: null }
+    });
+    
+    // Số users đang online
+    const onlineUsers = await User.countDocuments({ isOnline: true });
+    
+    // Tính tổng lượt truy cập dựa trên hoạt động
+    // Mỗi lần user login = 1 lượt truy cập
+    // Có thể mở rộng để track page views
+    const totalVisitors = usersWithActivity;
+    
+    // Thống kê theo thời gian
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const thisWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const [todayVisitors, weekVisitors, monthVisitors] = await Promise.all([
+      User.countDocuments({ lastSeen: { $gte: today } }),
+      User.countDocuments({ lastSeen: { $gte: thisWeek } }),
+      User.countDocuments({ lastSeen: { $gte: thisMonth } })
+    ]);
+    
+    res.json({ 
+      totalVisitors,
+      totalUsers,
+      onlineUsers,
+      usersWithActivity,
+      timeStats: {
+        today: todayVisitors,
+        thisWeek: weekVisitors,
+        thisMonth: monthVisitors
+      }
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * POST /update-offline-users - Cập nhật trạng thái offline cho users không hoạt động
+ * Được gọi định kỳ để cập nhật trạng thái offline cho users không gửi heartbeat
+ * @returns {Object} Số lượng users đã được cập nhật
+ */
+router.post("/update-offline-users", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    // Tìm users online nhưng không hoạt động trong 2 phút
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    const result = await User.updateMany(
+      { 
+        isOnline: true, 
+        lastSeen: { $lt: twoMinutesAgo } 
+      },
+      { 
+        isOnline: false 
+      }
+    );
+    
+    res.json({ 
+      message: "Updated offline users",
+      updatedCount: result.modifiedCount 
+    });
   } catch (e) {
     next(e);
   }
