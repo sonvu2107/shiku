@@ -165,7 +165,7 @@ export default function NotificationHistory() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16 sm:pt-20">
       <div className="max-w-5xl mx-auto p-3 sm:p-6">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">

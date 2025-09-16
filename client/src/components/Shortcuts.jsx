@@ -69,11 +69,11 @@ export default function Shortcuts({ user }) {
         
         // Static shortcuts
         {
-          id: 'saved',
-          type: 'saved',
-          title: 'Đã lưu',
-          icon: <Bookmark size={16} />,
-          url: '/saved',
+          id: 'groups',
+          type: 'groups',
+          title: 'Nhóm',
+          icon: <Users size={16} />,
+          url: '/groups',
           avatar: null
         },
         {
@@ -167,6 +167,11 @@ export default function Shortcuts({ user }) {
               {shortcut.title}
             </span>
             {shortcut.type === 'group' && (
+              <div className="ml-auto">
+                <Users size={12} className="text-gray-400" />
+              </div>
+            )}
+            {shortcut.type === 'groups' && (
               <div className="ml-auto">
                 <Users size={12} className="text-gray-400" />
               </div>

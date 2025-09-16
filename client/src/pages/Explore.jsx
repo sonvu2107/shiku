@@ -23,7 +23,7 @@ export default function Explore() {
     setLoading(true);
     try {
       // Load posts - sử dụng API thực
-      const postsRes = await api("/api/posts?limit=20");
+      const postsRes = await api("/api/posts?limit=50");
       console.log("Posts API response:", postsRes);
       setPosts(postsRes.items || []);
 
@@ -56,7 +56,7 @@ export default function Explore() {
     setLoading(true);
     try {
       // Search posts
-      const postsRes = await api(`/api/posts?q=${encodeURIComponent(searchQuery)}&limit=20`);
+      const postsRes = await api(`/api/posts?q=${encodeURIComponent(searchQuery)}&limit=50`);
       setPosts(postsRes.items || []);
 
       // Search users

@@ -469,7 +469,7 @@ router.get("/me",
     try {
       res.json({ 
         user: { 
-          id: req.user._id, 
+          _id: req.user._id, 
           name: req.user.name, 
           email: req.user.email, 
           role: req.user.role,

@@ -10,22 +10,98 @@ import mongoose from "mongoose";
 
 const router = express.Router();
 
-// Get current user's posts (both published and private)
+// Get current user's posts only (both published and private)
 router.get("/my-posts", authRequired, async (req, res, next) => {
   try {
     const { page = 1, limit = 100, status } = req.query;
-    const filter = { author: req.user._id };
+    const filter = { 
+      author: req.user._id, // Chỉ lấy bài viết của chính mình
+      status: status || { $in: ["published", "private"] } // Mặc định lấy cả published và private
+    };
     
-    // If status is specified, filter by it, otherwise get both published and private
-    if (status === "published" || status === "private") {
-      filter.status = status;
-    } else {
-      // Get both published and private posts
-      filter.$or = [
-        { status: "published" },
-        { status: "private" }
-      ];
-    }
+    // Exclude group posts from personal profile (chỉ bài viết cá nhân)
+    filter.$and = [
+      {
+        $or: [
+          { group: { $exists: false } },
+          { group: null }
+        ]
+      }
+    ];
+    
+    const posts = await Post.find(filter)
+      .populate("author", "name avatarUrl")
+      .populate("group", "name")
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    const total = await Post.countDocuments(filter);
+    
+    res.json({
+      posts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get current user's published posts only
+router.get("/my-published", authRequired, async (req, res, next) => {
+  try {
+    const { page = 1, limit = 100 } = req.query;
+    const filter = { 
+      author: req.user._id,
+      status: "published"
+    };
+    
+    // Exclude group posts from personal profile
+    filter.$and = [
+      {
+        $or: [
+          { group: { $exists: false } },
+          { group: null }
+        ]
+      }
+    ];
+    
+    const posts = await Post.find(filter)
+      .populate("author", "name avatarUrl")
+      .populate("group", "name")
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    const total = await Post.countDocuments(filter);
+    
+    res.json({
+      posts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get current user's private posts only
+router.get("/my-private", authRequired, async (req, res, next) => {
+  try {
+    const { page = 1, limit = 100 } = req.query;
+    const filter = { 
+      author: req.user._id,
+      status: "private"
+    };
     
     // Exclude group posts from personal profile
     filter.$and = [
@@ -88,6 +164,60 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
         ]
       }
     ];
+    
+    const posts = await Post.find(filter)
+      .populate("author", "name avatarUrl")
+      .populate("group", "name")
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    const total = await Post.countDocuments(filter);
+    
+    res.json({
+      posts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get all published posts for homepage (public feed)
+router.get("/feed", authOptional, async (req, res, next) => {
+  try {
+    const { page = 1, limit = 100, tag, q } = req.query;
+    const filter = { status: "published" };
+    
+    // Exclude group posts from homepage feed
+    filter.$and = [
+      {
+        $or: [
+          { group: { $exists: false } },
+          { group: null }
+        ]
+      }
+    ];
+    
+    if (tag) filter.tags = tag;
+    
+    if (q) {
+      const trimmedQuery = q.trim();
+      if (trimmedQuery.length > 0 && trimmedQuery.length <= 100) {
+        const escapedQuery = trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        filter.$and.push({
+          $or: [
+            { title: { $regex: escapedQuery, $options: "i" } },
+            { content: { $regex: escapedQuery, $options: "i" } }
+          ]
+        });
+      }
+    }
     
     const posts = await Post.find(filter)
       .populate("author", "name avatarUrl")
