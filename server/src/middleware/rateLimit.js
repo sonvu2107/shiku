@@ -16,14 +16,37 @@ const logRateLimitInfo = (req, message) => {
   });
 };
 
+// Custom key generator để handle proxy IPs
+const createKeyGenerator = () => (req) => {
+  const forwardedFor = req.get('X-Forwarded-For');
+  const realIP = req.get('X-Real-IP');
+  const clientIP = req.ip;
+  
+  if (forwardedFor) {
+    // Lấy IP đầu tiên từ X-Forwarded-For (client IP thật)
+    return forwardedFor.split(',')[0].trim();
+  }
+  
+  if (realIP) {
+    return realIP;
+  }
+  
+  return clientIP;
+};
+
 // General API rate limiter - increased for better UX
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000, // Increased from 300 to 1000 requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    error: "Quá nhiều yêu cầu từ IP này, vui lòng thử lại sau 15 phút"
+  // Custom handler thay vì onLimitReached
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'API Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Quá nhiều yêu cầu từ IP này, vui lòng thử lại sau 15 phút",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
   },
   // Skip rate limiting for certain IPs if needed
   skip: (req) => {
@@ -31,28 +54,8 @@ export const apiLimiter = rateLimit({
     const allowedIPs = ['127.0.0.1', '::1', 'localhost'];
     return process.env.NODE_ENV === 'development' && allowedIPs.includes(req.ip);
   },
-  // Log khi rate limit bị trigger
-  onLimitReached: (req, res, options) => {
-    logRateLimitInfo(req, 'API Rate limit reached');
-  },
   // Custom key generator để handle proxy IPs
-  keyGenerator: (req) => {
-    // Ưu tiên X-Forwarded-For nếu có, sau đó X-Real-IP, cuối cùng là req.ip
-    const forwardedFor = req.get('X-Forwarded-For');
-    const realIP = req.get('X-Real-IP');
-    const clientIP = req.ip;
-    
-    if (forwardedFor) {
-      // Lấy IP đầu tiên từ X-Forwarded-For (client IP thật)
-      return forwardedFor.split(',')[0].trim();
-    }
-    
-    if (realIP) {
-      return realIP;
-    }
-    
-    return clientIP;
-  }
+  keyGenerator: createKeyGenerator()
 });
 
 // Strict rate limiter for authentication endpoints
@@ -61,30 +64,17 @@ export const authLimiter = rateLimit({
   max: 5, // Limit each IP to 5 auth requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    error: "Quá nhiều lần đăng nhập thất bại, vui lòng thử lại sau 15 phút"
+  // Custom handler thay vì onLimitReached
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Auth Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Quá nhiều lần đăng nhập thất bại, vui lòng thử lại sau 15 phút",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
   },
   skipSuccessfulRequests: true, // Don't count successful requests
-  // Log khi auth rate limit bị trigger
-  onLimitReached: (req, res, options) => {
-    logRateLimitInfo(req, 'Auth Rate limit reached');
-  },
   // Custom key generator để handle proxy IPs
-  keyGenerator: (req) => {
-    const forwardedFor = req.get('X-Forwarded-For');
-    const realIP = req.get('X-Real-IP');
-    const clientIP = req.ip;
-    
-    if (forwardedFor) {
-      return forwardedFor.split(',')[0].trim();
-    }
-    
-    if (realIP) {
-      return realIP;
-    }
-    
-    return clientIP;
-  }
+  keyGenerator: createKeyGenerator()
 });
 
 // Upload rate limiter - increased for content creators
@@ -93,9 +83,16 @@ export const uploadLimiter = rateLimit({
   max: 50, // Increased from 20 to 50 upload requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    error: "Quá nhiều lần tải file, vui lòng thử lại sau 15 phút"
-  }
+  // Custom handler thay vì message
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Upload Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Quá nhiều lần tải file, vui lòng thử lại sau 15 phút",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
+  // Custom key generator để handle proxy IPs
+  keyGenerator: createKeyGenerator()
 });
 
 // Message rate limiter to prevent spam - increased for active users
@@ -104,9 +101,16 @@ export const messageLimiter = rateLimit({
   max: 60, // Increased from 30 to 60 messages per minute
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    error: "Gửi tin nhắn quá nhanh, vui lòng chậm lại"
-  }
+  // Custom handler thay vì message
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Message Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Gửi tin nhắn quá nhanh, vui lòng chậm lại",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
+  // Custom key generator để handle proxy IPs
+  keyGenerator: createKeyGenerator()
 });
 
 // Posts-specific rate limiter for infinite scroll
@@ -115,7 +119,14 @@ export const postsLimiter = rateLimit({
   max: 200, // 200 post requests per 15 minutes
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    error: "Quá nhiều yêu cầu bài viết, vui lòng thử lại sau 15 phút"
-  }
+  // Custom handler thay vì message
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Posts Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Quá nhiều yêu cầu bài viết, vui lòng thử lại sau 15 phút",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
+  // Custom key generator để handle proxy IPs
+  keyGenerator: createKeyGenerator()
 });

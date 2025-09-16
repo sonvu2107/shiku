@@ -398,6 +398,43 @@ router.post("/reset-password",
 );
 
 /**
+ * GET /me - Lấy thông tin user hiện tại
+ * @returns {Object} User info
+ */
+router.get("/me", 
+  authRequired,
+  async (req, res, next) => {
+    try {
+      // Log security event
+      logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.ADMIN_ACTION, {
+        action: 'get_current_user',
+        userId: req.user._id,
+        ip: req.ip
+      }, req);
+
+      res.json({ 
+        user: { 
+          id: req.user._id, 
+          name: req.user.name, 
+          email: req.user.email, 
+          role: req.user.role,
+          bio: req.user.bio,
+          birthday: req.user.birthday,
+          gender: req.user.gender,
+          hobbies: req.user.hobbies,
+          avatarUrl: req.user.avatarUrl,
+          isOnline: req.user.isOnline,
+          isVerified: req.user.isVerified,
+          lastSeen: req.user.lastSeen
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
  * PUT /update-profile - Cập nhật thông tin cá nhân
  * @param {Object} req.body - Thông tin cần cập nhật
  * @returns {Object} User info đã cập nhật

@@ -459,4 +459,34 @@ router.put("/update-profile",
   }
 );
 
+/**
+ * GET /me - Lấy thông tin user hiện tại
+ * @returns {Object} User info
+ */
+router.get("/me", 
+  authRequired,
+  async (req, res, next) => {
+    try {
+      res.json({ 
+        user: { 
+          id: req.user._id, 
+          name: req.user.name, 
+          email: req.user.email, 
+          role: req.user.role,
+          bio: req.user.bio,
+          birthday: req.user.birthday,
+          gender: req.user.gender,
+          hobbies: req.user.hobbies,
+          avatarUrl: req.user.avatarUrl,
+          isOnline: req.user.isOnline,
+          isVerified: req.user.isVerified,
+          lastSeen: req.user.lastSeen
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;

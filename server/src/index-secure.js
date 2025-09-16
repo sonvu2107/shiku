@@ -30,6 +30,13 @@ import {
   unauthorizedAccessLogger
 } from "./middleware/securityLogging.js";
 import { proxyDebugMiddleware } from "./middleware/proxyDebug.js";
+import { 
+  rateLimitLogger,
+  authRateLimitLogger,
+  uploadRateLimitLogger,
+  messageRateLimitLogger,
+  postsRateLimitLogger
+} from "./middleware/rateLimitLogger.js";
 
 // Import tất cả routes
 import authRoutes from "./routes/auth-secure.js"; // Secure authentication routes
@@ -196,15 +203,15 @@ app.get("/health", (req, res) => {
 });
 
 // Mount tất cả API routes with specific rate limiting
-app.use("/api/auth", authLimiter, authRoutes); // Secure authentication & authorization
-app.use("/api/posts", postsLimiter, postRoutes); // Secure blog posts CRUD
+app.use("/api/auth", authLimiter, authRateLimitLogger, authRoutes); // Secure authentication & authorization
+app.use("/api/posts", postsLimiter, postsRateLimitLogger, postRoutes); // Secure blog posts CRUD
 app.use("/api/comments", commentRoutes); // Comments system
-app.use("/api/uploads", uploadLimiter, uploadRoutes); // Secure file uploads
+app.use("/api/uploads", uploadLimiter, uploadRateLimitLogger, uploadRoutes); // Secure file uploads
 app.use("/api/admin", adminRoutes); // Admin panel
 app.use("/api/friends", friendRoutes); // Friend system
 app.use("/api/users", userRoutes); // User profiles
 app.use("/api/notifications", notificationRoutes); // Notifications
-app.use("/api/messages", messageLimiter, messageRoutes); // Chat/messaging
+app.use("/api/messages", messageLimiter, messageRateLimitLogger, messageRoutes); // Chat/messaging
 app.use("/api/groups", groupPostsRouter); // Group posts
 app.use("/api/support", supportRoutes); // Support tickets
 app.use("/api/groups", groupRoutes); // Groups/communities
