@@ -489,4 +489,28 @@ router.get("/me",
   }
 );
 
+/**
+ * POST /heartbeat - Heartbeat endpoint for frontend monitoring
+ * @returns {Object} Heartbeat status
+ */
+router.post("/heartbeat", 
+  authRequired,
+  async (req, res, next) => {
+    try {
+      // Update user's last seen timestamp
+      req.user.lastSeen = new Date();
+      await req.user.save();
+
+      res.json({ 
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        userId: req.user._id,
+        isOnline: true
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;

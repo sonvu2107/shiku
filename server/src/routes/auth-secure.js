@@ -435,6 +435,37 @@ router.get("/me",
 );
 
 /**
+ * POST /heartbeat - Heartbeat endpoint for frontend monitoring
+ * @returns {Object} Heartbeat status
+ */
+router.post("/heartbeat", 
+  authRequired,
+  async (req, res, next) => {
+    try {
+      // Update user's last seen timestamp
+      req.user.lastSeen = new Date();
+      await req.user.save();
+
+      // Log security event
+      logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.ADMIN_ACTION, {
+        action: 'heartbeat',
+        userId: req.user._id,
+        ip: req.ip
+      }, req);
+
+      res.json({ 
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        userId: req.user._id,
+        isOnline: true
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
  * PUT /update-profile - Cập nhật thông tin cá nhân
  * @param {Object} req.body - Thông tin cần cập nhật
  * @returns {Object} User info đã cập nhật
