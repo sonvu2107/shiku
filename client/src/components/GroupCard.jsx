@@ -114,7 +114,7 @@ const GroupCard = ({
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden">
       {/* Cover Image */}
-      <div className="relative h-32 bg-gradient-to-r from-blue-500 to-purple-600">
+      <div className="relative h-32 sm:h-40 md:h-48 lg:h-56 bg-gradient-to-r from-blue-500 to-purple-600">
         {group.coverImage ? (
           <img 
             src={group.coverImage} 

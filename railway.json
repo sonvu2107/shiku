@@ -1,0 +1,12 @@
+{
+  "build": {
+    "client": "cd client && npm install && npm run build",
+    "server": "cd server && npm install"
+  },
+  "deploy": {
+    "server": "cd server && npm start"
+  },
+  "env": {
+    "server": ["MONGODB_URI", "JWT_SECRET", "CLOUDINARY_URL"]
+  }
+}

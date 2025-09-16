@@ -1224,7 +1224,7 @@ const GroupDetail = () => {
                         type="button"
                         onClick={handleSaveSettings}
                         disabled={settingsLoading}
-                        className="px-6 py-2 bg-black-600 text-white rounded-lg hover:bg-blacklack-700 transition-colors disabled:opacity-50"
+                        className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
                       >
                         {settingsLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
                       </button>

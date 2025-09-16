@@ -77,22 +77,22 @@ export default function Events() {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sự kiện</h1>
             <Link
               to="/events/create"
-              className="btn flex items-center justify-center gap-2 w-full sm:w-auto touch-target"
+              className="btn flex items-center justify-center gap-2 w-full sm:w-auto touch-manipulation min-h-[44px] px-4 py-3 sm:py-2"
             >
-              <Plus size={18} />
-              <span className="text-sm sm:text-base">Tạo sự kiện</span>
+              <Plus size={16} className="sm:w-4 sm:h-4" />
+              <span className="text-sm sm:text-base font-medium">Tạo sự kiện</span>
             </Link>
           </div>
           
           {/* Search */}
           <form onSubmit={handleSearch} className="relative mb-4 sm:mb-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
               placeholder="Tìm kiếm sự kiện..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
+              className="w-full pl-9 sm:pl-10 pr-4 py-3 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base touch-manipulation min-h-[44px]"
             />
           </form>
 
@@ -103,9 +103,9 @@ export default function Events() {
                 <button
                   key={filterItem.id}
                   onClick={() => setFilter(filterItem.id)}
-                  className={`px-3 sm:px-4 py-2 rounded-md transition-colors text-sm whitespace-nowrap touch-target flex-shrink-0 ${
+                  className={`px-2 sm:px-3 py-2.5 sm:py-2 rounded-md transition-colors text-xs sm:text-sm whitespace-nowrap touch-manipulation flex-shrink-0 min-h-[44px] ${
                     filter === filterItem.id
-                      ? "bg-white text-blue-600 shadow-sm"
+                      ? "bg-white text-blue-600 shadow-sm font-medium"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
@@ -137,7 +137,7 @@ export default function Events() {
                   <div key={event._id} className="bg-white rounded-lg shadow-sm border overflow-hidden">
                     {/* Cover Image */}
                     {event.coverImage && (
-                      <div className="h-48 w-full">
+                      <div className="h-48 sm:h-56 md:h-64 lg:h-72 w-full">
                         <img
                           src={event.coverImage}
                           alt={event.title}
@@ -204,17 +204,17 @@ export default function Events() {
                           </div>
                         </div>
                         
-                        <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                           <Link
                             to={`/events/${event._id}`}
-                            className="btn-outline text-xs sm:text-sm px-3 sm:px-4 py-2 text-center touch-target"
+                            className="btn-outline text-sm sm:text-sm px-4 py-3 sm:py-2 text-center touch-manipulation min-h-[44px] flex items-center justify-center font-medium"
                           >
                             Xem chi tiết
                           </Link>
                           {upcoming && event.userRole !== 'creator' && event.userRole !== 'attendee' && event.userRole !== 'interested' && event.userRole !== 'declined' && (
                             <button 
                               onClick={() => handleJoinEvent(event._id)}
-                              className="btn text-xs sm:text-sm px-3 sm:px-4 py-2 touch-target"
+                              className="btn text-sm sm:text-sm px-4 py-3 sm:py-2 touch-manipulation min-h-[44px] flex items-center justify-center font-medium"
                             >
                               Tham gia
                             </button>

@@ -1,7 +1,29 @@
 import { Router } from "express";
 const router = Router();
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import { 
+  registerSchema, 
+  loginSchema, 
+  updateProfileSchema,
+  validate,
+  sanitizeHtml 
+} from "../middleware/validation.js";
+import { 
+  generateTokenPair, 
+  refreshAccessToken, 
+  logout,
+  refreshTokenLimiter 
+} from "../middleware/jwtSecurity.js";
+import { 
+  authLogger,
+  logSecurityEvent,
+  SECURITY_EVENTS,
+  LOG_LEVELS 
+} from "../middleware/securityLogging.js";
 
 /**
  * POST /forgot-password - Quên mật khẩu
@@ -9,31 +31,44 @@ import { sendEmail } from "../utils/sendEmail.js";
  * @param {string} req.body.email - Email cần reset password
  * @returns {Object} Thông báo đã gửi email
  */
-router.post("/forgot-password", async (req, res, next) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: "Vui lòng nhập email" });
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "Email không tồn tại" });
+router.post("/forgot-password", 
+  validate(loginSchema, 'body'),
+  async (req, res, next) => {
+    try {
+      const { email } = req.body;
+      const user = await User.findOne({ email });
+      
+      // Luôn trả về success để tránh email enumeration
+      if (!user) {
+        return res.json({ message: "Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu!" });
+      }
 
-    // Tạo mã token reset với thời hạn 30 phút
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + 1000 * 60 * 30;
-    await user.save();
+      // Tạo mã token reset với thời hạn 30 phút
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      user.resetPasswordToken = resetToken;
+      user.resetPasswordExpires = Date.now() + 1000 * 60 * 30;
+      await user.save();
 
-    // Gửi email reset password
-    const resetLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`;
-    await sendEmail({
-      to: email,
-      subject: "Đặt lại mật khẩu Shiku",
-      html: `<p>Chào bạn,<br/>Bạn vừa yêu cầu đặt lại mật khẩu. Nhấn vào link bên dưới để đặt lại mật khẩu mới:</p>
-      <p><a href='${resetLink}'>Đặt lại mật khẩu</a></p>
-      <p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`
-    });
-    res.json({ message: "Đã gửi email hướng dẫn đặt lại mật khẩu!" });
-  } catch (e) { next(e); }
-});
+      // Log security event
+      logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.PASSWORD_RESET, {
+        email: email,
+        ip: req.ip
+      }, req);
+
+      // Gửi email reset password
+      const resetLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`;
+      await sendEmail({
+        to: email,
+        subject: "Đặt lại mật khẩu Shiku",
+        html: `<p>Chào bạn,<br/>Bạn vừa yêu cầu đặt lại mật khẩu. Nhấn vào link bên dưới để đặt lại mật khẩu mới:</p>
+        <p><a href='${resetLink}'>Đặt lại mật khẩu</a></p>
+        <p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`
+      });
+      
+      res.json({ message: "Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu!" });
+    } catch (e) { next(e); }
+  }
+);
 
 /**
  * POST /reset-password - Đặt lại mật khẩu qua token
