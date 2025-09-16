@@ -1,85 +1,244 @@
-# Shiku Blog & Chat
+# 🔒 MyBlog - Secure Social Media Platform
 
-Một nền tảng blog + chat hiện đại, fullstack: đăng ký/đăng nhập (JWT), viết/sửa/xoá bài, tag, tìm kiếm, bình luận, like, upload ảnh (local/Cloudinary), phân trang, chat Messenger-style, admin dashboard, feedback, settings, support, phân quyền, responsive, deploy Railway.
+A comprehensive social media platform built with Node.js, Express, MongoDB, and React, featuring enterprise-grade security implementations.
 
-## Tính năng chính
-- Đăng ký/Đăng nhập/JWT
-- Quản lý bài viết: tạo, sửa, xoá, like, bình luận, tag, tìm kiếm
-- Upload ảnh: local hoặc Cloudinary
-- Chat Messenger-style: popup, dropdown, gửi ảnh, xem lịch sử
-- Admin Dashboard: quản lý user, cấm user, gửi thông báo, xem góp ý
-- Trang Settings: quản lý tài khoản, đổi mật khẩu, xoá tài khoản
-- Trang Support: gửi góp ý/feedback
-- Phân quyền: user thường, admin
-- Responsive UI, sticky header, infinite scroll
-- Tìm kiếm user/bài viết, dropdown chat, popup chat
-- Triển khai Railway, cấu hình CI/CD
+## ✨ Features
 
-## Cấu trúc thư mục
-```
-MyBlog/
-├─ client/      # React + Vite + Tailwind
-│  ├─ src/
-│  │  ├─ pages/ (Home, Login, Register, Profile, Settings, Support, AdminDashboard, Chat...)
-│  │  ├─ components/ (Navbar, ChatDropdown, ChatPopup, PostCard, ...)
-│  │  ├─ api.js, styles.css
-│  └─ public/
-├─ server/      # Node.js + Express + MongoDB
-│  ├─ src/
-│  │  ├─ models/ (User, Post, Comment, Message, Notification, ...)
-│  │  ├─ routes/ (auth, posts, comments, messages, notifications, feedback, ...)
-│  │  ├─ services/ (NotificationService, ...)
-│  │  └─ index.js
-│  └─ .env.example
-├─ railway.json # Railway deploy config
-├─ .gitignore
-└─ README.md
-```
+### 🛡️ Security Features
+- **Input Validation**: Joi schema validation for all inputs
+- **File Upload Security**: Magic bytes detection, type validation, size limits
+- **NoSQL Injection Protection**: Regex escaping, safe query builders
+- **JWT Security**: Refresh tokens, token blacklist, short-lived access tokens
+- **Rate Limiting**: Multiple rate limiters for different endpoints
+- **Security Logging**: Comprehensive security event monitoring
+- **XSS Protection**: HTML sanitization and CSP headers
+- **CORS Protection**: Strict origin validation
 
-## Hướng dẫn chạy local
+### 🚀 Core Features
+- **User Authentication**: Secure login/register with password reset
+- **Social Features**: Posts, comments, likes, friends system
+- **Real-time Chat**: Socket.IO powered messaging
+- **File Uploads**: Secure image/video/document uploads
+- **Groups & Events**: Community features
+- **Admin Panel**: User management and moderation
+- **Responsive Design**: Mobile-first UI
+
+## 🏗️ Tech Stack
+
 ### Backend
-```bash
-cd server
-cp .env.example .env # điền MONGODB_URI, JWT_SECRET, CLOUDINARY_URL
-npm install
-npm run dev
-```
-Backend chạy ở `http://localhost:4000`
+- **Node.js** + **Express.js**
+- **MongoDB** + **Mongoose**
+- **JWT** + **bcryptjs**
+- **Socket.IO** for real-time features
+- **Cloudinary** for file storage
+- **Nodemailer** for email services
 
 ### Frontend
+- **React** + **Vite**
+- **Tailwind CSS**
+- **Axios** for API calls
+- **Socket.IO Client**
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js (v16+)
+- MongoDB
+- Cloudinary account
+- SMTP email service
+
+### Installation
+
+1. **Clone the repository**
 ```bash
-cd client
+git clone https://github.com/yourusername/myblog.git
+cd myblog
+```
+
+2. **Install dependencies**
+```bash
+# Backend
+cd server
 npm install
+
+# Frontend
+cd ../client
+npm install
+```
+
+3. **Environment Setup**
+```bash
+# Copy environment template
+cp server/env.example server/.env
+cp client/.env.example client/.env
+
+# Edit with your actual values
+nano server/.env
+nano client/.env
+```
+
+4. **Start the application**
+```bash
+# Start backend (from server directory)
+npm run dev
+
+# Start frontend (from client directory)
 npm run dev
 ```
-Frontend chạy ở `http://localhost:5173`
 
-## Deploy Railway
-1. Push code lên GitHub: [sonvu2107/shiku](https://github.com/sonvu2107/shiku)
-2. Truy cập https://railway.app, tạo project mới, kết nối với repo.
-3. Thiết lập biến môi trường `.env` cho server (MongoDB URI, JWT secret, Cloudinary, ...).
-4. Railway sẽ tự động build và deploy.
+## 🔧 Environment Variables
 
-## Biến môi trường
-- Tạo file `.env` trong `server/` với các biến:
+### Backend (.env)
+```env
+# Database
+MONGODB_URI=mongodb://localhost:27017/myblog
+
+# JWT Secrets (generate strong secrets)
+JWT_SECRET=your-super-secret-jwt-key-at-least-32-characters-long
+JWT_REFRESH_SECRET=your-super-secret-refresh-key-at-least-32-characters-long
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+
+# SMTP
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
 ```
-MONGODB_URI=...
-JWT_SECRET=...
-CLOUDINARY_URL=...
+
+### Frontend (.env)
+```env
+VITE_API_URL=http://localhost:4000
+VITE_SOCKET_URL=http://localhost:4000
 ```
 
-## Các endpoint chính
-- Đăng nhập/Đăng ký: `/api/auth/register`, `/api/auth/login`, `/api/auth/me`
-- Bài viết: `/api/posts`, `/api/posts/:id`, `/api/posts/slug/:slug`, `/api/posts/:id/like`
-- Bình luận: `/api/comments/post/:postId`, `/api/comments/:id`
-- Chat: `/api/messages`, `/api/conversations`, ...
-- Thông báo: `/api/notifications`, `/api/notifications/system`, `/api/notifications/broadcast`
-- Góp ý/feedback: `/api/support/feedback`
-- Quản lý user: `/api/admin/users`, `/api/admin/ban-user`, `/api/admin/unban-user`
+## 🧪 Security Testing
 
-## Ghi chú
-- UI sử dụng Tailwind, tối ưu responsive, sticky header, infinite scroll
-- Đã có Messenger-style chat popup, dropdown, phân quyền, admin dashboard, feedback
-- Không còn dark mode ở Settings
-- Đã có .gitignore, railway.json, hướng dẫn deploy
-- Nếu cần thêm hướng dẫn CI/CD, badge, hoặc tính năng mới, hãy liên hệ!
+Run comprehensive security tests:
+
+```bash
+cd server
+npm run test:security
+```
+
+## 📁 Project Structure
+
+```
+myblog/
+├── client/                 # React frontend
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   ├── pages/         # Page components
+│   │   ├── utils/         # Utility functions
+│   │   └── styles/        # CSS styles
+│   └── public/            # Static assets
+├── server/                # Node.js backend
+│   ├── src/
+│   │   ├── middleware/    # Security & validation middleware
+│   │   ├── routes/        # API routes
+│   │   ├── models/        # MongoDB models
+│   │   ├── utils/         # Utility functions
+│   │   └── config/        # Configuration files
+│   ├── scripts/           # Utility scripts
+│   └── logs/              # Security logs
+└── docs/                  # Documentation
+```
+
+## 🔒 Security Implementation
+
+This project implements enterprise-grade security features:
+
+### Input Validation
+- Joi schema validation for all API endpoints
+- XSS protection through HTML sanitization
+- SQL/NoSQL injection prevention
+- File upload validation with magic bytes detection
+
+### Authentication & Authorization
+- JWT with refresh token system
+- Password strength requirements
+- Token blacklisting on logout
+- Role-based access control
+
+### Rate Limiting
+- Multiple rate limiters for different endpoints
+- IP-based and user-based limiting
+- Graceful degradation
+
+### Security Monitoring
+- Comprehensive security event logging
+- Suspicious activity detection
+- Real-time monitoring dashboard
+
+## 📊 API Documentation
+
+### Authentication Endpoints
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/refresh` - Refresh access token
+- `POST /api/auth/logout` - User logout
+- `POST /api/auth/forgot-password` - Password reset request
+- `POST /api/auth/reset-password` - Password reset
+
+### Posts Endpoints
+- `GET /api/posts` - Get posts with pagination
+- `POST /api/posts` - Create new post
+- `GET /api/posts/:id` - Get post by ID
+- `PUT /api/posts/:id` - Update post
+- `DELETE /api/posts/:id` - Delete post
+
+### File Upload Endpoints
+- `POST /api/uploads/single` - Upload single file
+- `POST /api/uploads/media` - Upload multiple files
+- `POST /api/uploads/avatar` - Upload avatar
+- `DELETE /api/uploads/:publicId` - Delete file
+
+## 🚀 Deployment
+
+### Production Checklist
+- [ ] Set strong JWT secrets
+- [ ] Configure production database
+- [ ] Set up Cloudinary account
+- [ ] Configure SMTP service
+- [ ] Set up SSL/TLS certificates
+- [ ] Configure CORS origins
+- [ ] Set up monitoring and logging
+- [ ] Run security tests
+
+### Docker Deployment
+```bash
+# Build and run with Docker
+docker-compose up -d
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run security tests
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+For support and questions:
+- Create an issue on GitHub
+- Check the [Security Documentation](server/SECURITY.md)
+- Review the [API Documentation](docs/API.md)
+
+## 🔗 Links
+
+- [Live Demo](https://your-demo-url.com)
+- [API Documentation](https://your-api-docs.com)
+- [Security Report](https://your-security-report.com)
+
+---
+
+**⚠️ Security Notice**: This project implements comprehensive security features. Always use strong secrets in production and keep dependencies updated.

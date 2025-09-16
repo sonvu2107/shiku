@@ -1,0 +1,56 @@
+{
+  "name": "myblog-server-secure",
+  "version": "2.0.0",
+  "description": "Secure MyBlog Server with comprehensive security features",
+  "main": "src/index-secure.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index-secure.js",
+    "dev": "nodemon src/index-secure.js",
+    "dev:original": "nodemon src/index.js",
+    "test:security": "node scripts/test-security.js",
+    "audit:security": "npm audit && npm audit --audit-level moderate",
+    "lint:security": "eslint src/ --ext .js --config .eslintrc.security.js",
+    "validate:env": "node scripts/validate-env.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1",
+    "dotenv-safe": "^8.2.0",
+    "joi": "^17.9.2",
+    "express-validator": "^7.0.1",
+    "express-rate-limit": "^6.10.0",
+    "multer": "^1.4.5-lts.1",
+    "cloudinary": "^1.40.0",
+    "streamifier": "^0.1.1",
+    "file-type": "^18.5.0",
+    "socket.io": "^4.7.2",
+    "nodemailer": "^6.9.4",
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "eslint": "^8.47.0"
+  },
+  "keywords": [
+    "blog",
+    "express",
+    "mongodb",
+    "security",
+    "jwt",
+    "authentication",
+    "file-upload",
+    "validation"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
