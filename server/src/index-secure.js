@@ -137,8 +137,8 @@ app.use(suspiciousActivityDetector);
 app.use(rateLimitLogger);
 app.use(unauthorizedAccessLogger);
 
-// Rate limiting cho tất cả API routes
-app.use("/api", apiLimiter);
+// Rate limiting cho tất cả API routes - REMOVED to avoid double limiting
+// app.use("/api", apiLimiter); // Bỏ để tránh double rate limiting
 
 // ==================== STATIC FILES ====================
 
@@ -199,6 +199,18 @@ app.get("/health", (req, res) => {
       fileUploadSecurity: true,
       jwtSecurity: true
     }
+  });
+});
+
+// Heartbeat endpoint for monitoring services (Railway, Netlify, etc.)
+app.get("/heartbeat", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    environment: process.env.NODE_ENV || "development",
+    connectedSockets: connectedUsers.size
   });
 });
 

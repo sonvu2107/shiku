@@ -121,8 +121,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rate limiting cho tất cả API routes
-app.use("/api", apiLimiter);
+// Rate limiting cho tất cả API routes - REMOVED to avoid double limiting
+// app.use("/api", apiLimiter); // Bỏ để tránh double rate limiting
 
 // ==================== STATIC FILES ====================
 
@@ -166,6 +166,18 @@ app.get("/health", (req, res) => {
     connectedSockets: connectedUsers.size,
     nodeVersion: process.version,
     environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Heartbeat endpoint for monitoring services (Railway, Netlify, etc.)
+app.get("/heartbeat", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    environment: process.env.NODE_ENV || "development",
+    connectedSockets: connectedUsers.size
   });
 });
 

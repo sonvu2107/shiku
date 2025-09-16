@@ -34,7 +34,7 @@ const createKeyGenerator = () => (req) => {
   return clientIP;
 };
 
-// General API rate limiter - increased for better UX
+// General API rate limiter - increased for better UX (DISABLED to avoid double limiting)
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000, // Increased from 300 to 1000 requests per windowMs
@@ -98,7 +98,7 @@ export const uploadLimiter = rateLimit({
 // Message rate limiter to prevent spam - increased for active users
 export const messageLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 60, // Increased from 30 to 60 messages per minute
+  max: 100, // Increased from 60 to 100 messages per minute
   standardHeaders: true,
   legacyHeaders: false,
   // Custom handler thay vì message
@@ -116,7 +116,7 @@ export const messageLimiter = rateLimit({
 // Posts-specific rate limiter for infinite scroll
 export const postsLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // 200 post requests per 15 minutes
+  max: 500, // Increased from 200 to 500 post requests per 15 minutes
   standardHeaders: true,
   legacyHeaders: false,
   // Custom handler thay vì message
