@@ -5,6 +5,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 // Import các components chính
 import Navbar from "./components/Navbar.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import { ToastContainer, useToast } from "./components/Toast.jsx";
 
 // Import các pages
 import Home from "./pages/Home.jsx";
@@ -28,6 +29,9 @@ import GroupDetail from "./pages/GroupDetail.jsx";
 import CreateGroup from "./pages/CreateGroup.jsx";
 import Explore from "./pages/Explore.jsx";
 import Events from "./pages/Events.jsx";
+import CreateEvent from "./pages/CreateEvent.jsx";
+import EventDetail from "./pages/EventDetail.jsx";
+import EditEvent from "./pages/EditEvent.jsx";
 import Media from "./pages/Media.jsx";
 
 // Import các utilities và services
@@ -46,6 +50,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   // Hook để lấy thông tin location hiện tại
   const location = useLocation();
+  // Toast notifications
+  const { toasts, removeToast } = useToast();
 
   // Danh sách các trang không hiển thị navbar
   const hideNavbarPages = ["/login", "/register"];
@@ -130,6 +136,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      
       {/* Hiển thị navbar cho tất cả trang trừ login/register và chat */}
       {!shouldHideNavbar && location.pathname !== "/chat" && (
         <Navbar user={user} setUser={setUser} />
@@ -177,6 +186,9 @@ export default function App() {
             <Route path="/groups/create" element={<ProtectedRoute user={user}><CreateGroup /></ProtectedRoute>} />
             <Route path="/explore" element={<ProtectedRoute user={user}><Explore /></ProtectedRoute>} />
             <Route path="/events" element={<ProtectedRoute user={user}><Events /></ProtectedRoute>} />
+            <Route path="/events/create" element={<ProtectedRoute user={user}><CreateEvent /></ProtectedRoute>} />
+            <Route path="/events/:id" element={<ProtectedRoute user={user}><EventDetail /></ProtectedRoute>} />
+            <Route path="/events/:id/edit" element={<ProtectedRoute user={user}><EditEvent /></ProtectedRoute>} />
             <Route path="/media" element={<ProtectedRoute user={user}><Media /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute user={user}><NotificationHistory /></ProtectedRoute>} />
             

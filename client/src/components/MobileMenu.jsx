@@ -11,7 +11,10 @@ import {
   Settings, 
   LogOut,
   User,
-  Crown
+  Crown,
+  Compass,
+  Calendar,
+  Image
 } from "lucide-react";
 
 /**
@@ -39,6 +42,9 @@ export default function MobileMenu({ user, setUser }) {
 
   const menuItems = user ? [
     { icon: Home, label: "Trang chủ", path: "/", show: true },
+    { icon: Compass, label: "Khám phá", path: "/explore", show: true },
+    { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
+    { icon: Image, label: "Media", path: "/media", show: true },
     { icon: Users, label: "Bạn bè", path: "/friends", show: true },
     { icon: UserCheck, label: "Nhóm", path: "/groups", show: true },
     { icon: MessageCircle, label: "Chat", path: "/chat", show: true },
@@ -48,6 +54,9 @@ export default function MobileMenu({ user, setUser }) {
     { icon: Crown, label: "Admin", path: "/admin", show: user.role === "admin", isAdmin: true },
   ] : [
     { icon: Home, label: "Trang chủ", path: "/", show: true },
+    { icon: Compass, label: "Khám phá", path: "/explore", show: true },
+    { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
+    { icon: Image, label: "Media", path: "/media", show: true },
   ];
 
   return (
@@ -70,11 +79,11 @@ export default function MobileMenu({ user, setUser }) {
       )}
 
       {/* Slide-out Menu */}
-      <div className={`fixed top-0 left-0 h-full w-80 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
+      <div className={`fixed top-0 left-0 h-full w-80 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out md:hidden flex flex-col ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
           <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
           <button
             onClick={() => setIsOpen(false)}
@@ -87,7 +96,7 @@ export default function MobileMenu({ user, setUser }) {
 
         {/* User Info */}
         {user && (
-          <div className="p-4 border-b border-gray-200">
+          <div className="p-4 border-b border-gray-200 flex-shrink-0">
             <div className="flex items-center gap-3">
               <img
                 src={user.avatarUrl || `https://ui-avatars.io/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
@@ -102,9 +111,9 @@ export default function MobileMenu({ user, setUser }) {
           </div>
         )}
 
-        {/* Menu Items */}
-        <nav className="flex-1 overflow-y-auto">
-          <div className="py-2">
+        {/* Menu Items - Scrollable Area */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <nav className="py-2">
             {menuItems.map((item) => {
               if (!item.show) return null;
               
@@ -125,12 +134,12 @@ export default function MobileMenu({ user, setUser }) {
                 </Link>
               );
             })}
-          </div>
-        </nav>
+          </nav>
+        </div>
 
         {/* Footer Actions */}
         {user && (
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-gray-200 flex-shrink-0">
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 transition-colors touch-target"
@@ -142,7 +151,7 @@ export default function MobileMenu({ user, setUser }) {
         )}
 
         {!user && (
-          <div className="p-4 border-t border-gray-200 space-y-2">
+          <div className="p-4 border-t border-gray-200 space-y-2 flex-shrink-0">
             <Link
               to="/login"
               onClick={() => setIsOpen(false)}

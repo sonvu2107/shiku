@@ -26,6 +26,33 @@ const uploadFile = (file) => {
   });
 };
 
+// Upload single file (ảnh/video)
+router.post("/", authRequired, upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Không có file được tải lên"
+      });
+    }
+
+    const result = await uploadFile(req.file);
+    
+    res.json({
+      success: true,
+      url: result.url,
+      type: result.type,
+      message: "Upload thành công"
+    });
+  } catch (error) {
+    console.error("Upload error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi upload file"
+    });
+  }
+});
+
 // Upload nhiều file (ảnh/video)
 router.post("/media", authRequired, upload.array("files", 10), async (req, res) => {
   try {

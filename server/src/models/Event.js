@@ -12,6 +12,10 @@ const eventSchema = new mongoose.Schema({
     required: true,
     maxlength: 2000
   },
+  coverImage: {
+    type: String,
+    default: null
+  },
   date: {
     type: Date,
     required: true
@@ -30,6 +34,14 @@ const eventSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  interested: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  declined: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   maxAttendees: {
     type: Number,
     min: 1
@@ -45,6 +57,10 @@ const eventSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  isHidden: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
@@ -59,6 +75,16 @@ eventSchema.index({ title: 'text', description: 'text', location: 'text' });
 // Virtual for attendee count
 eventSchema.virtual('attendeeCount').get(function() {
   return this.attendees.length;
+});
+
+// Virtual for interested count
+eventSchema.virtual('interestedCount').get(function() {
+  return this.interested.length;
+});
+
+// Virtual for declined count
+eventSchema.virtual('declinedCount').get(function() {
+  return this.declined.length;
 });
 
 // Virtual for isUpcoming
@@ -81,15 +107,54 @@ eventSchema.methods.isAttendee = function(userId) {
   return this.attendees.some(attendee => attendee.toString() === userId.toString());
 };
 
+eventSchema.methods.isInterested = function(userId) {
+  return this.interested.some(user => user.toString() === userId.toString());
+};
+
+eventSchema.methods.isDeclined = function(userId) {
+  return this.declined.some(user => user.toString() === userId.toString());
+};
+
 eventSchema.methods.addAttendee = function(userId) {
   if (!this.isAttendee(userId)) {
     this.attendees.push(userId);
+    // Remove from interested and declined lists
+    this.interested = this.interested.filter(id => id.toString() !== userId.toString());
+    this.declined = this.declined.filter(id => id.toString() !== userId.toString());
   }
   return this.save();
 };
 
 eventSchema.methods.removeAttendee = function(userId) {
   this.attendees = this.attendees.filter(attendee => attendee.toString() !== userId.toString());
+  return this.save();
+};
+
+eventSchema.methods.addInterested = function(userId) {
+  if (!this.isInterested(userId) && !this.isAttendee(userId)) {
+    this.interested.push(userId);
+    // Remove from declined list
+    this.declined = this.declined.filter(id => id.toString() !== userId.toString());
+  }
+  return this.save();
+};
+
+eventSchema.methods.removeInterested = function(userId) {
+  this.interested = this.interested.filter(id => id.toString() !== userId.toString());
+  return this.save();
+};
+
+eventSchema.methods.addDeclined = function(userId) {
+  if (!this.isDeclined(userId) && !this.isAttendee(userId)) {
+    this.declined.push(userId);
+    // Remove from interested list
+    this.interested = this.interested.filter(id => id.toString() !== userId.toString());
+  }
+  return this.save();
+};
+
+eventSchema.methods.removeDeclined = function(userId) {
+  this.declined = this.declined.filter(id => id.toString() !== userId.toString());
   return this.save();
 };
 

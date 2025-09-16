@@ -34,7 +34,7 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
       ...headers,
     },
     credentials: "include", // Bao gồm cookies trong request
-    body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+    body: body ? (isFormData ? body : (typeof body === 'string' ? body : JSON.stringify(body))) : undefined,
   };
 
   // Chỉ set Content-Type cho JSON, không set cho FormData
