@@ -391,3 +391,6 @@ export const cleanupOldLogs = () => {
 
 // Cleanup old logs mỗi ngày
 setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000);
+
+// Export constants
+export { LOG_LEVELS, SECURITY_EVENTS };
