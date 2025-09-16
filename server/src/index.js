@@ -42,6 +42,9 @@ dotenv.config();
 const app = express();
 const server = createServer(app);
 
+// Trust proxy để rate limiting hoạt động đúng với reverse proxy (Railway, Heroku, etc.)
+app.set("trust proxy", 1);
+
 // Danh sách các origin được phép truy cập (CORS)
 const allowedOrigins = [
   "http://localhost:5173", // Vite dev server default

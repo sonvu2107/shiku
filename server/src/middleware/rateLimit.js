@@ -1,5 +1,21 @@
 import rateLimit from "express-rate-limit";
 
+// Helper function để log rate limit info
+const logRateLimitInfo = (req, message) => {
+  const clientIP = req.ip;
+  const forwardedFor = req.get('X-Forwarded-For');
+  const realIP = req.get('X-Real-IP');
+  
+  console.log(`🚦 Rate Limit: ${message}`, {
+    clientIP,
+    forwardedFor,
+    realIP,
+    userAgent: req.get('User-Agent'),
+    url: req.url,
+    method: req.method
+  });
+};
+
 // General API rate limiter - increased for better UX
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -14,6 +30,28 @@ export const apiLimiter = rateLimit({
     // Skip rate limiting for local development
     const allowedIPs = ['127.0.0.1', '::1', 'localhost'];
     return process.env.NODE_ENV === 'development' && allowedIPs.includes(req.ip);
+  },
+  // Log khi rate limit bị trigger
+  onLimitReached: (req, res, options) => {
+    logRateLimitInfo(req, 'API Rate limit reached');
+  },
+  // Custom key generator để handle proxy IPs
+  keyGenerator: (req) => {
+    // Ưu tiên X-Forwarded-For nếu có, sau đó X-Real-IP, cuối cùng là req.ip
+    const forwardedFor = req.get('X-Forwarded-For');
+    const realIP = req.get('X-Real-IP');
+    const clientIP = req.ip;
+    
+    if (forwardedFor) {
+      // Lấy IP đầu tiên từ X-Forwarded-For (client IP thật)
+      return forwardedFor.split(',')[0].trim();
+    }
+    
+    if (realIP) {
+      return realIP;
+    }
+    
+    return clientIP;
   }
 });
 
@@ -26,7 +64,27 @@ export const authLimiter = rateLimit({
   message: {
     error: "Quá nhiều lần đăng nhập thất bại, vui lòng thử lại sau 15 phút"
   },
-  skipSuccessfulRequests: true // Don't count successful requests
+  skipSuccessfulRequests: true, // Don't count successful requests
+  // Log khi auth rate limit bị trigger
+  onLimitReached: (req, res, options) => {
+    logRateLimitInfo(req, 'Auth Rate limit reached');
+  },
+  // Custom key generator để handle proxy IPs
+  keyGenerator: (req) => {
+    const forwardedFor = req.get('X-Forwarded-For');
+    const realIP = req.get('X-Real-IP');
+    const clientIP = req.ip;
+    
+    if (forwardedFor) {
+      return forwardedFor.split(',')[0].trim();
+    }
+    
+    if (realIP) {
+      return realIP;
+    }
+    
+    return clientIP;
+  }
 });
 
 // Upload rate limiter - increased for content creators

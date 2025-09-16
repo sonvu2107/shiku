@@ -29,6 +29,7 @@ import {
   rateLimitLogger,
   unauthorizedAccessLogger
 } from "./middleware/securityLogging.js";
+import { proxyDebugMiddleware } from "./middleware/proxyDebug.js";
 
 // Import tất cả routes
 import authRoutes from "./routes/auth-secure.js"; // Secure authentication routes
@@ -55,6 +56,9 @@ validateEnvVars();
 // Tạo Express app và HTTP server
 const app = express();
 const server = createServer(app);
+
+// Trust proxy để rate limiting hoạt động đúng với reverse proxy (Railway, Heroku, etc.)
+app.set("trust proxy", 1);
 
 // Tạo Socket.IO server với CORS configuration và improved settings
 const io = new Server(server, {
@@ -117,6 +121,7 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(requestTimeout(30000));
 
 // Security logging middleware
+app.use(proxyDebugMiddleware); // Debug proxy info
 app.use(requestLogger);
 app.use(authLogger);
 app.use(fileUploadLogger);
