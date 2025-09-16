@@ -6,8 +6,111 @@ import jwt from "jsonwebtoken";
 import { authRequired, authOptional } from "../middleware/auth.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
 import { paginate } from "../utils/paginate.js";
+import mongoose from "mongoose";
 
 const router = express.Router();
+
+// Get current user's posts (both published and private)
+router.get("/my-posts", authRequired, async (req, res, next) => {
+  try {
+    const { page = 1, limit = 100, status } = req.query;
+    const filter = { author: req.user._id };
+    
+    // If status is specified, filter by it, otherwise get both published and private
+    if (status === "published" || status === "private") {
+      filter.status = status;
+    } else {
+      // Get both published and private posts
+      filter.$or = [
+        { status: "published" },
+        { status: "private" }
+      ];
+    }
+    
+    // Exclude group posts from personal profile
+    filter.$and = [
+      {
+        $or: [
+          { group: { $exists: false } },
+          { group: null }
+        ]
+      }
+    ];
+    
+    const posts = await Post.find(filter)
+      .populate("author", "name avatarUrl")
+      .populate("group", "name")
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    const total = await Post.countDocuments(filter);
+    
+    res.json({
+      posts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get posts by specific user ID (public posts only)
+router.get("/user-posts", authOptional, async (req, res, next) => {
+  try {
+    const { userId, page = 1, limit = 100 } = req.query;
+    
+    if (!userId || userId === "undefined") {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+    
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: "User ID không hợp lệ" });
+    }
+    
+    const filter = { 
+      author: userId,
+      status: "published" // Only public posts
+    };
+    
+    // Exclude group posts from user profile
+    filter.$and = [
+      {
+        $or: [
+          { group: { $exists: false } },
+          { group: null }
+        ]
+      }
+    ];
+    
+    const posts = await Post.find(filter)
+      .populate("author", "name avatarUrl")
+      .populate("group", "name")
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    const total = await Post.countDocuments(filter);
+    
+    res.json({
+      posts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // List with filters & search
 router.get("/", authOptional, async (req, res, next) => {
@@ -17,7 +120,7 @@ router.get("/", authOptional, async (req, res, next) => {
 
     if (status === "private") {
       if (!req.user) return res.status(401).json({ error: "Cần đăng nhập để xem bài riêng tư" });
-      if (author !== req.user._id.toString()) {
+      if (author && author !== "undefined" && author !== req.user._id.toString()) {
         return res.status(403).json({ error: "Chỉ có thể xem bài riêng tư của chính mình" });
       }
       filter.status = "private";
@@ -45,7 +148,13 @@ router.get("/", authOptional, async (req, res, next) => {
     }
 
     if (tag) filter.tags = tag;
-    if (author && status !== "private") filter.author = author;
+    if (author && author !== "undefined" && status !== "private") {
+      // Validate MongoDB ObjectId
+      if (!mongoose.Types.ObjectId.isValid(author)) {
+        return res.status(400).json({ error: "ID không hợp lệ" });
+      }
+      filter.author = author;
+    }
 
     if (q) {
       const trimmedQuery = q.trim();
