@@ -239,7 +239,7 @@ io.use(async (socket, next) => {
   }
 });
 
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
   // Store connection info
   connectedUsers.set(socket.id, {
     userId: socket.userId,
@@ -248,13 +248,37 @@ io.on("connection", (socket) => {
     connectedAt: new Date()
   });
 
+  // Cập nhật trạng thái online khi user kết nối
+  if (socket.userId) {
+    try {
+      await User.findByIdAndUpdate(socket.userId, {
+        isOnline: true,
+        lastSeen: new Date()
+      });
+      
+      // Thông báo cho tất cả bạn bè về trạng thái online
+      const user = await User.findById(socket.userId).populate('friends', '_id');
+      if (user && user.friends) {
+        user.friends.forEach(friend => {
+          io.to(`user-${friend._id}`).emit('friend-online', {
+            userId: socket.userId,
+            isOnline: true,
+            lastSeen: new Date()
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Error updating user online status:", error);
+    }
+  }
+
   // ==================== WEBRTC CALL SIGNALING ====================
   
   // WebRTC signaling - xử lý call offer với error handling
   socket.on("call-offer", ({ offer, conversationId, isVideo }) => {
     try {
       if (!conversationId) {
-        console.warn("❌ Invalid conversationId in call-offer");
+        console.warn("Invalid conversationId in call-offer");
         return;
       }
       
@@ -268,7 +292,7 @@ io.on("connection", (socket) => {
         isVideo: isVideo || false // Phân biệt voice/video call
       });
     } catch (error) {
-      console.error("❌ Error handling call-offer:", error);
+      console.error("Error handling call-offer:", error);
     }
   });
 
@@ -276,7 +300,7 @@ io.on("connection", (socket) => {
   socket.on("call-answer", ({ answer, conversationId }) => {
     try {
       if (!conversationId) {
-        console.warn("❌ Invalid conversationId in call-answer");
+        console.warn("Invalid conversationId in call-answer");
         return;
       }
       // Gửi answer về cho caller
@@ -285,7 +309,7 @@ io.on("connection", (socket) => {
         conversationId
       });
     } catch (error) {
-      console.error("❌ Error handling call-answer:", error);
+      console.error("Error handling call-answer:", error);
     }
   });
 
@@ -293,7 +317,7 @@ io.on("connection", (socket) => {
   socket.on("call-candidate", ({ candidate, conversationId }) => {
     try {
       if (!conversationId) {
-        console.warn("❌ Invalid conversationId in call-candidate");
+        console.warn("Invalid conversationId in call-candidate");
         return;
       }
       // Gửi ICE candidate đến các users khác
@@ -302,7 +326,7 @@ io.on("connection", (socket) => {
         conversationId
       });
     } catch (error) {
-      console.error("❌ Error handling call-candidate:", error);
+      console.error("Error handling call-candidate:", error);
     }
   });
 
@@ -310,7 +334,7 @@ io.on("connection", (socket) => {
   socket.on("call-end", ({ conversationId }) => {
     try {
       if (!conversationId) {
-        console.warn("❌ Invalid conversationId in call-end");
+        console.warn("Invalid conversationId in call-end");
         return;
       }
       // Thông báo kết thúc cuộc gọi đến tất cả users trong conversation
@@ -318,7 +342,7 @@ io.on("connection", (socket) => {
         conversationId
       });
     } catch (error) {
-      console.error("❌ Error handling call-end:", error);
+      console.error("Error handling call-end:", error);
     }
   });
 
@@ -326,7 +350,7 @@ io.on("connection", (socket) => {
   socket.on("join-user", (userId) => {
     try {
       if (!userId) {
-        console.warn("❌ Invalid userId in join-user");
+        console.warn("Invalid userId in join-user");
         return;
       }
       socket.join(`user-${userId}`);
@@ -336,31 +360,31 @@ io.on("connection", (socket) => {
         userInfo.joinedRooms.add(`user-${userId}`);
       }
     } catch (error) {
-      console.error("❌ Error in join-user:", error);
+      console.error("Error in join-user:", error);
     }
   });
 
   // Join conversation room để nhận messages real-time
   socket.on("join-conversation", (conversationId) => {
     try {
-      console.log('🔥 Server: Join conversation request:', {
+      console.log('Server: Join conversation request:', {
         socketId: socket.id,
         conversationId,
         userId: socket.userId
       });
       
       if (!conversationId) {
-        console.warn("❌ Invalid conversationId in join-conversation");
+        console.warn("Invalid conversationId in join-conversation");
         return;
       }
       
       socket.join(`conversation-${conversationId}`);
-      console.log('🔥 Server: Socket joined room:', `conversation-${conversationId}`);
+      console.log('Server: Socket joined room:', `conversation-${conversationId}`);
       
       const userInfo = connectedUsers.get(socket.id);
       if (userInfo) {
         userInfo.joinedRooms.add(`conversation-${conversationId}`);
-        console.log('🔥 Server: Updated user info with room:', userInfo.joinedRooms);
+        console.log('Server: Updated user info with room:', userInfo.joinedRooms);
       }
       
       // Emit confirmation về client
@@ -369,9 +393,9 @@ io.on("connection", (socket) => {
         success: true,
         message: "Successfully joined conversation"
       });
-      console.log('🔥 Server: Confirmation sent to client');
+      console.log('Server: Confirmation sent to client');
     } catch (error) {
-      console.error("❌ Error in join-conversation:", error);
+      console.error("Error in join-conversation:", error);
       socket.emit("conversation-joined", { 
         conversationId,
         success: false,
@@ -384,7 +408,7 @@ io.on("connection", (socket) => {
   socket.on("leave-conversation", (conversationId) => {
     try {
       if (!conversationId) {
-        console.warn("❌ Invalid conversationId in leave-conversation");
+        console.warn("Invalid conversationId in leave-conversation");
         return;
       }
       socket.leave(`conversation-${conversationId}`);
@@ -393,17 +417,42 @@ io.on("connection", (socket) => {
         userInfo.joinedRooms.delete(`conversation-${conversationId}`);
       }
     } catch (error) {
-      console.error("❌ Error in leave-conversation:", error);
+      console.error("Error in leave-conversation:", error);
     }
   });
 
   // Handle connection errors
   socket.on("error", (error) => {
-    console.error("❌ Socket error:", error);
+    console.error("Socket error:", error);
   });
 
   // Xử lý khi user disconnect với cleanup
-  socket.on("disconnect", (reason) => {
+  socket.on("disconnect", async (reason) => {
+    // Cập nhật trạng thái offline khi user ngắt kết nối
+    const userInfo = connectedUsers.get(socket.id);
+    if (userInfo && userInfo.userId) {
+      try {
+        await User.findByIdAndUpdate(userInfo.userId, {
+          isOnline: false,
+          lastSeen: new Date()
+        });
+        
+        // Thông báo cho tất cả bạn bè về trạng thái offline
+        const user = await User.findById(userInfo.userId).populate('friends', '_id');
+        if (user && user.friends) {
+          user.friends.forEach(friend => {
+            io.to(`user-${friend._id}`).emit('friend-offline', {
+              userId: userInfo.userId,
+              isOnline: false,
+              lastSeen: new Date()
+            });
+          });
+        }
+      } catch (error) {
+        console.error("Error updating user offline status:", error);
+      }
+    }
+    
     // Clean up user tracking
     connectedUsers.delete(socket.id);
   });
@@ -416,7 +465,7 @@ setInterval(() => {
   
   for (const [socketId, userInfo] of connectedUsers.entries()) {
     if (now - userInfo.connectedAt > staleThreshold) {
-      console.log(`🧹 Cleaning up stale connection: ${socketId}`);
+      console.log(`Cleaning up stale connection: ${socketId}`);
       connectedUsers.delete(socketId);
     }
   }
@@ -447,7 +496,7 @@ setInterval(() => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
   // Don't exit process in production, just log the error
   if (process.env.NODE_ENV !== 'production') {
     process.exit(1);
@@ -456,17 +505,17 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
+  console.error('Uncaught Exception:', error);
   // Graceful shutdown
-  console.log('🔄 Attempting graceful shutdown...');
+  console.log('Attempting graceful shutdown...');
   server.close(() => {
-    console.log('✅ Server closed');
+    console.log('Server closed');
     process.exit(1);
   });
   
   // Force exit if graceful shutdown takes too long
   setTimeout(() => {
-    console.error('❌ Forced shutdown');
+    console.error('Forced shutdown');
     process.exit(1);
   }, 10000);
 });
@@ -475,7 +524,7 @@ process.on('uncaughtException', (error) => {
 process.on('SIGTERM', () => {
   console.log('📡 SIGTERM received, shutting down gracefully');
   server.close(() => {
-    console.log('✅ Process terminated');
+    console.log('Process terminated');
   });
 });
 
@@ -483,7 +532,7 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
   console.log('📡 SIGINT received, shutting down gracefully');
   server.close(() => {
-    console.log('✅ Process terminated');
+    console.log('Process terminated');
   });
 });
 
@@ -497,6 +546,6 @@ connectDB(process.env.MONGODB_URI).then(() => {
     console.log("🔌 Socket.IO ready");
   });
 }).catch((error) => {
-  console.error('❌ Failed to start server:', error);
+  console.error('Failed to start server:', error);
   process.exit(1);
 });

@@ -4,6 +4,50 @@ import { authRequired } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Lấy danh sách tất cả users (chỉ admin)
+router.get('/', authRequired, async (req, res) => {
+  try {
+    // Chỉ admin mới có thể xem danh sách tất cả users
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Chỉ admin mới có quyền xem danh sách users' });
+    }
+
+    const { page = 1, limit = 20, search = '' } = req.query;
+    const skip = (page - 1) * limit;
+
+    let query = {};
+    if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query = {
+        $or: [
+          { name: { $regex: escapedSearch, $options: 'i' } },
+          { email: { $regex: escapedSearch, $options: 'i' } }
+        ]
+      };
+    }
+
+    const users = await User.find(query)
+      .select('_id name email avatarUrl bio role isOnline lastSeen isBanned createdAt')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await User.countDocuments(query);
+
+    res.json({
+      users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
 // Tìm kiếm user theo tên hoặc email
 router.get('/search', authRequired, async (req, res) => {
   try {

@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import FriendRequest from '../models/FriendRequest.js';
 import User from '../models/User.js';
 import { authRequired } from '../middleware/auth.js';
@@ -15,6 +16,16 @@ router.post('/send-request', authRequired, async (req, res) => {
   try {
     const { to } = req.body; // Đổi từ toUserId thành to
     const fromUserId = req.user._id.toString();
+
+    // Validate required fields
+    if (!to) {
+      return res.status(400).json({ message: 'Thiếu thông tin người nhận lời mời' });
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(to)) {
+      return res.status(400).json({ message: 'ID người dùng không hợp lệ' });
+    }
 
     // Không thể gửi lời mời cho chính mình
     if (fromUserId === to) {
@@ -204,6 +215,7 @@ router.get('/list', authRequired, async (req, res) => {
       lastSeen: friend.lastSeen || new Date()
     }));
 
+
     res.json({ friends });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -248,6 +260,34 @@ router.get('/suggestions', authRequired, async (req, res) => {
     }));
 
     res.json({ suggestions: suggestionsWithDefaults });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+/**
+ * DELETE /cancel-request/:userId - Hủy lời mời kết bạn
+ * Xóa friend request đã gửi cho user khác
+ * @param {string} req.params.userId - ID của user đã gửi lời mời
+ * @returns {Object} Thông báo hủy lời mời thành công
+ */
+router.delete('/cancel-request/:userId', authRequired, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const fromUserId = req.user._id.toString();
+
+    // Tìm và xóa friend request đã gửi
+    const friendRequest = await FriendRequest.findOneAndDelete({
+      from: fromUserId,
+      to: userId,
+      status: 'pending'
+    });
+
+    if (!friendRequest) {
+      return res.status(404).json({ message: 'Không tìm thấy lời mời kết bạn' });
+    }
+
+    res.json({ message: 'Đã hủy lời mời kết bạn' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

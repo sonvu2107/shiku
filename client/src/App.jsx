@@ -33,6 +33,7 @@ import CreateEvent from "./pages/CreateEvent.jsx";
 import EventDetail from "./pages/EventDetail.jsx";
 import EditEvent from "./pages/EditEvent.jsx";
 import Media from "./pages/Media.jsx";
+import ApiTester from "./pages/ApiTester.jsx";
 
 // Import các utilities và services
 import { api } from "./api.js";
@@ -195,6 +196,7 @@ export default function App() {
             {/* Trang admin */}
             <Route path="/admin" element={<ProtectedRoute user={user}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/feedback" element={<ProtectedRoute user={user}><AdminFeedback /></ProtectedRoute>} />
+            <Route path="/admin/api-tester" element={<ProtectedRoute user={user}><ApiTester /></ProtectedRoute>} />
             
             {/* Các trang khác */}
             <Route path="/settings" element={<ProtectedRoute user={user}><Settings /></ProtectedRoute>} />

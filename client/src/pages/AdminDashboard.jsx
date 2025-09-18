@@ -17,7 +17,8 @@ import {
   Bell,
   Wifi,
   WifiOff,
-  UserCheck
+  UserCheck,
+  Code
 } from "lucide-react";
 
 /**
@@ -334,6 +335,13 @@ export default function AdminDashboard() {
           >
             <MessageCircle size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span className="text-sm sm:text-base">Góp ý</span>
+          </button>
+          <button
+            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "api" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            onClick={() => setActiveTab("api")}
+          >
+            <Code size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="text-sm sm:text-base">API Test</span>
           </button>
         </div>
       </div>
@@ -1066,6 +1074,26 @@ export default function AdminDashboard() {
             <div className="text-center py-8 text-gray-500">
               {/* Hiển thị danh sách góp ý từ người dùng */}
               <AdminFeedback />
+            </div>
+          </div>
+        )}
+
+        {/* API Tester Tab */}
+        {activeTab === "api" && (
+          <div className="pt-4">
+            <div className="text-center py-4">
+              <h3 className="text-lg font-semibold mb-4">API Testing Tool</h3>
+              <p className="text-gray-600 mb-4">
+                Test tất cả các API endpoints để kiểm tra hoạt động
+              </p>
+              <a
+                href="/admin/api-tester"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Mở API Tester
+              </a>
             </div>
           </div>
         )}

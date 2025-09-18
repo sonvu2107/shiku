@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageCircle, Users } from 'lucide-react';
+import { MessageCircle, Users, RefreshCw } from 'lucide-react';
 import { api } from '../api';
 import { chatAPI } from '../chatAPI';
 import { ChatPopupWithCallModal } from './ChatPopup';
+import socketService from '../socket';
 
 /**
  * OnlineFriends - Component hiển thị danh sách bạn bè online
@@ -17,8 +18,54 @@ export default function OnlineFriends({ user }) {
   useEffect(() => {
     if (user) {
       loadOnlineFriends();
+      
+      // Join user room để nhận real-time updates
+      socketService.ensureConnection().then(connected => {
+        if (connected) {
+          socketService.socket.emit('join-user', user._id);
+        }
+      });
     }
   }, [user]);
+
+  // Lắng nghe real-time updates cho trạng thái online của bạn bè
+  useEffect(() => {
+    if (!socketService.socket) return;
+
+    const handleFriendOnline = (data) => {
+      setOnlineFriends(prev => {
+        const exists = prev.find(friend => friend._id === data.userId);
+        if (exists) {
+          // Cập nhật trạng thái online của bạn bè hiện có
+          return prev.map(friend => 
+            friend._id === data.userId 
+              ? { ...friend, isOnline: data.isOnline, lastSeen: data.lastSeen }
+              : friend
+          );
+        } else if (data.isOnline) {
+          // Thêm bạn bè mới vào danh sách online (nếu họ vừa online)
+          // Cần load thông tin đầy đủ của bạn bè này
+          loadOnlineFriends();
+        }
+        return prev;
+      });
+    };
+
+    const handleFriendOffline = (data) => {
+      setOnlineFriends(prev => {
+        // Xóa bạn bè khỏi danh sách online khi họ offline
+        return prev.filter(friend => friend._id !== data.userId);
+      });
+    };
+
+    socketService.socket.on('friend-online', handleFriendOnline);
+    socketService.socket.on('friend-offline', handleFriendOffline);
+
+    return () => {
+      socketService.socket.off('friend-online', handleFriendOnline);
+      socketService.socket.off('friend-offline', handleFriendOffline);
+    };
+  }, [socketService.socket]);
 
   const loadOnlineFriends = async () => {
     try {
@@ -27,10 +74,11 @@ export default function OnlineFriends({ user }) {
       const response = await api('/api/friends/list');
       const allFriends = response.friends || [];
       
-      // Filter chỉ những bạn bè đang online
+      // Filter chỉ những bạn bè đang online (isOnline === true)
       const onlineFriends = allFriends.filter(friend => friend.isOnline === true);
       setOnlineFriends(onlineFriends);
     } catch (error) {
+      console.error('Error loading online friends:', error);
       setOnlineFriends([]);
     } finally {
       setLoading(false);
@@ -136,9 +184,21 @@ export default function OnlineFriends({ user }) {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Users size={18} className="text-gray-600" />
-        <h3 className="font-semibold text-gray-900">Bạn bè online</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Users size={18} className="text-gray-600" />
+          <h3 className="font-semibold text-gray-900">Bạn bè online</h3>
+          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+            {onlineFriends.length}
+          </span>
+        </div>
+        <button
+          onClick={loadOnlineFriends}
+          className="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100 transition-colors"
+          title="Refresh danh sách"
+        >
+          <RefreshCw size={16} />
+        </button>
       </div>
 
       {onlineFriends.length === 0 ? (
