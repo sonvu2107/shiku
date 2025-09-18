@@ -7,6 +7,19 @@ const roleIcons = {
   sybau: "/assets/Sybau-tick.png",        // Huy hiệu Sybau
   moxumxue: "/assets/moxumxue.png",       // Huy hiệu Moxumxue
   admin: "/assets/admin.jpg",             // Huy hiệu Admin
+  gay: "/assets/gay.png",                 // Huy hiệu Gay
+};
+
+/**
+ * Mapping các role với tooltip tương ứng
+ * Mỗi role có một tooltip riêng biệt
+ */
+const roleTooltips = {
+  sololeveling: "Solo Leveling - Anh Sung Solo Leveling!",
+  sybau: "Sybau - Ahh Sybau!",
+  moxumxue: "Moxumxue - Fan anh Bộ Pi CiCi!",
+  admin: "Admin - Quản trị viên hệ thống",
+  gay: "Gay - Thành viên cộng đồng LGBTQ+",
 };
 
 /**
@@ -18,6 +31,9 @@ const roleIcons = {
 export default function VerifiedBadge({ role, isVerified }) {
   // Lấy icon dựa trên role, fallback về verified icon nếu cần
   const icon = roleIcons[role] || (isVerified ? roleIcons.verified : null);
+  
+  // Lấy tooltip dựa trên role
+  const tooltip = roleTooltips[role] || "Huy hiệu đặc biệt";
   
   // Không hiển thị gì nếu không có icon
   if (!icon) return null;
@@ -35,7 +51,7 @@ export default function VerifiedBadge({ role, isVerified }) {
       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1
                       hidden group-hover:block bg-black text-white text-xs
                       px-2 py-1 rounded shadow-lg whitespace-nowrap z-10">
-        Đẹp trai mới sở hữu huy hiệu này.
+        {tooltip}
       </div>
     </div>
   );

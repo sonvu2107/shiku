@@ -42,7 +42,7 @@ const GroupSettingsModal = ({
       const response = await chatAPI.getConversationDetails(conversation._id);
       setConversationDetails(response);
     } catch (error) {
-      console.error('Error loading conversation details:', error);
+      // Error loading conversation details
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,6 @@ const GroupSettingsModal = ({
         // No need to call onUpdateConversation since the system message will update UI
         // onUpdateConversation?.(conversation._id);
       } catch (error) {
-        console.error('Error removing member:', error);
         alert('Có lỗi xảy ra khi xóa thành viên');
       }
     }
@@ -86,7 +85,6 @@ const GroupSettingsModal = ({
       await loadConversationDetails();
       // onUpdateConversation?.();
     } catch (error) {
-      console.error('Error changing role:', error);
       alert(`Có lỗi xảy ra: ${error.message}`);
     }
   };
@@ -98,24 +96,18 @@ const GroupSettingsModal = ({
       await loadConversationDetails();
       // onUpdateConversation?.();
     } catch (error) {
-      console.error('Error toggling member management:', error);
       alert(`Có lỗi xảy ra: ${error.message}`);
     }
   };
 
   const handleUpdateGroupName = async (newName) => {
     try {
-      console.log('[GroupSettingsModal] Đổi tên nhóm:', newName);
       const res = await chatAPI.updateGroupName(conversation._id, newName);
-      console.log('[GroupSettingsModal] API response:', res);
       await loadConversationDetails();
-      console.log('[GroupSettingsModal] Đã load lại chi tiết nhóm:', conversationDetails);
       if (onUpdateConversation) {
-        console.log('[GroupSettingsModal] Gọi onUpdateConversation');
         onUpdateConversation(conversation._id);
       }
     } catch (error) {
-      console.error('Error updating group name:', error);
       alert(`Có lỗi xảy ra: ${error.message}`);
     }
   };

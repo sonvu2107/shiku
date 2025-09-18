@@ -66,19 +66,14 @@ const GroupDetail = () => {
       setLoading(true);
       setError(null);
 
-      console.log('Calling API for group ID:', id);
       const timestamp = Date.now();
       const response = await api(`/api/groups/${id}?t=${timestamp}`, { method: 'GET' });
-      console.log('API response:', response);
       
       if (response.success) {
         // Success - group loaded with correct userRole
         setGroup(response.data);
-      } else {
-        console.log('API returned success: false');
       }
     } catch (error) {
-      console.error('Error loading group:', error);
       setError(error.response?.data?.message || 'Không thể tải thông tin nhóm');
     } finally {
       setLoading(false);
@@ -106,7 +101,7 @@ const GroupDetail = () => {
         setHasMorePosts(response.items.length === 10); // hoặc kiểm tra response.total
       }
     } catch (error) {
-      console.error('Error loading group posts:', error);
+      // Error loading group posts
     } finally {
       setPostsLoading(false);
     }
@@ -124,7 +119,6 @@ const GroupDetail = () => {
         loadGroup();
       }
     } catch (error) {
-      console.error('Error joining group:', error);
       alert(error.response?.data?.message || 'Không thể tham gia nhóm');
     } finally {
       setIsJoining(false);
@@ -143,7 +137,6 @@ const GroupDetail = () => {
         navigate('/groups');
       }
     } catch (error) {
-      console.error('Error leaving group:', error);
       alert(error.response?.data?.message || 'Không thể rời khỏi nhóm');
     } finally {
       setIsLeaving(false);
@@ -227,7 +220,6 @@ const GroupDetail = () => {
         alert('Cài đặt đã được lưu thành công!');
       }
     } catch (error) {
-      console.error('Error saving settings:', error);
       alert(error.message || 'Có lỗi xảy ra khi lưu cài đặt');
     } finally {
       setSettingsLoading(false);
@@ -286,7 +278,6 @@ const GroupDetail = () => {
         alert('Cập nhật ảnh đại diện thành công!');
       }
     } catch (error) {
-      console.error('Error uploading avatar:', error);
       alert(error.message || 'Có lỗi xảy ra khi tải ảnh lên');
     } finally {
       setUploadingAvatar(false);
@@ -326,7 +317,6 @@ const GroupDetail = () => {
         alert('Cập nhật ảnh bìa thành công!');
       }
     } catch (error) {
-      console.error('Error uploading cover:', error);
       alert(error.message || 'Có lỗi xảy ra khi tải ảnh lên');
     } finally {
       setUploadingCover(false);
@@ -346,7 +336,6 @@ const GroupDetail = () => {
         alert('Cập nhật vai trò thành công!');
       }
     } catch (error) {
-      console.error('Error updating member role:', error);
       alert(error.message || 'Có lỗi xảy ra khi cập nhật vai trò');
     }
   };
@@ -365,7 +354,6 @@ const GroupDetail = () => {
         alert('Đã xóa thành viên khỏi nhóm!');
       }
     } catch (error) {
-      console.error('Error removing member:', error);
       alert(error.message || 'Có lỗi xảy ra khi xóa thành viên');
     }
   };
@@ -386,7 +374,6 @@ const GroupDetail = () => {
         alert('Đã cấm thành viên khỏi nhóm!');
       }
     } catch (error) {
-      console.error('Error banning member:', error);
       alert(error.message || 'Có lỗi xảy ra khi cấm thành viên');
     }
   };
@@ -396,10 +383,9 @@ const GroupDetail = () => {
     const loadUser = async () => {
       try {
         const response = await api('/api/auth/me', { method: 'GET' });
-        console.log('User response:', response);
         setUser(response.user || response.data?.user || response.data);
       } catch (error) {
-        console.error('Error loading user:', error);
+        // Error loading user
       }
     };
     loadUser();

@@ -60,7 +60,6 @@ export default function CallModal({
 
     async function initCall() {
       try {
-        console.log("🎥 Initializing call. incomingOffer?", !!incomingOffer);
         setError(null);
         setCallDuration(0);
 
@@ -174,7 +173,6 @@ export default function CallModal({
 
     const socket = socketService.socket;
     if (!socket) {
-      console.warn("⚠️ Socket not available for call listeners");
       return;
     }
 

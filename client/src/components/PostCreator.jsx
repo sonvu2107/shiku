@@ -198,7 +198,7 @@ export default function PostCreator({ user, groupId = null }) {
       <div className="card max-w-2xl mx-auto mb-6">
         <div className="flex items-center gap-3">
           <img
-            src={user?.avatarUrl || `https://ui-avatars.io/api/?name=${encodeURIComponent(userDisplayName)}&background=3b82f6&color=ffffff&size=40`}
+            src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=3b82f6&color=ffffff&size=40`}
             alt={userDisplayName}
             className="w-10 h-10 rounded-full object-cover"
           />
@@ -426,7 +426,7 @@ export default function PostCreator({ user, groupId = null }) {
               )}
 
               {/* Actions */}
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex justify-center gap-2 pt-4">
                 <button
                   type="button"
                   onClick={handleClose}

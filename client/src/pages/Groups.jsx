@@ -61,20 +61,15 @@ const Groups = () => {
         sortOrder
       });
 
-      console.log('Groups API params:', { page, limit: 12, search: searchTerm, type: groupType, sortBy, sortOrder });
       const response = await api(`/api/groups?${params}`, { method: 'GET' });
       
       if (response.success) {
         if (reset) {
-          console.log('Resetting groups:', response.data.groups.length);
           setGroups(response.data.groups);
         } else {
           setGroups(prev => {
-            console.log('Previous groups:', prev.length);
             const existingIds = new Set(prev.map(group => group._id));
             const newGroups = response.data.groups.filter(group => !existingIds.has(group._id));
-            console.log('New groups to add:', newGroups.length);
-            console.log('Total after merge:', prev.length + newGroups.length);
             return [...prev, ...newGroups];
           });
         }
@@ -84,7 +79,6 @@ const Groups = () => {
         setTotalGroups(response.data.pagination.total);
       }
     } catch (error) {
-      console.error('Error loading groups:', error);
       setError('Không thể tải danh sách nhóm');
     } finally {
       setLoading(false);
@@ -100,7 +94,7 @@ const Groups = () => {
         setMyGroups(response.data.groups);
       }
     } catch (error) {
-      console.error('Error loading my groups:', error);
+      // Error loading my groups
     }
   };
 
@@ -123,7 +117,6 @@ const Groups = () => {
         loadMyGroups();
       }
     } catch (error) {
-      console.error('Error joining group:', error);
       alert(error.response?.data?.message || 'Không thể tham gia nhóm');
     } finally {
       setIsJoining(prev => ({ ...prev, [groupId]: false }));
@@ -148,7 +141,6 @@ const Groups = () => {
         setMyGroups(prev => prev.filter(group => group._id !== groupId));
       }
     } catch (error) {
-      console.error('Error leaving group:', error);
       alert(error.response?.data?.message || 'Không thể rời khỏi nhóm');
     } finally {
       setIsLeaving(prev => ({ ...prev, [groupId]: false }));

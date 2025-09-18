@@ -175,6 +175,12 @@ export const updateProfileSchema = Joi.object({
     .optional()
     .messages({
       'string.max': 'Sở thích không được quá 200 ký tự'
+    }),
+  avatarUrl: Joi.string()
+    .uri()
+    .optional()
+    .messages({
+      'string.uri': 'URL avatar không hợp lệ'
     })
 });
 

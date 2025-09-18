@@ -18,7 +18,6 @@ const CreateGroup = () => {
 
   // Handle creator success
   const handleCreatorSuccess = (group) => {
-    console.log('Group created successfully:', group);
     // Navigate to group detail page
     navigate(`/groups/${group._id}`);
   };

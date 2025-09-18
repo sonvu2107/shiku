@@ -137,7 +137,7 @@ export default function Settings() {
                   setEmailLoading(true);
                   try {
                     await api("/api/auth/update-profile", {
-                      method: "POST",
+                      method: "PUT",
                       body: { email: newEmail }
                     });
                     alert("Đổi email thành công!");
@@ -162,7 +162,7 @@ export default function Settings() {
                   setPasswordLoading(true);
                   try {
                     await api("/api/auth/update-profile", {
-                      method: "POST",
+                      method: "PUT",
                       body: { password: newPassword }
                     });
                     alert("Đổi mật khẩu thành công!");

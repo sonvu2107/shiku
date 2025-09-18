@@ -117,11 +117,8 @@ class SocketService {
     // Tạo kết nối mới với authentication token
     const token = localStorage.getItem('token');
     if (!token) {
-      console.warn('⚠️ No authentication token found');
       return null;
     }
-
-    console.log('🔌 Connecting to Socket.IO server:', SOCKET_URL);
     this.socket = io(SOCKET_URL, {
       auth: {
         token: token
@@ -136,36 +133,34 @@ class SocketService {
 
     // Event handlers cho connection
     this.socket.on('connect', () => {
-      console.log('🔌 Connected to server');
+      // Connected to server
     });
 
     this.socket.on('disconnect', () => {
-      console.log('🔌 Disconnected from server');
+      // Disconnected from server
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('🔌 Connection error:', error);
       // Nếu lỗi authentication, có thể token đã hết hạn
       if (error.message === 'Authentication error' || error.type === 'UnauthorizedError') {
-        console.warn('🔑 Authentication failed - token may be expired');
         // Có thể trigger logout hoặc refresh token ở đây
       }
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
-      console.log(`🔌 Reconnected after ${attemptNumber} attempts`);
+      // Reconnected after attempts
     });
 
     this.socket.on('reconnect_attempt', (attemptNumber) => {
-      console.log(`🔌 Reconnection attempt ${attemptNumber}`);
+      // Reconnection attempt
     });
 
     this.socket.on('reconnect_error', (error) => {
-      console.error('🔌 Reconnection error:', error);
+      // Reconnection error
     });
 
     this.socket.on('reconnect_failed', () => {
-      console.error('🔌 Failed to reconnect after maximum attempts');
+      // Failed to reconnect after maximum attempts
     });
 
     return this.socket;
@@ -257,32 +252,17 @@ class SocketService {
    */
   async joinConversation(conversationId) {
     if (!conversationId) {
-      console.log('❌ No conversation ID provided for join');
       return;
     }
-
-    console.log('🔥 Joining conversation room:', conversationId);
-    console.log('🔥 Socket connected:', this.isConnected());
-    console.log('🔥 Current conversation:', this.currentConversation);
 
     await this.ensureConnectionAndExecute(() => {
       // Rời conversation cũ nếu có
       if (this.currentConversation) {
-        console.log('🔥 Leaving old conversation:', this.currentConversation);
         this.socket.emit('leave-conversation', this.currentConversation);
       }
       
-      console.log('🔥 Emitting join-conversation for:', conversationId);
       this.socket.emit('join-conversation', conversationId);
       this.currentConversation = conversationId;
-      console.log('🔥 Joined conversation room successfully');
-      
-      // Debug: Check socket rooms after join
-      setTimeout(() => {
-        console.log('🔥 Socket rooms after join:', this.socket.rooms || 'rooms not accessible on client');
-        console.log('🔥 Expected room:', `conversation-${conversationId}`);
-        console.log('🔥 Current conversation:', this.currentConversation);
-      }, 100);
     }, 2000);
   }
 

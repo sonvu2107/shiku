@@ -647,7 +647,8 @@ export default function AdminDashboard() {
                               u.role === "sololeveling" ? "/assets/Sung-tick.png"
                                 : u.role === "sybau" ? "/assets/Sybau-tick.png"
                                   : u.role === "moxumexue" ? "/assets/moxumxue.png"
-                                    : "/assets/default-tick.png"
+                                    : u.role === "gay" ? "/assets/gay.png"
+                                      : "/assets/default-tick.png"
                             }
                             alt="Tích xanh"
                             className="inline w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
@@ -670,6 +671,7 @@ export default function AdminDashboard() {
                           <option value="sybau">Sybau</option>
                           <option value="moxumxue">Keeper</option>
                           <option value="admin">Admin</option>
+                          <option value="gay">Gay</option>
                         </select>
                       </td>
                       <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm hidden md:table-cell">{new Date(u.createdAt).toLocaleDateString()}</td>
@@ -867,7 +869,7 @@ export default function AdminDashboard() {
 
                   <button
                     onClick={() => sendNotification("system")}
-                    className="btn bg-blue-600 text-white w-full hover:bg-blue-700"
+                    className="btn bg-blue-600 text-white w-full hover:bg-blue-700 flex items-center justify-center"
                     disabled={!notificationForm.title.trim() || !notificationForm.message.trim()}
                   >
                     Gửi thông báo hệ thống
@@ -896,7 +898,7 @@ export default function AdminDashboard() {
 
                   <button
                     onClick={() => sendNotification("broadcast")}
-                    className="btn bg-green-600 text-white w-full hover:bg-green-700"
+                    className="btn bg-green-600 text-white w-full hover:bg-green-700 flex items-center justify-center"
                     disabled={!notificationForm.title.trim() || !notificationForm.message.trim()}
                   >
                     Gửi thông báo
@@ -1003,12 +1005,14 @@ export default function AdminDashboard() {
                             user.role === 'sololeveling' ? 'bg-purple-100 text-purple-800' :
                             user.role === 'sybau' ? 'bg-blue-100 text-blue-800' :
                             user.role === 'moxumxue' ? 'bg-pink-100 text-pink-800' :
+                            user.role === 'gay' ? 'bg-pink-100 text-pink-800' :
                             'bg-gray-100 text-gray-800'
                           }`}>
                             {user.role === 'admin' ? 'Admin' :
                              user.role === 'sololeveling' ? 'Anh sung solo' :
                              user.role === 'sybau' ? 'Ahh Sybau' :
                              user.role === 'moxumxue' ? 'Hero great tomb guard keeper' :
+                             user.role === 'gay' ? 'Gay' :
                              'User'}
                           </span>
                         </td>

@@ -53,15 +53,10 @@ const AddMembersModal = ({
         .filter(p => !p.leftAt) // Only check active participants
         .map(p => p.user._id) || [];
       
-      console.log('🔥 Existing user IDs:', existingUserIds);
-      console.log('🔥 Search results:', response.map(u => u._id));
-      
       const filteredResults = response.filter(user => !existingUserIds.includes(user._id));
-      console.log('🔥 Filtered results:', filteredResults.map(u => u._id));
       
       setSearchResults(filteredResults);
     } catch (error) {
-      console.error('Error searching users:', error);
       setSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -70,9 +65,7 @@ const AddMembersModal = ({
 
   const handleAddMember = async (userId) => {
     try {
-      console.log('🔥 Adding member:', userId);
       await chatAPI.addParticipants(conversation._id, [userId]);
-      console.log('🔥 Member added successfully');
       setSearchQuery('');
       setSearchResults([]);
       
@@ -83,7 +76,6 @@ const AddMembersModal = ({
       
       onClose();
     } catch (error) {
-      console.error('Error adding member:', error);
       alert(`Có lỗi xảy ra khi thêm thành viên: ${error.message}`);
     }
   };

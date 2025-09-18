@@ -334,7 +334,7 @@ export default function Navbar({ user, setUser }) {
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                   >
                     <img
-                      src={user.avatarUrl || `https://ui-avatars.io/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                      src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
                       alt={user.name}
                       className="w-9 h-9 rounded-full border border-gray-300 shadow-sm"
                     />
@@ -344,7 +344,7 @@ export default function Navbar({ user, setUser }) {
                       <div className="px-5 pb-3 border-b">
                         <div className="flex items-center gap-3">
                           <img
-                            src={user.avatarUrl || `https://ui-avatars.io/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                            src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
                             alt={user.name}
                             className="w-12 h-12 rounded-full border"
                           />

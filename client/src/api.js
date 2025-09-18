@@ -71,25 +71,33 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
  * @throws {Error} Lỗi nếu upload thất bại
  */
 export async function uploadImage(file) {
-  // Tạo FormData để upload file
-  const form = new FormData();
-  form.append("image", file);
-  
-  // Thêm authorization header nếu có token
-  const headers = {};
+  // Kiểm tra token trước khi upload
   const token = localStorage.getItem("token");
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+  if (!token) {
+    throw new Error("Bạn cần đăng nhập để upload ảnh");
   }
   
+  // Tạo FormData để upload file
+  const form = new FormData();
+  form.append("file", file);
+  
+  // Thêm authorization header
+  const headers = {
+    Authorization: `Bearer ${token}`
+  };
+  
   // Thực hiện upload
-  const res = await fetch(`${API_URL}/api/uploads/image`, {
+  const res = await fetch(`${API_URL}/api/uploads/`, {
     method: "POST",
     credentials: "include",
     headers,
     body: form
   });
   
-  if (!res.ok) throw new Error("Upload failed");
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    console.error("Upload failed:", res.status, errorData);
+    throw new Error(errorData.message || errorData.error || `Upload failed (${res.status})`);
+  }
   return res.json();
 }

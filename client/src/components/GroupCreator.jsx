@@ -171,14 +171,10 @@ const GroupCreator = ({ isOpen, onClose, onSuccess }) => {
   // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted!', formData);
     
     if (!validateForm()) {
-      console.log('Form validation failed');
       return;
     }
-
-    console.log('Validation passed, starting to create group...');
     setLoading(true);
     setError(null);
 
@@ -209,27 +205,21 @@ const GroupCreator = ({ isOpen, onClose, onSuccess }) => {
         submitData.append('coverImage', coverImage);
       }
 
-      console.log('Sending request to API...');
       const response = await api('/api/groups', {
         method: 'POST',
         body: submitData
       });
 
-      console.log('API response:', response);
-
       if (response.success) {
-        console.log('Group created successfully:', response.data);
         if (onSuccess) {
           onSuccess(response.data);
         }
         onClose();
         navigate(`/groups/${response.data._id}`);
       } else {
-        console.log('API returned success: false');
         setError(response.message || 'Không thể tạo nhóm');
       }
     } catch (error) {
-      console.error('Error creating group:', error);
       setError(error.message || error.response?.data?.message || 'Không thể tạo nhóm');
     } finally {
       setLoading(false);

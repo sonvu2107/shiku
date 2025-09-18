@@ -24,7 +24,6 @@ export default function Explore() {
     try {
       // Load posts - sử dụng API thực
       const postsRes = await api("/api/posts?limit=50");
-      console.log("Posts API response:", postsRes);
       setPosts(postsRes.items || []);
 
       // Load users - sử dụng API search với query rỗng để lấy tất cả
@@ -33,10 +32,8 @@ export default function Explore() {
 
       // Load groups - sử dụng API groups thực
       const groupsRes = await api("/api/groups?limit=20");
-      console.log("Groups API response:", groupsRes);
       setGroups(groupsRes.data?.groups || []);
     } catch (error) {
-      console.error("Error loading explore data:", error);
       // Fallback to empty arrays if API fails
       setPosts([]);
       setUsers([]);
@@ -67,7 +64,6 @@ export default function Explore() {
       const groupsRes = await api(`/api/groups?search=${encodeURIComponent(searchQuery)}&limit=20`);
       setGroups(groupsRes.data?.groups || []);
     } catch (error) {
-      console.error("Search error:", error);
       // Fallback to empty arrays if search fails
       setPosts([]);
       setUsers([]);

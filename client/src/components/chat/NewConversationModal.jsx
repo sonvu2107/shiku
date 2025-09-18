@@ -55,7 +55,6 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
       const response = await chatAPI.getFriends();
       setFriends(response.friends || []);
     } catch (error) {
-      console.error('Lỗi tải danh sách bạn bè:', error);
       setFriends([]);
     } finally {
       setIsLoading(false);
@@ -75,7 +74,6 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
           }
           setSearchResults(results);
         } catch (error) {
-          console.error('Lỗi tìm kiếm người dùng:', error);
           setSearchResults([]);
         } finally {
           setIsSearching(false);
@@ -123,7 +121,6 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
       }
       onClose();
     } catch (error) {
-      console.error('Lỗi tạo cuộc trò chuyện:', error);
       alert('Có lỗi xảy ra khi tạo cuộc trò chuyện');
     } finally {
       setIsLoading(false);

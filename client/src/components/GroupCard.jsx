@@ -46,7 +46,7 @@ const GroupCard = ({
     try {
       await onJoin(group._id);
     } catch (error) {
-      console.error('Error joining group:', error);
+      // Error joining group
     } finally {
       setIsJoining(false);
     }
@@ -60,7 +60,7 @@ const GroupCard = ({
     try {
       await onLeave(group._id);
     } catch (error) {
-      console.error('Error leaving group:', error);
+      // Error leaving group
     } finally {
       setIsLeaving(false);
     }

@@ -220,15 +220,63 @@ export default function Profile() {
             onSubmit={async e => {
               e.preventDefault();
               try {
+                // Filter out empty values to avoid validation issues
+                const updateData = Object.fromEntries(
+                  Object.entries(form).filter(([key, value]) => {
+                    // Always include name and email
+                    if (key === "name" || key === "email") return true;
+                    
+                    // Always include avatarUrl if it has a value (user uploaded new avatar)
+                    if (key === "avatarUrl" && value !== "") return true;
+                    
+                    // Don't send password if it's empty or doesn't meet requirements
+                    if (key === "password") {
+                      if (value === "") return false; // Empty password
+                      // Check if password meets requirements (8+ chars, upper, lower, digit, special)
+                      const hasMinLength = value.length >= 8;
+                      const hasLower = /[a-z]/.test(value);
+                      const hasUpper = /[A-Z]/.test(value);
+                      const hasDigit = /\d/.test(value);
+                      const hasSpecial = /[@$!%*?&]/.test(value);
+                      
+                      if (!hasMinLength || !hasLower || !hasUpper || !hasDigit || !hasSpecial) {
+                        console.warn("Password doesn't meet requirements, skipping password update");
+                        alert("Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt (@$!%*?&)");
+                        return false;
+                      }
+                    }
+                    
+                    // Don't send birthday if it's empty or invalid format
+                    if (key === "birthday") {
+                      if (value === "") return false; // Empty birthday
+                      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false; // Invalid format
+                      
+                      // Check if year is reasonable (1900-2024)
+                      const year = parseInt(value.split('-')[0]);
+                      if (year < 1900 || year > 2024) {
+                        console.warn("Birthday year is not reasonable, skipping birthday update");
+                        alert("Năm sinh phải từ 1900 đến 2024");
+                        return false;
+                      }
+                    }
+                    
+                    // Don't send other fields if they're empty
+                    return value !== "";
+                  })
+                );
+                
+                console.log("Sending profile update data:", updateData);
+                
                 await api("/api/auth/update-profile", {
-                  method: "POST",
-                  body: form
+                  method: "PUT",
+                  body: updateData
                 });
                 alert("Cập nhật thành công!");
                 setEditing(false);
                 load();
               } catch (err) {
-                alert("Lỗi: " + err.message);
+                console.error("Profile update error:", err);
+                alert("Lỗi: " + (err.message || err));
               }
             }}
           >

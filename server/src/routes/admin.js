@@ -399,7 +399,7 @@ router.get("/users", authRequired, adminRequired, async (req, res, next) => {
 router.put("/users/:id/role", authRequired, adminRequired, async (req, res, next) => {
   try {
     const { role } = req.body;
-    if (!["user", "admin", "sololeveling", "sybau", "moxumxue"].includes(role)) {
+    if (!["user", "admin", "sololeveling", "sybau", "moxumxue", "gay"].includes(role)) {
       return res.status(400).json({ error: "Quyền không hợp lệ" });
     }
 

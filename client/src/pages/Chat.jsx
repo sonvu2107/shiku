@@ -239,12 +239,9 @@ export default function Chat() {
   useEffect(() => {
     const handleConversationChange = async () => {
       if (selectedConversation) {
-        console.log('🔥 Loading messages for conversation:', selectedConversation._id);
         loadMessages(selectedConversation._id);
         // Join conversation room for real-time updates
-        console.log('🔥 Joining conversation room:', selectedConversation._id);
         await socketService.joinConversation(selectedConversation._id);
-        console.log('🔥 Joined conversation room successfully');
       }
     };
 
@@ -389,7 +386,6 @@ export default function Chat() {
       await loadConversations();
       
     } catch (error) {
-      console.error('Error leaving conversation:', error);
       alert('Có lỗi xảy ra khi rời cuộc trò chuyện');
     }
   };
@@ -407,7 +403,6 @@ export default function Chat() {
         setMessages([]);
       }
     } catch (error) {
-      console.error('Error deleting conversation:', error);
       alert('Có lỗi xảy ra khi xóa cuộc trò chuyện');
     }
   };
@@ -431,18 +426,9 @@ export default function Chat() {
   };
 
   const handleLoadMoreMessages = async () => {
-    console.log('🔄 handleLoadMoreMessages called:', { 
-      selectedConversation: !!selectedConversation, 
-      hasMoreMessages,
-      isLoadingMessages,
-      currentPage,
-      messagesLength: messages.length
-    });
-    
     if (!selectedConversation || !hasMoreMessages || isLoadingMessages) return;
     
     const nextPage = currentPage + 1;
-    console.log('🔄 Loading page:', nextPage);
     await loadMessages(selectedConversation._id, nextPage);
   };
 

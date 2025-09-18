@@ -36,27 +36,16 @@ class CallManager {
 
     const socket = socketService.socket;
     if (!socket) {
-      console.warn("📞 No socket available for global call manager");
       return;
     }
-
-    console.log("📞 Setting up global call offer listener");
     
     const handleOffer = ({ offer, conversationId, caller, callerSocketId, callerInfo, isVideo }) => {
-      console.log("📞 Global call offer received:", { 
-        conversationId, 
-        caller, 
-        callerSocketId,
-        isVideo,
-        listenersCount: this.listeners.size 
-      });
-
       // Gửi offer đến tất cả listeners
       this.listeners.forEach(callback => {
         try {
           callback({ offer, conversationId, caller, callerSocketId, callerInfo, isVideo });
         } catch (error) {
-          console.error("❌ Error in call offer listener:", error);
+          // Error in call offer listener
         }
       });
     };
@@ -66,14 +55,12 @@ class CallManager {
 
     // Cleanup khi socket disconnect
     socket.on("disconnect", () => {
-      console.log("📞 Socket disconnected, removing global call listener");
       socket.off("call-offer", handleOffer);
       this.isListening = false;
     });
 
     // Re-setup listener khi reconnect
     socket.on("connect", () => {
-      console.log("📞 Socket reconnected, re-setting up global call listener");
       if (this.listeners.size > 0) {
         this.isListening = false;
         this.ensureListening();
@@ -85,7 +72,6 @@ class CallManager {
    * Xóa tất cả listeners và cleanup
    */
   cleanup() {
-    console.log("📞 Cleaning up global call manager");
     this.listeners.clear();
     
     const socket = socketService.socket;

@@ -14,7 +14,7 @@ A comprehensive social media platform built with Node.js, Express, MongoDB, and 
 - **XSS Protection**: HTML sanitization and CSP headers
 - **CORS Protection**: Strict origin validation
 
-### 🚀 Core Features
+### 🚀 Core Features 
 - **User Authentication**: Secure login/register with password reset
 - **Social Features**: Posts, comments, likes, friends system
 - **Real-time Chat**: Socket.IO powered messaging

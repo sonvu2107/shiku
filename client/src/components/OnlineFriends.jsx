@@ -31,7 +31,6 @@ export default function OnlineFriends({ user }) {
       const onlineFriends = allFriends.filter(friend => friend.isOnline === true);
       setOnlineFriends(onlineFriends);
     } catch (error) {
-      console.error('Error loading online friends:', error);
       setOnlineFriends([]);
     } finally {
       setLoading(false);
@@ -109,7 +108,6 @@ export default function OnlineFriends({ user }) {
         return newPopups;
       });
     } catch (error) {
-      console.error('Error opening chat:', error);
       alert('Không thể mở cuộc trò chuyện');
     }
   };

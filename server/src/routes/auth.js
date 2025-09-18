@@ -407,7 +407,7 @@ router.put("/update-profile",
   validate(updateProfileSchema, 'body'),
   async (req, res, next) => {
     try {
-      const { name, email, password, bio, birthday, gender, hobbies } = req.body;
+      const { name, email, password, bio, birthday, gender, hobbies, avatarUrl } = req.body;
       
       // Kiểm tra email có bị trùng không
       if (email && email !== req.user.email) {
@@ -427,6 +427,7 @@ router.put("/update-profile",
       if (birthday) req.user.birthday = birthday;
       if (gender) req.user.gender = gender;
       if (hobbies) req.user.hobbies = sanitizeHtml(hobbies);
+      if (avatarUrl) req.user.avatarUrl = avatarUrl;
       
       if (password) {
         req.user.password = await bcrypt.hash(password, 12);
@@ -450,7 +451,8 @@ router.put("/update-profile",
           bio: req.user.bio,
           birthday: req.user.birthday,
           gender: req.user.gender,
-          hobbies: req.user.hobbies
+          hobbies: req.user.hobbies,
+          avatarUrl: req.user.avatarUrl
         }
       });
     } catch (error) {
