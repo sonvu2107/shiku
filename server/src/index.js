@@ -4,7 +4,7 @@ import helmet from "helmet"; // Security middleware
 import cookieParser from "cookie-parser"; // Parse cookies
 import cors from "cors"; // Cross-Origin Resource Sharing
 import morgan from "morgan"; // HTTP request logger
-// import csrf from "csurf"; // CSRF protection - temporarily disabled
+import csrf from "csurf"; // CSRF protection
 import dotenv from "dotenv"; // Environment variables
 import path from "path";
 import { fileURLToPath } from "url";
@@ -110,14 +110,18 @@ app.use(helmet({
 // Parse cookies từ request headers
 app.use(cookieParser());
 
-// CSRF protection (temporarily disabled - requires csurf package)
-// app.use(csrf({
-//   cookie: {
-//     httpOnly: true,
-//     secure: process.env.NODE_ENV === 'production',
-//     sameSite: 'strict'
-//   }
-// }));
+// CSRF protection
+app.use(csrf({
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  },
+  // Custom token extractor để lấy token từ header
+  value: (req) => {
+    return req.headers['x-csrf-token'] || req.body._csrf;
+  }
+}));
 
 // CORS configuration cho HTTP requests
 app.use(cors({
@@ -199,6 +203,11 @@ app.get("/heartbeat", (req, res) => {
     environment: process.env.NODE_ENV || "development",
     connectedSockets: connectedUsers.size
   });
+});
+
+// CSRF token endpoint
+app.get("/api/csrf-token", (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
 });
 
 // Mount tất cả API routes with specific rate limiting

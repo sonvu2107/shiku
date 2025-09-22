@@ -3,7 +3,7 @@ import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
-// import sanitizeHtml from "sanitize-html"; // temporarily disabled
+import sanitizeHtml from "sanitize-html";
 import { authRequired, authOptional } from "../middleware/auth.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
 import { paginate } from "../utils/paginate.js";
@@ -461,12 +461,32 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
     if (!["private", "published"].includes(status)) {
       return res.status(400).json({ error: "Trạng thái không hợp lệ" });
     }
+    // Sanitize input để chống XSS
+    const sanitizedTitle = sanitizeHtml(title.trim(), {
+      allowedTags: [],
+      allowedAttributes: {}
+    });
+    const sanitizedContent = sanitizeHtml(content.trim(), {
+      allowedTags: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'a'],
+      allowedAttributes: {
+        'a': ['href', 'title'],
+        'h1': ['id'],
+        'h2': ['id'],
+        'h3': ['id'],
+        'h4': ['id'],
+        'h5': ['id'],
+        'h6': ['id']
+      }
+    });
+    const sanitizedTags = Array.isArray(tags) ? tags.map(tag => sanitizeHtml(tag.trim(), { allowedTags: [], allowedAttributes: {} })) : [];
+    const sanitizedCoverUrl = sanitizeHtml(coverUrl.trim(), { allowedTags: [], allowedAttributes: {} });
+
     const post = await Post.create({
       author: req.user._id,
-      title: title.trim(), // Basic sanitization
-      content: content.trim(), // Basic sanitization
-      tags: Array.isArray(tags) ? tags.map(tag => tag.trim()) : [],
-      coverUrl: coverUrl.trim(),
+      title: sanitizedTitle,
+      content: sanitizedContent,
+      tags: sanitizedTags,
+      coverUrl: sanitizedCoverUrl,
       status,
       files: Array.isArray(files) ? files : [],
       group
