@@ -120,7 +120,7 @@ export default function Chat() {
     
     const handleNewMessage = (message) => {
       // Check if message belongs to current conversation
-      if (message.conversationId === selectedConversation._id || message.conversation === selectedConversation._id) {
+      if (selectedConversation && (message.conversationId === selectedConversation._id || message.conversation === selectedConversation._id)) {
         setMessages(prev => {
           const exists = prev.some(m => m._id === message._id);
           if (exists) {
@@ -144,7 +144,7 @@ export default function Chat() {
     if (conversations.length > 0 && !selectedConversation) {
       loadCurrentConversation();
     }
-  }, [conversations, selectedConversation]);
+  }, [conversations.length, selectedConversation]);
 
   // Lưu conversation đã chọn vào database
   useEffect(() => {
@@ -239,9 +239,13 @@ export default function Chat() {
   useEffect(() => {
     const handleConversationChange = async () => {
       if (selectedConversation) {
-        loadMessages(selectedConversation._id);
-        // Join conversation room for real-time updates
-        await socketService.joinConversation(selectedConversation._id);
+        try {
+          loadMessages(selectedConversation._id);
+          // Join conversation room for real-time updates
+          await socketService.joinConversation(selectedConversation._id);
+        } catch (error) {
+          console.error('Error handling conversation change:', error);
+        }
       }
     };
 

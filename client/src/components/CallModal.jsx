@@ -152,18 +152,26 @@ export default function CallModal({
     initCall();
 
     return () => {
-      if (peerRef.current) peerRef.current.close();
-      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (peerRef.current) {
+        peerRef.current.close();
+        peerRef.current = null;
+      }
+      if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+        setLocalStream(null);
+      }
       if (callTimeout) {
         clearTimeout(callTimeout);
         setCallTimeout(null);
       }
-      // Cleanup fallback timeout
       if (fallbackTimeout) {
         clearTimeout(fallbackTimeout);
+        setFallbackTimeout(null);
       }
-      // NOTE: Không rời conversation room khi kết thúc cuộc gọi
-      // User cần ở trong room để nhận được incoming calls
+      // Reset call state
+      setCallState("connecting");
+      setCallDuration(0);
+      setError(null);
     };
   }, [open, isVideo, incomingOffer, conversationId]);
 

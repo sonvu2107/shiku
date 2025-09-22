@@ -152,24 +152,17 @@ export default function PostCreator({ user, groupId = null }) {
       const formData = new FormData();
       selectedFiles.forEach(f => formData.append("files", f));
 
-      // Upload files qua fetch (không qua api helper để handle FormData)
-      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
-      const response = await fetch(`${API_URL}/api/uploads/media`, {
+      // Upload files qua api helper với FormData
+      const data = await api("/api/uploads/media", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: formData,
+        body: formData
       });
-
-      if (!response.ok) throw new Error("Upload failed");
-      const data = await response.json();
       
       // Thêm files đã upload vào state
       if (data.files) {
         setFiles(prev => {
           const newFiles = [...prev, ...data.files];
-          // TODO: Auto-select first image as cover nếu chưa có
+          // Auto-select first image as cover if no cover is set
           if (!coverUrl) {
             const firstImage = newFiles.find(f => f.type === "image");
             // setCoverUrl(firstImage?.url); // Commented out - có thể implement sau

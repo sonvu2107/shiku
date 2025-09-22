@@ -215,45 +215,77 @@ router.get("/stats", authRequired, adminRequired, async (req, res, next) => {
     const privateGrowth = calculateGrowth(thisMonthPrivates, lastMonthPrivates);
     const adminsGrowth = calculateGrowth(thisMonthAdmins, lastMonthAdmins);
 
-    // Tổng lượt xem
-    const viewsResult = await Post.aggregate([
-      { $group: { _id: null, totalViews: { $sum: "$views" } } }
+    // Optimized: Single aggregation for views and emotes data
+    const [viewsData, emotesData] = await Promise.all([
+      // Views aggregation
+      Post.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalViews: { $sum: "$views" },
+            thisMonthViews: {
+              $sum: {
+                $cond: [
+                  { $gte: ["$createdAt", thisMonth] },
+                  "$views",
+                  0
+                ]
+              }
+            },
+            lastMonthViews: {
+              $sum: {
+                $cond: [
+                  { $and: [
+                    { $gte: ["$createdAt", lastMonth] },
+                    { $lt: ["$createdAt", thisMonth] }
+                  ]},
+                  "$views",
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ]),
+      // Emotes aggregation
+      Post.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalEmotes: { $sum: { $size: { $ifNull: ["$emotes", []] } } },
+            thisMonthEmotes: {
+              $sum: {
+                $cond: [
+                  { $gte: ["$createdAt", thisMonth] },
+                  { $size: { $ifNull: ["$emotes", []] } },
+                  0
+                ]
+              }
+            },
+            lastMonthEmotes: {
+              $sum: {
+                $cond: [
+                  { $and: [
+                    { $gte: ["$createdAt", lastMonth] },
+                    { $lt: ["$createdAt", thisMonth] }
+                  ]},
+                  { $size: { $ifNull: ["$emotes", []] } },
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ])
     ]);
-    const totalViews = viewsResult[0]?.totalViews || 0;
 
-    // Lượt xem tháng này
-    const thisMonthViewsResult = await Post.aggregate([
-      { $match: { createdAt: { $gte: thisMonth } } },
-      { $group: { _id: null, totalViews: { $sum: "$views" } } }
-    ]);
-    const thisMonthViews = thisMonthViewsResult[0]?.totalViews || 0;
+    const totalViews = viewsData[0]?.totalViews || 0;
+    const thisMonthViews = viewsData[0]?.thisMonthViews || 0;
+    const lastMonthViews = viewsData[0]?.lastMonthViews || 0;
+    const totalEmotes = emotesData[0]?.totalEmotes || 0;
+    const thisMonthEmotes = emotesData[0]?.thisMonthEmotes || 0;
 
-    // Lượt xem tháng trước
-    const lastMonthViewsResult = await Post.aggregate([
-      { $match: { createdAt: { $gte: lastMonth, $lt: thisMonth } } },
-      { $group: { _id: null, totalViews: { $sum: "$views" } } }
-    ]);
-    const lastMonthViews = lastMonthViewsResult[0]?.totalViews || 0;
-
-    // Tổng emotes
-    const emotesResult = await Post.aggregate([
-      { $group: { _id: null, totalEmotes: { $sum: { $size: { $ifNull: ["$emotes", []] } } } } }
-    ]);
-    const totalEmotes = emotesResult[0]?.totalEmotes || 0;
-
-    // Emotes tháng này
-    const thisMonthEmotesResult = await Post.aggregate([
-      { $match: { createdAt: { $gte: thisMonth } } },
-      { $group: { _id: null, totalEmotes: { $sum: { $size: { $ifNull: ["$emotes", []] } } } } }
-    ]);
-    const thisMonthEmotes = thisMonthEmotesResult[0]?.totalEmotes || 0;
-
-    // Emotes tháng trước
-    const lastMonthEmotesResult = await Post.aggregate([
-      { $match: { createdAt: { $gte: lastMonth, $lt: thisMonth } } },
-      { $group: { _id: null, totalEmotes: { $sum: { $size: { $ifNull: ["$emotes", []] } } } } }
-    ]);
-    const lastMonthEmotes = lastMonthEmotesResult[0]?.totalEmotes || 0;
+    const lastMonthEmotes = emotesData[0]?.lastMonthEmotes || 0;
 
     // Tính phần trăm tăng trưởng cho views và emotes
     const viewsGrowth = calculateGrowth(thisMonthViews, lastMonthViews);
@@ -382,12 +414,6 @@ router.get("/users", authRequired, adminRequired, async (req, res, next) => {
       { $sort: { createdAt: -1 } }
     ]);
 
-    // Debug log để kiểm tra
-    console.log("📋 Users with ban info:", users.map(u => ({
-      name: u.name,
-      isBanned: u.isBanned,
-      banReason: u.banReason
-    })));
 
     res.json({ users });
   } catch (e) {

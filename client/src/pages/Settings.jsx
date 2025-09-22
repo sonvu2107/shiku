@@ -30,19 +30,18 @@ export default function Settings() {
     async function fetchBlocked() {
       try {
         const res = await api("/api/auth/me");
-        // res.user.blockedUsers là mảng id, cần lấy thông tin từng user
+        // res.user.blockedUsers là mảng id, lấy thông tin tất cả users trong một lần gọi
         if (res.user.blockedUsers && res.user.blockedUsers.length > 0) {
-          const users = await Promise.all(
-            res.user.blockedUsers.map(async (id) => {
-              const u = await api(`/api/users/${id}`);
-              return u.user;
-            })
-          );
-          setBlockedUsers(users);
+          const batchRes = await api("/api/users/batch", {
+            method: "POST",
+            body: { userIds: res.user.blockedUsers }
+          });
+          setBlockedUsers(batchRes.users);
         } else {
           setBlockedUsers([]);
         }
       } catch (err) {
+        console.error("Error fetching blocked users:", err);
         setBlockedUsers([]);
       }
     }

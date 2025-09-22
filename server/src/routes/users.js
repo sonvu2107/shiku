@@ -1,8 +1,34 @@
 import express from 'express';
 import User from '../models/User.js';
 import { authRequired } from '../middleware/auth.js';
+import { withCache, userCache } from '../utils/cache.js';
 
 const router = express.Router();
+
+// Lấy thông tin nhiều users theo IDs (cho blocked users)
+router.post('/batch', authRequired, async (req, res) => {
+  try {
+    const { userIds } = req.body;
+    
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ message: 'Danh sách user IDs không hợp lệ' });
+    }
+
+    // Giới hạn số lượng để tránh abuse
+    if (userIds.length > 50) {
+      return res.status(400).json({ message: 'Không thể lấy quá 50 users cùng lúc' });
+    }
+
+    const users = await User.find({ _id: { $in: userIds } })
+      .select('_id name email avatarUrl bio role isOnline lastSeen isBanned createdAt')
+      .lean();
+
+    res.json({ users });
+  } catch (error) {
+    console.error('Error fetching batch users:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
 
 // Lấy danh sách tất cả users (chỉ admin)
 router.get('/', authRequired, async (req, res) => {
@@ -48,21 +74,26 @@ router.get('/', authRequired, async (req, res) => {
   }
 });
 
-// Tìm kiếm user theo tên hoặc email
+// Tìm kiếm user theo tên hoặc email (with caching)
 router.get('/search', authRequired, async (req, res) => {
   try {
     const q = (req.query.q || '').trim();
     if (!q || q.length > 100) return res.json({ users: [] });
-    // Escape regex
-    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const users = await User.find({
-      $or: [
-        { name: { $regex: escapedQ, $options: 'i' } },
-        { email: { $regex: escapedQ, $options: 'i' } }
-      ]
-    })
-      .select('_id name avatarUrl bio isOnline lastSeen')
-      .limit(10);
+    
+    const cacheKey = `search:${q}`;
+    const users = await withCache(userCache, cacheKey, async () => {
+      // Escape regex
+      const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return await User.find({
+        $or: [
+          { name: { $regex: escapedQ, $options: 'i' } },
+          { email: { $regex: escapedQ, $options: 'i' } }
+        ]
+      })
+        .select('_id name avatarUrl bio isOnline lastSeen')
+        .limit(10);
+    }, 2 * 60 * 1000); // 2 minutes cache
+    
     res.json({ users });
   } catch (err) {
     res.status(500).json({ message: 'Lỗi server' });
@@ -80,7 +111,6 @@ router.put('/current-conversation', authRequired, async (req, res) => {
 
     res.json({ message: 'Đã cập nhật cuộc trò chuyện hiện tại' });
   } catch (error) {
-    console.error('Error updating current conversation:', error);
     res.status(500).json({ message: 'Lỗi server' });
   }
 });
@@ -96,7 +126,6 @@ router.get('/current-conversation', authRequired, async (req, res) => {
       currentConversationId: user.currentConversation?._id || null 
     });
   } catch (error) {
-    console.error('Error getting current conversation:', error);
     res.status(500).json({ message: 'Lỗi server' });
   }
 });
@@ -118,13 +147,6 @@ router.get('/:id', authRequired, async (req, res) => {
     const currentUserId = req.user._id.toString();
     const isFriend = user.friends.some(friend => friend._id.toString() === currentUserId);
     
-    console.log('Debug friendship check:', {
-      currentUserId,
-      targetUserId: id,
-      userFriends: user.friends.map(f => f._id.toString()),
-      isFriend
-    });
-    
     // Kiểm tra có lời mời kết bạn pending không
     const FriendRequest = (await import('../models/FriendRequest.js')).default;
     const pendingRequest = await FriendRequest.findOne({
@@ -133,8 +155,6 @@ router.get('/:id', authRequired, async (req, res) => {
         { from: id, to: currentUserId, status: 'pending' }
       ]
     });
-
-    console.log('Debug pending request:', pendingRequest);
 
     // Kiểm tra trạng thái block hai chiều
     const currentUser = await User.findById(currentUserId).select('blockedUsers');

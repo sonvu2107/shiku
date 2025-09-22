@@ -115,7 +115,7 @@ class SocketService {
     }
 
     // Tạo kết nối mới với authentication token
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     if (!token) {
       return null;
     }
@@ -171,6 +171,8 @@ class SocketService {
    */
   disconnect() {
     if (this.socket) {
+      // Remove all listeners to prevent memory leaks
+      this.socket.removeAllListeners();
       this.socket.disconnect();
       this.socket = null;
       this.currentConversation = null;
@@ -233,7 +235,7 @@ class SocketService {
       }
       
       // Thử reconnect nếu có token
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       if (token) {
         this.connect({}); // Reconnect với empty user object
         return false; // Vẫn return false vì chưa kết nối ngay lập tức
@@ -300,6 +302,15 @@ class SocketService {
       this.socket.on('new-message', (message) => {
         callback(message);
       });
+    }
+  }
+
+  /**
+   * Cleanup all event listeners
+   */
+  cleanup() {
+    if (this.socket) {
+      this.socket.removeAllListeners();
     }
   }
 

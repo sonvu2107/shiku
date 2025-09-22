@@ -5,6 +5,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 // Import các components chính
 import Navbar from "./components/Navbar.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { ToastContainer, useToast } from "./components/Toast.jsx";
 
 // Import các pages
@@ -37,7 +38,7 @@ import ApiTester from "./pages/ApiTester.jsx";
 
 // Import các utilities và services
 import { api } from "./api.js";
-import { getAuthToken } from "./utils/auth.js";
+import { getValidAccessToken } from "./utils/tokenManager.js";
 import socketService from "./socket";   // Service quản lý WebSocket connection
 
 /**
@@ -60,22 +61,28 @@ export default function App() {
 
   // Effect chạy khi app khởi tạo để kiểm tra authentication
   useEffect(() => {
-    const token = getAuthToken();
-    if (token) {
-      // Nếu có token, gọi API để lấy thông tin user
-      api("/api/auth/me")
-        .then(res => {
+    const checkAuth = async () => {
+      try {
+        const token = await getValidAccessToken();
+        if (token) {
+          // Nếu có token, gọi API để lấy thông tin user
+          const res = await api("/api/auth/me");
           setUser(res.user);
           // Kết nối socket khi đã xác thực user thành công
           socketService.connect(res.user);
-        })
-        .catch(() => setUser(null)) // Nếu token không hợp lệ, reset user
-        .finally(() => setLoading(false)); // Kết thúc loading
-    } else {
-      // Không có token, set user null và kết thúc loading
-      setUser(null);
-      setLoading(false);
-    }
+        } else {
+          // Không có token, set user null
+          setUser(null);
+        }
+      } catch (error) {
+        // Nếu có lỗi (token không hợp lệ), reset user
+        setUser(null);
+      } finally {
+        setLoading(false); // Kết thúc loading
+      }
+    };
+    
+    checkAuth();
   }, []);
 
   // Effect để gửi heartbeat định kỳ khi user đã đăng nhập
@@ -85,7 +92,6 @@ export default function App() {
     // Gửi heartbeat ngay lập tức
     const sendHeartbeat = () => {
       api("/api/auth/heartbeat", { method: "POST" })
-        .catch(err => console.log("Heartbeat failed:", err));
     };
 
     // Gửi heartbeat đầu tiên
@@ -136,9 +142,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Toast Container */}
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
+    <ErrorBoundary>
+      <div className="min-h-screen">
+        {/* Toast Container */}
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
       
       {/* Hiển thị navbar cho tất cả trang trừ login/register và chat */}
       {!shouldHideNavbar && location.pathname !== "/chat" && (
@@ -208,6 +215,7 @@ export default function App() {
           </Routes>
         </div>
       )}
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

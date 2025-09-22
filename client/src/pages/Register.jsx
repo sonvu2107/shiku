@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
 import { useNavigate, Link } from "react-router-dom";
-import { setAuthToken } from "../utils/auth";
+import { saveTokens } from "../utils/tokenManager";
 import Logo from "../components/Logo";
 import { UserPlus, Mail, Lock, User } from "lucide-react";
 
@@ -40,7 +40,12 @@ export default function Register({ setUser }) {
       });
       
       // Lưu token vào localStorage
-      if (data.token) setAuthToken(data.token);
+      if (data.accessToken && data.refreshToken) {
+        saveTokens(data.accessToken, data.refreshToken);
+      } else if (data.token) {
+        // Fallback cho backward compatibility
+        saveTokens(data.token, data.token);
+      }
       
       // Cập nhật user state toàn cục
       if (setUser) setUser(data.user);

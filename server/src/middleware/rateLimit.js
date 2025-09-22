@@ -1,19 +1,9 @@
 import rateLimit from "express-rate-limit";
 
-// Helper function để log rate limit info
+// Helper function để log rate limit info (removed console.log for production)
 const logRateLimitInfo = (req, message) => {
-  const clientIP = req.ip;
-  const forwardedFor = req.get('X-Forwarded-For');
-  const realIP = req.get('X-Real-IP');
-  
-  console.log(`🚦 Rate Limit: ${message}`, {
-    clientIP,
-    forwardedFor,
-    realIP,
-    userAgent: req.get('User-Agent'),
-    url: req.url,
-    method: req.method
-  });
+  // Rate limit logging can be implemented with proper logging system
+  // For now, we'll just track the event without console output
 };
 
 // Custom key generator để handle proxy IPs
@@ -58,10 +48,10 @@ export const apiLimiter = rateLimit({
   keyGenerator: createKeyGenerator()
 });
 
-// Strict rate limiter for authentication endpoints
+// Strict rate limiter for authentication endpoints (login, register, etc.)
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 auth requests per windowMs
+  max: 20, // Increased from 5 to 20 auth requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
   // Custom handler thay vì onLimitReached
@@ -73,6 +63,24 @@ export const authLimiter = rateLimit({
     });
   },
   skipSuccessfulRequests: true, // Don't count successful requests
+  // Custom key generator để handle proxy IPs
+  keyGenerator: createKeyGenerator()
+});
+
+// Loose rate limiter for auth status checks (me, heartbeat, etc.)
+export const authStatusLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60, // 60 requests per minute for status checks
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Custom handler
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Auth Status Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Quá nhiều yêu cầu kiểm tra trạng thái, vui lòng thử lại sau 1 phút",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
   // Custom key generator để handle proxy IPs
   keyGenerator: createKeyGenerator()
 });

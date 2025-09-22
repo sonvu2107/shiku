@@ -193,7 +193,6 @@ export const authOptional = async (req, res, next) => {
         }
       } catch (error) {
         // Ignore token errors trong authOptional
-        console.log('Optional auth failed:', error.message);
       }
     }
 

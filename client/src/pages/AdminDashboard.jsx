@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import AdminFeedback from "./AdminFeedback";
 import { api } from "../api";
 import { useNavigate } from "react-router-dom";
+import { useAdminData } from "../hooks/useAdminData";
+import { useAdminActions } from "../hooks/useAdminActions";
 import {
   BarChart3,
   Users,
@@ -27,57 +29,58 @@ import {
  * @returns {JSX.Element} Component admin dashboard page
  */
 export default function AdminDashboard() {
-  // ==================== STATE MANAGEMENT ====================
+  // ==================== CUSTOM HOOKS ====================
+  
+  // Admin data management
+  const {
+    stats,
+    users,
+    onlineUsers,
+    totalVisitors,
+    visitorStats,
+    lastUpdate,
+    loading: dataLoading,
+    error: dataError,
+    refreshAllData,
+    updateOfflineUsers
+  } = useAdminData();
+
+  // Admin actions management
+  const {
+    banForm,
+    notificationForm,
+    loading: actionLoading,
+    error: actionError,
+    success: actionSuccess,
+    setBanForm,
+    setNotificationForm,
+    handleBanSubmit,
+    handleNotificationSubmit,
+    clearError,
+    clearSuccess
+  } = useAdminActions();
+
+  // ==================== LOCAL STATE ====================
   
   // User & Auth
   const [user, setUser] = useState(null); // Admin user hiện tại
-  const [loading, setLoading] = useState(true); // Loading state
-  
-  // Data states
-  const [stats, setStats] = useState(null); // Thống kê tổng quan
-  const [users, setUsers] = useState([]); // Danh sách người dùng
-  const [onlineUsers, setOnlineUsers] = useState([]); // Danh sách người online
-  const [totalVisitors, setTotalVisitors] = useState(0); // Tổng số người đã truy cập
-  const [visitorStats, setVisitorStats] = useState(null); // Thống kê chi tiết visitors
-  const [lastUpdate, setLastUpdate] = useState(new Date()); // Thời gian cập nhật cuối
+  const loading = dataLoading || actionLoading; // Combined loading state
   
   // UI states
   const [activeTab, setActiveTab] = useState("stats"); // Tab hiện tại
-  
-  // Form states
-  const [banForm, setBanForm] = useState({ 
-    userId: "", // ID user cần ban
-    duration: "", // Thời gian ban (phút)
-    reason: "" // Lý do ban
-  });
-  const [notificationForm, setNotificationForm] = useState({ 
-    title: "", // Tiêu đề thông báo
-    message: "", // Nội dung thông báo
-    targetRole: "" // Role đích (admin/user/all)
-  });
   
   const navigate = useNavigate();
 
   useEffect(() => {
     checkAdmin();
-    
-    // Refresh online users every 30 seconds
-    const interval = setInterval(() => {
-      if (activeTab === "online" || activeTab === "stats") {
-        loadOnlineUsers();
-      }
-    }, 30000);
+  }, []);
 
-    // Update offline users every 2 minutes
-    const offlineInterval = setInterval(() => {
-      updateOfflineUsers();
-    }, 120000);
-
-    return () => {
-      clearInterval(interval);
-      clearInterval(offlineInterval);
-    };
-  }, [activeTab]);
+  // Auto refresh data when tab changes
+  useEffect(() => {
+    if (activeTab === "online" || activeTab === "stats") {
+      refreshAllData();
+    }
+  }, [activeTab, refreshAllData]);
 
   async function checkAdmin() {
     try {
@@ -88,72 +91,15 @@ export default function AdminDashboard() {
         return;
       }
       setUser(res.user);
-      await Promise.all([loadStats(), loadUsers(), loadOnlineUsers(), loadTotalVisitors()]);
+      await refreshAllData();
     } catch (e) {
       alert("Lỗi xác thực!");
       navigate("/login");
     } finally {
-      setLoading(false);
+      // Loading state is now managed by custom hooks
     }
   }
 
-  async function loadStats() {
-    try {
-      const res = await api("/api/admin/stats");
-      setStats(res.stats);
-    } catch (e) {
-      console.error("Load stats error:", e);
-    }
-  }
-
-  async function loadUsers() {
-    try {
-      const res = await api("/api/admin/users");
-      setUsers(res.users);
-    } catch (e) {
-      console.error("Load users error:", e);
-    }
-  }
-
-  async function loadOnlineUsers() {
-    try {
-      const res = await api("/api/admin/online-users");
-      setOnlineUsers(res.onlineUsers || []);
-      setLastUpdate(new Date());
-    } catch (e) {
-      console.error("Load online users error:", e);
-    }
-  }
-
-  async function loadTotalVisitors() {
-    try {
-      const res = await api("/api/admin/total-visitors");
-      setTotalVisitors(res.totalVisitors || 0);
-      setVisitorStats(res);
-    } catch (e) {
-      console.error("Load total visitors error:", e);
-    }
-  }
-
-  // Function để refresh tất cả dữ liệu
-  async function refreshAllData() {
-    await Promise.all([
-      loadStats(),
-      loadUsers(),
-      loadOnlineUsers(),
-      loadTotalVisitors()
-    ]);
-  }
-
-  // Function để cập nhật trạng thái offline cho users không hoạt động
-  async function updateOfflineUsers() {
-    try {
-      await api("/api/admin/update-offline-users", { method: "POST" });
-      await loadOnlineUsers(); // Refresh danh sách online users
-    } catch (e) {
-      console.error("Update offline users error:", e);
-    }
-  }
 
   async function toggleUserRole(userId, currentRole) {
     if (!window.confirm("Bạn có chắc muốn thay đổi quyền người dùng này?")) return;
@@ -163,7 +109,7 @@ export default function AdminDashboard() {
         method: "PUT",
         body: { role: newRole }
       });
-      await loadUsers();
+      await refreshAllData();
       alert("Đã cập nhật quyền người dùng!");
     } catch (e) {
       alert("Lỗi: " + e.message);
@@ -177,7 +123,7 @@ export default function AdminDashboard() {
         method: "PUT",
         body: { role: newRole }
       });
-      await loadUsers();
+      await refreshAllData();
       alert("Đã cập nhật role cho user!");
     } catch (err) {
       alert("Lỗi: " + err.message);
@@ -189,78 +135,15 @@ export default function AdminDashboard() {
     if (!window.confirm("Bạn có chắc muốn xóa người dùng này? Tất cả bài viết và bình luận của họ sẽ bị xóa!")) return;
     try {
       await api(`/api/admin/users/${userId}`, { method: "DELETE" });
-      await loadUsers();
+      await refreshAllData();
       alert("Đã xóa người dùng!");
     } catch (e) {
       alert("Lỗi: " + e.message);
     }
   }
 
-  async function banUser(userId, duration, reason) {
-    if (!reason.trim()) {
-      alert("Vui lòng nhập lý do cấm!");
-      return;
-    }
 
-    try {
-      const banDurationMinutes = duration === "permanent" ? null : parseInt(duration);
-      await api("/api/admin/ban-user", {
-        method: "POST",
-        body: { userId, banDurationMinutes, reason }
-      });
 
-      // Reset form and refresh users list
-      setBanForm({ userId: "", duration: "", reason: "" });
-      await loadUsers();
-
-      alert("Đã cấm người dùng!");
-    } catch (e) {
-      alert("Lỗi: " + e.message);
-    }
-  }
-
-  async function unbanUser(userId) {
-    if (!window.confirm("Bạn có chắc muốn gỡ cấm người dùng này?")) return;
-    try {
-      await api("/api/admin/unban-user", {
-        method: "POST",
-        body: { userId }
-      });
-
-      // Refresh users list
-      await loadUsers();
-
-      alert("Đã gỡ cấm người dùng!");
-    } catch (e) {
-      alert("Lỗi: " + e.message);
-    }
-  }
-
-  async function sendNotification(type) {
-    const { title, message, targetRole } = notificationForm;
-
-    if (!title.trim() || !message.trim()) {
-      alert("Vui lòng nhập tiêu đề và nội dung!");
-      return;
-    }
-
-    try {
-      const endpoint = type === "system" ? "/api/notifications/system" : "/api/notifications/broadcast";
-      const body = type === "system"
-        ? { title, message, targetRole: targetRole || null }
-        : { title, message };
-
-      await api(endpoint, {
-        method: "POST",
-        body
-      });
-
-      setNotificationForm({ title: "", message: "", targetRole: "" });
-      alert(`Đã gửi ${type === "system" ? "thông báo hệ thống" : "thông báo broadcast"}!`);
-    } catch (error) {
-      alert("Lỗi: " + error.message);
-    }
-  }
 
   if (loading) {
     return (
@@ -273,6 +156,29 @@ export default function AdminDashboard() {
   return (
     <div className="w-full px-3 sm:px-6 py-6 pt-20 space-y-4 sm:space-y-6">
       {/* Header */}
+      {/* Error and Success Messages */}
+      {(dataError || actionError) && (
+        <div className="card max-w-7xl mx-auto mb-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            {dataError || actionError}
+            <button onClick={clearError} className="ml-2 text-red-500 hover:text-red-700">
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {actionSuccess && (
+        <div className="card max-w-7xl mx-auto mb-4">
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+            {actionSuccess}
+            <button onClick={clearSuccess} className="ml-2 text-green-500 hover:text-green-700">
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="card max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
@@ -756,7 +662,7 @@ export default function AdminDashboard() {
         />
 
         <button
-          onClick={() => banUser(banForm.userId, banForm.duration, banForm.reason)}
+          onClick={handleBanSubmit}
           className="btn bg-red-600 text-white flex items-center justify-center"
           disabled={!banForm.userId || !banForm.duration || !banForm.reason.trim()}
         >
@@ -819,7 +725,11 @@ export default function AdminDashboard() {
               <td className="px-4 py-2 border">
                 <button
                   className="btn-outline btn-sm text-green-600"
-                  onClick={() => unbanUser(u._id)}
+                  onClick={async () => {
+                    if (await unbanUser(u._id)) {
+                      await refreshAllData();
+                    }
+                  }}
                 >
                   Gỡ cấm
                 </button>
@@ -876,7 +786,7 @@ export default function AdminDashboard() {
                   </select>
 
                   <button
-                    onClick={() => sendNotification("system")}
+                    onClick={handleNotificationSubmit}
                     className="btn bg-blue-600 text-white w-full hover:bg-blue-700 flex items-center justify-center"
                     disabled={!notificationForm.title.trim() || !notificationForm.message.trim()}
                   >
@@ -905,7 +815,7 @@ export default function AdminDashboard() {
                   />
 
                   <button
-                    onClick={() => sendNotification("broadcast")}
+                    onClick={handleNotificationSubmit}
                     className="btn bg-green-600 text-white w-full hover:bg-green-700 flex items-center justify-center"
                     disabled={!notificationForm.title.trim() || !notificationForm.message.trim()}
                   >
@@ -1058,7 +968,7 @@ export default function AdminDashboard() {
                   Cập nhật offline
                 </button>
                 <button
-                  onClick={() => loadOnlineUsers()}
+                  onClick={refreshAllData}
                   className="btn-outline btn-sm"
                 >
                   Làm mới danh sách

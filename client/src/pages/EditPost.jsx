@@ -46,16 +46,12 @@ export default function EditPost() {
     try {
       const formData = new FormData();
       selectedFiles.forEach(f => formData.append("files", f));
-      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
-      const response = await fetch(`${API_URL}/api/uploads/media`, {
+      
+      // Upload files qua api helper với FormData
+      const data = await api("/api/uploads/media", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: formData,
-      });
-      if (!response.ok) throw new Error("Upload failed");
-      const data = await response.json(); // {files: [{url, type}, ...]}
+        body: formData
+      }); // {files: [{url, type}, ...]}
 
       setPost(prev => {
         const updated = { ...prev };

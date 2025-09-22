@@ -2,7 +2,10 @@ import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Calendar, Eye, MessageCircle, Lock, Globe, ThumbsUp, Users } from "lucide-react";
 import { api } from "../api";
+import { deduplicatedApi } from "../utils/requestDeduplication.js";
 import UserName from "./UserName";
+import ComponentErrorBoundary from "./ComponentErrorBoundary";
+import LazyImage from "./LazyImage";
 
 /**
  * PostCard - Component hiển thị preview của một blog post
@@ -16,10 +19,11 @@ import UserName from "./UserName";
  * @param {Array} post.files - Media files đính kèm
  * @param {string} post.status - Trạng thái (published/private)
  */
-export default function PostCard({ post }) {
+export default function PostCard({ post, user }) {
   // ==================== STATE & REFS ====================
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user") || "null"); // Current user
+  // Note: User data should be passed as prop or obtained from context
+  // const user = JSON.parse(localStorage.getItem("user") || "null"); // Deprecated
   const [showEmotePopup, setShowEmotePopup] = useState(false); // Hiện popup emotes
   const emotePopupTimeout = useRef(); // Timeout cho hover emote popup
 
@@ -67,7 +71,7 @@ export default function PostCard({ post }) {
   async function deletePost() {
     if (!window.confirm("Bạn có chắc muốn xóa bài này?")) return;
     try {
-      await api(`/api/posts/${post._id}`, { method: "DELETE" });
+      await deduplicatedApi(`/api/posts/${post._id}`, { method: "DELETE" });
       alert("Đã xóa bài viết.");
       navigate(0); // Reload page
     } catch (e) { 
@@ -87,7 +91,7 @@ export default function PostCard({ post }) {
     if (!window.confirm(confirmMessage)) return;
     
     try {
-      await api(`/api/posts/${post._id}`, { 
+      await deduplicatedApi(`/api/posts/${post._id}`, { 
         method: "PUT", 
         body: { status: newStatus } 
       });
@@ -108,7 +112,7 @@ export default function PostCard({ post }) {
    */
   async function emote(emote) {
     try {
-      const res = await api(`/api/posts/${post._id}/emote`, { 
+      const res = await deduplicatedApi(`/api/posts/${post._id}/emote`, { 
         method: "POST", 
         body: { emote } 
       });
@@ -144,7 +148,8 @@ export default function PostCard({ post }) {
   const displayMedia = getDisplayMedia();
 
   return (
-    <div className="card flex flex-col gap-2 post-card-mobile">
+    <ComponentErrorBoundary>
+      <div className="card flex flex-col gap-2 post-card-mobile">
       {displayMedia && (
         <div className="w-full aspect-[16/10] sm:aspect-[16/10] aspect-ratio overflow-hidden rounded-xl">
           {displayMedia.type === "video" ? (
@@ -154,10 +159,10 @@ export default function PostCard({ post }) {
               controls
             />
           ) : (
-            <img 
+            <LazyImage 
               src={displayMedia.url} 
               alt="" 
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
+              className="w-full h-full hover:scale-105 transition-transform duration-300" 
             />
           )}
         </div>
@@ -284,6 +289,7 @@ export default function PostCard({ post }) {
           </button>
         </div>
       )}
-    </div>
+      </div>
+    </ComponentErrorBoundary>
   );
 }

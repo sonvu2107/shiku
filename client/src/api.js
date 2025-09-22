@@ -1,13 +1,9 @@
 // URL của API server - lấy từ environment variable hoặc default localhost
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
-/**
- * Lấy authentication token từ localStorage
- * @returns {string} Token hoặc empty string
- */
-export function getToken() {
-  return localStorage.getItem("token") || "";
-}
+import { getValidAccessToken, clearTokens, getRefreshToken, refreshAccessToken } from "./utils/tokenManager.js";
+
+// Deprecated: getToken() function đã được thay thế bởi getValidAccessToken() trong tokenManager.js
 
 /**
  * Hàm chính để gọi API với authentication và error handling
@@ -20,8 +16,8 @@ export function getToken() {
  * @throws {Error} Lỗi với thông tin ban nếu user bị cấm
  */
 export async function api(path, { method = "GET", body, headers = {} } = {}) {
-  // Lấy token từ localStorage và thêm vào header nếu có
-  const token = localStorage.getItem("token");
+  // Lấy valid access token (tự động refresh nếu cần)
+  const token = await getValidAccessToken();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -46,6 +42,28 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
 
   // Xử lý lỗi response
   if (!res.ok) {
+    // Nếu là lỗi 401 và có refresh token, thử refresh
+    if (res.status === 401 && getRefreshToken()) {
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        // Retry request với token mới
+        headers.Authorization = `Bearer ${newToken}`;
+        const retryRes = await fetch(`${API_URL}${path}`, {
+          ...requestOptions,
+          headers: { ...requestOptions.headers, ...headers }
+        });
+        
+        if (retryRes.ok) {
+          return await retryRes.json();
+        }
+      } else {
+        // Refresh thất bại, clear tokens và redirect to login
+        clearTokens();
+        window.location.href = '/login';
+        return;
+      }
+    }
+
     const data = await res.json().catch(() => ({}));
     const error = new Error(data.message || data.error || `Request failed (${res.status})`);
     
@@ -71,33 +89,13 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
  * @throws {Error} Lỗi nếu upload thất bại
  */
 export async function uploadImage(file) {
-  // Kiểm tra token trước khi upload
-  const token = localStorage.getItem("token");
-  if (!token) {
-    throw new Error("Bạn cần đăng nhập để upload ảnh");
-  }
-  
   // Tạo FormData để upload file
   const form = new FormData();
   form.append("file", file);
   
-  // Thêm authorization header
-  const headers = {
-    Authorization: `Bearer ${token}`
-  };
-  
-  // Thực hiện upload
-  const res = await fetch(`${API_URL}/api/uploads/`, {
+  // Sử dụng api() function để tự động handle authentication
+  return await api("/api/uploads/", {
     method: "POST",
-    credentials: "include",
-    headers,
     body: form
   });
-  
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    console.error("Upload failed:", res.status, errorData);
-    throw new Error(errorData.message || errorData.error || `Upload failed (${res.status})`);
-  }
-  return res.json();
 }

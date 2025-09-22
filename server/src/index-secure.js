@@ -13,7 +13,7 @@ import { Server } from "socket.io"; // WebSocket server
 // Import config và middleware
 import { connectDB } from "./config/db.js";
 import { securityConfig, validateEnvVars } from "./config/env.js";
-import { apiLimiter, authLimiter, uploadLimiter, messageLimiter, postsLimiter } from "./middleware/rateLimit.js";
+import { apiLimiter, authLimiter, authStatusLimiter, uploadLimiter, messageLimiter, postsLimiter } from "./middleware/rateLimit.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { requestTimeout } from "./middleware/timeout.js";
 import { authOptional } from "./middleware/jwtSecurity.js";
@@ -29,7 +29,6 @@ import {
   rateLimitLogger,
   unauthorizedAccessLogger
 } from "./middleware/securityLogging.js";
-import { proxyDebugMiddleware } from "./middleware/proxyDebug.js";
 import { 
   rateLimitLogger,
   authRateLimitLogger,
@@ -128,7 +127,6 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(requestTimeout(30000));
 
 // Security logging middleware
-app.use(proxyDebugMiddleware); // Debug proxy info
 app.use(requestLogger);
 app.use(authLogger);
 app.use(fileUploadLogger);
@@ -215,7 +213,8 @@ app.get("/heartbeat", (req, res) => {
 });
 
 // Mount tất cả API routes with specific rate limiting
-app.use("/api/auth", authLimiter, authRateLimitLogger, authRoutes); // Secure authentication & authorization
+app.use("/api/auth", authLimiter, authRateLimitLogger, authRoutes); // Secure authentication & authorization (login, register)
+app.use("/api/auth", authStatusLimiter, authRateLimitLogger, authTokenRoutes); // Secure token validation (me, heartbeat)
 app.use("/api/posts", postsLimiter, postsRateLimitLogger, postRoutes); // Secure blog posts CRUD
 app.use("/api/comments", commentRoutes); // Comments system
 app.use("/api/uploads", uploadLimiter, uploadRateLimitLogger, uploadRoutes); // Secure file uploads

@@ -3,6 +3,7 @@ import { api } from "../api";
 import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp, Smile, Frown, Laugh, Angry } from "lucide-react";
 import BanNotification from "./BanNotification";
 import UserName from "./UserName";
+import ComponentErrorBoundary from "./ComponentErrorBoundary";
 
 /**
  * Mapping các role với icon tương ứng (hiện tại chưa sử dụng)
@@ -623,7 +624,8 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 px-3 sm:px-0 comment-section-mobile">
+    <ComponentErrorBoundary>
+      <div className="max-w-4xl mx-auto space-y-4 px-3 sm:px-0 comment-section-mobile">
       {/* Comment Input */}
       <form onSubmit={handleSubmitComment} className="space-y-3">
         <div className="flex gap-2 sm:gap-3">
@@ -676,6 +678,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
           onClose={() => setShowBanNotification(false)}
         />
       )}
-    </div>
+      </div>
+    </ComponentErrorBoundary>
   );
 }

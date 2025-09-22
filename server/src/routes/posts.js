@@ -3,50 +3,85 @@ import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
+// import sanitizeHtml from "sanitize-html"; // temporarily disabled
 import { authRequired, authOptional } from "../middleware/auth.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
 import { paginate } from "../utils/paginate.js";
+import { withCache, postCache, invalidateCache } from "../utils/cache.js";
 import mongoose from "mongoose";
 
 const router = express.Router();
 
-// Get current user's posts only (both published and private)
+// Get current user's posts only (both published and private) - Optimized with caching
 router.get("/my-posts", authRequired, async (req, res, next) => {
   try {
     const { page = 1, limit = 100, status } = req.query;
-    const filter = { 
-      author: req.user._id, // Chỉ lấy bài viết của chính mình
-      status: status || { $in: ["published", "private"] } // Mặc định lấy cả published và private
-    };
+    const userId = req.user._id.toString();
+    const statusFilter = status || "all";
     
-    // Exclude group posts from personal profile (chỉ bài viết cá nhân)
-    filter.$and = [
-      {
-        $or: [
-          { group: { $exists: false } },
-          { group: null }
+    const cacheKey = `my-posts:${userId}:${page}:${limit}:${statusFilter}`;
+    
+    const result = await withCache(postCache, cacheKey, async () => {
+      const filter = { 
+        author: req.user._id,
+        status: status || { $in: ["published", "private"] },
+        $and: [
+          {
+            $or: [
+              { group: { $exists: false } },
+              { group: null }
+            ]
+          }
         ]
-      }
-    ];
+      };
+      
+      // Use aggregation for better performance
+      const [posts, total] = await Promise.all([
+        Post.aggregate([
+          { $match: filter },
+          { $sort: { createdAt: -1 } },
+          { $skip: (page - 1) * limit },
+          { $limit: parseInt(limit) },
+          {
+            $lookup: {
+              from: "users",
+              localField: "author",
+              foreignField: "_id",
+              as: "author",
+              pipeline: [{ $project: { name: 1, avatarUrl: 1 } }]
+            }
+          },
+          {
+            $lookup: {
+              from: "groups",
+              localField: "group",
+              foreignField: "_id",
+              as: "group",
+              pipeline: [{ $project: { name: 1 } }]
+            }
+          },
+          {
+            $addFields: {
+              author: { $arrayElemAt: ["$author", 0] },
+              group: { $arrayElemAt: ["$group", 0] }
+            }
+          }
+        ]),
+        Post.countDocuments(filter)
+      ]);
+      
+      return {
+        posts,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      };
+    }, 5 * 60 * 1000); // 5 minutes cache
     
-    const posts = await Post.find(filter)
-      .populate("author", "name avatarUrl")
-      .populate("group", "name")
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-    
-    const total = await Post.countDocuments(filter);
-    
-    res.json({
-      posts,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    });
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -428,14 +463,19 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
     }
     const post = await Post.create({
       author: req.user._id,
-      title,
-      content,
-      tags,
-      coverUrl,
+      title: title.trim(), // Basic sanitization
+      content: content.trim(), // Basic sanitization
+      tags: Array.isArray(tags) ? tags.map(tag => tag.trim()) : [],
+      coverUrl: coverUrl.trim(),
       status,
-      files,
+      files: Array.isArray(files) ? files : [],
       group
     });
+    
+    // Invalidate cache for this user's posts
+    invalidateCache(postCache, `my-posts:${req.user._id.toString()}`);
+    invalidateCache(postCache, `posts:`);
+    
     res.json({ post });
   } catch (e) {
     next(e);
@@ -463,6 +503,11 @@ router.put("/:id", authRequired, checkBanStatus, async (req, res, next) => {
       post.status = status;
     }
     await post.save();
+    
+    // Invalidate cache for this user's posts and general posts
+    invalidateCache(postCache, `my-posts:${post.author.toString()}`);
+    invalidateCache(postCache, `posts:`);
+    
     res.json({ post });
   } catch (e) {
     next(e);
@@ -479,6 +524,11 @@ router.delete("/:id", authRequired, async (req, res, next) => {
     }
     await Comment.deleteMany({ post: post._id });
     await post.deleteOne();
+    
+    // Invalidate cache for this user's posts and general posts
+    invalidateCache(postCache, `my-posts:${post.author.toString()}`);
+    invalidateCache(postCache, `posts:`);
+    
     res.json({ ok: true });
   } catch (e) {
     next(e);

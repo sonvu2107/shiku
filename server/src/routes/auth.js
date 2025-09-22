@@ -19,6 +19,11 @@ import {
   authRequired
 } from "../middleware/jwtSecurity.js";
 import { 
+  generateRefreshToken, 
+  generateAccessToken,
+  refreshAccessToken as refreshTokenHandler 
+} from "../middleware/refreshToken.js";
+import { 
   authLogger,
   logSecurityEvent,
   SECURITY_EVENTS,
@@ -513,6 +518,15 @@ router.post("/heartbeat",
       next(error);
     }
   }
+);
+
+/**
+ * POST /refresh-token - Refresh access token using refresh token
+ * @returns {Object} New access token và user info
+ */
+router.post("/refresh-token", 
+  refreshTokenLimiter,
+  refreshTokenHandler
 );
 
 export default router;

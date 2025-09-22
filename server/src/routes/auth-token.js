@@ -6,6 +6,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { generateAccessToken, generateRefreshToken } from "../middleware/refreshToken.js";
 
 const tempRouter = express.Router();
 
@@ -15,7 +16,7 @@ const tempRouter = express.Router();
  * @returns {string} JWT token
  */
 function sign(user) {
-  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
 }
 
 /**
@@ -32,10 +33,30 @@ tempRouter.post("/login-token", async (req, res, next) => {
     if (!user) return res.status(401).json({ error: "Email hoặc mật khẩu không đúng" });
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: "Email hoặc mật khẩu không đúng" });
-    const token = sign(user);
+    // Tạo access token và refresh token
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    
+    // Set httpOnly cookies for better security
+    res.cookie('token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000 // 15 minutes
+    });
+    
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
+    
     res.json({ 
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
-      token
+      token: accessToken, // Backward compatibility
+      accessToken,
+      refreshToken
     });
   } catch (e) { next(e); }
 });
@@ -56,10 +77,30 @@ tempRouter.post("/register-token", async (req, res, next) => {
     if (exists) return res.status(400).json({ error: "Email này đã được đăng ký" });
     const hash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, password: hash });
-    const token = sign(user);
+    // Tạo access token và refresh token
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    
+    // Set httpOnly cookies for better security
+    res.cookie('token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000 // 15 minutes
+    });
+    
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
+    
     res.json({ 
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
-      token
+      token: accessToken, // Backward compatibility
+      accessToken,
+      refreshToken
     });
   } catch (e) { next(e); }
 });

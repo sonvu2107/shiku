@@ -371,7 +371,7 @@ export default function Home({ user }) {
                       ref={isLastPost ? lastPostElementRef : null}
                       className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden"
                     >
-                      <PostCard post={post} onUpdate={loadInitial} />
+                      <PostCard post={post} user={user} onUpdate={loadInitial} />
                     </div>
                   );
                 })}

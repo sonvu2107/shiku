@@ -57,8 +57,14 @@ const messageSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster queries
-messageSchema.index({ conversation: 1, createdAt: -1 });
-messageSchema.index({ sender: 1 });
+// ==================== DATABASE INDEXES ====================
+
+// Compound indexes for common queries
+messageSchema.index({ conversation: 1, createdAt: -1 }); // Messages by conversation
+messageSchema.index({ conversation: 1, isDeleted: 1, createdAt: -1 }); // Active messages by conversation
+messageSchema.index({ sender: 1, createdAt: -1 }); // Messages by sender
+messageSchema.index({ conversation: 1, 'readBy.user': 1 }); // Unread messages query
+messageSchema.index({ messageType: 1, createdAt: -1 }); // Messages by type
+messageSchema.index({ isDeleted: 1, createdAt: -1 }); // Active messages only
 
 export default mongoose.model('Message', messageSchema);

@@ -4,6 +4,7 @@ import helmet from "helmet"; // Security middleware
 import cookieParser from "cookie-parser"; // Parse cookies
 import cors from "cors"; // Cross-Origin Resource Sharing
 import morgan from "morgan"; // HTTP request logger
+// import csrf from "csurf"; // CSRF protection - temporarily disabled
 import dotenv from "dotenv"; // Environment variables
 import path from "path";
 import { fileURLToPath } from "url";
@@ -12,7 +13,7 @@ import { Server } from "socket.io"; // WebSocket server
 
 // Import config và middleware
 import { connectDB } from "./config/db.js";
-import { apiLimiter, authLimiter, uploadLimiter, messageLimiter, postsLimiter } from "./middleware/rateLimit.js";
+import { apiLimiter, authLimiter, authStatusLimiter, uploadLimiter, messageLimiter, postsLimiter } from "./middleware/rateLimit.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { requestTimeout } from "./middleware/timeout.js";
 import { authOptional } from "./middleware/auth.js";
@@ -45,28 +46,32 @@ const server = createServer(app);
 // Trust proxy để rate limiting hoạt động đúng với reverse proxy (Railway, Heroku, etc.)
 app.set("trust proxy", 1);
 
-// Danh sách các origin được phép truy cập (CORS)
+// Danh sách các origin được phép truy cập (CORS) - sử dụng environment variables
 const allowedOrigins = [
-  "http://localhost:5173", // Vite dev server default
-  "http://localhost:5174", // Vite dev server alternative
-  "http://172.29.100.73:5173", // Local network access
-  "http://172.29.100.73:5174",
-  "http://192.168.0.101:5173",
-  "http://192.168.0.101:5174",
-  // Thêm origins từ environment variable nếu có
-  ...(process.env.CORS_ORIGIN?.split(",").map(o => o.trim()) || [])
+  // Development origins
+  ...(process.env.NODE_ENV === 'development' ? [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174"
+  ] : []),
+  // Production origins từ environment variables
+  ...(process.env.CORS_ORIGIN?.split(",").map(o => o.trim()) || []),
+  // Fallback cho development nếu không có CORS_ORIGIN
+  ...(process.env.NODE_ENV === 'development' && !process.env.CORS_ORIGIN ? [
+    "http://localhost:3000",
+    "http://localhost:3001"
+  ] : [])
 ];
 
 // Tạo Socket.IO server với CORS configuration và improved settings
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      console.log("🔌 Socket.IO Origin:", origin);
       // Cho phép requests từ allowed origins hoặc same-origin
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        console.warn("❌ Blocked Socket.IO CORS:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
@@ -87,20 +92,40 @@ const PORT = process.env.PORT || 4000;
 // ==================== MIDDLEWARE SETUP ====================
 
 // Security middleware - bảo vệ app khỏi các lỗ hổng thông thường
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
+      scriptSrc: ["'self'"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: []
+    }
+  },
+  crossOriginEmbedderPolicy: false
+}));
 // Parse cookies từ request headers
 app.use(cookieParser());
+
+// CSRF protection (temporarily disabled - requires csurf package)
+// app.use(csrf({
+//   cookie: {
+//     httpOnly: true,
+//     secure: process.env.NODE_ENV === 'production',
+//     sameSite: 'strict'
+//   }
+// }));
 
 // CORS configuration cho HTTP requests
 app.use(cors({
   origin: (origin, callback) => {
-    console.log("🌐 HTTP Request Origin:", origin);
-    console.log("✅ Allowed Origins:", allowedOrigins);
     // Kiểm tra origin có trong danh sách allowed không
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.warn("❌ Blocked HTTP CORS:", origin);
       callback(new Error("Not allowed by CORS"));
     }
   },
@@ -115,11 +140,6 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 // Request timeout middleware - 30 seconds for regular requests
 app.use(requestTimeout(30000));
 
-// Debug middleware - log tất cả requests để debug
-app.use((req, res, next) => {
-  console.log(`📝 ${req.method} ${req.path} - Body:`, req.body);
-  next();
-});
 
 // Rate limiting cho tất cả API routes - REMOVED to avoid double limiting
 // app.use("/api", apiLimiter); // Bỏ để tránh double rate limiting
@@ -182,12 +202,12 @@ app.get("/heartbeat", (req, res) => {
 });
 
 // Mount tất cả API routes with specific rate limiting
-app.use("/api/auth", authLimiter, authRoutes); // Authentication & authorization
-app.use("/api/auth", authTokenRoutes); // Token validation
+app.use("/api/auth", authLimiter, authRoutes); // Authentication & authorization (login, register)
+app.use("/api/auth", authStatusLimiter, authTokenRoutes); // Token validation (me, heartbeat)
 app.use("/api/posts", postsLimiter, postRoutes); // Blog posts CRUD with specific rate limiting
 app.use("/api/comments", commentRoutes); // Comments system
 app.use("/api/uploads", uploadLimiter, uploadRoutes); // File uploads
-app.use("/api/admin", adminRoutes); // Admin panel
+app.use("/api/admin", apiLimiter, adminRoutes); // Admin panel with rate limiting
 app.use("/api/friends", friendRoutes); // Friend system
 app.use("/api/users", userRoutes); // User profiles
 app.use("/api/notifications", notificationRoutes); // Notifications
@@ -268,7 +288,7 @@ io.on("connection", async (socket) => {
         });
       }
     } catch (error) {
-      console.error("Error updating user online status:", error);
+      // Error updating user online status
     }
   }
 

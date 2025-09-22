@@ -427,7 +427,7 @@ export default function Profile() {
                 key={post._id}
                 className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden"
               >
-                <PostCard post={post} onUpdate={loadPosts} />
+                <PostCard post={post} user={user} onUpdate={loadPosts} />
               </div>
             ))}
           </div>

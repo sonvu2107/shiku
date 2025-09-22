@@ -88,30 +88,15 @@ router.post('/accept-request/:requestId', authRequired, async (req, res) => {
     const { requestId } = req.params;
     const userId = req.user._id.toString(); // Convert to string
 
-    console.log('Accept request debug:', {
-      requestId,
-      userId,
-      userIdType: typeof userId
-    });
 
     const friendRequest = await FriendRequest.findById(requestId);
     if (!friendRequest) {
       return res.status(404).json({ message: 'Không tìm thấy lời mời' });
     }
 
-    console.log('Friend request found:', {
-      from: friendRequest.from.toString(),
-      to: friendRequest.to.toString(),
-      status: friendRequest.status
-    });
 
     // Chỉ người nhận mới có thể chấp nhận
     if (friendRequest.to.toString() !== userId) {
-      console.log('Permission denied:', {
-        friendRequestTo: friendRequest.to.toString(),
-        currentUserId: userId,
-        areEqual: friendRequest.to.toString() === userId
-      });
       return res.status(403).json({ message: 'Không có quyền chấp nhận lời mời này' });
     }
 
@@ -397,7 +382,6 @@ router.get('/search-friends', authRequired, async (req, res) => {
 
     res.json(filteredFriends);
   } catch (error) {
-    console.error("Error searching friends:", error);
     res.status(500).json({ message: error.message });
   }
 });

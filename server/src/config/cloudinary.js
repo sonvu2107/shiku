@@ -14,11 +14,6 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET, // API secret
 });
 
-// Debug log để kiểm tra config có được load đúng không
-console.log("Cloudinary config:", {
-  name: process.env.CLOUDINARY_CLOUD_NAME,
-  key: process.env.CLOUDINARY_API_KEY,
-  secret: process.env.CLOUDINARY_API_SECRET ? "Loaded" : "Missing",
-});
+// Cloudinary configuration loaded
 
 export default cloudinary;

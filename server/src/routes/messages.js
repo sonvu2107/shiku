@@ -8,7 +8,7 @@ import { v2 as cloudinary } from "cloudinary";
 
 const router = express.Router();
 
-console.log("🚀 Messages routes loaded");
+// Messages routes loaded successfully
 
 // Helper function to check if user has access to conversation
 const checkConversationAccess = (userId) => ({
@@ -22,7 +22,6 @@ const checkConversationAccess = (userId) => ({
 
 // Get all conversations for user
 router.get("/conversations", authRequired, async (req, res) => {
-  console.log("🔥 GET /conversations called for user:", req.user._id);
   
   // Disable cache
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -43,7 +42,6 @@ router.get("/conversations", authRequired, async (req, res) => {
     .populate('lastMessage')
     .sort({ lastActivity: -1 });
 
-    console.log("🔥 Found conversations:", conversations.length);
 
     // Optimize unread count calculation with batch query
     const conversationIds = conversations.map(conv => conv._id);
@@ -89,7 +87,6 @@ router.get("/conversations", authRequired, async (req, res) => {
       };
     });
 
-    console.log("🔥 Formatted conversations:", formattedConversations.length);
     res.json({ conversations: formattedConversations });
   } catch (error) {
     console.error("Error fetching conversations:", error);
@@ -233,7 +230,6 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
 
     // Emit realtime message to conversation room
     const io = req.app.get('io');
-    console.log('📤 Server: Emitting message to room:', `conversation-${conversationId}`);
     
     // Ensure message has conversationId field for client
     const socketMessageData = {
@@ -241,22 +237,14 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
       conversationId: conversationId
     };
     
-    console.log('📤 Server: Message data:', {
-      id: socketMessageData._id,
-      content: socketMessageData.content,
-      conversationId: socketMessageData.conversationId,
-      sender: socketMessageData.sender
-    });
-    
     io.to(`conversation-${conversationId}`).emit('new-message', socketMessageData);
-    console.log('📤 Server: Message emitted successfully');
 
     res.status(201).json(message);
   } catch (error) {
     console.error("Error sending message:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
-});
+}); 
 
 // Upload image message
 router.post("/conversations/:conversationId/messages/image", authRequired, async (req, res) => {
@@ -317,8 +305,6 @@ router.post("/conversations/:conversationId/messages/image", authRequired, async
 
 // Create private conversation
 router.post("/conversations/private", authRequired, async (req, res) => {
-  console.log("🔥 POST /conversations/private called with body:", req.body);
-  console.log("🔥 User:", req.user);
   try {
     const { recipientId } = req.body;
 
@@ -471,13 +457,6 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
     
     const canAddMembers = userParticipant.role === 'admin' || (conversation.allowMemberManagement === true);
     
-    console.log('🔥 Add member check:', {
-      userId: req.user._id,
-      userRole: userParticipant.role,
-      allowMemberManagement: conversation.allowMemberManagement,
-      canAddMembers
-    });
-    
     if (!canAddMembers) {
       return res.status(403).json({ message: "Bạn không có quyền thêm thành viên" });
     }
@@ -487,14 +466,11 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
       .filter(p => !p.leftAt)
       .map(p => p.user.toString());
     
-    console.log('🔥 Active participant IDs:', activeParticipantIds);
-    console.log('🔥 Requested participant IDs:', participantIds);
     
     // Check for users who left but can be re-added
     const leftParticipants = conversation.participants.filter(p => p.leftAt);
     const leftParticipantIds = leftParticipants.map(p => p.user.toString());
     
-    console.log('🔥 Left participant IDs:', leftParticipantIds);
     
     // Separate new users from users to re-add
     const reAddParticipantIds = participantIds.filter(id => leftParticipantIds.includes(id.toString()));
@@ -503,8 +479,6 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
       !leftParticipantIds.includes(id.toString())
     );
     
-    console.log('🔥 New participant IDs to add:', newParticipantIds);
-    console.log('🔥 Re-add participant IDs:', reAddParticipantIds);
 
     if (newParticipantIds.length === 0 && reAddParticipantIds.length === 0) {
       return res.status(400).json({ message: "Tất cả người dùng đã có trong nhóm" });
@@ -513,9 +487,6 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
     // Verify only new users exist (re-add users already exist in conversation)
     if (newParticipantIds.length > 0) {
       const users = await User.find({ _id: { $in: newParticipantIds } });
-      console.log('🔥 New user IDs to verify:', newParticipantIds);
-      console.log('🔥 Found new users:', users.map(u => u._id.toString()));
-      console.log('🔥 Expected count:', newParticipantIds.length, 'Found count:', users.length);
       
       if (users.length !== newParticipantIds.length) {
         return res.status(400).json({ message: "Một số người dùng không tồn tại" });
@@ -525,8 +496,6 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
     // For re-add users, just verify they exist (they should since they were in conversation before)
     if (reAddParticipantIds.length > 0) {
       const reAddUsers = await User.find({ _id: { $in: reAddParticipantIds } });
-      console.log('🔥 Re-add user IDs to verify:', reAddParticipantIds);
-      console.log('🔥 Found re-add users:', reAddUsers.map(u => u._id.toString()));
       
       if (reAddUsers.length !== reAddParticipantIds.length) {
         return res.status(400).json({ message: "Một số người dùng không tồn tại" });
@@ -549,7 +518,6 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
 
     // Re-add participants who left (remove their leftAt timestamp)
     if (reAddParticipantIds.length > 0) {
-      console.log('🔥 Re-adding participants:', reAddParticipantIds);
       
       const result = await Conversation.findByIdAndUpdate(conversationId, {
         $set: {
@@ -562,7 +530,6 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
         new: true
       });
       
-      console.log('🔥 Re-add update result:', result ? 'success' : 'failed');
     }
 
     // Create system messages for added participants
@@ -639,12 +606,8 @@ router.put("/conversations/:conversationId/name", authRequired, async (req, res)
     
     const canChangeName = userParticipant.role === 'admin' || (conversation.allowMemberManagement === true);
     
-    console.log('🔥 Change name check:', {
-      userId: req.user._id,
-      userRole: userParticipant.role,
-      allowMemberManagement: conversation.allowMemberManagement,
-      canChangeName
-    });
+    // Debug: Group name change permission check
+    // console.log('Group name change permission check:', { userId: req.user._id, userRole: userParticipant.role, allowMemberManagement: conversation.allowMemberManagement, canChangeName });
     
     if (!canChangeName) {
       return res.status(403).json({ message: "Bạn không có quyền đổi tên nhóm" });
@@ -660,7 +623,7 @@ router.put("/conversations/:conversationId/name", authRequired, async (req, res)
     // Create system message
     const changerUser = await User.findById(req.user._id).select('name');
     
-    const systemMessage = new Message({
+    const systemMessageForNameChange = new Message({
       content: `${changerUser.name} đã đổi tên nhóm từ "${oldName}" thành "${groupName.trim()}"`,
       conversation: conversationId,
       messageType: 'system',
@@ -668,11 +631,11 @@ router.put("/conversations/:conversationId/name", authRequired, async (req, res)
       createdAt: new Date()
     });
     
-    await systemMessage.save();
+    await systemMessageForNameChange.save();
     
     // Emit system message
-    const io = req.app.get('io');
-    io.to(`conversation-${conversationId}`).emit('new-message', systemMessage);
+    const ioForNameChange = req.app.get('io');
+    ioForNameChange.to(`conversation-${conversationId}`).emit('new-message', systemMessageForNameChange);
 
     res.json({ message: "Đã cập nhật tên nhóm thành công" });
   } catch (error) {
@@ -813,7 +776,7 @@ router.put("/conversations/:conversationId/member-management", authRequired, asy
     const adminUser = await User.findById(req.user._id).select('name');
     const statusText = allowMemberManagement ? 'cho phép' : 'không cho phép';
     
-    const systemMessage = new Message({
+    const systemMessageForManagement = new Message({
       content: `${adminUser.name} đã ${statusText} thành viên thêm người vào nhóm`,
       conversation: conversationId,
       messageType: 'system',
@@ -821,11 +784,11 @@ router.put("/conversations/:conversationId/member-management", authRequired, asy
       createdAt: new Date()
     });
     
-    await systemMessage.save();
+    await systemMessageForManagement.save();
     
     // Emit system message
-    const io = req.app.get('io');
-    io.to(`conversation-${conversationId}`).emit('new-message', systemMessage);
+    const ioForManagement = req.app.get('io');
+    ioForManagement.to(`conversation-${conversationId}`).emit('new-message', systemMessageForManagement);
 
     res.json({ message: `Đã ${statusText} thành viên quản lý nhóm` });
   } catch (error) {
@@ -849,14 +812,8 @@ router.post("/conversations/:conversationId/leave", authRequired, async (req, re
       return res.status(403).json({ message: "Không có quyền truy cập cuộc trò chuyện này" });
     }
 
-    console.log('🚪 User leaving conversation:', {
-      userId: req.user._id,
-      conversationId,
-      participantsBefore: conversation.participants.map(p => ({
-        userId: p.user,
-        leftAt: p.leftAt
-      }))
-    });
+    // Debug: User leaving conversation
+    // console.log('User leaving conversation:', { userId: req.user._id, conversationId, participantsBefore: conversation.participants.map(p => ({ userId: p.user, leftAt: p.leftAt })) });
 
     // Update ALL participant records for this user (in case there are duplicates)
     const updateResult = await Conversation.updateMany(
@@ -873,7 +830,6 @@ router.post("/conversations/:conversationId/leave", authRequired, async (req, re
       }
     );
 
-    console.log('🚪 Leave conversation update result:', updateResult);
 
     // Create system message for user leaving
     if (updateResult.modifiedCount > 0) {
@@ -1032,12 +988,8 @@ router.delete("/conversations/:conversationId/participants/:userId", authRequire
     
     const canRemoveMembers = userParticipant.role === 'admin' || (conversation.allowMemberManagement === true);
     
-    console.log('🔥 Remove member check:', {
-      userId: req.user._id,
-      userRole: userParticipant.role,
-      allowMemberManagement: conversation.allowMemberManagement,
-      canRemoveMembers
-    });
+    // Debug: Member removal permission check
+    // console.log('Member removal permission check:', { userId: req.user._id, userRole: userParticipant.role, allowMemberManagement: conversation.allowMemberManagement, canRemoveMembers });
     
     if (!canRemoveMembers) {
       return res.status(403).json({ message: "Bạn không có quyền xóa thành viên" });
@@ -1064,24 +1016,21 @@ router.delete("/conversations/:conversationId/participants/:userId", authRequire
       return res.status(404).json({ message: "Không tìm thấy thành viên trong nhóm" });
     }
 
-    console.log('🔥 User removed successfully, creating system message...');
 
     // Create system message for member removal
     try {
       const removedUser = await User.findById(userId).select('name');
       const removerUser = await User.findById(req.user._id).select('name');
       
-      console.log('🔥 Users found:', {
-        removedUser: removedUser?.name,
-        removerUser: removerUser?.name
-      });
+      // Debug: User removal debug
+      // console.log('User removal debug:', { removedUser: removedUser?.name, removerUser: removerUser?.name });
       
       if (!removedUser || !removerUser) {
         console.error('🔥 User not found:', { removedUser: !!removedUser, removerUser: !!removerUser });
         return res.json({ message: "Đã xóa thành viên khỏi nhóm" });
       }
       
-      const systemMessage = new Message({
+      const systemMessageForRemoval = new Message({
         content: `${removerUser.name} đã xóa ${removedUser.name} khỏi nhóm`,
         conversation: conversationId,
         messageType: 'system',
@@ -1089,21 +1038,19 @@ router.delete("/conversations/:conversationId/participants/:userId", authRequire
         createdAt: new Date()
       });
       
-      await systemMessage.save();
-      console.log('🔥 System message saved successfully');
+      await systemMessageForRemoval.save();
       
       // Populate conversation before emitting
-      await systemMessage.populate('conversation');
+      await systemMessageForRemoval.populate('conversation');
       
       // Emit system message to conversation room
-      const io = req.app.get('io');
-      if (io) {
+      const ioForRemoval = req.app.get('io');
+      if (ioForRemoval) {
         const messageData = {
-          ...systemMessage.toObject(),
+          ...systemMessageForRemoval.toObject(),
           conversationId: conversationId // Add conversationId field for frontend
         };
-        io.to(`conversation-${conversationId}`).emit('new-message', messageData);
-        console.log('🔥 System message emitted successfully');
+        ioForRemoval.to(`conversation-${conversationId}`).emit('new-message', messageData);
       } else {
         console.error('🔥 Socket.io not available');
       }
@@ -1146,7 +1093,6 @@ router.put("/conversations/:conversationId", authRequired, async (req, res) => {
     // Thêm cập nhật lastActivity khi đổi tên nhóm
     filteredUpdates.lastActivity = new Date();
     const updateResult = await Conversation.findByIdAndUpdate(conversationId, filteredUpdates);
-    console.log('🔥 Kết quả cập nhật tên nhóm:', updateResult);
 
     // Lấy lại conversation đã cập nhật và populate participants
     const updatedConversation = await Conversation.findById(conversationId)

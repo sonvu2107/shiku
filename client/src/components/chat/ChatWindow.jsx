@@ -3,6 +3,7 @@ import { chatAPI } from "../../chatAPI";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import ChatHeader from "./ChatHeader";
+import ComponentErrorBoundary from "../ComponentErrorBoundary";
 
 /**
  * ChatWindow - Component cửa sổ chat chính
@@ -55,7 +56,8 @@ export default function ChatWindow({
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <ComponentErrorBoundary>
+      <div className="flex flex-col h-full min-h-0">
       {conversation ? (
         <>
           {/* Header */}
@@ -103,6 +105,7 @@ export default function ChatWindow({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </ComponentErrorBoundary>
   );
 }

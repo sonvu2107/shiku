@@ -54,6 +54,21 @@ const UserSchema = new mongoose.Schema({
   timestamps: true // Tự động thêm createdAt và updatedAt
 });
 
+// ==================== DATABASE INDEXES ====================
+
+// Single field indexes
+// Note: email index is automatically created by unique: true in schema
+UserSchema.index({ name: 1 }); // Name search
+UserSchema.index({ role: 1 }); // Role-based queries
+UserSchema.index({ isBanned: 1 }); // Ban status queries
+UserSchema.index({ isOnline: 1 }); // Online status queries
+UserSchema.index({ lastSeen: -1 }); // Recent activity
+
+// Compound indexes for common queries
+UserSchema.index({ role: 1, isBanned: 1 }); // Admin queries
+UserSchema.index({ isOnline: 1, lastSeen: -1 }); // Online users
+UserSchema.index({ name: "text", bio: "text" }); // Text search
+
 // ==================== INSTANCE METHODS ====================
 
 /**

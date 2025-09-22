@@ -90,7 +90,6 @@ router.get('/', async (req, res) => {
     }
 
     console.log('Groups query:', JSON.stringify(query, null, 2));
-    console.log('Query params:', { page, limit, search, type, sortBy, sortOrder });
 
     // Xây dựng sort
     const sortOptions = {};
@@ -124,16 +123,7 @@ router.get('/', async (req, res) => {
     // Đếm tổng số nhóm
     const total = await Group.countDocuments(query);
 
-    console.log('Found groups:', groups.length);
-    console.log('Total groups in DB:', total);
-    console.log('Group names:', groups.map(g => g.name));
     
-    // Debug: Kiểm tra tất cả groups trong DB
-    const allGroups = await Group.find({}).select('name owner createdAt').lean();
-    console.log('All groups in database:');
-    allGroups.forEach((g, i) => {
-      console.log(`${i+1}. ${g.name} (ID: ${g._id}, Owner: ${g.owner}, Created: ${g.createdAt})`);
-    });
 
     res.json({
       success: true,
@@ -228,9 +218,7 @@ router.get('/my-groups', authRequired, async (req, res) => {
  */
 router.get('/:id', authOptional, async (req, res) => {
   try {
-    console.log('=== GET /api/groups/:id called ===');
     console.log('Group ID:', req.params.id);
-    console.log('User:', req.user?._id);
     
     const group = await Group.findById(req.params.id)
       .populate('owner', 'name avatarUrl')
@@ -332,7 +320,6 @@ router.post('/', authRequired, upload.fields([
       location
     } = req.body;
 
-    console.log('Creating group with data:', { name, description, owner: req.user._id, type });
 
     // Tạo nhóm mới
     const group = new Group({
@@ -385,7 +372,6 @@ router.post('/', authRequired, upload.fields([
     await group.populate('owner', 'name avatarUrl');
     await group.populate('members.user', 'name avatarUrl');
 
-    console.log('Group created successfully:', group.name, 'by', req.user._id);
 
     res.status(201).json({
       success: true,

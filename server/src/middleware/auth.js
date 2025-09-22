@@ -9,11 +9,6 @@ import User from "../models/User.js";
  * @param {Function} next - Express next function
  */
 export async function authRequired(req, res, next) {
-  // Debug logging
-  console.log("🔐 Auth middleware - Path:", req.path);
-  console.log("🔐 Auth middleware - Cookies:", req.cookies);
-  console.log("🔐 Auth middleware - Authorization header:", req.headers.authorization);
-  
   // Lấy token từ cookie trước
   let token = req.cookies?.token;
   
@@ -22,8 +17,6 @@ export async function authRequired(req, res, next) {
     const header = req.headers.authorization || "";
     token = header.startsWith("Bearer ") ? header.slice(7) : null;
   }
-  
-  console.log("🔐 Auth middleware - Final token:", token ? "exists" : "not found");
   
   // Nếu không có token, trả về lỗi 401
   if (!token) return res.status(401).json({ error: "Vui lòng đăng nhập" });
