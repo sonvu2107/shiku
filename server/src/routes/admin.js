@@ -2,6 +2,7 @@ import express from "express";
 import User from "../models/User.js";
 import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
+import Notification from "../models/Notification.js";
 import { authRequired } from "../middleware/auth.js";
 import NotificationService from "../services/NotificationService.js";
 
@@ -570,6 +571,127 @@ router.post("/update-offline-users", authRequired, adminRequired, async (req, re
   } catch (e) {
     next(e);
   }
+});
+
+/**
+ * POST /send-notification - Gửi thông báo cho tất cả users
+ * Admin có thể gửi thông báo hệ thống cho tất cả users
+ * @param {string} req.body.title - Tiêu đề thông báo
+ * @param {string} req.body.message - Nội dung thông báo
+ * @param {string} req.body.type - Loại thông báo (info, warning, success, error)
+ * @param {string} req.body.target - Đối tượng nhận (all, online, specific)
+ * @param {Array} req.body.userIds - Danh sách user IDs (nếu target = specific)
+ * @returns {Object} Kết quả gửi thông báo
+ */
+router.post("/send-notification", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const { title, message, type = "info", target = "all", userIds = [] } = req.body;
+    
+    // Kiểm tra thông tin bắt buộc
+    if (!title || !message) {
+      return res.status(400).json({ error: "Thiếu tiêu đề hoặc nội dung thông báo" });
+    }
+
+    // Validate type
+    const validTypes = ["info", "warning", "success", "error"];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ error: "Loại thông báo không hợp lệ" });
+    }
+
+    // Validate target
+    const validTargets = ["all", "online", "specific"];
+    if (!validTargets.includes(target)) {
+      return res.status(400).json({ error: "Đối tượng nhận không hợp lệ" });
+    }
+
+    // Nếu target là specific, cần có userIds
+    if (target === "specific" && (!userIds || userIds.length === 0)) {
+      return res.status(400).json({ error: "Cần cung cấp danh sách user IDs" });
+    }
+
+    let targetUsers = [];
+
+    // Lấy danh sách users dựa trên target
+    if (target === "all") {
+      targetUsers = await User.find({}, "_id name email isOnline");
+    } else if (target === "online") {
+      targetUsers = await User.find({ isOnline: true }, "_id name email isOnline");
+    } else if (target === "specific") {
+      targetUsers = await User.find({ _id: { $in: userIds } }, "_id name email isOnline");
+    }
+
+    if (targetUsers.length === 0) {
+      return res.status(400).json({ error: "Không tìm thấy user nào phù hợp" });
+    }
+
+    // Tạo thông báo cho từng user
+    const notifications = targetUsers.map(user => ({
+      recipient: user._id,
+      sender: req.user._id,
+      type: "admin_message",
+      title,
+      message,
+      data: {
+        metadata: {
+          adminNotification: true,
+          notificationType: type
+        }
+      },
+      read: false
+    }));
+
+    // Lưu thông báo vào database
+    const savedNotifications = await Notification.insertMany(notifications);
+    
+    // Gửi thông báo real-time qua Socket.IO
+    const io = req.app.get('io');
+    if (io) {
+      targetUsers.forEach(user => {
+        if (user.isOnline) {
+          io.to(`user_${user._id}`).emit('admin_notification', {
+            title,
+            message,
+            type,
+            timestamp: new Date().toISOString()
+          });
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Đã gửi thông báo cho ${targetUsers.length} user(s)`,
+      data: {
+        totalSent: targetUsers.length,
+        notificationsSaved: savedNotifications.length,
+        target,
+        type,
+        title,
+        message,
+        notificationIds: savedNotifications.map(n => n._id)
+      }
+    });
+
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * GET /test-send-notification - Test endpoint để kiểm tra route hoạt động
+ * Chỉ để test, không cần authentication
+ */
+router.get("/test-send-notification", (req, res) => {
+  res.json({
+    success: true,
+    message: "Send notification endpoint is working!",
+    endpoint: "/api/admin/send-notification",
+    method: "POST",
+    requiredFields: ["title", "message"],
+    optionalFields: ["type", "target", "userIds"],
+    validTypes: ["info", "warning", "success", "error"],
+    validTargets: ["all", "online", "specific"]
+  });
 });
 
 export default router;
