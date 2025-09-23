@@ -57,6 +57,9 @@ const allowedOrigins = [
   ] : []),
   // Production origins từ environment variables
   ...(process.env.CORS_ORIGIN?.split(",").map(o => o.trim()) || []),
+  // Netlify domains (fallback)
+  "https://*.netlify.app",
+  "https://*.netlify.com",
   // Fallback cho development nếu không có CORS_ORIGIN
   ...(process.env.NODE_ENV === 'development' && !process.env.CORS_ORIGIN ? [
     "http://localhost:3000",
@@ -68,10 +71,32 @@ const allowedOrigins = [
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      // Cho phép requests từ allowed origins hoặc same-origin
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Kiểm tra origin có trong danh sách allowed không
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      
+      // Check exact match
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      
+      // Check wildcard patterns
+      const isAllowed = allowedOrigins.some(allowedOrigin => {
+        if (allowedOrigin.includes('*')) {
+          const pattern = allowedOrigin.replace(/\*/g, '.*');
+          const regex = new RegExp(`^${pattern}$`);
+          return regex.test(origin);
+        }
+        return false;
+      });
+      
+      if (isAllowed) {
         callback(null, true);
       } else {
+        console.warn("❌ Blocked Socket.IO CORS:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
@@ -127,9 +152,31 @@ app.use(csrf({
 app.use(cors({
   origin: (origin, callback) => {
     // Kiểm tra origin có trong danh sách allowed không
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    
+    // Check exact match
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    
+    // Check wildcard patterns
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (allowedOrigin.includes('*')) {
+        const pattern = allowedOrigin.replace(/\*/g, '.*');
+        const regex = new RegExp(`^${pattern}$`);
+        return regex.test(origin);
+      }
+      return false;
+    });
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
+      console.warn("❌ Blocked HTTP CORS:", origin);
       callback(new Error("Not allowed by CORS"));
     }
   },

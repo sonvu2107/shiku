@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../api";
 import { useNavigate, Link } from "react-router-dom";
 import { saveTokens } from "../utils/tokenManager";
+import { getCSRFToken } from "../utils/csrfToken";
 import Logo from "../components/Logo";
 import { UserPlus, Mail, Lock, User } from "lucide-react";
 
@@ -33,10 +34,19 @@ export default function Register({ setUser }) {
     setLoading(true);
     
     try {
-      // Gọi API đăng ký
+      // Lấy CSRF token trước khi đăng ký
+      const csrfToken = await getCSRFToken();
+      if (!csrfToken) {
+        throw new Error('Failed to get CSRF token');
+      }
+      
+      // Gọi API đăng ký với CSRF token
       const data = await api("/api/auth/register-token", { 
         method: "POST", 
-        body: { name, email, password } 
+        body: { name, email, password },
+        headers: {
+          'X-CSRF-Token': csrfToken
+        }
       });
       
       // Lưu token vào localStorage
