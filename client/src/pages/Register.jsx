@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../api";
 import { useNavigate, Link } from "react-router-dom";
 import { saveTokens } from "../utils/tokenManager";
-import { getCSRFToken } from "../utils/csrfToken";
+import { getCSRFToken, clearCSRFToken } from "../utils/csrfToken";
 import Logo from "../components/Logo";
 import { UserPlus, Mail, Lock, User } from "lucide-react";
 
@@ -63,6 +63,10 @@ export default function Register({ setUser }) {
       // Redirect đến trang chủ
       navigate("/");
     } catch (e) { 
+      // Nếu là lỗi CSRF, clear cache và thử lại
+      if (e.message.includes('csrf') || e.message.includes('CSRF')) {
+        clearCSRFToken();
+      }
       setErr(e.message); // Hiển thị error
     } finally {
       setLoading(false);

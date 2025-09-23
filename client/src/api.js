@@ -72,6 +72,22 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
         return;
       }
     }
+    
+    // Nếu là lỗi 403 (CSRF token invalid), thử refresh CSRF token
+    if (res.status === 403 && method !== 'GET') {
+      const newCSRFToken = await getCSRFToken(true); // Force refresh
+      if (newCSRFToken) {
+        headers['X-CSRF-Token'] = newCSRFToken;
+        const retryRes = await fetch(`${API_URL}${path}`, {
+          ...requestOptions,
+          headers: { ...requestOptions.headers, ...headers }
+        });
+        
+        if (retryRes.ok) {
+          return await retryRes.json();
+        }
+      }
+    }
 
     const data = await res.json().catch(() => ({}));
     const error = new Error(data.message || data.error || `Request failed (${res.status})`);

@@ -57,6 +57,9 @@ const allowedOrigins = [
   ] : []),
   // Production origins từ environment variables
   ...(process.env.CORS_ORIGIN?.split(",").map(o => o.trim()) || []),
+  // Custom domains
+  "https://shiku.click",
+  "https://www.shiku.click",
   // Netlify domains (fallback)
   "https://*.netlify.app",
   "https://*.netlify.com",
@@ -255,6 +258,24 @@ app.get("/heartbeat", (req, res) => {
 // CSRF token endpoint
 app.get("/api/csrf-token", (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
+});
+
+// Debug endpoint để kiểm tra CORS và CSRF
+app.get("/api/debug", (req, res) => {
+  res.json({
+    success: true,
+    timestamp: new Date().toISOString(),
+    origin: req.get('Origin'),
+    userAgent: req.get('User-Agent'),
+    ip: req.ip,
+    headers: {
+      origin: req.get('Origin'),
+      referer: req.get('Referer'),
+      host: req.get('Host')
+    },
+    csrfToken: req.csrfToken(),
+    allowedOrigins: allowedOrigins
+  });
 });
 
 // Mount tất cả API routes with specific rate limiting
