@@ -103,7 +103,8 @@ const io = new Server(server, {
         callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true // Cho phép gửi cookies và credentials
+    credentials: true, // Cho phép gửi cookies và credentials
+    optionsSuccessStatus: 200 // Hỗ trợ legacy browsers
   },
   // Add connection management settings
   pingTimeout: 60000, // 60 seconds
@@ -143,7 +144,7 @@ app.use(csrf({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict' // None cho cross-origin trong production
   },
   // Custom token extractor để lấy token từ header
   value: (req) => {
@@ -183,7 +184,8 @@ app.use(cors({
       callback(new Error("Not allowed by CORS"));
     }
   },
-  credentials: true // Cho phép gửi cookies và auth headers
+  credentials: true, // Cho phép gửi cookies và auth headers
+  optionsSuccessStatus: 200 // Hỗ trợ legacy browsers
 }));
 
 // Parse JSON body với limit 10MB (cho upload hình ảnh base64)
@@ -271,10 +273,25 @@ app.get("/api/debug", (req, res) => {
     headers: {
       origin: req.get('Origin'),
       referer: req.get('Referer'),
-      host: req.get('Host')
+      host: req.get('Host'),
+      cookie: req.get('Cookie')
     },
     csrfToken: req.csrfToken(),
-    allowedOrigins: allowedOrigins
+    csrfCookie: req.cookies._csrf,
+    allowedOrigins: allowedOrigins,
+    environment: process.env.NODE_ENV
+  });
+});
+
+// Test CSRF endpoint
+app.post("/api/test-csrf", (req, res) => {
+  res.json({
+    success: true,
+    message: "CSRF test successful!",
+    timestamp: new Date().toISOString(),
+    receivedCSRFToken: req.headers['x-csrf-token'],
+    receivedCSRFCookie: req.cookies._csrf,
+    origin: req.get('Origin')
   });
 });
 

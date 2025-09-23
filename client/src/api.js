@@ -39,6 +39,7 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
       ...headers,
     },
     credentials: "include", // Bao gồm cookies trong request
+    mode: "cors", // Đảm bảo CORS mode
     body: body ? (isFormData ? body : (typeof body === 'string' ? body : JSON.stringify(body))) : undefined,
   };
 
@@ -59,7 +60,8 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
         headers.Authorization = `Bearer ${newToken}`;
         const retryRes = await fetch(`${API_URL}${path}`, {
           ...requestOptions,
-          headers: { ...requestOptions.headers, ...headers }
+          headers: { ...requestOptions.headers, ...headers },
+          mode: "cors"
         });
         
         if (retryRes.ok) {
@@ -80,7 +82,8 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
         headers['X-CSRF-Token'] = newCSRFToken;
         const retryRes = await fetch(`${API_URL}${path}`, {
           ...requestOptions,
-          headers: { ...requestOptions.headers, ...headers }
+          headers: { ...requestOptions.headers, ...headers },
+          mode: "cors"
         });
         
         if (retryRes.ok) {
