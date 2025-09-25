@@ -48,6 +48,15 @@ export default function Friends() {
   }, []);
 
   /**
+   * Refresh danh sách bạn bè khi chuyển sang tab friends
+   */
+  useEffect(() => {
+    if (activeTab === 'friends') {
+      loadFriends();
+    }
+  }, [activeTab]);
+
+  /**
    * Tìm kiếm users khi search query thay đổi
    */
   useEffect(() => {
@@ -164,7 +173,7 @@ export default function Friends() {
   };
 
   const getLastSeenText = (lastSeen, isOnline) => {
-    if (isOnline) return 'Đang online';
+    if (isOnline) return '● Đang hoạt động';
 
     if (!lastSeen) return 'Chưa có thông tin';
 
@@ -182,7 +191,10 @@ export default function Friends() {
     if (diffMins < 1) return 'Vừa truy cập';
     if (diffMins < 60) return `${diffMins} phút trước`;
     if (diffHours < 24) return `${diffHours} giờ trước`;
-    return `${diffDays} ngày trước`;
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    
+    // Nếu quá 7 ngày, hiển thị ngày tháng
+    return `Hoạt động ${lastSeenDate.toLocaleDateString('vi-VN')}`;
   };
 
   const UserCard = ({ user, showActions = false, isRequest = false, requestId = null, showEmail = true }) => (

@@ -101,7 +101,7 @@ export default function Home({ user }) {
     loadingRef.current = true;
     
     try {
-      const limit = 50;
+      const limit = 100; // Tăng từ 50 lên 100 bài viết
       const publishedData = await api(`/api/posts?page=1&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
       let allItems = publishedData.items;
 
@@ -158,7 +158,7 @@ export default function Home({ user }) {
   }, [page, hasMore, loadingMore, q, sortBy]);
 
   const loadAllRemaining = useCallback(async () => {
-    if (loadingAll || !hasMore) return;
+    if (loadingAll) return;
 
     setLoadingAll(true);
     setError(null);
@@ -167,6 +167,11 @@ export default function Home({ user }) {
     try {
       const allRemainingPosts = [];
       let currentPage = page;
+      
+      // Nếu chưa có hasMore, bắt đầu từ trang 2
+      if (!hasMore && totalPages > 1) {
+        currentPage = 2;
+      }
       
       while (currentPage <= totalPages) {
         const publishedData = await api(`/api/posts?page=${currentPage}&limit=15&q=${encodeURIComponent(q)}&status=published`);
@@ -403,6 +408,18 @@ export default function Home({ user }) {
                         Tải tất cả ({totalPages - page + 1} trang còn lại)
                       </button>
                     )}
+                  </div>
+                )}
+
+                {/* Load all button - hiển thị ngay từ đầu nếu có nhiều bài viết */}
+                {!loadingMore && !loadingAll && !hasMore && totalPages > 1 && (
+                  <div className="flex justify-center py-4">
+                    <button
+                      onClick={loadAllRemaining}
+                      className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors touch-manipulation"
+                    >
+                      Tải tất cả bài viết ({totalPages} trang)
+                    </button>
                   </div>
                 )}
 

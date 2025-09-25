@@ -17,6 +17,30 @@ import MessageButton from "./MessageButton";
 export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = true }) {
   const navigate = useNavigate();
   
+  // Hàm tính toán thời gian hoạt động cuối
+  const getLastSeenText = (lastSeen) => {
+    if (!lastSeen) return 'Chưa có thông tin';
+
+    const now = new Date();
+    const lastSeenDate = new Date(lastSeen);
+
+    // Kiểm tra lastSeenDate có hợp lệ không
+    if (isNaN(lastSeenDate.getTime())) return 'Chưa có thông tin';
+
+    const diffMs = now - lastSeenDate;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'Vừa truy cập';
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    
+    // Nếu quá 7 ngày, hiển thị ngày tháng
+    return `Hoạt động ${lastSeenDate.toLocaleDateString('vi-VN')}`;
+  };
+  
   return (
     <div className="bg-white rounded-lg border p-3 sm:p-4 space-y-3">
       {/* Header với avatar và thông tin */}
@@ -58,7 +82,7 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
             {friend.isOnline ? (
               <span className="text-green-600">● Đang hoạt động</span>
             ) : (
-              <span>Hoạt động {new Date(friend.lastSeen).toLocaleDateString('vi-VN')}</span>
+              <span>{getLastSeenText(friend.lastSeen)}</span>
             )}
           </div>
         </div>

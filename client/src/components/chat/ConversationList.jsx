@@ -67,6 +67,19 @@ export default function ConversationList({
     }
   };
 
+  const getOtherUserOnlineStatus = (conversation) => {
+    if (conversation.conversationType === 'group') return false;
+
+    const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
+    const otherParticipant = conversation.participants?.find(p => {
+      const participantId = p.user?._id || p.user?.id || p._id || p.id;
+      return participantId !== currentUserId;
+    });
+
+    const user = otherParticipant?.user || otherParticipant;
+    return user?.isOnline || false;
+  };
+
   if (loading) {
     return (
       <div className="p-4">
@@ -129,6 +142,11 @@ export default function ConversationList({
                       <User size={20} className="text-gray-500" />
                     )}
                   </div>
+                )}
+                
+                {/* Online status indicator for private conversations */}
+                {conversation.conversationType === 'private' && getOtherUserOnlineStatus(conversation) && (
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
                 )}
                 
                 {/* Unread badge */}

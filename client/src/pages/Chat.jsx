@@ -48,6 +48,9 @@ export default function Chat() {
   const [groupParticipants, setGroupParticipants] = useState([]); // Danh sách participants trong group call
   const [isGroupCall, setIsGroupCall] = useState(false); // Có phải group call không
   
+  // Online status tracking
+  const [userOnlineStatus, setUserOnlineStatus] = useState({}); // Map user ID -> online status
+  
   // User & Loading
   const [currentUser, setCurrentUser] = useState(null); // User hiện tại
   const [isLoading, setIsLoading] = useState(true); // Loading conversations
@@ -152,6 +155,39 @@ export default function Chat() {
       saveCurrentConversation(selectedConversation._id);
     }
   }, [selectedConversation]);
+
+  // Lắng nghe real-time updates cho online status
+  useEffect(() => {
+    if (!socketService.socket) return;
+
+    const handleFriendOnline = (data) => {
+      setUserOnlineStatus(prev => ({
+        ...prev,
+        [data.userId]: {
+          isOnline: data.isOnline,
+          lastSeen: data.lastSeen
+        }
+      }));
+    };
+
+    const handleFriendOffline = (data) => {
+      setUserOnlineStatus(prev => ({
+        ...prev,
+        [data.userId]: {
+          isOnline: data.isOnline,
+          lastSeen: data.lastSeen
+        }
+      }));
+    };
+
+    socketService.socket.on('friend-online', handleFriendOnline);
+    socketService.socket.on('friend-offline', handleFriendOffline);
+
+    return () => {
+      socketService.socket.off('friend-online', handleFriendOnline);
+      socketService.socket.off('friend-offline', handleFriendOffline);
+    };
+  }, [socketService.socket]);
 
   const loadCurrentConversation = async () => {
     try {
@@ -411,6 +447,83 @@ export default function Chat() {
     }
   };
 
+  // Hàm merge online status vào conversation data
+  const mergeOnlineStatusToConversation = (conversation) => {
+    if (!conversation || conversation.conversationType === 'group') {
+      return conversation;
+    }
+
+    // Tìm other participant
+    const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
+    const otherParticipant = conversation.participants?.find(p => {
+      const participantId = p.user?._id || p.user?.id || p._id || p.id;
+      return participantId !== currentUserId;
+    });
+
+    if (!otherParticipant) return conversation;
+
+    const otherUserId = otherParticipant.user?._id || otherParticipant.user?.id || otherParticipant._id || otherParticipant.id;
+    const realtimeOnlineStatus = userOnlineStatus[otherUserId];
+
+
+    // Ưu tiên real-time status nếu có, nếu không thì dùng dữ liệu từ server
+    const onlineStatus = realtimeOnlineStatus || {
+      isOnline: otherParticipant.user?.isOnline || false,
+      lastSeen: otherParticipant.user?.lastSeen || null
+    };
+
+    // Nếu không có real-time data và server data cũng không có, thì không merge
+    if (!realtimeOnlineStatus && !otherParticipant.user?.isOnline && !otherParticipant.user?.lastSeen) {
+      return conversation;
+    }
+
+
+    // Luôn merge online status, ngay cả khi không có real-time updates
+
+    // Tạo conversation mới với online status được cập nhật
+    const updatedConversation = { ...conversation };
+    
+    // Cập nhật participants
+    updatedConversation.participants = conversation.participants.map(p => {
+      const participantId = p.user?._id || p.user?.id || p._id || p.id;
+      if (participantId === otherUserId) {
+        return {
+          ...p,
+          user: {
+            ...p.user,
+            isOnline: onlineStatus.isOnline,
+            lastSeen: onlineStatus.lastSeen
+          },
+          isOnline: onlineStatus.isOnline,
+          lastSeen: onlineStatus.lastSeen
+        };
+      }
+      return p;
+    });
+
+    // Cập nhật otherParticipants nếu có
+    if (updatedConversation.otherParticipants) {
+      updatedConversation.otherParticipants = conversation.otherParticipants.map(p => {
+        const participantId = p.user?._id || p.user?.id || p._id || p.id;
+        if (participantId === otherUserId) {
+          return {
+            ...p,
+            user: {
+              ...p.user,
+              isOnline: onlineStatus.isOnline,
+              lastSeen: onlineStatus.lastSeen
+            },
+            isOnline: onlineStatus.isOnline,
+            lastSeen: onlineStatus.lastSeen
+          };
+        }
+        return p;
+      });
+    }
+
+    return updatedConversation;
+  };
+
   const handleAddMembers = () => {
     setShowAddMembersModal(true);
   };
@@ -559,8 +672,8 @@ export default function Chat() {
           {/* Conversation List */}
           <div className="flex-1 overflow-y-auto max-h-48 sm:max-h-none">
             <ConversationList
-              conversations={conversations}
-              selectedConversation={selectedConversation}
+              conversations={conversations.map(conv => mergeOnlineStatusToConversation(conv))}
+              selectedConversation={selectedConversation ? mergeOnlineStatusToConversation(selectedConversation) : null}
               onSelectConversation={handleSelectConversation}
               loading={isLoading}
               currentUser={currentUser}
@@ -571,7 +684,7 @@ export default function Chat() {
         <div className="flex-1 bg-gray-50 flex flex-col chat-window-mobile min-h-0">
           {selectedConversation ? (
             <ChatWindow
-              conversation={selectedConversation}
+              conversation={mergeOnlineStatusToConversation(selectedConversation)}
               currentUser={currentUser}
               messages={messages}
               isLoadingMessages={isLoadingMessages}

@@ -25,33 +25,42 @@ export default function Settings() {
   const [newPassword, setNewPassword] = React.useState(""); // Mật khẩu mới
   const [passwordLoading, setPasswordLoading] = React.useState(false); // Loading khi đổi mật khẩu
 
-  React.useEffect(() => {
-    // Lấy danh sách blocked users từ API
-    async function fetchBlocked() {
-      try {
-        const res = await api("/api/auth/me");
-        // res.user.blockedUsers là mảng id, lấy thông tin tất cả users trong một lần gọi
-        if (res.user.blockedUsers && res.user.blockedUsers.length > 0) {
-          const batchRes = await api("/api/users/batch", {
-            method: "POST",
-            body: { userIds: res.user.blockedUsers }
-          });
-          setBlockedUsers(batchRes.users);
-        } else {
-          setBlockedUsers([]);
-        }
-      } catch (err) {
-        console.error("Error fetching blocked users:", err);
+  // Function để refresh danh sách blocked users
+  const refreshBlockedUsers = async () => {
+    try {
+      const res = await api("/api/auth/me");
+      // res.user.blockedUsers là mảng id, lấy thông tin tất cả users trong một lần gọi
+      if (res.user.blockedUsers && res.user.blockedUsers.length > 0) {
+        const batchRes = await api("/api/users/batch", {
+          method: "POST",
+          body: { userIds: res.user.blockedUsers }
+        });
+        setBlockedUsers(batchRes.users);
+      } else {
         setBlockedUsers([]);
       }
+    } catch (err) {
+      console.error("Error fetching blocked users:", err);
+      setBlockedUsers([]);
     }
-    fetchBlocked();
+  };
+
+  React.useEffect(() => {
+    refreshBlockedUsers();
   }, []);
+
+  // Refresh danh sách blocked users khi chuyển sang tab blocked
+  React.useEffect(() => {
+    if (activeTab === "blocked") {
+      refreshBlockedUsers();
+    }
+  }, [activeTab]);
 
   const unblockUser = async (userId) => {
     try {
       await api(`/api/users/unblock/${userId}`, { method: "POST" });
-      setBlockedUsers((prev) => prev.filter((u) => u._id !== userId));
+      // Refresh lại danh sách để đảm bảo đồng bộ với server
+      await refreshBlockedUsers();
     } catch (err) {
       alert("Lỗi khi gỡ chặn");
     }
@@ -93,7 +102,18 @@ export default function Settings() {
         {/* Blocked Users */}
         {activeTab === "blocked" && (
           <div className="card rounded-2xl p-6 shadow-sm border bg-white border-gray-200 text-black">
-            <h2 className="text-lg font-semibold mb-4">Người bạn đã chặn</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Người bạn đã chặn</h2>
+              <button
+                onClick={refreshBlockedUsers}
+                className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Làm mới
+              </button>
+            </div>
             {blockedUsers.length === 0 ? (
               <div className="text-gray-500 ">
                 Bạn chưa chặn ai.

@@ -38,7 +38,7 @@ router.get("/conversations", authRequired, async (req, res) => {
       },
       isActive: true
     })
-    .populate('participants.user', 'name avatarUrl')
+    .populate('participants.user', 'name avatarUrl isOnline lastSeen')
     .populate('lastMessage')
     .sort({ lastActivity: -1 });
 
@@ -340,7 +340,7 @@ router.post("/conversations/private", authRequired, async (req, res) => {
     });
 
     await conversation.save();
-    await conversation.populate('participants.user', 'name avatarUrl');
+    await conversation.populate('participants.user', 'name avatarUrl isOnline lastSeen');
 
     // Format response similar to getConversations
     const otherParticipants = conversation.participants.filter(
@@ -402,7 +402,7 @@ router.post("/conversations/group", authRequired, async (req, res) => {
     });
 
     await conversation.save();
-    await conversation.populate('participants.user', 'name avatarUrl');
+    await conversation.populate('participants.user', 'name avatarUrl isOnline lastSeen');
 
     // Format response similar to getConversations
     const otherParticipants = conversation.participants.filter(
@@ -932,7 +932,7 @@ router.get("/conversations/:conversationId/details", authRequired, async (req, r
       'participants.user': req.user._id,
       'participants.leftAt': null
     })
-    .populate('participants.user', 'name avatarUrl')
+    .populate('participants.user', 'name avatarUrl isOnline lastSeen')
     .populate('createdBy', 'name avatarUrl');
 
     if (!conversation) {
@@ -1096,7 +1096,7 @@ router.put("/conversations/:conversationId", authRequired, async (req, res) => {
 
     // Lấy lại conversation đã cập nhật và populate participants
     const updatedConversation = await Conversation.findById(conversationId)
-      .populate('participants.user', 'name avatarUrl')
+      .populate('participants.user', 'name avatarUrl isOnline lastSeen')
       .populate('lastMessage');
 
     res.json({

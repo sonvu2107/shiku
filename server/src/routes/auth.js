@@ -487,7 +487,9 @@ router.get("/me",
           avatarUrl: req.user.avatarUrl,
           isOnline: req.user.isOnline,
           isVerified: req.user.isVerified,
-          lastSeen: req.user.lastSeen
+          lastSeen: req.user.lastSeen,
+          blockedUsers: req.user.blockedUsers,
+          friends: req.user.friends
         }
       });
     } catch (error) {

@@ -134,6 +134,10 @@ class SocketService {
     // Event handlers cho connection
     this.socket.on('connect', () => {
       // Connected to server
+      // Join user room để nhận real-time updates
+      if (user && user._id) {
+        this.socket.emit('join-user', user._id);
+      }
     });
 
     this.socket.on('disconnect', () => {

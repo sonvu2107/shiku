@@ -125,11 +125,25 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
         name
       )}&background=cccccc&color=222222&size=64`;
 
+  const getOtherUserOnlineStatus = () => {
+    if (isGroup) return false;
+    
+    const otherParticipant = conversation.otherParticipants?.[0];
+    const user = otherParticipant?.user || otherParticipant;
+    return user?.isOnline || false;
+  };
+
   return (
     <div className="w-72 sm:w-80 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col chat-popup-mobile">
       {/* Header */}
       <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border-b bg-gray-50 rounded-t-xl">
-        <img src={avatar} alt={name} className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover flex-shrink-0" />
+        <div className="relative flex-shrink-0">
+          <img src={avatar} alt={name} className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover" />
+          {/* Online status indicator for private conversations */}
+          {!isGroup && getOtherUserOnlineStatus() && (
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+          )}
+        </div>
         <div className="flex-1 font-semibold text-gray-900 text-sm sm:text-base truncate min-w-0">{name}</div>
         <div className="flex gap-0.5 sm:gap-1">
           <button

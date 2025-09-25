@@ -122,6 +122,7 @@ const getAvatarUrl = () => {
   return "/default-avatar.png";
 };
 
+
   if (!conversation) {
     return (
       <div className="flex items-center justify-center h-14 border-b border-gray-100 bg-white">
@@ -158,7 +159,6 @@ const getAvatarUrl = () => {
                   e.target.src = '/default-avatar.png';
                 }}
               />
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
             </>
           )}
         </div>
@@ -183,7 +183,7 @@ const getAvatarUrl = () => {
                 <p className="text-xs text-gray-500">{memberCount} thành viên</p>
               )}
               {!isGroup && (
-                <p className="text-xs text-green-500">Đang hoạt động</p>
+                <p className="text-xs text-green-500"></p>
               )}
             </div>
           )}

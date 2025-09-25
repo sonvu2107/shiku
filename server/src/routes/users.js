@@ -184,14 +184,28 @@ router.post('/block/:id', authRequired, async (req, res) => {
     if (targetId === req.user._id.toString()) {
       return res.status(400).json({ message: 'Không thể tự chặn bản thân.' });
     }
-    // Thêm vào danh sách blockedUsers nếu chưa có
-    await User.findByIdAndUpdate(req.user._id, {
+    
+    // Thêm vào danh sách blockedUsers nếu chưa có và xóa khỏi friends của cả hai bên
+    const result = await User.findByIdAndUpdate(req.user._id, {
       $addToSet: { blockedUsers: targetId },
       $pull: { friends: targetId } // Nếu là bạn thì hủy kết bạn
+    }, { new: true });
+    
+    // Cũng xóa khỏi danh sách friends của user bị block
+    await User.findByIdAndUpdate(targetId, {
+      $pull: { friends: req.user._id }
     });
-    // Nếu muốn 2 chiều, có thể thêm targetId cũng chặn lại req.user._id
+    
+    console.log('Block user result:', {
+      userId: req.user._id,
+      targetId,
+      blockedUsers: result.blockedUsers,
+      friends: result.friends
+    });
+    
     res.json({ message: 'Đã chặn người dùng.' });
   } catch (error) {
+    console.error('Error blocking user:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -200,11 +214,21 @@ router.post('/block/:id', authRequired, async (req, res) => {
 router.post('/unblock/:id', authRequired, async (req, res) => {
   try {
     const targetId = req.params.id;
-    await User.findByIdAndUpdate(req.user._id, {
+    
+    const result = await User.findByIdAndUpdate(req.user._id, {
       $pull: { blockedUsers: targetId }
+    }, { new: true });
+    
+    console.log('Unblock user result:', {
+      userId: req.user._id,
+      targetId,
+      blockedUsers: result.blockedUsers,
+      friends: result.friends
     });
+    
     res.json({ message: 'Đã bỏ chặn người dùng.' });
   } catch (error) {
+    console.error('Error unblocking user:', error);
     res.status(500).json({ message: error.message });
   }
 });

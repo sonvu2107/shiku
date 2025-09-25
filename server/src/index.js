@@ -105,7 +105,7 @@ const io = new Server(server, {
       if (isAllowed) {
         callback(null, true);
       } else {
-        console.warn("❌ Blocked Socket.IO CORS:", origin);
+        console.warn(" Blocked Socket.IO CORS:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
