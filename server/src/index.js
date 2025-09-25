@@ -46,28 +46,34 @@ const server = createServer(app);
 // Trust proxy để rate limiting hoạt động đúng với reverse proxy (Railway, Heroku, etc.)
 app.set("trust proxy", 1);
 
-// Danh sách các origin được phép truy cập (CORS) - sử dụng environment variables
+// Danh sách các origin được phép truy cập (CORS)
 const allowedOrigins = [
   // Development origins
   ...(process.env.NODE_ENV === 'development' ? [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174"
-  ] : []),
-  // Production origins từ environment variables
-  ...(process.env.CORS_ORIGIN?.split(",").map(o => o.trim()) || []),
-  // Custom domains
-  "https://shiku.click",
-  "https://www.shiku.click",
-  // Netlify domains (fallback)
-  "https://*.netlify.app",
-  "https://*.netlify.com",
-  // Fallback cho development nếu không có CORS_ORIGIN
-  ...(process.env.NODE_ENV === 'development' && !process.env.CORS_ORIGIN ? [
+    "http://127.0.0.1:5174",
     "http://localhost:3000",
     "http://localhost:3001"
-  ] : [])
+  ] : []),
+  
+  // Production origins - ưu tiên environment variables
+  ...(process.env.CORS_ORIGIN?.split(",").map(o => o.trim()) || []),
+  
+  // Fallback production domains (nếu không có CORS_ORIGIN)
+  ...(process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN ? [
+    // Custom domains
+    "https://shiku.click",
+    "https://www.shiku.click",
+    // Netlify domains
+    "https://shiku123.netlify.app",
+    "https://shiku123.netlify.com"
+  ] : []),
+  
+  // Wildcard patterns (luôn có)
+  "https://*.netlify.app",
+  "https://*.netlify.com"
 ];
 
 // Tạo Socket.IO server với CORS configuration và improved settings
@@ -264,10 +270,21 @@ app.get("/api/csrf-token", (req, res) => {
 
 // Debug endpoint để kiểm tra CORS và CSRF
 app.get("/api/debug", (req, res) => {
+  const origin = req.get('Origin');
+  const isOriginAllowed = allowedOrigins.some(allowedOrigin => {
+    if (allowedOrigin.includes('*')) {
+      const pattern = allowedOrigin.replace(/\*/g, '.*');
+      const regex = new RegExp(`^${pattern}$`);
+      return regex.test(origin);
+    }
+    return allowedOrigin === origin;
+  });
+  
   res.json({
     success: true,
     timestamp: new Date().toISOString(),
-    origin: req.get('Origin'),
+    origin: origin,
+    isOriginAllowed: isOriginAllowed,
     userAgent: req.get('User-Agent'),
     ip: req.ip,
     headers: {
@@ -278,8 +295,11 @@ app.get("/api/debug", (req, res) => {
     },
     csrfToken: req.csrfToken(),
     csrfCookie: req.cookies._csrf,
-    allowedOrigins: allowedOrigins,
-    environment: process.env.NODE_ENV
+    corsConfig: {
+      allowedOrigins: allowedOrigins,
+      corsOriginEnv: process.env.CORS_ORIGIN,
+      environment: process.env.NODE_ENV
+    }
   });
 });
 
@@ -292,6 +312,31 @@ app.post("/api/test-csrf", (req, res) => {
     receivedCSRFToken: req.headers['x-csrf-token'],
     receivedCSRFCookie: req.cookies._csrf,
     origin: req.get('Origin')
+  });
+});
+
+// CORS preflight test endpoint
+app.options("/api/cors-test", (req, res) => {
+  res.json({
+    success: true,
+    message: "CORS preflight successful!",
+    timestamp: new Date().toISOString(),
+    origin: req.get('Origin'),
+    method: req.method
+  });
+});
+
+app.post("/api/cors-test", (req, res) => {
+  res.json({
+    success: true,
+    message: "CORS POST test successful!",
+    timestamp: new Date().toISOString(),
+    origin: req.get('Origin'),
+    method: req.method,
+    headers: {
+      'x-csrf-token': req.headers['x-csrf-token'],
+      'authorization': req.headers['authorization'] ? 'present' : 'missing'
+    }
   });
 });
 
