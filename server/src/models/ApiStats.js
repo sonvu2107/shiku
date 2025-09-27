@@ -145,8 +145,10 @@ apiStatsSchema.methods.incrementEndpoint = function(endpoint) {
 
 // Method to increment IP count
 apiStatsSchema.methods.incrementIP = function(ip) {
-  const current = this.currentPeriod.requestsByIP.get(ip) || 0;
-  this.currentPeriod.requestsByIP.set(ip, current + 1);
+  // Encode IP address to avoid dots in Map keys (Mongoose doesn't allow dots in Map keys)
+  const encodedIP = ip.replace(/\./g, '_');
+  const current = this.currentPeriod.requestsByIP.get(encodedIP) || 0;
+  this.currentPeriod.requestsByIP.set(encodedIP, current + 1);
   this.updatedAt = new Date();
 };
 
@@ -176,7 +178,7 @@ apiStatsSchema.methods.resetCurrentPeriod = function() {
     totalRequests: this.totalRequests,
     rateLimitHits: this.rateLimitHits,
     requestsByEndpoint: new Map(this.currentPeriod.requestsByEndpoint),
-    requestsByIP: new Map(this.currentPeriod.requestsByIP),
+    requestsByIP: new Map(this.currentPeriod.requestsByIP), // IPs are already encoded
     timestamp: now
   });
   

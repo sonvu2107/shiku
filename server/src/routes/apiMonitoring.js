@@ -115,7 +115,10 @@ router.get("/stats", authRequired, async (req, res) => {
     const topIPs = Array.from(stats.currentPeriod.requestsByIP.entries())
       .sort(([,a], [,b]) => b - a)
       .slice(0, 10)
-      .map(([ip, count]) => ({ ip, count }));
+      .map(([encodedIP, count]) => ({ 
+        ip: encodedIP.replace(/_/g, '.'), // Decode IP address for display
+        count 
+      }));
     
     // Calculate hourly distribution from current period
     const hourlyDistribution = Array.from({ length: 24 }, (_, hour) => ({
