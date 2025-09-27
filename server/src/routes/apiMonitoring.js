@@ -48,6 +48,15 @@ export const trackAPICall = async (req, res, next) => {
     // Emit real-time update via WebSocket
     const io = req.app.get('io');
     if (io) {
+      // Calculate daily requests per minute for realtime update
+      const now = new Date();
+      const midnight = new Date();
+      midnight.setHours(0, 0, 0, 0);
+      const timeSinceMidnight = (now - midnight) / 1000 / 60;
+      const dailyRequestsPerMinute = timeSinceMidnight > 0 
+        ? (stats.totalRequests / timeSinceMidnight).toFixed(2)
+        : 0;
+      
       const realTimeUpdate = {
         type: 'api_call',
         data: {
@@ -59,6 +68,7 @@ export const trackAPICall = async (req, res, next) => {
           userAgent: userAgent.substring(0, 100),
           totalRequests: stats.totalRequests,
           rateLimitHits: stats.rateLimitHits,
+          dailyRequestsPerMinute: parseFloat(dailyRequestsPerMinute),
           requestsByEndpoint: Object.fromEntries(stats.currentPeriod.requestsByEndpoint),
           requestsByIP: stats.currentPeriod.requestsByIP.size,
           hourlyDistribution: Object.fromEntries(stats.currentPeriod.requestsByHour)
@@ -76,17 +86,60 @@ export const trackAPICall = async (req, res, next) => {
   }
 };
 
-// Reset stats every hour with database persistence
+// Reset current period stats every hour with database persistence
 setInterval(async () => {
   try {
     const stats = await ApiStats.getOrCreateStats();
     stats.resetCurrentPeriod();
     await stats.save();
-    console.log(`API Stats reset at ${new Date().toISOString()}`);
+    console.log(`API Current Period Stats reset at ${new Date().toISOString()}`);
   } catch (error) {
-    console.error('Error resetting API stats:', error);
+    console.error('Error resetting API current period stats:', error);
   }
 }, 60 * 60 * 1000); // Reset every hour
+
+// Reset hourly stats daily at midnight (00:00)
+setInterval(async () => {
+  try {
+    const stats = await ApiStats.getOrCreateStats();
+    stats.resetHourlyStats();
+    await stats.save();
+    console.log(`API Hourly Stats reset at ${new Date().toISOString()} (Daily reset)`);
+  } catch (error) {
+    console.error('Error resetting API hourly stats:', error);
+  }
+}, 24 * 60 * 60 * 1000); // Reset every 24 hours
+
+// Schedule daily reset at midnight
+const scheduleDailyReset = () => {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0); // Set to midnight
+  
+  const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+  
+  setTimeout(async () => {
+    try {
+      const stats = await ApiStats.getOrCreateStats();
+      stats.resetHourlyStats();
+      await stats.save();
+      console.log(`API Hourly Stats reset at ${new Date().toISOString()} (Scheduled midnight reset)`);
+      
+      // Schedule next reset
+      scheduleDailyReset();
+    } catch (error) {
+      console.error('Error in scheduled hourly stats reset:', error);
+      // Schedule next reset even if this one failed
+      scheduleDailyReset();
+    }
+  }, timeUntilMidnight);
+  
+  console.log(`Next hourly stats reset scheduled for: ${tomorrow.toISOString()}`);
+};
+
+// Start the daily reset scheduler
+scheduleDailyReset();
 
 // Clean old data every 24 hours
 setInterval(async () => {
@@ -105,14 +158,14 @@ router.get("/stats", authRequired, async (req, res) => {
   try {
     const stats = await ApiStats.getOrCreateStats();
     
-    // Calculate top endpoints from current period
-    const topEndpoints = Array.from(stats.currentPeriod.requestsByEndpoint.entries())
+    // Calculate top endpoints from daily stats (reset at midnight)
+    const topEndpoints = Array.from(stats.dailyTopStats.topEndpoints.entries())
       .sort(([,a], [,b]) => b - a)
       .slice(0, 10)
       .map(([endpoint, count]) => ({ endpoint, count }));
     
-    // Calculate top IPs from current period
-    const topIPs = Array.from(stats.currentPeriod.requestsByIP.entries())
+    // Calculate top IPs from daily stats (reset at midnight)
+    const topIPs = Array.from(stats.dailyTopStats.topIPs.entries())
       .sort(([,a], [,b]) => b - a)
       .slice(0, 10)
       .map(([encodedIP, count]) => ({ 
@@ -131,11 +184,25 @@ router.get("/stats", authRequired, async (req, res) => {
       ? ((stats.rateLimitHits / stats.totalRequests) * 100).toFixed(2)
       : 0;
     
-    // Calculate requests per minute
+    // Calculate requests per minute (based on current period)
     const now = new Date();
     const timeSinceReset = (now - stats.lastReset) / 1000 / 60; // minutes
+    
+    // Calculate current period total requests
+    const currentPeriodTotalRequests = Array.from(stats.currentPeriod.requestsByEndpoint.values())
+      .reduce((sum, count) => sum + count, 0);
+    
     const requestsPerMinute = timeSinceReset > 0 
-      ? (stats.totalRequests / timeSinceReset).toFixed(2)
+      ? (currentPeriodTotalRequests / timeSinceReset).toFixed(2)
+      : 0;
+    
+    // Calculate daily requests per minute (since midnight)
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
+    const timeSinceMidnight = (now - midnight) / 1000 / 60; // minutes since midnight
+    
+    const dailyRequestsPerMinute = timeSinceMidnight > 0 
+      ? (stats.totalRequests / timeSinceMidnight).toFixed(2)
       : 0;
     
     // Convert Maps to objects for JSON response
@@ -148,9 +215,11 @@ router.get("/stats", authRequired, async (req, res) => {
           totalRequests: stats.totalRequests,
           rateLimitHits: stats.rateLimitHits,
           rateLimitHitRate: parseFloat(rateLimitHitRate),
-          requestsPerMinute: parseFloat(requestsPerMinute),
+          requestsPerMinute: parseFloat(requestsPerMinute), // Current period (last hour)
+          dailyRequestsPerMinute: parseFloat(dailyRequestsPerMinute), // Since midnight
           lastReset: stats.lastReset,
-          timeSinceReset: Math.round(timeSinceReset)
+          timeSinceReset: Math.round(timeSinceReset),
+          timeSinceMidnight: Math.round(timeSinceMidnight)
         },
         topEndpoints,
         topIPs,
@@ -237,6 +306,8 @@ router.post("/reset", authRequired, async (req, res) => {
     stats.currentPeriod.requestsByIP = new Map();
     stats.currentPeriod.requestsByHour = new Map();
     stats.currentPeriod.rateLimitHitsByEndpoint = new Map();
+    stats.dailyTopStats.topEndpoints = new Map();
+    stats.dailyTopStats.topIPs = new Map();
     stats.lastReset = new Date();
     stats.hourlyStats = [];
     stats.realtimeUpdates = [];

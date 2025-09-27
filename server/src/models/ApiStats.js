@@ -71,6 +71,20 @@ const apiStatsSchema = new mongoose.Schema({
     }
   },
   
+  // Daily top 10 stats (reset at midnight daily)
+  dailyTopStats: {
+    topEndpoints: {
+      type: Map,
+      of: Number,
+      default: new Map()
+    },
+    topIPs: {
+      type: Map,
+      of: Number,
+      default: new Map()
+    }
+  },
+  
   // Real-time updates (last 100 calls)
   realtimeUpdates: [{
     endpoint: {
@@ -138,8 +152,14 @@ apiStatsSchema.methods.addRealtimeUpdate = function(updateData) {
 
 // Method to increment endpoint count
 apiStatsSchema.methods.incrementEndpoint = function(endpoint) {
+  // Increment current period stats
   const current = this.currentPeriod.requestsByEndpoint.get(endpoint) || 0;
   this.currentPeriod.requestsByEndpoint.set(endpoint, current + 1);
+  
+  // Also increment daily top stats
+  const dailyCurrent = this.dailyTopStats.topEndpoints.get(endpoint) || 0;
+  this.dailyTopStats.topEndpoints.set(endpoint, dailyCurrent + 1);
+  
   this.updatedAt = new Date();
 };
 
@@ -147,8 +167,15 @@ apiStatsSchema.methods.incrementEndpoint = function(endpoint) {
 apiStatsSchema.methods.incrementIP = function(ip) {
   // Encode IP address to avoid dots in Map keys (Mongoose doesn't allow dots in Map keys)
   const encodedIP = ip.replace(/\./g, '_');
+  
+  // Increment current period stats
   const current = this.currentPeriod.requestsByIP.get(encodedIP) || 0;
   this.currentPeriod.requestsByIP.set(encodedIP, current + 1);
+  
+  // Also increment daily top stats
+  const dailyCurrent = this.dailyTopStats.topIPs.get(encodedIP) || 0;
+  this.dailyTopStats.topIPs.set(encodedIP, dailyCurrent + 1);
+  
   this.updatedAt = new Date();
 };
 
@@ -169,7 +196,7 @@ apiStatsSchema.methods.incrementRateLimitHit = function(endpoint) {
   this.updatedAt = new Date();
 };
 
-// Method to reset current period stats
+// Method to reset current period stats (every hour)
 apiStatsSchema.methods.resetCurrentPeriod = function() {
   const now = new Date();
   const currentHour = now.getHours();
@@ -189,13 +216,24 @@ apiStatsSchema.methods.resetCurrentPeriod = function() {
     this.hourlyStats.shift();
   }
   
-  // Reset current period
+  // Reset current period (but keep requestsByHour for daily analysis)
   this.currentPeriod.requestsByEndpoint = new Map();
   this.currentPeriod.requestsByIP = new Map();
-  this.currentPeriod.requestsByHour = new Map();
   this.currentPeriod.rateLimitHitsByEndpoint = new Map();
   this.lastReset = now;
   this.updatedAt = now;
+};
+
+// Method to reset hourly stats (daily at midnight)
+apiStatsSchema.methods.resetHourlyStats = function() {
+  // Reset hourly distribution for daily analysis
+  this.currentPeriod.requestsByHour = new Map();
+  
+  // Reset daily top 10 stats
+  this.dailyTopStats.topEndpoints = new Map();
+  this.dailyTopStats.topIPs = new Map();
+  
+  this.updatedAt = new Date();
 };
 
 // Static method to get or create stats document
@@ -213,6 +251,10 @@ apiStatsSchema.statics.getOrCreateStats = async function() {
         requestsByIP: new Map(),
         requestsByHour: new Map(),
         rateLimitHitsByEndpoint: new Map()
+      },
+      dailyTopStats: {
+        topEndpoints: new Map(),
+        topIPs: new Map()
       },
       realtimeUpdates: []
     });
