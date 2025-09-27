@@ -4,12 +4,20 @@ import ApiStats from "../models/ApiStats.js";
 
 const router = express.Router();
 
+// Helper function to get Vietnam time
+const getVietnamTime = () => {
+  const now = new Date();
+  return new Date(now.toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
+};
+
 // Middleware to track API calls with database persistence
 export const trackAPICall = async (req, res, next) => {
   try {
     const endpoint = req.path;
     const ip = req.ip;
-    const hour = new Date().getHours();
+    // Get hour in Vietnam timezone (GMT+7)
+    const vietnamTime = getVietnamTime();
+    const hour = vietnamTime.getHours();
     const method = req.method;
     const userAgent = req.get('User-Agent') || 'Unknown';
     
@@ -48,11 +56,11 @@ export const trackAPICall = async (req, res, next) => {
     // Emit real-time update via WebSocket
     const io = req.app.get('io');
     if (io) {
-      // Calculate daily requests per minute for realtime update
-      const now = new Date();
-      const midnight = new Date();
-      midnight.setHours(0, 0, 0, 0);
-      const timeSinceMidnight = (now - midnight) / 1000 / 60;
+      // Calculate daily requests per minute for realtime update (Vietnam timezone)
+      const vietnamNow = getVietnamTime();
+      const vietnamMidnight = new Date(vietnamNow);
+      vietnamMidnight.setHours(0, 0, 0, 0);
+      const timeSinceMidnight = (vietnamNow - vietnamMidnight) / 1000 / 60;
       const dailyRequestsPerMinute = timeSinceMidnight > 0 
         ? (stats.totalRequests / timeSinceMidnight).toFixed(2)
         : 0;
@@ -110,14 +118,15 @@ setInterval(async () => {
   }
 }, 24 * 60 * 60 * 1000); // Reset every 24 hours
 
-// Schedule daily reset at midnight
+// Schedule daily reset at midnight (Vietnam timezone)
 const scheduleDailyReset = () => {
-  const now = new Date();
-  const tomorrow = new Date(now);
+  const vietnamNow = getVietnamTime();
+  const tomorrow = new Date(vietnamNow);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0); // Set to midnight
+  tomorrow.setHours(0, 0, 0, 0); // Set to midnight Vietnam time
   
-  const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+  // Calculate time until Vietnam midnight
+  const timeUntilMidnight = tomorrow.getTime() - vietnamNow.getTime();
   
   setTimeout(async () => {
     try {
@@ -135,7 +144,7 @@ const scheduleDailyReset = () => {
     }
   }, timeUntilMidnight);
   
-  console.log(`Next hourly stats reset scheduled for: ${tomorrow.toISOString()}`);
+  console.log(`Next hourly stats reset scheduled for Vietnam time: ${tomorrow.toISOString()}`);
 };
 
 // Start the daily reset scheduler
@@ -196,10 +205,11 @@ router.get("/stats", authRequired, async (req, res) => {
       ? (currentPeriodTotalRequests / timeSinceReset).toFixed(2)
       : 0;
     
-    // Calculate daily requests per minute (since midnight)
-    const midnight = new Date();
-    midnight.setHours(0, 0, 0, 0);
-    const timeSinceMidnight = (now - midnight) / 1000 / 60; // minutes since midnight
+    // Calculate daily requests per minute (since midnight in Vietnam timezone)
+    const vietnamNow = getVietnamTime();
+    const vietnamMidnight = new Date(vietnamNow);
+    vietnamMidnight.setHours(0, 0, 0, 0);
+    const timeSinceMidnight = (vietnamNow - vietnamMidnight) / 1000 / 60; // minutes since midnight
     
     const dailyRequestsPerMinute = timeSinceMidnight > 0 
       ? (stats.totalRequests / timeSinceMidnight).toFixed(2)
