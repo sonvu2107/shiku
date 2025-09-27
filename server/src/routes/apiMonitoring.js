@@ -123,7 +123,7 @@ router.get("/stats", authRequired, async (req, res) => {
     // Calculate hourly distribution from current period
     const hourlyDistribution = Array.from({ length: 24 }, (_, hour) => ({
       hour,
-      requests: stats.currentPeriod.requestsByHour.get(hour) || 0
+      requests: stats.currentPeriod.requestsByHour.get(hour.toString()) || 0
     }));
     
     // Calculate rate limit hit rate

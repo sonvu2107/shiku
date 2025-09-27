@@ -154,8 +154,10 @@ apiStatsSchema.methods.incrementIP = function(ip) {
 
 // Method to increment hour count
 apiStatsSchema.methods.incrementHour = function(hour) {
-  const current = this.currentPeriod.requestsByHour.get(hour) || 0;
-  this.currentPeriod.requestsByHour.set(hour, current + 1);
+  // Convert hour to string since Mongoose Map only supports string keys
+  const hourKey = hour.toString();
+  const current = this.currentPeriod.requestsByHour.get(hourKey) || 0;
+  this.currentPeriod.requestsByHour.set(hourKey, current + 1);
   this.updatedAt = new Date();
 };
 
