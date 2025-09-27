@@ -111,7 +111,7 @@ export default function Home({ user }) {
           const privateData = await api(`/api/posts?page=1&limit=${limit}&status=private&author=${user._id}`);
           allItems = [...privateData.items, ...allItems];
         } catch (privateError) {
-          console.log('Cannot load private posts:', privateError.message);
+          // Silent handling for private posts loading error
         }
       }
 
@@ -123,7 +123,6 @@ export default function Home({ user }) {
       setHasMore(publishedData.pages > 1);
       setPage(2);
     } catch (error) {
-      console.error('Error loading posts:', error);
       setError('Không thể tải bài viết. Vui lòng thử lại.');
       setItems([]);
       setHasMore(false);
@@ -149,7 +148,6 @@ export default function Home({ user }) {
       setHasMore(page < publishedData.pages);
       setPage(prev => prev + 1);
     } catch (error) {
-      console.error('Error loading more posts:', error);
       setError('Không thể tải thêm bài viết. Vui lòng thử lại.');
     } finally {
       setLoadingMore(false);
@@ -184,7 +182,6 @@ export default function Home({ user }) {
       setHasMore(false);
       setPage(totalPages + 1);
     } catch (error) {
-      console.error('Error loading all posts:', error);
       setError('Không thể tải tất cả bài viết. Vui lòng thử lại.');
     } finally {
       setLoadingAll(false);

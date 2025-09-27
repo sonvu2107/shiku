@@ -51,7 +51,7 @@ export default function PostCreator({ user, groupId = null }) {
           setGroups(response.data.groups);
         }
       } catch (error) {
-        console.error('Error loading groups:', error);
+        // Silent handling for groups loading error
       }
     };
 

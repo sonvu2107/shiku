@@ -97,7 +97,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         const res = await api(`/api/comments/post/${postId}`);
         setComments(organizeComments(res.items));
       } catch (err) {
-        console.error("Lỗi load comments:", err);
+        // Silent handling for comments loading error
       }
     };
     fetchComments();
@@ -298,7 +298,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         )
       );
     } catch (error) {
-      console.error("Error liking comment:", error);
+      // Silent handling for comment liking error
     } finally {
       setLoading(false);
     }
@@ -329,7 +329,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       
       setShowEmotePicker(null);
     } catch (error) {
-      console.error("Error adding emote:", error);
+      // Silent handling for emote adding error
     } finally {
       setLoading(false);
     }

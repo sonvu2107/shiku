@@ -26,9 +26,35 @@ const UserSchema = new mongoose.Schema({
       return `https://ui-avatars.com/api/?name=User&background=3b82f6&color=ffffff`;
     }
   },
+  coverUrl: { type: String, default: "" }, // Ảnh bìa profile
   birthday: { type: String, default: "" }, // Ngày sinh
   gender: { type: String, default: "" }, // Giới tính
   hobbies: { type: String, default: "" }, // Sở thích
+  location: { type: String, default: "" }, // Địa chỉ
+  website: { type: String, default: "" }, // Website cá nhân
+  phone: { type: String, default: "" }, // Số điện thoại
+  
+  // ==================== PROFILE CUSTOMIZATION ====================
+  profileTheme: { 
+    type: String, 
+    enum: ["default", "dark", "blue", "green", "purple", "pink", "orange"], 
+    default: "default" 
+  }, // Theme màu sắc profile
+  profileLayout: { 
+    type: String, 
+    enum: ["classic", "modern", "minimal", "creative"], 
+    default: "classic" 
+  }, // Layout style profile
+  useCoverImage: { type: Boolean, default: true }, // Hiển thị ảnh bìa thay vì màu theme
+  showEmail: { type: Boolean, default: false }, // Hiển thị email công khai
+  showPhone: { type: Boolean, default: false }, // Hiển thị số điện thoại
+  showBirthday: { type: Boolean, default: true }, // Hiển thị ngày sinh
+  showLocation: { type: Boolean, default: true }, // Hiển thị địa chỉ
+  showWebsite: { type: Boolean, default: true }, // Hiển thị website
+  showHobbies: { type: Boolean, default: true }, // Hiển thị sở thích
+  showFriends: { type: Boolean, default: true }, // Hiển thị danh sách bạn bè
+  showPosts: { type: Boolean, default: true }, // Hiển thị bài đăng
+  showEvents: { type: Boolean, default: true }, // Hiển thị sự kiện tham gia
   
   // ==================== SOCIAL FEATURES ====================
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Danh sách bạn bè

@@ -423,6 +423,22 @@ router.get("/me",
           gender: req.user.gender,
           hobbies: req.user.hobbies,
           avatarUrl: req.user.avatarUrl,
+          coverUrl: req.user.coverUrl,
+          location: req.user.location,
+          website: req.user.website,
+          phone: req.user.phone,
+          profileTheme: req.user.profileTheme,
+          profileLayout: req.user.profileLayout,
+          useCoverImage: req.user.useCoverImage,
+          showEmail: req.user.showEmail,
+          showPhone: req.user.showPhone,
+          showBirthday: req.user.showBirthday,
+          showLocation: req.user.showLocation,
+          showWebsite: req.user.showWebsite,
+          showHobbies: req.user.showHobbies,
+          showFriends: req.user.showFriends,
+          showPosts: req.user.showPosts,
+          showEvents: req.user.showEvents,
           isOnline: req.user.isOnline,
           isVerified: req.user.isVerified,
           lastSeen: req.user.lastSeen
@@ -475,7 +491,12 @@ router.put("/update-profile",
   validate(updateProfileSchema, 'body'),
   async (req, res, next) => {
     try {
-      const { name, email, password, bio, birthday, gender, hobbies } = req.body;
+      const { 
+        name, email, password, bio, birthday, gender, hobbies, avatarUrl,
+        coverUrl, location, website, phone, profileTheme, profileLayout, useCoverImage,
+        showEmail, showPhone, showBirthday, showLocation, showWebsite, 
+        showHobbies, showFriends, showPosts
+      } = req.body;
       
       // Kiểm tra email có bị trùng không
       if (email && email !== req.user.email) {
@@ -495,6 +516,24 @@ router.put("/update-profile",
       if (birthday) req.user.birthday = birthday;
       if (gender) req.user.gender = gender;
       if (hobbies) req.user.hobbies = sanitizeHtml(hobbies);
+      if (avatarUrl) req.user.avatarUrl = avatarUrl;
+      if (coverUrl !== undefined) req.user.coverUrl = coverUrl;
+      if (location) req.user.location = sanitizeHtml(location);
+      if (website) req.user.website = website;
+      if (phone) req.user.phone = phone;
+      if (profileTheme) req.user.profileTheme = profileTheme;
+      if (profileLayout) req.user.profileLayout = profileLayout;
+      if (useCoverImage !== undefined) {
+        req.user.useCoverImage = useCoverImage;
+      }
+      if (showEmail !== undefined) req.user.showEmail = showEmail;
+      if (showPhone !== undefined) req.user.showPhone = showPhone;
+      if (showBirthday !== undefined) req.user.showBirthday = showBirthday;
+      if (showLocation !== undefined) req.user.showLocation = showLocation;
+      if (showWebsite !== undefined) req.user.showWebsite = showWebsite;
+      if (showHobbies !== undefined) req.user.showHobbies = showHobbies;
+      if (showFriends !== undefined) req.user.showFriends = showFriends;
+      if (showPosts !== undefined) req.user.showPosts = showPosts;
       
       if (password) {
         req.user.password = await bcrypt.hash(password, 12);
@@ -518,7 +557,24 @@ router.put("/update-profile",
           bio: req.user.bio,
           birthday: req.user.birthday,
           gender: req.user.gender,
-          hobbies: req.user.hobbies
+          hobbies: req.user.hobbies,
+          avatarUrl: req.user.avatarUrl,
+          coverUrl: req.user.coverUrl,
+          location: req.user.location,
+          website: req.user.website,
+          phone: req.user.phone,
+          profileTheme: req.user.profileTheme,
+          profileLayout: req.user.profileLayout,
+          useCoverImage: req.user.useCoverImage,
+          showEmail: req.user.showEmail,
+          showPhone: req.user.showPhone,
+          showBirthday: req.user.showBirthday,
+          showLocation: req.user.showLocation,
+          showWebsite: req.user.showWebsite,
+          showHobbies: req.user.showHobbies,
+          showFriends: req.user.showFriends,
+          showPosts: req.user.showPosts,
+          showEvents: req.user.showEvents
         }
       });
     } catch (error) {

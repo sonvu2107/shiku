@@ -40,7 +40,7 @@ export default function Settings() {
         setBlockedUsers([]);
       }
     } catch (err) {
-      console.error("Error fetching blocked users:", err);
+      // Silent handling for blocked users loading error
       setBlockedUsers([]);
     }
   };

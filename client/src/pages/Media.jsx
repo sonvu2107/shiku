@@ -32,7 +32,7 @@ export default function Media() {
       const res = await api(`/api/media?${params.toString()}`);
       setMedia(res.media || []);
     } catch (error) {
-      console.error("Error loading media:", error);
+      // Silent handling for media loading error
       // Fallback to empty array if API fails
       setMedia([]);
     } finally {
@@ -76,7 +76,7 @@ export default function Media() {
         loadMedia(); // Reload media to update view count
       }
     } catch (error) {
-      console.error("Error viewing media:", error);
+      // Silent handling for media viewing error
     }
   };
 

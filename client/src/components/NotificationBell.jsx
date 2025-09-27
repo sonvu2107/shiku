@@ -41,7 +41,7 @@ export default function NotificationBell({ user }) {
       const data = await api("/api/notifications/unread-count");
       setUnreadCount(data.unreadCount);
     } catch (error) {
-      console.error("Error loading unread count:", error);
+      // Silent handling for unread count loading error
     }
   };
 
@@ -55,7 +55,7 @@ export default function NotificationBell({ user }) {
       const data = await api("/api/notifications?limit=10");
       setNotifications(data.notifications);
     } catch (error) {
-      console.error("Error loading notifications:", error);
+      // Silent handling for notifications loading error
     } finally {
       setLoading(false);
     }
@@ -69,7 +69,7 @@ export default function NotificationBell({ user }) {
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
-      console.error("Error marking as read:", error);
+      // Silent handling for mark as read error
     }
   };
 
@@ -79,7 +79,7 @@ export default function NotificationBell({ user }) {
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (error) {
-      console.error("Error marking all as read:", error);
+      // Silent handling for mark all as read error
     }
   };
 

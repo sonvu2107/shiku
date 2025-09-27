@@ -53,7 +53,21 @@ tempRouter.post("/login-token", async (req, res, next) => {
     });
     
     res.json({ 
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      user: { 
+        _id: user._id, 
+        id: user._id, // Keep backward compatibility
+        name: user.name, 
+        email: user.email, 
+        role: user.role,
+        bio: user.bio,
+        birthday: user.birthday,
+        gender: user.gender,
+        hobbies: user.hobbies,
+        avatarUrl: user.avatarUrl,
+        isOnline: user.isOnline,
+        isVerified: user.isVerified,
+        lastSeen: user.lastSeen
+      },
       token: accessToken, // Backward compatibility
       accessToken,
       refreshToken
@@ -97,7 +111,21 @@ tempRouter.post("/register-token", async (req, res, next) => {
     });
     
     res.json({ 
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      user: { 
+        _id: user._id, 
+        id: user._id, // Keep backward compatibility
+        name: user.name, 
+        email: user.email, 
+        role: user.role,
+        bio: user.bio,
+        birthday: user.birthday,
+        gender: user.gender,
+        hobbies: user.hobbies,
+        avatarUrl: user.avatarUrl,
+        isOnline: user.isOnline,
+        isVerified: user.isVerified,
+        lastSeen: user.lastSeen
+      },
       token: accessToken, // Backward compatibility
       accessToken,
       refreshToken

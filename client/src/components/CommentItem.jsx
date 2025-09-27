@@ -72,7 +72,7 @@ export default function CommentItem({
       setIsLiked(res.isLiked);
       setLikeCount(res.likeCount);
     } catch (error) {
-      console.error("Error liking comment:", error);
+      // Silent handling for comment liking error
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ export default function CommentItem({
       setEmoteCount(res.emoteCount);
       setShowEmotePicker(false);
     } catch (error) {
-      console.error("Error adding emote:", error);
+      // Silent handling for emote adding error
     } finally {
       setLoading(false);
     }

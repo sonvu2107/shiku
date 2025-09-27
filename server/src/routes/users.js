@@ -137,7 +137,7 @@ router.get('/:id', authRequired, async (req, res) => {
     
     const user = await User.findById(id)
       .select('-password -email') 
-      .populate('friends', 'name avatarUrl isOnline lastSeen');
+      .populate('friends', 'name avatarUrl isOnline lastSeen role');
 
     if (!user) {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });

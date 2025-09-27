@@ -45,7 +45,7 @@ export default function EventDetail() {
         setError(response.message || "Không tìm thấy sự kiện");
       }
     } catch (error) {
-      console.error("Error loading event:", error);
+      // Silent handling for event loading error
       setError("Có lỗi xảy ra khi tải sự kiện");
     } finally {
       setLoading(false);
@@ -62,7 +62,7 @@ export default function EventDetail() {
         throw new Error(response.message || "Có lỗi xảy ra khi tham gia sự kiện");
       }
     } catch (error) {
-      console.error("Error joining event:", error);
+      // Silent handling for event joining error
       alert(error.message || "Có lỗi xảy ra khi tham gia sự kiện");
     } finally {
       setActionLoading(false);
@@ -79,7 +79,7 @@ export default function EventDetail() {
         throw new Error(response.message || "Có lỗi xảy ra khi rời sự kiện");
       }
     } catch (error) {
-      console.error("Error leaving event:", error);
+      // Silent handling for event leaving error
       alert(error.message || "Có lỗi xảy ra khi rời sự kiện");
     } finally {
       setActionLoading(false);
@@ -96,7 +96,7 @@ export default function EventDetail() {
         throw new Error(response.message || "Có lỗi xảy ra khi đánh dấu quan tâm");
       }
     } catch (error) {
-      console.error("Error marking interested:", error);
+      // Silent handling for interested marking error
       alert(error.message || "Có lỗi xảy ra khi đánh dấu quan tâm");
     } finally {
       setActionLoading(false);
@@ -113,7 +113,7 @@ export default function EventDetail() {
         throw new Error(response.message || "Có lỗi xảy ra khi từ chối");
       }
     } catch (error) {
-      console.error("Error declining event:", error);
+      // Silent handling for event declining error
       alert(error.message || "Có lỗi xảy ra khi từ chối");
     } finally {
       setActionLoading(false);

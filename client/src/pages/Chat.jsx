@@ -280,7 +280,7 @@ export default function Chat() {
           // Join conversation room for real-time updates
           await socketService.joinConversation(selectedConversation._id);
         } catch (error) {
-          console.error('Error handling conversation change:', error);
+          // Silent handling for conversation change error
         }
       }
     };

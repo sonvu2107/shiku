@@ -77,7 +77,7 @@ export default function Friends() {
       const data = await api('/api/friends/list');
       setFriends(data.friends);
     } catch (error) {
-      console.error('Error loading friends:', error);
+      // Silent handling for friends loading error
     }
   };
 
@@ -89,7 +89,7 @@ export default function Friends() {
       const data = await api('/api/friends/requests');
       setRequests(data.requests);
     } catch (error) {
-      console.error('Error loading requests:', error);
+      // Silent handling for requests loading error
     }
   };
 
@@ -101,7 +101,7 @@ export default function Friends() {
       const data = await api('/api/friends/suggestions');
       setSuggestions(data.suggestions);
     } catch (error) {
-      console.error('Error loading suggestions:', error);
+      // Silent handling for suggestions loading error
     }
   };
 
@@ -114,7 +114,7 @@ export default function Friends() {
       const data = await api(`/api/friends/search?q=${encodeURIComponent(searchQuery)}`);
       setSearchResults(data.users);
     } catch (error) {
-      console.error('Error searching users:', error);
+      // Silent handling for user search error
     } finally {
       setLoading(false);
     }

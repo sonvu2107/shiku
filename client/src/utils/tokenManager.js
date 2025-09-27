@@ -89,7 +89,7 @@ export async function refreshAccessToken() {
 
     return null;
   } catch (error) {
-    console.error('Refresh token error:', error);
+    // Silent handling for refresh token error
     clearTokens(); // Clear tokens nếu refresh thất bại
     return null;
   }

@@ -78,7 +78,7 @@ export default function OnlineFriends({ user }) {
       const onlineFriends = allFriends.filter(friend => friend.isOnline === true);
       setOnlineFriends(onlineFriends);
     } catch (error) {
-      console.error('Error loading online friends:', error);
+      // Silent handling for online friends loading error
       setOnlineFriends([]);
     } finally {
       setLoading(false);

@@ -42,7 +42,7 @@ export default function NotificationHistory() {
       setHasMore(data.notifications.length === 20);
       setPage(pageNum);
     } catch (error) {
-      console.error("Error loading notifications:", error);
+      // Silent handling for notifications loading error
     } finally {
       setLoading(false);
     }
@@ -61,7 +61,7 @@ export default function NotificationHistory() {
         prev.map(n => n._id === notificationId ? { ...n, read: true } : n)
       );
     } catch (error) {
-      console.error("Error marking as read:", error);
+      // Silent handling for mark as read error
     }
   };
 
@@ -71,7 +71,7 @@ export default function NotificationHistory() {
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setSelectedNotifications([]);
     } catch (error) {
-      console.error("Error marking all as read:", error);
+      // Silent handling for mark all as read error
     }
   };
 
@@ -81,7 +81,7 @@ export default function NotificationHistory() {
       setNotifications(prev => prev.filter(n => n._id !== notificationId));
       setSelectedNotifications(prev => prev.filter(id => id !== notificationId));
     } catch (error) {
-      console.error("Error deleting notification:", error);
+      // Silent handling for notification deletion error
     }
   };
 
@@ -100,7 +100,7 @@ export default function NotificationHistory() {
       );
       setSelectedNotifications([]);
     } catch (error) {
-      console.error("Error deleting notifications:", error);
+      // Silent handling for notifications deletion error
     }
   };
 

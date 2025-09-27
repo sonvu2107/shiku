@@ -88,7 +88,7 @@ export default function Shortcuts({ user }) {
 
       setShortcuts(shortcutsList);
     } catch (error) {
-      console.error('Error loading shortcuts:', error);
+      // Silent handling for shortcuts loading error
     } finally {
       setLoading(false);
     }

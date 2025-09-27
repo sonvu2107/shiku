@@ -70,7 +70,7 @@ export default function EditEvent() {
         navigate("/events");
       }
     } catch (error) {
-      console.error("Error loading event:", error);
+      // Silent handling for event loading error
       showError("Có lỗi xảy ra khi tải sự kiện");
       navigate("/events");
     } finally {
@@ -176,7 +176,7 @@ export default function EditEvent() {
         throw new Error(response.message || "Có lỗi xảy ra khi cập nhật sự kiện");
       }
     } catch (error) {
-      console.error("Error updating event:", error);
+      // Silent handling for event update error
       showError(error.message || "Có lỗi xảy ra khi cập nhật sự kiện");
     } finally {
       setSaving(false);

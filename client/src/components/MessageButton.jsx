@@ -21,7 +21,7 @@ export default function MessageButton({ user, className = "" }) {
 
   const handleMessage = async () => {
     if (!user || !user._id) {
-      console.error('Invalid user data');
+      // Silent handling for invalid user data
       return;
     }
 
@@ -45,7 +45,7 @@ export default function MessageButton({ user, className = "" }) {
         }
       });
     } catch (error) {
-      console.error('Lỗi tạo cuộc trò chuyện:', error);
+      // Silent handling for conversation creation error
       if (error.message && error.message.includes('already exists')) {
         navigate('/chat');
       } else {

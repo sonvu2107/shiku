@@ -35,6 +35,7 @@ import supportRoutes from "./routes/support.js"; // Support/feedback routes
 import groupRoutes from "./routes/groups.js"; // Groups/communities routes
 import eventRoutes from "./routes/events.js"; // Events routes
 import mediaRoutes from "./routes/media.js"; // Media routes
+import apiMonitoringRoutes, { trackAPICall } from "./routes/apiMonitoring.js"; // API Monitoring routes
 
 // Load environment variables
 dotenv.config();
@@ -340,6 +341,9 @@ app.post("/api/cors-test", (req, res) => {
   });
 });
 
+// Track API calls for monitoring
+app.use("/api", trackAPICall);
+
 // Mount tất cả API routes with specific rate limiting
 app.use("/api/auth", authLimiter, authRoutes); // Authentication & authorization (login, register)
 app.use("/api/auth", authStatusLimiter, authTokenRoutes); // Token validation (me, heartbeat)
@@ -356,6 +360,7 @@ app.use("/api/support", supportRoutes); // Support tickets
 app.use("/api/groups", groupRoutes); // Groups/communities
 app.use("/api/events", eventRoutes); // Events
 app.use("/api/media", mediaRoutes); // Media
+app.use("/api/api-monitoring", apiLimiter, apiMonitoringRoutes); // API Monitoring with rate limiting
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);

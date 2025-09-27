@@ -1,60 +1,68 @@
 # Rate Limiting Configuration Guide
 
-## 📊 **Updated Rate Limiting Settings**
+## 📊 **Updated Rate Limiting Settings (v2.0)**
 
 ### 1. **🌐 General API Requests**
-- **Giới hạn**: 1000 requests / 15 phút (tăng từ 300)
+- **Giới hạn**: 1500 requests / 15 phút (tăng từ 1000) - **100 requests/phút**
 - **Áp dụng**: Tất cả API endpoints (trừ auth, upload, messages, posts)
 - **Tính theo**: IP address
-- **Bao gồm**: Comments, users, notifications, admin, friends, groups, support
+- **Bao gồm**: Comments, users, notifications, admin, friends, groups, support, events, media
 
 ### 2. **🔐 Authentication Requests**
-- **Giới hạn**: 5 requests / 15 phút (giữ nguyên)
+- **Giới hạn**: 20 requests / 15 phút (tăng từ 5) - **1.3 requests/phút**
 - **Áp dụng**: Login, register, password reset
 - **Tính theo**: IP address
 - **Đặc biệt**: Không tính successful requests
 
-### 3. **📁 File Upload Requests**
-- **Giới hạn**: 50 requests / 15 phút (tăng từ 20)
+### 3. **🔍 Auth Status Requests**
+- **Giới hạn**: 120 requests / 1 phút (tăng từ 60) - **2 requests/giây**
+- **Áp dụng**: /me, heartbeat, token validation
+- **Tính theo**: IP address
+- **Lý do**: Heartbeat cần check thường xuyên
+
+### 4. **📁 File Upload Requests**
+- **Giới hạn**: 50 requests / 15 phút (giữ nguyên) - **3.3 requests/phút**
 - **Áp dụng**: Upload images, files
 - **Tính theo**: IP address
 - **Lý do**: Content creators cần upload nhiều hơn
 
-### 4. **💬 Message Requests**
-- **Giới hạn**: 60 requests / 1 phút (tăng từ 30)
+### 5. **💬 Message Requests**
+- **Giới hạn**: 100 requests / 1 phút (tăng từ 60) - **1.7 requests/giây**
 - **Áp dụng**: Send messages, chat
 - **Tính theo**: IP address
 - **Lý do**: Active users cần chat nhiều hơn
 
-### 5. **📝 Posts Requests (NEW)**
-- **Giới hạn**: 200 requests / 15 phút
+### 6. **📝 Posts Requests**
+- **Giới hạn**: 800 requests / 15 phút (tăng từ 500) - **53 requests/phút**
 - **Áp dụng**: Get posts, infinite scroll, post CRUD
 - **Tính theo**: IP address
-- **Lý do**: Infinite scroll cần nhiều requests
+- **Lý do**: Infinite scroll cần nhiều requests hơn
 
-## 🚀 **Tính toán thực tế cho 1 user:**
+## 🚀 **Tính toán thực tế cho 1 user (v2.0):**
 
 ### **Với infinite scroll:**
-- **Initial load**: 1 request (50 posts)
-- **Load more**: 1 request mỗi 25 posts
-- **Load all**: 1 request cho mỗi 25 posts còn lại
-- **Total có thể**: 200 requests / 15 phút = **13+ requests/phút**
+- **Initial load**: 1 request (100 posts)
+- **Load more**: 1 request mỗi 15 posts
+- **Load all**: 1 request cho mỗi 15 posts còn lại
+- **Total có thể**: 800 requests / 15 phút = **53 requests/phút**
 
 ### **Với heavy usage:**
-- **General API**: 1000 requests / 15 phút = **67 requests/phút**
-- **Posts**: 200 requests / 15 phút = **13 requests/phút**
-- **Uploads**: 50 requests / 15 phút = **3+ requests/phút**
-- **Messages**: 60 requests / 1 phút = **60 requests/phút**
+- **General API**: 1500 requests / 15 phút = **100 requests/phút**
+- **Posts**: 800 requests / 15 phút = **53 requests/phút**
+- **Uploads**: 50 requests / 15 phút = **3.3 requests/phút**
+- **Messages**: 100 requests / 1 phút = **100 requests/phút**
+- **Auth Status**: 120 requests / 1 phút = **120 requests/phút**
 
-## 📈 **So sánh Before vs After:**
+## 📈 **So sánh Before vs After (v2.0):**
 
-| Endpoint | Before | After | Improvement |
-|----------|--------|-------|-------------|
-| **General API** | 300/15min | 1000/15min | **233% increase** |
-| **Posts** | 300/15min | 200/15min | **Dedicated limit** |
-| **Uploads** | 20/15min | 50/15min | **150% increase** |
-| **Messages** | 30/1min | 60/1min | **100% increase** |
-| **Auth** | 5/15min | 5/15min | **No change** |
+| Endpoint | v1.0 | v2.0 | Improvement |
+|----------|------|------|-------------|
+| **General API** | 1000/15min | 1500/15min | **50% increase** |
+| **Posts** | 500/15min | 800/15min | **60% increase** |
+| **Uploads** | 50/15min | 50/15min | **No change** |
+| **Messages** | 100/1min | 100/1min | **No change** |
+| **Auth** | 20/15min | 20/15min | **No change** |
+| **Auth Status** | 60/1min | 120/1min | **100% increase** |
 
 ## 🎯 **Benefits của cấu hình mới:**
 

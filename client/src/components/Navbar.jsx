@@ -14,7 +14,7 @@ import MobileMenu from "./MobileMenu";
 import UserName from "./UserName";
 
 // Import icons từ Lucide React
-import { 
+import {
   Crown,        // Icon admin
   User,         // Icon user
   LogOut,       // Icon đăng xuất
@@ -42,20 +42,20 @@ export default function Navbar({ user, setUser }) {
   const [openPopups, setOpenPopups] = useState([]); // Chat popups đang mở
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Search states
   const [searchQuery, setSearchQuery] = useState(""); // Query tìm kiếm
   const [showMobileSearch, setShowMobileSearch] = useState(false); // Hiện search mobile
   const [searchResults, setSearchResults] = useState([]); // Kết quả search users
   const [searchLoading, setSearchLoading] = useState(false); // Loading state
   const [searchPosts, setSearchPosts] = useState([]); // Kết quả search posts
-  
+
   // UI states
   const [pendingRequests, setPendingRequests] = useState(0); // Số lời mời kết bạn
   const [showProfileMenu, setShowProfileMenu] = useState(false); // Menu profile dropdown
 
   // ==================== EFFECTS ====================
-  
+
   /**
    * Load số lượng friend requests đang chờ khi user đăng nhập
    */
@@ -73,12 +73,80 @@ export default function Navbar({ user, setUser }) {
       const data = await api("/api/friends/requests");
       setPendingRequests(data.requests?.length || 0);
     } catch (error) {
-      console.error("Error loading pending requests:", error);
+      // Silent handling for pending requests loading error
+    }
+  }
+
+  // ==================== HELPER FUNCTIONS ====================
+
+  /**
+   * Lấy thông tin preview media của bài viết (ưu tiên coverUrl → ảnh đầu tiên → video đầu tiên)
+   * @param {Object} post - Dữ liệu bài viết
+   * @returns {Object} Object chứa url và type của media preview
+   */
+  function getPostPreviewMedia(post) {
+    if (post.coverUrl) {
+      // Tìm type của coverUrl trong files
+      const found = Array.isArray(post.files)
+        ? post.files.find(f => f.url === post.coverUrl)
+        : null;
+      return { url: post.coverUrl, type: found ? found.type : "image" };
+    }
+    // Fallback về files nếu có
+    if (Array.isArray(post.files) && post.files.length > 0) {
+      // Tìm file ảnh đầu tiên
+      const imageFile = post.files.find(f => f.type === 'image');
+      if (imageFile) {
+        return imageFile;
+      }
+      // Nếu không có ảnh, tìm video đầu tiên
+      const videoFile = post.files.find(f => f.type === 'video');
+      if (videoFile) {
+        return videoFile;
+      }
+      // Fallback về file đầu tiên (bất kể loại)
+      return post.files[0];
+    }
+    // Fallback cuối cùng
+    return { url: '/default-avatar.png', type: 'image' };
+  }
+
+  /**
+   * Render preview media component cho search results
+   * @param {Object} post - Dữ liệu bài viết
+   * @param {string} className - CSS classes
+   * @returns {JSX.Element} Media preview component
+   */
+  function renderPostPreview(post, className = "w-8 h-8 rounded object-cover") {
+    const media = getPostPreviewMedia(post);
+
+    if (media.type === 'video') {
+      return (
+        <video
+          src={media.url}
+          className={className}
+          muted
+          preload="metadata"
+          onLoadedMetadata={(e) => {
+            // Tự động pause video ở frame đầu tiên để hiển thị thumbnail
+            e.target.currentTime = 0.1;
+            e.target.pause();
+          }}
+        />
+      );
+    } else {
+      return (
+        <img
+          src={media.url}
+          alt={post.title}
+          className={className}
+        />
+      );
     }
   }
 
   // ==================== HANDLERS ====================
-  
+
   /**
    * Xử lý tìm kiếm users và posts
    * @param {Event} e - Form submit event
@@ -86,14 +154,14 @@ export default function Navbar({ user, setUser }) {
   async function handleSearch(e) {
     e.preventDefault();
     const trimmedQuery = searchQuery.trim();
-    
+
     if (trimmedQuery && trimmedQuery.length <= 100) {
       setSearchLoading(true);
       try {
         // Tìm users
         const userRes = await api(`/api/users/search?q=${encodeURIComponent(trimmedQuery)}`);
         setSearchResults(userRes.users || []);
-        
+
         // Tìm bài viết
         const postRes = await api(`/api/posts?q=${encodeURIComponent(trimmedQuery)}`);
         setSearchPosts(postRes.items || []);
@@ -118,11 +186,11 @@ export default function Navbar({ user, setUser }) {
       // Gọi API logout để invalidate session trên server
       await api("/api/auth/logout", { method: "POST" });
     } catch (err) {
-      console.error("Logout error:", err);
+      // Silent handling for logout error
     }
-    
+
     // Xóa token khỏi localStorage
-    removeAuthToken(); 
+    removeAuthToken();
     // Reset user state
     if (setUser) setUser(null);
     // Redirect về trang chủ
@@ -130,7 +198,7 @@ export default function Navbar({ user, setUser }) {
   }
 
   // ==================== RENDER ====================
-  
+
   return (
     // Main navbar container - fixed top với shadow
     <div className="bg-white border-b fixed top-0 left-0 w-full z-50 shadow navbar-mobile">
@@ -138,16 +206,16 @@ export default function Navbar({ user, setUser }) {
         {/* LEFT ZONE: Logo + Search */}
         <div className="flex items-center gap-2 flex-1">
           <Link to="/" className="font-bold text-xl flex items-center gap-2">
-            <span onClick={() => { navigate('/'); window.scrollTo({top:0,behavior:'smooth'}); }} style={{cursor:'pointer',display:'flex',alignItems:'center'}}>
+            <span onClick={() => { navigate('/'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               <Logo size="small" />
             </span>
           </Link>
-          
+
           {/* Search bar */}
           <form onSubmit={handleSearch} className="relative hidden md:flex items-center gap-1 search-container">
             <div className="relative">
               <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input 
+              <input
                 type="text"
                 placeholder=""
                 value={searchQuery}
@@ -192,11 +260,7 @@ export default function Navbar({ user, setUser }) {
                             className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer"
                             onClick={() => navigate(`/post/${post.slug || post._id}`)}
                           >
-                            <img
-                              src={post.coverUrl || '/default-avatar.png'}
-                              alt={post.title}
-                              className="w-8 h-8 rounded"
-                            />
+                            {renderPostPreview(post, "w-8 h-8 rounded object-cover")}
                             <div className="flex-1">
                               <div className="font-medium text-gray-900">{post.title}</div>
                               <div className="text-xs text-gray-500">{post.author?.name || ''}</div>
@@ -212,7 +276,7 @@ export default function Navbar({ user, setUser }) {
                 )
               )}
             </div>
-            <button 
+            <button
               type="submit"
               className="btn flex items-center gap-2 px-3 py-2"
             >
@@ -225,58 +289,53 @@ export default function Navbar({ user, setUser }) {
         <div className="hidden lg:flex items-center gap-2 justify-center flex-1">
           {user && (
             <>
-              <Link 
-                to="/" 
-                className={`p-2 rounded-full transition-colors ${
-                  location.pathname === "/" 
-                    ? "bg-blue-100 text-blue-600" 
+              <Link
+                to="/"
+                className={`p-2 rounded-full transition-colors ${location.pathname === "/"
+                    ? "bg-blue-100 text-blue-600"
                     : "hover:bg-gray-100"
-                }`}
-                onClick={() => window.scrollTo({top:0,behavior:'smooth'})}
+                  }`}
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 title="Trang chủ"
               >
                 <Home size={22} />
               </Link>
-              <Link 
-                to="/explore" 
-                className={`p-2 rounded-full transition-colors ${
-                  location.pathname === "/explore" 
-                    ? "bg-blue-100 text-blue-600" 
+              <Link
+                to="/explore"
+                className={`p-2 rounded-full transition-colors ${location.pathname === "/explore"
+                    ? "bg-blue-100 text-blue-600"
                     : "hover:bg-gray-100"
-                }`}
+                  }`}
                 title="Khám phá"
               >
                 <Compass size={22} />
               </Link>
-              <Link 
-                to="/groups" 
-                className={`p-2 rounded-full transition-colors ${
-                  location.pathname === "/groups" 
-                    ? "bg-blue-100 text-blue-600" 
+              <Link
+                to="/groups"
+                className={`p-2 rounded-full transition-colors ${location.pathname === "/groups"
+                    ? "bg-blue-100 text-blue-600"
                     : "hover:bg-gray-100"
-                }`}
+                  }`}
                 title="Nhóm"
               >
                 <UserCheck size={22} />
               </Link>
-              <Link 
-                to="/events" 
-                className={`p-2 rounded-full transition-colors ${
-                  location.pathname === "/events" 
-                    ? "bg-blue-100 text-blue-600" 
+              <Link
+                to="/events"
+                className={`p-2 rounded-full transition-colors ${location.pathname === "/events"
+                    ? "bg-blue-100 text-blue-600"
                     : "hover:bg-gray-100"
-                }`}
+                  }`}
                 title="Sự kiện"
               >
                 <Calendar size={22} />
               </Link>
-              <Link 
-                to="/media" 
-                className={`p-2 rounded-full transition-colors ${
-                  location.pathname === "/media" 
-                    ? "bg-blue-100 text-blue-600" 
+              <Link
+                to="/media"
+                className={`p-2 rounded-full transition-colors ${location.pathname === "/media"
+                    ? "bg-blue-100 text-blue-600"
                     : "hover:bg-gray-100"
-                }`}
+                  }`}
                 title="Kho media"
               >
                 <Image size={22} />
@@ -302,7 +361,7 @@ export default function Navbar({ user, setUser }) {
           </div>
           {/* Mobile Menu */}
           <MobileMenu user={user} setUser={setUser} />
-          
+
           {/* Mobile search button */}
           <button
             onClick={() => setShowMobileSearch(!showMobileSearch)}
@@ -311,7 +370,7 @@ export default function Navbar({ user, setUser }) {
           >
             <Search size={16} />
           </button>
-          
+
           {/* Desktop Navigation - Hidden on mobile */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
@@ -352,26 +411,26 @@ export default function Navbar({ user, setUser }) {
                             <div className="font-semibold text-gray-900">
                               <UserName user={user} maxLength={15} />
                             </div>
-                            <Link to={`/profile`} className="text-dark-600 text-sm hover:underline" onClick={()=>setShowProfileMenu(false)}>Xem tất cả trang cá nhân</Link>
+                            <Link to={`/profile`} className="text-dark-600 text-sm hover:underline" onClick={() => setShowProfileMenu(false)}>Xem tất cả trang cá nhân</Link>
                           </div>
                         </div>
                       </div>
                       <div className="py-2">
                         {user.role === "admin" && (
-                          <Link to="/admin" className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 text-red-600" onClick={()=>setShowProfileMenu(false)}>
+                          <Link to="/admin" className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 text-red-600" onClick={() => setShowProfileMenu(false)}>
                             <Crown size={18} />
                             Admin
                           </Link>
                         )}
-                        <Link to="/settings" className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50" onClick={()=>setShowProfileMenu(false)}>
+                        <Link to="/settings" className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50" onClick={() => setShowProfileMenu(false)}>
                           <User size={18} />
                           Cài đặt & quyền riêng tư
                         </Link>
-                        <Link to="/support" className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50" onClick={()=>setShowProfileMenu(false)}>
+                        <Link to="/support" className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50" onClick={() => setShowProfileMenu(false)}>
                           <MessageCircle size={18} />
                           Trợ giúp & hỗ trợ
                         </Link>
-                        <button onClick={()=>{setShowProfileMenu(false);logout();}} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 w-full text-left">
+                        <button onClick={() => { setShowProfileMenu(false); logout(); }} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 w-full text-left">
                           <LogOut size={18} />
                           Đăng xuất
                         </button>
@@ -404,19 +463,18 @@ export default function Navbar({ user, setUser }) {
           </div>
         ))}
       </div>
-      
+
       {/* Mobile search bar */}
       {showMobileSearch && (
         <div className="md:hidden border-t bg-white px-3 sm:px-6 py-3">
           <form onSubmit={handleSearch} className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input 
+              <input
                 type="text"
-                placeholder="Tìm kiếm người dùng, bài viết..."
+                placeholder=""
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2.5 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-sm"
+                className="pl-4 pr-4 py-2.5 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-sm"
                 autoFocus
               />
               {/* Mobile search results dropdown */}
@@ -464,11 +522,7 @@ export default function Navbar({ user, setUser }) {
                               setSearchQuery("");
                             }}
                           >
-                            <img
-                              src={post.coverUrl || '/default-avatar.png'}
-                              alt={post.title}
-                              className="w-8 h-8 rounded flex-shrink-0 object-cover"
-                            />
+                            {renderPostPreview(post, "w-8 h-8 rounded flex-shrink-0 object-cover")}
                             <div className="flex-1 min-w-0">
                               <div className="font-medium text-gray-900 text-sm truncate">{post.title}</div>
                               <div className="text-xs text-gray-500 truncate">{post.author?.name || ''}</div>
@@ -492,12 +546,11 @@ export default function Navbar({ user, setUser }) {
                 )
               )}
             </div>
-            <button 
+            <button
               type="submit"
               className="btn flex items-center gap-1 sm:gap-2 px-3 py-2.5 text-sm touch-target"
             >
-              <Search size={16} />
-              <span className="hidden sm:inline">Tìm</span>
+              <span>Tìm</span>
             </button>
             <button
               type="button"

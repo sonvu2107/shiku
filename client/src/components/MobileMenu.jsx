@@ -31,7 +31,7 @@ export default function MobileMenu({ user, setUser }) {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } catch (err) {
-      console.error("Logout error:", err);
+      // Silent handling for logout error
     }
     
     localStorage.removeItem("token");

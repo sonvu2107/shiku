@@ -124,7 +124,7 @@ export default function CreateEvent() {
         throw new Error(response.message || "Có lỗi xảy ra khi tạo sự kiện");
       }
     } catch (error) {
-      console.error("Error creating event:", error);
+      // Silent handling for event creation error
       showError(error.message || "Có lỗi xảy ra khi tạo sự kiện");
     } finally {
       setLoading(false);

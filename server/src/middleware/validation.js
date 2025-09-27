@@ -181,7 +181,49 @@ export const updateProfileSchema = Joi.object({
     .optional()
     .messages({
       'string.uri': 'URL avatar không hợp lệ'
-    })
+    }),
+  // New profile customization fields
+  coverUrl: Joi.string()
+    .uri()
+    .optional()
+    .messages({
+      'string.uri': 'URL ảnh bìa không hợp lệ'
+    }),
+  location: Joi.string()
+    .max(100)
+    .trim()
+    .optional()
+    .messages({
+      'string.max': 'Địa chỉ không được quá 100 ký tự'
+    }),
+  website: Joi.string()
+    .uri()
+    .optional()
+    .messages({
+      'string.uri': 'Website không hợp lệ'
+    }),
+  phone: Joi.string()
+    .pattern(/^[\+]?[0-9\s\-\(\)]{10,15}$/)
+    .optional()
+    .messages({
+      'string.pattern.base': 'Số điện thoại không hợp lệ'
+    }),
+  profileTheme: Joi.string()
+    .valid('default', 'dark', 'blue', 'green', 'purple', 'pink', 'orange')
+    .optional(),
+  profileLayout: Joi.string()
+    .valid('classic', 'modern', 'minimal', 'creative')
+    .optional(),
+  useCoverImage: Joi.boolean().optional(),
+  showEmail: Joi.boolean().optional(),
+  showPhone: Joi.boolean().optional(),
+  showBirthday: Joi.boolean().optional(),
+  showLocation: Joi.boolean().optional(),
+  showWebsite: Joi.boolean().optional(),
+  showHobbies: Joi.boolean().optional(),
+  showFriends: Joi.boolean().optional(),
+  showPosts: Joi.boolean().optional(),
+  showEvents: Joi.boolean().optional()
 });
 
 // Schema validation cho search

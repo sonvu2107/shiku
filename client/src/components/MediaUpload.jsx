@@ -179,7 +179,7 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
         }
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      // Silent handling for upload error
       setErrors({ submit: error.message || 'Có lỗi xảy ra khi upload' });
     } finally {
       setUploading(false);

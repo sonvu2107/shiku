@@ -27,7 +27,7 @@ export default function Events() {
       const res = await api(`/api/events?${params.toString()}`);
       setEvents(res.events || []);
     } catch (error) {
-      console.error("Error loading events:", error);
+      // Silent handling for events loading error
       // Fallback to empty array if API fails
       setEvents([]);
     } finally {
@@ -57,7 +57,7 @@ export default function Events() {
       await api(`/api/events/${eventId}/join`, { method: "POST" });
       loadEvents(); // Reload events to update attendee count
     } catch (error) {
-      console.error("Error joining event:", error);
+      // Silent handling for event joining error
     }
   };
 

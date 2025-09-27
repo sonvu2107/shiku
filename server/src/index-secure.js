@@ -30,12 +30,13 @@ import {
   unauthorizedAccessLogger
 } from "./middleware/securityLogging.js";
 import { 
-  rateLimitLogger,
   authRateLimitLogger,
   uploadRateLimitLogger,
   messageRateLimitLogger,
   postsRateLimitLogger
 } from "./middleware/rateLimitLogger.js";
+import { addRateLimitHeaders, logRateLimitStatus } from "./middleware/rateLimitHeaders.js";
+import { trackAPICall } from "./routes/apiMonitoring.js";
 
 // Import tất cả routes
 import authRoutes from "./routes/auth-secure.js"; // Secure authentication routes
@@ -52,6 +53,7 @@ import supportRoutes from "./routes/support.js"; // Support/feedback routes
 import groupRoutes from "./routes/groups.js"; // Groups/communities routes
 import eventRoutes from "./routes/events.js"; // Events routes
 import mediaRoutes from "./routes/media.js"; // Media routes
+import apiMonitoringRoutes from "./routes/apiMonitoring.js"; // API Monitoring routes
 
 // Load environment variables
 dotenv.config();
@@ -138,6 +140,13 @@ app.use(unauthorizedAccessLogger);
 // Rate limiting cho tất cả API routes - REMOVED to avoid double limiting
 // app.use("/api", apiLimiter); // Bỏ để tránh double rate limiting
 
+// Add rate limit headers to all responses
+app.use(addRateLimitHeaders);
+app.use(logRateLimitStatus);
+
+// Track API calls for monitoring
+app.use("/api", trackAPICall);
+
 // ==================== STATIC FILES ====================
 
 // Setup __dirname cho ES modules
@@ -216,18 +225,19 @@ app.get("/heartbeat", (req, res) => {
 app.use("/api/auth", authLimiter, authRateLimitLogger, authRoutes); // Secure authentication & authorization (login, register)
 app.use("/api/auth", authStatusLimiter, authRateLimitLogger, authTokenRoutes); // Secure token validation (me, heartbeat)
 app.use("/api/posts", postsLimiter, postsRateLimitLogger, postRoutes); // Secure blog posts CRUD
-app.use("/api/comments", commentRoutes); // Comments system
+app.use("/api/comments", apiLimiter, commentRoutes); // Comments system with general rate limiting
 app.use("/api/uploads", uploadLimiter, uploadRateLimitLogger, uploadRoutes); // Secure file uploads
-app.use("/api/admin", adminRoutes); // Admin panel
-app.use("/api/friends", friendRoutes); // Friend system
-app.use("/api/users", userRoutes); // User profiles
-app.use("/api/notifications", notificationRoutes); // Notifications
+app.use("/api/admin", apiLimiter, adminRoutes); // Admin panel with general rate limiting
+app.use("/api/friends", apiLimiter, friendRoutes); // Friend system with general rate limiting
+app.use("/api/users", apiLimiter, userRoutes); // User profiles with general rate limiting
+app.use("/api/notifications", apiLimiter, notificationRoutes); // Notifications with general rate limiting
 app.use("/api/messages", messageLimiter, messageRateLimitLogger, messageRoutes); // Chat/messaging
-app.use("/api/groups", groupPostsRouter); // Group posts
-app.use("/api/support", supportRoutes); // Support tickets
-app.use("/api/groups", groupRoutes); // Groups/communities
-app.use("/api/events", eventRoutes); // Events
-app.use("/api/media", mediaRoutes); // Media
+app.use("/api/groups", apiLimiter, groupPostsRouter); // Group posts with general rate limiting
+app.use("/api/support", apiLimiter, supportRoutes); // Support tickets with general rate limiting
+app.use("/api/groups", apiLimiter, groupRoutes); // Groups/communities with general rate limiting
+app.use("/api/events", apiLimiter, eventRoutes); // Events with general rate limiting
+app.use("/api/media", apiLimiter, mediaRoutes); // Media with general rate limiting
+app.use("/api/api-monitoring", apiLimiter, apiMonitoringRoutes); // API Monitoring with general rate limiting
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);

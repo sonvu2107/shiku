@@ -193,7 +193,7 @@ export default function Stories({ user }) {
         setStories(response.items.slice(0, 8));
       }
     } catch (error) {
-      console.error('Error loading stories:', error);
+      // Silent handling for stories loading error
     } finally {
       setLoading(false);
     }

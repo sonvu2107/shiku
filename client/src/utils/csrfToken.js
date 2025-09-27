@@ -35,7 +35,7 @@ export async function getCSRFToken(forceRefresh = false) {
       clearCSRFToken();
     }
   } catch (error) {
-    console.warn('Failed to get CSRF token:', error);
+    // Silent handling for CSRF token error
     // Clear cache khi có lỗi
     clearCSRFToken();
   }

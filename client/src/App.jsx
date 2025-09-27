@@ -132,6 +132,26 @@ export default function App() {
     };
   }, [user]);
 
+  // Effect để đồng bộ user state khi user thay đổi (đảm bảo có đầy đủ thông tin)
+  useEffect(() => {
+    const syncUserData = async () => {
+      if (user && (!user.avatarUrl || !user.bio || !user._id)) {
+        // Nếu user có nhưng thiếu thông tin quan trọng, gọi API /me để cập nhật
+        try {
+          const res = await api("/api/auth/me");
+          if (res.user && res.user._id === user._id) {
+            // Chỉ cập nhật nếu là cùng user để tránh infinite loop
+            setUser(res.user);
+          }
+        } catch (error) {
+          // Silent error handling for user data sync
+        }
+      }
+    };
+    
+    syncUserData();
+  }, [user?._id]); // Chỉ depend vào user._id để tránh infinite loop
+
   // Hiển thị loading screen khi app đang khởi tạo
   if (loading) {
     return (

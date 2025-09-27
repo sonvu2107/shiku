@@ -42,7 +42,7 @@ export default function ImageUpload({ onUpload, accept = "image/*", className = 
         throw new Error(response.message || 'Upload thất bại');
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      // Silent handling for upload error
       alert('Có lỗi xảy ra khi upload ảnh: ' + error.message);
     } finally {
       setUploading(false);

@@ -27,7 +27,7 @@ const createKeyGenerator = () => (req) => {
 // General API rate limiter - increased for better UX (DISABLED to avoid double limiting)
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Increased from 300 to 1000 requests per windowMs
+  max: 1500, // Increased from 1000 to 1500 requests per windowMs (100/min)
   standardHeaders: true,
   legacyHeaders: false,
   // Custom handler thay vì onLimitReached
@@ -70,7 +70,7 @@ export const authLimiter = rateLimit({
 // Loose rate limiter for auth status checks (me, heartbeat, etc.)
 export const authStatusLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 60, // 60 requests per minute for status checks
+  max: 120, // Increased from 60 to 120 requests per minute for status checks (2/sec)
   standardHeaders: true,
   legacyHeaders: false,
   // Custom handler
@@ -124,7 +124,7 @@ export const messageLimiter = rateLimit({
 // Posts-specific rate limiter for infinite scroll
 export const postsLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Increased from 200 to 500 post requests per 15 minutes
+  max: 800, // Increased from 500 to 800 post requests per 15 minutes (53/min)
   standardHeaders: true,
   legacyHeaders: false,
   // Custom handler thay vì message

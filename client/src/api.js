@@ -3,6 +3,13 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 import { getValidAccessToken, clearTokens, getRefreshToken, refreshAccessToken } from "./utils/tokenManager.js";
 import { getCSRFToken } from "./utils/csrfToken.js";
+import { 
+  parseRateLimitHeaders, 
+  showRateLimitWarning, 
+  showRateLimitError,
+  storeRateLimitInfo,
+  getStoredRateLimitInfo 
+} from "./utils/rateLimitHandler.js";
 
 // Deprecated: getToken() function đã được thay thế bởi getValidAccessToken() trong tokenManager.js
 
@@ -50,6 +57,17 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
 
   const res = await fetch(`${API_URL}${path}`, requestOptions);
 
+  // Parse và xử lý rate limit headers
+  const rateLimitInfo = parseRateLimitHeaders(res);
+  if (rateLimitInfo.limit) {
+    storeRateLimitInfo(path, rateLimitInfo);
+    
+    // Show warning if nearly exceeded
+    if (rateLimitInfo.warning || (rateLimitInfo.remaining && rateLimitInfo.remaining <= 10)) {
+      showRateLimitWarning(rateLimitInfo);
+    }
+  }
+
   // Xử lý lỗi response
   if (!res.ok) {
     // Nếu là lỗi 401 và có refresh token, thử refresh
@@ -94,6 +112,12 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
 
     const data = await res.json().catch(() => ({}));
     const error = new Error(data.message || data.error || `Request failed (${res.status})`);
+    
+    // Xử lý rate limit error
+    if (res.status === 429) {
+      showRateLimitError(rateLimitInfo);
+      error.rateLimitInfo = rateLimitInfo;
+    }
     
     // Thêm thông tin ban vào error nếu user bị cấm
     if (data.isBanned) {

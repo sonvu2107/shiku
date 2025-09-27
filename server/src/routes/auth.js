@@ -93,10 +93,19 @@ router.post("/register",
 
       res.status(201).json({ 
         user: { 
-          id: user._id, 
+          _id: user._id, 
+          id: user._id, // Keep backward compatibility
           name: user.name, 
           email: user.email, 
-          role: user.role 
+          role: user.role,
+          bio: user.bio,
+          birthday: user.birthday,
+          gender: user.gender,
+          hobbies: user.hobbies,
+          avatarUrl: user.avatarUrl,
+          isOnline: user.isOnline,
+          isVerified: user.isVerified,
+          lastSeen: user.lastSeen
         },
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken
@@ -204,10 +213,19 @@ router.post("/login",
 
       res.json({ 
         user: { 
-          id: user._id, 
+          _id: user._id, 
+          id: user._id, // Keep backward compatibility
           name: user.name, 
           email: user.email, 
-          role: user.role 
+          role: user.role,
+          bio: user.bio,
+          birthday: user.birthday,
+          gender: user.gender,
+          hobbies: user.hobbies,
+          avatarUrl: user.avatarUrl,
+          isOnline: user.isOnline,
+          isVerified: user.isVerified,
+          lastSeen: user.lastSeen
         },
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken
@@ -412,7 +430,12 @@ router.put("/update-profile",
   validate(updateProfileSchema, 'body'),
   async (req, res, next) => {
     try {
-      const { name, email, password, bio, birthday, gender, hobbies, avatarUrl } = req.body;
+      const { 
+        name, email, password, bio, birthday, gender, hobbies, avatarUrl,
+        coverUrl, location, website, phone, profileTheme, profileLayout, useCoverImage,
+        showEmail, showPhone, showBirthday, showLocation, showWebsite, 
+        showHobbies, showFriends, showPosts
+      } = req.body;
       
       // Kiểm tra email có bị trùng không
       if (email && email !== req.user.email) {
@@ -433,6 +456,23 @@ router.put("/update-profile",
       if (gender) req.user.gender = gender;
       if (hobbies) req.user.hobbies = sanitizeHtml(hobbies);
       if (avatarUrl) req.user.avatarUrl = avatarUrl;
+      if (coverUrl !== undefined) req.user.coverUrl = coverUrl;
+      if (location) req.user.location = sanitizeHtml(location);
+      if (website) req.user.website = website;
+      if (phone) req.user.phone = phone;
+      if (profileTheme) req.user.profileTheme = profileTheme;
+      if (profileLayout) req.user.profileLayout = profileLayout;
+      if (useCoverImage !== undefined) {
+        req.user.useCoverImage = useCoverImage;
+      }
+      if (showEmail !== undefined) req.user.showEmail = showEmail;
+      if (showPhone !== undefined) req.user.showPhone = showPhone;
+      if (showBirthday !== undefined) req.user.showBirthday = showBirthday;
+      if (showLocation !== undefined) req.user.showLocation = showLocation;
+      if (showWebsite !== undefined) req.user.showWebsite = showWebsite;
+      if (showHobbies !== undefined) req.user.showHobbies = showHobbies;
+      if (showFriends !== undefined) req.user.showFriends = showFriends;
+      if (showPosts !== undefined) req.user.showPosts = showPosts;
       
       if (password) {
         req.user.password = await bcrypt.hash(password, 12);
@@ -457,7 +497,22 @@ router.put("/update-profile",
           birthday: req.user.birthday,
           gender: req.user.gender,
           hobbies: req.user.hobbies,
-          avatarUrl: req.user.avatarUrl
+          avatarUrl: req.user.avatarUrl,
+          coverUrl: req.user.coverUrl,
+          location: req.user.location,
+          website: req.user.website,
+          phone: req.user.phone,
+          profileTheme: req.user.profileTheme,
+          profileLayout: req.user.profileLayout,
+          showEmail: req.user.showEmail,
+          showPhone: req.user.showPhone,
+          showBirthday: req.user.showBirthday,
+          showLocation: req.user.showLocation,
+          showWebsite: req.user.showWebsite,
+          showHobbies: req.user.showHobbies,
+          showFriends: req.user.showFriends,
+          showPosts: req.user.showPosts,
+          showEvents: req.user.showEvents
         }
       });
     } catch (error) {
@@ -485,6 +540,22 @@ router.get("/me",
           gender: req.user.gender,
           hobbies: req.user.hobbies,
           avatarUrl: req.user.avatarUrl,
+          coverUrl: req.user.coverUrl,
+          location: req.user.location,
+          website: req.user.website,
+          phone: req.user.phone,
+          profileTheme: req.user.profileTheme,
+          profileLayout: req.user.profileLayout,
+          useCoverImage: req.user.useCoverImage,
+          showEmail: req.user.showEmail,
+          showPhone: req.user.showPhone,
+          showBirthday: req.user.showBirthday,
+          showLocation: req.user.showLocation,
+          showWebsite: req.user.showWebsite,
+          showHobbies: req.user.showHobbies,
+          showFriends: req.user.showFriends,
+          showPosts: req.user.showPosts,
+          showEvents: req.user.showEvents,
           isOnline: req.user.isOnline,
           isVerified: req.user.isVerified,
           lastSeen: req.user.lastSeen,
@@ -492,7 +563,7 @@ router.get("/me",
           friends: req.user.friends
         }
       });
-    } catch (error) {
+    } catch (error) {``
       next(error);
     }
   }

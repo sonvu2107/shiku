@@ -24,7 +24,7 @@ export function useAdminData() {
       const res = await api("/api/admin/stats");
       setStats(res.stats);
     } catch (e) {
-      console.error("Load stats error:", e);
+      // Silent handling for stats loading error
       setError("Không thể tải thống kê");
     }
   }, []);
@@ -34,7 +34,7 @@ export function useAdminData() {
       const res = await api("/api/admin/users");
       setUsers(res.users);
     } catch (e) {
-      console.error("Load users error:", e);
+      // Silent handling for users loading error
       setError("Không thể tải danh sách người dùng");
     }
   }, []);
@@ -45,7 +45,7 @@ export function useAdminData() {
       setOnlineUsers(res.onlineUsers || []);
       setLastUpdate(new Date());
     } catch (e) {
-      console.error("Load online users error:", e);
+      // Silent handling for online users loading error
       setError("Không thể tải danh sách người online");
     }
   }, []);
@@ -56,7 +56,7 @@ export function useAdminData() {
       setTotalVisitors(res.totalVisitors || 0);
       setVisitorStats(res);
     } catch (e) {
-      console.error("Load total visitors error:", e);
+      // Silent handling for visitors loading error
       setError("Không thể tải thống kê visitors");
     }
   }, []);
@@ -86,7 +86,7 @@ export function useAdminData() {
       await api("/api/admin/update-offline-users", { method: "POST" });
       await loadOnlineUsers(); // Refresh online users after update
     } catch (e) {
-      console.error("Update offline users error:", e);
+      // Silent handling for offline users update error
     }
   }, [loadOnlineUsers]);
 
