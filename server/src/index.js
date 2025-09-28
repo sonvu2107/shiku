@@ -36,6 +36,7 @@ import groupRoutes from "./routes/groups.js"; // Groups/communities routes
 import eventRoutes from "./routes/events.js"; // Events routes
 import mediaRoutes from "./routes/media.js"; // Media routes
 import apiMonitoringRoutes, { trackAPICall } from "./routes/apiMonitoring.js"; // API Monitoring routes
+import sitemapRoutes from "./routes/sitemap.js"; // Sitemap routes
 
 // Load environment variables
 dotenv.config();
@@ -361,6 +362,7 @@ app.use("/api/groups", groupRoutes); // Groups/communities
 app.use("/api/events", eventRoutes); // Events
 app.use("/api/media", mediaRoutes); // Media
 app.use("/api/api-monitoring", apiLimiter, apiMonitoringRoutes); // API Monitoring with rate limiting
+app.use("/api/sitemap", sitemapRoutes); // Sitemap generation
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);

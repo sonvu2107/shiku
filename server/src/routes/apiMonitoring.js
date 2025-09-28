@@ -7,7 +7,24 @@ const router = express.Router();
 // Helper function to get Vietnam time
 const getVietnamTime = () => {
   const now = new Date();
-  return new Date(now.toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
+  // Use a more reliable method with proper timezone handling
+  try {
+    // Create a new date in Vietnam timezone
+    const vietnamTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
+    
+    // If the conversion failed, fallback to simple UTC+7
+    if (isNaN(vietnamTime.getTime())) {
+      console.log('Vietnam time conversion failed, using UTC+7 fallback');
+      return new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    }
+    
+    console.log('Vietnam time conversion successful:', vietnamTime.toISOString());
+    return vietnamTime;
+  } catch (error) {
+    console.error('Error getting Vietnam time:', error);
+    // Fallback to simple UTC+7
+    return new Date(now.getTime() + (7 * 60 * 60 * 1000));
+  }
 };
 
 // Middleware to track API calls with database persistence
@@ -24,8 +41,19 @@ export const trackAPICall = async (req, res, next) => {
     // Get or create stats document
     const stats = await ApiStats.getOrCreateStats();
     
+    // Ensure dailyReset field exists (migration for old documents)
+    if (!stats.dailyReset) {
+      stats.dailyReset = {
+        lastDailyReset: new Date(),
+        dailyTotalRequests: 0
+      };
+    }
+    
     // Increment total requests
     stats.totalRequests++;
+    
+    // Increment daily total requests
+    stats.incrementDailyTotalRequests();
     
     // Track by endpoint
     stats.incrementEndpoint(endpoint);
@@ -58,9 +86,23 @@ export const trackAPICall = async (req, res, next) => {
     if (io) {
       // Calculate daily requests per minute for realtime update (Vietnam timezone)
       const vietnamNow = getVietnamTime();
-      const vietnamMidnight = new Date(vietnamNow);
-      vietnamMidnight.setHours(0, 0, 0, 0);
-      const timeSinceMidnight = (vietnamNow - vietnamMidnight) / 1000 / 60;
+      let timeSinceMidnight = 0;
+      
+      if (isNaN(vietnamNow.getTime())) {
+        // Fallback to current time
+        const fallbackTime = new Date();
+        const vietnamMidnight = new Date(fallbackTime);
+        vietnamMidnight.setHours(0, 0, 0, 0);
+        timeSinceMidnight = (fallbackTime - vietnamMidnight) / 1000 / 60;
+      } else {
+        const vietnamMidnight = new Date(vietnamNow);
+        vietnamMidnight.setHours(0, 0, 0, 0);
+        timeSinceMidnight = (vietnamNow - vietnamMidnight) / 1000 / 60;
+      }
+      
+      const requestsPerMinute = timeSinceMidnight > 0 
+        ? ((stats.dailyReset?.dailyTotalRequests || 0) / timeSinceMidnight).toFixed(2)
+        : 0;
       const dailyRequestsPerMinute = timeSinceMidnight > 0 
         ? (stats.totalRequests / timeSinceMidnight).toFixed(2)
         : 0;
@@ -76,6 +118,7 @@ export const trackAPICall = async (req, res, next) => {
           userAgent: userAgent.substring(0, 100),
           totalRequests: stats.totalRequests,
           rateLimitHits: stats.rateLimitHits,
+          requestsPerMinute: parseFloat(requestsPerMinute),
           dailyRequestsPerMinute: parseFloat(dailyRequestsPerMinute),
           requestsByEndpoint: Object.fromEntries(stats.currentPeriod.requestsByEndpoint),
           requestsByIP: stats.currentPeriod.requestsByIP.size,
@@ -167,6 +210,15 @@ router.get("/stats", authRequired, async (req, res) => {
   try {
     const stats = await ApiStats.getOrCreateStats();
     
+    // Ensure dailyReset field exists (migration for old documents)
+    if (!stats.dailyReset) {
+      stats.dailyReset = {
+        lastDailyReset: new Date(),
+        dailyTotalRequests: 0
+      };
+      await stats.save();
+    }
+    
     // Calculate top endpoints from daily stats (reset at midnight)
     const topEndpoints = Array.from(stats.dailyTopStats.topEndpoints.entries())
       .sort(([,a], [,b]) => b - a)
@@ -193,24 +245,38 @@ router.get("/stats", authRequired, async (req, res) => {
       ? ((stats.rateLimitHits / stats.totalRequests) * 100).toFixed(2)
       : 0;
     
-    // Calculate requests per minute (based on current period)
-    const now = new Date();
-    const timeSinceReset = (now - stats.lastReset) / 1000 / 60; // minutes
+    // Calculate requests per minute (based on daily reset - since midnight Vietnam time)
+    const vietnamNow = getVietnamTime();
+    let timeSinceMidnight = 0;
+    let requestsPerMinute = 0;
     
-    // Calculate current period total requests
-    const currentPeriodTotalRequests = Array.from(stats.currentPeriod.requestsByEndpoint.values())
-      .reduce((sum, count) => sum + count, 0);
+    // Validate Date object
+    if (isNaN(vietnamNow.getTime())) {
+      console.error('Invalid Vietnam time:', vietnamNow);
+      // Fallback to current time
+      const fallbackTime = new Date();
+      const vietnamMidnight = new Date(fallbackTime);
+      vietnamMidnight.setHours(0, 0, 0, 0);
+      timeSinceMidnight = (fallbackTime - vietnamMidnight) / 1000 / 60;
+    } else {
+      const vietnamMidnight = new Date(vietnamNow);
+      vietnamMidnight.setHours(0, 0, 0, 0);
+      timeSinceMidnight = (vietnamNow - vietnamMidnight) / 1000 / 60; // minutes since midnight
+      
+      // Debug logging
+      console.log('Vietnam time debug:', {
+        vietnamNow: vietnamNow.toISOString(),
+        vietnamMidnight: vietnamMidnight.toISOString(),
+        timeSinceMidnight,
+        dailyTotalRequests: stats.dailyReset?.dailyTotalRequests || 0
+      });
+    }
     
-    const requestsPerMinute = timeSinceReset > 0 
-      ? (currentPeriodTotalRequests / timeSinceReset).toFixed(2)
+    requestsPerMinute = timeSinceMidnight > 0 
+      ? ((stats.dailyReset?.dailyTotalRequests || 0) / timeSinceMidnight).toFixed(2)
       : 0;
     
-    // Calculate daily requests per minute (since midnight in Vietnam timezone)
-    const vietnamNow = getVietnamTime();
-    const vietnamMidnight = new Date(vietnamNow);
-    vietnamMidnight.setHours(0, 0, 0, 0);
-    const timeSinceMidnight = (vietnamNow - vietnamMidnight) / 1000 / 60; // minutes since midnight
-    
+    // Calculate daily requests per minute (total since midnight)
     const dailyRequestsPerMinute = timeSinceMidnight > 0 
       ? (stats.totalRequests / timeSinceMidnight).toFixed(2)
       : 0;
@@ -225,10 +291,9 @@ router.get("/stats", authRequired, async (req, res) => {
           totalRequests: stats.totalRequests,
           rateLimitHits: stats.rateLimitHits,
           rateLimitHitRate: parseFloat(rateLimitHitRate),
-          requestsPerMinute: parseFloat(requestsPerMinute), // Current period (last hour)
-          dailyRequestsPerMinute: parseFloat(dailyRequestsPerMinute), // Since midnight
-          lastReset: stats.lastReset,
-          timeSinceReset: Math.round(timeSinceReset),
+          requestsPerMinute: parseFloat(requestsPerMinute), // Daily requests per minute (since midnight)
+          dailyRequestsPerMinute: parseFloat(dailyRequestsPerMinute), // Total requests per minute (since midnight)
+          lastDailyReset: stats.dailyReset.lastDailyReset,
           timeSinceMidnight: Math.round(timeSinceMidnight)
         },
         topEndpoints,
@@ -318,6 +383,8 @@ router.post("/reset", authRequired, async (req, res) => {
     stats.currentPeriod.rateLimitHitsByEndpoint = new Map();
     stats.dailyTopStats.topEndpoints = new Map();
     stats.dailyTopStats.topIPs = new Map();
+    stats.dailyReset.lastDailyReset = new Date();
+    stats.dailyReset.dailyTotalRequests = 0;
     stats.lastReset = new Date();
     stats.hourlyStats = [];
     stats.realtimeUpdates = [];

@@ -85,6 +85,18 @@ const apiStatsSchema = new mongoose.Schema({
     }
   },
   
+  // Daily reset tracking (reset at midnight daily)
+  dailyReset: {
+    lastDailyReset: {
+      type: Date,
+      default: Date.now
+    },
+    dailyTotalRequests: {
+      type: Number,
+      default: 0
+    }
+  },
+  
   // Real-time updates (last 100 calls)
   realtimeUpdates: [{
     endpoint: {
@@ -163,6 +175,12 @@ apiStatsSchema.methods.incrementEndpoint = function(endpoint) {
   this.updatedAt = new Date();
 };
 
+// Method to increment daily total requests
+apiStatsSchema.methods.incrementDailyTotalRequests = function() {
+  this.dailyReset.dailyTotalRequests++;
+  this.updatedAt = new Date();
+};
+
 // Method to increment IP count
 apiStatsSchema.methods.incrementIP = function(ip) {
   // Encode IP address to avoid dots in Map keys (Mongoose doesn't allow dots in Map keys)
@@ -233,6 +251,10 @@ apiStatsSchema.methods.resetHourlyStats = function() {
   this.dailyTopStats.topEndpoints = new Map();
   this.dailyTopStats.topIPs = new Map();
   
+  // Reset daily tracking
+  this.dailyReset.lastDailyReset = new Date();
+  this.dailyReset.dailyTotalRequests = 0;
+  
   this.updatedAt = new Date();
 };
 
@@ -255,6 +277,10 @@ apiStatsSchema.statics.getOrCreateStats = async function() {
       dailyTopStats: {
         topEndpoints: new Map(),
         topIPs: new Map()
+      },
+      dailyReset: {
+        lastDailyReset: new Date(),
+        dailyTotalRequests: 0
       },
       realtimeUpdates: []
     });
