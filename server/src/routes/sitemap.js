@@ -14,7 +14,9 @@ const router = express.Router();
 // Generate dynamic sitemap
 router.get('/', async (req, res) => {
   try {
-    const baseUrl = 'https://shiku.click';
+    const envBase = process.env.SITE_BASE_URL && process.env.SITE_BASE_URL.trim();
+    const inferredBase = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = envBase || inferredBase;
     const currentDate = new Date().toISOString().split('T')[0];
     
     let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -156,7 +158,7 @@ router.get('/', async (req, res) => {
     
     res.send(sitemap);
     
-    console.log(`Sitemap generated successfully with ${staticPages.length + posts.length + users.length + groups.length + events.length} URLs`);
+    console.log(`Sitemap generated successfully for ${baseUrl} with ${staticPages.length + posts.length + users.length + groups.length + events.length} URLs`);
     
   } catch (error) {
     console.error('Error generating sitemap:', error);
