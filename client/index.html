@@ -19,11 +19,15 @@
     <meta property="og:url" content="https://shiku.click" />
     <meta property="og:site_name" content="Shiku" />
     <meta property="og:locale" content="vi_VN" />
+    <meta property="og:image" content="https://shiku.click/assets/shiku-mark.svg" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Shiku - Mạng xã hội kết nối bạn bè" />
     <meta name="twitter:description" content="Shiku là mạng xã hội hiện đại, nơi bạn có thể chia sẻ khoảnh khắc, kết nối bạn bè, tham gia nhóm và sự kiện." />
+    <meta name="twitter:image" content="https://shiku.click/assets/shiku-mark.svg" />
     
     <!-- Additional SEO Meta Tags -->
     <meta name="theme-color" content="#000000" />
@@ -54,6 +58,26 @@
     "target": "https://shiku.click/search?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+    </script>
+
+    <!-- Structured Data: Organization with Logo -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Shiku",
+  "url": "https://shiku.click",
+  "logo": {
+    "@type": "ImageObject",
+    "url": "https://shiku.click/assets/shiku-mark.svg",
+    "width": 512,
+    "height": 512
+  },
+  "sameAs": [
+    "https://www.facebook.com/shiku",
+    "https://twitter.com/shiku"
+  ]
 }
     </script>
   </head>
