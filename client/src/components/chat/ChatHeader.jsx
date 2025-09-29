@@ -117,7 +117,7 @@ const getAvatarUrl = () => {
   if (user?.name) {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(
       user.name
-    )}&background=3b82f6&color=ffffff&size=40`;
+    )}&background=cccccc&color=222222`;
   }
   return "/default-avatar.png";
 };

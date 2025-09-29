@@ -218,12 +218,12 @@ export default function OnlineFriends({ user }) {
             >
               <div className="relative">
                 <img
-                  src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=3b82f6&color=ffffff&size=40`}
+                  src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&length=2&background=cccccc&color=222222&size=40`}
                   alt={friend.name}
                   className="w-10 h-10 rounded-full object-cover border border-gray-200"
                   onError={(e) => {
                     // Fallback nếu ảnh lỗi
-                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=3b82f6&color=ffffff&size=40`;
+                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&length=2&background=cccccc&color=222222&size=40`;
                   }}
                 />
                 {/* Online indicator - chỉ hiển thị khi isOnline = true */}

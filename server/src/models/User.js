@@ -23,7 +23,9 @@ const UserSchema = new mongoose.Schema({
     type: String,
     // Default avatar từ UI Avatars service
     default: function () {
-      return `https://ui-avatars.com/api/?name=User&background=3b82f6&color=ffffff`;
+      const name = (this.name || "User").trim();
+      const encoded = encodeURIComponent(name);
+      return `https://ui-avatars.com/api/?name=${encoded}&length=2&background=cccccc&color=222222`;
     }
   },
   coverUrl: { type: String, default: "" }, // Ảnh bìa profile

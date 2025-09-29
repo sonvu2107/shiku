@@ -244,7 +244,7 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
                         className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
                       >
                         <img
-                          src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                          src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                           alt={user.name}
                           className="w-5 h-5 rounded-full"
                         />
@@ -285,7 +285,7 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
                             }`}
                           >
                             <img
-                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                               alt={user.name}
                               className="w-10 h-10 rounded-full"
                             />
@@ -330,7 +330,7 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
                             }`}
                           >
                             <img
-                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                               alt={user.name}
                               className="w-10 h-10 rounded-full"
                             />
@@ -394,7 +394,7 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
                   {selectedUsers.map(user => (
                     <div key={user._id} className="flex items-center space-x-3 p-2">
                       <img
-                        src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                        src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                         alt={user.name}
                         className="w-8 h-8 rounded-full"
                       />

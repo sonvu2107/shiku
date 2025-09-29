@@ -191,7 +191,7 @@ export default function PostCreator({ user, groupId = null }) {
       <div className="card max-w-2xl mx-auto mb-6">
         <div className="flex items-center gap-3">
           <img
-            src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=3b82f6&color=ffffff&size=40`}
+            src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=cccccc&color=222222&size=40`}
             alt={userDisplayName}
             className="w-10 h-10 rounded-full object-cover"
           />
@@ -224,7 +224,7 @@ export default function PostCreator({ user, groupId = null }) {
               {/* Avatar + Privacy */}
               <div className="flex items-center gap-3 mb-4">
                 <img
-                  src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=3b82f6&color=ffffff&size=40`}
+                  src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=cccccc&color=222222&size=40`}
                   alt={userDisplayName}
                   className="w-10 h-10 rounded-full object-cover"
                 />

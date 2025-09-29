@@ -99,7 +99,7 @@ export default function MobileMenu({ user, setUser }) {
           <div className="p-4 border-b border-gray-200 flex-shrink-0">
             <div className="flex items-center gap-3">
               <img
-                src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                 alt={user.name}
                 className="w-12 h-12 rounded-full border border-gray-300"
               />

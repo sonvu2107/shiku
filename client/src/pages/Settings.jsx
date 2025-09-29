@@ -125,7 +125,7 @@ export default function Settings() {
                     <img
                       src={
                         user.avatarUrl ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "User")}&background=3b82f6&color=ffffff&size=40`
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "User")}&length=2&background=cccccc&color=222222&size=40`
                       }
                       alt={user.name}
                       className="w-8 h-8 rounded-full object-cover"

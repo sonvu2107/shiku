@@ -119,11 +119,11 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
     ? conversation.groupAvatar ||
       `https://ui-avatars.com/api/?name=${encodeURIComponent(
         name
-      )}&background=cccccc&color=222222&size=64`
+      )}&length=2&background=cccccc&color=222222`
     : conversation.otherParticipants?.[0]?.user?.avatarUrl ||
       `https://ui-avatars.com/api/?name=${encodeURIComponent(
         name
-      )}&background=cccccc&color=222222&size=64`;
+      )}&length=2&background=cccccc&color=222222`;
 
   const getOtherUserOnlineStatus = () => {
     if (isGroup) return false;
@@ -227,7 +227,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             ? msg.sender.avatarUrl
                             : `https://ui-avatars.com/api/?name=${encodeURIComponent(
                                 msg.sender?.name || "Không tên"
-                              )}&background=cccccc&color=222222&size=64`
+                              )}&length=2&background=cccccc&color=222222`
                         }
                         alt={msg.sender?.name || ""}
                         className="w-7 h-7 rounded-full object-cover mt-1"

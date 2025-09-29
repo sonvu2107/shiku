@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Comment API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <h1>Debug Comment API</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Check API Status</h2>
+        <button onclick="testAPI()">Test GET /api/comments/test</button>
+        <div class="result" id="apiResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Test POST without auth</h2>
+        <button onclick="testPost()">Test POST /api/comments/test-post</button>
+        <div class="result" id="postResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Test Comment with JSON</h2>
+        <form id="jsonForm">
+            <div class="form-group">
+                <label for="postId">Post ID:</label>
+                <input type="text" id="postId" value="68d815c2d9de6af0958594df" required>
+            </div>
+            <div class="form-group">
+                <label for="content">Content:</label>
+                <textarea id="content" rows="3">Test comment JSON</textarea>
+            </div>
+            <button type="submit">Test JSON Comment</button>
+        </form>
+        <div class="result" id="jsonResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Test Comment with FormData</h2>
+        <form id="formDataForm">
+            <div class="form-group">
+                <label for="postId2">Post ID:</label>
+                <input type="text" id="postId2" value="68d815c2d9de6af0958594df" required>
+            </div>
+            <div class="form-group">
+                <label for="content2">Content:</label>
+                <textarea id="content2" rows="3">Test comment FormData</textarea>
+            </div>
+            <div class="form-group">
+                <label for="images">Images:</label>
+                <input type="file" id="images" multiple accept="image/*">
+            </div>
+            <button type="submit">Test FormData Comment</button>
+        </form>
+        <div class="result" id="formDataResult"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:4000';
+        
+        async function testAPI() {
+            try {
+                const response = await fetch(`${API_URL}/api/comments/test`);
+                const result = await response.json();
+                document.getElementById('apiResult').innerHTML = 
+                    `Status: ${response.status}\n` + 
+                    JSON.stringify(result, null, 2);
+                document.getElementById('apiResult').className = 
+                    response.ok ? 'result success' : 'result error';
+            } catch (error) {
+                document.getElementById('apiResult').innerHTML = 
+                    `Error: ${error.message}`;
+                document.getElementById('apiResult').className = 'result error';
+            }
+        }
+        
+        async function testPost() {
+            try {
+                const response = await fetch(`${API_URL}/api/comments/test-post`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ test: 'data' })
+                });
+                const result = await response.json();
+                document.getElementById('postResult').innerHTML = 
+                    `Status: ${response.status}\n` + 
+                    JSON.stringify(result, null, 2);
+                document.getElementById('postResult').className = 
+                    response.ok ? 'result success' : 'result error';
+            } catch (error) {
+                document.getElementById('postResult').innerHTML = 
+                    `Error: ${error.message}`;
+                document.getElementById('postResult').className = 'result error';
+            }
+        }
+        
+        document.getElementById('jsonForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const postId = document.getElementById('postId').value;
+            const content = document.getElementById('content').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/api/comments/post/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ content })
+                });
+                
+                const result = await response.json();
+                document.getElementById('jsonResult').innerHTML = 
+                    `Status: ${response.status}\n` + 
+                    JSON.stringify(result, null, 2);
+                document.getElementById('jsonResult').className = 
+                    response.ok ? 'result success' : 'result error';
+            } catch (error) {
+                document.getElementById('jsonResult').innerHTML = 
+                    `Error: ${error.message}`;
+                document.getElementById('jsonResult').className = 'result error';
+            }
+        });
+        
+        document.getElementById('formDataForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const postId = document.getElementById('postId2').value;
+            const content = document.getElementById('content2').value;
+            const imageFiles = document.getElementById('images').files;
+            
+            const formData = new FormData();
+            formData.append('content', content);
+            
+            for (let i = 0; i < imageFiles.length; i++) {
+                formData.append('files', imageFiles[i]);
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/api/comments/post/${postId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                document.getElementById('formDataResult').innerHTML = 
+                    `Status: ${response.status}\n` + 
+                    JSON.stringify(result, null, 2);
+                document.getElementById('formDataResult').className = 
+                    response.ok ? 'result success' : 'result error';
+            } catch (error) {
+                document.getElementById('formDataResult').innerHTML = 
+                    `Error: ${error.message}`;
+                document.getElementById('formDataResult').className = 'result error';
+            }
+        });
+    </script>
+</body>
+</html>

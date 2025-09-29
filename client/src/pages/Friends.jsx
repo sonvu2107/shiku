@@ -42,9 +42,21 @@ export default function Friends() {
    * Load dữ liệu ban đầu khi component mount
    */
   useEffect(() => {
+    // Đọc tham số URL để chọn tab mặc định
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    const sourceParam = params.get('source');
+    if (tabParam === 'suggestions') {
+      setActiveTab('suggestions');
+    }
+
     loadFriends();
     loadRequests();
-    loadSuggestions();
+    if (sourceParam === 'fof') {
+      loadFriendsOfFriendsSuggestions();
+    } else {
+      loadSuggestions();
+    }
   }, []);
 
   /**
@@ -99,6 +111,18 @@ export default function Friends() {
   const loadSuggestions = async () => {
     try {
       const data = await api('/api/friends/suggestions');
+      setSuggestions(data.suggestions);
+    } catch (error) {
+      // Silent handling for suggestions loading error
+    }
+  };
+
+  /**
+   * Load gợi ý bạn của bạn bè (friends-of-friends)
+   */
+  const loadFriendsOfFriendsSuggestions = async () => {
+    try {
+      const data = await api('/api/friends/suggestions?source=fof');
       setSuggestions(data.suggestions);
     } catch (error) {
       // Silent handling for suggestions loading error
@@ -202,7 +226,7 @@ export default function Friends() {
       <div className="flex items-center gap-2 sm:gap-3">
         <div className="relative flex-shrink-0">
           <img
-            src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=cccccc&color=222222&size=64`}
+            src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222&size=64`}
             alt={user.name}
             className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => navigate(`/user/${user._id}`)}

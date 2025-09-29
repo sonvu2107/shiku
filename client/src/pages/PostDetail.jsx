@@ -401,7 +401,7 @@ export default function PostDetail() {
                         const user = e.user || {};
                         const avatar = user.avatarUrl
                           ? user.avatarUrl
-                          : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "?")}&background=3b82f6&color=ffffff&size=40`;
+                          : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "?")}&length=2&background=cccccc&color=222222&size=40`;
                         return (
                           <div key={idx} className="flex gap-3 py-2 border-b items-center">
                             <img src={avatar} alt={user.name || "Người dùng"} className="w-10 h-10 rounded-full object-cover" />

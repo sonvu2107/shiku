@@ -54,7 +54,7 @@ export default function ChatDropdown({ onOpenChat }) {
     // fallback ui-avatars
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(
       name
-    )}&background=3b82f6&color=ffffff`;
+    )}&length=2&background=cccccc&color=222222`;
   };
 
   const getName = (conv) => {

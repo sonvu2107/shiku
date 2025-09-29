@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Comment Simple</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Comment Simple</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Comment without images (JSON)</h2>
+        <form id="testJsonForm">
+            <div class="form-group">
+                <label for="postId">Post ID:</label>
+                <input type="text" id="postId" value="68d815c2d9de6af0958594df" required>
+            </div>
+            <div class="form-group">
+                <label for="content">Comment Content:</label>
+                <textarea id="content" rows="3" placeholder="Nhập nội dung comment...">Test comment without images</textarea>
+            </div>
+            <button type="submit">Test JSON Comment</button>
+        </form>
+        <div class="result" id="jsonResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Comment with images (FormData)</h2>
+        <form id="testFormDataForm">
+            <div class="form-group">
+                <label for="postId2">Post ID:</label>
+                <input type="text" id="postId2" value="68d815c2d9de6af0958594df" required>
+            </div>
+            <div class="form-group">
+                <label for="content2">Comment Content:</label>
+                <textarea id="content2" rows="3" placeholder="Nhập nội dung comment...">Test comment with images</textarea>
+            </div>
+            <div class="form-group">
+                <label for="images">Images:</label>
+                <input type="file" id="images" multiple accept="image/*">
+            </div>
+            <button type="submit">Test FormData Comment</button>
+        </form>
+        <div class="result" id="formDataResult"></div>
+    </div>
+
+    <script>
+        // Test JSON comment
+        document.getElementById('testJsonForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const postId = document.getElementById('postId').value;
+            const content = document.getElementById('content').value;
+            
+            try {
+                const response = await fetch(`http://localhost:4000/api/comments/post/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer YOUR_TOKEN_HERE' // Thay bằng token thực
+                    },
+                    body: JSON.stringify({ content })
+                });
+                
+                const result = await response.json();
+                document.getElementById('jsonResult').innerHTML = 
+                    '<h3>Result:</h3><pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('jsonResult').innerHTML = 
+                    '<h3>Error:</h3><p style="color: red;">' + error.message + '</p>';
+            }
+        });
+
+        // Test FormData comment
+        document.getElementById('testFormDataForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const postId = document.getElementById('postId2').value;
+            const content = document.getElementById('content2').value;
+            const imageFiles = document.getElementById('images').files;
+            
+            const formData = new FormData();
+            formData.append('content', content);
+            
+            for (let i = 0; i < imageFiles.length; i++) {
+                formData.append('files', imageFiles[i]);
+            }
+            
+            try {
+                const response = await fetch(`http://localhost:4000/api/comments/post/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer YOUR_TOKEN_HERE' // Thay bằng token thực
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                document.getElementById('formDataResult').innerHTML = 
+                    '<h3>Result:</h3><pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('formDataResult').innerHTML = 
+                    '<h3>Error:</h3><p style="color: red;">' + error.message + '</p>';
+            }
+        });
+    </script>
+</body>
+</html>

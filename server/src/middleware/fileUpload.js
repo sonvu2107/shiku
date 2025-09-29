@@ -1,6 +1,8 @@
 import multer from "multer";
+import { Readable } from "stream";
 import { fileTypeFromBuffer } from "file-type";
 import { v2 as cloudinary } from "cloudinary";
+import { createReadStream } from "streamifier";
 
 /**
  * Middleware bảo mật cho file upload
@@ -235,6 +237,57 @@ export const uploadMultiple = (category = 'image', maxFiles = 10) => {
 };
 
 /**
+ * Middleware upload multiple files optional (cho phép không có file)
+ */
+export const uploadMultipleOptional = (category = 'image', maxFiles = 10) => {
+  return [
+    multer({
+      ...uploadConfig,
+      limits: {
+        ...uploadConfig.limits,
+        files: maxFiles
+      }
+    }).array('files', maxFiles),
+    async (req, res, next) => {
+      try {
+        // Nếu không có file, tiếp tục bình thường
+        if (!req.files || req.files.length === 0) {
+          req.files = [];
+          req.fileTypes = [];
+          return next();
+        }
+
+        // Validate từng file
+        const validationResults = await Promise.all(
+          req.files.map(file => validateFile(file, category))
+        );
+
+        const invalidFiles = validationResults.filter(result => !result.isValid);
+        
+        if (invalidFiles.length > 0) {
+          const allErrors = invalidFiles.flatMap(result => result.errors);
+          return res.status(400).json({
+            success: false,
+            message: 'Một số file không hợp lệ',
+            errors: allErrors
+          });
+        }
+
+        // Gán thông tin file types vào request
+        req.fileTypes = validationResults.map(result => result.fileType);
+        next();
+      } catch (error) {
+        console.error('Multiple file validation error:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Lỗi khi xử lý files'
+        });
+      }
+    }
+  ];
+};
+
+/**
  * Upload file lên Cloudinary với security checks
  * @param {Object} file - File object
  * @param {string} folder - Folder trên Cloudinary
@@ -252,8 +305,7 @@ export const uploadToCloudinary = async (file, folder = 'blog', category = 'imag
     const uploadOptions = {
       folder,
       resource_type: category === 'video' ? 'video' : 'image',
-      quality: 'auto',
-      format: 'auto'
+      quality: 'auto'
     };
 
     // Thêm transformation cho ảnh
@@ -264,27 +316,27 @@ export const uploadToCloudinary = async (file, folder = 'blog', category = 'imag
       ];
     }
 
-    const result = await cloudinary.uploader.upload_stream(
-      uploadOptions,
-      (error, result) => {
-        if (error) throw error;
-        return result;
-      }
-    );
-
-    // Upload buffer
-    const stream = require('streamifier').createReadStream(file.buffer);
-    stream.pipe(result);
-
-    return new Promise((resolve, reject) => {
-      result.on('error', reject);
-      result.on('end', () => {
-        resolve({
-          url: result.secure_url,
-          public_id: result.public_id,
-          type: category
-        });
-      });
+    // Sử dụng stream đúng chuẩn Cloudinary
+    return await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        uploadOptions,
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve({
+              url: result.secure_url,
+              public_id: result.public_id,
+              width: result.width,
+              height: result.height,
+              type: category
+            });
+          }
+        }
+      );
+      // Pipe buffer vào stream
+  const bufferStream = Readable.from(file.buffer);
+  bufferStream.pipe(stream);
     });
   } catch (error) {
     console.error('Cloudinary upload error:', error);

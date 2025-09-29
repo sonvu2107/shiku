@@ -239,7 +239,7 @@ export default function Navbar({ user, setUser }) {
                             onClick={() => navigate(`/user/${user._id}`)}
                           >
                             <img
-                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                               alt={user.name}
                               className="w-8 h-8 rounded-full"
                             />
@@ -393,7 +393,7 @@ export default function Navbar({ user, setUser }) {
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                   >
                     <img
-                      src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                      src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                       alt={user.name}
                       className="w-9 h-9 rounded-full border border-gray-300 shadow-sm"
                     />
@@ -403,7 +403,7 @@ export default function Navbar({ user, setUser }) {
                       <div className="px-5 pb-3 border-b">
                         <div className="flex items-center gap-3">
                           <img
-                            src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                            src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                             alt={user.name}
                             className="w-12 h-12 rounded-full border"
                           />
@@ -496,7 +496,7 @@ export default function Navbar({ user, setUser }) {
                             }}
                           >
                             <img
-                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                               alt={user.name}
                               className="w-8 h-8 rounded-full flex-shrink-0"
                             />

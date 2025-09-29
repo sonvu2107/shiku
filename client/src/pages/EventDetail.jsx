@@ -394,7 +394,7 @@ export default function EventDetail() {
                 {event.attendees.map((attendee) => (
                   <div key={attendee._id} className="flex items-center gap-3">
                     <img
-                      src={attendee.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(attendee.name)}&background=3b82f6&color=ffffff`}
+                      src={attendee.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(attendee.name)}&length=2&background=cccccc&color=222222`}
                       alt={attendee.name}
                       className="w-10 h-10 rounded-full"
                     />
@@ -419,7 +419,7 @@ export default function EventDetail() {
                   {event.interested.map((user) => (
                     <div key={user._id} className="flex items-center gap-3">
                       <img
-                        src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                        src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                         alt={user.name}
                         className="w-10 h-10 rounded-full"
                       />
@@ -443,7 +443,7 @@ export default function EventDetail() {
                   {event.declined.map((user) => (
                     <div key={user._id} className="flex items-center gap-3">
                       <img
-                        src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
+                        src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                         alt={user.name}
                         className="w-10 h-10 rounded-full"
                       />
@@ -465,7 +465,7 @@ export default function EventDetail() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Người tạo</h3>
               <div className="flex items-center gap-3">
                 <img
-                  src={event.creator.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(event.creator.name)}&background=3b82f6&color=ffffff`}
+                  src={event.creator.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(event.creator.name)}&length=2&background=cccccc&color=222222`}
                   alt={event.creator.name}
                   className="w-12 h-12 rounded-full"
                 />

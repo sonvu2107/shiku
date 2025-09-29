@@ -58,7 +58,7 @@ export default function Support() {
           {success && <div className="text-green-600 text-sm">Gửi góp ý thành công! Cảm ơn bạn.</div>}
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </form>
-        <div className="mt-8 text-gray-500 text-xs">Mọi góp ý đều giúp web ngày càng phát triển, cảm ơn ban.</div>
+        <div className="mt-8 text-gray-500 text-xs">Mọi góp ý đều giúp web ngày càng phát triển, cảm ơn bạn.</div>
       </div>
     </div>
   );

@@ -5,8 +5,87 @@ import User from "../models/User.js";
 import { authRequired, authOptional } from "../middleware/auth.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
 import NotificationService from "../services/NotificationService.js";
+import { uploadMultiple, uploadMultipleOptional, uploadToCloudinary, validateFile } from "../middleware/fileUpload.js";
+import multer from "multer";
 
 const router = express.Router();
+
+// Test route để kiểm tra server
+router.get("/test", (req, res) => {
+  res.json({ message: "Comments API is working", timestamp: new Date().toISOString() });
+});
+
+// Test route để kiểm tra POST không cần auth
+router.post("/test-post", (req, res) => {
+  res.json({ 
+    message: "POST test successful", 
+    body: req.body,
+    files: req.files || [],
+    timestamp: new Date().toISOString() 
+  });
+});
+
+// Middleware để xử lý cả JSON và FormData cho comment
+const handleCommentUpload = (req, res, next) => {
+  const contentType = req.get('Content-Type');
+  
+  if (contentType && contentType.includes('multipart/form-data')) {
+    // FormData - sử dụng multer
+    multer({
+      storage: multer.memoryStorage(),
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB per file
+        files: 5 // max 5 files
+      },
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Chỉ chấp nhận file hình ảnh'), false);
+        }
+      }
+    }).array('files', 5)(req, res, (err) => {
+      if (err) {
+        console.error('Multer error:', err);
+        return res.status(400).json({ error: err.message });
+      }
+      
+      // Validate files nếu có (async)
+      if (req.files && req.files.length > 0) {
+        validateFiles(req, res, next);
+      } else {
+        next();
+      }
+    });
+  } else {
+    // JSON - không cần multer
+    req.files = [];
+    next();
+  }
+};
+
+// Helper function để validate files
+async function validateFiles(req, res, next) {
+  try {
+    const validationResults = await Promise.all(
+      req.files.map(file => validateFile(file, 'image'))
+    );
+    
+    const invalidFiles = validationResults.filter(result => !result.isValid);
+    if (invalidFiles.length > 0) {
+      const allErrors = invalidFiles.flatMap(result => result.errors);
+      return res.status(400).json({
+        error: 'Một số file không hợp lệ',
+        details: allErrors
+      });
+    }
+    
+    next();
+  } catch (validationError) {
+    console.error('File validation error:', validationError);
+    return res.status(400).json({ error: 'Lỗi khi validate file' });
+  }
+}
 
 /**
  * GET /post/:postId - Lấy danh sách comment cho 1 bài post
@@ -57,12 +136,16 @@ router.get("/post/:postId", authOptional, async (req, res, next) => {
  * @param {string} req.params.postId - ID của bài post
  * @param {string} req.body.content - Nội dung comment
  * @param {string} req.body.parentId - ID comment cha (nếu là reply)
+ * @param {Array} req.files - Danh sách ảnh upload (optional)
  * @returns {Object} Comment đã tạo
  */
-router.post("/post/:postId", authRequired, checkBanStatus, async (req, res, next) => {
+router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, async (req, res, next) => {
   try {
     const { content, parentId } = req.body;
-    if (!content) return res.status(400).json({ error: "Vui lòng nhập nội dung bình luận" });
+    const hasImages = req.files && req.files.length > 0;
+    if (!content && !hasImages) {
+      return res.status(400).json({ error: "Vui lòng nhập nội dung bình luận hoặc đính kèm ảnh" });
+    }
 
     const post = await Post.findById(req.params.postId).populate("author", "name");
     if (!post) return res.status(404).json({ error: "Không tìm thấy bài viết" });
@@ -73,12 +156,48 @@ router.post("/post/:postId", authRequired, checkBanStatus, async (req, res, next
       if (!parent) return res.status(400).json({ error: "Không tìm thấy bình luận gốc" });
     }
 
-    const c = await Comment.create({
+    // Upload ảnh lên Cloudinary nếu có
+    let images = [];
+    if (hasImages) {
+      try {
+        const uploadPromises = req.files.map(file => 
+          uploadToCloudinary(file, 'blog/comments', 'image')
+        );
+        const uploadResults = await Promise.all(uploadPromises);
+        console.log("[DEBUG] uploadResults:", uploadResults);
+        // Chỉ nhận các ảnh có đủ url và publicId
+        images = uploadResults
+          .filter(result => result.url && result.public_id)
+          .map(result => ({
+            url: result.url,
+            publicId: result.public_id,
+            width: result.width,
+            height: result.height,
+            alt: ""
+          }));
+        if (images.length !== uploadResults.length) {
+          console.error("[DEBUG] Một hoặc nhiều ảnh upload bị thiếu url hoặc publicId", uploadResults);
+          return res.status(400).json({ error: "Một hoặc nhiều ảnh upload bị thiếu url hoặc publicId", uploadResults });
+        }
+      } catch (uploadError) {
+        console.error("Error uploading images:", uploadError);
+        return res.status(500).json({ error: "Lỗi khi upload ảnh" });
+      }
+    }
+
+    const commentData = {
       post: post._id,
       author: req.user._id,
-      content,
-      parent: parentId || null,
-    });
+      content: content || "",
+      parent: parentId || null
+    };
+    
+    // Chỉ thêm images nếu có
+    if (images.length > 0) {
+      commentData.images = images;
+    }
+
+    const c = await Comment.create(commentData);
 
     await c.populate([
       { path: "author", select: "name avatarUrl role" },
@@ -104,15 +223,19 @@ router.post("/post/:postId", authRequired, checkBanStatus, async (req, res, next
 
 /**
  * PUT /:id - Cập nhật comment (chỉ người viết)
- * Chỉ cho phép tác giả comment sửa nội dung
+ * Chỉ cho phép tác giả comment sửa nội dung và ảnh
  * @param {string} req.params.id - ID của comment
  * @param {string} req.body.content - Nội dung comment mới
+ * @param {Array} req.files - Danh sách ảnh mới (optional)
  * @returns {Object} Comment đã cập nhật
  */
-router.put("/:id", authRequired, async (req, res, next) => {
+router.put("/:id", authRequired, handleCommentUpload, async (req, res, next) => {
   try {
     const { content } = req.body;
-    if (!content) return res.status(400).json({ error: "Vui lòng nhập nội dung bình luận" });
+    const hasImages = req.files && req.files.length > 0;
+    if (!content && !hasImages) {
+      return res.status(400).json({ error: "Vui lòng nhập nội dung bình luận hoặc đính kèm ảnh" });
+    }
 
     const c = await Comment.findById(req.params.id);
     if (!c) return res.status(404).json({ error: "Không tìm thấy bình luận" });
@@ -120,7 +243,31 @@ router.put("/:id", authRequired, async (req, res, next) => {
     const isOwner = c.author.toString() === req.user._id.toString();
     if (!isOwner) return res.status(403).json({ error: "Bạn chỉ có thể sửa bình luận của mình" });
 
-    c.content = content;
+    // Upload ảnh mới lên Cloudinary nếu có
+    if (hasImages) {
+      try {
+        const uploadPromises = req.files.map(file => 
+          uploadToCloudinary(file, 'blog/comments', 'image')
+        );
+        const uploadResults = await Promise.all(uploadPromises);
+        
+        const newImages = uploadResults.map(result => ({
+          url: result.url,
+          publicId: result.public_id,
+          width: result.width,
+          height: result.height,
+          alt: ""
+        }));
+
+        // Thay thế ảnh cũ bằng ảnh mới
+        c.images = newImages;
+      } catch (uploadError) {
+        console.error("Error uploading images:", uploadError);
+        return res.status(500).json({ error: "Lỗi khi upload ảnh" });
+      }
+    }
+
+    c.content = content || "";
     c.edited = true;
     await c.save();
 

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
-import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp, Smile, Frown, Laugh, Angry } from "lucide-react";
+import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp, Smile, Frown, Laugh, Angry, Image, X } from "lucide-react";
 import BanNotification from "./BanNotification";
 import UserName from "./UserName";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
+import CommentImageUpload from "./CommentImageUpload";
 
 /**
  * Mapping các role với icon tương ứng (hiện tại chưa sử dụng)
@@ -38,10 +39,13 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   // Comments data
   const [comments, setComments] = useState([]); // Danh sách comments đã organize
   const [newComment, setNewComment] = useState(""); // Nội dung comment mới
+  const [newCommentImages, setNewCommentImages] = useState([]); // Ảnh comment mới
+  const [showCommentForm, setShowCommentForm] = useState(true); // Hiển thị form nhập bình luận
   
   // Reply system
   const [replyingTo, setReplyingTo] = useState(null); // ID comment đang reply
   const [replyContent, setReplyContent] = useState(""); // Nội dung reply
+  const [replyImages, setReplyImages] = useState([]); // Ảnh reply
   const [expandedReplies, setExpandedReplies] = useState(new Set()); // Set các comment đã expand replies
   
   // UI states
@@ -52,6 +56,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   // Edit system
   const [editingComment, setEditingComment] = useState(null); // ID comment đang edit
   const [editContent, setEditContent] = useState(""); // Nội dung edit
+  const [editImages, setEditImages] = useState([]); // Ảnh edit
   const [showDropdown, setShowDropdown] = useState(null); // ID comment đang hiện dropdown
   
   // Emote system
@@ -105,13 +110,31 @@ export default function CommentSection({ postId, initialComments = [], user }) {
 
   const handleSubmitComment = async (e) => {
     e.preventDefault();
-    if (!newComment.trim() || !user) return;
+    if ((!newComment.trim() && newCommentImages.length === 0) || !user) return;
 
     setLoading(true);
     try {
+      let requestBody;
+      
+      if (newCommentImages.length > 0) {
+        // Có ảnh - sử dụng FormData
+        const formData = new FormData();
+        formData.append('content', newComment);
+        
+        // Add images to form data
+        newCommentImages.forEach((image, index) => {
+          formData.append('files', image.file);
+        });
+        
+        requestBody = formData;
+      } else {
+        // Không có ảnh - sử dụng JSON
+        requestBody = { content: newComment };
+      }
+
       const response = await api(`/api/comments/post/${postId}`, {
         method: "POST",
-        body: { content: newComment }
+        body: requestBody
       });
 
       // Add new comment to the top
@@ -120,50 +143,56 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         ...prev
       ]);
       setNewComment("");
+      // Reset ảnh và file input
+      newCommentImages.forEach(img => img.preview && URL.revokeObjectURL(img.preview));
+      setNewCommentImages([]);
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = "";
+      // Ẩn form nhập bình luận
+      setShowCommentForm(false);
     } catch (error) {
-      if (error.banInfo) {
-        setBanInfo(error.banInfo);
-        setShowBanNotification(true);
-      } else {
-        alert("Lỗi khi đăng bình luận: " + error.message);
-      }
+      alert("Lỗi khi đăng bình luận: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmitReply = async (e, parentId, mentionUser = null) => {
+  // ==================== Reply Comment ====================
+  const handleSubmitReply = async (e, parentId, parentAuthor) => {
     e.preventDefault();
-    if (!replyContent.trim() || !user) return;
+    if ((!replyContent.trim() && replyImages.length === 0) || !user) return;
 
     setLoading(true);
     try {
-      let content = replyContent;
+      let requestBody;
 
-      // Add mention if replying to someone
-      if (mentionUser && !content.startsWith(`@${mentionUser.name}`)) {
-        content = `@${mentionUser.name} ${content}`;
+      if (replyImages.length > 0) {
+        const formData = new FormData();
+        formData.append("content", replyContent);
+        formData.append("parentId", parentId);
+        replyImages.forEach((image) => {
+          formData.append("files", image.file);
+        });
+        requestBody = formData;
+      } else {
+        requestBody = { content: replyContent, parentId };
       }
 
-      const response = await api(`/api/comments/post/${postId}`, {
+      const res = await api(`/api/comments/post/${postId}`, {
         method: "POST",
-        body: { content, parentId }
+        body: requestBody,
       });
 
-      // Add reply to the specific comment
+      const newReply = { ...res.comment, replies: [] };
       setComments((prev) =>
-        prev.map((comment) =>
-          addReplyToComment(comment, parentId, {
-            ...response.comment,
-            replies: []
-          })
-        )
+        prev.map((c) => addReplyToComment(c, parentId, newReply))
       );
 
       setReplyContent("");
+      setReplyImages([]);
       setReplyingTo(null);
 
-      // Auto expand replies to show the new reply
+      // Auto expand replies để hiển thị luôn
       setExpandedReplies((prev) => new Set([...prev, parentId]));
     } catch (error) {
       alert("Lỗi khi trả lời: " + error.message);
@@ -175,20 +204,39 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   const handleEditComment = (comment) => {
     setEditingComment(comment._id);
     setEditContent(comment.content);
+    setEditImages([]); // Reset edit images
     setShowDropdown(null);
   };
 
   const handleUpdateComment = async (commentId) => {
-    if (!editContent.trim()) {
-      alert("Vui lòng nhập nội dung!");
+    if (!editContent.trim() && editImages.length === 0) {
+      alert("Vui lòng nhập nội dung hoặc đính kèm ảnh!");
       return;
     }
 
     setLoading(true);
     try {
+      let requestBody;
+      
+      if (editImages.length > 0) {
+        // Có ảnh - sử dụng FormData
+        const formData = new FormData();
+        formData.append('content', editContent);
+        
+        // Add images to form data
+        editImages.forEach((image, index) => {
+          formData.append('files', image.file);
+        });
+        
+        requestBody = formData;
+      } else {
+        // Không có ảnh - sử dụng JSON
+        requestBody = { content: editContent };
+      }
+
       const response = await api(`/api/comments/${commentId}`, {
         method: "PUT",
-        body: { content: editContent }
+        body: requestBody
       });
 
       // Update comment in state
@@ -200,6 +248,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
 
       setEditingComment(null);
       setEditContent("");
+      setEditImages([]);
     } catch (error) {
       alert("Lỗi khi cập nhật: " + error.message);
     } finally {
@@ -225,6 +274,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   const cancelEdit = () => {
     setEditingComment(null);
     setEditContent("");
+    setEditImages([]);
   };
 
   const addReplyToComment = (comment, parentId, newReply) => {
@@ -368,10 +418,36 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                     rows="2"
                     placeholder="Chỉnh sửa bình luận..."
                   />
+                  
+                  {/* Current Images Display */}
+                  {comment.images && comment.images.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-600 mb-1">Ảnh hiện tại:</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {comment.images.map((image, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={image.url}
+                              alt={image.alt || `Ảnh ${index + 1}`}
+                              className="w-full h-16 sm:h-20 object-cover rounded border border-gray-200"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Image Upload for Edit */}
+                  <CommentImageUpload
+                    onImagesChange={setEditImages}
+                    maxImages={5}
+                    className="mt-2"
+                  />
+                  
                   <div className="flex gap-1 sm:gap-2 mt-2">
                     <button
                       onClick={() => handleUpdateComment(comment._id)}
-                      disabled={loading}
+                      disabled={(!editContent.trim() && editImages.length === 0) || loading}
                       className="px-2 sm:px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50 touch-target"
                     >
                       Lưu
@@ -387,6 +463,22 @@ export default function CommentSection({ postId, initialComments = [], user }) {
               ) : (
                 <div className="text-gray-800 text-xs sm:text-sm comment-content whitespace-pre-wrap">
                   {comment.content}
+                  
+                  {/* Display Images */}
+                  {comment.images && comment.images.length > 0 && (
+                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {comment.images.map((image, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={image.url}
+                            alt={image.alt || `Ảnh ${index + 1}`}
+                            className="w-full h-20 sm:h-24 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => window.open(image.url, '_blank')}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -577,10 +669,18 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                       rows={2}
                       autoFocus
                     />
+                    
+                    {/* Image Upload for Reply */}
+                    <CommentImageUpload
+                      onImagesChange={setReplyImages}
+                      maxImages={3}
+                      className="mt-2"
+                    />
+                    
                     <div className="flex gap-1 sm:gap-2 mt-2">
                       <button
                         type="submit"
-                        disabled={!replyContent.trim() || loading}
+                        disabled={(!replyContent.trim() && replyImages.length === 0) || loading}
                         className="px-3 sm:px-4 py-1 text-xs sm:text-sm bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 touch-target"
                       >
                         {loading ? "Đang gửi..." : "Phản hồi"}
@@ -590,6 +690,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                         onClick={() => {
                           setReplyingTo(null);
                           setReplyContent("");
+                          setReplyImages([]);
                         }}
                         className="px-3 sm:px-4 py-1 text-xs sm:text-sm text-gray-600 hover:text-gray-800 touch-target"
                       >
@@ -639,24 +740,33 @@ export default function CommentSection({ postId, initialComments = [], user }) {
             alt={user?.name}
             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
           />
-          <div className="flex-1 min-w-0">
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Viết bình luận..."
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-              rows={3}
-            />
-            <div className="flex justify-end gap-2 mt-2">
-              <button
-                type="submit"
-                disabled={!newComment.trim() || loading}
-                className="px-4 sm:px-6 py-1.5 sm:py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 text-xs sm:text-sm touch-target"
-              >
-                {loading ? "Đang đăng..." : "Bình luận"}
-              </button>
+            <div className="flex-1 min-w-0">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Viết bình luận..."
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                rows={3}
+              />
+              
+              {/* Image Upload */}
+              <CommentImageUpload
+                key={`comment-upload-${newCommentImages.length}`}
+                onImagesChange={setNewCommentImages}
+                maxImages={5}
+                className="mt-2"
+              />
+              
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  type="submit"
+                  disabled={(!newComment.trim() && newCommentImages.length === 0) || loading}
+                  className="px-4 sm:px-6 py-1.5 sm:py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 text-xs sm:text-sm touch-target"
+                >
+                  {loading ? "Đang đăng..." : "Bình luận"}
+                </button>
+              </div>
             </div>
-          </div>
         </div>
       </form>
 
