@@ -267,12 +267,16 @@ export default function Home({ user }) {
   // ==================== RENDER ====================
   return (
     <div className="min-h-screen bg-gray-50 pt-16 sm:pt-20">
+      {/* Accessible, SEO-friendly heading without affecting layout */}
+      <h1 className="sr-only">Shiku - Mạng xã hội hiện đại kết nối bạn bè</h1>
+      <p className="sr-only">Shiku là nơi bạn có thể chia sẻ khoảnh khắc, kết nối bạn bè, tham gia nhóm và sự kiện.</p>
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-gray-900">Bảng tin</h1>
+              <h2 className="text-xl font-bold text-gray-900">Bảng tin</h2>
               {items.length > 0 && (
                 <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                   {items.length} bài viết

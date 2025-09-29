@@ -41,6 +41,21 @@
     
     <!-- Canonical URL -->
     <link rel="canonical" href="https://shiku.click" />
+
+    <!-- Structured Data: WebSite with SearchAction -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Shiku",
+  "url": "https://shiku.click",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://shiku.click/search?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+    </script>
   </head>
   <body>
     <div id="root"></div>
