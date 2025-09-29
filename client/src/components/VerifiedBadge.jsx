@@ -46,7 +46,6 @@ export default function VerifiedBadge({ role, isVerified }) {
         alt="Verified" 
         className="w-4 h-4 rounded-full align-middle" 
       />
-      
       {/* Tooltip hiển thị khi hover */}
       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1
                       hidden group-hover:block bg-black text-white text-xs

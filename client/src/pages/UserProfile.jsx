@@ -342,9 +342,6 @@ export default function UserProfile() {
                         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                           <UserName user={user} />
                         </h1>
-                        {user.role && user.role !== "admin" && roleIcons[user.role] && (
-                          <img src={roleIcons[user.role]} alt={user.role} className="w-6 h-6" />
-                        )}
                       </div>
 
                       {/* Contact Info */}
@@ -412,11 +409,13 @@ export default function UserProfile() {
                         })()}
                       </div>
 
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          Tham gia {new Date(user.createdAt).toLocaleDateString("vi-VN")}
-                        </span>
+              <div className="flex items-center gap-4 text-sm text-gray-500">
+                {user.showJoinDate === false ? null : (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    Tham gia {new Date(user.createdAt).toLocaleDateString("vi-VN")}
+                  </span>
+                )}
                         {user.isOnline && (
                           <span className="flex items-center gap-1 text-green-600">
                             <div className="w-2 h-2 bg-green-500 rounded-full" />
@@ -442,7 +441,7 @@ export default function UserProfile() {
           <div className="border-b border-gray-200">
             <nav className="flex space-x-1 md:space-x-8 px-2 md:px-6 overflow-x-auto">
               {[
-                { id: "posts", label: "Bài đăng", icon: FileText, count: posts.length },
+                ...(user.showPosts === false ? [] : [{ id: "posts", label: "Bài đăng", icon: FileText, count: posts.length }]),
                 { id: "friends", label: "Bạn bè", icon: Users, count: user.friends?.length || 0 },
               ].map(({ id, label, icon: Icon, count }) => (
                 <button
@@ -470,7 +469,9 @@ export default function UserProfile() {
           <div className="min-h-[500px] p-4 md:p-6">
             {activeTab === "posts" && (
               <div>
-                {postsLoading ? (
+                {user.showPosts === false ? (
+                  <div className="text-center py-16 text-gray-500">Bài đăng đã được đặt ở chế độ riêng tư</div>
+                ) : postsLoading ? (
                   <div>Đang tải bài đăng...</div>
                 ) : postsError ? (
                   <div className="text-red-600">{postsError}</div>

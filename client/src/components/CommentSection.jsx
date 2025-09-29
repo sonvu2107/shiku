@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
 import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp, Smile, Frown, Laugh, Angry, Image, X } from "lucide-react";
+import MediaViewer from "./MediaViewer";
 import BanNotification from "./BanNotification";
 import UserName from "./UserName";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
@@ -52,6 +53,9 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   const [loading, setLoading] = useState(false); // Loading state
   const [showBanNotification, setShowBanNotification] = useState(false); // Hiện ban notification
   const [banInfo, setBanInfo] = useState(null); // Thông tin ban
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxGallery, setLightboxGallery] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   
   // Edit system
   const [editingComment, setEditingComment] = useState(null); // ID comment đang edit
@@ -277,6 +281,18 @@ export default function CommentSection({ postId, initialComments = [], user }) {
     setEditImages([]);
   };
 
+  const openLightbox = (images, startIndex = 0) => {
+    const gallery = images.map((img, idx) => ({
+      url: img.url || img.preview,
+      title: img.alt || `Ảnh ${idx + 1}`,
+      type: 'image'
+    })).filter(item => !!item.url);
+    if (gallery.length === 0) return;
+    setLightboxGallery(gallery);
+    setLightboxIndex(Math.min(Math.max(startIndex, 0), gallery.length - 1));
+    setLightboxOpen(true);
+  };
+
   const addReplyToComment = (comment, parentId, newReply) => {
     if (comment._id === parentId) {
       return { ...comment, replies: [...comment.replies, newReply] };
@@ -469,12 +485,14 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                     <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {comment.images.map((image, index) => (
                         <div key={index} className="relative group">
-                          <img
-                            src={image.url}
-                            alt={image.alt || `Ảnh ${index + 1}`}
-                            className="w-full h-20 sm:h-24 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => window.open(image.url, '_blank')}
-                          />
+                          <div className="w-full rounded-lg border border-gray-200 overflow-hidden bg-gray-50 aspect-[4/3] cursor-pointer">
+                            <img
+                              src={image.url}
+                              alt={image.alt || `Ảnh ${index + 1}`}
+                              className="w-full h-full object-contain hover:opacity-90 transition-opacity"
+                              onClick={() => openLightbox(comment.images, index)}
+                            />
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -780,6 +798,16 @@ export default function CommentSection({ postId, initialComments = [], user }) {
           </div>
         )}
       </div>
+
+      {lightboxOpen && (
+        <MediaViewer
+          media={lightboxGallery[lightboxIndex]}
+          onClose={() => setLightboxOpen(false)}
+          gallery={lightboxGallery}
+          index={lightboxIndex}
+          onNavigate={(idx) => setLightboxIndex(idx)}
+        />
+      )}
 
       {/* Ban Notification */}
       {showBanNotification && (

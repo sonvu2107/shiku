@@ -49,6 +49,9 @@ export default function Navbar({ user, setUser }) {
   const [searchResults, setSearchResults] = useState([]); // Kết quả search users
   const [searchLoading, setSearchLoading] = useState(false); // Loading state
   const [searchPosts, setSearchPosts] = useState([]); // Kết quả search posts
+  const [searchFocused, setSearchFocused] = useState(false); // Focus input desktop
+  const [historyEditing, setHistoryEditing] = useState(false); // Chỉnh sửa lịch sử
+  const [searchHistory, setSearchHistory] = useState([]); // Lịch sử tìm kiếm
 
   // UI states
   const [pendingRequests, setPendingRequests] = useState(0); // Số lời mời kết bạn
@@ -64,6 +67,53 @@ export default function Navbar({ user, setUser }) {
       loadPendingRequests();
     }
   }, [user]);
+
+  // Load search history từ localStorage và server (nếu có) + đồng bộ đa tab
+  useEffect(() => {
+    let localItems = [];
+    try {
+      const raw = localStorage.getItem('searchHistory');
+      const parsed = JSON.parse(raw || '[]');
+      localItems = Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      localItems = [];
+    }
+    setSearchHistory(localItems);
+
+    (async () => {
+      try {
+        const res = await api('/api/search/history');
+        const serverItems = Array.isArray(res.items) ? res.items : [];
+        if (serverItems.length > 0) {
+          // Merge server + local theo query (ưu tiên server)
+          const map = new Map();
+          for (const it of localItems) {
+            if (it && it.query) map.set(it.query.toLowerCase(), it);
+          }
+          for (const it of serverItems) {
+            if (it && it.query) map.set(it.query.toLowerCase(), it);
+          }
+          const merged = Array.from(map.values()).sort((a, b) => (b.count || 0) - (a.count || 0) || (b.lastSearchedAt || 0) - (a.lastSearchedAt || 0));
+          setSearchHistory(merged);
+          try { localStorage.setItem('searchHistory', JSON.stringify(merged)); } catch (_) {}
+        }
+      } catch (_) {
+        // ignore if API not available or unauthorized
+      }
+    })();
+
+    // Sync giữa các tab
+    const onStorage = (e) => {
+      if (e.key === 'searchHistory') {
+        try {
+          const next = JSON.parse(e.newValue || '[]');
+          if (Array.isArray(next)) setSearchHistory(next);
+        } catch (_) {}
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   /**
    * Lấy số lượng friend requests đang chờ phê duyệt
@@ -107,8 +157,8 @@ export default function Navbar({ user, setUser }) {
       // Fallback về file đầu tiên (bất kể loại)
       return post.files[0];
     }
-    // Fallback cuối cùng
-    return { url: '/default-avatar.png', type: 'image' };
+    // Fallback cuối cùng: dùng logo/mark sẵn có để tránh ảnh bị vỡ
+    return { url: '/assets/posts.png', type: 'image' };
   }
 
   /**
@@ -140,9 +190,67 @@ export default function Navbar({ user, setUser }) {
           src={media.url}
           alt={post.title}
           className={className}
+          onError={(e) => {
+            // Fallback khi ảnh lỗi hoặc bài viết không có ảnh
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = '/assets/shiku-mark.svg';
+          }}
         />
       );
     }
+  }
+
+  function saveHistoryLocal(next) {
+    setSearchHistory(next);
+    try { localStorage.setItem('searchHistory', JSON.stringify(next)); } catch (_) {}
+    // Notify other tabs immediately
+    try {
+      localStorage.setItem('searchHistory__lastUpdate', String(Date.now()));
+      localStorage.removeItem('searchHistory__lastUpdate');
+    } catch (_) {}
+  }
+
+  async function syncHistory(action, payload) {
+    try {
+      if (action === 'add') {
+        await api('/api/search/history', { method: 'POST', body: payload });
+      } else if (action === 'delete') {
+        await api(`/api/search/history/${payload.id}`, { method: 'DELETE' });
+      } else if (action === 'clear') {
+        await api('/api/search/history', { method: 'DELETE' });
+      }
+    } catch (_) {
+      // optional sync
+    }
+  }
+
+  function addToSearchHistory(query) {
+    const trimmed = (query || '').trim();
+    if (!trimmed) return;
+    const now = Date.now();
+    const existing = searchHistory.find(h => h.query.toLowerCase() === trimmed.toLowerCase());
+    let next;
+    if (existing) {
+      next = searchHistory
+        .map(h => h.query.toLowerCase() === trimmed.toLowerCase() ? { ...h, count: (h.count || 0) + 1, lastSearchedAt: now } : h)
+        .sort((a, b) => (b.count || 0) - (a.count || 0) || (b.lastSearchedAt || 0) - (a.lastSearchedAt || 0));
+    } else {
+      const item = { id: Math.random().toString(36).slice(2), query: trimmed, count: 1, lastSearchedAt: now };
+      next = [item, ...searchHistory].slice(0, 20);
+      syncHistory('add', item);
+    }
+    saveHistoryLocal(next);
+  }
+
+  function deleteHistoryItem(id) {
+    const next = searchHistory.filter(h => h.id !== id);
+    saveHistoryLocal(next);
+    syncHistory('delete', { id });
+  }
+
+  function clearHistory() {
+    saveHistoryLocal([]);
+    syncHistory('clear');
   }
 
   // ==================== HANDLERS ====================
@@ -165,6 +273,9 @@ export default function Navbar({ user, setUser }) {
         // Tìm bài viết
         const postRes = await api(`/api/posts?q=${encodeURIComponent(trimmedQuery)}`);
         setSearchPosts(postRes.items || []);
+
+        // Lưu lịch sử
+        addToSearchHistory(trimmedQuery);
       } catch (err) {
         setSearchResults([]);
         setSearchPosts([]);
@@ -223,11 +334,44 @@ export default function Navbar({ user, setUser }) {
                 maxLength={100}
                 className="pl-10 pr-4 py-2 w-56 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200"
                 autoComplete="off"
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
               />
               {/* Dropdown kết quả tìm kiếm */}
-              {searchQuery.trim() && (
-                (searchResults.length > 0 || searchPosts.length > 0) && (
+              {(searchFocused || searchQuery.trim()) && (
+                (searchResults.length > 0 || searchPosts.length > 0 || searchHistory.length > 0) && (
                   <div className="absolute left-0 top-full mt-2 w-80 sm:w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto dropdown-mobile">
+                    {/* Lịch sử tìm kiếm / Gợi ý */}
+                    {(!searchQuery.trim() || (searchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0)) && searchHistory.length > 0 && (
+                      <>
+                        <div className="flex items-center justify-between px-4 py-2 text-xs text-gray-500">
+                          <span>Gần đây</span>
+                          <button type="button" onClick={() => setHistoryEditing(!historyEditing)} className="text-blue-600 hover:underline">{historyEditing ? 'Xong' : 'Chỉnh sửa'}</button>
+                        </div>
+                        {searchHistory
+                          .filter(h => !searchQuery.trim() || h.query.toLowerCase().includes(searchQuery.toLowerCase()))
+                          .slice(0, 10)
+                          .map(item => (
+                          <div key={item.id} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer group"
+                               onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}>
+                            <div className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">•</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 truncate">{item.query}</div>
+                              <div className="text-[11px] text-gray-500">{new Date(item.lastSearchedAt).toLocaleDateString('vi-VN')}</div>
+                            </div>
+                            {historyEditing && (
+                              <button type="button" onMouseDown={(e) => { e.stopPropagation(); deleteHistoryItem(item.id); }} className="text-gray-400 hover:text-red-600">✕</button>
+                            )}
+                          </div>
+                        ))}
+                        {historyEditing && (
+                          <div className="px-4 py-2">
+                            <button type="button" onMouseDown={(e) => { e.stopPropagation(); clearHistory(); }} className="text-red-600 text-xs hover:underline">Xóa tất cả lịch sử</button>
+                          </div>
+                        )}
+                        <div className="h-px bg-gray-100" />
+                      </>
+                    )}
                     {/* Kết quả user */}
                     {searchResults.length > 0 && (
                       <>
@@ -387,7 +531,7 @@ export default function Navbar({ user, setUser }) {
                   });
                 }} />
                 <NotificationBell user={user} />
-                <div className="relative">
+                <div className="relative" onKeyDown={(e)=>{ if(e.key==='Escape') setShowProfileMenu(false); }}>
                   <button
                     className="flex items-center gap-2 focus:outline-none"
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -399,7 +543,10 @@ export default function Navbar({ user, setUser }) {
                     />
                   </button>
                   {showProfileMenu && (
-                    <div className="absolute right-0 mt-2 w-64 sm:w-72 bg-white rounded-xl shadow-xl border border-gray-200 z-50 py-3 dropdown-mobile">
+                    <div className="absolute right-0 mt-2 w-64 sm:w-72 bg-white rounded-xl shadow-xl border border-gray-200 z-50 py-3 dropdown-mobile" 
+                         onMouseLeave={()=>{ /* optional */ }}>
+                      {/* Click outside closer */}
+                      <div className="fixed inset-0 -z-10" onClick={()=>setShowProfileMenu(false)} />
                       <div className="px-5 pb-3 border-b">
                         <div className="flex items-center gap-3">
                           <img
@@ -478,9 +625,41 @@ export default function Navbar({ user, setUser }) {
                 autoFocus
               />
               {/* Mobile search results dropdown */}
-              {searchQuery.trim() && (
-                (searchResults.length > 0 || searchPosts.length > 0) && (
+              {(searchQuery.trim() || searchHistory.length > 0) && (
+                (searchResults.length > 0 || searchPosts.length > 0 || searchHistory.length > 0) && (
                   <div className="absolute left-0 top-full mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto mobile-search-dropdown">
+                    {/* Lịch sử tìm kiếm / Gợi ý */}
+                    {(!searchQuery.trim() || (searchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0)) && searchHistory.length > 0 && (
+                      <>
+                        <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500 bg-gray-50 font-medium">
+                          <span>Mới đây</span>
+                          <button type="button" onClick={() => setHistoryEditing(!historyEditing)} className="text-blue-600">{historyEditing ? 'Xong' : 'Chỉnh sửa'}</button>
+                        </div>
+                        {searchHistory
+                          .filter(h => !searchQuery.trim() || h.query.toLowerCase().includes(searchQuery.toLowerCase()))
+                          .slice(0, 10)
+                          .map(item => (
+                            <div key={item.id}
+                                 className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:bg-gray-100 cursor-pointer touch-target border-b border-gray-100 last:border-b-0"
+                                 onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}>
+                              <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">•</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-900 text-sm truncate">{item.query}</div>
+                                <div className="text-[11px] text-gray-500 truncate">{new Date(item.lastSearchedAt).toLocaleDateString('vi-VN')}</div>
+                              </div>
+                              {historyEditing && (
+                                <button type="button" onMouseDown={(e) => { e.stopPropagation(); deleteHistoryItem(item.id); }} className="text-gray-400 hover:text-red-600">✕</button>
+                              )}
+                            </div>
+                        ))}
+                        {historyEditing && (
+                          <div className="px-3 py-2">
+                            <button type="button" onMouseDown={(e) => { e.stopPropagation(); clearHistory(); }} className="text-red-600 text-xs">Xóa tất cả</button>
+                          </div>
+                        )}
+                        <div className="h-px bg-gray-100" />
+                      </>
+                    )}
                     {/* Kết quả user */}
                     {searchResults.length > 0 && (
                       <>

@@ -818,7 +818,7 @@ export default function Profile() {
           <div className="border-b border-gray-200">
             <nav className="flex space-x-1 md:space-x-8 px-2 md:px-6 overflow-x-auto scrollbar-hide">
               {[
-                { id: "posts", label: "Bài đăng", icon: CustomIcons.FileText, count: posts.length },
+                ...(user.showPosts === false ? [] : [{ id: "posts", label: "Bài đăng", icon: CustomIcons.FileText, count: posts.length }]),
                 { id: "friends", label: "Bạn bè", icon: CustomIcons.Users, count: friends.length }
               ].map(({ id, label, icon: Icon, count }) => (
                 <button
@@ -847,12 +847,16 @@ export default function Profile() {
             {activeTab === 'posts' && (
               <div>
                 {/* Post Creator */}
-                <div className="mb-6">
-                  <PostCreator user={user} />
-                </div>
+                {user.showPosts === false ? null : (
+                  <div className="mb-6">
+                    <PostCreator user={user} />
+                  </div>
+                )}
 
                 {/* Posts List */}
-                {postsLoading ? (
+                {user.showPosts === false ? (
+                  <div className="text-center py-16 text-gray-500">Bài đăng của bạn đang ở chế độ riêng tư</div>
+                ) : postsLoading ? (
                   <div className="space-y-4">
                     {[1, 2, 3].map(i => (
                       <div key={i} className="bg-gray-50 rounded-lg p-4">

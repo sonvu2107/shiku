@@ -196,6 +196,15 @@ router.post('/block/:id', authRequired, async (req, res) => {
       $pull: { friends: req.user._id }
     });
     
+    // Xóa mọi friend request giữa hai bên để tránh kẹt trạng thái
+    const FriendRequest = (await import('../models/FriendRequest.js')).default;
+    await FriendRequest.deleteMany({
+      $or: [
+        { from: req.user._id, to: targetId },
+        { from: targetId, to: req.user._id }
+      ]
+    });
+    
     console.log('Block user result:', {
       userId: req.user._id,
       targetId,

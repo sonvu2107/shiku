@@ -249,15 +249,36 @@ router.get('/:id', authOptional, async (req, res) => {
     }
 
     if (!canView) {
-      return res.status(403).json({
-        success: false,
-        message: 'Bạn không có quyền xem nhóm này'
+      // Cho phép hiển thị thông tin tối thiểu để người dùng có thể gửi yêu cầu tham gia
+      const hasPendingJoinRequest = req.user ? group.joinRequests.some(r => r.user.toString() === req.user._id.toString() && r.status === 'pending') : false;
+      return res.json({
+        success: true,
+        data: {
+          _id: group._id,
+          name: group.name,
+          avatar: group.avatar,
+          coverImage: group.coverImage,
+          owner: { _id: group.owner._id, name: group.owner.name, avatarUrl: group.owner.avatarUrl },
+          settings: {
+            type: group.settings.type,
+            joinApproval: group.settings.joinApproval
+          },
+          stats: {
+            memberCount: group.members?.length || 0,
+            postCount: 0
+          },
+          userRole: null,
+          hasPendingJoinRequest
+        }
       });
     }
 
-    // Ẩn thông tin nhạy cảm nếu không phải admin
-    const isAdmin = userId && (isOwner || group.isAdmin(userId));
-    if (!isAdmin) {
+    // Tính cờ pending trước khi có thể ẩn joinRequests
+    const hasPendingJoinRequest = req.user ? group.joinRequests?.some(r => r.user.toString() === req.user._id.toString() && r.status === 'pending') : false;
+
+    // Ẩn thông tin nhạy cảm nếu không phải admin/mod
+    const canManage = userId && group.canManage(userId);
+    if (!canManage) {
       group.joinRequests = [];
       group.bannedUsers = [];
     }
@@ -285,7 +306,7 @@ router.get('/:id', authOptional, async (req, res) => {
 
     res.json({
       success: true,
-      data: groupObj
+      data: { ...groupObj, hasPendingJoinRequest }
     });
   } catch (error) {
     console.error('Error fetching group:', error);
@@ -552,17 +573,19 @@ router.post('/:id/join', authRequired, async (req, res) => {
       
       res.json({
         success: true,
-        message: 'Tham gia nhóm thành công'
+        message: 'Tham gia nhóm thành công',
+        joined: true,
+        pending: false
       });
     } else {
-      // Cần yêu cầu tham gia
+      // Cần yêu cầu tham gia: idempotent - nếu đã có pending thì trả về success
+      const alreadyPending = group.joinRequests?.some(r => r.user.toString() === userId.toString() && r.status === 'pending');
+      if (alreadyPending) {
+        return res.json({ success: true, message: 'Yêu cầu tham gia đang chờ duyệt', alreadyPending: true, pending: true, joined: false });
+      }
       const { message = '' } = req.body;
       await group.addJoinRequest(userId, message);
-      
-      res.json({
-        success: true,
-        message: 'Đã gửi yêu cầu tham gia nhóm'
-      });
+      return res.json({ success: true, message: 'Đã gửi yêu cầu tham gia nhóm', pending: true, joined: false });
     }
   } catch (error) {
     console.error('Error joining group:', error);
@@ -570,6 +593,29 @@ router.post('/:id/join', authRequired, async (req, res) => {
       success: false,
       message: 'Lỗi khi tham gia nhóm'
     });
+  }
+});
+
+/**
+ * @route   POST /api/groups/:id/join-requests/cancel
+ * @desc    Hủy yêu cầu tham gia của chính mình
+ * @access  Private
+ */
+router.post('/:id/join-requests/cancel', authRequired, async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy nhóm' });
+    }
+    const userId = req.user._id.toString();
+    const before = group.joinRequests.length;
+    group.joinRequests = group.joinRequests.filter(r => !(r.user.toString() === userId && r.status === 'pending'));
+    const after = group.joinRequests.length;
+    await group.save();
+    return res.json({ success: true, removed: before - after });
+  } catch (error) {
+    console.error('Error cancel join request:', error);
+    res.status(500).json({ success: false, message: 'Lỗi khi hủy yêu cầu tham gia' });
   }
 });
 
@@ -647,10 +693,9 @@ router.get('/:id/join-requests', authRequired, async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      data: group.joinRequests
-    });
+    // Chỉ trả về pending để tránh rác
+    const pending = (group.joinRequests || []).filter(r => r.status === 'pending');
+    res.json({ success: true, data: pending });
   } catch (error) {
     console.error('Error fetching join requests:', error);
     res.status(500).json({

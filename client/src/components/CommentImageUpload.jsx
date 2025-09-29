@@ -108,11 +108,13 @@ export default function CommentImageUpload({ onImagesChange, maxImages = 5, clas
         <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
           {selectedImages.map((image) => (
             <div key={image.id} className="relative group">
-              <img
-                src={image.preview}
-                alt="Preview"
-                className="w-full h-20 sm:h-24 object-cover rounded-lg border border-gray-200"
-              />
+              <div className="w-full rounded-lg border border-gray-200 overflow-hidden bg-gray-50 aspect-[4/3]">
+                <img
+                  src={image.preview}
+                  alt="Preview"
+                  className="w-full h-full object-contain"
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => removeImage(image.id)}

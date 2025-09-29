@@ -59,6 +59,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
     showEmail: false,
     showPhone: false,
     showBirthday: true,
+    showJoinDate: true,
     showLocation: true,
     showWebsite: true,
     showHobbies: true,
@@ -92,6 +93,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
         showEmail: user.showEmail || false,
         showPhone: user.showPhone || false,
         showBirthday: user.showBirthday !== false,
+        showJoinDate: user.showJoinDate !== false,
         showLocation: user.showLocation !== false,
         showWebsite: user.showWebsite !== false,
         showHobbies: user.showHobbies !== false,
@@ -539,6 +541,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                 <h3 className="font-medium text-gray-900">Thông tin cá nhân</h3>
                 {[
                   { key: "showBirthday", label: "Ngày sinh", icon: Calendar },
+                  { key: "showJoinDate", label: "Ngày tham gia", icon: Calendar },
                   { key: "showLocation", label: "Địa chỉ", icon: MapPin },
                   { key: "showWebsite", label: "Website", icon: Globe },
                   { key: "showHobbies", label: "Sở thích", icon: Heart }

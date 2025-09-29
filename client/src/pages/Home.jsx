@@ -101,7 +101,7 @@ export default function Home({ user }) {
     loadingRef.current = true;
     
     try {
-      const limit = 100; // Tăng từ 50 lên 100 bài viết
+      const limit = 100; // Giới hạn bài viết 
       const publishedData = await api(`/api/posts?page=1&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
       let allItems = publishedData.items;
 

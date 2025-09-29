@@ -607,7 +607,7 @@ export default function AdminDashboard() {
                             disabled={u._id === user._id}
                           >
                             <span className="hidden sm:inline">Xóa</span>
-                            <span className="sm:hidden">🗑️</span>
+                            <span className="sm:hidden">Xóa</span>
                           </button>
                         </div>
                       </td>

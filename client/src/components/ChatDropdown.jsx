@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { api } from "../api";
 
@@ -18,11 +18,31 @@ export default function ChatDropdown({ onOpenChat }) {
   
   // Data states
   const [conversations, setConversations] = useState([]); // Danh sách conversations
+  const wrapperRef = useRef(null);
 
   useEffect(() => {
     if (open) {
       loadConversations();
     }
+  }, [open]);
+
+  // Close on outside click & on Escape
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [open]);
 
   async function loadConversations() {
@@ -65,7 +85,7 @@ export default function ChatDropdown({ onOpenChat }) {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={wrapperRef}>
       <button
         className="p-2 rounded-full hover:bg-gray-100 transition-colors"
         onClick={() => setOpen(!open)}

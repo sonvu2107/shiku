@@ -48,17 +48,21 @@ const GroupDetail = () => {
   const [hasMorePosts, setHasMorePosts] = useState(true);
 
   // State cho UI
-  const [activeTab, setActiveTab] = useState('posts'); // posts, members, settings
+  const [activeTab, setActiveTab] = useState('posts'); // posts, members, pending, settings
   const [showMemberMenu, setShowMemberMenu] = useState(null);
   const [isJoining, setIsJoining] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [showPostCreator, setShowPostCreator] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsData, setSettingsData] = useState({});
-  const [groupStats, setGroupStats] = useState({ memberCount: 0, postCount: 0 });
+  const [groupStats, setGroupStats] = useState({ memberCount: 0, postCount: 0, pendingCount: 0 });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [hasLoadedWithUser, setHasLoadedWithUser] = useState(false); // Flag để tránh reload nhiều lần
+  const [isPendingJoin, setIsPendingJoin] = useState(false);
+  const pendingKey = `groupJoinPending:${id}`;
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
 
   // Load group details
   const loadGroup = async () => {
@@ -72,6 +76,13 @@ const GroupDetail = () => {
       if (response.success) {
         // Success - group loaded with correct userRole
         setGroup(response.data);
+        const locallyPending = (() => { try { return localStorage.getItem(pendingKey) === '1'; } catch { return false; } })();
+        // Pending if server says so OR we have a local pending flag
+        setIsPendingJoin(!!response.data.hasPendingJoinRequest || locallyPending);
+        // If now a member, clear local flag
+        if (response.data.userRole) {
+          try { localStorage.removeItem(pendingKey); } catch {}
+        }
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Không thể tải thông tin nhóm');
@@ -115,11 +126,22 @@ const GroupDetail = () => {
       const response = await api(`/api/groups/${id}/join`, { method: 'POST' });
       
       if (response.success) {
-        // Reload group data
-        loadGroup();
+        if (response.joined) {
+          await loadGroup();
+          return;
+        }
+        if (response.pending || group?.settings?.joinApproval !== 'anyone') {
+          setIsPendingJoin(true);
+          setActiveTab('posts');
+          try { localStorage.setItem(pendingKey, '1'); } catch {}
+          await loadGroup();
+          return;
+        }
+        await loadGroup();
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Không thể tham gia nhóm');
+      // Với nhóm cần duyệt, server trả success, lỗi khác hiển thị như cũ
+      alert(error.message || 'Không thể tham gia nhóm');
     } finally {
       setIsJoining(false);
     }
@@ -127,14 +149,16 @@ const GroupDetail = () => {
 
   // Leave group
   const handleLeave = async () => {
+    if (!confirm('Bạn có chắc muốn rời khỏi nhóm này?')) return;
     try {
       setIsLeaving(true);
       
       const response = await api(`/api/groups/${id}/leave`, { method: 'POST' });
       
       if (response.success) {
-        // Navigate back to groups list
-        navigate('/groups');
+        // Ở lại trang nhóm và cập nhật UI để có thể tham gia lại
+        await loadGroup();
+        setActiveTab('posts');
       }
     } catch (error) {
       alert(error.response?.data?.message || 'Không thể rời khỏi nhóm');
@@ -176,7 +200,8 @@ const GroupDetail = () => {
       // Update group stats
       setGroupStats({
         memberCount: group.stats?.memberCount || group.members?.length || 0,
-        postCount: posts.length // Use current posts count
+        postCount: posts.length,
+        pendingCount: Array.isArray(group.joinRequests) ? group.joinRequests.filter(r => r.status === 'pending').length : 0
       });
     }
   }, [group, posts]);
@@ -416,7 +441,28 @@ const GroupDetail = () => {
   // Reset flag when changing groups
   useEffect(() => {
     setHasLoadedWithUser(false);
+    setPendingRequests([]);
   }, [id]);
+
+  // Fetch pending join requests for admins/moderators when opening Pending tab
+  useEffect(() => {
+    const fetchPending = async () => {
+      if (!hasPermission('approve_join_request')) return;
+      try {
+        setPendingLoading(true);
+        const res = await api(`/api/groups/${id}/join-requests?t=${Date.now()}`, { method: 'GET' });
+        if (res.success) {
+          const list = Array.isArray(res.data) ? res.data : [];
+          setPendingRequests(list.filter(r => r.status === 'pending'));
+        }
+      } catch (e) {
+        setPendingRequests([]);
+      } finally {
+        setPendingLoading(false);
+      }
+    };
+    if (activeTab === 'pending') fetchPending();
+  }, [activeTab, id, group?.userRole]);
 
   // Close member menu when clicking outside
   useEffect(() => {
@@ -459,18 +505,24 @@ const GroupDetail = () => {
     }
   };
 
-  // Check if user can post
+  // Check if user can post based on group settings
   const canPost = () => {
-    if (!group || !group.userRole) return false;
-    
-    const permissions = group.getUserPermissions?.(group.userRole) || {};
-    return permissions.canPost !== false;
+    if (!group) return false;
+    const role = group.userRole;
+    const setting = group.settings?.postPermissions || 'all_members';
+    if (role === 'owner' || role === 'admin') return true;
+    if (setting === 'admins_only') return false;
+    if (setting === 'moderators_and_admins') return role === 'moderator';
+    // 'all_members'
+    return !!role; // must be a member
   };
 
   // Check if user is admin (chỉ admin thật và owner)
   const isAdmin = () => {
     return group?.userRole === 'owner' || group?.userRole === 'admin';
   };
+
+  const isOwnerRole = () => group?.userRole === 'owner';
 
   // Check if user is moderator
   const isModerator = () => {
@@ -496,6 +548,7 @@ const GroupDetail = () => {
       case 'remove_member':
       case 'ban_member':
       case 'promote_to_moderator':
+      case 'approve_join_request':
         return role === 'owner' || role === 'admin' || role === 'moderator';
       
       default:
@@ -544,11 +597,12 @@ const GroupDetail = () => {
   }
 
   const groupTypeInfo = getGroupTypeInfo();
+  const requiresApproval = group?.settings?.joinApproval && group.settings.joinApproval !== 'anyone';
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white shadow-sm border-b sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
@@ -559,8 +613,8 @@ const GroupDetail = () => {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">{group.name}</h1>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <h1 className="text-lg sm:text-xl font-semibold text-gray-900 line-clamp-1 max-w-[70vw] sm:max-w-none">{group.name}</h1>
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <span className={groupTypeInfo.color}>
                     {groupTypeInfo.icon} {groupTypeInfo.text}
                   </span>
@@ -570,7 +624,7 @@ const GroupDetail = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               {group.userRole ? (
                 <>
                   {hasPermission('change_settings') && (
@@ -591,13 +645,22 @@ const GroupDetail = () => {
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={handleJoin}
-                  disabled={isJoining}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {isJoining ? 'Đang tham gia...' : 'Tham gia'}
-                </button>
+                requiresApproval && isPendingJoin ? (
+                  <button
+                    onClick={() => setActiveTab('posts')}
+                    className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg border border-yellow-300"
+                  >
+                    Đang chờ duyệt...
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleJoin}
+                    disabled={isJoining}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {isJoining ? 'Đang gửi yêu cầu...' : (requiresApproval ? 'Yêu cầu tham gia' : 'Tham gia')}
+                  </button>
+                )
               )}
             </div>
           </div>
@@ -733,17 +796,18 @@ const GroupDetail = () => {
 
             {/* Tabs */}
             <div className="bg-white rounded-lg shadow-sm">
-              <div className="border-b border-gray-200">
-                <nav className="flex space-x-8 px-6">
+              <div className="border-b border-gray-200 sticky top-16 z-20 bg-white">
+                <nav className="flex px-3 sm:px-6 space-x-4 sm:space-x-8 overflow-x-auto no-scrollbar">
                   {[
                     { id: 'posts', label: 'Bài viết', count: group.stats?.postCount || 0 },
-                    { id: 'members', label: 'Thành viên', count: group.stats?.memberCount || 0 },
+                    { id: 'members', label: 'Thành viên', count: groupStats.memberCount },
+                    ...(hasPermission('approve_join_request') ? [{ id: 'pending', label: 'Chờ duyệt', count: (activeTab === 'pending' ? pendingRequests.length : groupStats.pendingCount) }] : []),
                     ...(hasPermission('change_settings') ? [{ id: 'settings', label: 'Cài đặt', count: 0 }] : [])
                   ].map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                      className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap touch-target ${
                         activeTab === tab.id
                           ? 'border-blue-500 text-blue-600'
                           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -764,7 +828,27 @@ const GroupDetail = () => {
                 {/* Posts Tab */}
                 {activeTab === 'posts' && (
                   <div>
-                    {group.userRole && (
+                    {/* Pending banner for users awaiting approval */}
+                    {requiresApproval && !group.userRole && (group.hasPendingJoinRequest || isPendingJoin) && (
+                      <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 flex items-center justify-between gap-3">
+                        <div className="text-sm">
+                          Yêu cầu tham gia của bạn đang chờ duyệt bởi quản trị viên.
+                        </div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await api(`/api/groups/${id}/join-requests/cancel`, { method: 'POST' });
+                            } catch (_) {}
+                            try { localStorage.removeItem(pendingKey); } catch {}
+                            await loadGroup();
+                          }}
+                          className="px-3 py-1.5 bg-white text-yellow-700 border border-yellow-300 rounded-lg text-sm hover:bg-yellow-100"
+                        >
+                          Hủy yêu cầu
+                        </button>
+                      </div>
+                    )}
+                    {canPost() && (
                       <div className="mb-6">
                         <PostCreator 
                           user={user}
@@ -784,7 +868,7 @@ const GroupDetail = () => {
                             <button
                               onClick={loadMorePosts}
                               disabled={postsLoading}
-                              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
                             >
                               {postsLoading ? 'Đang tải...' : 'Tải thêm'}
                             </button>
@@ -807,7 +891,7 @@ const GroupDetail = () => {
                 )}
 
                 {/* Members Tab */}
-                {activeTab === 'members' && (
+                {activeTab === 'members' && (isAdmin() || group.settings?.showMemberList) && (
                   <div>
                     {group.members && group.members.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -975,6 +1059,76 @@ const GroupDetail = () => {
                   </div>
                 )}
 
+                {/* Pending Join Requests - Admin only */}
+                {activeTab === 'pending' && hasPermission('approve_join_request') && (
+                  <div>
+                    {pendingLoading ? (
+                      <div className="py-8 text-center text-gray-500">Đang tải danh sách...</div>
+                    ) : pendingRequests && pendingRequests.length > 0 ? (
+                      <div className="space-y-3">
+                        {pendingRequests.map((req) => (
+                          <div key={req._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
+                              {req.user?.avatarUrl ? (
+                                <img src={req.user.avatarUrl} alt={req.user?.name || 'User'} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                                  <span className="text-sm font-medium text-gray-600">{(req.user?.name || 'U').charAt(0).toUpperCase()}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-gray-900 truncate">{req.user?.name || 'Người dùng'}</p>
+                              <p className="text-xs text-gray-600 truncate">{new Date(req.requestedAt).toLocaleString('vi-VN')}</p>
+                              {req.message && <p className="text-sm text-gray-700 mt-1">{req.message}</p>}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await api(`/api/groups/${id}/join-requests/${req._id}/approve`, { method: 'POST' });
+                                    // Optimistic remove
+                                    setPendingRequests(prev => prev.filter(r => r._id !== req._id));
+                                    setGroupStats(s => ({ ...s, pendingCount: Math.max(0, (s.pendingCount || 0) - 1), memberCount: (s.memberCount || 0) + 1 }));
+                                    // Refetch to be sure
+                                    const res = await api(`/api/groups/${id}/join-requests?t=${Date.now()}`, { method: 'GET' });
+                                    if (res.success) setPendingRequests(Array.isArray(res.data) ? res.data : []);
+                                    await loadGroup();
+                                  } catch (e) { alert(e.message || 'Lỗi duyệt yêu cầu'); }
+                                }}
+                                className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                              >
+                                Duyệt
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await api(`/api/groups/${id}/join-requests/${req._id}/reject`, { method: 'POST' });
+                                    setPendingRequests(prev => prev.filter(r => r._id !== req._id));
+                                    setGroupStats(s => ({ ...s, pendingCount: Math.max(0, (s.pendingCount || 0) - 1) }));
+                                    const res = await api(`/api/groups/${id}/join-requests?t=${Date.now()}`, { method: 'GET' });
+                                    if (res.success) setPendingRequests(Array.isArray(res.data) ? res.data : []);
+                                    await loadGroup();
+                                  } catch (e) { alert(e.message || 'Lỗi từ chối yêu cầu'); }
+                                }}
+                                className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                              >
+                                Từ chối
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Không có yêu cầu chờ duyệt</h3>
+                        <p className="text-gray-600">Khi có yêu cầu tham gia, chúng sẽ xuất hiện ở đây</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Settings Tab */}
                 {activeTab === 'settings' && hasPermission('change_settings') && (
                   <div className="space-y-8">
@@ -1064,7 +1218,8 @@ const GroupDetail = () => {
                           <select
                             value={settingsData.joinApproval}
                             onChange={(e) => handleSettingsChange('joinApproval', e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-base"
+                            disabled={!isOwnerRole()}
+                            className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-base ${!isOwnerRole() ? 'opacity-60 cursor-not-allowed' : ''}`}
                           >
                             <option value="anyone">Bất kỳ ai</option>
                             <option value="admin_approval">Cần duyệt từ admin</option>
@@ -1080,7 +1235,8 @@ const GroupDetail = () => {
                           <select
                             value={settingsData.postPermissions}
                             onChange={(e) => handleSettingsChange('postPermissions', e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-base"
+                            disabled={!isOwnerRole()}
+                            className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-base ${!isOwnerRole() ? 'opacity-60 cursor-not-allowed' : ''}`}
                           >
                             <option value="all_members">Tất cả thành viên</option>
                             <option value="moderators_and_admins">Điều hành viên và admin</option>
@@ -1096,7 +1252,8 @@ const GroupDetail = () => {
                           <select
                             value={settingsData.commentPermissions}
                             onChange={(e) => handleSettingsChange('commentPermissions', e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-base"
+                            disabled={!isOwnerRole()}
+                            className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-base ${!isOwnerRole() ? 'opacity-60 cursor-not-allowed' : ''}`}
                           >
                             <option value="all_members">Tất cả thành viên</option>
                             <option value="members_only">Chỉ thành viên</option>
@@ -1114,7 +1271,7 @@ const GroupDetail = () => {
                       </div>
 
                       <div className="space-y-4">
-                        <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <label className={`flex items-center justify-between p-3 border rounded-lg ${isOwnerRole() ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}>
                           <div>
                             <p className="font-medium text-gray-900">Cho phép thành viên mời người khác</p>
                             <p className="text-sm text-gray-600">Thành viên có thể mời bạn bè tham gia nhóm</p>
@@ -1123,11 +1280,12 @@ const GroupDetail = () => {
                             type="checkbox"
                             checked={settingsData.allowMemberInvites}
                             onChange={(e) => handleSettingsChange('allowMemberInvites', e.target.checked)}
+                            disabled={!isOwnerRole()}
                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
                         </label>
 
-                        <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <label className={`flex items-center justify-between p-3 border rounded-lg ${isOwnerRole() ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}>
                           <div>
                             <p className="font-medium text-gray-900">Hiển thị danh sách thành viên</p>
                             <p className="text-sm text-gray-600">Mọi người có thể xem danh sách thành viên</p>
@@ -1136,11 +1294,12 @@ const GroupDetail = () => {
                             type="checkbox"
                             checked={settingsData.showMemberList}
                             onChange={(e) => handleSettingsChange('showMemberList', e.target.checked)}
+                            disabled={!isOwnerRole()}
                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
                         </label>
 
-                        <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <label className={`flex items-center justify-between p-3 border rounded-lg ${isOwnerRole() ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}>
                           <div>
                             <p className="font-medium text-gray-900">Cho phép tìm kiếm nhóm</p>
                             <p className="text-sm text-gray-600">Nhóm có thể được tìm thấy qua tìm kiếm</p>
@@ -1149,6 +1308,7 @@ const GroupDetail = () => {
                             type="checkbox"
                             checked={settingsData.searchable}
                             onChange={(e) => handleSettingsChange('searchable', e.target.checked)}
+                            disabled={!isOwnerRole()}
                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
                         </label>
@@ -1280,7 +1440,72 @@ const GroupDetail = () => {
               </div>
             </div>
 
+            {/* Desktop Actions */}
+            <div className="hidden md:block bg-white rounded-lg shadow-sm p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Hành động</h3>
+              {group.userRole ? (
+                <div className="flex flex-col gap-3">
+                  {canPost() && (
+                    <button
+                      onClick={() => setActiveTab('posts') || setShowPostCreator(true)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Viết bài mới
+                    </button>
+                  )}
+                  <button
+                    onClick={handleLeave}
+                    disabled={isLeaving || group.userRole === 'owner'}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLeaving ? 'Đang rời...' : 'Rời nhóm'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleJoin}
+                  disabled={isJoining}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isJoining ? 'Đang tham gia...' : 'Tham gia nhóm'}
+                </button>
+              )}
+            </div>
+
           </div>
+        </div>
+      </div>
+      {/* Mobile action bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-2">
+          {group.userRole ? (
+            <>
+              <button
+                onClick={handleLeave}
+                disabled={isLeaving || group.userRole === 'owner'}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full touch-target disabled:opacity-50"
+              >
+                {isLeaving ? 'Đang rời...' : 'Rời nhóm'}
+              </button>
+            </>
+          ) : (
+            requiresApproval && isPendingJoin ? (
+              <button
+                onClick={() => setActiveTab('posts')}
+                className="flex-1 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full touch-target border border-yellow-300"
+              >
+                Đang chờ duyệt...
+              </button>
+            ) : (
+              <button
+                onClick={handleJoin}
+                disabled={isJoining}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-full touch-target disabled:opacity-50"
+              >
+                {isJoining ? 'Đang gửi...' : (requiresApproval ? 'Yêu cầu tham gia' : 'Tham gia nhóm')}
+              </button>
+            )
+          )}
         </div>
       </div>
     </div>

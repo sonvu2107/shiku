@@ -6,7 +6,7 @@ export const checkBanStatus = async (req, res, next) => {
     if (!req.user) return next();
     
     const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ error: "User không tồn tại" });
+    if (!user) return res.status(404).json({ error: "Người dùng không tồn tại" });
     
     // Auto-unban if ban time has expired
     if (user.isBanned && user.banExpiresAt && new Date() >= user.banExpiresAt) {

@@ -76,6 +76,7 @@ export default function PostDetail() {
   };
 
   const [user, setUser] = useState(null);
+  const [groupCtx, setGroupCtx] = useState(null); // { userRole, settings }
 
   // modal media
   const [showMediaModal, setShowMediaModal] = useState(false);
@@ -104,6 +105,26 @@ export default function PostDetail() {
       .then((res) => setUser(res.user))
       .catch(() => setUser(null));
   }, []);
+
+  // Fetch group context for permission decisions if post belongs to a group
+  useEffect(() => {
+    const fetchGroupCtx = async () => {
+      try {
+        const groupId = data?.post?.group?._id || data?.post?.group?.id;
+        if (!groupId) { setGroupCtx(null); return; }
+        const res = await api(`/api/groups/${groupId}?t=${Date.now()}`);
+        if (res?.success && res?.data) {
+          setGroupCtx({ userRole: res.data.userRole || null, settings: res.data.settings || {} });
+        } else {
+          setGroupCtx(null);
+        }
+      } catch (_) {
+        // If cannot fetch (e.g., private and not a member), fall back to permissive UI
+        setGroupCtx(null);
+      }
+    };
+    fetchGroupCtx();
+  }, [data?.post?.group?._id, data?.post?.group?.id]);
 
   const commentTree = useMemo(() => {
     return data?.comments || [];
@@ -471,11 +492,45 @@ export default function PostDetail() {
       {/* Comments */}
       <div className="card max-w-4xl mx-auto">
         <h2 className="text-xl font-semibold mb-4">Bình luận</h2>
-        <CommentSection
-          postId={p._id}
-          initialComments={data.comments || []}
-          user={user}
-        />
+        {(() => {
+          // Determine comment permission if the post belongs to a group
+          const groupInfo = p.group || null;
+          if (!groupInfo) {
+            return (
+              <CommentSection
+                postId={p._id}
+                initialComments={data.comments || []}
+                user={user}
+              />
+            );
+          }
+
+          // Prefer fetched group context; if not available, allow commenting to avoid blocking UX
+          const setting = groupCtx?.settings?.commentPermissions || 'all_members';
+          const role = groupCtx?.userRole || null;
+          const userIsAdmin = role === 'owner' || role === 'admin';
+          const userIsMember = !!role;
+
+          let canComment = true;
+          if (setting === 'admins_only') canComment = userIsAdmin;
+          else if (setting === 'members_only') canComment = userIsMember;
+          else canComment = userIsMember || true; // all_members ⇒ allow if role unknown
+
+          if (canComment) {
+            return (
+              <CommentSection
+                postId={p._id}
+                initialComments={data.comments || []}
+                user={user}
+              />
+            );
+          }
+          return (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
+              Chỉ quản trị viên được phép bình luận trong nhóm này.
+            </div>
+          );
+        })()}
       </div>
 
       {/* Media modal carousel */}

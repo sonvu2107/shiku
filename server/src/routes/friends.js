@@ -44,26 +44,33 @@ router.post('/send-request', authRequired, async (req, res) => {
       return res.status(400).json({ message: 'Đã là bạn bè' });
     }
 
-    // Kiểm tra đã có lời mời chưa
-    const existingRequest = await FriendRequest.findOne({
+    // Kiểm tra trạng thái chặn nhau
+    const iBlockedTarget = (fromUser.blockedUsers || []).map(id => id.toString()).includes(to);
+    const targetBlockedMe = (toUser.blockedUsers || []).map(id => id.toString()).includes(fromUserId);
+    if (iBlockedTarget || targetBlockedMe) {
+      return res.status(400).json({ message: 'Không thể gửi lời mời do đang chặn nhau' });
+    }
+
+    // Kiểm tra đã có lời mời pending chưa (hai chiều)
+    const existingPending = await FriendRequest.findOne({
+      status: 'pending',
       $or: [
         { from: fromUserId, to: to },
         { from: to, to: fromUserId }
       ]
     });
 
-    if (existingRequest) {
+    if (existingPending) {
       return res.status(400).json({ message: 'Lời mời kết bạn đã tồn tại' });
     }
 
-    // Tạo lời mời mới
-    const friendRequest = new FriendRequest({
-      from: fromUserId,
-      to: to
-    });
+    // Upsert: nếu đã có record cũ (rejected/accepted) cùng chiều thì đặt lại về pending
+    const friendRequest = await FriendRequest.findOneAndUpdate(
+      { from: fromUserId, to: to },
+      { $set: { status: 'pending', createdAt: new Date() } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
-    await friendRequest.save();
-    
     const populatedRequest = await FriendRequest.findById(friendRequest._id)
       .populate('from', 'name email avatarUrl')
       .populate('to', 'name email avatarUrl');

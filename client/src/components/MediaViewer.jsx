@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Download, Eye, Play, Pause, Volume2, VolumeX, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
+import { X, Download, Eye, Play, Pause, Volume2, VolumeX, ZoomIn, ZoomOut, RotateCw, ChevronLeft, ChevronRight } from "lucide-react";
 
 /**
  * MediaViewer - Component xem ảnh/video full screen
  * Modal hiển thị media với các controls
  */
-export default function MediaViewer({ media, onClose }) {
+export default function MediaViewer({ media, onClose, gallery, index, onNavigate }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
@@ -16,8 +16,17 @@ export default function MediaViewer({ media, onClose }) {
   const videoRef = useRef(null);
   const imageRef = useRef(null);
 
+  // Determine active media from gallery if provided
+  const activeMedia = Array.isArray(gallery) && typeof index === 'number' && gallery[index]
+    ? {
+        ...gallery[index],
+        type: gallery[index].type || 'image',
+        title: gallery[index].title || gallery[index].alt || '',
+      }
+    : media;
+
   useEffect(() => {
-    if (media?.type === "video" && videoRef.current) {
+    if (activeMedia?.type === "video" && videoRef.current) {
       const video = videoRef.current;
       
       const handleTimeUpdate = () => setCurrentTime(video.currentTime);
@@ -37,7 +46,7 @@ export default function MediaViewer({ media, onClose }) {
         video.removeEventListener('pause', handlePause);
       };
     }
-  }, [media]);
+  }, [activeMedia]);
 
   const togglePlayPause = () => {
     if (videoRef.current) {
@@ -64,8 +73,8 @@ export default function MediaViewer({ media, onClose }) {
 
   const handleDownload = () => {
     const link = document.createElement('a');
-    link.href = media.url;
-    link.download = media.originalName;
+    link.href = activeMedia.url;
+    link.download = activeMedia.originalName || 'download';
     link.click();
   };
 
@@ -90,7 +99,7 @@ export default function MediaViewer({ media, onClose }) {
     setShowControls(prev => !prev);
   };
 
-  if (!media) return null;
+  if (!activeMedia) return null;
 
   return (
     <div 
@@ -101,15 +110,15 @@ export default function MediaViewer({ media, onClose }) {
         {/* Header */}
         <div className={`flex items-center justify-between mb-2 sm:mb-4 text-white transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
           <div className="flex-1 min-w-0 mr-2">
-            <h2 className="text-base sm:text-lg lg:text-xl font-semibold truncate" title={media.title}>
-              {media.title.length > 30 ? `${media.title.substring(0, 30)}...` : media.title}
+            <h2 className="text-base sm:text-lg lg:text-xl font-semibold truncate" title={activeMedia.title}>
+              {activeMedia.title && activeMedia.title.length > 30 ? `${activeMedia.title.substring(0, 30)}...` : activeMedia.title}
             </h2>
             <p className="text-xs sm:text-sm text-gray-300 truncate">
-              {media.type === "image" ? "Hình ảnh" : "Video"} • {media.formattedSize || "Unknown size"}
+              {activeMedia.type === "image" ? "Hình ảnh" : "Video"} • {activeMedia.formattedSize || "Unknown size"}
             </p>
           </div>
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            {media.type === "image" && (
+            {activeMedia.type === "image" && (
               <>
                 <button
                   onClick={(e) => {
@@ -178,11 +187,11 @@ export default function MediaViewer({ media, onClose }) {
 
         {/* Media Content */}
         <div className="flex-1 flex items-center justify-center bg-black rounded-lg overflow-hidden">
-          {media.type === "video" ? (
+          {activeMedia.type === "video" ? (
             <div className="relative w-full h-full group">
               <video
                 ref={videoRef}
-                src={media.url}
+                src={activeMedia.url}
                 className="w-full h-full object-contain"
                 controls={false}
                 muted={isMuted}
@@ -243,8 +252,8 @@ export default function MediaViewer({ media, onClose }) {
           ) : (
             <img
               ref={imageRef}
-              src={media.url}
-              alt={media.title}
+              src={activeMedia.url}
+              alt={activeMedia.title}
               className="max-w-full max-h-full object-contain transition-transform duration-300"
               style={{
                 transform: `scale(${imageScale}) rotate(${imageRotation}deg)`,
@@ -252,18 +261,46 @@ export default function MediaViewer({ media, onClose }) {
               }}
             />
           )}
+
+          {/* Gallery navigation */}
+          {Array.isArray(gallery) && gallery.length > 1 && typeof index === 'number' && onNavigate && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const nextIndex = (index - 1 + gallery.length) % gallery.length;
+                  onNavigate(nextIndex);
+                }}
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full p-2 touch-target"
+                title="Ảnh trước"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const nextIndex = (index + 1) % gallery.length;
+                  onNavigate(nextIndex);
+                }}
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full p-2 touch-target"
+                title="Ảnh tiếp theo"
+              >
+                <ChevronRight size={24} />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Footer Info */}
         <div className={`mt-2 sm:mt-4 text-white text-xs sm:text-sm transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
             <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-              <span className="truncate">Kích thước: {media.formattedSize || "Unknown"}</span>
+              <span className="truncate">Kích thước: {activeMedia.formattedSize || "Unknown"}</span>
               <span className="hidden sm:inline">•</span>
-              <span>Lượt xem: {media.views || 0}</span>
+              <span>Lượt xem: {activeMedia.views || 0}</span>
             </div>
             <div className="text-gray-400 text-xs sm:text-sm">
-              {new Date(media.uploadedAt || media.createdAt).toLocaleDateString("vi-VN")}
+              {new Date(activeMedia.uploadedAt || activeMedia.createdAt || Date.now()).toLocaleDateString("vi-VN")}
             </div>
           </div>
         </div>

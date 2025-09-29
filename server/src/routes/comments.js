@@ -1,6 +1,7 @@
 import express from "express";
 import Comment from "../models/Comment.js";
 import Post from "../models/Post.js";
+import Group from "../models/Group.js";
 import User from "../models/User.js";
 import { authRequired, authOptional } from "../middleware/auth.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
@@ -149,6 +150,33 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
 
     const post = await Post.findById(req.params.postId).populate("author", "name");
     if (!post) return res.status(404).json({ error: "Không tìm thấy bài viết" });
+
+    // ===== Group comment permission enforcement (strict) =====
+    if (post.group) {
+      const group = await Group.findById(post.group);
+      if (!group) {
+        return res.status(404).json({ error: "Không tìm thấy nhóm của bài viết" });
+      }
+
+      const userId = req.user._id;
+      const isOwner = group.owner.toString() === userId.toString();
+      const isAdmin = isOwner || group.isAdmin(userId);
+      const isMember = group.isMember(userId);
+
+      const setting = group.settings?.commentPermissions || 'all_members';
+      let allowed = false;
+      if (setting === 'admins_only') {
+        allowed = isAdmin;
+      } else if (setting === 'members_only') {
+        allowed = isMember || isAdmin;
+      } else { // all_members
+        allowed = isMember || isAdmin;
+      }
+
+      if (!allowed) {
+        return res.status(403).json({ error: "Chỉ quản trị viên được phép bình luận trong nhóm này" });
+      }
+    }
 
     let parent = null;
     if (parentId) {
