@@ -134,7 +134,6 @@ export default function EventDetail() {
         throw new Error(response.message || "Có lỗi xảy ra khi xóa sự kiện");
       }
     } catch (error) {
-      console.error("Error deleting event:", error);
       alert(error.message || "Có lỗi xảy ra khi xóa sự kiện");
     } finally {
       setActionLoading(false);

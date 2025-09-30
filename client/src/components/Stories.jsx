@@ -31,11 +31,7 @@ export default function Stories({ user }) {
       
       // Load stories feed
       const feedResponse = await api('/api/stories/feed');
-      console.log('🔍 Stories Feed Response:', feedResponse);
       if (feedResponse.storiesGroups) {
-        console.log('📚 Stories Groups:', feedResponse.storiesGroups);
-        console.log('📚 First Group _id type:', typeof feedResponse.storiesGroups[0]?._id);
-        console.log('📚 First Group _id value:', feedResponse.storiesGroups[0]?._id);
         setStoriesGroups(feedResponse.storiesGroups);
       }
       
@@ -45,7 +41,7 @@ export default function Stories({ user }) {
         setMyStories(myResponse.stories);
       }
     } catch (error) {
-      console.error('Error loading stories:', error);
+      // Silent fail - stories will show empty state
     } finally {
       setLoading(false);
     }
@@ -71,14 +67,27 @@ export default function Stories({ user }) {
   };
 
   /**
-   * Xóa story
+   * Xóa story - Safe callback để tránh state update trong render
    */
   const handleStoryDeleted = (storyId) => {
-    // Remove from my stories
-    setMyStories(prev => prev.filter(s => s._id !== storyId));
-    
-    // Reload feed
-    loadStories();
+    // Defer all state updates to avoid React warnings
+    setTimeout(() => {
+      // Remove from my stories
+      setMyStories(prev => prev.filter(s => s._id !== storyId));
+      
+      // Reload feed
+      loadStories();
+    }, 0);
+  };
+
+  /**
+   * Safe close callback để tránh state update trong render
+   */
+  const handleStoryClose = () => {
+    setTimeout(() => {
+      setSelectedStoryGroup(null);
+      setSelectedStoryIndex(0);
+    }, 0);
   };
 
   /**
@@ -308,10 +317,7 @@ export default function Stories({ user }) {
           storiesGroup={selectedStoryGroup}
           initialStoryIndex={selectedStoryIndex}
           currentUser={user}
-          onClose={() => {
-            setSelectedStoryGroup(null);
-            setSelectedStoryIndex(0);
-          }}
+          onClose={handleStoryClose}
           onDelete={handleStoryDeleted}
         />
       )}

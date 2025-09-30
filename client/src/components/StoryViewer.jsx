@@ -31,6 +31,10 @@ export default function StoryViewer({
   const stories = storiesGroup?.stories || [];
   const currentStory = stories[currentIndex];
   const isOwner = currentUser?._id === storiesGroup?._id?._id || currentUser?._id === storiesGroup?._id;
+
+  // Helper functions for safe callbacks
+  const safeClose = () => setTimeout(onClose, 0);
+  const safeDelete = (storyId) => setTimeout(() => onDelete?.(storyId), 0);
   
   // Story duration (giây) - Tăng thời gian hiển thị
   const getDuration = () => {
@@ -72,10 +76,15 @@ export default function StoryViewer({
    */
   useEffect(() => {
     if (currentStory && !isOwner) {
-      api(`/api/stories/${currentStory._id}/view`, { method: 'POST' })
-        .catch(() => {}); // Silent fail
+      // Use setTimeout to ensure this runs after render
+      const timeoutId = setTimeout(() => {
+        api(`/api/stories/${currentStory._id}/view`, { method: 'POST' })
+          .catch(() => {}); // Silent fail
+      }, 0);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [currentStory?._id]);
+  }, [currentStory?._id, isOwner]);
 
   /**
    * Next story
@@ -85,7 +94,7 @@ export default function StoryViewer({
       setCurrentIndex(prev => prev + 1);
       setProgress(0);
     } else {
-      onClose();
+      safeClose();
     }
   };
 
@@ -115,7 +124,7 @@ export default function StoryViewer({
       
       setShowReactions(false);
     } catch (err) {
-      console.error('Error reacting to story:', err);
+      // Silent fail - reaction will not be shown
     }
   };
 
@@ -131,7 +140,7 @@ export default function StoryViewer({
       setViewersList(response.views || []);
       setShowViewers(true);
     } catch (err) {
-      console.error('Error loading viewers:', err);
+      // Silent fail - viewers list will be empty
     } finally {
       setLoading(false);
     }
@@ -149,7 +158,7 @@ export default function StoryViewer({
       setReactionsList(response.reactions || []);
       setShowReactionsList(true);
     } catch (err) {
-      console.error('Error loading reactions:', err);
+      // Silent fail - reactions list will be empty
     } finally {
       setLoading(false);
     }
@@ -166,17 +175,22 @@ export default function StoryViewer({
     try {
       await api(`/api/stories/${currentStory._id}`, { method: 'DELETE' });
       
-      // Callback to parent
-      if (onDelete) {
-        onDelete(currentStory._id);
-      }
+      // Defer all callbacks to avoid state update during render
+      setTimeout(() => {
+        // Callback to parent
+        if (onDelete) {
+          onDelete(currentStory._id);
+        }
+        
+        // Move to next or close after parent update
+        if (stories.length > 1) {
+          setCurrentIndex(prev => prev + 1);
+          setProgress(0);
+        } else {
+          onClose(); // Không cần lồng setTimeout nữa
+        }
+      }, 0);
       
-      // Move to next or close
-      if (stories.length > 1) {
-        handleNext();
-      } else {
-        onClose();
-      }
     } catch (err) {
       alert('Lỗi xóa story: ' + err.message);
     }
@@ -205,7 +219,7 @@ export default function StoryViewer({
       onClick={(e) => {
         // Click outside để đóng
         if (e.target === e.currentTarget) {
-          onClose();
+          safeClose();
         }
       }}
     >
@@ -292,7 +306,7 @@ export default function StoryViewer({
             
             {/* Close */}
             <button
-              onClick={onClose}
+              onClick={safeClose}
               className="text-white hover:text-white/80 transition-colors bg-black/30 rounded-full p-1.5 sm:p-2"
               title="Đóng"
             >

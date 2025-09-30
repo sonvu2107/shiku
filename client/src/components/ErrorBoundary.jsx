@@ -26,11 +26,7 @@ class ErrorBoundary extends React.Component {
       errorInfo: errorInfo
     });
 
-    // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorBoundary caught an error:', error, errorInfo);
-    }
-
+    // Silent error handling - errors are shown in UI
     // Có thể gửi error đến logging service ở đây
     // logErrorToService(error, errorInfo);
   }
