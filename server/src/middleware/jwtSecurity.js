@@ -12,7 +12,7 @@ const tokenBlacklist = new Set();
 // Cấu hình JWT
 const JWT_CONFIG = {
   accessTokenExpiry: '15m', // 15 phút
-  refreshTokenExpiry: '7d', // 7 ngày
+  refreshTokenExpiry: '30d', // 30 ngày
   algorithm: 'HS256'
 };
 

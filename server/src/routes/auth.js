@@ -82,7 +82,7 @@ router.post("/register",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 ngày
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 ngày
       });
 
       // Log security event
@@ -201,7 +201,7 @@ router.post("/login",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 ngày
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 ngày
       });
 
       // Log successful login
