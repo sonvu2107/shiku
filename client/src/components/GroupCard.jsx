@@ -300,7 +300,7 @@ const GroupCard = ({
               <button
                 onClick={handleJoin}
                 disabled={isJoining}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <UserPlus className="w-4 h-4" />
                 {isJoining ? 'Đang tham gia...' : 'Tham gia'}
@@ -321,7 +321,7 @@ const GroupCard = ({
             {userRole && !canLeave && (
               <Link
                 to={`/groups/${group._id}`}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors text-center"
+                className="flex-1 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors text-center"
               >
                 Xem nhóm
               </Link>

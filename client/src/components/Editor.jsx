@@ -58,18 +58,6 @@ export default function Editor({ value, onChange }) {
         className="hidden"
         id="image-upload"
       />
-      
-      {/* Upload button */}
-      <label
-        htmlFor="image-upload"
-        className={`inline-block px-4 py-2 text-sm font-medium rounded-lg cursor-pointer transition-colors ${
-          uploading 
-            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-            : 'bg-blue-600 text-white hover:bg-blue-700'
-        }`}
-      >
-        {uploading ? 'Đang upload...' : 'Thêm ảnh'}
-      </label>
     </div>
   );
 }

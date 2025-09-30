@@ -1,4 +1,5 @@
 // Import các dependencies cần thiết
+import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { api } from "../api";
@@ -345,7 +346,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                   <div className="absolute left-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto dropdown-mobile">
                     {/* Lịch sử tìm kiếm / Gợi ý */}
                     {(!searchQuery.trim() || (searchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0)) && searchHistory.length > 0 && (
-                      <>
+                      <React.Fragment key="search-history">
                         <div className="flex items-center justify-between px-4 py-2 text-xs text-gray-500">
                           <span>Gần đây</span>
                           <button type="button" onClick={() => setHistoryEditing(!historyEditing)} className="text-blue-600 hover:underline">{historyEditing ? 'Xong' : 'Chỉnh sửa'}</button>
@@ -372,11 +373,11 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                           </div>
                         )}
                         <div className="h-px bg-gray-100 dark:bg-gray-700" />
-                      </>
+                      </React.Fragment>
                     )}
                     {/* Kết quả user */}
                     {searchResults.length > 0 && (
-                      <>
+                      <React.Fragment key="search-fragment">
                         <div className="px-4 py-2 text-xs text-gray-500">Người dùng</div>
                         {searchResults.map(user => (
                           <div
@@ -396,11 +397,11 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                             </div>
                           </div>
                         ))}
-                      </>
+                      </React.Fragment>
                     )}
                     {/* Kết quả bài viết: chỉ hiện nếu không có user nào khớp */}
                     {searchResults.length === 0 && searchPosts.length > 0 && (
-                      <>
+                      <React.Fragment key="search-fragment">
                         <div className="px-4 py-2 text-xs text-gray-500">Bài viết</div>
                         {searchPosts.map(post => (
                           <div
@@ -415,7 +416,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                             </div>
                           </div>
                         ))}
-                      </>
+                      </React.Fragment>
                     )}
                     {searchLoading && (
                       <div className="px-4 py-2 text-gray-500">Đang tìm kiếm...</div>
@@ -436,7 +437,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         {/* CENTER ZONE: Main Menu Icons */}
         <div className="hidden lg:flex items-center gap-2 justify-center flex-1">
           {user && (
-            <>
+            <React.Fragment key="user-nav-links">
               <Link
                 to="/"
                 className={`p-2 rounded-full transition-colors ${location.pathname === "/"
@@ -488,7 +489,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
               >
                 <Image size={22} />
               </Link>
-            </>
+            </React.Fragment>
           )}
         </div>
 
@@ -531,7 +532,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           {/* Desktop Navigation - Hidden on mobile */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
-              <>
+              <React.Fragment key="user-desktop-nav">
                 <ChatDropdown onOpenChat={(conv) => {
                   setOpenPopups(prev => {
                     // Nếu đã mở rồi thì đưa lên cuối
@@ -598,9 +599,9 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                     </div>
                   )}
                 </div>
-              </>
+              </React.Fragment>
             ) : (
-              <>
+              <React.Fragment key="guest-desktop-nav">
                 <Link to="/login" className="btn-outline flex items-center gap-2">
                   <LogIn size={18} />
                   Đăng nhập
@@ -609,7 +610,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                   <UserPlus size={18} />
                   Đăng ký
                 </Link>
-              </>
+              </React.Fragment>
             )}
           </div>
         </div>
@@ -643,7 +644,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                   <div className="absolute left-0 top-full mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto mobile-search-dropdown">
                     {/* Lịch sử tìm kiếm / Gợi ý */}
                     {(!searchQuery.trim() || (searchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0)) && searchHistory.length > 0 && (
-                      <>
+                      <React.Fragment key="search-fragment">
                         <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700 font-medium">
                           <span>Mới đây</span>
                           <button type="button" onClick={() => setHistoryEditing(!historyEditing)} className="text-blue-600">{historyEditing ? 'Xong' : 'Chỉnh sửa'}</button>
@@ -671,11 +672,11 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                           </div>
                         )}
                         <div className="h-px bg-gray-100 dark:bg-gray-700" />
-                      </>
+                      </React.Fragment>
                     )}
                     {/* Kết quả user */}
                     {searchResults.length > 0 && (
-                      <>
+                      <React.Fragment key="search-fragment">
                         <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700 font-medium">Người dùng</div>
                         {searchResults.map(user => (
                           <div
@@ -700,11 +701,11 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                             </div>
                           </div>
                         ))}
-                      </>
+                      </React.Fragment>
                     )}
                     {/* Kết quả bài viết: chỉ hiện nếu không có user nào khớp */}
                     {searchResults.length === 0 && searchPosts.length > 0 && (
-                      <>
+                      <React.Fragment key="search-fragment">
                         <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700 font-medium">Bài viết</div>
                         {searchPosts.map(post => (
                           <div
@@ -723,7 +724,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                             </div>
                           </div>
                         ))}
-                      </>
+                      </React.Fragment>
                     )}
                     {searchLoading && (
                       <div className="px-3 py-4 text-center text-gray-500 text-sm">

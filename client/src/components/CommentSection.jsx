@@ -470,7 +470,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                     <button
                       onClick={() => handleUpdateComment(comment._id)}
                       disabled={(!editContent.trim() && editImages.length === 0) || loading}
-                      className="px-2 sm:px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50 touch-target"
+                      className="px-2 sm:px-3 py-1 bg-black text-white text-xs rounded hover:bg-gray-800 disabled:opacity-50 touch-target"
                     >
                       Lưu
                     </button>
@@ -737,7 +737,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                       <button
                         type="submit"
                         disabled={(!replyContent.trim() && replyImages.length === 0) || loading}
-                        className="px-3 sm:px-4 py-1 text-xs sm:text-sm bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 touch-target"
+                        className="px-3 sm:px-4 py-1 text-xs sm:text-sm bg-black text-white rounded-full hover:bg-gray-800 disabled:opacity-50 touch-target"
                       >
                         {loading ? "Đang gửi..." : "Phản hồi"}
                       </button>
@@ -817,7 +817,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                 <button
                   type="submit"
                   disabled={(!newComment.trim() && newCommentImages.length === 0) || loading}
-                  className="px-4 sm:px-6 py-1.5 sm:py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 text-xs sm:text-sm touch-target"
+                  className="px-4 sm:px-6 py-1.5 sm:py-2 bg-black text-white rounded-full hover:bg-gray-800 disabled:opacity-50 text-xs sm:text-sm touch-target"
                 >
                   {loading ? "Đang đăng..." : "Bình luận"}
                 </button>

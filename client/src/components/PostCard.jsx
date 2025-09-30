@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck } from "lucide-react";
+import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { api } from "../api";
 import { deduplicatedApi } from "../utils/requestDeduplication.js";
 import UserName from "./UserName";
@@ -26,7 +26,9 @@ export default function PostCard({ post, user, hidePublicIcon = false }) {
   // Note: User data should be passed as prop or obtained from context
   // const user = JSON.parse(localStorage.getItem("user") || "null"); // Deprecated
   const [showEmotePopup, setShowEmotePopup] = useState(false); // Hiện popup emotes
+  const [showActionsMenu, setShowActionsMenu] = useState(false); // Hiện menu actions
   const emotePopupTimeout = useRef(); // Timeout cho hover emote popup
+  const actionsMenuTimeout = useRef(); // Timeout cho actions menu
 
   // ==================== CONSTANTS ====================
   
@@ -297,37 +299,84 @@ export default function PostCard({ post, user, hidePublicIcon = false }) {
         </div>
       </div>
 
-      {/* Action buttons for post owner and admin */}
+      {/* Actions menu for post owner and admin */}
       {user && (user._id === post.author?._id || user.role === "admin") && (
-        <div className="mt-2 pt-2 border-t border-gray-200 flex gap-2">
-          <button 
-            className="text-xs bg-gray-100 hover:bg-gray-200 rounded px-2 py-1 flex items-center gap-1 transition-colors"
-            onClick={(e) => {
-              e.preventDefault();
-              togglePostStatus();
-            }}
-          >
-            {post.status === 'private' ? (
-              <>
-                <Globe size={12} />
-                Công khai
-              </>
-            ) : (
-              <>
-                <Lock size={12} />
-                Riêng tư
-              </>
+        <div className="mt-2 pt-2 border-t border-gray-200 flex justify-end">
+          <div className="relative">
+            <button
+              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+              onClick={() => setShowActionsMenu(!showActionsMenu)}
+              onMouseEnter={() => {
+                if (actionsMenuTimeout.current) clearTimeout(actionsMenuTimeout.current);
+                setShowActionsMenu(true);
+              }}
+              onMouseLeave={() => {
+                actionsMenuTimeout.current = setTimeout(() => setShowActionsMenu(false), 200);
+              }}
+            >
+              <MoreHorizontal size={16} />
+            </button>
+            
+            {showActionsMenu && (
+              <div
+                className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[160px]"
+                onMouseEnter={() => {
+                  if (actionsMenuTimeout.current) clearTimeout(actionsMenuTimeout.current);
+                  setShowActionsMenu(true);
+                }}
+                onMouseLeave={() => {
+                  actionsMenuTimeout.current = setTimeout(() => setShowActionsMenu(false), 200);
+                }}
+              >
+                <div className="py-1">
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowActionsMenu(false);
+                      navigate(`/edit-post/${post.slug}`);
+                    }}
+                  >
+                    <Edit size={14} />
+                    Chỉnh sửa
+                  </button>
+                  
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowActionsMenu(false);
+                      togglePostStatus();
+                    }}
+                  >
+                    {post.status === 'private' ? (
+                      <>
+                        <Globe size={14} />
+                        Công khai
+                      </>
+                    ) : (
+                      <>
+                        <Lock size={14} />
+                        Riêng tư
+                      </>
+                    )}
+                  </button>
+                  
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowActionsMenu(false);
+                      deletePost();
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    Xóa
+                  </button>
+                </div>
+              </div>
             )}
-          </button>
-          <button 
-            className="text-xs bg-red-100 hover:bg-red-200 text-red-600 rounded px-2 py-1 transition-colors"
-            onClick={(e) => {
-              e.preventDefault();
-              deletePost();
-            }}
-          >
-            Xóa
-          </button>
+          </div>
         </div>
       )}
       </div>
