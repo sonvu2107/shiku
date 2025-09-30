@@ -19,7 +19,10 @@ import {
   EyeOff,
   Mail,
   Camera,
-  MessageCircle
+  MessageCircle,
+  BarChart3,
+  TrendingUp,
+  Eye as EyeIcon
 } from "lucide-react";
 
 // Custom SVG Icons
@@ -76,6 +79,11 @@ const CustomIcons = {
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
     </svg>
+  ),
+  BarChart3: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
   )
 };
 
@@ -120,6 +128,12 @@ export default function Profile() {
   const [friendsLoading, setFriendsLoading] = useState(false); // Loading friends
   const [friendsError, setFriendsError] = useState(""); // Error khi load friends
 
+  // Analytics states
+  const [analytics, setAnalytics] = useState(null); // Analytics data
+  const [analyticsLoading, setAnalyticsLoading] = useState(false); // Loading analytics
+  const [analyticsError, setAnalyticsError] = useState(""); // Error khi load analytics
+  const [analyticsPeriod, setAnalyticsPeriod] = useState('30d'); // Analytics period
+
 
   // ==================== EFFECTS ====================
 
@@ -147,6 +161,15 @@ export default function Profile() {
       loadFriends();
     }
   }, [activeTab, user]);
+
+  /**
+   * Load analytics khi chuyển sang tab analytics
+   */
+  useEffect(() => {
+    if (activeTab === 'analytics' && user) {
+      loadAnalytics();
+    }
+  }, [activeTab, user, analyticsPeriod]);
 
 
   // ==================== API FUNCTIONS ====================
@@ -222,6 +245,25 @@ export default function Profile() {
       setFriendsError("Không thể tải danh sách bạn bè: " + err.message);
     } finally {
       setFriendsLoading(false);
+    }
+  }
+
+  /**
+   * Load analytics data cho user
+   */
+  async function loadAnalytics() {
+    if (!user) return;
+
+    setAnalyticsLoading(true);
+    setAnalyticsError("");
+
+    try {
+      const response = await api(`/api/posts/analytics?period=${analyticsPeriod}`);
+      setAnalytics(response.analytics);
+    } catch (err) {
+      setAnalyticsError("Không thể tải dữ liệu phân tích: " + err.message);
+    } finally {
+      setAnalyticsLoading(false);
     }
   }
 
@@ -816,7 +858,8 @@ export default function Profile() {
             <nav className="flex space-x-1 md:space-x-8 px-2 md:px-6 overflow-x-auto scrollbar-hide">
               {[
                 ...(user.showPosts === false ? [] : [{ id: "posts", label: "Bài đăng", icon: CustomIcons.FileText, count: posts.length }]),
-                { id: "friends", label: "Bạn bè", icon: CustomIcons.Users, count: friends.length }
+                { id: "friends", label: "Bạn bè", icon: CustomIcons.Users, count: friends.length },
+                { id: "analytics", label: "Phân tích", icon: CustomIcons.BarChart3, count: analytics?.totalPosts || 0 }
               ].map(({ id, label, icon: Icon, count }) => (
                 <button
                   key={id}
@@ -1040,6 +1083,207 @@ export default function Profile() {
                         Mời bạn bè
                       </button>
                     </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Analytics Tab */}
+            {activeTab === 'analytics' && (
+              <div>
+                {/* Analytics Header */}
+                <div className="mb-6">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Phân tích bài viết</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Thống kê lượt xem và hiệu suất bài viết của bạn
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <select
+                        value={analyticsPeriod}
+                        onChange={(e) => {
+                          setAnalyticsPeriod(e.target.value);
+                        }}
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                      >
+                        <option value="7d">7 ngày qua</option>
+                        <option value="30d">30 ngày qua</option>
+                        <option value="90d">90 ngày qua</option>
+                        <option value="1y">1 năm qua</option>
+                      </select>
+                      <button
+                        onClick={loadAnalytics}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      >
+                        Làm mới
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Analytics Content */}
+                {analyticsLoading ? (
+                  <div className="space-y-6">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                        <div className="animate-pulse">
+                          <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded w-1/3 mb-4"></div>
+                          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : analyticsError ? (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-red-400 text-2xl">⚠️</span>
+                    </div>
+                    <h3 className="text-lg font-medium text-red-900 dark:text-red-100 mb-2">Có lỗi xảy ra</h3>
+                    <p className="text-red-600 dark:text-red-400 mb-4">{analyticsError}</p>
+                    <button
+                      onClick={loadAnalytics}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Thử lại
+                    </button>
+                  </div>
+                ) : analytics ? (
+                  <div className="space-y-6">
+                    {/* Overview Stats */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-blue-100 text-sm">Tổng lượt xem</p>
+                            <p className="text-2xl font-bold">{analytics.totalViews.toLocaleString()}</p>
+                          </div>
+                          <EyeIcon className="w-8 h-8 text-blue-200" />
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-green-100 text-sm">Tổng bài viết</p>
+                            <p className="text-2xl font-bold">{analytics.totalPosts}</p>
+                          </div>
+                          <FileText className="w-8 h-8 text-green-200" />
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-purple-100 text-sm">Trung bình lượt xem</p>
+                            <p className="text-2xl font-bold">{analytics.avgViewsPerPost.toLocaleString()}</p>
+                          </div>
+                          <TrendingUp className="w-8 h-8 text-purple-200" />
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-orange-100 text-sm">Bài đã công khai</p>
+                            <p className="text-2xl font-bold">{analytics.publishedPosts}</p>
+                          </div>
+                          <Globe className="w-8 h-8 text-orange-200" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Top Posts */}
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5" />
+                        Top bài viết có lượt xem cao nhất
+                      </h4>
+                      {analytics.topPosts.length > 0 ? (
+                        <div className="space-y-3">
+                          {analytics.topPosts.map((post, index) => (
+                            <div key={post._id} className="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                              <div className="flex items-start gap-3 flex-1 min-w-0">
+                                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-semibold text-sm flex-shrink-0">
+                                  {index + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h5 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                                    {post.title}
+                                  </h5>
+                                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    {new Date(post.createdAt).toLocaleDateString('vi-VN')} • 
+                                    <span className={`ml-1 ${post.status === 'published' ? 'text-green-600' : 'text-orange-600'}`}>
+                                      {post.status === 'published' ? 'Công khai' : 'Riêng tư'}
+                                    </span>
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 flex-shrink-0 ml-3">
+                                <EyeIcon className="w-4 h-4" />
+                                <span className="font-semibold">{post.views.toLocaleString()}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                          <BarChart3 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                          <p>Chưa có dữ liệu phân tích</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Recent Posts */}
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                        <Calendar className="w-5 h-5" />
+                        Bài viết gần đây ({analytics.period === '7d' ? '7 ngày' : analytics.period === '30d' ? '30 ngày' : analytics.period === '90d' ? '90 ngày' : '1 năm'})
+                      </h4>
+                      {analytics.recentPosts.length > 0 ? (
+                        <div className="space-y-3">
+                          {analytics.recentPosts.map((post) => (
+                            <div key={post._id} className="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                              <div className="flex-1 min-w-0">
+                                <h5 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                                  {post.title}
+                                </h5>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  {new Date(post.createdAt).toLocaleDateString('vi-VN')} • 
+                                  <span className={`ml-1 ${post.status === 'published' ? 'text-green-600' : 'text-orange-600'}`}>
+                                    {post.status === 'published' ? 'Công khai' : 'Riêng tư'}
+                                  </span>
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 flex-shrink-0 ml-3">
+                                <EyeIcon className="w-4 h-4" />
+                                <span className="font-semibold">{post.views.toLocaleString()}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                          <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                          <p>Không có bài viết nào trong khoảng thời gian này</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                      <BarChart3 className="w-8 h-8 text-blue-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Chưa có dữ liệu phân tích</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6">Tạo bài viết để bắt đầu theo dõi thống kê!</p>
+                    <button
+                      onClick={() => setActiveTab('posts')}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Tạo bài viết
+                    </button>
                   </div>
                 )}
               </div>

@@ -46,7 +46,7 @@ export default function VerifiedBadge({ role, isVerified }) {
       <img 
         src={icon} 
         alt="Verified" 
-        className="w-4 h-4 rounded-full align-middle" 
+        className="w-5 h-5 rounded-full align-middle flex-shrink-0 " 
       />
       {/* Tooltip hiển thị khi hover */}
       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1

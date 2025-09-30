@@ -43,6 +43,34 @@
     @apply aspect-[4/3];
   }
   
+  /* Post metadata mobile spacing */
+  .post-meta-mobile {
+    @apply gap-3 sm:gap-4;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .post-meta-mobile::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .post-meta-mobile > * {
+    @apply flex-shrink-0;
+    white-space: nowrap;
+  }
+  
+  /* Đảm bảo VerifiedBadge có đủ không gian */
+  .post-meta-mobile .inline-flex {
+    @apply flex-shrink-0;
+    min-width: max-content;
+  }
+  
+  .post-meta-mobile .inline-flex img {
+    @apply flex-shrink-0;
+  }
+  
   /* Form inputs mobile */
   .input-mobile {
     @apply text-base py-3 px-4;

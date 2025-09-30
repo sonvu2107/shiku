@@ -583,6 +583,102 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
   }
 });
 
+// ==================== ANALYTICS ====================
+
+// Get user analytics data
+router.get("/analytics", authRequired, async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { period = '30d' } = req.query;
+    
+    // Calculate date range based on period
+    let startDate = new Date();
+    switch (period) {
+      case '7d':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case '30d':
+        startDate.setDate(startDate.getDate() - 30);
+        break;
+      case '90d':
+        startDate.setDate(startDate.getDate() - 90);
+        break;
+      case '1y':
+        startDate.setDate(startDate.getDate() - 365);
+        break;
+      default:
+        startDate.setDate(startDate.getDate() - 30);
+    }
+    
+    // Get all user posts with view counts
+    const posts = await Post.find({ 
+      author: userId 
+    })
+    .select('title slug views createdAt status')
+    .sort({ createdAt: -1 });
+    
+    // Calculate total views
+    const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0);
+    
+    // Get posts from the specified period
+    const recentPosts = posts.filter(post => 
+      new Date(post.createdAt) >= startDate
+    );
+    
+    // Calculate views by day for the period
+    const viewsByDay = {};
+    const currentDate = new Date();
+    for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
+      const dateKey = d.toISOString().split('T')[0];
+      viewsByDay[dateKey] = 0;
+    }
+    
+    // Get top posts (by views)
+    const topPosts = posts
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 10);
+    
+    // Calculate growth metrics
+    const totalPosts = posts.length;
+    const publishedPosts = posts.filter(p => p.status === 'published').length;
+    const privatePosts = posts.filter(p => p.status === 'private').length;
+    
+    // Average views per post
+    const avgViewsPerPost = totalPosts > 0 ? Math.round(totalViews / totalPosts) : 0;
+    
+    res.json({
+      success: true,
+      analytics: {
+        totalViews,
+        totalPosts,
+        publishedPosts,
+        privatePosts,
+        avgViewsPerPost,
+        topPosts: topPosts.map(post => ({
+          _id: post._id,
+          title: post.title,
+          slug: post.slug,
+          views: post.views || 0,
+          createdAt: post.createdAt,
+          status: post.status
+        })),
+        recentPosts: recentPosts.map(post => ({
+          _id: post._id,
+          title: post.title,
+          slug: post.slug,
+          views: post.views || 0,
+          createdAt: post.createdAt,
+          status: post.status
+        })),
+        viewsByDay,
+        period
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ==================== SAVED POSTS ====================
 
 // Toggle save/unsave a post

@@ -1,9 +1,10 @@
 import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Calendar, Eye, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck } from "lucide-react";
+import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "../api";
 import { deduplicatedApi } from "../utils/requestDeduplication.js";
 import UserName from "./UserName";
+import VerifiedBadge from "./VerifiedBadge";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
 import LazyImage from "./LazyImage";
 
@@ -204,39 +205,40 @@ export default function PostCard({ post, user, hidePublicIcon = false }) {
           )}
         </div>
       )}
-      <Link to={`/post/${post.slug}`} className="post-title-mobile text-xl font-semibold hover:underline flex items-center gap-2 pr-14 sm:pr-16">
-        {post.title}
-        {post.status === 'private' ? (
-          <Lock size={16} className="text-gray-500" title="Bài viết riêng tư - chỉ bạn xem được" />
-        ) : !hidePublicIcon && (
-          <Globe size={16} className="text-green-500" title="Bài viết công khai" />
-        )}
-      </Link>
-      <div className="post-meta-mobile flex items-center gap-4 text-sm text-gray-600 pr-14 sm:pr-16">
+      <div className="flex flex-col gap-1">
+        <Link to={`/post/${post.slug}`} className="text-xl font-semibold hover:underline flex items-center gap-2 pr-14 sm:pr-16 leading-snug">
+          {post.title}
+          {post.status === 'private' ? (
+            <Lock size={16} className="text-gray-500" title="Bài viết riêng tư - chỉ bạn xem được" />
+          ) : !hidePublicIcon && (
+            <Globe size={16} className="text-green-500" title="Bài viết công khai" />
+          )}
+        </Link>
+        <div className="post-meta-mobile flex flex-nowrap items-center gap-x-4 text-sm text-gray-600 px-3 py-2 rounded-md">
         <Link 
           to={`/user/${post.author?._id}`}
-          className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+          className="flex items-center gap-2 hover:text-blue-600 transition-colors min-w-0"
         >
-          <User size={14} />
-          <UserName user={post.author} />
+          <User size={18} />
+          <span className="truncate">{post.author?.name}</span>
+          {post.author?.role && (
+            <VerifiedBadge role={post.author.role} isVerified={post.author.isVerified} />
+          )}
         </Link>
         {post.group && (
           <Link 
             to={`/groups/${post.group._id}`}
-            className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+            className="flex items-center gap-2 hover:text-blue-600 transition-colors min-w-0"
           >
-            <Users size={14} />
-            <span>{post.group.name}</span>
+            <Users size={18} />
+            <span className="truncate">{post.group.name}</span>
           </Link>
         )}
-        <span className="flex items-center gap-1">
-          <Calendar size={14} />
+        <span className="flex items-center gap-2 flex-shrink-0">
+          <Calendar size={18} />
           {new Date(post.createdAt).toLocaleDateString()}
         </span>
-        <span className="flex items-center gap-1">
-          <Eye size={14} />
-          {post.views || 0}
-        </span>
+        </div>
       </div>
 
       {/* Emote bar */}
