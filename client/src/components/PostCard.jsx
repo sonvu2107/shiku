@@ -267,7 +267,7 @@ export default function PostCard({ post, user, hidePublicIcon = false }) {
             setShowEmotePopup(true);
           }}
           onMouseLeave={() => {
-            emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 400);
+            emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 3000);
           }}
         >
           <button className="btn-outline flex items-center gap-2" type="button" onClick={() => setShowEmotePopup(true)}> 
@@ -278,6 +278,13 @@ export default function PostCard({ post, user, hidePublicIcon = false }) {
             <div
               className="absolute bottom-full left-0 mb-2 emote-picker bg-white rounded-xl shadow z-10 border border-gray-200"
               style={{ justifyContent: "center" }}
+              onMouseEnter={() => {
+                if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
+                setShowEmotePopup(true);
+              }}
+              onMouseLeave={() => {
+                emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1000);
+              }}
             >
               {emotes.map(e => (
                 <button key={e} className="emote-btn" type="button" onClick={() => { emote(e); setShowEmotePopup(false); }}>

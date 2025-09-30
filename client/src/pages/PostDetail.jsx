@@ -473,7 +473,7 @@ export default function PostDetail() {
               onMouseLeave={() => {
                 emotePopupTimeout.current = setTimeout(
                   () => setShowEmotePopup(false),
-                  400
+                  3000
                 );
               }}
             >
@@ -488,6 +488,17 @@ export default function PostDetail() {
                 <div
                   className="absolute bottom-full left-0 mb-2 emote-picker bg-white rounded-xl shadow z-10 border"
                   style={{ justifyContent: "center" }}
+                  onMouseEnter={() => {
+                    if (emotePopupTimeout.current)
+                      clearTimeout(emotePopupTimeout.current);
+                    setShowEmotePopup(true);
+                  }}
+                  onMouseLeave={() => {
+                    emotePopupTimeout.current = setTimeout(
+                      () => setShowEmotePopup(false),
+                      3000
+                    );
+                  }}
                 >
                   {emotes.map((e) => (
                     <button
