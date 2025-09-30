@@ -366,7 +366,7 @@ export default function PostDetail() {
                   key={emo}
                   src={`/assets/${emoteMap[emo]}`}
                   alt={emo}
-                  className="w-6 h-6"
+                  className="emote"
                 />
               ))}
             {Object.values(counts).reduce((a, b) => a + b, 0) > 0 && (
@@ -397,7 +397,7 @@ export default function PostDetail() {
                           className={`flex items-center gap-1 px-2 py-1 rounded ${activeTab === emo ? 'bg-white-200' : ''}`}
                           onClick={() => setActiveTab(emo)}
                         >
-                          <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-5 h-5" />
+                          <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="emote" />
                           <span>{counts[emo]}</span>
                         </button>
                       ))}
@@ -465,18 +465,19 @@ export default function PostDetail() {
               </button>
               {showEmotePopup && (
                 <div
-                  className="absolute bottom-full left-0 mb-2 flex gap-2 bg-white p-2 rounded-xl shadow z-10 border"
-                  style={{ minWidth: 340, maxWidth: 400, justifyContent: "center" }}
+                  className="absolute bottom-full left-0 mb-2 emote-picker bg-white rounded-xl shadow z-10 border"
+                  style={{ justifyContent: "center" }}
                 >
                   {emotes.map((e) => (
                     <button
                       key={e}
+                      className="emote-btn"
                       onClick={() => {
                         emote(e);
                         setShowEmotePopup(false);
                       }}
                     >
-                      <img src={`/assets/${emoteMap[e]}`} alt={e} className="w-8 h-8" />
+                      <img src={`/assets/${emoteMap[e]}`} alt={e} className="emote" />
                     </button>
                   ))}
                 </div>

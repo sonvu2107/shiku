@@ -208,8 +208,8 @@ export default function PostCard({ post, user }) {
           {Object.entries(counts)
             .filter(([_, count]) => count > 0)
             .slice(0, 2)
-            .map(([emo]) => (
-              <img key={emo} src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-6 h-6 inline-block align-middle" />
+              .map(([emo]) => (
+              <img key={emo} src={`/assets/${emoteMap[emo]}`} alt={emo} className="emote inline-block align-middle" />
             ))}
           {totalEmotes > 0 && (
             <span className="ml-1 font-semibold text-gray-800 ">{totalEmotes.toLocaleString()}</span>
@@ -235,12 +235,12 @@ export default function PostCard({ post, user }) {
           </button>
           {showEmotePopup && (
             <div
-              className="absolute bottom-full left-0 mb-2 flex gap-2 bg-white p-2 rounded-xl shadow z-10 border border-gray-200 emote-picker-mobile"
-              style={{ minWidth: '280px', maxWidth: '400px', justifyContent: "center" }}
+              className="absolute bottom-full left-0 mb-2 emote-picker bg-white rounded-xl shadow z-10 border border-gray-200"
+              style={{ justifyContent: "center" }}
             >
               {emotes.map(e => (
-                <button key={e} className="hover:scale-110 transition-transform" type="button" onClick={() => { emote(e); setShowEmotePopup(false); }}>
-                  <img src={`/assets/${emoteMap[e]}`} alt={e} className="w-8 h-8" />
+                <button key={e} className="emote-btn" type="button" onClick={() => { emote(e); setShowEmotePopup(false); }}>
+                  <img src={`/assets/${emoteMap[e]}`} alt={e} className="emote" />
                 </button>
               ))}
             </div>
