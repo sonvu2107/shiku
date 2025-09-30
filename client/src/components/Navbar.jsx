@@ -97,7 +97,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           }
           const merged = Array.from(map.values()).sort((a, b) => (b.count || 0) - (a.count || 0) || (b.lastSearchedAt || 0) - (a.lastSearchedAt || 0));
           setSearchHistory(merged);
-          try { localStorage.setItem('searchHistory', JSON.stringify(merged)); } catch (_) {}
+          try { localStorage.setItem('searchHistory', JSON.stringify(merged)); } catch (_) { }
         }
       } catch (_) {
         // ignore if API not available or unauthorized
@@ -110,7 +110,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         try {
           const next = JSON.parse(e.newValue || '[]');
           if (Array.isArray(next)) setSearchHistory(next);
-        } catch (_) {}
+        } catch (_) { }
       }
     };
     window.addEventListener('storage', onStorage);
@@ -204,12 +204,12 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
 
   function saveHistoryLocal(next) {
     setSearchHistory(next);
-    try { localStorage.setItem('searchHistory', JSON.stringify(next)); } catch (_) {}
+    try { localStorage.setItem('searchHistory', JSON.stringify(next)); } catch (_) { }
     // Notify other tabs immediately
     try {
       localStorage.setItem('searchHistory__lastUpdate', String(Date.now()));
       localStorage.removeItem('searchHistory__lastUpdate');
-    } catch (_) {}
+    } catch (_) { }
   }
 
   async function syncHistory(action, payload) {
@@ -354,18 +354,18 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                           .filter(h => !searchQuery.trim() || h.query.toLowerCase().includes(searchQuery.toLowerCase()))
                           .slice(0, 10)
                           .map(item => (
-                          <div key={item.id} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer group"
-                               onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}>
-                            <div className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">•</div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{item.query}</div>
-                              <div className="text-[11px] text-gray-500">{new Date(item.lastSearchedAt).toLocaleDateString('vi-VN')}</div>
+                            <div key={item.id} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer group"
+                              onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}>
+                              <div className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">•</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{item.query}</div>
+                                <div className="text-[11px] text-gray-500">{new Date(item.lastSearchedAt).toLocaleDateString('vi-VN')}</div>
+                              </div>
+                              {historyEditing && (
+                                <button type="button" onMouseDown={(e) => { e.stopPropagation(); deleteHistoryItem(item.id); }} className="text-gray-400 hover:text-red-600">✕</button>
+                              )}
                             </div>
-                            {historyEditing && (
-                              <button type="button" onMouseDown={(e) => { e.stopPropagation(); deleteHistoryItem(item.id); }} className="text-gray-400 hover:text-red-600">✕</button>
-                            )}
-                          </div>
-                        ))}
+                          ))}
                         {historyEditing && (
                           <div className="px-4 py-2">
                             <button type="button" onMouseDown={(e) => { e.stopPropagation(); clearHistory(); }} className="text-red-600 text-xs hover:underline">Xóa tất cả lịch sử</button>
@@ -390,7 +390,9 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                               className="w-8 h-8 rounded-full"
                             />
                             <div className="flex-1">
-                              <div className="font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100">
+                                <UserName user={user} maxLength={20} />
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -432,14 +434,14 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         </div>
 
         {/* CENTER ZONE: Main Menu Icons */}
-    <div className="hidden lg:flex items-center gap-2 justify-center flex-1">
+        <div className="hidden lg:flex items-center gap-2 justify-center flex-1">
           {user && (
             <>
               <Link
                 to="/"
                 className={`p-2 rounded-full transition-colors ${location.pathname === "/"
-                    ? "bg-blue-100 text-blue-600"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 title="Trang chủ"
@@ -449,8 +451,8 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
               <Link
                 to="/explore"
                 className={`p-2 rounded-full transition-colors ${location.pathname === "/explore"
-                    ? "bg-blue-100 text-blue-600"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 title="Khám phá"
               >
@@ -459,8 +461,8 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
               <Link
                 to="/groups"
                 className={`p-2 rounded-full transition-colors ${location.pathname === "/groups"
-                    ? "bg-blue-100 text-blue-600"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 title="Nhóm"
               >
@@ -469,8 +471,8 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
               <Link
                 to="/events"
                 className={`p-2 rounded-full transition-colors ${location.pathname === "/events"
-                    ? "bg-blue-100 text-blue-600"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 title="Sự kiện"
               >
@@ -479,8 +481,8 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
               <Link
                 to="/media"
                 className={`p-2 rounded-full transition-colors ${location.pathname === "/media"
-                    ? "bg-blue-100 text-blue-600"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 title="Kho media"
               >
@@ -542,7 +544,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                   });
                 }} />
                 <NotificationBell user={user} />
-                <div className="relative" onKeyDown={(e)=>{ if(e.key==='Escape') setShowProfileMenu(false); }}>
+                <div className="relative" onKeyDown={(e) => { if (e.key === 'Escape') setShowProfileMenu(false); }}>
                   <button
                     className="flex items-center gap-2 focus:outline-none"
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -554,10 +556,10 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                     />
                   </button>
                   {showProfileMenu && (
-                    <div className="absolute right-0 mt-2 w-64 sm:w-72 bg-white rounded-xl shadow-xl border border-gray-200 z-50 py-3 dropdown-mobile" 
-                         onMouseLeave={()=>{ /* optional */ }}>
+                    <div className="absolute right-0 mt-2 w-64 sm:w-72 bg-white rounded-xl shadow-xl border border-gray-200 z-50 py-3 dropdown-mobile"
+                      onMouseLeave={() => { /* optional */ }}>
                       {/* Click outside closer */}
-                      <div className="fixed inset-0 -z-10" onClick={()=>setShowProfileMenu(false)} />
+                      <div className="fixed inset-0 -z-10" onClick={() => setShowProfileMenu(false)} />
                       <div className="px-5 pb-3 border-b">
                         <div className="flex items-center gap-3">
                           <img
@@ -651,8 +653,8 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                           .slice(0, 10)
                           .map(item => (
                             <div key={item.id}
-                                 className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 cursor-pointer touch-target border-b border-gray-100 dark:border-gray-700 last:border-b-0"
-                                 onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}>
+                              className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 cursor-pointer touch-target border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                              onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}>
                               <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">•</div>
                               <div className="flex-1 min-w-0">
                                 <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{item.query}</div>
@@ -662,7 +664,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                                 <button type="button" onMouseDown={(e) => { e.stopPropagation(); deleteHistoryItem(item.id); }} className="text-gray-400 hover:text-red-600">✕</button>
                               )}
                             </div>
-                        ))}
+                          ))}
                         {historyEditing && (
                           <div className="px-3 py-2">
                             <button type="button" onMouseDown={(e) => { e.stopPropagation(); clearHistory(); }} className="text-red-600 text-xs">Xóa tất cả</button>
@@ -691,7 +693,9 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                               className="w-8 h-8 rounded-full flex-shrink-0"
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{user.name}</div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
+                                <UserName user={user} maxLength={15} />
+                              </div>
                               <div className="text-xs text-gray-500 truncate">{user.email}</div>
                             </div>
                           </div>

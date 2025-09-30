@@ -171,7 +171,9 @@ export default function Profile() {
       password: "", // Luôn reset password field
       location: res.user.location || "",
       website: res.user.website || "",
-      phone: res.user.phone || ""
+      phone: res.user.phone || "",
+      role: res.user.role || "",
+      isVerified: res.user.isVerified || false
     });
   }
 
@@ -461,7 +463,7 @@ export default function Profile() {
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                        {form.name || "Chưa có tên"}
+                        <UserName user={form} />
                       </h1>
                       {form.bio ? (
                         <p className="text-gray-600 dark:text-gray-300 mb-3 text-sm md:text-base">{form.bio}</p>

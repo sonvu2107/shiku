@@ -296,11 +296,6 @@ export default function UserProfile() {
   }
 
   const user = profile.user;
-  const roleIcons = {
-    solo: "/assets/Sung-tick.png",
-    sybau: "/assets/Sybau-tick.png",
-    keeper: "/assets/moxumxue.png",
-  };
 
   return (
     <div className="w-full min-h-screen bg-gray-50">
@@ -339,7 +334,7 @@ export default function UserProfile() {
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 break-words">
                           <UserName user={user} />
                         </h1>
                       </div>
@@ -409,13 +404,13 @@ export default function UserProfile() {
                         })()}
                       </div>
 
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                {user.showJoinDate === false ? null : (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    Tham gia {new Date(user.createdAt).toLocaleDateString("vi-VN")}
-                  </span>
-                )}
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        {user.showJoinDate === false ? null : (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            Tham gia {new Date(user.createdAt).toLocaleDateString("vi-VN")}
+                          </span>
+                        )}
                         {user.isOnline && (
                           <span className="flex items-center gap-1 text-green-600">
                             <div className="w-2 h-2 bg-green-500 rounded-full" />
