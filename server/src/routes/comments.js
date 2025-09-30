@@ -394,16 +394,19 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
 
     const userId = req.user._id;
     
-    // Tìm emote hiện tại của user
+    // Xóa tất cả emote cũ của user (đảm bảo chỉ có 1 emote/user)
+    comment.emotes = comment.emotes.filter(emote => !emote.user.equals(userId));
+    
+    // Tìm emote hiện tại của user với type này
     const existingEmoteIndex = comment.emotes.findIndex(
       emote => emote.user.equals(userId) && emote.type === type
     );
 
     if (existingEmoteIndex >= 0) {
-      // Xóa emote nếu đã tồn tại
+      // Nếu đã có emote này rồi thì xóa (toggle off)
       comment.emotes.splice(existingEmoteIndex, 1);
     } else {
-      // Thêm emote mới
+      // Thêm emote mới (đảm bảo chỉ có 1 emote/user)
       comment.emotes.push({
         user: userId,
         type: type,

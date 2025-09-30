@@ -380,22 +380,28 @@ export default function CommentSection({ postId, initialComments = [], user }) {
     try {
       const res = await api(`/api/comments/${commentId}/emote`, {
         method: "POST",
-        body: { type: emoteType }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: emoteType })
       });
       
       // Cập nhật comment trong state
       setComments(prev =>
         prev.map((comment) =>
           updateCommentInTree(comment, commentId, {
-            emotes: res.comment.emotes,
-            emoteCount: res.emoteCount
+            emotes: res.comment.emotes || 
+              // Fallback: xóa emote cũ của user và thêm emote mới
+              comment.emotes
+                .filter(emote => emote.user._id !== user._id)
+                .concat([{ user: { _id: user._id }, type: emoteType }]),
+            emoteCount: res.emoteCount || comment.emoteCount
           })
         )
       );
       
       setShowEmotePicker(null);
     } catch (error) {
-      // Silent handling for emote adding error
+      console.error('Emote error:', error);
+      alert('Lỗi khi thêm cảm xúc: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -409,7 +415,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
     return (
       <div key={comment._id} className={`${level > 0 ? "ml-4 sm:ml-8 lg:ml-12" : ""}`}>
         {/* Main Comment */}
-        <div className="flex gap-2 sm:gap-3 py-2">
+        <div className="flex gap-2 sm:gap-3 py-0 sm:py-2">
           <img
             src={
               comment.author?.avatarUrl ||
@@ -421,7 +427,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
           />
           <div className="flex-1 min-w-0">
-            <div className="bg-gray-100 rounded-2xl px-3 sm:px-4 py-2">
+            <div className="bg-gray-100 rounded-2xl px-2 sm:px-4 py-1.5 sm:py-2">
               <div className="font-semibold text-xs sm:text-sm text-gray-900 flex items-center gap-1">
                   <UserName user={comment.author} maxLength={20} />
               </div>
@@ -502,7 +508,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
             </div>
 
             {/* Comment Actions with Like and Emote */}
-            <div className="flex items-center gap-2 sm:gap-4 mt-1 ml-2 sm:ml-4 flex-wrap">
+            <div className="flex items-center gap-0.5 sm:gap-2 mt-0 ml-1 sm:ml-2 flex-wrap comment-actions-mobile">
               <span className="text-xs text-gray-500">
                 {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
               </span>
@@ -510,49 +516,81 @@ export default function CommentSection({ postId, initialComments = [], user }) {
               {/* Like Button */}
               <button
                 onClick={() => handleLikeComment(comment._id)}
-                className={`flex items-center gap-1 text-xs transition-colors touch-target ${
+                className={`flex items-center gap-0.5 text-xs transition-colors touch-target ${
                   comment.likes?.some(like => like._id === user?._id) 
                     ? 'text-blue-600 font-medium' 
                     : 'text-gray-600 hover:text-blue-600'
                 }`}
               >
-                <ThumbsUp size={12} className={`sm:w-3.5 sm:h-3.5 ${comment.likes?.some(like => like._id === user?._id) ? 'fill-current' : ''}`} />
-                {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
+                <ThumbsUp size={10} className={`sm:w-3.5 sm:h-3.5 ${comment.likes?.some(like => like._id === user?._id) ? 'fill-current' : ''}`} />
+                {comment.likeCount > 0 && <span className="text-xs">{comment.likeCount}</span>}
               </button>
 
               {/* Emote Button */}
               <div className="relative">
                 <button
-                  onClick={() => setShowEmotePicker(showEmotePicker === comment._id ? null : comment._id)}
-                  className={`flex items-center gap-1 text-xs transition-colors touch-target ${
-                    comment.emotes?.some(emote => emote.user._id === user?._id) 
+                  onClick={() => {
+                    setShowEmotePicker(showEmotePicker === comment._id ? null : comment._id);
+                  }}
+                  className={`flex items-center gap-0.5 text-xs transition-colors touch-target ${
+                    (comment.emotes?.filter(emote => emote.user._id === user?._id) || []).length > 0
                       ? 'text-red-600 font-medium' 
                       : 'text-gray-600 hover:text-red-600'
                   }`}
                 >
-                  <Smile size={12} className="sm:w-3.5 sm:h-3.5" />
-                  {comment.emoteCount > 0 && <span>{comment.emoteCount}</span>}
+                  <Smile size={10} className="sm:w-3.5 sm:h-3.5" />
+                  {comment.emoteCount > 0 && <span className="text-xs">{comment.emoteCount}</span>}
                 </button>
 
                 {/* Emote Picker */}
                 {showEmotePicker === comment._id && (
-                  <div className="absolute top-6 left-0 right-0 sm:right-auto bg-white border rounded-lg shadow-lg p-2 z-50 emote-picker emote-picker-mobile max-w-[calc(100vw-2rem)] sm:max-w-none">
-                    <div className="flex gap-1 flex-wrap justify-center sm:justify-start">
+                  <div 
+                    className="emote-picker"
+                    style={{
+                      position: 'absolute',
+                      top: '1.75rem',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      zIndex: 9999,
+                      background: 'white',
+                      border: '2px solid #3b82f6',
+                      borderRadius: '12px',
+                      padding: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      minWidth: '200px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                       {Object.entries(emoteConfig).map(([type, config]) => {
                         const Icon = config.icon;
-                        const isActive = comment.emotes?.some(emote => emote.user._id === user?._id && emote.type === type);
+                      // Chỉ hiển thị active nếu user có emote này và không có emote khác
+                      const userEmotes = comment.emotes?.filter(emote => emote.user._id === user?._id) || [];
+                      const isActive = userEmotes.length === 1 && userEmotes[0]?.type === type;
                         return (
                           <button
                             key={type}
-                            onClick={() => handleEmoteComment(comment._id, type)}
-                            className={`p-1.5 sm:p-1 rounded-full transition-colors touch-target flex-shrink-0 ${
+                            onClick={() => {
+                              handleEmoteComment(comment._id, type);
+                            }}
+                            className={`comment-emote-btn ${config.color} ${
                               isActive 
-                                ? `${config.bgColor} ${config.color}` 
+                                ? `${config.bgColor} ring-2 ring-current ring-opacity-30` 
                                 : 'hover:bg-gray-100 active:bg-gray-200'
                             }`}
                             title={type}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: 'none',
+                              cursor: 'pointer',
+                              transition: 'transform 0.15s ease'
+                            }}
                           >
-                            <Icon size={16} className="sm:w-4 sm:h-4" />
+                            <Icon size={16} className="sm:w-5 sm:h-5" />
                           </button>
                         );
                       })}
@@ -567,7 +605,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                     setReplyingTo(comment._id);
                     setReplyContent(`@${comment.author?.name} `);
                   }}
-                  className="text-xs text-gray-600 hover:text-blue-600 font-semibold touch-target"
+                  className="text-xs text-gray-600 hover:text-blue-600 font-semibold touch-target px-0.5 py-0.5"
                 >
                   Phản hồi
                 </button>
@@ -579,9 +617,9 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                       showDropdown === comment._id ? null : comment._id
                     )
                   }
-                  className="text-xs text-gray-600 hover:text-gray-800 touch-target"
+                  className="text-xs text-gray-600 hover:text-gray-800 touch-target px-0.5 py-0.5"
                 >
-                  <MoreHorizontal size={12} className="sm:w-3.5 sm:h-3.5" />
+                  <MoreHorizontal size={10} className="sm:w-3.5 sm:h-3.5" />
                 </button>
 
                 {showDropdown === comment._id && (
@@ -620,20 +658,20 @@ export default function CommentSection({ postId, initialComments = [], user }) {
 
             {/* Emote Display */}
             {comment.emotes && comment.emotes.length > 0 && (
-              <div className={`mt-2 ml-2 sm:ml-4 emote-display ${level > 0 ? 'comment-nested' : ''}`}>
+              <div className={`mt-1 flex flex-wrap gap-1 emote-display ${level > 0 ? 'comment-nested' : ''}`}>
                 {Object.entries(emoteConfig).map(([type, config]) => {
                   const typeEmotes = comment.emotes.filter(emote => emote.type === type);
                   if (typeEmotes.length === 0) return null;
                   
                   const Icon = config.icon;
                   return (
-                    <div
+                    <span
                       key={type}
-                      className={`emote-item inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${config.bgColor} ${config.color}`}
+                      className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full ${config.bgColor} ${config.color}`}
                     >
-                      <Icon size={12} className="sm:w-3 sm:h-3" />
+                      <Icon size={12} />
                       <span>{typeEmotes.length}</span>
-                    </div>
+                    </span>
                   );
                 })}
               </div>
@@ -643,12 +681,12 @@ export default function CommentSection({ postId, initialComments = [], user }) {
             {hasReplies && (
               <button
                 onClick={() => toggleReplies(comment._id)}
-                className="flex items-center gap-1 sm:gap-2 mt-2 ml-2 sm:ml-4 text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-800 touch-target"
+                className="flex items-center gap-0.5 sm:gap-2 mt-0 ml-1 sm:ml-2 text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-800 touch-target comment-reply-toggle"
               >
                 {isExpanded ? (
-                  <ChevronUp size={14} className="sm:w-4 sm:h-4" />
+                  <ChevronUp size={12} className="sm:w-4 sm:h-4" />
                 ) : (
-                  <ChevronDown size={14} className="sm:w-4 sm:h-4" />
+                  <ChevronDown size={12} className="sm:w-4 sm:h-4" />
                 )}
                 <span className="hidden sm:inline">
                   {isExpanded ? "Ẩn phản hồi" : `${comment.replies.length} phản hồi`}
@@ -665,7 +703,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                 onSubmit={(e) =>
                   handleSubmitReply(e, comment._id, comment.author)
                 }
-                className="mt-3 ml-2 sm:ml-4"
+                className="mt-0.5 ml-1 sm:ml-2"
               >
                 <div className="flex gap-2">
                   <img
@@ -722,7 +760,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
 
             {/* Nested Replies */}
             {isExpanded && hasReplies && (
-              <div className="mt-3">
+              <div className="mt-0.5">
                 {comment.replies.map((reply) =>
                   renderComment(reply, level + 1)
                 )}
@@ -744,7 +782,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
 
   return (
     <ComponentErrorBoundary>
-      <div className="max-w-4xl mx-auto space-y-4 px-3 sm:px-0 comment-section-mobile">
+      <div className="max-w-4xl mx-auto space-y-1 sm:space-y-4 px-3 sm:px-0 comment-section-mobile">
       {/* Comment Input */}
       <form onSubmit={handleSubmitComment} className="space-y-3">
         <div className="flex gap-2 sm:gap-3">
@@ -789,7 +827,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       </form>
 
       {/* Comments List */}
-      <div className="space-y-2">
+      <div className="space-y-0.5 sm:space-y-2">
         {comments.length > 0 ? (
           comments.map((comment) => renderComment(comment))
         ) : (

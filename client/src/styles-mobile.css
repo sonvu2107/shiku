@@ -36,24 +36,12 @@
   
   /* Post cards mobile */
   .post-card-mobile {
-    @apply mx-2 p-3 gap-2;
+    @apply mx-2;
   }
   
   .post-card-mobile .aspect-ratio {
-    @apply aspect-[4/3] rounded-lg;
+    @apply aspect-[4/3];
   }
-
-  /* Post title clamp and spacing on mobile */
-  .post-card-mobile .post-title-mobile {
-    @apply text-base leading-snug font-semibold;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* Meta row tighter */
-  .post-card-mobile .post-meta-mobile { @apply text-xs gap-2; }
   
   /* Form inputs mobile */
   .input-mobile {
@@ -76,16 +64,15 @@
   }
   
   /* Emote picker mobile */
-  .emote-picker-mobile {
-    @apply w-full max-w-[calc(100vw-2rem)] grid-cols-6;
-  }
-  
   .emote-picker {
-    @apply max-w-[calc(100vw-4rem)] right-0 left-auto;
-  }
-  
-  .emote-picker .flex {
-    @apply flex-wrap gap-0.5;
+    left: 0;
+    right: 0;
+    transform: none;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: calc(100vw - 1rem);
+    padding: 8px;
+    gap: 4px;
   }
 }
 
@@ -207,11 +194,6 @@
 }
 
 /* ==================== EMOTE PICKER ==================== */
-.emote-picker-mobile {
-  @apply max-w-full;
-  min-width: 200px;
-  max-width: calc(100vw - 2rem);
-}
 
 @media (max-width: 640px) {
   .comment-section-mobile {
@@ -246,16 +228,6 @@
     max-width: 50px;
   }
   
-  /* Emote picker mobile fixes */
-  .emote-picker-mobile {
-    @apply left-0 right-0;
-    max-width: calc(100vw - 1rem);
-    transform: translateX(0);
-  }
-  
-  .emote-picker-mobile .flex {
-    @apply justify-center;
-  }
 }
 
 /* ==================== ADMIN DASHBOARD MOBILE ==================== */
