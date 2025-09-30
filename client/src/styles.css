@@ -1,3 +1,5 @@
+@import './styles-mobile.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,9 +11,6 @@ body { @apply bg-gray-50 text-gray-900; }
 .btn-outline { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50; }
 input, textarea { @apply w-full rounded-xl border border-gray-300 px-3 py-2; }
 label { @apply text-sm font-medium text-gray-700; }
-
-/* Mobile Optimizations */
-@import './styles-mobile.css';
 
 /* Dark mode globals */
 .dark body { @apply bg-gray-900 text-gray-100; }
