@@ -273,7 +273,7 @@ export default function Home({ user }) {
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold text-gray-900">Bảng tin</h2>
@@ -334,21 +334,20 @@ export default function Home({ user }) {
           </div>
 
           {/* Center Column - Main Feed (luôn hiển thị) */}
-          <div className="flex-1 w-full lg:max-w-2xl lg:mx-0">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="flex-1 w-full lg:max-w-2xl lg:mx-0 space-y-4">
             {/* Stories Section */}
-            <div className="border-b border-gray-200">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <Stories user={user} />
             </div>
 
             {/* Post Creator */}
-            <div className="border-b border-gray-200">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <PostCreator user={user} />
             </div>
 
             {/* Posts Feed */}
             {loading ? (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {[1, 2, 3].map(i => (
                   <LoadingSkeleton key={i} />
                 ))}
@@ -368,7 +367,7 @@ export default function Home({ user }) {
                 </button>
               </div>
             ) : items.length > 0 ? (
-              <div className="space-y-0">
+              <div className="space-y-4">
                 {items.map((post, index) => {
                   const isLastPost = index === items.length - 1;
                   
@@ -376,9 +375,9 @@ export default function Home({ user }) {
                     <div
                       key={post._id}
                       ref={isLastPost ? lastPostElementRef : null}
-                      className={`${index < items.length - 1 ? 'border-b border-gray-200' : ''} hover:bg-gray-50 transition-colors duration-200`}
+                      className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden"
                     >
-                      <PostCard post={post} user={user} onUpdate={loadInitial} />
+                      <PostCard post={post} user={user} onUpdate={loadInitial} hidePublicIcon={true} />
                     </div>
                   );
                 })}
@@ -454,7 +453,6 @@ export default function Home({ user }) {
                 <p className="text-gray-500">Hãy là người đầu tiên chia sẻ điều gì đó thú vị!</p>
               </div>
             )}
-            </div>
           </div>
 
           {/* Right Sidebar - Online Friends (ẩn trên mobile, hiện từ lg trở lên) */}

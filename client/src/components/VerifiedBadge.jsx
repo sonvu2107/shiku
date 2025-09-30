@@ -8,7 +8,7 @@ const roleIcons = {
   moxumxue: "/assets/moxumxue.png",       // Huy hiệu Moxumxue
   admin: "/assets/admin.jpg",             // Huy hiệu Admin
   gay: "/assets/gay.png",                 // Huy hiệu Gay
-  special: "/assets/special-user.jpg",      // Huy hiệu Special 
+  special: "/assets/special-user.jpg",    // Huy hiệu Special 
 };
 
 /**
@@ -16,12 +16,12 @@ const roleIcons = {
  * Mỗi role có một tooltip riêng biệt
  */
 const roleTooltips = {
-  sololeveling: "Solo Leveling - Anh Sung Solo Leveling!",
-  sybau: "Sybau - Ahh Sybau!",
-  moxumxue: "Moxumxue - Fan anh Bộ Pi CiCi!",
-  admin: "Admin - Quản trị viên hệ thống",
-  gay: "Gay - Thành viên cộng đồng LGBTQ+",
-  special: "Special - Huy hiệu đặc biệt",
+  sololeveling: "Solo Leveling",
+  sybau: "Ahh Sybau",
+  moxumxue: "Fan anh Ộ I I",
+  admin: "Admin",
+  gay: "Thành viên cộng đồng LGBTQ+",
+  special: "Người dùng đặc biệt",
 };
 
 /**
@@ -46,7 +46,7 @@ export default function VerifiedBadge({ role, isVerified }) {
       <img 
         src={icon} 
         alt="Verified" 
-        className="w-6 h-6 rounded-full align-middle" 
+        className="w-4 h-4 rounded-full align-middle" 
       />
       {/* Tooltip hiển thị khi hover */}
       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1

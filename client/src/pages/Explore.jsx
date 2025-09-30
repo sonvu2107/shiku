@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
 import { Search, Users, Calendar, Image, MessageCircle, Heart, MessageSquare } from "lucide-react";
+import UserName from "../components/UserName";
 
 /**
  * Explore - Trang khám phá nội dung
@@ -148,7 +149,9 @@ export default function Explore() {
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
-                            <span className="font-semibold text-gray-900 text-sm sm:text-base truncate">{post.author?.name}</span>
+                            <span className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                              <UserName user={post.author} maxLength={20} />
+                            </span>
                             <span className="text-gray-500 text-xs sm:text-sm hidden sm:inline">•</span>
                             <span className="text-gray-500 text-xs sm:text-sm">
                               {new Date(post.createdAt).toLocaleDateString()}
@@ -196,7 +199,9 @@ export default function Explore() {
                           className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex-shrink-0"
                         />
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{user.name}</h3>
+                          <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                            <UserName user={user} maxLength={20} />
+                          </h3>
                           <p className="text-gray-500 text-xs sm:text-sm truncate">{user.email}</p>
                         </div>
                         <Link

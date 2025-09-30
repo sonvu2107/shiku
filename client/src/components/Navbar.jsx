@@ -315,7 +315,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
   return (
     // Main navbar container - fixed top với shadow
     <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 fixed top-0 left-0 w-full z-50 shadow navbar-mobile">
-      <div className="w-full max-w-none px-3 sm:px-6 py-1 sm:py-3 flex items-center">
+      <div className="w-full max-w-none px-3 sm:px-6 py-1 sm:py-2 flex items-center">
         {/* LEFT ZONE: Logo + Search */}
         <div className="flex items-center gap-2 flex-1">
           <Link to="/" className="font-bold text-xl flex items-center gap-2 text-gray-900 dark:text-gray-100">

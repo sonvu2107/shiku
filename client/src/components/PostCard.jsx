@@ -19,7 +19,7 @@ import LazyImage from "./LazyImage";
  * @param {Array} post.files - Media files đính kèm
  * @param {string} post.status - Trạng thái (published/private)
  */
-export default function PostCard({ post, user }) {
+export default function PostCard({ post, user, hidePublicIcon = false }) {
   // ==================== STATE & REFS ====================
   const navigate = useNavigate();
   // Note: User data should be passed as prop or obtained from context
@@ -208,7 +208,7 @@ export default function PostCard({ post, user }) {
         {post.title}
         {post.status === 'private' ? (
           <Lock size={16} className="text-gray-500" title="Bài viết riêng tư - chỉ bạn xem được" />
-        ) : (
+        ) : !hidePublicIcon && (
           <Globe size={16} className="text-green-500" title="Bài viết công khai" />
         )}
       </Link>

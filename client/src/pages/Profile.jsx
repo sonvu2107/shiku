@@ -896,7 +896,7 @@ export default function Profile() {
                         key={post._id}
                         className="bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors overflow-hidden"
                       >
-                        <PostCard post={post} user={user} onUpdate={loadPosts} />
+                        <PostCard post={post} user={user} onUpdate={loadPosts} hidePublicIcon={true} />
                       </div>
                     ))}
                   </div>
