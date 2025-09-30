@@ -38,6 +38,7 @@ import mediaRoutes from "./routes/media.js"; // Media routes
 import apiMonitoringRoutes, { trackAPICall } from "./routes/apiMonitoring.js"; // API Monitoring routes
 import sitemapRoutes from "./routes/sitemap.js"; // Sitemap routes
 import searchHistoryRoutes from "./routes/searchHistory.js"; // Search history routes
+import storyRoutes from "./routes/stories.js"; // Stories routes
 
 // Load environment variables
 dotenv.config();
@@ -365,6 +366,7 @@ app.use("/api/media", mediaRoutes); // Media
 app.use("/api/api-monitoring", apiLimiter, apiMonitoringRoutes); // API Monitoring with rate limiting
 app.use("/api/sitemap", sitemapRoutes); // Sitemap generation
 app.use("/api/search", searchHistoryRoutes); // Search history
+app.use("/api/stories", apiLimiter, storyRoutes); // Stories with rate limiting
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);

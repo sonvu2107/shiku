@@ -35,6 +35,7 @@ import EventDetail from "./pages/EventDetail.jsx";
 import EditEvent from "./pages/EditEvent.jsx";
 import Media from "./pages/Media.jsx";
 import ApiTester from "./pages/ApiTester.jsx";
+import Saved from "./pages/Saved.jsx";
 
 // Import các utilities và services
 import { api } from "./api.js";
@@ -235,6 +236,7 @@ export default function App() {
             <Route path="/events/:id" element={<ProtectedRoute user={user}><EventDetail /></ProtectedRoute>} />
             <Route path="/events/:id/edit" element={<ProtectedRoute user={user}><EditEvent /></ProtectedRoute>} />
             <Route path="/media" element={<ProtectedRoute user={user}><Media /></ProtectedRoute>} />
+            <Route path="/saved" element={<ProtectedRoute user={user}><Saved /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute user={user}><NotificationHistory /></ProtectedRoute>} />
             
             {/* Trang admin */}

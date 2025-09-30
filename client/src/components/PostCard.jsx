@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Calendar, Eye, MessageCircle, Lock, Globe, ThumbsUp, Users } from "lucide-react";
+import { User, Calendar, Eye, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "../api";
 import { deduplicatedApi } from "../utils/requestDeduplication.js";
 import UserName from "./UserName";
@@ -105,6 +105,19 @@ export default function PostCard({ post, user }) {
   // ==================== EMOTE SYSTEM ====================
   
   const [emotesState, setEmotesState] = useState(post.emotes || []); // Local emote state
+  const [saved, setSaved] = useState(false);
+
+  // Load saved state
+  React.useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await api(`/api/posts/${post._id}/is-saved`);
+        if (active) setSaved(!!res.saved);
+      } catch (_) {}
+    })();
+    return () => { active = false; };
+  }, [post._id]);
 
   /**
    * Thêm/xóa emote cho bài viết
@@ -121,6 +134,15 @@ export default function PostCard({ post, user }) {
       }
     } catch (e) {
       alert(e.message);
+    }
+  }
+
+  async function toggleSave() {
+    try {
+      const res = await api(`/api/posts/${post._id}/save`, { method: "POST" });
+      setSaved(!!res.saved);
+    } catch (e) {
+      alert(e.message || "Không thể lưu bài viết");
     }
   }
 
@@ -149,7 +171,22 @@ export default function PostCard({ post, user }) {
 
   return (
     <ComponentErrorBoundary>
-      <div className="card flex flex-col gap-2 post-card-mobile">
+      <div className="card relative flex flex-col gap-2 post-card-mobile">
+      {/* Save icon button (top-right) */}
+      <button
+        className="group absolute z-10 top-2 right-2 sm:top-3 sm:right-3 w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-white/90 hover:bg-white border border-gray-200 shadow active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-300 touch-manipulation dark:bg-gray-800/80 dark:hover:bg-gray-800 dark:border-gray-700"
+        type="button"
+        onClick={toggleSave}
+        title={saved ? "Bỏ lưu" : "Lưu bài"}
+        aria-label={saved ? "Bỏ lưu" : "Lưu bài"}
+        aria-pressed={saved}
+      >
+        {saved ? (
+          <BookmarkCheck size={20} className="text-blue-600 dark:text-blue-400 transition-colors group-hover:text-blue-700 dark:group-hover:text-blue-300" />
+        ) : (
+          <Bookmark size={20} className="text-gray-700 dark:text-gray-200 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-300" />
+        )}
+      </button>
       {displayMedia && (
         <div className="w-full aspect-[16/10] sm:aspect-[16/10] aspect-ratio overflow-hidden rounded-xl">
           {displayMedia.type === "video" ? (
@@ -167,7 +204,7 @@ export default function PostCard({ post, user }) {
           )}
         </div>
       )}
-      <Link to={`/post/${post.slug}`} className="text-xl font-semibold hover:underline flex items-center gap-2">
+      <Link to={`/post/${post.slug}`} className="post-title-mobile text-xl font-semibold hover:underline flex items-center gap-2 pr-14 sm:pr-16">
         {post.title}
         {post.status === 'private' ? (
           <Lock size={16} className="text-gray-500" title="Bài viết riêng tư - chỉ bạn xem được" />
@@ -175,7 +212,7 @@ export default function PostCard({ post, user }) {
           <Globe size={16} className="text-green-500" title="Bài viết công khai" />
         )}
       </Link>
-      <div className="flex items-center gap-4 text-sm text-gray-600">
+      <div className="post-meta-mobile flex items-center gap-4 text-sm text-gray-600 pr-14 sm:pr-16">
         <Link 
           to={`/user/${post.author?._id}`}
           className="flex items-center gap-1 hover:text-blue-600 transition-colors"
@@ -246,14 +283,16 @@ export default function PostCard({ post, user }) {
             </div>
           )}
         </div>
-        <button
-          className="btn-outline flex items-center gap-2"
-          type="button"
-          onClick={() => navigate(`/post/${post.slug}`)}
-        >
-          <MessageCircle size={18} />
-          <span>Bình luận</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className="btn-outline flex items-center gap-2"
+            type="button"
+            onClick={() => navigate(`/post/${post.slug}`)}
+          >
+            <MessageCircle size={18} />
+            <span>Bình luận</span>
+          </button>
+        </div>
       </div>
 
       {/* Action buttons for post owner and admin */}

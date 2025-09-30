@@ -335,10 +335,8 @@ export default function Home({ user }) {
 
           {/* Center Column - Main Feed (luôn hiển thị) */}
           <div className="flex-1 max-w-2xl mx-auto lg:mx-0">
-            {/* Stories Section - ẩn trên mobile */}
-            <div className="hidden lg:block">
-              <Stories user={user} />
-            </div>
+            {/* Stories Section */}
+            <Stories user={user} />
 
             {/* Post Creator */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 overflow-hidden">

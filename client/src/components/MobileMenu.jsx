@@ -14,7 +14,8 @@ import {
   Crown,
   Compass,
   Calendar,
-  Image
+  Image,
+  Bookmark
 } from "lucide-react";
 
 /**
@@ -45,6 +46,7 @@ export default function MobileMenu({ user, setUser }) {
     { icon: Compass, label: "Khám phá", path: "/explore", show: true },
     { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
     { icon: Image, label: "Media", path: "/media", show: true },
+    { icon: Bookmark, label: "Bài đã lưu", path: "/saved", show: true },
     { icon: Users, label: "Bạn bè", path: "/friends", show: true },
     { icon: UserCheck, label: "Nhóm", path: "/groups", show: true },
     { icon: MessageCircle, label: "Chat", path: "/chat", show: true },

@@ -4,7 +4,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { api } from "../api";
 import ReactMarkdown from "react-markdown";
 import CommentSection from "../components/CommentSection";
-import { Expand, X, Eye, Lock, Globe, ThumbsUp } from "lucide-react";
+import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck } from "lucide-react";
 import UserName from "../components/UserName";
 
 /**
@@ -93,12 +93,24 @@ export default function PostDetail() {
   const emotes = Object.keys(emoteMap);
   const [showEmotePopup, setShowEmotePopup] = React.useState(false);
   const emotePopupTimeout = React.useRef();
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!data || data.post?.slug !== slug) {
       load();
     }
   }, [slug]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (data?.post?._id) {
+          const res = await api(`/api/posts/${data.post._id}/is-saved`);
+          setSaved(!!res.saved);
+        }
+      } catch (_) {}
+    })();
+  }, [data?.post?._id]);
 
   useEffect(() => {
     api("/api/auth/me")
@@ -157,6 +169,15 @@ export default function PostDetail() {
       await load();
     } catch (e) {
       alert(e.message);
+    }
+  }
+
+  async function toggleSave() {
+    try {
+      const res = await api(`/api/posts/${data.post._id}/save`, { method: "POST" });
+      setSaved(!!res.saved);
+    } catch (e) {
+      alert(e.message || "Không thể lưu bài viết");
     }
   }
 
@@ -483,6 +504,17 @@ export default function PostDetail() {
                 </div>
               )}
             </div>
+
+            {/* Save */}
+            <button
+              className="btn-outline flex items-center gap-2"
+              type="button"
+              onClick={toggleSave}
+              title={saved ? "Bỏ lưu" : "Lưu bài"}
+            >
+              {saved ? <BookmarkCheck size={18} className="text-blue-600" /> : <Bookmark size={18} />}
+              <span>{saved ? "Đã lưu" : "Lưu"}</span>
+            </button>
 
             {/* Toggle / Edit / Delete */}
             {/* Đã gộp vào menu 3 chấm */}

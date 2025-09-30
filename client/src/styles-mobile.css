@@ -36,12 +36,24 @@
   
   /* Post cards mobile */
   .post-card-mobile {
-    @apply mx-2;
+    @apply mx-2 p-3 gap-2;
   }
   
   .post-card-mobile .aspect-ratio {
-    @apply aspect-[4/3];
+    @apply aspect-[4/3] rounded-lg;
   }
+
+  /* Post title clamp and spacing on mobile */
+  .post-card-mobile .post-title-mobile {
+    @apply text-base leading-snug font-semibold;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Meta row tighter */
+  .post-card-mobile .post-meta-mobile { @apply text-xs gap-2; }
   
   /* Form inputs mobile */
   .input-mobile {

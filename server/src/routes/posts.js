@@ -583,4 +583,80 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
   }
 });
 
+// ==================== SAVED POSTS ====================
+
+// Toggle save/unsave a post
+router.post("/:id/save", authRequired, async (req, res, next) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ error: "Post ID không hợp lệ" });
+    }
+
+    const post = await Post.findById(postId).select("_id status author");
+    if (!post) return res.status(404).json({ error: "Không tìm thấy bài viết" });
+
+    // Optional: If post is private and not owner, do not allow save
+    if (post.status === "private" && post.author.toString() !== userId.toString()) {
+      return res.status(403).json({ error: "Không thể lưu bài viết riêng tư của người khác" });
+    }
+
+    const user = await User.findById(userId).select("savedPosts");
+    const alreadySaved = user.savedPosts?.some(id => id.toString() === postId);
+
+    if (alreadySaved) {
+      user.savedPosts = user.savedPosts.filter(id => id.toString() !== postId);
+    } else {
+      user.savedPosts = user.savedPosts || [];
+      user.savedPosts.unshift(postId);
+    }
+
+    await user.save();
+    res.json({ saved: !alreadySaved });
+  } catch (e) { next(e); }
+});
+
+// Check if a post is saved by current user
+router.get("/:id/is-saved", authRequired, async (req, res, next) => {
+  try {
+    const postId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ error: "Post ID không hợp lệ" });
+    }
+    const user = await User.findById(req.user._id).select("savedPosts");
+    const saved = (user.savedPosts || []).some(id => id.toString() === postId);
+    res.json({ saved });
+  } catch (e) { next(e); }
+});
+
+// Get saved posts list
+router.get("/saved/list", authRequired, async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const user = await User.findById(req.user._id).select("savedPosts");
+    const ids = (user.savedPosts || []).map(id => id.toString());
+
+    const start = (parseInt(page) - 1) * parseInt(limit);
+    const end = start + parseInt(limit);
+    const pageIds = ids.slice(start, end);
+
+    const posts = await Post.find({ _id: { $in: pageIds } })
+      .populate("author", "name avatarUrl")
+      .populate("group", "name")
+      .sort({ createdAt: -1 });
+
+    res.json({
+      posts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: ids.length,
+        pages: Math.ceil(ids.length / parseInt(limit))
+      }
+    });
+  } catch (e) { next(e); }
+});
+
 export default router;

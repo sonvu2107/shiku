@@ -1,212 +1,107 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Play, Image as ImageIcon, Image } from 'lucide-react';
+import { Plus, Play } from 'lucide-react';
 import { api } from '../api';
+import StoryCreator from './StoryCreator';
+import StoryViewer from './StoryViewer';
 
-// Component tạo bài viết đơn giản cho modal
-function PostCreatorModal({ user, onClose }) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [files, setFiles] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [err, setErr] = useState("");
+/**
+ * Stories - Component hiển thị stories như Instagram/Facebook
+ * Stories tự động xóa sau 24h, có view count và reactions
+ */
+export default function Stories({ user }) {
+  const [storiesGroups, setStoriesGroups] = useState([]); // Grouped by user
+  const [myStories, setMyStories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showStoryCreator, setShowStoryCreator] = useState(false);
+  const [selectedStoryGroup, setSelectedStoryGroup] = useState(null);
+  const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!title.trim() || !content.trim()) {
-      setErr("Vui lòng nhập tiêu đề và nội dung");
-      return;
+  useEffect(() => {
+    if (user) {
+      loadStories();
     }
+  }, [user]);
 
-    setLoading(true);
+  /**
+   * Load stories feed (của bạn bè và chính mình)
+   */
+  const loadStories = async () => {
     try {
-      const response = await api("/api/posts", {
-        method: "POST",
-        body: { 
-          title, 
-          content, 
-          files,
-          status: "published",
-          tags: [],
-          group: null
-        }
-      });
+      setLoading(true);
       
-      // Reset form và đóng modal
-      setTitle("");
-      setContent("");
-      setFiles([]);
-      setErr("");
-      onClose();
+      // Load stories feed
+      const feedResponse = await api('/api/stories/feed');
+      console.log('🔍 Stories Feed Response:', feedResponse);
+      if (feedResponse.storiesGroups) {
+        console.log('📚 Stories Groups:', feedResponse.storiesGroups);
+        console.log('📚 First Group _id type:', typeof feedResponse.storiesGroups[0]?._id);
+        console.log('📚 First Group _id value:', feedResponse.storiesGroups[0]?._id);
+        setStoriesGroups(feedResponse.storiesGroups);
+      }
       
-      // Reload trang để hiển thị bài viết mới
-      window.location.reload();
+      // Load my stories riêng để hiển thị
+      const myResponse = await api('/api/stories/my/all');
+      if (myResponse.stories) {
+        setMyStories(myResponse.stories);
+      }
     } catch (error) {
-      setErr(error.message);
+      console.error('Error loading stories:', error);
     } finally {
       setLoading(false);
     }
   };
 
   /**
-   * Xử lý upload multiple files (images/videos)
-   * @param {Event} e - File input change event
+   * Callback khi tạo story thành công
    */
-  const handleFilesUpload = async (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    if (!selectedFiles.length) return;
+  const handleStoryCreated = (newStory) => {
+    // Thêm vào my stories
+    setMyStories(prev => [newStory, ...prev]);
     
-    setUploading(true);
-    try {
-      // Tạo FormData cho multiple files
-      const formData = new FormData();
-      selectedFiles.forEach(f => formData.append("files", f));
-
-      // Upload files qua api helper với FormData
-      const data = await api("/api/uploads/media", {
-        method: "POST",
-        body: formData
-      });
-      
-      // Thêm files đã upload vào state
-      if (data.files) {
-        setFiles(prev => [...prev, ...data.files]);
-      }
-    } catch (error) {
-      setErr("Lỗi upload file: " + error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Tiêu đề */}
-      <div>
-        <input
-          type="text"
-          placeholder="Tiêu đề bài viết..."
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
-        />
-      </div>
-
-      {/* Nội dung */}
-      <div>
-        <textarea
-          placeholder="Bạn đang nghĩ gì?"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px] resize-none"
-          required
-        />
-      </div>
-
-      {/* Upload section: ảnh/video + preview */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex-1">
-          <label className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-            <Image size={18} />
-            <span>{uploading ? "Đang tải..." : "Thêm ảnh/video"}</span>
-            <input
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              onChange={handleFilesUpload}
-              disabled={uploading}
-              className="hidden"
-            />
-          </label>
-        </div>
-        {files.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
-            {files.map((f, idx) => (
-              <div key={idx} className="relative">
-                {f.type === "image" ? (
-                  <img src={f.url} alt="preview" className="w-16 h-16 object-cover rounded-lg" />
-                ) : (
-                  <video src={f.url} controls className="w-16 h-16 object-cover rounded-lg" />
-                )}
-                <button
-                  type="button"
-                  onClick={() => setFiles(files.filter((_, i) => i !== idx))}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 transition-colors"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {err && (
-        <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
-          {err}
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="flex justify-end gap-2 pt-4">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-        >
-          Hủy
-        </button>
-        <button
-          type="submit"
-          disabled={loading || !title.trim() || !content.trim()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? "Đang đăng..." : "Đăng bài"}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-/**
- * Stories - Component hiển thị stories như Facebook
- * Bao gồm tạo story mới và xem stories của bạn bè
- */
-export default function Stories({ user }) {
-  const [stories, setStories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showPostCreator, setShowPostCreator] = useState(false);
-
-  useEffect(() => {
+    // Reload để cập nhật feed
     loadStories();
-  }, []);
-
-  const loadStories = async () => {
-    try {
-      setLoading(true);
-      // Load stories từ API (có thể là posts gần đây hoặc stories thực tế)
-      const response = await api('/api/posts?limit=8&status=published');
-      if (response.items) {
-        setStories(response.items.slice(0, 8));
-      }
-    } catch (error) {
-      // Silent handling for stories loading error
-    } finally {
-      setLoading(false);
-    }
   };
 
-  const getDisplayMedia = (post) => {
-    if (post.coverUrl) {
-      return { url: post.coverUrl, type: 'image' };
-    }
-    if (Array.isArray(post.files) && post.files.length > 0) {
-      return post.files[0];
-    }
-    return null;
+  /**
+   * Xem story group
+   */
+  const handleViewStory = (storyGroup, startIndex = 0) => {
+    setSelectedStoryGroup(storyGroup);
+    setSelectedStoryIndex(startIndex);
+  };
+
+  /**
+   * Xóa story
+   */
+  const handleStoryDeleted = (storyId) => {
+    // Remove from my stories
+    setMyStories(prev => prev.filter(s => s._id !== storyId));
+    
+    // Reload feed
+    loadStories();
+  };
+
+  /**
+   * Format time ago
+   */
+  const getTimeAgo = (date) => {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    
+    if (seconds < 60) return 'Vừa xong';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}p trước`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h trước`;
+    return `${Math.floor(seconds / 86400)}d trước`;
+  };
+
+  /**
+   * Check if user has viewed all stories in group
+   */
+  const hasViewedAll = (storyGroup) => {
+    if (!storyGroup?.stories || !user?._id) return false;
+    
+    return storyGroup.stories.every(story => 
+      story.views?.some(v => v.user === user._id)
+    );
   };
 
   if (loading) {
@@ -223,100 +118,203 @@ export default function Stories({ user }) {
     );
   }
 
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-      <div className="flex gap-4 overflow-x-auto scrollbar-hide">
-        {/* Tạo story mới */}
-        {user && (
-          <div className="flex-shrink-0">
-            <button
-              onClick={() => setShowPostCreator(true)}
-              className="block w-28 h-40 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors flex flex-col items-center justify-center"
-            >
-              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-2">
-                <Plus size={24} className="text-white" />
-              </div>
-              <span className="text-sm text-gray-600 text-center px-1">Tạo tin</span>
-            </button>
-          </div>
-        )}
+  // Luôn hiển thị Stories section nếu user đã đăng nhập
+  if (!user) {
+    return null;
+  }
 
-        {/* Stories của bạn bè */}
-        {stories.map((story, index) => {
-          const media = getDisplayMedia(story);
-          const isVideo = media?.type === 'video';
+  return (
+    <>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+          {/* My Story - Tạo story mới hoặc xem story của mình */}
+          {user && (
+            <div className="flex-shrink-0">
+              {myStories.length === 0 ? (
+                // Chưa có story - hiển thị nút tạo
+                <button
+                  onClick={() => setShowStoryCreator(true)}
+                  className="block w-28 h-40 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl border-2 border-dashed border-white hover:from-blue-600 hover:to-purple-700 transition-all flex flex-col items-center justify-center relative overflow-hidden group"
+                >
+                  <img
+                    src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`}
+                    alt={user.name}
+                    className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity"
+                  />
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-2 shadow-lg">
+                      <Plus size={24} className="text-blue-600" />
+                    </div>
+                    <span className="text-sm text-white font-medium text-center px-1 drop-shadow">Tạo tin</span>
+                  </div>
+                </button>
+              ) : (
+                // Đã có story - hiển thị preview
+                <button
+                  onClick={() => {
+                    const myStoryGroup = {
+                      _id: user,
+                      stories: myStories,
+                      latestStory: myStories[0],
+                      storyCount: myStories.length
+                    };
+                    handleViewStory(myStoryGroup, 0);
+                  }}
+                  className="block w-28 h-40 rounded-xl overflow-hidden relative group"
+                >
+                  {/* Story Preview */}
+                  {myStories[0].mediaType === 'image' ? (
+                    <img
+                      src={myStories[0].mediaUrl}
+                      alt="My Story"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <video
+                      src={myStories[0].mediaUrl}
+                      className="w-full h-full object-cover"
+                      muted
+                    />
+                  )}
+                  
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                  
+                  {/* User Avatar */}
+                  <div className="absolute top-2 left-2">
+                    <div className="w-10 h-10 rounded-full ring-4 ring-blue-500 overflow-hidden">
+                      <img
+                        src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`}
+                        alt={user.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* User Name & Add Button */}
+                  <div className="absolute bottom-2 left-2 right-2">
+                    <p className="text-white text-sm font-medium truncate mb-1">{user.name}</p>
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowStoryCreator(true);
+                      }}
+                      className="w-full bg-white/90 hover:bg-white text-blue-600 rounded-full py-1 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Plus size={14} />
+                      Thêm
+                    </div>
+                  </div>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Stories của bạn bè */}
+          {storiesGroups.length === 0 && myStories.length === 0 && (
+            <div className="flex-1 text-center py-8">
+              <p className="text-gray-500 text-sm">Chưa có tin nào. Hãy tạo tin đầu tiên!</p>
+            </div>
+          )}
           
-          return (
-            <div key={story._id} className="flex-shrink-0">
-              <Link
-                to={`/post/${story.slug}`}
-                className="block w-28 h-40 rounded-lg overflow-hidden relative group"
-              >
-                {media ? (
-                  <>
-                    {isVideo ? (
+          {storiesGroups.map((storyGroup, index) => {
+            // Skip nếu là stories của chính mình (đã hiển thị ở trên)
+            if (!storyGroup._id || !user) return null;
+            if (storyGroup._id._id === user._id || storyGroup._id === user._id) {
+              return null;
+            }
+            
+            const author = storyGroup._id;
+            const latestStory = storyGroup.latestStory;
+            const viewed = hasViewedAll(storyGroup);
+            
+            // Skip nếu không có author hoặc latestStory
+            if (!author || !latestStory) return null;
+            
+            return (
+              <div key={author._id || index} className="flex-shrink-0">
+                <button
+                  onClick={() => handleViewStory(storyGroup, 0)}
+                  className="block w-28 h-40 rounded-xl overflow-hidden relative group"
+                >
+                  {/* Story Preview */}
+                  {latestStory.mediaType === 'image' ? (
+                    <img
+                      src={latestStory.mediaUrl}
+                      alt={author.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <>
                       <video
-                        src={media.url}
+                        src={latestStory.mediaUrl}
                         className="w-full h-full object-cover"
                         muted
                       />
-                    ) : (
-                      <img
-                        src={media.url}
-                        alt={story.title}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    {isVideo && (
+                      {/* Video Play Icon */}
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-10 h-10 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center">
                           <Play size={20} className="text-white ml-0.5" />
                         </div>
                       </div>
-                    )}
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                  </>
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                    <ImageIcon size={28} className="text-white" />
+                    </>
+                  )}
+                  
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                  
+                  {/* User Avatar with Ring */}
+                  <div className="absolute top-2 left-2">
+                    <div className={`w-10 h-10 rounded-full ring-4 ${viewed ? 'ring-gray-400' : 'ring-blue-500'} overflow-hidden`}>
+                      <img
+                        src={author.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name || 'User')}`}
+                        alt={author.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   </div>
-                )}
-                
-                {/* User name */}
-                <div className="absolute bottom-2 left-2 right-2">
-                  <p className="text-white text-sm font-medium truncate">
-                    {story.author?.name || 'Người dùng'}
-                  </p>
-                </div>
-              </Link>
-            </div>
-          );
-        })}
-      </div>
-      
-      {/* PostCreator Modal */}
-      {showPostCreator && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Tạo bài viết mới</h2>
-              <button
-                onClick={() => setShowPostCreator(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <Plus size={20} className="rotate-45" />
-              </button>
-            </div>
-            <div className="p-4">
-              <PostCreatorModal 
-                user={user} 
-                onClose={() => setShowPostCreator(false)}
-              />
-            </div>
-          </div>
+                  
+                  {/* Story Count Badge */}
+                  {storyGroup.storyCount > 1 && (
+                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full">
+                      {storyGroup.storyCount}
+                    </div>
+                  )}
+                  
+                  {/* User Name & Time */}
+                  <div className="absolute bottom-2 left-2 right-2">
+                    <p className="text-white text-sm font-medium truncate">{author?.name || 'Người dùng'}</p>
+                    <p className="text-white/80 text-xs">{getTimeAgo(latestStory?.createdAt)}</p>
+                  </div>
+                </button>
+              </div>
+            );
+          })}
         </div>
+      </div>
+
+      {/* Story Creator Modal */}
+      {showStoryCreator && (
+        <StoryCreator
+          user={user}
+          onClose={() => setShowStoryCreator(false)}
+          onStoryCreated={handleStoryCreated}
+        />
       )}
-    </div>
+
+      {/* Story Viewer */}
+      {selectedStoryGroup && (
+        <StoryViewer
+          storiesGroup={selectedStoryGroup}
+          initialStoryIndex={selectedStoryIndex}
+          currentUser={user}
+          onClose={() => {
+            setSelectedStoryGroup(null);
+            setSelectedStoryIndex(0);
+          }}
+          onDelete={handleStoryDeleted}
+        />
+      )}
+    </>
   );
 }

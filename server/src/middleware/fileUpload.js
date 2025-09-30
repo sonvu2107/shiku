@@ -32,7 +32,14 @@ const magicBytes = {
   'image/png': [0x89, 0x50, 0x4E, 0x47],
   'image/webp': [0x52, 0x49, 0x46, 0x46],
   'image/gif': [0x47, 0x49, 0x46],
-  'video/mp4': [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70],
+  // MP4 có nhiều magic bytes khác nhau
+  'video/mp4': [
+    [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70], // ftyp box
+    [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70], // ftyp box variant
+    [0x00, 0x00, 0x00, 0x14, 0x66, 0x74, 0x79, 0x70], // ftyp box variant
+    [0x00, 0x00, 0x00, 0x1C, 0x66, 0x74, 0x79, 0x70], // ftyp box variant
+    [0x00, 0x00, 0x00, 0x24, 0x66, 0x74, 0x79, 0x70], // ftyp box variant
+  ],
   'video/webm': [0x1A, 0x45, 0xDF, 0xA3],
   'application/pdf': [0x25, 0x50, 0x44, 0x46]
 };
@@ -47,6 +54,14 @@ const checkMagicBytes = (buffer, expectedType) => {
   const expectedBytes = magicBytes[expectedType];
   if (!expectedBytes) return false;
   
+  // Nếu expectedBytes là array của arrays (như MP4)
+  if (Array.isArray(expectedBytes[0])) {
+    return expectedBytes.some(bytes => 
+      bytes.every((byte, index) => buffer[index] === byte)
+    );
+  }
+  
+  // Nếu expectedBytes là array đơn giản
   return expectedBytes.every((byte, index) => buffer[index] === byte);
 };
 
@@ -101,6 +116,12 @@ export const validateFile = async (file, category = 'image') => {
   
   if (realFileType.mime === 'image/png' && !checkMagicBytes(file.buffer, 'image/png')) {
     errors.push('File PNG không hợp lệ');
+  }
+
+  // MP4 có nhiều format khác nhau, nên chỉ kiểm tra nếu file-type detect đúng
+  if (realFileType.mime === 'video/mp4' && !checkMagicBytes(file.buffer, 'video/mp4')) {
+    // Chỉ warning, không block vì MP4 có nhiều format
+    console.warn('MP4 magic bytes không match, nhưng file-type detect đúng, cho phép upload');
   }
 
   // Kiểm tra extension

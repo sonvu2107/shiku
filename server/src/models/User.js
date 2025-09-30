@@ -63,6 +63,9 @@ const UserSchema = new mongoose.Schema({
   blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Users bị block
   currentConversation: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation' }, // Chat hiện tại
   
+  // ==================== SAVED POSTS ====================
+  savedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }], // Bài viết đã lưu
+  
   // ==================== TRẠNG THÁI ONLINE ====================
   isOnline: { type: Boolean, default: false }, // Có online không
   isVerified: { type: Boolean, default: false }, // Tài khoản đã verify

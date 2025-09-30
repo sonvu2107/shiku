@@ -83,6 +83,14 @@ export default function Shortcuts({ user }) {
           icon: <ImageIcon size={16} />,
           url: '/media',
           avatar: null
+        },
+        {
+          id: 'saved',
+          type: 'saved',
+          title: 'Bài đã lưu',
+          icon: <Bookmark size={16} />,
+          url: '/saved',
+          avatar: null
         }
       ];
 
