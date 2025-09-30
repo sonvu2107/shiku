@@ -6,6 +6,7 @@
  * - Không có plugins bổ sung
  */
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,jsx}"], // Files để quét classes
   theme: { extend: {} }, // Theme customization
   plugins: [], // Tailwind plugins

@@ -31,6 +31,11 @@ const messageSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  reactions: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    type: { type: String, enum: ['like','love','laugh','angry','sad'], required: true },
+    createdAt: { type: Date, default: Date.now }
+  }],
   readBy: [{
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -66,5 +71,6 @@ messageSchema.index({ sender: 1, createdAt: -1 }); // Messages by sender
 messageSchema.index({ conversation: 1, 'readBy.user': 1 }); // Unread messages query
 messageSchema.index({ messageType: 1, createdAt: -1 }); // Messages by type
 messageSchema.index({ isDeleted: 1, createdAt: -1 }); // Active messages only
+messageSchema.index({ conversation: 1, 'reactions.user': 1 }); // Reactions query
 
 export default mongoose.model('Message', messageSchema);

@@ -27,7 +27,7 @@ export default function Logo({ size = "small", showText = false }) {
       <img 
         src="/assets/shiku-logo.svg" 
         alt="Shiku Logo" 
-        className={`${logoSizes[size]} w-auto`}
+        className={`${logoSizes[size]} w-auto invert-0 dark:invert`}
         onError={(e) => {
           // Fallback: ẩn image và hiện icon backup
           e.target.style.display = 'none';
@@ -39,10 +39,10 @@ export default function Logo({ size = "small", showText = false }) {
       <div style={{display: 'none'}} className="flex items-center gap-3">
         <FileText 
           size={size === 'large' ? 48 : size === 'medium' ? 36 : 24} 
-          className="text-gray-800" 
+          className="text-gray-800 dark:text-gray-100" 
         />
         {showText && (
-          <span className={`font-bold text-gray-800 ${textSizes[size]}`}>
+          <span className={`font-bold text-gray-800 dark:text-gray-100 ${textSizes[size]}`}>
             Shiku
           </span>
         )}

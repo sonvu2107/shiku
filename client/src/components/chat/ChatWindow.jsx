@@ -75,7 +75,7 @@ export default function ChatWindow({
           </div>
 
           {/* Messages scrollable */}
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="flex-1 overflow-y-auto min-h-0 bg-white dark:bg-gray-900">
             <MessageList
               messages={messages}
               currentUser={currentUser}
@@ -88,12 +88,12 @@ export default function ChatWindow({
           </div>
 
           {/* Input */}
-          <div className="flex-shrink-0 border-t border-gray-200 bg-white">
+          <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <MessageInput onSendMessage={handleSendMessage} />
           </div>
         </>
       ) : (
-        <div className="flex-1 flex items-center justify-center bg-gray-50 p-4">
+        <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
           <div className="text-center">
             <div className="text-4xl sm:text-6xl mb-4">💬</div>
             <h3 className="text-lg sm:text-xl font-semibold text-gray-600 mb-2">

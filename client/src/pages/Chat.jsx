@@ -134,11 +134,19 @@ export default function Chat() {
       }
     };
 
+    const handleReactionsUpdated = (data) => {
+      if (!selectedConversation) return;
+      if (data.conversationId !== selectedConversation._id) return;
+      setMessages(prev => prev.map(m => m._id === data.messageId ? { ...m, reactions: data.reactions } : m));
+    };
+
     // Set up message listener for this conversation
     socketService.socket.on('new-message', handleNewMessage);
+    socketService.socket.on('message-reactions-updated', handleReactionsUpdated);
     
     return () => {
       socketService.socket.off('new-message', handleNewMessage);
+      socketService.socket.off('message-reactions-updated', handleReactionsUpdated);
     };
   }, [selectedConversation?._id]);
 

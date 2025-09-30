@@ -50,6 +50,12 @@ export default function App() {
   const [user, setUser] = useState(null);
   // State quản lý trạng thái loading khi khởi tạo app
   const [loading, setLoading] = useState(true);
+  // Dark mode
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("app:darkMode");
+    if (saved != null) return saved === "1";
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   // Hook để lấy thông tin location hiện tại
   const location = useLocation();
   // Toast notifications
@@ -84,6 +90,17 @@ export default function App() {
     
     checkAuth();
   }, []);
+
+  // Apply/remove dark class on root html element
+  useEffect(() => {
+    const root = document.documentElement;
+    if (darkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('app:darkMode', darkMode ? '1' : '0');
+  }, [darkMode]);
 
   // Effect để gửi heartbeat định kỳ khi user đã đăng nhập
   useEffect(() => {
@@ -169,7 +186,7 @@ export default function App() {
       
       {/* Hiển thị navbar cho tất cả trang trừ login/register và chat */}
       {!shouldHideNavbar && location.pathname !== "/chat" && (
-        <Navbar user={user} setUser={setUser} />
+        <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
       )}
 
       {/* Routing logic dựa trên loại trang */}
@@ -183,7 +200,7 @@ export default function App() {
         // Layout đặc biệt cho trang chat (full screen với navbar cố định)
         <div className="h-screen flex flex-col">
           <div className="flex-shrink-0">
-            <Navbar user={user} setUser={setUser} />
+            <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
           </div>
           <div className="flex-1 overflow-hidden">
             <Routes>

@@ -5,7 +5,7 @@ import { api } from "../api";
 import { getUserInfo } from "../utils/auth";
 import socketService from "../socket";
 import callManager from "../utils/callManager";
-import { X, Phone, Video, ChevronDown, MessageCircle } from "lucide-react";
+import { X, Phone, Video, ChevronDown, MessageCircle, ThumbsUp, Heart, Laugh, Angry, Frown, Smile } from "lucide-react";
 
 /**
  * ChatPopup - Popup chat window với khả năng gọi video/voice
@@ -49,9 +49,15 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
     // Set up message listener for this conversation
     socketService.socket.on('new-message', handleNewMessage);
+    const handleReactionsUpdated = (data) => {
+      if (data.conversationId !== conversation._id) return;
+      setMessages(prev => prev.map(m => m._id === data.messageId ? { ...m, reactions: data.reactions } : m));
+    };
+    socketService.socket.on('message-reactions-updated', handleReactionsUpdated);
     
     return () => {
       socketService.socket.off('new-message', handleNewMessage);
+      socketService.socket.off('message-reactions-updated', handleReactionsUpdated);
     };
   }, [conversation?._id]);
 
@@ -69,7 +75,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   const messagesEndRef = useRef(null); // Ref để scroll xuống cuối tin nhắn
   
   // User info
-  const me = getUserInfo()?.id || conversation.me; // ID của user hiện tại
+  const me = getUserInfo()?.id || getUserInfo()?._id || conversation.me; // ID của user hiện tại
 
   // tải tin nhắn
   useEffect(() => {
@@ -134,9 +140,9 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   };
 
   return (
-    <div className="w-72 sm:w-80 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col chat-popup-mobile">
+    <div className="w-72 sm:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col chat-popup-mobile">
       {/* Header */}
-      <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border-b bg-gray-50 rounded-t-xl">
+      <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-t-xl">
         <div className="relative flex-shrink-0">
           <img src={avatar} alt={name} className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover" />
           {/* Online status indicator for private conversations */}
@@ -144,7 +150,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
           )}
         </div>
-        <div className="flex-1 font-semibold text-gray-900 text-sm sm:text-base truncate min-w-0">{name}</div>
+        <div className="flex-1 font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base truncate min-w-0">{name}</div>
         <div className="flex gap-0.5 sm:gap-1">
           <button
             className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
@@ -182,7 +188,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       {/* Nội dung chat */}
       {!minimized && (
         <>
-          <div className="flex-1 overflow-y-auto px-4 py-2" style={{ maxHeight: 320 }}>
+          <div className="flex-1 overflow-y-auto px-4 py-2 bg-white dark:bg-gray-900" style={{ maxHeight: 320 }}>
             {messages.length === 0 ? (
               <div className="text-gray-400 text-sm">Chưa có tin nhắn</div>
             ) : (
@@ -196,7 +202,14 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                     </div>
                   );
                 }
-                if (msg.sender?._id === me) {
+                // Chuẩn hóa sender
+                const senderId = typeof msg.sender === 'string' ? msg.sender : (msg.sender?._id || msg.sender?.id);
+                const senderName = typeof msg.sender === 'object' ? (msg.sender?.name || "Không tên") : (conversation.otherParticipants?.[0]?.user?.name || "Không tên");
+                const senderAvatar = typeof msg.sender === 'object' && msg.sender?.avatarUrl
+                  ? msg.sender.avatarUrl
+                  : conversation.otherParticipants?.[0]?.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(senderName)}&length=2&background=cccccc&color=222222`;
+
+                if (senderId === me) {
                   return (
                     <div key={msg._id || idx} className="mb-2 flex justify-end">
                       <div className="flex flex-col items-end">
@@ -207,6 +220,43 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             {msg.content}
                           </div>
                         )}
+                        {/* Reactions row */}
+                        <div className="mt-1 flex items-center gap-1">
+                          <div className="relative group">
+                            <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-100" title="Thả cảm xúc" tabIndex={0}>
+                              <Smile size={16} />
+                            </button>
+                            <div className="absolute hidden group-hover:flex group-focus-within:flex top-0 -translate-y-full right-0 bg-white border border-gray-200 rounded-full shadow px-2 py-1 gap-1 z-50">
+                              {[
+                                { type: 'like', Icon: ThumbsUp, color: 'text-blue-500' },
+                                { type: 'love', Icon: Heart, color: 'text-red-500' },
+                                { type: 'laugh', Icon: Laugh, color: 'text-yellow-500' },
+                                { type: 'angry', Icon: Angry, color: 'text-orange-500' },
+                                { type: 'sad', Icon: Frown, color: 'text-gray-500' }
+                              ].map(({ type, Icon, color }) => (
+                                <button key={type} onClick={async () => {
+                                  try {
+                                    await api(`/api/messages/conversations/${conversation._id}/messages/${msg._id}/react`, { method: 'POST', body: { type } });
+                                  } catch (e) {}
+                                }} className={`p-1 ${color}`} title={type}>
+                                  <Icon size={16} />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          {!!msg.reactions?.length && (
+                            <div className="flex flex-wrap gap-1">
+                              {['like','love','laugh','angry','sad'].map((type) => {
+                                const map = { like: ThumbsUp, love: Heart, laugh: Laugh, angry: Angry, sad: Frown };
+                                const color = { like: 'text-blue-500', love: 'text-red-500', laugh: 'text-yellow-500', angry: 'text-orange-500', sad: 'text-gray-500' };
+                                const count = (msg.reactions || []).filter(r => r.type === type).length;
+                                if (!count) return null;
+                                const Ico = map[type];
+                                return <span key={type} className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full ${color[type]}`}><Ico size={12} /> {count}</span>;
+                              })}
+                            </div>
+                          )}
+                        </div>
                         <div className="text-xs text-gray-400 mt-1">
                           {msg.createdAt
                             ? new Date(msg.createdAt).toLocaleTimeString() +
@@ -222,27 +272,58 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                   <div key={msg._id || idx} className="mb-2 flex justify-start">
                     <div className="flex items-start gap-2">
                       <img
-                        src={
-                          msg.sender?.avatarUrl
-                            ? msg.sender.avatarUrl
-                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                msg.sender?.name || "Không tên"
-                              )}&length=2&background=cccccc&color=222222`
-                        }
-                        alt={msg.sender?.name || ""}
+                        src={senderAvatar}
+                        alt={senderName}
                         className="w-7 h-7 rounded-full object-cover mt-1"
                       />
                       <div className="flex flex-col items-start">
-                        <div className="text-xs text-gray-700 font-semibold mb-1">
-                          {msg.sender?.name || "Không tên"}
+                        <div className="text-xs text-gray-700 dark:text-gray-300 font-semibold mb-1">
+                          {senderName}
                         </div>
                         {msg.messageType === "image" ? (
                           <img src={msg.imageUrl} alt="Ảnh" className="max-w-[60%] rounded-xl" />
                         ) : (
-                          <div className="px-3 py-2 rounded-2xl text-sm bg-gray-200 text-gray-900">
+                          <div className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                             {msg.content}
                           </div>
                         )}
+                        {/* Reactions row */}
+                        <div className="mt-1 flex items-center gap-1">
+                          <div className="relative group">
+                            <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-100" title="Thả cảm xúc" tabIndex={0}>
+                              <Smile size={16} />
+                            </button>
+                            <div className="absolute hidden group-hover:flex group-focus-within:flex top-0 -translate-y-full left-0 bg-white border border-gray-200 rounded-full shadow px-2 py-1 gap-1 z-50">
+                              {[
+                                { type: 'like', Icon: ThumbsUp, color: 'text-blue-500' },
+                                { type: 'love', Icon: Heart, color: 'text-red-500' },
+                                { type: 'laugh', Icon: Laugh, color: 'text-yellow-500' },
+                                { type: 'angry', Icon: Angry, color: 'text-orange-500' },
+                                { type: 'sad', Icon: Frown, color: 'text-gray-500' }
+                              ].map(({ type, Icon, color }) => (
+                                <button key={type} onClick={async () => {
+                                  try {
+                                    await api(`/api/messages/conversations/${conversation._id}/messages/${msg._id}/react`, { method: 'POST', body: { type } });
+                                  } catch (e) {}
+                                }} className={`p-1 ${color}`} title={type}>
+                                  <Icon size={16} />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          {!!msg.reactions?.length && (
+                            <div className="flex flex-wrap gap-1">
+                              {['like','love','laugh','angry','sad'].map((type) => {
+                                const map = { like: ThumbsUp, love: Heart, laugh: Laugh, angry: Angry, sad: Frown };
+                                const color = { like: 'text-blue-500', love: 'text-red-500', laugh: 'text-yellow-500', angry: 'text-orange-500', sad: 'text-gray-500' };
+                                const count = (msg.reactions || []).filter(r => r.type === type).length;
+                                if (!count) return null;
+                                const Ico = map[type];
+                                return <span key={type} className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full ${color[type]}`}><Ico size={12} /> {count}</span>;
+                              })}
+                            </div>
+                          )}
+                        </div>
                         <div className="text-xs text-gray-400 mt-1">
                           {msg.createdAt
                             ? new Date(msg.createdAt).toLocaleTimeString() +
@@ -260,7 +341,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
           </div>
 
           {/* Ô nhập */}
-          <div className="flex items-center gap-2 px-4 py-2 border-t bg-gray-50 rounded-b-xl">
+          <div className="flex items-center gap-2 px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-xl">
             <label className="cursor-pointer">
               <svg
                 width="24"
@@ -307,7 +388,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
               />
             </label>
             <input
-              className="flex-1 px-3 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring"
+              className="flex-1 px-3 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Aa"

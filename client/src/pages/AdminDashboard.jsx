@@ -102,22 +102,6 @@ export default function AdminDashboard() {
     }
   }
 
-
-  async function toggleUserRole(userId, currentRole) {
-    if (!window.confirm("Bạn có chắc muốn thay đổi quyền người dùng này?")) return;
-    try {
-      const newRole = currentRole === "admin" ? "user" : "admin";
-      await api(`/api/admin/users/${userId}/role`, {
-        method: "PUT",
-        body: { role: newRole }
-      });
-      await refreshAllData();
-      alert("Đã cập nhật quyền người dùng!");
-    } catch (e) {
-      alert("Lỗi: " + e.message);
-    }
-  }
-
   async function updateUserRole(userId, newRole) {
     if (!window.confirm(`Bạn có chắc muốn đổi role user này thành ${newRole}?`)) return;
     try {
@@ -132,7 +116,6 @@ export default function AdminDashboard() {
     }
   }
 
-
   async function deleteUser(userId) {
     if (!window.confirm("Bạn có chắc muốn xóa người dùng này? Tất cả bài viết và bình luận của họ sẽ bị xóa!")) return;
     try {
@@ -143,9 +126,6 @@ export default function AdminDashboard() {
       alert("Lỗi: " + e.message);
     }
   }
-
-
-
 
   if (loading) {
     return (
@@ -201,7 +181,7 @@ export default function AdminDashboard() {
 
       {/* Tab Navigation */}
       <div className="card max-w-7xl mx-auto">
-        <div className="flex overflow-x-auto border-b scrollbar-hide">
+        <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 scrollbar-hide">
           <button
             className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "stats" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("stats")}
@@ -505,7 +485,7 @@ export default function AdminDashboard() {
             {/* Top Stats */}
             <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Top Posts */}
-              <div className="bg-white border rounded-lg p-4">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <h3 className="font-bold mb-3">Top 5 bài viết có nhiều lượt xem nhất</h3>
                 {stats.topPosts?.map((post, index) => (
                   <div key={post._id} className="flex justify-between items-center py-2 border-b last:border-b-0">
@@ -519,7 +499,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Top Users */}
-              <div className="bg-white border rounded-lg p-4">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <h3 className="font-bold mb-3">Top 5 user có nhiều bài viết nhất</h3>
                 {stats.topUsers?.map((userStat, index) => (
                   <div key={userStat._id} className="flex justify-between items-center py-2 border-b last:border-b-0">
@@ -540,8 +520,8 @@ export default function AdminDashboard() {
           <div className="pt-4">
             <h2 className="text-lg sm:text-xl font-bold mb-4">Quản lý người dùng ({users.length})</h2>
             <div className="overflow-x-auto">
-              <table className="w-full border border-gray-200 min-w-[600px]">
-                <thead className="bg-gray-50">
+              <table className="w-full border border-gray-200 dark:border-gray-700 min-w-[600px]">
+                <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Avatar</th>
                     <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Tên</th>
@@ -554,7 +534,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {users.map(u => (
-                    <tr key={u._id} className="border-t">
+                    <tr key={u._id} className="border-t border-gray-200 dark:border-gray-700">
                       <td className="px-2 sm:px-4 py-2">
                         <img
                           src={u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=cccccc&color=222222&size=40`}
@@ -571,7 +551,8 @@ export default function AdminDashboard() {
                                 : u.role === "sybau" ? "/assets/Sybau-tick.png"
                                   : u.role === "moxumexue" ? "/assets/moxumxue.png"
                                     : u.role === "gay" ? "/assets/gay.png"
-                                      : "/assets/default-tick.png"
+                                      : u.role === "special" ? "/assets/special-user.jpg"
+                                        : "/assets/default-tick.png"
                             }
                             alt="Tích xanh"
                             className="inline w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
@@ -595,6 +576,7 @@ export default function AdminDashboard() {
                           <option value="moxumxue">Keeper</option>
                           <option value="admin">Admin</option>
                           <option value="gay">Gay</option>
+                          <option value="special">Special</option>
                         </select>
                       </td>
                       <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm hidden md:table-cell">{new Date(u.createdAt).toLocaleDateString()}</td>
@@ -835,7 +817,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Info */}
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <h4 className="font-medium mb-2">Phân biệt các loại thông báo:</h4>
               <ul className="text-sm text-gray-600 space-y-1">
                 <li><strong>Thông báo hệ thống:</strong> Thông báo về cập nhật server, bảo trì, thay đổi chính sách (có thể chọn đối tượng)</li>
@@ -898,13 +880,13 @@ export default function AdminDashboard() {
             )}
 
             {/* Online Users List */}
-            <div className="bg-white border rounded-lg">
-              <div className="p-4 border-b">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h3 className="font-semibold">Danh sách người dùng online</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
                       <th className="px-4 py-3 text-left">Avatar</th>
                       <th className="px-4 py-3 text-left">Tên</th>
@@ -916,7 +898,7 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody>
                     {onlineUsers.map(user => (
-                      <tr key={user._id} className="border-t hover:bg-gray-50">
+                      <tr key={user._id} className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td className="px-4 py-3">
                           <img
                             src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=cccccc&color=222222&size=40`}
@@ -933,6 +915,7 @@ export default function AdminDashboard() {
                             user.role === 'sybau' ? 'bg-blue-100 text-blue-800' :
                             user.role === 'moxumxue' ? 'bg-pink-100 text-pink-800' :
                             user.role === 'gay' ? 'bg-pink-100 text-pink-800' :
+                            user.role === 'special' ? 'bg-pink-100 text-pink-800' :
                             'bg-gray-100 text-gray-800'
                           }`}>
                             {user.role === 'admin' ? 'Admin' :
@@ -940,6 +923,7 @@ export default function AdminDashboard() {
                              user.role === 'sybau' ? 'Ahh Sybau' :
                              user.role === 'moxumxue' ? 'Hero great tomb guard keeper' :
                              user.role === 'gay' ? 'Gay' :
+                             user.role === 'special' ? 'Special' :
                              'User'}
                           </span>
                         </td>

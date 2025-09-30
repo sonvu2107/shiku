@@ -281,7 +281,7 @@ export default function Profile() {
   const layoutClass = getLayoutClass(user.profileLayout || "classic");
 
   return (
-    <div key={`profile-${user._id}-${user.profileTheme}-${user.profileLayout}-${user.useCoverImage}`} className={`w-full min-h-screen ${layoutClass}`} style={{ backgroundColor: "#f8fafc" }}>
+    <div key={`profile-${user._id}-${user.profileTheme}-${user.profileLayout}-${user.useCoverImage}`} className={`w-full min-h-screen ${layoutClass} bg-gray-50 dark:bg-gray-900`}>
       <style>{`
         .scrollbar-hide {
           -ms-overflow-style: none;
@@ -406,7 +406,7 @@ export default function Profile() {
  {/* Profile Info */}
 <div className="relative -mt-8 md:-mt-20 px-4 md:px-6 pb-6">
   <div className="max-w-4xl mx-auto">
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
       <div className="pt-16 md:pt-12 p-4 md:p-6 profile-info">
         <div className="flex flex-col md:flex-row items-start md:items-end gap-4 md:gap-6">
                 {/* Avatar */}
@@ -465,11 +465,11 @@ export default function Profile() {
                 <div className="flex-1 min-w-0 w-full">
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
+                      <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                         {form.name || "Chưa có tên"}
                       </h1>
                       {form.bio ? (
-                        <p className="text-gray-600 mb-3 text-sm md:text-base">{form.bio}</p>
+                        <p className="text-gray-600 dark:text-gray-300 mb-3 text-sm md:text-base">{form.bio}</p>
                       ) : (
                         <p className="text-gray-400 mb-3 italic text-sm md:text-base">Chưa có tiểu sử</p>
                       )}
@@ -488,9 +488,9 @@ export default function Profile() {
                           
                           if (!hasContactInfo) {
                             return (
-                              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                                <p className="text-gray-500 text-sm">Chưa có thông tin liên hệ</p>
-                                <p className="text-gray-400 text-xs mt-1">Nhấn "Chỉnh sửa" để thêm thông tin cá nhân</p>
+                              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-center">
+                                <p className="text-gray-500 dark:text-gray-300 text-sm">Chưa có thông tin liên hệ</p>
+                                <p className="text-gray-400 dark:text-gray-300/70 text-xs mt-1">Nhấn "Chỉnh sửa" để thêm thông tin cá nhân</p>
                               </div>
                             );
                           }
@@ -549,14 +549,14 @@ export default function Profile() {
                     <div className="flex gap-2 flex-shrink-0">
                       <button
                         onClick={() => setShowCustomization(true)}
-                        className="px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors flex items-center gap-2 text-sm"
+                        className="px-3 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-lg transition-colors flex items-center gap-2 text-sm"
                       >
                         <Settings className="w-4 h-4" />
                         <span className="hidden sm:inline">Tùy chỉnh</span>
                       </button>
                       <button
                         onClick={() => setEditing(!editing)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm"
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 text-sm"
                       >
                         <CustomIcons.Edit3 />
                         <span className="hidden sm:inline">{editing ? "Hủy" : "Chỉnh sửa"}</span>
@@ -813,9 +813,9 @@ export default function Profile() {
 
       {/* Content Tabs */}
       <div className="max-w-4xl mx-auto px-6">
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
           {/* Tab Navigation */}
-          <div className="border-b border-gray-200">
+          <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="flex space-x-1 md:space-x-8 px-2 md:px-6 overflow-x-auto scrollbar-hide">
               {[
                 ...(user.showPosts === false ? [] : [{ id: "posts", label: "Bài đăng", icon: CustomIcons.FileText, count: posts.length }]),

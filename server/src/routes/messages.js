@@ -246,6 +246,58 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
   }
 }); 
 
+// React to a message (like/love/laugh/angry/sad)
+router.post("/conversations/:conversationId/messages/:messageId/react", authRequired, async (req, res) => {
+  try {
+    const { conversationId, messageId } = req.params;
+    const { type } = req.body;
+
+    if (!['like','love','laugh','angry','sad'].includes(type)) {
+      return res.status(400).json({ message: 'Loại cảm xúc không hợp lệ' });
+    }
+
+    // Ensure access
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      ...checkConversationAccess(req.user._id)
+    }).select('_id');
+    if (!conversation) {
+      return res.status(403).json({ message: 'Không có quyền truy cập cuộc trò chuyện này' });
+    }
+
+    const message = await Message.findOne({ _id: messageId, conversation: conversationId, isDeleted: false });
+    if (!message) return res.status(404).json({ message: 'Không tìm thấy tin nhắn' });
+
+    // Toggle same reaction; ensure one reaction per user
+    const existing = message.reactions?.find(r => r.user.toString() === req.user._id.toString());
+    if (existing && existing.type === type) {
+      // remove reaction
+      await Message.updateOne({ _id: messageId }, { $pull: { reactions: { user: req.user._id } } });
+    } else if (existing) {
+      // change reaction
+      await Message.updateOne({ _id: messageId, 'reactions.user': req.user._id }, { $set: { 'reactions.$.type': type } });
+    } else {
+      // add
+      await Message.updateOne({ _id: messageId }, { $push: { reactions: { user: req.user._id, type } } });
+    }
+
+    const updated = await Message.findById(messageId).select('reactions');
+
+    // Emit realtime update
+    const io = req.app.get('io');
+    io.to(`conversation-${conversationId}`).emit('message-reactions-updated', {
+      messageId,
+      conversationId,
+      reactions: updated.reactions
+    });
+
+    res.json({ reactions: updated.reactions });
+  } catch (error) {
+    console.error('Error reacting to message:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
 // Upload image message
 router.post("/conversations/:conversationId/messages/image", authRequired, async (req, res) => {
   try {

@@ -81,7 +81,7 @@ export default function Login({ setUser }) {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-slate-100 flex items-center justify-center">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-slate-100 dark:from-gray-900 dark:to-gray-900 flex items-center justify-center">
       <div className="w-full max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-8 items-center">
         
         {/* Left Side - Branding */}
@@ -89,17 +89,17 @@ export default function Login({ setUser }) {
           <div className="flex items-center justify-center lg:justify-start">
             <Logo size="large" showText={true} />
           </div>
-          <p className="text-xl text-gray-700 leading-relaxed">
+          <p className="text-xl text-gray-700 dark:text-gray-300 leading-relaxed">
             Shiku giúp bạn kết nối và chia sẻ với mọi người trong cộng đồng blog của bạn.
           </p>
           <div className="hidden lg:block space-y-4">
-            <div className="flex items-center gap-3 text-gray-600">
+            <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
               <span>Viết và chia sẻ những câu chuyện của riêng bạn</span>
             </div>
-            <div className="flex items-center gap-3 text-gray-600">
+            <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
               <span>Tương tác với mọi người</span>
             </div>
-            <div className="flex items-center gap-3 text-gray-600">
+            <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
               <span>Quản lý nội dung dễ dàng</span>
             </div>
           </div>
@@ -107,10 +107,10 @@ export default function Login({ setUser }) {
 
         {/* Right Side - Login Form */}
         <div className="w-full max-w-md mx-auto px-4">
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Đăng nhập</h2>
-              <p className="text-gray-600">Chào mừng bạn quay trở lại!</p>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Đăng nhập</h2>
+              <p className="text-gray-600 dark:text-gray-300">Chào mừng bạn quay trở lại!</p>
             </div>
 
             <form onSubmit={submit} className="space-y-4">
@@ -122,7 +122,7 @@ export default function Login({ setUser }) {
                   placeholder="Nhập email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200"
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400"
                   required
                 />
               </div>
@@ -135,14 +135,14 @@ export default function Login({ setUser }) {
                   placeholder="Mật khẩu"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200"
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400"
                   required
                 />
               </div>
 
               {/* Error Message */}
               {err && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm">
                   {err}
                 </div>
               )}
@@ -165,7 +165,7 @@ export default function Login({ setUser }) {
               <div className="text-center">
                 <button
                   type="button"
-                  className="text-gray-600 hover:text-gray-800 text-sm font-medium underline"
+                  className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 text-sm font-medium underline"
                   onClick={() => setShowForgot(true)}
                 >
                   Quên mật khẩu?
@@ -175,10 +175,10 @@ export default function Login({ setUser }) {
               {/* Divider */}
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
+                  <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-gray-500">hoặc</span>
+                  <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-300">hoặc</span>
                 </div>
               </div>
 
@@ -197,15 +197,15 @@ export default function Login({ setUser }) {
       {/* Modal Quên mật khẩu */}
       {showForgot && (
         <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm relative">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-sm relative">
             <button
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100"
               onClick={() => setShowForgot(false)}
             >
               &times;
             </button>
-            <h2 className="text-lg font-bold mb-2">Quên mật khẩu</h2>
-            <p className="text-sm text-gray-500 mb-4">Nhập email để nhận hướng dẫn đặt lại mật khẩu.</p>
+            <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">Quên mật khẩu</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-300 mb-4">Nhập email để nhận hướng dẫn đặt lại mật khẩu.</p>
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
@@ -230,7 +230,7 @@ export default function Login({ setUser }) {
                 placeholder="Email của bạn"
                 value={forgotEmail}
                 onChange={e => setForgotEmail(e.target.value)}
-                className="w-full px-3 py-2 border rounded mb-3"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded mb-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               />
               <button
                 type="submit"
@@ -239,8 +239,8 @@ export default function Login({ setUser }) {
               >
                 {forgotLoading ? "Đang gửi..." : "Gửi yêu cầu"}
               </button>
-              {forgotError && <div className="text-red-600 text-sm mt-2">{forgotError}</div>}
-              {forgotSuccess && <div className="text-green-600 text-sm mt-2">Đã gửi email hướng dẫn đặt lại mật khẩu!</div>}
+              {forgotError && <div className="text-red-600 dark:text-red-300 text-sm mt-2">{forgotError}</div>}
+              {forgotSuccess && <div className="text-green-600 dark:text-green-300 text-sm mt-2">Đã gửi email hướng dẫn đặt lại mật khẩu!</div>}
             </form>
           </div>
         </div>

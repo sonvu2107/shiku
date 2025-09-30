@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { User, Users, ChevronUp } from "lucide-react";
+import { User, Users, ChevronUp, ThumbsUp, Heart, Laugh, Angry, Frown, Smile } from "lucide-react";
+import { api } from "../../api";
 
 /**
  * MessageList - Component hiển thị danh sách tin nhắn
@@ -86,6 +87,30 @@ export default function MessageList({
     // Check for nickname in conversation
     const participant = conversation.participants.find(p => p.user._id === message.sender._id);
     return participant?.nickname || message.sender.name;
+  };
+
+  const reactionConfig = {
+    like: { Icon: ThumbsUp, color: 'text-blue-500', bg: 'bg-blue-50' },
+    love: { Icon: Heart, color: 'text-red-500', bg: 'bg-red-50' },
+    laugh: { Icon: Laugh, color: 'text-yellow-500', bg: 'bg-yellow-50' },
+    angry: { Icon: Angry, color: 'text-orange-500', bg: 'bg-orange-50' },
+    sad: { Icon: Frown, color: 'text-gray-500', bg: 'bg-gray-50' },
+  };
+
+  const toggleReaction = async (messageId, type) => {
+    try {
+      const convId = conversation._id;
+      const res = await api(`/api/messages/conversations/${convId}/messages/${messageId}/react`, {
+        method: 'POST',
+        body: { type }
+      });
+      // Update reactions locally
+      const reactions = res.reactions || [];
+      const idx = messages.findIndex(m => m._id === messageId);
+      if (idx !== -1) {
+        messages[idx].reactions = reactions;
+      }
+    } catch (_) {}
   };
 
   const formatMessageTime = (dateString) => {
@@ -185,7 +210,7 @@ export default function MessageList({
           <div
             className={`relative px-4 py-2 rounded-3xl shadow-sm ${
               isOwn
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white ml-auto'
+                ? 'bg-blue-500 text-white ml-auto'
                 : 'bg-gray-100 text-gray-800 mr-auto'
             }`}
             style={{
@@ -222,6 +247,38 @@ export default function MessageList({
             )}
           </div>
           
+          {/* Reactions */}
+          <div className="mt-1 px-2 flex items-center gap-1">
+            {/* Reaction picker */}
+            <div className="relative group">
+              <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-100" title="Thả cảm xúc" tabIndex={0}>
+                <Smile size={16} />
+              </button>
+              <div className={`absolute hidden group-hover:flex group-focus-within:flex top-0 -translate-y-full ${isOwn ? 'right-0' : 'left-0'} bg-white border border-gray-200 rounded-full shadow px-2 py-1 gap-1 z-50` }>
+                {Object.entries(reactionConfig).map(([type, cfg]) => (
+                  <button key={type} onClick={() => toggleReaction(message._id, type)} className={`p-1 ${cfg.color}`} title={type}>
+                    <cfg.Icon size={16} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Reaction counters */}
+            {!!message.reactions?.length && (
+              <div className="flex flex-wrap gap-1">
+                {Object.entries(reactionConfig).map(([type, cfg]) => {
+                  const count = (message.reactions || []).filter(r => r.type === type).length;
+                  if (!count) return null;
+                  const ActiveIcon = cfg.Icon;
+                  return (
+                    <span key={type} className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
+                      <ActiveIcon size={12} /> {count}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Message time - shown on hover or for latest message */}
           <div className={`text-xs text-gray-400 mt-1 px-2 ${
             isOwn ? 'text-right' : 'text-left'

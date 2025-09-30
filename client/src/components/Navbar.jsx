@@ -28,7 +28,9 @@ import {
   Home,         // Icon trang chủ
   Compass,      // Icon khám phá
   Calendar,     // Icon sự kiện
-  Image         // Icon kho media
+  Image,        // Icon kho media
+  Moon,
+  Sun
 } from "lucide-react";
 
 /**
@@ -37,7 +39,7 @@ import {
  * @param {Object} user - Thông tin user hiện tại (null nếu chưa đăng nhập)
  * @param {Function} setUser - Function để cập nhật user state
  */
-export default function Navbar({ user, setUser }) {
+export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
   // ==================== STATE MANAGEMENT ====================
   const [openPopups, setOpenPopups] = useState([]); // Chat popups đang mở
   const navigate = useNavigate();
@@ -312,11 +314,11 @@ export default function Navbar({ user, setUser }) {
 
   return (
     // Main navbar container - fixed top với shadow
-    <div className="bg-white border-b fixed top-0 left-0 w-full z-50 shadow navbar-mobile">
+    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 fixed top-0 left-0 w-full z-50 shadow navbar-mobile">
       <div className="w-full max-w-none px-3 sm:px-6 py-2 sm:py-3 flex items-center">
         {/* LEFT ZONE: Logo + Search */}
         <div className="flex items-center gap-2 flex-1">
-          <Link to="/" className="font-bold text-xl flex items-center gap-2">
+          <Link to="/" className="font-bold text-xl flex items-center gap-2 text-gray-900 dark:text-gray-100">
             <span onClick={() => { navigate('/'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               <Logo size="small" />
             </span>
@@ -332,7 +334,7 @@ export default function Navbar({ user, setUser }) {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 maxLength={100}
-                className="pl-10 pr-4 py-2 w-56 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200"
+                className="pl-10 pr-4 py-2 w-56 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400"
                 autoComplete="off"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
@@ -340,7 +342,7 @@ export default function Navbar({ user, setUser }) {
               {/* Dropdown kết quả tìm kiếm */}
               {(searchFocused || searchQuery.trim()) && (
                 (searchResults.length > 0 || searchPosts.length > 0 || searchHistory.length > 0) && (
-                  <div className="absolute left-0 top-full mt-2 w-80 sm:w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto dropdown-mobile">
+                  <div className="absolute left-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto dropdown-mobile">
                     {/* Lịch sử tìm kiếm / Gợi ý */}
                     {(!searchQuery.trim() || (searchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0)) && searchHistory.length > 0 && (
                       <>
@@ -352,11 +354,11 @@ export default function Navbar({ user, setUser }) {
                           .filter(h => !searchQuery.trim() || h.query.toLowerCase().includes(searchQuery.toLowerCase()))
                           .slice(0, 10)
                           .map(item => (
-                          <div key={item.id} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer group"
+                          <div key={item.id} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer group"
                                onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}>
                             <div className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">•</div>
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-900 truncate">{item.query}</div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{item.query}</div>
                               <div className="text-[11px] text-gray-500">{new Date(item.lastSearchedAt).toLocaleDateString('vi-VN')}</div>
                             </div>
                             {historyEditing && (
@@ -369,7 +371,7 @@ export default function Navbar({ user, setUser }) {
                             <button type="button" onMouseDown={(e) => { e.stopPropagation(); clearHistory(); }} className="text-red-600 text-xs hover:underline">Xóa tất cả lịch sử</button>
                           </div>
                         )}
-                        <div className="h-px bg-gray-100" />
+                        <div className="h-px bg-gray-100 dark:bg-gray-700" />
                       </>
                     )}
                     {/* Kết quả user */}
@@ -379,7 +381,7 @@ export default function Navbar({ user, setUser }) {
                         {searchResults.map(user => (
                           <div
                             key={user._id}
-                            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                             onClick={() => navigate(`/user/${user._id}`)}
                           >
                             <img
@@ -388,7 +390,7 @@ export default function Navbar({ user, setUser }) {
                               className="w-8 h-8 rounded-full"
                             />
                             <div className="flex-1">
-                              <div className="font-medium text-gray-900">{user.name}</div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
                             </div>
                           </div>
                         ))}
@@ -401,12 +403,12 @@ export default function Navbar({ user, setUser }) {
                         {searchPosts.map(post => (
                           <div
                             key={post._id}
-                            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                             onClick={() => navigate(`/post/${post.slug || post._id}`)}
                           >
                             {renderPostPreview(post, "w-8 h-8 rounded object-cover")}
                             <div className="flex-1">
-                              <div className="font-medium text-gray-900">{post.title}</div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100">{post.title}</div>
                               <div className="text-xs text-gray-500">{post.author?.name || ''}</div>
                             </div>
                           </div>
@@ -430,14 +432,14 @@ export default function Navbar({ user, setUser }) {
         </div>
 
         {/* CENTER ZONE: Main Menu Icons */}
-        <div className="hidden lg:flex items-center gap-2 justify-center flex-1">
+    <div className="hidden lg:flex items-center gap-2 justify-center flex-1">
           {user && (
             <>
               <Link
                 to="/"
                 className={`p-2 rounded-full transition-colors ${location.pathname === "/"
                     ? "bg-blue-100 text-blue-600"
-                    : "hover:bg-gray-100"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 title="Trang chủ"
@@ -448,7 +450,7 @@ export default function Navbar({ user, setUser }) {
                 to="/explore"
                 className={`p-2 rounded-full transition-colors ${location.pathname === "/explore"
                     ? "bg-blue-100 text-blue-600"
-                    : "hover:bg-gray-100"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 title="Khám phá"
               >
@@ -458,7 +460,7 @@ export default function Navbar({ user, setUser }) {
                 to="/groups"
                 className={`p-2 rounded-full transition-colors ${location.pathname === "/groups"
                     ? "bg-blue-100 text-blue-600"
-                    : "hover:bg-gray-100"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 title="Nhóm"
               >
@@ -468,7 +470,7 @@ export default function Navbar({ user, setUser }) {
                 to="/events"
                 className={`p-2 rounded-full transition-colors ${location.pathname === "/events"
                     ? "bg-blue-100 text-blue-600"
-                    : "hover:bg-gray-100"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 title="Sự kiện"
               >
@@ -478,7 +480,7 @@ export default function Navbar({ user, setUser }) {
                 to="/media"
                 className={`p-2 rounded-full transition-colors ${location.pathname === "/media"
                     ? "bg-blue-100 text-blue-600"
-                    : "hover:bg-gray-100"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 title="Kho media"
               >
@@ -490,6 +492,15 @@ export default function Navbar({ user, setUser }) {
 
         {/* RIGHT ZONE: Friends + Chat + Notifications + Avatar */}
         <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end">
+          {/* Dark mode toggle */}
+          <button
+            onClick={() => setDarkMode && setDarkMode(!darkMode)}
+            className="btn-outline p-2 rounded-lg"
+            aria-label={darkMode ? "Tắt dark mode" : "Bật dark mode"}
+            title={darkMode ? "Tắt dark mode" : "Bật dark mode"}
+          >
+            {darkMode ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
           {/* Friends Icon */}
           <div className="hidden md:flex items-center gap-2">
             {user && (
@@ -613,7 +624,7 @@ export default function Navbar({ user, setUser }) {
 
       {/* Mobile search bar */}
       {showMobileSearch && (
-        <div className="md:hidden border-t bg-white px-3 sm:px-6 py-3">
+        <div className="md:hidden border-t bg-white dark:bg-gray-900 px-3 sm:px-6 py-3">
           <form onSubmit={handleSearch} className="flex items-center gap-2">
             <div className="relative flex-1">
               <input
@@ -621,17 +632,17 @@ export default function Navbar({ user, setUser }) {
                 placeholder=""
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-4 pr-4 py-2.5 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-sm"
+                className="pl-4 pr-4 py-2.5 w-full border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 autoFocus
               />
               {/* Mobile search results dropdown */}
               {(searchQuery.trim() || searchHistory.length > 0) && (
                 (searchResults.length > 0 || searchPosts.length > 0 || searchHistory.length > 0) && (
-                  <div className="absolute left-0 top-full mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto mobile-search-dropdown">
+                  <div className="absolute left-0 top-full mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto mobile-search-dropdown">
                     {/* Lịch sử tìm kiếm / Gợi ý */}
                     {(!searchQuery.trim() || (searchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0)) && searchHistory.length > 0 && (
                       <>
-                        <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500 bg-gray-50 font-medium">
+                        <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700 font-medium">
                           <span>Mới đây</span>
                           <button type="button" onClick={() => setHistoryEditing(!historyEditing)} className="text-blue-600">{historyEditing ? 'Xong' : 'Chỉnh sửa'}</button>
                         </div>
@@ -640,11 +651,11 @@ export default function Navbar({ user, setUser }) {
                           .slice(0, 10)
                           .map(item => (
                             <div key={item.id}
-                                 className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:bg-gray-100 cursor-pointer touch-target border-b border-gray-100 last:border-b-0"
+                                 className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 cursor-pointer touch-target border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                                  onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}>
                               <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">•</div>
                               <div className="flex-1 min-w-0">
-                                <div className="font-medium text-gray-900 text-sm truncate">{item.query}</div>
+                                <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{item.query}</div>
                                 <div className="text-[11px] text-gray-500 truncate">{new Date(item.lastSearchedAt).toLocaleDateString('vi-VN')}</div>
                               </div>
                               {historyEditing && (
@@ -657,17 +668,17 @@ export default function Navbar({ user, setUser }) {
                             <button type="button" onMouseDown={(e) => { e.stopPropagation(); clearHistory(); }} className="text-red-600 text-xs">Xóa tất cả</button>
                           </div>
                         )}
-                        <div className="h-px bg-gray-100" />
+                        <div className="h-px bg-gray-100 dark:bg-gray-700" />
                       </>
                     )}
                     {/* Kết quả user */}
                     {searchResults.length > 0 && (
                       <>
-                        <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 font-medium">Người dùng</div>
+                        <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700 font-medium">Người dùng</div>
                         {searchResults.map(user => (
                           <div
                             key={user._id}
-                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:bg-gray-100 cursor-pointer touch-target border-b border-gray-100 last:border-b-0"
+                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 cursor-pointer touch-target border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                             onClick={() => {
                               navigate(`/user/${user._id}`);
                               setShowMobileSearch(false);
@@ -680,7 +691,7 @@ export default function Navbar({ user, setUser }) {
                               className="w-8 h-8 rounded-full flex-shrink-0"
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-900 text-sm truncate">{user.name}</div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{user.name}</div>
                               <div className="text-xs text-gray-500 truncate">{user.email}</div>
                             </div>
                           </div>
@@ -690,11 +701,11 @@ export default function Navbar({ user, setUser }) {
                     {/* Kết quả bài viết: chỉ hiện nếu không có user nào khớp */}
                     {searchResults.length === 0 && searchPosts.length > 0 && (
                       <>
-                        <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 font-medium">Bài viết</div>
+                        <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700 font-medium">Bài viết</div>
                         {searchPosts.map(post => (
                           <div
                             key={post._id}
-                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:bg-gray-100 cursor-pointer touch-target border-b border-gray-100 last:border-b-0"
+                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 cursor-pointer touch-target border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                             onClick={() => {
                               navigate(`/post/${post.slug || post._id}`);
                               setShowMobileSearch(false);
@@ -703,7 +714,7 @@ export default function Navbar({ user, setUser }) {
                           >
                             {renderPostPreview(post, "w-8 h-8 rounded flex-shrink-0 object-cover")}
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-900 text-sm truncate">{post.title}</div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{post.title}</div>
                               <div className="text-xs text-gray-500 truncate">{post.author?.name || ''}</div>
                             </div>
                           </div>

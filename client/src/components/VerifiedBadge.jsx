@@ -8,6 +8,7 @@ const roleIcons = {
   moxumxue: "/assets/moxumxue.png",       // Huy hiệu Moxumxue
   admin: "/assets/admin.jpg",             // Huy hiệu Admin
   gay: "/assets/gay.png",                 // Huy hiệu Gay
+  special: "/assets/special-user.jpg",      // Huy hiệu Special 
 };
 
 /**
@@ -20,6 +21,7 @@ const roleTooltips = {
   moxumxue: "Moxumxue - Fan anh Bộ Pi CiCi!",
   admin: "Admin - Quản trị viên hệ thống",
   gay: "Gay - Thành viên cộng đồng LGBTQ+",
+  special: "Special - Huy hiệu đặc biệt",
 };
 
 /**

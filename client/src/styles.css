@@ -13,3 +13,47 @@ label { @apply text-sm font-medium text-gray-700; }
 /* Mobile Optimizations */
 @import './styles-mobile.css';
 
+/* Dark mode globals */
+.dark body { @apply bg-gray-900 text-gray-100; }
+.dark .card { @apply bg-gray-800 border border-gray-700; }
+.dark .btn-outline { @apply bg-transparent border-gray-600 text-gray-100 hover:bg-gray-800; }
+.dark input, .dark textarea { @apply bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400; }
+.dark label { @apply text-gray-300; }
+
+/* Lucide/inline icons inherit currentColor, make currentColor white-ish in dark */
+.dark svg { color: #d1d5db; }
+
+/* Dark compatibility overrides for common Tailwind classes used across app */
+.dark .bg-white { background-color: #111827 !important; }
+.dark .bg-gray-50 { background-color: #0b1220 !important; }
+.dark .bg-gray-100 { background-color: #111827 !important; }
+.dark .bg-gray-200 { background-color: #1f2937 !important; }
+.dark .bg-blue-50 { background-color: #0b1220 !important; }
+.dark .bg-green-50 { background-color: #0b1220 !important; }
+.dark .bg-purple-50 { background-color: #0b1220 !important; }
+.dark .bg-red-50 { background-color: #0b1220 !important; }
+.dark .bg-yellow-50 { background-color: #0b1220 !important; }
+.dark .bg-indigo-50 { background-color: #0b1220 !important; }
+.dark .bg-emerald-50 { background-color: #0b1220 !important; }
+.dark .bg-cyan-50 { background-color: #0b1220 !important; }
+.dark .text-black { color: #f3f4f6 !important; }
+.dark .text-gray-900 { color: #f3f4f6 !important; }
+.dark .text-gray-800 { color: #e5e7eb !important; }
+.dark .text-gray-700 { color: #d1d5db !important; }
+.dark .text-gray-600 { color: #cbd5e1 !important; }
+.dark .border-gray-100 { border-color: #374151 !important; }
+.dark .border-gray-200 { border-color: #374151 !important; }
+.dark .border-gray-300 { border-color: #4b5563 !important; }
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #374151 !important; }
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: #374151 !important; }
+
+/* Hover/active helpers commonly used */
+.dark .hover\:bg-gray-50:hover { background-color: #1f2937 !important; }
+.dark .hover\:bg-gray-100:hover { background-color: #1f2937 !important; }
+.dark .hover\:bg-gray-200:hover { background-color: #374151 !important; }
+.dark .active\:bg-gray-100:active { background-color: #1f2937 !important; }
+.dark .active\:bg-gray-200:active { background-color: #374151 !important; }
+
+/* Dropdowns/menus often use these utilities */
+.dark .shadow, .dark .shadow-lg, .dark .shadow-xl { box-shadow: 0 10px 25px rgba(0,0,0,0.6) !important; }
+
