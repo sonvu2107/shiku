@@ -20,7 +20,7 @@ import LazyImage from "./LazyImage";
  * @param {Array} post.files - Media files đính kèm
  * @param {string} post.status - Trạng thái (published/private)
  */
-export default function PostCard({ post, user, hidePublicIcon = false }) {
+export default function PostCard({ post, user, hidePublicIcon = false, hideActionsMenu = false }) {
   // ==================== STATE & REFS ====================
   const navigate = useNavigate();
   // Note: User data should be passed as prop or obtained from context
@@ -307,7 +307,7 @@ export default function PostCard({ post, user, hidePublicIcon = false }) {
       </div>
 
       {/* Actions menu for post owner and admin */}
-      {user && (user._id === post.author?._id || user.role === "admin") && (
+      {!hideActionsMenu && user && (user._id === post.author?._id || user.role === "admin") && (
         <div className="mt-2 pt-2 border-t border-gray-200 flex justify-end">
           <div className="relative">
             <button

@@ -72,6 +72,19 @@ export default function StoryViewer({
   }, [currentIndex, isPaused, currentStory]);
 
   /**
+   * Control video playback khi pause/play
+   */
+  useEffect(() => {
+    if (videoRef.current && currentStory?.mediaType === 'video') {
+      if (isPaused) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play().catch(() => {});
+      }
+    }
+  }, [isPaused, currentStory]);
+
+  /**
    * Mark story as viewed
    */
   useEffect(() => {
@@ -334,8 +347,8 @@ export default function StoryViewer({
               ref={videoRef}
               src={currentStory.mediaUrl}
               autoPlay
-              muted
               playsInline
+              controls
               className="max-w-full max-h-full object-contain"
               onLoadedMetadata={() => {
                 // Reset progress when video metadata loads

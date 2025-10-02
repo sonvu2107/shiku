@@ -58,6 +58,7 @@ export default function AdminDashboard() {
     setNotificationForm,
     handleBanSubmit,
     handleNotificationSubmit,
+    unbanUser,
     clearError,
     clearSuccess
   } = useAdminActions();
