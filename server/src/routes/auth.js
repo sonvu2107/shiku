@@ -1,12 +1,6 @@
 import { Router } from "express";
 const router = Router();
-import cryp      // Set cookies
-      res.cookie("accessToken", newAccessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
-      }); "crypto";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import { sendEmail } from "../utils/sendEmail.js";

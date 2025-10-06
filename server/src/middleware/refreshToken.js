@@ -24,7 +24,7 @@ export function generateRefreshToken(user) {
 }
 
 /**
- * Tạo access token (ngắn hạn, 15 phút)
+ * Tạo access token (3 ngày)
  * @param {Object} user - User object
  * @returns {string} Access token
  */
