@@ -35,14 +35,14 @@ export default function BanNotification({ banInfo, onClose }) {
           <AlertTriangle className="text-red-500" size={24} />
           <h3 className="text-lg font-semibold text-red-600">Tài khoản bị cấm</h3>
         </div>
-        
+
         {/* Thông tin chi tiết về ban */}
         <div className="space-y-3 mb-6">
           {/* Lý do bị ban */}
           <p className="text-gray-700">
             <strong>Lý do:</strong> {banInfo.banReason}
           </p>
-          
+
           {/* Thời gian còn lại (nếu không phải ban vĩnh viễn) */}
           {banInfo.remainingMinutes !== -1 && (
             <div className="flex items-center gap-2 text-gray-700">
@@ -52,20 +52,20 @@ export default function BanNotification({ banInfo, onClose }) {
               </span>
             </div>
           )}
-          
+
           {/* Thông báo ban vĩnh viễn */}
           {banInfo.remainingMinutes === -1 && (
             <p className="text-red-600 font-medium">
               Tài khoản của bạn đã bị cấm vĩnh viễn.
             </p>
           )}
-          
+
           {/* Hướng dẫn cho user */}
           <p className="text-sm text-gray-500">
             Vui lòng chờ hết thời gian cấm để có thể đăng bài và bình luận trở lại.
           </p>
         </div>
-        
+
         {/* Nút đóng */}
         <div className="flex justify-center">
           <button

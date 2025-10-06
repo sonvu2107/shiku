@@ -1,9 +1,8 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState } from "react";
 import AdminFeedback from "./AdminFeedback";
 import APIMonitoring from "../components/APIMonitoring";
-import NotificationForm from "../components/NotificationForm";
-import ErrorBoundary from "../components/ErrorBoundary";
 import { api } from "../api";
+import { safariDELETE } from "../utils/safariAPI.js";
 import { useNavigate } from "react-router-dom";
 import { useAdminData } from "../hooks/useAdminData";
 import { useAdminActions } from "../hooks/useAdminActions";
@@ -27,31 +26,6 @@ import {
   Activity
 } from "lucide-react";
 
-// Constants for ban durations
-const BAN_DURATIONS = [
-  { value: "15", label: "15 phút" },
-  { value: "30", label: "30 phút" },
-  { value: "60", label: "1 giờ" },
-  { value: "180", label: "3 giờ" },
-  { value: "360", label: "6 giờ" },
-  { value: "720", label: "12 giờ" },
-  { value: "1440", label: "1 ngày" },
-  { value: "4320", label: "3 ngày" },
-  { value: "10080", label: "1 tuần" },
-  { value: "permanent", label: "Vĩnh viễn" }
-];
-
-// Constants for user roles
-const USER_ROLES = [
-  { value: "user", label: "User" },
-  { value: "sololeveling", label: "Solo" },
-  { value: "sybau", label: "Sybau" },
-  { value: "moxumxue", label: "Keeper" },
-  { value: "admin", label: "Admin" },
-  { value: "gay", label: "Gay" },
-  { value: "special", label: "Special" }
-];
-
 /**
  * AdminDashboard - Trang quản trị admin
  * Bao gồm thống kê, quản lý người dùng, ban/unban, gửi thông báo và xem feedback
@@ -59,7 +33,7 @@ const USER_ROLES = [
  */
 export default function AdminDashboard() {
   // ==================== CUSTOM HOOKS ====================
-  
+
   // Admin data management
   const {
     stats,
@@ -94,29 +68,25 @@ export default function AdminDashboard() {
 
   // User & Auth
   const [user, setUser] = useState(null); // Admin user hiện tại
+  const loading = dataLoading || actionLoading; // Combined loading state
 
   // UI states
   const [activeTab, setActiveTab] = useState("stats"); // Tab hiện tại
 
   const navigate = useNavigate();
 
-  // Memoize combined loading state
-  const loading = useMemo(() => dataLoading || actionLoading, [dataLoading, actionLoading]);
+  useEffect(() => {
+    checkAdmin();
+  }, []);
 
-  // Memoize filtered users for ban form
-  const bannableUsers = useMemo(() =>
-    users.filter(u => u.role !== "admin" && u._id !== user?._id),
-    [users, user]
-  );
+  // Auto refresh data when tab changes
+  useEffect(() => {
+    if (activeTab === "online" || activeTab === "stats") {
+      refreshAllData();
+    }
+  }, [activeTab, refreshAllData]);
 
-  // Memoize banned users list
-  const bannedUsers = useMemo(() =>
-    users.filter(u => u.isBanned),
-    [users]
-  );
-
-  // Check admin authorization
-  const checkAdmin = useCallback(async () => {
+  async function checkAdmin() {
     try {
       const res = await api("/api/auth/me");
       if (res.user.role !== "admin") {
@@ -129,11 +99,12 @@ export default function AdminDashboard() {
     } catch (e) {
       alert("Lỗi xác thực!");
       navigate("/login");
+    } finally {
+      // Loading state is now managed by custom hooks
     }
-  }, [navigate, refreshAllData]);
+  }
 
-  // Update user role handler
-  const updateUserRole = useCallback(async (userId, newRole) => {
+  async function updateUserRole(userId, newRole) {
     if (!window.confirm(`Bạn có chắc muốn đổi role user này thành ${newRole}?`)) return;
     try {
       await api(`/api/admin/users/${userId}/role`, {
@@ -145,37 +116,18 @@ export default function AdminDashboard() {
     } catch (err) {
       alert("Lỗi: " + err.message);
     }
-  }, [refreshAllData]);
+  }
 
-  // Delete user handler
-  const deleteUser = useCallback(async (userId) => {
+  async function deleteUser(userId) {
     if (!window.confirm("Bạn có chắc muốn xóa người dùng này? Tất cả bài viết và bình luận của họ sẽ bị xóa!")) return;
     try {
-      await api(`/api/admin/users/${userId}`, { method: "DELETE" });
+      await safariDELETE(`/api/admin/users/${userId}`, "xóa người dùng");
       await refreshAllData();
       alert("Đã xóa người dùng!");
     } catch (e) {
       alert("Lỗi: " + e.message);
     }
-  }, [refreshAllData]);
-
-  // Handle unban with refresh
-  const handleUnban = useCallback(async (userId) => {
-    if (await unbanUser(userId)) {
-      await refreshAllData();
-    }
-  }, [unbanUser, refreshAllData]);
-
-  useEffect(() => {
-    checkAdmin();
-  }, [checkAdmin]);
-
-  // Auto refresh data when tab changes
-  useEffect(() => {
-    if (activeTab === "online" || activeTab === "stats") {
-      refreshAllData();
-    }
-  }, [activeTab, refreshAllData]);
+  }
 
   if (loading) {
     return (
@@ -199,7 +151,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-      
+
       {actionSuccess && (
         <div className="card max-w-7xl mx-auto mb-4">
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
@@ -293,7 +245,6 @@ export default function AdminDashboard() {
 
       {/* Tab Content */}
       <div className="card max-w-7xl mx-auto">
-        <ErrorBoundary>
         {/* Stats Tab */}
         {activeTab === "stats" && stats && (
           <div className="pt-4">
@@ -614,13 +565,20 @@ export default function AdminDashboard() {
                       <td className="px-2 sm:px-4 py-2">
                         <select
                           value={u.role}
-                          onChange={(e) => updateUserRole(u._id, e.target.value)}
+                          onChange={async (e) => {
+                            const newRole = e.target.value;
+                            await updateUserRole(u._id, newRole);
+                          }}
                           disabled={u._id === user._id}
                           className="btn-outline btn-xs sm:btn-sm text-xs sm:text-sm touch-target"
                         >
-                          {USER_ROLES.map(role => (
-                            <option key={role.value} value={role.value}>{role.label}</option>
-                          ))}
+                          <option value="user">User</option>
+                          <option value="sololeveling">Solo</option>
+                          <option value="sybau">Sybau</option>
+                          <option value="moxumxue">Keeper</option>
+                          <option value="admin">Admin</option>
+                          <option value="gay">Gay</option>
+                          <option value="special">Special</option>
                         </select>
                       </td>
                       <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm hidden md:table-cell">{new Date(u.createdAt).toLocaleDateString()}</td>
@@ -645,131 +603,141 @@ export default function AdminDashboard() {
           </div>
         )}
 
-{/* Ban Management Tab */}
-{activeTab === "bans" && (
-  <div className="pt-4">
-    <h2 className="text-xl font-bold mb-4">Quản lý cấm người dùng</h2>
+        {/* Ban Management Tab */}
+        {activeTab === "bans" && (
+          <div className="pt-4">
+            <h2 className="text-xl font-bold mb-4">Quản lý cấm người dùng</h2>
 
-    {/* Ban Form */}
-    <div className="bg-gray-50 p-4 rounded-lg mb-6">
-      <h3 className="font-semibold mb-3">Cấm người dùng</h3>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Chọn user */}
-        <select
-          value={banForm.userId}
-          onChange={(e) => setBanForm({ ...banForm, userId: e.target.value })}
-          className="input"
-        >
-          <option value="">Chọn người dùng</option>
-          {bannableUsers.map(u => (
-            <option key={u._id} value={u._id}>
-              {u.name} ({u.email})
-            </option>
-          ))}
-        </select>
-
-        {/* Thời gian cấm */}
-        <select
-          value={banForm.duration}
-          onChange={(e) => setBanForm({ ...banForm, duration: e.target.value })}
-          className="input"
-        >
-          <option value="">Chọn thời gian cấm</option>
-          {BAN_DURATIONS.map(duration => (
-            <option key={duration.value} value={duration.value}>{duration.label}</option>
-          ))}
-        </select>
-
-        {/* Lý do */}
-        <input
-          type="text"
-          value={banForm.reason}
-          onChange={(e) => setBanForm({ ...banForm, reason: e.target.value })}
-          placeholder="Nhập lý do cấm..."
-          className="input"
-        />
-
-        <button
-          onClick={handleBanSubmit}
-          className="btn bg-red-600 text-white flex items-center justify-center"
-          disabled={!banForm.userId || !banForm.duration || !banForm.reason.trim()}
-        >
-          Cấm
-        </button>
-      </div>
-    </div>
-
-    {/* Banned Users List */}
-    <div className="overflow-x-auto">
-      <h3 className="font-semibold mb-3">Danh sách người dùng bị cấm</h3>
-      <table className="w-full border-collapse border">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-2 text-left border">Người dùng</th>
-            <th className="px-4 py-2 text-left border">Lý do</th>
-            <th className="px-4 py-2 text-left border">Thời gian cấm</th>
-            <th className="px-4 py-2 text-left border">Hết hạn</th>
-            <th className="px-4 py-2 text-left border">Trạng thái</th>
-            <th className="px-4 py-2 text-left border">Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {bannedUsers.map(u => (
-            <tr key={u._id} className="border">
-              <td className="px-4 py-2 border">
-                <div className="flex items-center gap-2">
-                  <img
-                    src={u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=cccccc&color=222222&size=32`}
-                    alt="avatar"
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                  <span className="font-medium">{u.name}</span>
-                </div>
-              </td>
-              <td className="px-4 py-2 border">{u.banReason}</td>
-              <td className="px-4 py-2 border text-sm">
-                {u.bannedAt ? new Date(u.bannedAt).toLocaleString() : "N/A"}
-              </td>
-              <td className="px-4 py-2 border text-sm">
-                {u.banExpiresAt ? new Date(u.banExpiresAt).toLocaleString() : "Vĩnh viễn"}
-              </td>
-              <td className="px-4 py-2 border">
-                <span
-                  className={`px-2 py-1 rounded-full text-xs ${
-                    !u.banExpiresAt
-                      ? "bg-red-100 text-red-800"
-                      : new Date() < new Date(u.banExpiresAt)
-                      ? "bg-orange-100 text-orange-800"
-                      : "bg-green-100 text-green-800"
-                  }`}
+            {/* Ban Form */}
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <h3 className="font-semibold mb-3">Cấm người dùng</h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Chọn user */}
+                <select
+                  value={banForm.userId}
+                  onChange={(e) => setBanForm({ ...banForm, userId: e.target.value })}
+                  className="input"
                 >
-                  {!u.banExpiresAt
-                    ? "Vĩnh viễn"
-                    : new Date() < new Date(u.banExpiresAt)
-                    ? "Đang cấm"
-                    : "Hết hạn"}
-                </span>
-              </td>
-              <td className="px-4 py-2 border">
+                  <option value="">Chọn người dùng</option>
+                  {users.filter(u => u.role !== "admin" && u._id !== user._id).map(u => (
+                    <option key={u._id} value={u._id}>
+                      {u.name} ({u.email})
+                    </option>
+                  ))}
+                </select>
+
+                {/* Thời gian cấm */}
+                <select
+                  value={banForm.duration}
+                  onChange={(e) => setBanForm({ ...banForm, duration: e.target.value })}
+                  className="input"
+                >
+                  <option value="">Chọn thời gian cấm</option>
+                  <option value="15">15 phút</option>
+                  <option value="30">30 phút</option>
+                  <option value="60">1 giờ</option>
+                  <option value="180">3 giờ</option>
+                  <option value="360">6 giờ</option>
+                  <option value="720">12 giờ</option>
+                  <option value="1440">1 ngày</option>
+                  <option value="4320">3 ngày</option>
+                  <option value="10080">1 tuần</option>
+                  <option value="permanent">Vĩnh viễn</option>
+                </select>
+
+                {/* Lý do */}
+                <input
+                  type="text"
+                  value={banForm.reason}
+                  onChange={(e) => setBanForm({ ...banForm, reason: e.target.value })}
+                  placeholder="Nhập lý do cấm..."
+                  className="input"
+                />
+
                 <button
-                  className="btn-outline btn-sm text-green-600"
-                  onClick={() => handleUnban(u._id)}
+                  onClick={handleBanSubmit}
+                  className="btn bg-red-600 text-white flex items-center justify-center"
+                  disabled={!banForm.userId || !banForm.duration || !banForm.reason.trim()}
                 >
-                  Gỡ cấm
+                  Cấm
                 </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {bannedUsers.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          Không có người dùng nào bị cấm
-        </div>
-      )}
-    </div>
-  </div>
-)}
+              </div>
+            </div>
+
+            {/* Banned Users List */}
+            <div className="overflow-x-auto">
+              <h3 className="font-semibold mb-3">Danh sách người dùng bị cấm</h3>
+              <table className="w-full border-collapse border">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left border">Người dùng</th>
+                    <th className="px-4 py-2 text-left border">Lý do</th>
+                    <th className="px-4 py-2 text-left border">Thời gian cấm</th>
+                    <th className="px-4 py-2 text-left border">Hết hạn</th>
+                    <th className="px-4 py-2 text-left border">Trạng thái</th>
+                    <th className="px-4 py-2 text-left border">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.filter(u => u.isBanned).map(u => (
+                    <tr key={u._id} className="border">
+                      <td className="px-4 py-2 border">
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=cccccc&color=222222&size=32`}
+                            alt="avatar"
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                          <span className="font-medium">{u.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 border">{u.banReason}</td>
+                      <td className="px-4 py-2 border text-sm">
+                        {u.bannedAt ? new Date(u.bannedAt).toLocaleString() : "N/A"}
+                      </td>
+                      <td className="px-4 py-2 border text-sm">
+                        {u.banExpiresAt ? new Date(u.banExpiresAt).toLocaleString() : "Vĩnh viễn"}
+                      </td>
+                      <td className="px-4 py-2 border">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${!u.banExpiresAt
+                              ? "bg-red-100 text-red-800"
+                              : new Date() < new Date(u.banExpiresAt)
+                                ? "bg-orange-100 text-orange-800"
+                                : "bg-green-100 text-green-800"
+                            }`}
+                        >
+                          {!u.banExpiresAt
+                            ? "Vĩnh viễn"
+                            : new Date() < new Date(u.banExpiresAt)
+                              ? "Đang cấm"
+                              : "Hết hạn"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 border">
+                        <button
+                          className="btn-outline btn-sm text-green-600"
+                          onClick={async () => {
+                            if (await unbanUser(u._id)) {
+                              await refreshAllData();
+                            }
+                          }}
+                        >
+                          Gỡ cấm
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {users.filter(u => u.isBanned).length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  Không có người dùng nào bị cấm
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
 
         {/* Notifications Tab */}
@@ -779,21 +747,74 @@ export default function AdminDashboard() {
 
             {/* Notification Forms */}
             <div className="grid gap-6 lg:grid-cols-2">
-              <NotificationForm
-                type="system"
-                form={notificationForm}
-                setForm={setNotificationForm}
-                onSubmit={handleNotificationSubmit}
-                disabled={actionLoading}
-              />
 
-              <NotificationForm
-                type="admin"
-                form={notificationForm}
-                setForm={setNotificationForm}
-                onSubmit={handleNotificationSubmit}
-                disabled={actionLoading}
-              />
+              {/* System Notification */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-3 text-blue-800">Thông báo hệ thống</h3>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Tiêu đề thông báo..."
+                    value={notificationForm.title}
+                    onChange={(e) => setNotificationForm({ ...notificationForm, title: e.target.value })}
+                    className="input w-full"
+                  />
+
+                  <textarea
+                    placeholder="Nội dung thông báo..."
+                    value={notificationForm.message}
+                    onChange={(e) => setNotificationForm({ ...notificationForm, message: e.target.value })}
+                    className="input w-full h-20 resize-none"
+                  />
+
+                  <select
+                    value={notificationForm.targetRole}
+                    onChange={(e) => setNotificationForm({ ...notificationForm, targetRole: e.target.value })}
+                    className="input w-full"
+                  >
+                    <option value="">Tất cả người dùng</option>
+                    <option value="admin">Chỉ Admin</option>
+                    <option value="user">Chỉ User thường</option>
+                  </select>
+
+                  <button
+                    onClick={handleNotificationSubmit}
+                    className="btn bg-blue-600 text-white w-full hover:bg-blue-700 flex items-center justify-center"
+                    disabled={!notificationForm.title.trim() || !notificationForm.message.trim()}
+                  >
+                    Gửi thông báo hệ thống
+                  </button>
+                </div>
+              </div>
+
+              {/* Admin Broadcast */}
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-3 text-green-800">Thông báo từ Admin</h3>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Tiêu đề thông báo..."
+                    value={notificationForm.title}
+                    onChange={(e) => setNotificationForm({ ...notificationForm, title: e.target.value })}
+                    className="input w-full"
+                  />
+
+                  <textarea
+                    placeholder="Nội dung thông báo..."
+                    value={notificationForm.message}
+                    onChange={(e) => setNotificationForm({ ...notificationForm, message: e.target.value })}
+                    className="input w-full h-20 resize-none"
+                  />
+
+                  <button
+                    onClick={handleNotificationSubmit}
+                    className="btn bg-green-600 text-white w-full hover:bg-green-700 flex items-center justify-center"
+                    disabled={!notificationForm.title.trim() || !notificationForm.message.trim()}
+                  >
+                    Gửi thông báo
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Info */}
@@ -813,7 +834,7 @@ export default function AdminDashboard() {
             <h2 className="text-xl font-bold mb-4">
               Thống kê truy cập và người dùng
             </h2>
-            
+
             {/* Visitor Stats Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div className="bg-emerald-50 p-4 rounded-lg text-center">
@@ -889,22 +910,21 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3 font-medium">{user.name}</td>
                         <td className="px-4 py-3 text-gray-600">{user.email}</td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            user.role === 'admin' ? 'bg-red-100 text-red-800' :
-                            user.role === 'sololeveling' ? 'bg-purple-100 text-purple-800' :
-                            user.role === 'sybau' ? 'bg-blue-100 text-blue-800' :
-                            user.role === 'moxumxue' ? 'bg-pink-100 text-pink-800' :
-                            user.role === 'gay' ? 'bg-pink-100 text-pink-800' :
-                            user.role === 'special' ? 'bg-pink-100 text-pink-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
+                          <span className={`px-2 py-1 rounded-full text-xs ${user.role === 'admin' ? 'bg-red-100 text-red-800' :
+                              user.role === 'sololeveling' ? 'bg-purple-100 text-purple-800' :
+                                user.role === 'sybau' ? 'bg-blue-100 text-blue-800' :
+                                  user.role === 'moxumxue' ? 'bg-pink-100 text-pink-800' :
+                                    user.role === 'gay' ? 'bg-pink-100 text-pink-800' :
+                                      user.role === 'special' ? 'bg-pink-100 text-pink-800' :
+                                        'bg-gray-100 text-gray-800'
+                            }`}>
                             {user.role === 'admin' ? 'Admin' :
-                             user.role === 'sololeveling' ? 'Anh sung solo' :
-                             user.role === 'sybau' ? 'Ahh Sybau' :
-                             user.role === 'moxumxue' ? 'Hero great tomb guard keeper' :
-                             user.role === 'gay' ? 'Gay' :
-                             user.role === 'special' ? 'Special' :
-                             'User'}
+                              user.role === 'sololeveling' ? 'Anh sung solo' :
+                                user.role === 'sybau' ? 'Ahh Sybau' :
+                                  user.role === 'moxumxue' ? 'Hero great tomb guard keeper' :
+                                    user.role === 'gay' ? 'Gay' :
+                                      user.role === 'special' ? 'Special' :
+                                        'User'}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -987,7 +1007,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
-        </ErrorBoundary>
       </div>
     </div>
   );

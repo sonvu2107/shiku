@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api";
+import { handleSafariCSRFError } from "../utils/csrfToken.js";
 import { 
   Heart, 
   MessageCircle, 
@@ -72,7 +73,9 @@ export default function CommentItem({
       setIsLiked(res.isLiked);
       setLikeCount(res.likeCount);
     } catch (error) {
-      // Silent handling for comment liking error
+      // Enhanced error handling for Safari CSRF issues
+      const errorMessage = handleSafariCSRFError(error, "thích bình luận");
+      console.error("Like error:", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -94,7 +97,9 @@ export default function CommentItem({
       setEmoteCount(res.emoteCount);
       setShowEmotePicker(false);
     } catch (error) {
-      // Silent handling for emote adding error
+      // Enhanced error handling for Safari CSRF issues
+      const errorMessage = handleSafariCSRFError(error, "thêm cảm xúc");
+      console.error("Emote error:", errorMessage);
     } finally {
       setLoading(false);
     }

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, CheckCheck, Trash2 } from "lucide-react";
 import { api } from "../api";
+import { safariPUT, safariDELETE } from "../utils/safariAPI.js";
 
 /**
  * NotificationHistory - Trang lịch sử thông báo
@@ -56,7 +57,7 @@ export default function NotificationHistory() {
 
   const markAsRead = async (notificationId) => {
     try {
-      await api(`/api/notifications/${notificationId}/read`, { method: "PUT" });
+      await safariPUT(`/api/notifications/${notificationId}/read`, {}, "đánh dấu thông báo đã đọc");
       setNotifications(prev => 
         prev.map(n => n._id === notificationId ? { ...n, read: true } : n)
       );
@@ -67,7 +68,7 @@ export default function NotificationHistory() {
 
   const markAllAsRead = async () => {
     try {
-      await api("/api/notifications/mark-all-read", { method: "PUT" });
+      await safariPUT("/api/notifications/mark-all-read", {}, "đánh dấu tất cả thông báo đã đọc");
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setSelectedNotifications([]);
     } catch (error) {
@@ -77,7 +78,7 @@ export default function NotificationHistory() {
 
   const deleteNotification = async (notificationId) => {
     try {
-      await api(`/api/notifications/${notificationId}`, { method: "DELETE" });
+      await safariDELETE(`/api/notifications/${notificationId}`, "xóa thông báo");
       setNotifications(prev => prev.filter(n => n._id !== notificationId));
       setSelectedNotifications(prev => prev.filter(id => id !== notificationId));
     } catch (error) {
@@ -91,7 +92,7 @@ export default function NotificationHistory() {
     try {
       await Promise.all(
         selectedNotifications.map(id => 
-          api(`/api/notifications/${id}`, { method: "DELETE" })
+          safariDELETE(`/api/notifications/${id}`, "xóa thông báo")
         )
       );
       

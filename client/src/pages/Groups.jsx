@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Grid, 
-  List, 
-  Users, 
+import {
+  Plus,
+  Search,
+  Filter,
+  Grid,
+  List,
+  Users,
   MapPin,
   Calendar,
   TrendingUp,
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import GroupCard from '../components/GroupCard';
 import { api } from '../api';
+import { safariPOST } from '../utils/safariAPI.js';
 
 /**
  * Groups Page - Trang quản lý và khám phá nhóm/communities
@@ -62,7 +63,7 @@ const Groups = () => {
       });
 
       const response = await api(`/api/groups?${params}`, { method: 'GET' });
-      
+
       if (response.success) {
         if (reset) {
           setGroups(response.data.groups);
@@ -73,7 +74,7 @@ const Groups = () => {
             return [...prev, ...newGroups];
           });
         }
-        
+
         setCurrentPage(response.data.pagination.current);
         setTotalPages(response.data.pagination.pages);
         setTotalGroups(response.data.pagination.total);
@@ -89,7 +90,7 @@ const Groups = () => {
   const loadMyGroups = async () => {
     try {
       const response = await api('/api/groups/my-groups', { method: 'GET' });
-      
+
       if (response.success) {
         setMyGroups(response.data.groups);
       }
@@ -102,17 +103,17 @@ const Groups = () => {
   const handleJoinGroup = async (groupId) => {
     try {
       setIsJoining(prev => ({ ...prev, [groupId]: true }));
-      
-      const response = await api(`/api/groups/${groupId}/join`, { method: 'POST' });
-      
+
+      const response = await safariPOST(`/api/groups/${groupId}/join`, {}, "tham gia nhóm");
+
       if (response.success) {
         // Cập nhật UI
-        setGroups(prev => prev.map(group => 
-          group._id === groupId 
+        setGroups(prev => prev.map(group =>
+          group._id === groupId
             ? { ...group, userRole: 'member' }
             : group
         ));
-        
+
         // Reload my groups
         loadMyGroups();
       }
@@ -127,17 +128,17 @@ const Groups = () => {
   const handleLeaveGroup = async (groupId) => {
     try {
       setIsLeaving(prev => ({ ...prev, [groupId]: true }));
-      
-      const response = await api(`/api/groups/${groupId}/leave`, { method: 'POST' });
-      
+
+      const response = await safariPOST(`/api/groups/${groupId}/leave`, {}, "rời khỏi nhóm");
+
       if (response.success) {
         // Cập nhật UI
-        setGroups(prev => prev.map(group => 
-          group._id === groupId 
+        setGroups(prev => prev.map(group =>
+          group._id === groupId
             ? { ...group, userRole: null }
             : group
         ));
-        
+
         setMyGroups(prev => prev.filter(group => group._id !== groupId));
       }
     } catch (error) {
@@ -210,8 +211,8 @@ const Groups = () => {
         {/* Avatar */}
         <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
           {group.avatar ? (
-            <img 
-              src={group.avatar} 
+            <img
+              src={group.avatar}
               alt={group.name}
               className="w-full h-full object-cover"
             />
@@ -224,7 +225,7 @@ const Groups = () => {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <Link 
+          <Link
             to={`/groups/${group._id}`}
             className="block"
           >
@@ -232,7 +233,7 @@ const Groups = () => {
               {group.name}
             </h3>
           </Link>
-          
+
           {group.description && (
             <p className="text-gray-600 text-sm mt-1 line-clamp-2">
               {group.description}
@@ -244,7 +245,7 @@ const Groups = () => {
               <Users className="w-4 h-4" />
               <span>{group.stats?.memberCount || 0} thành viên</span>
             </div>
-            
+
             {group.stats?.postCount > 0 && (
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
@@ -287,7 +288,7 @@ const Groups = () => {
               <h1 className="text-2xl font-bold text-gray-900">Nhóm</h1>
               <p className="text-sm text-gray-600 hidden sm:block">Khám phá và tham gia các nhóm cộng đồng</p>
             </div>
-            
+
             <div className="flex-shrink-0 ml-4">
               <Link
                 to="/groups/create"
@@ -326,11 +327,10 @@ const Groups = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.id
+                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
                       ? 'border-black text-black'
                       : 'border-transparent text-gray-500 hover:text-black hover:border-gray-400'
-                  }`}
+                    }`}
                 >
                   {tab.label}
                   {tab.count > 0 && (
@@ -480,7 +480,7 @@ const Groups = () => {
             {/* Groups List */}
             {activeTab === 'discover' && (
               <div className={
-                viewMode === 'grid' 
+                viewMode === 'grid'
                   ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
                   : 'space-y-4'
               }>
@@ -490,7 +490,7 @@ const Groups = () => {
 
             {activeTab === 'my-groups' && (
               <div className={
-                viewMode === 'grid' 
+                viewMode === 'grid'
                   ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
                   : 'space-y-4'
               }>

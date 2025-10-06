@@ -9,7 +9,7 @@ import StoryViewer from './StoryViewer';
  * Stories tự động xóa sau 24h, có view count và reactions
  */
 export default function Stories({ user }) {
-  const [storiesGroups, setStoriesGroups] = useState([]); // Grouped by user
+  const [storiesGroups, setStoriesGroups] = useState([]); 
   const [myStories, setMyStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showStoryCreator, setShowStoryCreator] = useState(false);

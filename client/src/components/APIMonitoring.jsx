@@ -1,10 +1,10 @@
-import { 
-  Activity, 
-  TrendingUp, 
-  AlertTriangle, 
-  Clock, 
-  Globe, 
-  Server, 
+import {
+  Activity,
+  TrendingUp,
+  AlertTriangle,
+  Clock,
+  Globe,
+  Server,
   RefreshCw,
   BarChart3,
   Zap,
@@ -71,7 +71,7 @@ export default function APIMonitoring() {
           <AlertTriangle className="w-5 h-5 mr-2" />
           <span>Lỗi: {error}</span>
         </div>
-        <button 
+        <button
           onClick={fetchStats}
           className="mt-2 text-sm text-red-600 hover:text-red-800 underline mobile-touch-target"
         >
@@ -130,9 +130,8 @@ export default function APIMonitoring() {
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={() => setIsRealtimeEnabled(!isRealtimeEnabled)}
-            className={`btn-outline btn-sm flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${
-              isRealtimeEnabled ? 'text-green-600' : 'text-gray-500'
-            }`}
+            className={`btn-outline btn-sm flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${isRealtimeEnabled ? 'text-green-600' : 'text-gray-500'
+              }`}
           >
             <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
             <span className="hidden sm:inline">{isRealtimeEnabled ? 'Disable Live' : 'Enable Live'}</span>
@@ -159,11 +158,10 @@ export default function APIMonitoring() {
                 <button
                   key={section.id}
                   onClick={() => scrollToSection(section.id)}
-                  className={`flex items-center gap-2 p-3 rounded-lg text-sm font-medium transition-colors ${
-                    activeSection === section.id
+                  className={`flex items-center gap-2 p-3 rounded-lg text-sm font-medium transition-colors ${activeSection === section.id
                       ? 'bg-blue-100 text-blue-700'
                       : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   {section.label}
@@ -182,11 +180,10 @@ export default function APIMonitoring() {
             <button
               key={section.id}
               onClick={() => scrollToSection(section.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeSection === section.id
+              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeSection === section.id
                   ? 'bg-white text-blue-700 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
+                }`}
             >
               <Icon className="w-4 h-4" />
               {section.label}
@@ -276,10 +273,10 @@ export default function APIMonitoring() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <div className="w-16 sm:w-20 bg-gray-200 rounded-full h-2">
-                      <div 
+                      <div
                         className="bg-blue-500 h-2 rounded-full"
-                        style={{ 
-                          width: `${stats.topEndpoints[0]?.count ? (endpoint.count / stats.topEndpoints[0].count) * 100 : 0}%` 
+                        style={{
+                          width: `${stats.topEndpoints[0]?.count ? (endpoint.count / stats.topEndpoints[0].count) * 100 : 0}%`
                         }}
                       />
                     </div>
@@ -313,10 +310,10 @@ export default function APIMonitoring() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <div className="w-16 sm:w-20 bg-gray-200 rounded-full h-2">
-                      <div 
+                      <div
                         className="bg-green-500 h-2 rounded-full"
-                        style={{ 
-                          width: `${stats.topIPs[0]?.count ? (ip.count / stats.topIPs[0].count) * 100 : 0}%` 
+                        style={{
+                          width: `${stats.topIPs[0]?.count ? (ip.count / stats.topIPs[0].count) * 100 : 0}%`
                         }}
                       />
                     </div>
@@ -372,10 +369,10 @@ export default function APIMonitoring() {
                   {hour.hour}h
                 </div>
                 <div className="bg-gray-200 rounded h-16 sm:h-20 flex items-end">
-                  <div 
+                  <div
                     className="bg-blue-500 w-full rounded"
-                    style={{ 
-                      height: `${Math.max(2, (hour.requests / Math.max(...stats.hourlyDistribution.map(h => h.requests))) * 100)}%` 
+                    style={{
+                      height: `${Math.max(2, (hour.requests / Math.max(...stats.hourlyDistribution.map(h => h.requests))) * 100)}%`
                     }}
                   />
                 </div>
@@ -416,15 +413,14 @@ export default function APIMonitoring() {
           </h3>
           <div className="max-h-64 sm:max-h-96 overflow-y-auto space-y-2">
             {realtimeUpdates.slice(0, 20).map((update) => (
-              <div 
-                key={update.id} 
+              <div
+                key={update.id}
                 className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500"
               >
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                    update.statusCode >= 400 ? 'bg-red-500' : 
-                    update.statusCode >= 300 ? 'bg-yellow-500' : 'bg-green-500'
-                  }`}></div>
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${update.statusCode >= 400 ? 'bg-red-500' :
+                      update.statusCode >= 300 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}></div>
                   <div className="min-w-0 flex-1">
                     <div className="font-mono text-xs sm:text-sm">
                       <span className="font-bold text-blue-600">{update.method}</span>
@@ -437,10 +433,9 @@ export default function APIMonitoring() {
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0 ml-2">
-                  <div className={`text-xs sm:text-sm font-bold ${
-                    update.statusCode >= 400 ? 'text-red-600' : 
-                    update.statusCode >= 300 ? 'text-yellow-600' : 'text-green-600'
-                  }`}>
+                  <div className={`text-xs sm:text-sm font-bold ${update.statusCode >= 400 ? 'text-red-600' :
+                      update.statusCode >= 300 ? 'text-yellow-600' : 'text-green-600'
+                    }`}>
                     {update.statusCode}
                   </div>
                   <div className="text-xs text-gray-500">

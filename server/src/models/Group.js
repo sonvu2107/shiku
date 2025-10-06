@@ -53,6 +53,7 @@ const groupSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     },
+    
     // Quyền hạn cụ thể của thành viên
     permissions: {
       canPost: {

@@ -40,7 +40,7 @@ import Saved from "./pages/Saved.jsx";
 // Import các utilities và services
 import { api } from "./api.js";
 import { getValidAccessToken } from "./utils/tokenManager.js";
-import { getCSRFToken } from "./utils/csrfToken.js";
+import { getCSRFToken, initializeCSRFToken, debugCSRFToken } from "./utils/csrfToken.js";
 import socketService from "./socket";   // Service quản lý WebSocket connection
 
 /**
@@ -71,6 +71,9 @@ export default function App() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Initialize CSRF token first for Safari compatibility
+        await initializeCSRFToken();
+        
         const token = await getValidAccessToken();
         if (token) {
           // Nếu có token, gọi API để lấy thông tin user
@@ -93,6 +96,9 @@ export default function App() {
     };
     
     checkAuth();
+    
+    // Make debug function available globally for Safari debugging
+    window.debugCSRF = debugCSRFToken;
   }, []);
 
   // Apply/remove dark class on root html element

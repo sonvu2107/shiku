@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
+import { handleSafariCSRFError } from "../utils/csrfToken.js";
 import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp, Smile, Frown, Laugh, Angry, Image, X } from "lucide-react";
 import MediaViewer from "./MediaViewer";
 import BanNotification from "./BanNotification";
@@ -155,7 +156,8 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       // Ẩn form nhập bình luận
       setShowCommentForm(false);
     } catch (error) {
-      alert("Lỗi khi đăng bình luận: " + error.message);
+      const errorMessage = handleSafariCSRFError(error, "đăng bình luận");
+      alert("Lỗi khi đăng bình luận: " + errorMessage);
     } finally {
       setLoading(false);
     }
@@ -199,7 +201,8 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       // Auto expand replies để hiển thị luôn
       setExpandedReplies((prev) => new Set([...prev, parentId]));
     } catch (error) {
-      alert("Lỗi khi trả lời: " + error.message);
+      const errorMessage = handleSafariCSRFError(error, "trả lời bình luận");
+      alert("Lỗi khi trả lời: " + errorMessage);
     } finally {
       setLoading(false);
     }
@@ -254,7 +257,8 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       setEditContent("");
       setEditImages([]);
     } catch (error) {
-      alert("Lỗi khi cập nhật: " + error.message);
+      const errorMessage = handleSafariCSRFError(error, "cập nhật bình luận");
+      alert("Lỗi khi cập nhật: " + errorMessage);
     } finally {
       setLoading(false);
     }
@@ -336,7 +340,8 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       });
       setComments((prev) => removeCommentFromTree(prev, commentId));
     } catch (error) {
-      alert("Lỗi khi xóa bình luận: " + error.message);
+      const errorMessage = handleSafariCSRFError(error, "xóa bình luận");
+      alert("Lỗi khi xóa bình luận: " + errorMessage);
     } finally {
       setLoading(false);
     }
@@ -364,7 +369,9 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         )
       );
     } catch (error) {
-      // Silent handling for comment liking error
+      // Enhanced error handling for Safari CSRF issues
+      const errorMessage = handleSafariCSRFError(error, "thích bình luận");
+      console.error("Like comment error:", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -400,8 +407,9 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       
       setShowEmotePicker(null);
     } catch (error) {
-      console.error('Emote error:', error);
-      alert('Lỗi khi thêm cảm xúc: ' + error.message);
+      const errorMessage = handleSafariCSRFError(error, "thêm cảm xúc");
+      console.error('Emote error:', errorMessage);
+      alert('Lỗi khi thêm cảm xúc: ' + errorMessage);
     } finally {
       setLoading(false);
     }

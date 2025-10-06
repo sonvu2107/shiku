@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck, MoreHorizontal, Edit, Trash2, BarChart3 } from "lucide-react";
 import { api } from "../api";
 import { deduplicatedApi } from "../utils/requestDeduplication.js";
+import { safariAPI, safariPOST, safariPUT, safariDELETE } from "../utils/safariAPI.js";
 import UserName from "./UserName";
 import VerifiedBadge from "./VerifiedBadge";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
@@ -75,11 +76,11 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
   async function deletePost() {
     if (!window.confirm("Bạn có chắc muốn xóa bài này?")) return;
     try {
-      await deduplicatedApi(`/api/posts/${post._id}`, { method: "DELETE" });
+      await safariDELETE(`/api/posts/${post._id}`, "xóa bài viết");
       alert("Đã xóa bài viết.");
       navigate(0); // Reload page
     } catch (e) { 
-      alert("Lỗi xóa bài"); 
+      alert("Lỗi xóa bài: " + e.message); 
     }
   }
 
@@ -95,10 +96,7 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
     if (!window.confirm(confirmMessage)) return;
     
     try {
-      await deduplicatedApi(`/api/posts/${post._id}`, { 
-        method: "PUT", 
-        body: { status: newStatus } 
-      });
+      await safariPUT(`/api/posts/${post._id}`, { status: newStatus }, "thay đổi trạng thái bài viết");
       alert(newStatus === 'private' ? "Đã chuyển thành riêng tư" : "Đã công khai bài viết");
       navigate(0); // Reload page
     } catch (e) { 
@@ -129,10 +127,7 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
    */
   async function emote(emote) {
     try {
-      const res = await deduplicatedApi(`/api/posts/${post._id}/emote`, { 
-        method: "POST", 
-        body: { emote } 
-      });
+      const res = await safariPOST(`/api/posts/${post._id}/emote`, { emote }, "thêm cảm xúc");
       if (res.emotes) {
         setEmotesState(res.emotes); // Cập nhật local state
       }
@@ -143,7 +138,7 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
 
   async function toggleSave() {
     try {
-      const res = await api(`/api/posts/${post._id}/save`, { method: "POST" });
+      const res = await safariPOST(`/api/posts/${post._id}/save`, {}, "lưu bài viết");
       setSaved(!!res.saved);
     } catch (e) {
       alert(e.message || "Không thể lưu bài viết");

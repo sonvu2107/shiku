@@ -2,7 +2,7 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 import { getValidAccessToken, clearTokens, getRefreshToken, refreshAccessToken } from "./utils/tokenManager.js";
-import { getCSRFToken } from "./utils/csrfToken.js";
+import { getCSRFToken, ensureCSRFToken } from "./utils/csrfToken.js";
 import { 
   parseRateLimitHeaders, 
   showRateLimitWarning, 
@@ -32,9 +32,16 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
   
   // Lấy CSRF token cho các request không phải GET
   if (method !== 'GET') {
-    const csrf = await getCSRFToken();
-    if (csrf) {
-      headers['X-CSRF-Token'] = csrf;
+    // Ensure CSRF token is available for Safari compatibility
+    const hasToken = await ensureCSRFToken();
+    if (hasToken) {
+      const csrf = await getCSRFToken();
+      if (csrf) {
+        headers['X-CSRF-Token'] = csrf;
+      }
+    } else {
+      console.error(`Failed to get CSRF token for ${method} request to ${path}`);
+      throw new Error('CSRF token not available. Please refresh the page and try again.');
     }
   }
   
@@ -103,7 +110,8 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
       try {
         const csrfStatusRes = await fetch(`${API_URL}/api/csrf-status`, {
           credentials: "include",
-          mode: "cors"
+          mode: "cors",
+          cache: 'no-cache' // Safari cache fix
         });
         if (csrfStatusRes.ok) {
           const csrfStatus = await csrfStatusRes.json();
@@ -113,15 +121,22 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
         console.error("Failed to check CSRF status:", e);
       }
       
-      // Lấy token mới
+      // Lấy token mới với Safari-specific handling
       const newCSRFToken = await getCSRFToken(true); // Force refresh
       if (newCSRFToken) {
         console.log("Got new CSRF token. Retrying request...");
         headers['X-CSRF-Token'] = newCSRFToken;
+        
+        // Safari-specific retry configuration
         const retryRes = await fetch(`${API_URL}${path}`, {
           ...requestOptions,
-          headers: { ...requestOptions.headers, ...headers },
-          mode: "cors"
+          headers: { 
+            ...requestOptions.headers, 
+            ...headers,
+            'X-Requested-With': 'XMLHttpRequest' // Safari compatibility
+          },
+          mode: "cors",
+          cache: 'no-cache' // Safari cache fix
         });
         
         if (retryRes.ok) {
