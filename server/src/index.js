@@ -21,7 +21,7 @@ import { authOptional } from "./middleware/auth.js";
 import User from "./models/User.js";
 
 // Import tất cả routes
-import authRoutes from "./routes/auth.js"; // Authentication routes
+import authRoutes from "./routes/auth-secure.js"; // Authentication routes
 import authTokenRoutes from "./routes/auth-token.js"; // Token validation routes
 import postRoutes from "./routes/posts.js"; // Blog post routes
 import commentRoutes from "./routes/comments.js"; // Comment routes
@@ -303,7 +303,6 @@ app.get('/api/csrf-token', (req, res) => {
       sessionID: req.cookies.sessionID || 'No session ID found'
     });
   } catch (error) {
-    console.error('Error generating CSRF token:', error);
     return res.status(500).json({ 
       error: 'Failed to generate CSRF token',
       message: error.message,
@@ -362,7 +361,6 @@ app.get("/heartbeat", (req, res) => {
 // CSRF token endpoint
 app.get("/api/csrf-token", (req, res) => {
   const token = req.csrfToken();
-  console.log(`CSRF Token generated: ${token.substr(0, 6)}... for session: ${req.cookies.sessionID?.substr(0, 6)}...`);
   res.json({ 
     csrfToken: token,
     sessionID: req.cookies.sessionID?.substr(0, 6) + "...",
