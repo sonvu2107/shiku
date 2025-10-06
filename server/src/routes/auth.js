@@ -75,7 +75,7 @@ router.post("/register",
         httpOnly: true,
         secure: process.env.NODE_ENV === "development" ? false : true, // False in dev, true in production
         sameSite: process.env.NODE_ENV === "development" ? "lax" : "none", // Lax in dev, None in production
-        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 ngày (tăng từ 3 ngày)
       });
 
       res.cookie("refreshToken", tokens.refreshToken, {
@@ -194,7 +194,7 @@ router.post("/login",
         httpOnly: true,
         secure: process.env.NODE_ENV === "development" ? false : true, // False in dev, true in production
         sameSite: process.env.NODE_ENV === "development" ? "lax" : "none", // Lax in dev, None in production
-        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 ngày (tăng từ 3 ngày)
       });
 
       res.cookie("refreshToken", tokens.refreshToken, {
@@ -262,7 +262,7 @@ router.post("/refresh",
         httpOnly: true,
         secure: process.env.NODE_ENV === "development" ? false : true, // False in dev, true in production
         sameSite: process.env.NODE_ENV === "development" ? "lax" : "none", // Lax in dev, None in production
-        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 ngày (tăng từ 3 ngày)
       });
 
       // Log refresh event

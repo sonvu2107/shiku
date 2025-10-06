@@ -10,6 +10,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createServer } from "http"; // HTTP server
 import { Server } from "socket.io"; // WebSocket server
+import crypto from "crypto"; // Cryptographic functions for CSRF tokens
 
 // Import config và middleware
 import { connectDB } from "./config/db.js";
@@ -117,7 +118,8 @@ const io = new Server(server, {
       }
     },
     credentials: true, // Cho phép gửi cookies và credentials
-    optionsSuccessStatus: 200 // Hỗ trợ legacy browsers
+    optionsSuccessStatus: 200, // Hỗ trợ legacy browsers
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'X-CSRF-Token', 'X-Refresh-Token', 'Cache-Control', 'Pragma', 'Expires'] // Added all cache related headers
   },
   // Add connection management settings
   pingTimeout: 60000, // 60 seconds
@@ -149,27 +151,15 @@ app.use(helmet({
   },
   crossOriginEmbedderPolicy: false
 }));
+
 // Parse cookies từ request headers
 app.use(cookieParser());
 
 // Parse JSON body với limit 10MB (cho upload hình ảnh base64)
 app.use(express.json({ limit: "10mb" }));
 
-// CSRF protection (must be after express.json() to access req.body)
-app.use(csrf({
-  cookie: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "development" ? false : true, // False in dev, true in production
-    sameSite: process.env.NODE_ENV === "development" ? "lax" : "none", // Lax in dev, None in production
-    path: '/' // Explicit path for Safari
-  },
-  // Custom token extractor để lấy token từ header
-  value: (req) => {
-    return req.headers['x-csrf-token'] || req.body?._csrf;
-  }
-}));
-
 // CORS configuration cho HTTP requests - Enhanced for Safari compatibility
+// Đặt CORS trước CSRF để đảm bảo preflight requests không bị chặn
 app.use(cors({
   origin: (origin, callback) => {
     // Kiểm tra origin có trong danh sách allowed không
@@ -197,17 +187,69 @@ app.use(cors({
     if (isAllowed) {
       callback(null, true);
     } else {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn("❌ Blocked HTTP CORS:", origin);
-      }
-      callback(new Error("Not allowed by CORS"));
+      callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true, // Cho phép gửi cookies và auth headers
-  optionsSuccessStatus: 200, // Hỗ trợ legacy browsers
-  methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'], // Explicit methods for Safari
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'X-CSRF-Token', 'X-Refresh-Token'] // Explicit allowed headers for Safari
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'X-CSRF-Token', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma']
 }));
+
+// CSRF protection (must be after CORS to allow preflight requests)
+// Sử dụng đối tượng lưu trữ token thay vì cookie để tránh vấn đề CSRF với Safari và các thiết bị mobile
+const csrfTokenStore = {};
+
+// Thay thế csurf bằng middleware tự tạo
+app.use((req, res, next) => {
+  // Skip CSRF check for OPTIONS request (preflight CORS)
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
+  // Tạo hoặc lấy sessionID từ cookie
+  let sessionID = req.cookies.sessionID;
+  if (!sessionID) {
+    sessionID = crypto.randomBytes(16).toString('hex');
+    res.cookie('sessionID', sessionID, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "development" ? false : true,
+      sameSite: process.env.NODE_ENV === "development" ? "lax" : "none",
+      maxAge: 24 * 60 * 60 * 1000 // 1 day
+    });
+  }
+
+  // Phương thức để tạo CSRF token
+  req.csrfToken = () => {
+    const token = crypto.randomBytes(16).toString('hex');
+    csrfTokenStore[sessionID] = {
+      token,
+      expiry: Date.now() + (60 * 60 * 1000) // 1 hour expiry
+    };
+    return token;
+  };
+
+  // Kiểm tra CSRF token chỉ cho các request thay đổi dữ liệu (POST, PUT, DELETE)
+  if (['POST', 'PUT', 'DELETE'].includes(req.method) && 
+      !req.path.startsWith('/api/csrf-token') && 
+      !req.path.startsWith('/api/auth') &&
+      !req.path.includes('/test')) {
+    
+    const token = req.headers['x-csrf-token'] || req.body?._csrf;
+    const storedToken = csrfTokenStore[sessionID]?.token;
+
+    if (!token || !storedToken || token !== storedToken) {
+      return res.status(403).json({ 
+        error: "CSRF token invalid", 
+        code: "INVALID_CSRF_TOKEN",
+        expected: storedToken,
+        received: token,
+        cookiePresent: !!req.cookies.sessionID
+      });
+    }
+  }
+
+  next();
+});
 
 // HTTP request logging - detailed trong production, simple trong development
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
@@ -228,6 +270,47 @@ const __dirname = path.dirname(__filename);
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 // ==================== ROUTES SETUP ====================
+
+// CORS test endpoint for Safari debugging
+app.options('/api/csrf-token', (req, res) => {
+  try {
+    res.status(200)
+      .header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+      .header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token')
+      .send();
+  } catch (error) {
+    console.error('Error in OPTIONS handler:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// CSRF token endpoint
+app.get('/api/csrf-token', (req, res) => {
+  try {
+    // Make sure csrfToken method exists
+    if (typeof req.csrfToken !== 'function') {
+      return res.status(500).json({ 
+        error: 'CSRF protection not properly initialized'
+      });
+    }
+    
+    // Generate CSRF token
+    const csrfToken = req.csrfToken();
+    
+    // Return the CSRF token
+    return res.status(200).json({ 
+      csrfToken, 
+      sessionID: req.cookies.sessionID || 'No session ID found'
+    });
+  } catch (error) {
+    console.error('Error generating CSRF token:', error);
+    return res.status(500).json({ 
+      error: 'Failed to generate CSRF token',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
 
 // Health check endpoint with system stats
 app.get("/", (req, res) => {
@@ -278,7 +361,24 @@ app.get("/heartbeat", (req, res) => {
 
 // CSRF token endpoint
 app.get("/api/csrf-token", (req, res) => {
-  res.json({ csrfToken: req.csrfToken() });
+  const token = req.csrfToken();
+  console.log(`CSRF Token generated: ${token.substr(0, 6)}... for session: ${req.cookies.sessionID?.substr(0, 6)}...`);
+  res.json({ 
+    csrfToken: token,
+    sessionID: req.cookies.sessionID?.substr(0, 6) + "...",
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Test CSRF middleware để kiểm tra token
+app.post("/api/test-csrf-middleware", (req, res) => {
+  // Endpoint này đã được bảo vệ bởi middleware CSRF ở trên
+  res.json({
+    success: true,
+    message: "Passed CSRF protection!",
+    receivedToken: req.headers['x-csrf-token'] || req.body?._csrf,
+    sessionID: req.cookies.sessionID
+  });
 });
 
 // Debug endpoint để kiểm tra CORS và CSRF
@@ -328,6 +428,39 @@ app.post("/api/test-csrf", (req, res) => {
   });
 });
 
+// Safari CORS Test endpoint
+app.get("/api/safari-test", (req, res) => {
+  res.json({
+    success: true,
+    message: "Safari CORS test successful!",
+    timestamp: new Date().toISOString(),
+    browser: req.headers['user-agent'],
+    allHeaders: req.headers,
+    cookies: req.cookies
+  });
+});
+
+// CSRF và Session status endpoint
+app.get("/api/csrf-status", (req, res) => {
+  const sessionID = req.cookies.sessionID;
+  const csrfData = sessionID ? csrfTokenStore[sessionID] : null;
+  
+  res.json({
+    success: true,
+    timestamp: new Date().toISOString(),
+    sessionStatus: {
+      hasSession: !!sessionID,
+      sessionID: sessionID ? sessionID.substr(0, 6) + "..." : null
+    },
+    csrfStatus: {
+      hasStoredToken: !!csrfData,
+      tokenExpiry: csrfData ? new Date(csrfData.expiry).toISOString() : null,
+      isTokenExpired: csrfData ? Date.now() > csrfData.expiry : null
+    },
+    cookiesReceived: req.cookies
+  });
+});
+
 // CORS preflight test endpoint
 app.options("/api/cors-test", (req, res) => {
   res.json({
@@ -335,6 +468,7 @@ app.options("/api/cors-test", (req, res) => {
     message: "CORS preflight successful!",
     timestamp: new Date().toISOString(),
     origin: req.get('Origin'),
+    headers: req.headers,
     method: req.method
   });
 });

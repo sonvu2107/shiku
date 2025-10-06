@@ -71,8 +71,8 @@ export async function refreshAccessToken() {
       headers: {
         'Content-Type': 'application/json',
         'X-Refresh-Token': refreshToken,
-        'Accept': 'application/json', // Explicit header for Safari
-        'Cache-Control': 'no-cache' // Prevent caching issues in Safari
+        'Accept': 'application/json' // Explicit header for Safari
+        // Removed Cache-Control header to prevent CORS issues
       },
       credentials: 'include',
       mode: 'cors' // Explicit CORS mode for Safari

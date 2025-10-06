@@ -1,5 +1,9 @@
 /**
- * Temporary auth endpoints for IP development
+ * Temporary auth endpoints for IP       res.cookie('token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (tăng từ 3 ngày)opment
  * Các endpoint tạm thời cho việc phát triển với IP
  */
 import express from "express";
@@ -42,7 +46,7 @@ tempRouter.post("/login-token", async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 3 * 24 * 60 * 60 * 1000 // 3 days
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (tang t? 3 ng�y)
     });
     
     res.cookie('refreshToken', refreshToken, {
@@ -100,7 +104,7 @@ tempRouter.post("/register-token", async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 3 * 24 * 60 * 60 * 1000 // 3 days
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (tang t? 3 ng�y)
     });
     
     res.cookie('refreshToken', refreshToken, {

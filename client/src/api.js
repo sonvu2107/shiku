@@ -45,7 +45,7 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
     headers: {
       ...headers,
       'Accept': 'application/json', // Explicit header for Safari
-      'Cache-Control': 'no-cache', // Prevent caching issues in Safari
+      // Removed Cache-Control header to prevent CORS issues
     },
     credentials: "include", // Bao gồm cookies trong request
     mode: "cors", // Đảm bảo CORS mode
@@ -97,8 +97,26 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
     
     // Nếu là lỗi 403 (CSRF token invalid), thử refresh CSRF token
     if (res.status === 403 && method !== 'GET') {
+      console.warn("CSRF token validation failed. Attempting to refresh CSRF token...");
+      
+      // Kiểm tra trạng thái CSRF trước
+      try {
+        const csrfStatusRes = await fetch(`${API_URL}/api/csrf-status`, {
+          credentials: "include",
+          mode: "cors"
+        });
+        if (csrfStatusRes.ok) {
+          const csrfStatus = await csrfStatusRes.json();
+          console.info("CSRF Status:", csrfStatus);
+        }
+      } catch (e) {
+        console.error("Failed to check CSRF status:", e);
+      }
+      
+      // Lấy token mới
       const newCSRFToken = await getCSRFToken(true); // Force refresh
       if (newCSRFToken) {
+        console.log("Got new CSRF token. Retrying request...");
         headers['X-CSRF-Token'] = newCSRFToken;
         const retryRes = await fetch(`${API_URL}${path}`, {
           ...requestOptions,
@@ -108,7 +126,11 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
         
         if (retryRes.ok) {
           return await retryRes.json();
+        } else {
+          console.error("Retry with new CSRF token still failed:", await retryRes.text());
         }
+      } else {
+        console.error("Failed to get new CSRF token.");
       }
     }
 

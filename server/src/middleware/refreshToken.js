@@ -36,7 +36,7 @@ export function generateAccessToken(user) {
       role: user.role 
     }, 
     process.env.JWT_SECRET, 
-    { expiresIn: "3d" }
+    { expiresIn: "7d" } // Tăng từ 3 ngày lên 7 ngày
   );
 }
 
@@ -113,7 +113,7 @@ export async function refreshAccessToken(req, res, next) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 3 * 24 * 60 * 60 * 1000 // 3 days
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (tăng từ 3 ngày)
     });
 
     // Trả về access token mới
