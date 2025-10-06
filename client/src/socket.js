@@ -27,16 +27,8 @@ class SocketService {
    * @param {string} conversationId - ID của conversation
    */
   async emitCallOffer(offer, conversationId, isVideo = false) {
-    console.log('📤 SocketService: Emitting call-offer', {
-      conversationId,
-      isVideo,
-      hasOffer: !!offer,
-      socketConnected: this.socket?.connected
-    });
-
     await this.ensureConnectionAndExecute(() => {
       this.socket.emit('call-offer', { offer, conversationId, isVideo });
-      console.log('✅ SocketService: call-offer emitted');
     });
   }
 
@@ -134,9 +126,13 @@ class SocketService {
       transports: ['websocket', 'polling'], // Fallback từ websocket sang polling
       autoConnect: true,
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-      maxReconnectionAttempts: 5
+      reconnectionDelay: 500,  // Giảm delay giữa các lần kết nối lại
+      reconnectionDelayMax: 2000, // Giới hạn delay tối đa
+      reconnectionAttempts: 10,  // Tăng số lần thử kết nối
+      maxReconnectionAttempts: 10,
+      timeout: 5000,  // Giảm timeout kết nối
+      forceNew: false,
+      multiplex: true
     });
 
     // Event handlers cho connection
@@ -146,6 +142,22 @@ class SocketService {
       if (user && user._id) {
         this.socket.emit('join-user', user._id);
       }
+    });
+    
+    this.socket.on('connect_error', (error) => {
+      // Kết nối socket bị lỗi
+    });
+    
+    this.socket.on('connect_timeout', () => {
+      // Kết nối socket timeout
+    });
+    
+    this.socket.io.on('reconnect_attempt', (attempt) => {
+      // Đang thử kết nối lại
+    });
+    
+    this.socket.io.on('reconnect', (attempt) => {
+      // Đã kết nối lại thành công
     });
 
     this.socket.on('disconnect', () => {
@@ -266,20 +278,15 @@ class SocketService {
    */
   joinConversation(conversationId) {
     if (!conversationId) {
-      console.warn('⚠️ SocketService: Cannot join conversation - no conversationId');
       return;
     }
 
     if (!this.socket || !this.socket.connected) {
-      console.warn('⚠️ SocketService: Socket not connected, cannot join conversation');
       return;
     }
 
-    console.log('🚪 SocketService: Joining conversation', conversationId);
-
     // Không leave conversation cũ - cho phép join nhiều conversations
     this.socket.emit('join-conversation', conversationId);
-    console.log('✅ SocketService: join-conversation emitted for', conversationId);
   }
 
   /**

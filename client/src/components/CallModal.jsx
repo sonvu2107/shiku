@@ -7,9 +7,12 @@ import {
   VideoOff,
   Maximize2,
   Minimize2,
-  User
+  User,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 import socketService from "../socket";
+import { isOnline, getConnectionQuality, listenToNetworkChanges } from "../utils/networkDetection";
 
 /**
  * CallModal - Modal cuộc gọi video/voice với WebRTC (Facebook style)
@@ -41,6 +44,10 @@ export default function CallModal({
   const [callTimeout, setCallTimeout] = useState(null);
   const [fallbackTimeout, setFallbackTimeout] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false); // Trạng thái phóng to video
+  const [networkStatus, setNetworkStatus] = useState({ 
+    online: isOnline(), 
+    quality: getConnectionQuality() 
+  }); // Trạng thái mạng
 
   // Call duration timer
   useEffect(() => {
@@ -51,6 +58,24 @@ export default function CallModal({
       }, 1000);
     }
     return () => clearInterval(interval);
+  }, [callState]);
+  
+  // Theo dõi trạng thái mạng
+  useEffect(() => {
+    const cleanupNetworkListener = listenToNetworkChanges((isOnline, quality) => {
+      setNetworkStatus({ online: isOnline, quality });
+      
+      // Hiển thị thông báo nếu kết nối kém
+      if (!isOnline) {
+        setError("Mất kết nối mạng. Đang thử kết nối lại...");
+      } else if (quality === 'slow' && callState === 'active') {
+        setError("Kết nối mạng yếu, chất lượng cuộc gọi có thể bị ảnh hưởng");
+      } else if (callState === 'active') {
+        setError(null);
+      }
+    });
+    
+    return cleanupNetworkListener;
   }, [callState]);
 
   // Initialize call
@@ -77,15 +102,58 @@ export default function CallModal({
         setLocalStream(stream);
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
-        const peer = new RTCPeerConnection({
+        // Setup peer connection với tối ưu dựa trên tình trạng mạng
+        const connectionQuality = getConnectionQuality();
+        
+        // Điều chỉnh cấu hình dựa trên tình trạng mạng
+        const config = {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-          ]
-        });
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' }
+          ],
+          iceCandidatePoolSize: 10
+        };
+        
+        // Thêm cài đặt tối ưu cho điện thoại
+        if (connectionQuality === 'slow') {
+          config.sdpSemantics = 'unified-plan';
+          config.bundlePolicy = 'max-bundle';
+        }
+        
+        const peer = new RTCPeerConnection(config);
         peerRef.current = peer;
 
-        stream.getTracks().forEach(track => peer.addTrack(track, stream));
+        // Tối ưu video constraints cho kết nối chậm
+        if (connectionQuality === 'slow' && isVideo) {
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack) {
+            try {
+              const sender = peer.addTrack(videoTrack, stream);
+              // Đặt độ phân giải thấp hơn và bitrate thấp hơn cho kết nối chậm
+              const params = sender.getParameters();
+              if (params.encodings && params.encodings.length > 0) {
+                // Giảm bitrate và độ phân giải cho kết nối chậm
+                params.encodings[0].maxBitrate = 250000; // 250kbps
+                params.encodings[0].scaleResolutionDownBy = 2.0; // Scale down resolution
+                sender.setParameters(params).catch(e => {});
+              }
+            } catch (e) {
+              peer.addTrack(videoTrack, stream);
+            }
+          }
+          
+          // Thêm audio track
+          const audioTrack = stream.getAudioTracks()[0];
+          if (audioTrack) {
+            peer.addTrack(audioTrack, stream);
+          }
+        } else {
+          // Thêm tất cả các track như bình thường
+          stream.getTracks().forEach(track => peer.addTrack(track, stream));
+        }
 
         peer.ontrack = (e) => {
           if (!mounted) return;
@@ -121,11 +189,13 @@ export default function CallModal({
           }
         };
 
+        // Giảm thời gian timeout để trải nghiệm mượt mà hơn
         const fbTimeout = setTimeout(() => {
           if (mounted && peerRef.current?.connectionState === 'connecting') {
+            // Đặt trạng thái "active" sớm hơn để tránh chờ đợi quá lâu
             setCallState("active");
           }
-        }, 10000);
+        }, 5000); // Giảm xuống 5 giây thay vì 10 giây
         setFallbackTimeout(fbTimeout);
 
         if (incomingOffer) {
@@ -375,12 +445,26 @@ export default function CallModal({
               )}
             </div>
             <div>
-              <div className="text-white dark:text-gray-100 font-semibold text-lg">{remoteDisplayName}</div>
+              <div className="text-white dark:text-gray-100 font-semibold text-lg">
+                {remoteDisplayName}
+                {/* Network status indicator */}
+                <span className="ml-2 inline-flex items-center">
+                  {networkStatus.online ? (
+                    <Wifi className={`w-4 h-4 ${
+                      networkStatus.quality === 'slow' ? 'text-yellow-400' : 
+                      networkStatus.quality === 'medium' ? 'text-green-300' : 'text-green-400'
+                    }`} />
+                  ) : (
+                    <WifiOff className="w-4 h-4 text-red-400" />
+                  )}
+                </span>
+              </div>
               <div className="text-gray-300 dark:text-gray-400 text-sm">
                 {callState === "connecting" && "Đang kết nối..."}
                 {callState === "active" && formatDuration(callDuration)}
                 {callState === "error" && (error || "Lỗi kết nối")}
                 {callState === "ended" && "Đã kết thúc"}
+                {networkStatus.quality === 'slow' && <span className="ml-2 text-yellow-400 text-xs">• Mạng chậm</span>}
               </div>
             </div>
           </div>
