@@ -1,10 +1,6 @@
 /**
- * Temporary auth endpoints for IP       res.cookie('token', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (tăng từ 3 ngày)opment
- * Các endpoint tạm thời cho việc phát triển với IP
+ * Temporary auth endpoints for development
+ * Cac endpoint tam thoi cho viec phat trien
  */
 import express from "express";
 import bcrypt from "bcryptjs";
@@ -15,7 +11,7 @@ import { generateAccessToken, generateRefreshToken } from "../middleware/refresh
 const tempRouter = express.Router();
 
 /**
- * Tạo JWT token cho user
+ * Tao JWT token cho user
  * @param {Object} user - User object
  * @returns {string} JWT token
  */
@@ -24,20 +20,21 @@ function sign(user) {
 }
 
 /**
- * POST /login-token - Đăng nhập và trả về token
- * Endpoint tạm thời cho việc phát triển với IP
- * @param {string} req.body.email - Email đăng nhập
- * @param {string} req.body.password - Mật khẩu
- * @returns {Object} User info và JWT token
+ * POST /login-token - Dang nhap va tra ve token
+ * Endpoint tam thoi cho viec phat trien
+ * @param {string} req.body.email - Email dang nhap
+ * @param {string} req.body.password - Mat khau
+ * @returns {Object} User info va JWT token
  */
 tempRouter.post("/login-token", async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ error: "Email hoặc mật khẩu không đúng" });
+    if (!user) return res.status(401).json({ error: "Email hoac mat khau khong dung" });
     const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(401).json({ error: "Email hoặc mật khẩu không đúng" });
-    // Tạo access token và refresh token
+    if (!ok) return res.status(401).json({ error: "Email hoac mat khau khong dung" });
+    
+    // Tao access token va refresh token
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
     
@@ -46,7 +43,7 @@ tempRouter.post("/login-token", async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (tang t? 3 ng�y)
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     
     res.cookie('refreshToken', refreshToken, {
@@ -59,7 +56,7 @@ tempRouter.post("/login-token", async (req, res, next) => {
     res.json({ 
       user: { 
         _id: user._id, 
-        id: user._id, // Keep backward compatibility
+        id: user._id,
         name: user.name, 
         email: user.email, 
         role: user.role,
@@ -72,30 +69,39 @@ tempRouter.post("/login-token", async (req, res, next) => {
         isVerified: user.isVerified,
         lastSeen: user.lastSeen
       },
-      token: accessToken, // Backward compatibility
+      token: accessToken,
       accessToken,
       refreshToken
     });
-  } catch (e) { next(e); }
+  } catch (e) { 
+    next(e); 
+  }
 });
 
 /**
- * POST /register-token - Đăng ký và trả về token
- * Endpoint tạm thời cho việc phát triển với IP
- * @param {string} req.body.name - Tên người dùng
- * @param {string} req.body.email - Email đăng ký
- * @param {string} req.body.password - Mật khẩu
- * @returns {Object} User info và JWT token
+ * POST /register-token - Dang ky va tra ve token
+ * Endpoint tam thoi cho viec phat trien
+ * @param {string} req.body.name - Ten nguoi dung
+ * @param {string} req.body.email - Email dang ky
+ * @param {string} req.body.password - Mat khau
+ * @returns {Object} User info va JWT token
  */
 tempRouter.post("/register-token", async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ error: "Vui lòng điền đầy đủ thông tin" });
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: "Vui long dien day du thong tin" });
+    }
+    
     const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ error: "Email này đã được đăng ký" });
+    if (exists) {
+      return res.status(400).json({ error: "Email nay da duoc dang ky" });
+    }
+    
     const hash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, password: hash });
-    // Tạo access token và refresh token
+    
+    // Tao access token va refresh token
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
     
@@ -104,7 +110,7 @@ tempRouter.post("/register-token", async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (tang t? 3 ng�y)
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     
     res.cookie('refreshToken', refreshToken, {
@@ -117,7 +123,7 @@ tempRouter.post("/register-token", async (req, res, next) => {
     res.json({ 
       user: { 
         _id: user._id, 
-        id: user._id, // Keep backward compatibility
+        id: user._id,
         name: user.name, 
         email: user.email, 
         role: user.role,
@@ -130,11 +136,13 @@ tempRouter.post("/register-token", async (req, res, next) => {
         isVerified: user.isVerified,
         lastSeen: user.lastSeen
       },
-      token: accessToken, // Backward compatibility
+      token: accessToken,
       accessToken,
       refreshToken
     });
-  } catch (e) { next(e); }
+  } catch (e) { 
+    next(e); 
+  }
 });
 
 export default tempRouter;

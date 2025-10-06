@@ -9,10 +9,10 @@ import User from "../models/User.js";
 // Token blacklist (trong production nên dùng Redis)
 const tokenBlacklist = new Set();
 
-// Cấu hình JWT
+// Cau hinh JWT
 const JWT_CONFIG = {
-  accessTokenExpiry: '7d', // Tăng từ 3 ngày lên 7 ngày
-  refreshTokenExpiry: '30d', // 30 ngày
+  accessTokenExpiry: '7d', // Tang tu 3 ngay len 7 ngay
+  refreshTokenExpiry: '30d', // 30 ngay
   algorithm: 'HS256'
 };
 
