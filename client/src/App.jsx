@@ -40,6 +40,7 @@ import Saved from "./pages/Saved.jsx";
 // Import các utilities và services
 import { api } from "./api.js";
 import { getValidAccessToken } from "./utils/tokenManager.js";
+import { getCSRFToken } from "./utils/csrfToken.js";
 import socketService from "./socket";   // Service quản lý WebSocket connection
 
 /**
@@ -77,6 +78,8 @@ export default function App() {
           setUser(res.user);
           // Kết nối socket khi đã xác thực user thành công
           socketService.connect(res.user);
+          // Tạo CSRF token mới sau khi load trang để đồng bộ với sessionID
+          await getCSRFToken(true);
         } else {
           // Không có token, set user null
           setUser(null);

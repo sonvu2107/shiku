@@ -64,6 +64,9 @@ export default function Login({ setUser }) {
         saveTokens(data.token, data.token);
       }
       
+      // Tạo CSRF token mới sau khi login để đồng bộ với sessionID
+      await getCSRFToken(true);
+      
       // Cập nhật user state toàn cục
       setUser(data.user);
       

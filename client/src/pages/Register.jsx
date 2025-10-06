@@ -57,6 +57,9 @@ export default function Register({ setUser }) {
         saveTokens(data.token, data.token);
       }
       
+      // Tạo CSRF token mới sau khi register để đồng bộ với sessionID
+      await getCSRFToken(true);
+      
       // Cập nhật user state toàn cục
       if (setUser) setUser(data.user);
       

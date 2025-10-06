@@ -318,7 +318,7 @@ app.get("/", (req, res) => {
   
   res.json({ 
     ok: true, 
-    message: "Blog API",
+    message: "Shiku API",
     uptime: `${Math.floor(uptime / 60)} phút`,
     memory: {
       rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
