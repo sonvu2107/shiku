@@ -20,7 +20,7 @@ class RequestDeduplication {
       return this.pendingRequests.get(key);
     }
 
-    // Create new request
+    // Tạo request mới 
     const requestPromise = requestFn()
       .finally(() => {
         // Clean up after request completes

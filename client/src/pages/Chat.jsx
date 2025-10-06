@@ -66,40 +66,40 @@ export default function Chat() {
     if (!currentUser || !socketService.socket) {
       return;
     }
-    
+
     const handleOffer = ({ offer, conversationId, caller, callerSocketId, callerInfo, isVideo }) => {
-      // Chỉ xử lý nếu đang trong conversation được gọi
-      if (conversationId === selectedConversation?._id) {
-        const myId = getUserInfo()?.id;
-        const mySocketId = socketService.socket?.id;
-        
-        // Bỏ qua nếu chính mình là caller (kiểm tra cả user ID và socket ID)
-        if (caller === myId || callerSocketId === mySocketId) {
-          return;
-        }
+      const myId = getUserInfo()?.id;
+      const mySocketId = socketService.socket?.id;
 
-        // Validate offer
-        if (!offer || !offer.type || !offer.sdp) {
-          return;
-        }
-
-        const incomingCallData = { 
-          offer, 
-          caller: callerInfo || { name: "Người dùng" }, 
-          isVideo: isVideo || false 
-        };
-        setIncomingCall(incomingCallData);
+      // Bỏ qua nếu chính mình là caller (kiểm tra cả user ID và socket ID)
+      if (caller === myId || callerSocketId === mySocketId) {
+        return;
       }
+
+      // Validate offer
+      if (!offer || !offer.type || !offer.sdp || !conversationId) {
+        return;
+      }
+
+      // Nhận cuộc gọi từ bất kỳ conversation nào, không chỉ conversation đang chọn
+      const incomingCallData = {
+        offer,
+        conversationId, // Thêm conversationId để biết cuộc gọi từ conversation nào
+        caller: callerInfo || { name: "Người dùng" },
+        isVideo: isVideo || false
+      };
+
+      setIncomingCall(incomingCallData);
     };
 
     // Setup listener
     callManager.addListener(handleOffer);
-    
+
     return () => {
       // Cleanup listener khi component unmount hoặc dependencies thay đổi
       callManager.removeListener(handleOffer);
     };
-  }, [currentUser, selectedConversation?._id]);
+  }, [currentUser]);
 
   // Xử lý conversation change và join room
   useEffect(() => {
@@ -313,8 +313,19 @@ export default function Chat() {
       setIsLoading(true);
       const data = await chatAPI.getConversations();
       setConversations(data.conversations || []);
+
+      // Join vào TẤT CẢ conversation rooms để nhận incoming calls
+      // Điều này đảm bảo user nhận được cuộc gọi từ bất kỳ conversation nào
+      const conversations = data.conversations || [];
+      if (conversations.length > 0 && socketService.socket?.connected) {
+        // Join tất cả conversations (không cần await vì đã simplify)
+        conversations.forEach(conversation => {
+          if (conversation._id) {
+            socketService.joinConversation(conversation._id);
+          }
+        });
+      }
     } catch (error) {
-      // Handle error silently
     } finally {
       setIsLoading(false);
     }
@@ -429,7 +440,6 @@ export default function Chat() {
         await chatAPI.setCurrentConversation(null);
       }
       
-      console.log('� Reloading conversations after leaving...');
       // Reload conversations to get updated data
       await loadConversations();
       
@@ -600,9 +610,9 @@ export default function Chat() {
     
     setIsVideoCall(true);
     setCallOpen(true);
-    
-    // Emit call offer
-    await socketService.emitCallOffer(conversationId, true);
+
+    // NOTE: Không emit call offer ở đây
+    // Offer sẽ được tạo và emit bên trong CallModal sau khi getUserMedia thành công
   };
 
   const handleVoiceCall = async (conversationId) => {
@@ -642,12 +652,62 @@ export default function Chat() {
     
     setIsVideoCall(false);
     setCallOpen(true);
-    
-    // Emit call offer
-    await socketService.emitCallOffer(conversationId, false);
+
+    // NOTE: Không emit call offer ở đây
+    // Offer sẽ được tạo và emit bên trong CallModal sau khi getUserMedia thành công
   };
 
   const handleAcceptCall = () => {
+    if (!incomingCall) return;
+
+    // Tìm conversation của cuộc gọi
+    const targetConversation = conversations.find(c => c._id === incomingCall.conversationId);
+
+    // Chuyển đến conversation của cuộc gọi nếu chưa mở
+    if (incomingCall.conversationId && incomingCall.conversationId !== selectedConversation?._id) {
+      if (targetConversation) {
+        setSelectedConversation(targetConversation);
+      }
+    }
+
+    // Set remote user info từ conversation hoặc từ incomingCall
+    const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
+
+    if (targetConversation) {
+      const isGroup = targetConversation.conversationType === 'group';
+
+      if (isGroup) {
+        // Group call
+        const participants = targetConversation.participants
+          ?.filter(p => !p.leftAt)
+          ?.map(p => ({
+            id: p.user?._id || p.user?.id || p._id || p.id,
+            name: p.nickname || p.user?.name || p.name || "Người dùng",
+            avatar: p.user?.avatarUrl || p.user?.avatar || p.avatarUrl || p.avatar
+          }))
+          ?.filter(p => p.id !== currentUserId) || [];
+
+        setGroupParticipants(participants);
+        setIsGroupCall(true);
+        setRemoteUser(null);
+      } else {
+        // 1-1 call - lấy thông tin user đối phương từ conversation
+        const otherParticipant = targetConversation.participants?.find(p => {
+          const participantId = p.user?._id || p.user?.id || p._id || p.id;
+          return participantId !== currentUserId;
+        });
+
+        setRemoteUser(otherParticipant?.user || otherParticipant || incomingCall.caller);
+        setIsGroupCall(false);
+        setGroupParticipants([]);
+      }
+    } else {
+      // Fallback: dùng caller info từ incomingCall
+      setRemoteUser(incomingCall.caller);
+      setIsGroupCall(false);
+      setGroupParticipants([]);
+    }
+
     setCallOpen(true);
     setIsVideoCall(incomingCall?.isVideo ?? true);
     setIncomingOffer(incomingCall?.offer || null);
@@ -655,7 +715,13 @@ export default function Chat() {
   };
 
   const handleRejectCall = async () => {
-    await socketService.emitCallEnd(selectedConversation?._id);
+    if (!incomingCall) return;
+
+    // Gửi signal từ chối cuộc gọi về conversation tương ứng
+    const conversationId = incomingCall.conversationId || selectedConversation?._id;
+    if (conversationId) {
+      await socketService.emitCallEnd(conversationId);
+    }
     setIncomingCall(null);
   };
 

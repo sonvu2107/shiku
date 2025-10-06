@@ -1,6 +1,6 @@
 import User from "../models/User.js";
 
-// Middleware to check if user is banned
+// Middleware để kiểm tra nếu user bị cấm
 export const checkBanStatus = async (req, res, next) => {
   try {
     if (!req.user) return next();
@@ -8,7 +8,7 @@ export const checkBanStatus = async (req, res, next) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ error: "Người dùng không tồn tại" });
     
-    // Auto-unban if ban time has expired
+    // Auto-unban nếu thời gian ban đã hết
     if (user.isBanned && user.banExpiresAt && new Date() >= user.banExpiresAt) {
       user.isBanned = false;
       user.banReason = "";
@@ -19,7 +19,7 @@ export const checkBanStatus = async (req, res, next) => {
       return next();
     }
     
-    // Check if still banned
+    // Kiểm tra nếu vẫn bị cấm
     if (user.isCurrentlyBanned()) {
       const remainingMinutes = user.getRemainingBanTime();
       const banMessage = remainingMinutes === -1 

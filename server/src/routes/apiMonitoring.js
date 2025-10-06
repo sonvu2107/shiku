@@ -37,57 +37,61 @@ export const trackAPICall = async (req, res, next) => {
     const hour = vietnamTime.getHours();
     const method = req.method;
     const userAgent = req.get('User-Agent') || 'Unknown';
-    
-    // Get or create stats document
-    const stats = await ApiStats.getOrCreateStats();
-    
-    // Ensure dailyReset field exists (migration for old documents)
-    if (!stats.dailyReset) {
-      stats.dailyReset = {
-        lastDailyReset: new Date(),
-        dailyTotalRequests: 0
-      };
-    }
-    
-    // Increment total requests
-    stats.totalRequests++;
-    
-    // Increment daily total requests
-    stats.incrementDailyTotalRequests();
-    
-    // Track by endpoint
-    stats.incrementEndpoint(endpoint);
-    
-    // Track by IP
-    stats.incrementIP(ip);
-    
-    // Track by hour
-    stats.incrementHour(hour);
-    
-    // Track rate limit hits
+
+    // Use atomic operations to avoid version conflicts
+    const encodedIP = ip.replace(/\./g, '_').replace(/:/g, '_');
+    const updateOps = {
+      $inc: {
+        totalRequests: 1,
+        'dailyReset.dailyTotalRequests': 1,
+        [`currentPeriod.requestsByEndpoint.${endpoint}`]: 1,
+        [`currentPeriod.requestsByIP.${encodedIP}`]: 1,
+        [`currentPeriod.requestsByHour.${hour}`]: 1,
+        [`dailyTopStats.topEndpoints.${endpoint}`]: 1,
+        [`dailyTopStats.topIPs.${encodedIP}`]: 1
+      },
+      $push: {
+        realtimeUpdates: {
+          $each: [{
+            endpoint,
+            method,
+            ip,
+            statusCode: res.statusCode,
+            userAgent: userAgent.substring(0, 100),
+            timestamp: new Date()
+          }],
+          $position: 0,
+          $slice: 100
+        }
+      },
+      $set: {
+        updatedAt: new Date()
+      }
+    };
+
+    // Add rate limit hit if applicable
     if (res.statusCode === 429) {
-      stats.incrementRateLimitHit(endpoint);
+      updateOps.$inc.rateLimitHits = 1;
+      updateOps.$inc[`currentPeriod.rateLimitHitsByEndpoint.${endpoint}`] = 1;
     }
-    
-    // Add real-time update
-    stats.addRealtimeUpdate({
-      endpoint,
-      method,
-      ip,
-      statusCode: res.statusCode,
-      userAgent: userAgent.substring(0, 100)
-    });
-    
-    // Save to database
-    await stats.save();
-    
-    // Emit real-time update via WebSocket
+
+    // Perform atomic update
+    await ApiStats.findOneAndUpdate(
+      {},
+      updateOps,
+      { upsert: true, new: true }
+    );
+
+    // Get updated stats for websocket emission
+    const stats = await ApiStats.findOne({});
+
+    // Emit real-time update via WebSocket (non-blocking)
     const io = req.app.get('io');
-    if (io) {
+    if (io && stats) {
       // Calculate daily requests per minute for realtime update (Vietnam timezone)
       const vietnamNow = getVietnamTime();
       let timeSinceMidnight = 0;
-      
+
       if (isNaN(vietnamNow.getTime())) {
         // Fallback to current time
         const fallbackTime = new Date();
@@ -99,14 +103,14 @@ export const trackAPICall = async (req, res, next) => {
         vietnamMidnight.setHours(0, 0, 0, 0);
         timeSinceMidnight = (vietnamNow - vietnamMidnight) / 1000 / 60;
       }
-      
-      const requestsPerMinute = timeSinceMidnight > 0 
+
+      const requestsPerMinute = timeSinceMidnight > 0
         ? ((stats.dailyReset?.dailyTotalRequests || 0) / timeSinceMidnight).toFixed(2)
         : 0;
-      const dailyRequestsPerMinute = timeSinceMidnight > 0 
+      const dailyRequestsPerMinute = timeSinceMidnight > 0
         ? (stats.totalRequests / timeSinceMidnight).toFixed(2)
         : 0;
-      
+
       const realTimeUpdate = {
         type: 'api_call',
         data: {
@@ -120,16 +124,16 @@ export const trackAPICall = async (req, res, next) => {
           rateLimitHits: stats.rateLimitHits,
           requestsPerMinute: parseFloat(requestsPerMinute),
           dailyRequestsPerMinute: parseFloat(dailyRequestsPerMinute),
-          requestsByEndpoint: Object.fromEntries(stats.currentPeriod.requestsByEndpoint),
-          requestsByIP: stats.currentPeriod.requestsByIP.size,
-          hourlyDistribution: Object.fromEntries(stats.currentPeriod.requestsByHour)
+          requestsByEndpoint: stats.currentPeriod?.requestsByEndpoint ? Object.fromEntries(stats.currentPeriod.requestsByEndpoint) : {},
+          requestsByIP: stats.currentPeriod?.requestsByIP?.size || 0,
+          hourlyDistribution: stats.currentPeriod?.requestsByHour ? Object.fromEntries(stats.currentPeriod.requestsByHour) : {}
         }
       };
-      
+
       // Emit to all admin users
       io.emit('api_monitoring_update', realTimeUpdate);
     }
-    
+
     next();
   } catch (error) {
     console.error('Error tracking API call:', error);

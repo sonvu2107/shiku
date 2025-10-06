@@ -9,6 +9,9 @@ class CallManager {
   constructor() {
     this.listeners = new Set(); // Set of callback functions
     this.isListening = false;
+    this.handleOffer = null; // Store reference to handler
+    this.handleDisconnect = null; // Store reference to disconnect handler
+    this.handleConnect = null; // Store reference to connect handler
   }
 
   /**
@@ -38,34 +41,48 @@ class CallManager {
     if (!socket) {
       return;
     }
-    
-    const handleOffer = ({ offer, conversationId, caller, callerSocketId, callerInfo, isVideo }) => {
+
+    // Create handler once and store reference
+    this.handleOffer = ({ offer, conversationId, caller, callerSocketId, callerInfo, isVideo }) => {
+      // Validate parameters
+      if (!offer || !conversationId) {
+        return;
+      }
+
       // Gửi offer đến tất cả listeners
       this.listeners.forEach(callback => {
         try {
           callback({ offer, conversationId, caller, callerSocketId, callerInfo, isVideo });
         } catch (error) {
-          // Error in call offer listener
+          // Silent error handling
         }
       });
     };
 
-    socket.on("call-offer", handleOffer);
-    this.isListening = true;
-
-    // Cleanup khi socket disconnect
-    socket.on("disconnect", () => {
-      socket.off("call-offer", handleOffer);
+    // Create disconnect handler
+    this.handleDisconnect = () => {
       this.isListening = false;
-    });
+    };
 
-    // Re-setup listener khi reconnect
-    socket.on("connect", () => {
+    // Create connect handler
+    this.handleConnect = () => {
       if (this.listeners.size > 0) {
         this.isListening = false;
         this.ensureListening();
       }
-    });
+    };
+
+    // Remove old listeners if any (prevent duplicates)
+    socket.off("call-offer", this.handleOffer);
+    socket.off("disconnect", this.handleDisconnect);
+    socket.off("connect", this.handleConnect);
+
+    // Add new listeners
+    socket.on("call-offer", this.handleOffer);
+    socket.on("disconnect", this.handleDisconnect);
+    socket.on("connect", this.handleConnect);
+
+    this.isListening = true;
   }
 
   /**
@@ -73,11 +90,25 @@ class CallManager {
    */
   cleanup() {
     this.listeners.clear();
-    
+
     const socket = socketService.socket;
     if (socket) {
-      socket.off("call-offer");
+      // Remove all event listeners
+      if (this.handleOffer) {
+        socket.off("call-offer", this.handleOffer);
+      }
+      if (this.handleDisconnect) {
+        socket.off("disconnect", this.handleDisconnect);
+      }
+      if (this.handleConnect) {
+        socket.off("connect", this.handleConnect);
+      }
     }
+
+    // Reset references
+    this.handleOffer = null;
+    this.handleDisconnect = null;
+    this.handleConnect = null;
     this.isListening = false;
   }
 }

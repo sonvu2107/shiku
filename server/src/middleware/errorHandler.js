@@ -12,14 +12,14 @@ export function errorHandler(err, req, res, next) {
     userAgent: req.get('User-Agent')
   });
 
-  // Don't send stack trace in production
+  // Không gửi stack trace trong production
   const isDevelopment = process.env.NODE_ENV === 'development';
   
-  // Handle specific error types
+  // Xử lý các loại lỗi cụ thể
   let status = err.status || err.statusCode || 500;
   let message = err.message || "Lỗi server";
 
-  // MongoDB/Mongoose errors
+  // Lỗi MongoDB/Mongoose
   if (err.name === 'ValidationError') {
     status = 400;
     message = "Dữ liệu không hợp lệ";
@@ -37,7 +37,7 @@ export function errorHandler(err, req, res, next) {
     message = "Lỗi kết nối database";
   }
 
-  // JWT errors
+  // Lỗi JWT
   if (err.name === 'JsonWebTokenError') {
     status = 401;
     message = "Token không hợp lệ";
@@ -46,12 +46,12 @@ export function errorHandler(err, req, res, next) {
     message = "Token đã hết hạn";
   }
 
-  // Rate limiting errors
+  // Lỗi rate limiting
   if (err.status === 429) {
     message = "Quá nhiều yêu cầu, vui lòng thử lại sau";
   }
 
-  // Don't leak error details in production
+  // Không leak error details trong production
   if (!isDevelopment && status === 500) {
     message = "Lỗi server nội bộ";
   }
@@ -61,7 +61,7 @@ export function errorHandler(err, req, res, next) {
     status: status
   };
 
-  // Include stack trace in development
+  // Include stack trace trong development
   if (isDevelopment) {
     errorResponse.stack = err.stack;
     errorResponse.details = err;

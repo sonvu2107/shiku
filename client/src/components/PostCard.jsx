@@ -1,12 +1,13 @@
 import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck, MoreHorizontal, Edit, Trash2, BarChart3 } from "lucide-react";
 import { api } from "../api";
 import { deduplicatedApi } from "../utils/requestDeduplication.js";
 import UserName from "./UserName";
 import VerifiedBadge from "./VerifiedBadge";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
 import LazyImage from "./LazyImage";
+import Poll from "./Poll";
 
 /**
  * PostCard - Component hiển thị preview của một blog post
@@ -257,6 +258,13 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
           )}
         </div>
       </div>
+
+      {/* Poll display - show poll above action buttons */}
+      {post.hasPoll && (
+        <div className="py-2 border-b border-gray-200">
+          <Poll post={post} user={user} />
+        </div>
+      )}
 
       {/* Action bar */}
       <div className="flex items-center justify-between py-2">

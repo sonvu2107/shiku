@@ -27,8 +27,16 @@ class SocketService {
    * @param {string} conversationId - ID của conversation
    */
   async emitCallOffer(offer, conversationId, isVideo = false) {
+    console.log('📤 SocketService: Emitting call-offer', {
+      conversationId,
+      isVideo,
+      hasOffer: !!offer,
+      socketConnected: this.socket?.connected
+    });
+
     await this.ensureConnectionAndExecute(() => {
       this.socket.emit('call-offer', { offer, conversationId, isVideo });
+      console.log('✅ SocketService: call-offer emitted');
     });
   }
 
@@ -256,20 +264,22 @@ class SocketService {
    * Join vào conversation để nhận messages real-time
    * @param {string} conversationId - ID của conversation cần join
    */
-  async joinConversation(conversationId) {
+  joinConversation(conversationId) {
     if (!conversationId) {
+      console.warn('⚠️ SocketService: Cannot join conversation - no conversationId');
       return;
     }
 
-    await this.ensureConnectionAndExecute(() => {
-      // Rời conversation cũ nếu có
-      if (this.currentConversation) {
-        this.socket.emit('leave-conversation', this.currentConversation);
-      }
-      
-      this.socket.emit('join-conversation', conversationId);
-      this.currentConversation = conversationId;
-    }, 2000);
+    if (!this.socket || !this.socket.connected) {
+      console.warn('⚠️ SocketService: Socket not connected, cannot join conversation');
+      return;
+    }
+
+    console.log('🚪 SocketService: Joining conversation', conversationId);
+
+    // Không leave conversation cũ - cho phép join nhiều conversations
+    this.socket.emit('join-conversation', conversationId);
+    console.log('✅ SocketService: join-conversation emitted for', conversationId);
   }
 
   /**

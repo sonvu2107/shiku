@@ -430,24 +430,26 @@ export function ChatPopupWithCallModal(props) {
 
   useEffect(() => {
     const handleOffer = ({ offer, conversationId, caller, callerSocketId, callerInfo, isVideo }) => {
+      const myId = getUserInfo()?.id;
+      const mySocketId = socketService.socket?.id;
+
+      // Bỏ qua nếu chính mình là caller (kiểm tra cả user ID và socket ID)
+      if (caller === myId || callerSocketId === mySocketId) {
+        return;
+      }
+
+      // Validate offer
+      if (!offer || !offer.type || !offer.sdp || !conversationId) {
+        return;
+      }
+
+      // Chỉ hiển thị incoming call nếu là conversation của popup này
       if (conversationId === props.conversation._id) {
-        const myId = getUserInfo()?.id;
-        const mySocketId = socketService.socket?.id;
-        
-        // Bỏ qua nếu chính mình là caller (kiểm tra cả user ID và socket ID)
-        if (caller === myId || callerSocketId === mySocketId) {
-          return;
-        }
-
-        // Validate offer
-        if (!offer || !offer.type || !offer.sdp) {
-          return;
-        }
-
-        const incomingCallData = { 
-          offer, 
-          caller: callerInfo || { name: "Người dùng" }, 
-          isVideo: isVideo || false 
+        const incomingCallData = {
+          offer,
+          conversationId, // Thêm conversationId để tracking
+          caller: callerInfo || { name: "Người dùng" },
+          isVideo: isVideo || false
         };
         setIncomingCall(incomingCallData);
       }
@@ -455,13 +457,15 @@ export function ChatPopupWithCallModal(props) {
 
     // Sử dụng global call manager thay vì socket trực tiếp
     callManager.addListener(handleOffer);
-    
+
     return () => {
       callManager.removeListener(handleOffer);
     };
   }, [props.conversation._id]);
 
   const handleAcceptCall = () => {
+    if (!incomingCall) return;
+
     setCallOpen(true);
     setIsVideoCall(incomingCall?.isVideo ?? true);
     setIncomingOffer(incomingCall?.offer || null);
@@ -469,7 +473,13 @@ export function ChatPopupWithCallModal(props) {
   };
 
   const handleRejectCall = async () => {
-    await socketService.emitCallEnd(props.conversation._id);
+    if (!incomingCall) return;
+
+    // Gửi signal từ chối cuộc gọi về conversation tương ứng
+    const conversationId = incomingCall.conversationId || props.conversation._id;
+    if (conversationId) {
+      await socketService.emitCallEnd(conversationId);
+    }
     setIncomingCall(null);
   };
 

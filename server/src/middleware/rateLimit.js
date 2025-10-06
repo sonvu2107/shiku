@@ -1,19 +1,18 @@
 import rateLimit from "express-rate-limit";
 
-// Helper function để log rate limit info (removed console.log for production)
+// Hàm trợ giúp để ghi lại thông tin giới hạn tốc độ
 const logRateLimitInfo = (req, message) => {
-  // Rate limit logging can be implemented with proper logging system
-  // For now, we'll just track the event without console output
+  // Việc ghi nhật ký giới hạn tốc độ có thể được thực hiện bằng hệ thống ghi nhật ký phù hợp
 };
 
-// Custom key generator để handle proxy IPs
+// Trình tạo khóa tùy chỉnh để xử lý IP proxy
 const createKeyGenerator = () => (req) => {
   const forwardedFor = req.get('X-Forwarded-For');
   const realIP = req.get('X-Real-IP');
   const clientIP = req.ip;
   
   if (forwardedFor) {
-    // Lấy IP đầu tiên từ X-Forwarded-For (client IP thật)
+    // Lấy IP đầu tiên từ X-Forwarded-For (IP thật của client)
     return forwardedFor.split(',')[0].trim();
   }
   
@@ -24,10 +23,10 @@ const createKeyGenerator = () => (req) => {
   return clientIP;
 };
 
-// General API rate limiter - increased for better UX (DISABLED to avoid double limiting)
+// General API rate limiter - tăng lên cho UX tốt hơn (ĐÃ TẮT để tránh double limiting)
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1500, // Increased from 1000 to 1500 requests per windowMs (100/min)
+  max: 1500,
   standardHeaders: true,
   legacyHeaders: false,
   // Custom handler thay vì onLimitReached
@@ -38,22 +37,23 @@ export const apiLimiter = rateLimit({
       retryAfter: Math.round(options.windowMs / 1000)
     });
   },
-  // Skip rate limiting for certain IPs if needed
+  // Skip rate limiting cho các IP cụ thể nếu cần
   skip: (req) => {
-    // Skip rate limiting for local development
+    // Skip rate limiting cho local development
     const allowedIPs = ['127.0.0.1', '::1', 'localhost'];
     return process.env.NODE_ENV === 'development' && allowedIPs.includes(req.ip);
   },
-  // Custom key generator để handle proxy IPs
+  // Custom key generator để xử lý IP proxy
   keyGenerator: createKeyGenerator()
 });
 
-// Strict rate limiter for authentication endpoints (login, register, etc.)
+// Strict rate limiter cho các endpoint xác thực (login, register, etc.)
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Increased from 5 to 20 auth requests per windowMs
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+
   // Custom handler thay vì onLimitReached
   handler: (req, res, next, options) => {
     logRateLimitInfo(req, 'Auth Rate limit reached');
@@ -62,17 +62,18 @@ export const authLimiter = rateLimit({
       retryAfter: Math.round(options.windowMs / 1000)
     });
   },
-  skipSuccessfulRequests: true, // Don't count successful requests
-  // Custom key generator để handle proxy IPs
+  skipSuccessfulRequests: true, // Không tính các yêu cầu thành công
+  // Custom key generator để xử lý IP proxy
   keyGenerator: createKeyGenerator()
 });
 
-// Loose rate limiter for auth status checks (me, heartbeat, etc.)
+// Loose rate limiter cho các endpoint kiểm tra trạng thái (me, heartbeat, etc.)
 export const authStatusLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 120, // Increased from 60 to 120 requests per minute for status checks (2/sec)
+  max: 120,
   standardHeaders: true,
   legacyHeaders: false,
+
   // Custom handler
   handler: (req, res, next, options) => {
     logRateLimitInfo(req, 'Auth Status Rate limit reached');
@@ -103,10 +104,10 @@ export const uploadLimiter = rateLimit({
   keyGenerator: createKeyGenerator()
 });
 
-// Message rate limiter to prevent spam - increased for active users
+// Message rate limiter để tránh spam - tăng lên cho users active
 export const messageLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 100, // Increased from 60 to 100 messages per minute
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   // Custom handler thay vì message
@@ -124,9 +125,10 @@ export const messageLimiter = rateLimit({
 // Posts-specific rate limiter for infinite scroll
 export const postsLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 800, // Increased from 500 to 800 post requests per 15 minutes (53/min)
+  max: 800,
   standardHeaders: true,
   legacyHeaders: false,
+
   // Custom handler thay vì message
   handler: (req, res, next, options) => {
     logRateLimitInfo(req, 'Posts Rate limit reached');

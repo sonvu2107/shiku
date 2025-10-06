@@ -1,6 +1,12 @@
 import { Router } from "express";
 const router = Router();
-import crypto from "crypto";
+import cryp      // Set cookies
+      res.cookie("accessToken", newAccessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
+      }); "crypto";
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import { sendEmail } from "../utils/sendEmail.js";
@@ -75,7 +81,7 @@ router.post("/register",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 15 * 60 * 1000 // 15 phút
+        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
       });
 
       res.cookie("refreshToken", tokens.refreshToken, {
@@ -194,7 +200,7 @@ router.post("/login",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 15 * 60 * 1000 // 15 phút
+        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
       });
 
       res.cookie("refreshToken", tokens.refreshToken, {
@@ -262,7 +268,7 @@ router.post("/refresh",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 15 * 60 * 1000 // 15 phút
+        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
       });
 
       // Log refresh event

@@ -70,7 +70,7 @@ router.post("/register",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 15 * 60 * 1000 // 15 phút
+        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
       });
 
       res.cookie("refreshToken", tokens.refreshToken, {
@@ -180,7 +180,7 @@ router.post("/login",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 15 * 60 * 1000 // 15 phút
+        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
       });
 
       res.cookie("refreshToken", tokens.refreshToken, {
@@ -239,7 +239,7 @@ router.post("/refresh",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 15 * 60 * 1000 // 15 phút
+        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
       });
 
       // Log refresh event

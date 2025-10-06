@@ -19,7 +19,7 @@ const PostSchema = new mongoose.Schema({
   author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Tác giả
   title: { type: String, required: true, trim: true }, // Tiêu đề
   slug: { type: String, required: true, unique: true, index: true }, // URL slug (unique)
-  content: { type: String, required: true }, // Nội dung bài viết
+  content: { type: String, default: "" }, // Nội dung bài viết
   
   // ==================== MEDIA ====================
   coverUrl: { type: String, default: "" }, // Ảnh cover/thumbnail
@@ -38,6 +38,9 @@ const PostSchema = new mongoose.Schema({
   // ==================== INTERACTIONS ====================
   emotes: [EmoteSchema], // Danh sách emotes/reactions
   views: { type: Number, default: 0 }, // Số lượt xem
+
+  // ==================== POLL ====================
+  hasPoll: { type: Boolean, default: false }, // Có chứa poll không
   
   // ==================== TRACKING ====================
   isEdited: { type: Boolean, default: false } // Đánh dấu bài đã chỉnh sửa

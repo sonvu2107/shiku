@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { Globe, Lock, Image, Users } from "lucide-react";
+import { Globe, Lock, Image, Users, BarChart3, Plus, X } from "lucide-react";
 import BanNotification from "./BanNotification";
 
 /**
@@ -37,7 +37,15 @@ export default function PostCreator({ user, groupId = null }) {
   // Ban notification states
   const [showBanNotification, setShowBanNotification] = useState(false);
   const [banInfo, setBanInfo] = useState(null);
-  
+
+  // Poll states
+  const [hasPoll, setHasPoll] = useState(false); // Có tạo poll không
+  const [pollQuestion, setPollQuestion] = useState(""); // Câu hỏi poll
+  const [pollOptions, setPollOptions] = useState(["", ""]); // Danh sách options (tối thiểu 2)
+  const [pollExpiresIn, setPollExpiresIn] = useState(""); // Thời gian hết hạn (days)
+  const [pollIsPublic, setPollIsPublic] = useState(true); // Hiển thị ai vote gì
+  const [pollAllowMultiple, setPollAllowMultiple] = useState(false); // Cho phép vote nhiều options
+
   const navigate = useNavigate();
 
   // ==================== EFFECTS ====================
@@ -72,32 +80,80 @@ export default function PostCreator({ user, groupId = null }) {
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate required fields
-    if (!title.trim() || !content.trim()) {
-      setErr("Vui lòng nhập tiêu đề và nội dung");
+    if (!title.trim()) {
+      setErr("Vui lòng nhập tiêu đề");
       return;
+    }
+    
+    // Content is optional if poll is present
+    if (!hasPoll && !content.trim()) {
+      setErr("Vui lòng nhập nội dung hoặc tạo poll");
+      return;
+    }
+
+    // Validate poll nếu có
+    if (hasPoll) {
+      if (!pollQuestion.trim()) {
+        setErr("Vui lòng nhập câu hỏi poll");
+        return;
+      }
+      const validOptions = pollOptions.filter(opt => opt.trim());
+      if (validOptions.length < 2) {
+        setErr("Poll phải có ít nhất 2 lựa chọn");
+        return;
+      }
+      if (validOptions.length > 10) {
+        setErr("Poll chỉ có thể có tối đa 10 lựa chọn");
+        return;
+      }
     }
 
     setLoading(true);
     try {
       // Parse tags từ string thành array
       const tagsArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag);
-      
+
       // Gọi API tạo bài viết
       const post = await api("/api/posts", {
         method: "POST",
-        body: { 
-          title, 
-          content, 
-          tags: tagsArray, 
-          files, 
-          status, 
+        body: {
+          title,
+          content,
+          tags: tagsArray,
+          files,
+          status,
           coverUrl,
-          group: selectedGroup || null
+          group: selectedGroup || null,
+          hasPoll
         }
       });
-      
+
+      // Nếu có poll, tạo poll cho bài viết
+      if (hasPoll) {
+        const validOptions = pollOptions.filter(opt => opt.trim()).map(opt => ({ text: opt.trim() }));
+
+        // Tính expiresAt nếu có
+        let expiresAt = null;
+        if (pollExpiresIn && parseInt(pollExpiresIn) > 0) {
+          const days = parseInt(pollExpiresIn);
+          expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+        }
+
+        await api("/api/polls", {
+          method: "POST",
+          body: {
+            postId: post.post._id,
+            question: pollQuestion.trim(),
+            options: validOptions,
+            allowMultipleVotes: pollAllowMultiple,
+            isPublic: pollIsPublic,
+            expiresAt
+          }
+        });
+      }
+
       // Reset form và đóng modal
       setShowModal(false);
       resetForm();
@@ -136,6 +192,13 @@ export default function PostCreator({ user, groupId = null }) {
     setShowPrivacyDropdown(false);
     setSelectedGroup(groupId); // Reset về group ban đầu
     setShowGroupDropdown(false);
+    // Reset poll
+    setHasPoll(false);
+    setPollQuestion("");
+    setPollOptions(["", ""]);
+    setPollExpiresIn("");
+    setPollIsPublic(true);
+    setPollAllowMultiple(false);
   };
 
   /**
@@ -355,12 +418,16 @@ export default function PostCreator({ user, groupId = null }) {
               {/* Content */}
               <div>
                 <textarea
-                  placeholder={`${userDisplayName} ơi, bạn đang nghĩ gì thế?`}
+                  placeholder={hasPoll ? `${userDisplayName} ơi, bạn đang nghĩ gì thế?` : `${userDisplayName} ơi, bạn đang nghĩ gì thế?`}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   rows={6}
                   className="w-full border-0 text-base resize-none focus:outline-none"
                 />
+                {hasPoll && (
+                  <p className="text-sm text-gray-500 mt-1">
+                  </p>
+                )}
               </div>
 
               {/* Upload section: ảnh/video + preview */}
@@ -412,6 +479,182 @@ export default function PostCreator({ user, groupId = null }) {
                 />
               </div>
 
+              {/* Poll Toggle Button */}
+              <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setHasPoll(!hasPoll)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    hasPoll
+                      ? "bg-blue-100 text-blue-600"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  <BarChart3 size={18} />
+                  <span>{hasPoll ? "Đã tạo bình chọn" : "Tạo bình chọn"}</span>
+                </button>
+              </div>
+
+              {/* Poll Configuration */}
+              {hasPoll && (
+                <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-gray-900">Tạo bình chọn</h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHasPoll(false);
+                        setPollQuestion("");
+                        setPollOptions(["", ""]);
+                        setPollExpiresIn("");
+                      }}
+                      className="text-gray-400 hover:text-gray-600"
+                      title="Đóng"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  {/* Poll Question */}
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Câu hỏi bình chọn..."
+                      value={pollQuestion}
+                      onChange={(e) => setPollQuestion(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      maxLength={500}
+                    />
+                  </div>
+
+                  {/* Poll Options */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Các lựa chọn:
+                    </label>
+                    {pollOptions.map((option, index) => (
+                      <div key={index} className="flex items-center gap-2 group">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            placeholder={`Lựa chọn ${index + 1}...`}
+                            value={option}
+                            onChange={(e) => {
+                              const newOptions = [...pollOptions];
+                              newOptions[index] = e.target.value;
+                              setPollOptions(newOptions);
+                            }}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            maxLength={200}
+                          />
+                          {option.trim() && (
+                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                        {pollOptions.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newOptions = pollOptions.filter((_, i) => i !== index);
+                              setPollOptions(newOptions);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-600 transition-opacity p-1 rounded"
+                            title="Xóa lựa chọn này"
+                          >
+                            <X size={18} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Add Option Button */}
+                    {pollOptions.length < 10 && (
+                      <button
+                        type="button"
+                        onClick={() => setPollOptions([...pollOptions, ""])}
+                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-dashed border-blue-300 hover:border-blue-400"
+                      >
+                        <Plus size={16} />
+                        <span>Thêm lựa chọn</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Poll Settings */}
+                  <div className="space-y-3 pt-3 border-t border-gray-300">
+                    {/* Expiry Time */}
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">
+                        Hết hạn sau:
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          placeholder="Số ngày (để trống = không giới hạn)"
+                          value={pollExpiresIn}
+                          onChange={(e) => setPollExpiresIn(e.target.value)}
+                          min="1"
+                          max="365"
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-500 whitespace-nowrap">ngày</span>
+                      </div>
+                    </div>
+
+                    {/* Checkboxes */}
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:text-gray-900 group">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={pollAllowMultiple}
+                            onChange={(e) => setPollAllowMultiple(e.target.checked)}
+                            className="sr-only"
+                          />
+                          <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${
+                            pollAllowMultiple 
+                              ? 'bg-blue-600 border-blue-600 text-white' 
+                              : 'border-gray-300 bg-white group-hover:border-blue-400'
+                          }`}>
+                            {pollAllowMultiple && (
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                        <span className="leading-tight flex-1">Cho phép chọn nhiều lựa chọn</span>
+                      </label>
+
+                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:text-gray-900 group">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={pollIsPublic}
+                            onChange={(e) => setPollIsPublic(e.target.checked)}
+                            className="sr-only"
+                          />
+                          <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${
+                            pollIsPublic 
+                              ? 'bg-blue-600 border-blue-600 text-white' 
+                              : 'border-gray-300 bg-white group-hover:border-blue-400'
+                          }`}>
+                            {pollIsPublic && (
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                        <span className="leading-tight flex-1">Hiển thị ai đã vote (công khai)</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {err && (
                 <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
                   {err}
@@ -429,7 +672,7 @@ export default function PostCreator({ user, groupId = null }) {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || !title.trim() || !content.trim()}
+                  disabled={loading || !title.trim() || (!hasPoll && !content.trim())}
                   className="btn disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Đang đăng..." : "Đăng bài"}

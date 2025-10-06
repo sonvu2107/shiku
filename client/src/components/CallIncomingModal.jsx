@@ -1,8 +1,9 @@
 import React from "react";
+import { Phone, PhoneOff, Video, Mic } from "lucide-react";
 
 /**
  * CallIncomingModal - Modal hiển thị khi có cuộc gọi đến
- * Giao diện giống Messenger với fullscreen background và circular buttons
+ * UI/UX tone đen trắng đồng nhất với web
  * @param {Object} props - Component props
  * @param {boolean} props.open - Trạng thái mở/đóng modal
  * @param {Object} props.caller - Thông tin người gọi
@@ -11,76 +12,138 @@ import React from "react";
  * @param {Function} props.onReject - Callback khi từ chối cuộc gọi
  */
 const CallIncomingModal = ({ open, caller, isVideo, onAccept, onReject }) => {
-  // Không render nếu modal không mở
   if (!open) {
     return null;
   }
-  
+
+  // Extract caller info
+  const callerName = caller?.name || caller?.username || "Người dùng";
+  const callerAvatar = caller?.avatarUrl || caller?.avatar || caller?.profilePicture;
+  const callerInitial = callerName.charAt(0)?.toUpperCase() || "?";
+
+  console.log('👤 CallIncomingModal: Caller info', {
+    name: callerName,
+    avatar: callerAvatar,
+    callerObj: caller
+  });
+
   return (
-    <div className="fixed inset-0 bg-black z-[9999] flex items-center justify-center">
-      <div className="w-full h-full bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 flex flex-col items-center justify-center relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-green-500/30 to-blue-500/30"></div>
-        </div>
-        
-        {/* Avatar và thông tin cuộc gọi */}
-        <div className="mb-12 text-center relative z-10">
-          <div className="relative mb-8">
-            {/* Avatar */}
-            <div className="w-48 h-48 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-6xl mx-auto shadow-2xl border-4 border-white/20">
-              {caller?.name ? caller.name.charAt(0).toUpperCase() : '👤'}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900 dark:bg-black backdrop-blur-sm">
+      {/* Background gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-gray-800/50 via-gray-900/80 to-black/90 dark:from-black/50 dark:via-black/80 dark:to-black/95"></div>
+
+      <div className="relative z-10 flex flex-col items-center justify-center px-4 py-8 w-full max-w-md">
+        {/* Avatar với animation */}
+        <div className="relative mb-8">
+          {/* Pulsating rings */}
+          <div className="absolute inset-0 -m-4 rounded-full border-4 border-gray-400 dark:border-gray-300 opacity-40 animate-ping"></div>
+          <div className="absolute inset-0 -m-8 rounded-full border-4 border-gray-500 dark:border-gray-400 opacity-20 animate-ping" style={{ animationDelay: "0.2s" }}></div>
+          <div className="absolute inset-0 -m-12 rounded-full border-4 border-gray-600 dark:border-gray-500 opacity-10 animate-ping" style={{ animationDelay: "0.4s" }}></div>
+
+          {/* Avatar */}
+          <div className="relative w-32 h-32 rounded-full border-4 border-white dark:border-gray-200 shadow-2xl overflow-hidden bg-gradient-to-br from-gray-400 to-gray-600 dark:from-gray-600 dark:to-gray-800">
+            {callerAvatar ? (
+              <img
+                src={callerAvatar}
+                alt={callerName}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <div
+              className={`absolute inset-0 flex items-center justify-center text-white text-5xl font-bold ${callerAvatar ? 'hidden' : 'flex'}`}
+            >
+              {callerInitial}
             </div>
-            
-            {/* Ringing Animation */}
-            <div className="absolute inset-0 rounded-full border-4 border-white/60 animate-ping opacity-30"></div>
-            <div className="absolute inset-4 rounded-full border-4 border-white/40 animate-ping opacity-40" style={{animationDelay: '0.5s'}}></div>
-            <div className="absolute inset-8 rounded-full border-4 border-white/20 animate-ping opacity-50" style={{animationDelay: '1s'}}></div>
           </div>
-          
-          <div className="font-bold text-3xl text-white mb-3">
-            {caller?.name || "Unknown"}
-          </div>
-          <div className="text-white/80 text-xl mb-2">
-            {isVideo ? "Incoming Video Call" : "Incoming Voice Call"}
-          </div>
-          <div className="text-white/60 text-lg">
-            {isVideo ? "Video" : "Voice"}
+
+          {/* Call type icon */}
+          <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-gray-700 dark:bg-gray-600 rounded-full border-4 border-white dark:border-gray-900 shadow-lg flex items-center justify-center">
+            {isVideo ? (
+              <Video className="w-6 h-6 text-white" />
+            ) : (
+              <Mic className="w-6 h-6 text-white" />
+            )}
           </div>
         </div>
-        
-        {/* Các nút hành động */}
-        <div className="flex gap-8 justify-center items-center relative z-10">
-          {/* Reject Button */}
-          <button 
-            className="w-20 h-20 bg-red-500/90 hover:bg-red-600/90 text-white rounded-full transition-all duration-200 flex items-center justify-center shadow-lg shadow-red-500/50 hover:shadow-red-500/70 backdrop-blur-sm" 
+
+        {/* Caller name */}
+        <h2 className="text-white dark:text-gray-100 text-3xl font-bold mb-2 text-center animate-fadeInUp">
+          {callerName}
+        </h2>
+
+        {/* Call type label */}
+        <p className="text-gray-300 dark:text-gray-400 text-lg mb-8 text-center animate-fadeInUp" style={{ animationDelay: "0.1s" }}>
+          {isVideo ? "Cuộc gọi video đến..." : "Cuộc gọi thoại đến..."}
+        </p>
+
+        {/* Action buttons - Clean monochrome style */}
+        <div className="flex items-center justify-center gap-6 w-full animate-fadeInUp" style={{ animationDelay: "0.2s" }}>
+          {/* Decline button */}
+          <button
             onClick={onReject}
-            title="Decline"
+            className="group relative flex flex-col items-center gap-3 transition-transform hover:scale-110 active:scale-95"
+            title="Từ chối"
           >
-            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28-.79-.73-1.68-1.36-2.66-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
-            </svg>
+            <div className="w-16 h-16 rounded-full bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-700 shadow-lg shadow-red-500/30 dark:shadow-red-600/30 flex items-center justify-center transition-all group-hover:shadow-xl">
+              <PhoneOff className="w-7 h-7 text-white" />
+            </div>
+            <span className="text-white dark:text-gray-300 text-sm font-medium">Từ chối</span>
           </button>
-          
-          {/* Accept Button */}
-          <button 
-            className="w-20 h-20 bg-green-500/90 hover:bg-green-600/90 text-white rounded-full transition-all duration-200 flex items-center justify-center shadow-lg shadow-green-500/50 hover:shadow-green-500/70 backdrop-blur-sm" 
+
+          {/* Accept button */}
+          <button
             onClick={onAccept}
-            title="Accept"
+            className="group relative flex flex-col items-center gap-3 transition-transform hover:scale-110 active:scale-95"
+            title="Chấp nhận"
           >
-            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
-            </svg>
+            <div className="w-16 h-16 rounded-full bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700 shadow-lg shadow-green-500/30 dark:shadow-green-600/30 flex items-center justify-center transition-all group-hover:shadow-xl">
+              <Phone className="w-7 h-7 text-white" />
+            </div>
+            <span className="text-white dark:text-gray-300 text-sm font-medium">Chấp nhận</span>
           </button>
         </div>
-        
-        {/* Slide to Answer Hint (for mobile) */}
-        <div className="mt-8 text-center relative z-10">
-          <div className="text-white/60 text-sm">
-            Swipe up to answer
+
+        {/* Swipe hint for mobile */}
+        <div className="mt-12 text-gray-400 dark:text-gray-500 text-sm text-center animate-bounce">
+          <div className="flex items-center gap-2 justify-center">
+            <div className="w-8 h-1 bg-gray-400/30 dark:bg-gray-500/30 rounded-full"></div>
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+
+        .animate-fadeInUp {
+          animation: fadeInUp 0.4s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

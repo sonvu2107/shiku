@@ -74,7 +74,7 @@ export default function Login({ setUser }) {
       if (e.message.includes('csrf') || e.message.includes('CSRF')) {
         clearCSRFToken();
       }
-      setErr(e.message); // Hiển thị error
+      setErr(e.message);
     } finally {
       setLoading(false);
     }

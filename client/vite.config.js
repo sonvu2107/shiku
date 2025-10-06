@@ -12,6 +12,13 @@ export default defineConfig({
   server: {
     port: 5173, // Port cho dev server
     host: '0.0.0.0', // Cho phép truy cập từ mạng ngoài
-    strictPort: true // Fail nếu port đã được sử dụng
+    strictPort: true, // Fail nếu port đã được sử dụng
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false
+      }
+    }
   }
 });

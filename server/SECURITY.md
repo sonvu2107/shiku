@@ -26,9 +26,9 @@ Dự án MyBlog đã được nâng cấp với các tính năng bảo mật to�
 - **Query Timeouts**: Giới hạn thời gian thực hiện query để tránh DoS
 
 ### 4. JWT Security Enhancement
-- **Refresh Token System**: Implement refresh token với thời hạn 7 ngày
+- **Refresh Token System**: Implement refresh token với thời hạn 30 ngày
 - **Token Blacklist**: Cơ chế blacklist token khi logout
-- **Short-lived Access Tokens**: Access token chỉ có thời hạn 15 phút
+- **Extended Access Tokens**: Access token có thời hạn 3 ngày
 - **Secure Token Storage**: Lưu token trong httpOnly cookies
 
 ### 5. Environment Variables Security

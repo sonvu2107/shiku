@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import CommentSection from "../components/CommentSection";
 import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck } from "lucide-react";
 import UserName from "../components/UserName";
+import Poll from "../components/Poll";
 
 /**
  * Mapping các role với icon tương ứng (hiện tại chưa sử dụng)
@@ -288,9 +289,18 @@ export default function PostDetail() {
         {/* Cover removed. Only files are shown as media. */}
 
         {/* Content */}
-        <div className="prose max-w-none">
-          <ReactMarkdown>{p.content}</ReactMarkdown>
-        </div>
+        {p.content && (
+          <div className="prose max-w-none">
+            <ReactMarkdown>{p.content}</ReactMarkdown>
+          </div>
+        )}
+
+        {/* Poll Component - integrated with post content */}
+        {p.hasPoll && (
+          <div className="mt-4">
+            <Poll post={p} user={user} />
+          </div>
+        )}
 
         {/* Hiển thị preview media trong bài */}
         {allMedia.length === 1 && (
@@ -532,6 +542,7 @@ export default function PostDetail() {
           </div>
         </div>
       </div>
+
 
       {/* Comments */}
       <div className="card max-w-4xl mx-auto">

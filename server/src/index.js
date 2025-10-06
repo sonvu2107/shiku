@@ -39,6 +39,7 @@ import apiMonitoringRoutes, { trackAPICall } from "./routes/apiMonitoring.js"; /
 import sitemapRoutes from "./routes/sitemap.js"; // Sitemap routes
 import searchHistoryRoutes from "./routes/searchHistory.js"; // Search history routes
 import storyRoutes from "./routes/stories.js"; // Stories routes
+import pollRoutes from "./routes/polls.js"; // Polls routes
 
 // Load environment variables
 dotenv.config();
@@ -109,7 +110,9 @@ const io = new Server(server, {
       if (isAllowed) {
         callback(null, true);
       } else {
-        console.warn(" Blocked Socket.IO CORS:", origin);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(" Blocked Socket.IO CORS:", origin);
+        }
         callback(new Error("Not allowed by CORS"));
       }
     },
@@ -149,7 +152,10 @@ app.use(helmet({
 // Parse cookies từ request headers
 app.use(cookieParser());
 
-// CSRF protection
+// Parse JSON body với limit 10MB (cho upload hình ảnh base64)
+app.use(express.json({ limit: "10mb" }));
+
+// CSRF protection (must be after express.json() to access req.body)
 app.use(csrf({
   cookie: {
     httpOnly: true,
@@ -158,7 +164,7 @@ app.use(csrf({
   },
   // Custom token extractor để lấy token từ header
   value: (req) => {
-    return req.headers['x-csrf-token'] || req.body._csrf;
+    return req.headers['x-csrf-token'] || req.body?._csrf;
   }
 }));
 
@@ -190,7 +196,9 @@ app.use(cors({
     if (isAllowed) {
       callback(null, true);
     } else {
-      console.warn("❌ Blocked HTTP CORS:", origin);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("❌ Blocked HTTP CORS:", origin);
+      }
       callback(new Error("Not allowed by CORS"));
     }
   },
@@ -198,8 +206,6 @@ app.use(cors({
   optionsSuccessStatus: 200 // Hỗ trợ legacy browsers
 }));
 
-// Parse JSON body với limit 10MB (cho upload hình ảnh base64)
-app.use(express.json({ limit: "10mb" }));
 // HTTP request logging - detailed trong production, simple trong development
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
@@ -367,6 +373,7 @@ app.use("/api/api-monitoring", apiLimiter, apiMonitoringRoutes); // API Monitori
 app.use("/api/sitemap", sitemapRoutes); // Sitemap generation
 app.use("/api/search", searchHistoryRoutes); // Search history
 app.use("/api/stories", apiLimiter, storyRoutes); // Stories with rate limiting
+app.use("/api/polls", apiLimiter, pollRoutes); // Polls/Surveys with rate limiting
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);
@@ -447,13 +454,14 @@ io.on("connection", async (socket) => {
   // WebRTC signaling - xử lý call offer với error handling
   socket.on("call-offer", ({ offer, conversationId, isVideo }) => {
     try {
-      if (!conversationId) {
-        console.warn("Invalid conversationId in call-offer");
+      if (!conversationId || !offer || !offer.type || !offer.sdp) {
         return;
       }
-      
+
+      const roomName = `conversation-${conversationId}`;
+
       // Gửi offer chỉ đến các users khác trong conversation (không gửi cho chính người gọi)
-      socket.to(`conversation-${conversationId}`).emit("call-offer", {
+      socket.to(roomName).emit("call-offer", {
         offer,
         conversationId,
         caller: socket.userId || socket.user?._id || socket.user?.id || "unknown", // User ID của người gọi
@@ -462,7 +470,7 @@ io.on("connection", async (socket) => {
         isVideo: isVideo || false // Phân biệt voice/video call
       });
     } catch (error) {
-      console.error("Error handling call-offer:", error);
+      // Silent error handling
     }
   });
 
@@ -470,7 +478,6 @@ io.on("connection", async (socket) => {
   socket.on("call-answer", ({ answer, conversationId }) => {
     try {
       if (!conversationId) {
-        console.warn("Invalid conversationId in call-answer");
         return;
       }
       // Gửi answer về cho caller
@@ -479,7 +486,7 @@ io.on("connection", async (socket) => {
         conversationId
       });
     } catch (error) {
-      console.error("Error handling call-answer:", error);
+      // Silent error handling
     }
   });
 
@@ -487,7 +494,6 @@ io.on("connection", async (socket) => {
   socket.on("call-candidate", ({ candidate, conversationId }) => {
     try {
       if (!conversationId) {
-        console.warn("Invalid conversationId in call-candidate");
         return;
       }
       // Gửi ICE candidate đến các users khác
@@ -496,7 +502,7 @@ io.on("connection", async (socket) => {
         conversationId
       });
     } catch (error) {
-      console.error("Error handling call-candidate:", error);
+      // Silent error handling
     }
   });
 
@@ -504,7 +510,6 @@ io.on("connection", async (socket) => {
   socket.on("call-end", ({ conversationId }) => {
     try {
       if (!conversationId) {
-        console.warn("Invalid conversationId in call-end");
         return;
       }
       // Thông báo kết thúc cuộc gọi đến tất cả users trong conversation
@@ -512,7 +517,7 @@ io.on("connection", async (socket) => {
         conversationId
       });
     } catch (error) {
-      console.error("Error handling call-end:", error);
+      // Silent error handling
     }
   });
 
@@ -520,7 +525,6 @@ io.on("connection", async (socket) => {
   socket.on("join-user", (userId) => {
     try {
       if (!userId) {
-        console.warn("Invalid userId in join-user");
         return;
       }
       socket.join(`user-${userId}`);
@@ -530,43 +534,32 @@ io.on("connection", async (socket) => {
         userInfo.joinedRooms.add(`user-${userId}`);
       }
     } catch (error) {
-      console.error("Error in join-user:", error);
+      // Silent error handling
     }
   });
 
   // Join conversation room để nhận messages real-time
   socket.on("join-conversation", (conversationId) => {
     try {
-      console.log('Server: Join conversation request:', {
-        socketId: socket.id,
-        conversationId,
-        userId: socket.userId
-      });
-      
       if (!conversationId) {
-        console.warn("Invalid conversationId in join-conversation");
         return;
       }
-      
+
       socket.join(`conversation-${conversationId}`);
-      console.log('Server: Socket joined room:', `conversation-${conversationId}`);
-      
+
       const userInfo = connectedUsers.get(socket.id);
       if (userInfo) {
         userInfo.joinedRooms.add(`conversation-${conversationId}`);
-        console.log('Server: Updated user info with room:', userInfo.joinedRooms);
       }
-      
+
       // Emit confirmation về client
-      socket.emit("conversation-joined", { 
+      socket.emit("conversation-joined", {
         conversationId,
         success: true,
         message: "Successfully joined conversation"
       });
-      console.log('Server: Confirmation sent to client');
     } catch (error) {
-      console.error("Error in join-conversation:", error);
-      socket.emit("conversation-joined", { 
+      socket.emit("conversation-joined", {
         conversationId,
         success: false,
         error: error.message
@@ -578,7 +571,6 @@ io.on("connection", async (socket) => {
   socket.on("leave-conversation", (conversationId) => {
     try {
       if (!conversationId) {
-        console.warn("Invalid conversationId in leave-conversation");
         return;
       }
       socket.leave(`conversation-${conversationId}`);
@@ -587,7 +579,41 @@ io.on("connection", async (socket) => {
         userInfo.joinedRooms.delete(`conversation-${conversationId}`);
       }
     } catch (error) {
-      console.error("Error in leave-conversation:", error);
+      // Silent error handling
+    }
+  });
+
+  // ==================== POLL REALTIME VOTING ====================
+
+  // Join poll room khi user vào xem poll
+  socket.on("join-poll", (pollId) => {
+    try {
+      if (!pollId) {
+        return;
+      }
+      socket.join(`poll-${pollId}`);
+      const userInfo = connectedUsers.get(socket.id);
+      if (userInfo) {
+        userInfo.joinedRooms.add(`poll-${pollId}`);
+      }
+    } catch (error) {
+      // Silent error handling
+    }
+  });
+
+  // Leave poll room khi user rời khỏi poll
+  socket.on("leave-poll", (pollId) => {
+    try {
+      if (!pollId) {
+        return;
+      }
+      socket.leave(`poll-${pollId}`);
+      const userInfo = connectedUsers.get(socket.id);
+      if (userInfo) {
+        userInfo.joinedRooms.delete(`poll-${pollId}`);
+      }
+    } catch (error) {
+      // Silent error handling
     }
   });
 
@@ -635,7 +661,9 @@ setInterval(() => {
   
   for (const [socketId, userInfo] of connectedUsers.entries()) {
     if (now - userInfo.connectedAt > staleThreshold) {
-      console.log(`Cleaning up stale connection: ${socketId}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Cleaning up stale connection: ${socketId}`);
+      }
       connectedUsers.delete(socketId);
     }
   }
@@ -648,8 +676,10 @@ setInterval(() => {
   const heapTotalMB = Math.round(memoryUsage.heapTotal / 1024 / 1024);
   const rssMB = Math.round(memoryUsage.rss / 1024 / 1024);
   
-  // Log memory stats every 5 minutes
-  console.log(`📊 Memory Stats - Heap: ${heapUsedMB}/${heapTotalMB}MB, RSS: ${rssMB}MB, Sockets: ${connectedUsers.size}`);
+  // Log memory stats every 5 minutes (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`📊 Memory Stats - Heap: ${heapUsedMB}/${heapTotalMB}MB, RSS: ${rssMB}MB, Sockets: ${connectedUsers.size}`);
+  }
   
   // Warning if memory usage is high
   if (heapUsedMB > 400) { // 400MB threshold
@@ -709,7 +739,8 @@ process.on('SIGINT', () => {
 // ==================== SERVER STARTUP ====================
 
 // Kết nối database rồi start server
-connectDB(process.env.MONGODB_URI).then(() => {
+connectDB(process.env.MONGODB_URI).then(async () => {
+
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server listening on http://localhost:${PORT}`);
     console.log(`📡 Network access: http://YOUR_IP:${PORT}`);

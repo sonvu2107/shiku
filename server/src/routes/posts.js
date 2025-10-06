@@ -457,7 +457,8 @@ router.get("/edit/:id", authRequired, async (req, res, next) => {
 router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
   try {
     const { title, content, tags = [], coverUrl = "", status = "published", files = [], group = null } = req.body;
-    if (!title || !content) return res.status(400).json({ error: "Vui lòng nhập tiêu đề và nội dung" });
+    if (!title) return res.status(400).json({ error: "Vui lòng nhập tiêu đề" });
+    if (!content && !req.body.hasPoll) return res.status(400).json({ error: "Vui lòng nhập nội dung hoặc tạo poll" });
     if (!["private", "published"].includes(status)) {
       return res.status(400).json({ error: "Trạng thái không hợp lệ" });
     }
@@ -466,7 +467,7 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
       allowedTags: [],
       allowedAttributes: {}
     });
-    const sanitizedContent = sanitizeHtml(content.trim(), {
+    const sanitizedContent = content ? sanitizeHtml(content.trim(), {
       allowedTags: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'a'],
       allowedAttributes: {
         'a': ['href', 'title'],
@@ -477,7 +478,7 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
         'h5': ['id'],
         'h6': ['id']
       }
-    });
+    }) : "";
     const sanitizedTags = Array.isArray(tags) ? tags.map(tag => sanitizeHtml(tag.trim(), { allowedTags: [], allowedAttributes: {} })) : [];
     const sanitizedCoverUrl = sanitizeHtml(coverUrl.trim(), { allowedTags: [], allowedAttributes: {} });
 
