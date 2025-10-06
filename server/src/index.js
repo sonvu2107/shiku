@@ -159,8 +159,9 @@ app.use(express.json({ limit: "10mb" }));
 app.use(csrf({
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict' // None cho cross-origin trong production
+    secure: process.env.NODE_ENV === "development" ? false : true, // False in dev, true in production
+    sameSite: process.env.NODE_ENV === "development" ? "lax" : "none", // Lax in dev, None in production
+    path: '/' // Explicit path for Safari
   },
   // Custom token extractor để lấy token từ header
   value: (req) => {
@@ -168,7 +169,7 @@ app.use(csrf({
   }
 }));
 
-// CORS configuration cho HTTP requests
+// CORS configuration cho HTTP requests - Enhanced for Safari compatibility
 app.use(cors({
   origin: (origin, callback) => {
     // Kiểm tra origin có trong danh sách allowed không
@@ -203,7 +204,9 @@ app.use(cors({
     }
   },
   credentials: true, // Cho phép gửi cookies và auth headers
-  optionsSuccessStatus: 200 // Hỗ trợ legacy browsers
+  optionsSuccessStatus: 200, // Hỗ trợ legacy browsers
+  methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'], // Explicit methods for Safari
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'X-CSRF-Token', 'X-Refresh-Token'] // Explicit allowed headers for Safari
 }));
 
 // HTTP request logging - detailed trong production, simple trong development

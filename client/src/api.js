@@ -38,12 +38,14 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
     }
   }
   
-  // Thực hiện request
+  // Thực hiện request - Safari-compatible config
   const isFormData = body instanceof FormData;
   const requestOptions = {
     method,
     headers: {
       ...headers,
+      'Accept': 'application/json', // Explicit header for Safari
+      'Cache-Control': 'no-cache', // Prevent caching issues in Safari
     },
     credentials: "include", // Bao gồm cookies trong request
     mode: "cors", // Đảm bảo CORS mode

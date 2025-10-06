@@ -70,9 +70,12 @@ export async function refreshAccessToken() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Refresh-Token': refreshToken
+        'X-Refresh-Token': refreshToken,
+        'Accept': 'application/json', // Explicit header for Safari
+        'Cache-Control': 'no-cache' // Prevent caching issues in Safari
       },
-      credentials: 'include'
+      credentials: 'include',
+      mode: 'cors' // Explicit CORS mode for Safari
     });
 
     if (!response.ok) {

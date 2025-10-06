@@ -38,7 +38,6 @@ export default function ChatWindow({
   onVoiceCall
 }) {
   // ==================== REFS ====================
-  
   const messagesEndRef = useRef(null); // Ref để scroll xuống cuối tin nhắn
 
   useEffect(() => {

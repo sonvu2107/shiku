@@ -22,7 +22,11 @@ export async function getCSRFToken(forceRefresh = false) {
     const response = await fetch(`${API_URL}/api/csrf-token`, {
       method: 'GET',
       credentials: 'include',
-      mode: 'cors' // Đảm bảo CORS mode
+      mode: 'cors', // Đảm bảo CORS mode
+      headers: {
+        'Accept': 'application/json', // Explicit header for Safari
+        'Cache-Control': 'no-cache' // Prevent caching issues in Safari
+      }
     });
     
     if (response.ok) {

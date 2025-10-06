@@ -70,18 +70,18 @@ router.post("/register",
       // Tạo token pair
       const tokens = generateTokenPair(user);
 
-      // Set cookies
+      // Set cookies - Safari compatible settings
       res.cookie("accessToken", tokens.accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: process.env.NODE_ENV === "development" ? false : true, // False in dev, true in production
+        sameSite: process.env.NODE_ENV === "development" ? "lax" : "none", // Lax in dev, None in production
         maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
       });
 
       res.cookie("refreshToken", tokens.refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: process.env.NODE_ENV === "development" ? false : true, // False in dev, true in production
+        sameSite: process.env.NODE_ENV === "development" ? "lax" : "none", // Lax in dev, None in production
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 ngày
       });
 
@@ -189,18 +189,18 @@ router.post("/login",
       // Tạo token pair
       const tokens = generateTokenPair(user);
 
-      // Set cookies
+      // Set cookies - Safari compatible settings
       res.cookie("accessToken", tokens.accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: process.env.NODE_ENV === "development" ? false : true, // False in dev, true in production
+        sameSite: process.env.NODE_ENV === "development" ? "lax" : "none", // Lax in dev, None in production
         maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
       });
 
       res.cookie("refreshToken", tokens.refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: process.env.NODE_ENV === "development" ? false : true, // False in dev, true in production
+        sameSite: process.env.NODE_ENV === "development" ? "lax" : "none", // Lax in dev, None in production
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 ngày
       });
 
@@ -257,11 +257,11 @@ router.post("/refresh",
       // Refresh access token
       const result = await refreshAccessToken(refreshToken);
 
-      // Set new access token cookie
+      // Set new access token cookie - Safari compatible settings
       res.cookie("accessToken", result.accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: process.env.NODE_ENV === "development" ? false : true, // False in dev, true in production
+        sameSite: process.env.NODE_ENV === "development" ? "lax" : "none", // Lax in dev, None in production
         maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
       });
 
