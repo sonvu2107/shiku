@@ -179,6 +179,9 @@ export default function Profile() {
    */
   async function load() {
     const res = await api("/api/auth/me");
+    console.log("🔍 API /me response:", res);
+    console.log("🔍 User object:", res.user);
+    console.log("🔍 User._id:", res.user?._id);
     setUser(res.user);
 
     // Populate form với data từ server
@@ -210,18 +213,29 @@ export default function Profile() {
     setPostsError("");
 
     try {
+      console.log("🔍 Loading posts for user:", user._id || user.id, user.name);
+      
       // Load cả public và private posts của user
+      const userId = user._id || user.id;
       const [publicData, privateData] = await Promise.all([
-        api(`/api/posts?author=${user._id}&status=published&limit=50`),
-        api(`/api/posts?author=${user._id}&status=private&limit=50`)
+        api(`/api/posts?author=${userId}&status=published&limit=50`),
+        api(`/api/posts?author=${userId}&status=private&limit=50`)
       ]);
 
+      console.log("📊 Public posts:", publicData.items?.length || 0);
+      console.log("📊 Private posts:", privateData.items?.length || 0);
+      
+      // Debug: Kiểm tra author của posts
+      const allPosts = [...privateData.items, ...publicData.items];
+      console.log("🔍 All posts authors:", allPosts.map(p => ({ id: p._id, author: p.author?._id, authorName: p.author?.name })));
+
       // Merge và sort theo thời gian tạo
-      const allPosts = [...privateData.items, ...publicData.items]
+      const sortedPosts = allPosts
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      setPosts(allPosts);
+      setPosts(sortedPosts);
     } catch (error) {
+      console.error("❌ Error loading posts:", error);
       setPostsError('Không thể tải bài đăng. Vui lòng thử lại.');
     } finally {
       setPostsLoading(false);
@@ -857,7 +871,7 @@ export default function Profile() {
           <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="flex space-x-1 md:space-x-8 px-2 md:px-6 overflow-x-auto scrollbar-hide">
               {[
-                ...(user.showPosts === false ? [] : [{ id: "posts", label: "Bài đăng", icon: CustomIcons.FileText, count: posts.length }]),
+                ...(user.showPosts === false ? [] : [{ id: "posts", label: "Bài đăng", icon: CustomIcons.FileText, count: posts.filter(post => post.status === 'published').length }]),
                 { id: "friends", label: "Bạn bè", icon: CustomIcons.Users, count: friends.length },
                 { id: "analytics", label: "Phân tích", icon: CustomIcons.BarChart3, count: analytics?.totalPosts || 0 }
               ].map(({ id, label, icon: Icon, count }) => (

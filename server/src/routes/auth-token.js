@@ -145,4 +145,91 @@ tempRouter.post("/register-token", async (req, res, next) => {
   }
 });
 
+/**
+ * GET /me - Lấy thông tin user hiện tại
+ * @returns {Object} User info
+ */
+tempRouter.get("/me", async (req, res, next) => {
+  try {
+    // Lấy token từ cookie hoặc header
+    let token = req.cookies?.token;
+    if (!token) {
+      const header = req.headers.authorization || "";
+      token = header.startsWith("Bearer ") ? header.slice(7) : null;
+    }
+    
+    if (!token) {
+      return res.status(401).json({ error: "Vui lòng đăng nhập" });
+    }
+    
+    // Verify JWT token
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(payload.id).select("-password");
+    
+    if (!user) {
+      return res.status(401).json({ error: "Token không hợp lệ" });
+    }
+    
+    res.json({
+      user: {
+        _id: user._id,
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        bio: user.bio,
+        birthday: user.birthday,
+        gender: user.gender,
+        hobbies: user.hobbies,
+        avatarUrl: user.avatarUrl,
+        isOnline: user.isOnline,
+        isVerified: user.isVerified,
+        lastSeen: user.lastSeen
+      }
+    });
+  } catch (error) {
+    return res.status(401).json({ error: "Token không hợp lệ" });
+  }
+});
+
+/**
+ * POST /heartbeat - Heartbeat endpoint
+ * @returns {Object} Heartbeat status
+ */
+tempRouter.post("/heartbeat", async (req, res, next) => {
+  try {
+    // Lấy token từ cookie hoặc header
+    let token = req.cookies?.token;
+    if (!token) {
+      const header = req.headers.authorization || "";
+      token = header.startsWith("Bearer ") ? header.slice(7) : null;
+    }
+    
+    if (!token) {
+      return res.status(401).json({ error: "Vui lòng đăng nhập" });
+    }
+    
+    // Verify JWT token
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(payload.id);
+    
+    if (!user) {
+      return res.status(401).json({ error: "Token không hợp lệ" });
+    }
+    
+    // Update last seen
+    user.lastSeen = new Date();
+    await user.save();
+    
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      userId: user._id,
+      isOnline: true
+    });
+  } catch (error) {
+    return res.status(401).json({ error: "Token không hợp lệ" });
+  }
+});
+
 export default tempRouter;

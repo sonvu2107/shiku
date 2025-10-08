@@ -97,13 +97,12 @@ export default function App() {
         const [
           { getCSRFToken, initializeCSRFToken, debugCSRFToken },
           { initializeSafariSession, checkSafariSession, testSafariCookies, recoverSafariSession },
-          { runSafariTests },
-          { initializeMobileCSRF, isMobileDevice, handleMobileCSRFError }
+          { runSafariTests }
         ] = await loadSafariUtils();
 
         // 🚀 Parallel execution để giảm blocking time
         const [sessionInitialized, token] = await Promise.all([
-          isMobileDevice() ? initializeMobileCSRF() : initializeSafariSession(),
+          initializeSafariSession(),
           getValidAccessToken()
         ]);
         
@@ -111,17 +110,13 @@ export default function App() {
         if (!sessionInitialized) {
           console.warn("Session initialization failed, attempting recovery...");
           // Chạy background recovery
-          if (isMobileDevice()) {
-            setTimeout(() => initializeMobileCSRF(), 0);
-          } else {
-            setTimeout(() => recoverSafariSession(), 0);
-          }
+          setTimeout(() => recoverSafariSession(), 0);
         }
         
         // Background CSRF và cookie checks
         Promise.all([
           testSafariCookies(),
-          isMobileDevice() ? initializeMobileCSRF() : initializeCSRFToken()
+          initializeCSRFToken()
         ]).catch(err => console.warn("Background tasks failed:", err));
         
         if (token) {
