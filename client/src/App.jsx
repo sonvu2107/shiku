@@ -62,8 +62,7 @@ import socketService from "./socket";   // Service quản lý WebSocket connecti
 const loadSafariUtils = () => Promise.all([
   import("./utils/csrfToken.js"),
   import("./utils/safariSession.js"),
-  import("./utils/safariTest.js"),
-  import("./utils/mobileCSRF.js")
+  import("./utils/safariTest.js")
 ]);
 
 /**

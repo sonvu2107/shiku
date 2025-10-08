@@ -3,9 +3,6 @@ const API_URL = import.meta.env.VITE_API_URL || "http://192.168.1.18:4000";
 
 import { getValidAccessToken, clearTokens, getRefreshToken, refreshAccessToken } from "./utils/tokenManager.js";
 import { getCSRFToken, ensureCSRFToken } from "./utils/csrfToken.js";
-import { getMobileCSRFToken, handleMobileCSRFError, isMobileDevice, getMobileHeaders } from "./utils/mobileCSRF.js";
-import { getMobileSessionHeaders, isMobileSessionValid } from "./utils/mobileSession.js";
-import { getMobileCSRFToken as getMobileCSRFTokenFromStorage, getMobileStorageHeaders, isMobileTokenValid } from "./utils/mobileCSRFStorage.js";
 import { 
   parseRateLimitHeaders, 
   showRateLimitWarning, 
@@ -35,46 +32,25 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
   
   // Lấy CSRF token cho các request không phải GET
   if (method !== 'GET') {
-    let csrf = null;
-    
-    // Use mobile-specific CSRF handling for mobile devices
-    if (isMobileDevice()) {
-      // Try mobile storage first
-      if (isMobileTokenValid()) {
-        csrf = await getMobileCSRFTokenFromStorage(false);
+    const hasToken = await ensureCSRFToken();
+    if (hasToken) {
+      const csrf = await getCSRFToken();
+      if (csrf) {
+        headers['X-CSRF-Token'] = csrf;
       } else {
-        csrf = await getMobileCSRFTokenFromStorage(true);
+        console.error(`Failed to get CSRF token for ${method} request to ${path}`);
+        throw new Error('CSRF token not available. Please refresh the page and try again.');
       }
-    } else {
-      // Use standard CSRF handling for desktop
-      const hasToken = await ensureCSRFToken();
-      if (hasToken) {
-        csrf = await getCSRFToken();
-      }
-    }
-    
-    if (csrf) {
-      headers['X-CSRF-Token'] = csrf;
-    } else {
-      const errorMessage = isMobileDevice() 
-        ? 'CSRF token không khả dụng trên thiết bị di động. Vui lòng thử lại sau vài giây.'
-        : 'CSRF token not available. Please refresh the page and try again.';
-      console.error(`Failed to get CSRF token for ${method} request to ${path}`);
-      throw new Error(errorMessage);
     }
   }
   
   // Thực hiện request - Safari-compatible config
   const isFormData = body instanceof FormData;
   
-  // Get mobile headers if on mobile device
-  const mobileHeaders = isMobileDevice() ? getMobileStorageHeaders() : {};
-  
   const requestOptions = {
     method,
     headers: {
       ...headers,
-      ...mobileHeaders,
       'Accept': 'application/json', // Explicit header for Safari
       // Removed Cache-Control header to prevent CORS issues
     },
