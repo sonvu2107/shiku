@@ -223,12 +223,132 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
   }
 });
 
-// Get all published posts for homepage (public feed)
+// Combined feed endpoint - returns both published posts and user's private posts
 router.get("/feed", authOptional, async (req, res, next) => {
   try {
     const { page = 1, limit = 100, tag, q } = req.query;
+
+    // Base filter for published posts
+    const publishedFilter = {
+      status: "published",
+      $and: [{
+        $or: [
+          { group: { $exists: false } },
+          { group: null }
+        ]
+      }]
+    };
+
+    // Add tag filter if specified
+    if (tag) publishedFilter.tags = tag;
+
+    // Add search filter if specified
+    if (q) {
+      const trimmedQuery = q.trim();
+      if (trimmedQuery.length > 0 && trimmedQuery.length <= 100) {
+        const escapedQuery = trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        publishedFilter.$and.push({
+          $or: [
+            { title: { $regex: escapedQuery, $options: "i" } },
+            { content: { $regex: escapedQuery, $options: "i" } },
+            { tags: { $regex: escapedQuery, $options: "i" } }
+          ]
+        });
+      }
+    }
+
+    // Fetch published posts and private posts in parallel
+    let publishedPosts, privatePosts = [];
+
+    if (req.user) {
+      // User is logged in - fetch both published and their private posts
+      const privateFilter = {
+        status: "private",
+        author: req.user._id,
+        $and: [{
+          $or: [
+            { group: { $exists: false } },
+            { group: null }
+          ]
+        }]
+      };
+
+      [publishedPosts, privatePosts] = await Promise.all([
+        Post.find(publishedFilter)
+          .populate({ path: "author", select: "name avatarUrl role blockedUsers" })
+          .populate({ path: "role", select: "name displayName iconUrl" })
+          .sort({ createdAt: -1 })
+          .limit(limit * 1)
+          .skip((page - 1) * limit),
+        Post.find(privateFilter)
+          .populate({ path: "author", select: "name avatarUrl role blockedUsers" })
+          .populate({ path: "role", select: "name displayName iconUrl" })
+          .sort({ createdAt: -1 })
+          .limit(limit * 1)
+      ]);
+    } else {
+      // Not logged in - only fetch published posts
+      publishedPosts = await Post.find(publishedFilter)
+        .populate({ path: "author", select: "name avatarUrl role blockedUsers" })
+        .populate({ path: "role", select: "name displayName iconUrl" })
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+    }
+
+    // Combine and sort posts
+    let allPosts = [...privatePosts, ...publishedPosts];
+    allPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Filter blocked users if logged in
+    if (req.user?._id) {
+      const currentUser = await User.findById(req.user._id).select("blockedUsers");
+      allPosts = allPosts.filter(post => {
+        const author = post.author;
+        if (!author) return false;
+        const iBlockedThem = (currentUser.blockedUsers || []).map(id => id.toString()).includes(author._id.toString());
+        const theyBlockedMe = (author.blockedUsers || []).map(id => id.toString()).includes(req.user._id.toString());
+        return !iBlockedThem && !theyBlockedMe;
+      });
+    }
+
+    // Batch fetch comment counts
+    const postIds = allPosts.map(post => post._id);
+    const commentCounts = await Comment.aggregate([
+      { $match: { post: { $in: postIds } } },
+      { $group: { _id: "$post", count: { $sum: 1 } } }
+    ]);
+
+    const commentCountMap = new Map();
+    commentCounts.forEach(item => {
+      commentCountMap.set(item._id.toString(), item.count);
+    });
+
+    const itemsWithCommentCount = allPosts.map(post => ({
+      ...post.toObject(),
+      commentCount: commentCountMap.get(post._id.toString()) || 0
+    }));
+
+    const total = await Post.countDocuments(publishedFilter);
+
+    res.json({
+      items: itemsWithCommentCount,
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / Number(limit)),
+      hasPrivatePosts: privatePosts.length > 0
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Legacy endpoint - keep for backward compatibility
+router.get("/feed-legacy", authOptional, async (req, res, next) => {
+  try {
+    const { page = 1, limit = 100, tag, q } = req.query;
     const filter = { status: "published" };
-    
+
     // Exclude group posts from homepage feed
     filter.$and = [
       {
@@ -238,9 +358,9 @@ router.get("/feed", authOptional, async (req, res, next) => {
         ]
       }
     ];
-    
+
     if (tag) filter.tags = tag;
-    
+
     if (q) {
       const trimmedQuery = q.trim();
       if (trimmedQuery.length > 0 && trimmedQuery.length <= 100) {
@@ -382,16 +502,17 @@ router.get("/", authOptional, async (req, res, next) => {
   }
 });
 
-// Get by slug
-router.get("/slug/:slug", async (req, res, next) => {
+// Get by slug - Enhanced with isSaved and groupContext
+router.get("/slug/:slug", authOptional, async (req, res, next) => {
   try {
     let post = await Post.findOneAndUpdate(
       { slug: req.params.slug, status: "published" },
       { $inc: { views: 1 } },
       { new: true }
     )
-      .populate("author", "name avatarUrl role blockedUsers")
-      .populate("emotes.user", "name avatarUrl role");
+      .populate({ path: "author", select: "name avatarUrl role blockedUsers", populate: { path: "role", select: "name displayName iconUrl" } })
+      .populate({ path: "emotes.user", select: "name avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
+      .populate({ path: "group", select: "name settings members" });
 
     // If not found, check private
     if (!post) {
@@ -400,8 +521,9 @@ router.get("/slug/:slug", async (req, res, next) => {
         { $inc: { views: 1 } },
         { new: true }
       )
-        .populate("author", "name avatarUrl role blockedUsers")
-        .populate("emotes.user", "name avatarUrl role");
+        .populate({ path: "author", select: "name avatarUrl role blockedUsers", populate: { path: "role", select: "name displayName iconUrl" } })
+        .populate({ path: "emotes.user", select: "name avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
+        .populate({ path: "group", select: "name settings members" });
 
       if (post) {
         if (!req.headers.authorization && !req.cookies?.token) {
@@ -425,15 +547,39 @@ router.get("/slug/:slug", async (req, res, next) => {
 
     if (!post) return res.status(404).json({ error: "Không tìm thấy bài viết" });
 
-    const comments = await Comment.find({ post: post._id })
-      .populate("author", "name avatarUrl role")
-      .populate("parent", "_id")
-      .sort({ createdAt: -1 });
+    // Fetch comments and check if saved in parallel
+    const [comments, isSaved] = await Promise.all([
+      Comment.find({ post: post._id })
+        .populate({ path: "author", select: "name avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
+        .populate("parent", "_id")
+        .sort({ createdAt: -1 }),
+      // Check if post is saved by current user
+      req.user ?
+        User.findById(req.user._id).select("savedPosts").then(user =>
+          (user?.savedPosts || []).some(id => id.toString() === post._id.toString())
+        ) :
+        Promise.resolve(false)
+    ]);
 
-    // Populate emotes.user kèm role
-    await post.populate("emotes.user", "name avatarUrl role");
+    // Get group context if post belongs to a group
+    let groupContext = null;
+    if (post.group && req.user) {
+      const group = post.group;
+      const member = group.members?.find(m => m.user?.toString() === req.user._id.toString());
+      groupContext = {
+        userRole: member?.role || null,
+        settings: group.settings || {}
+      };
+    }
 
-    res.json({ post: { ...post.toObject(), commentCount: comments.length }, comments });
+    const postObject = {
+      ...post.toObject(),
+      commentCount: comments.length,
+      isSaved,
+      groupContext
+    };
+
+    res.json({ post: postObject, comments });
   } catch (e) {
     next(e);
   }

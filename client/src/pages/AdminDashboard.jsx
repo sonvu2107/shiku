@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import AdminFeedback from "./AdminFeedback";
 import APIMonitoring from "../components/APIMonitoring";
+import RoleManagement from "../components/RoleManagement";
+import VerifiedBadge from "../components/VerifiedBadge";
 import { api } from "../api";
 import { safariDELETE } from "../utils/safariAPI.js";
 import { useNavigate } from "react-router-dom";
@@ -23,7 +25,8 @@ import {
   WifiOff,
   UserCheck,
   Code,
-  Activity
+  Activity,
+  Shield
 } from "lucide-react";
 
 /**
@@ -45,7 +48,8 @@ export default function AdminDashboard() {
     loading: dataLoading,
     error: dataError,
     refreshAllData,
-    updateOfflineUsers
+    updateOfflineUsers,
+    setUsers // For optimistic updates
   } = useAdminData();
 
   // Admin actions management
@@ -72,19 +76,41 @@ export default function AdminDashboard() {
 
   // UI states
   const [activeTab, setActiveTab] = useState("stats"); // Tab hiện tại
+  const [roleRefreshTrigger, setRoleRefreshTrigger] = useState(0); // Trigger để refresh roles
+  const [availableRoles, setAvailableRoles] = useState([]); // Dynamic roles từ database
 
   const navigate = useNavigate();
 
   useEffect(() => {
     checkAdmin();
+    loadAvailableRoles();
   }, []);
+
+  // Load available roles from database
+  const loadAvailableRoles = async () => {
+    try {
+      const response = await api("/api/admin/roles", { method: "GET" });
+      if (response.success) {
+        setAvailableRoles(response.roles || []);
+        // Trigger refresh for VerifiedBadge components
+        setRoleRefreshTrigger(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error("Error loading roles:", error);
+      // Fallback to default roles
+      setAvailableRoles([
+        { name: "user", displayName: "User" },
+        { name: "admin", displayName: "Admin" }
+      ]);
+    }
+  };
 
   // Auto refresh data when tab changes
   useEffect(() => {
     if (activeTab === "online" || activeTab === "stats") {
       refreshAllData();
     }
-  }, [activeTab, refreshAllData]);
+  }, [activeTab]); // Remove refreshAllData from dependencies
 
   async function checkAdmin() {
     try {
@@ -95,7 +121,7 @@ export default function AdminDashboard() {
         return;
       }
       setUser(res.user);
-      await refreshAllData();
+      // Don't call refreshAllData here - it's already called in useAdminData hook
     } catch (e) {
       alert("Lỗi xác thực!");
       navigate("/login");
@@ -104,17 +130,45 @@ export default function AdminDashboard() {
     }
   }
 
-  async function updateUserRole(userId, newRole) {
-    if (!window.confirm(`Bạn có chắc muốn đổi role user này thành ${newRole}?`)) return;
+  async function updateUserRole(userId, newRoleName) {
+    if (!window.confirm(`Bạn có chắc muốn đổi role user này thành ${newRoleName}?`)) return;
+
+    const originalUsers = [...users];
+    const newRoleObject = availableRoles.find(r => r.name === newRoleName);
+
+    // Optimistic update - update user với full role object
+    const updatedUsers = users.map(u => {
+      if (u._id === userId) {
+        return {
+          ...u,
+          role: newRoleObject || { name: newRoleName, displayName: newRoleName }
+        };
+      }
+      return u;
+    });
+    setUsers(updatedUsers);
+
+    // Trigger refresh immediately for UI update
+    setRoleRefreshTrigger(prev => prev + 1);
+
     try {
+      // Make API call
       await api(`/api/admin/users/${userId}/role`, {
         method: "PUT",
-        body: { role: newRole }
+        body: { role: newRoleName }
       });
+
+      // Refresh data to get the updated user list with populated roles from server
       await refreshAllData();
-      alert("Đã cập nhật role cho user!");
+
+      // Dispatch event for other components (UserName, etc.)
+      window.dispatchEvent(new CustomEvent('roleUpdated'));
+
     } catch (err) {
-      alert("Lỗi: " + err.message);
+      // Revert on error
+      setUsers(originalUsers);
+      setRoleRefreshTrigger(prev => prev + 1);
+      alert("Lỗi khi cập nhật role: " + err.message);
     }
   }
 
@@ -240,302 +294,335 @@ export default function AdminDashboard() {
             <Code size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span className="text-sm sm:text-base">API Test</span>
           </button>
+          <button
+            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "roles" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            onClick={() => setActiveTab("roles")}
+          >
+            <Shield size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="text-sm sm:text-base">Quản lý Role</span>
+          </button>
         </div>
       </div>
 
       {/* Tab Content */}
       <div className="card max-w-7xl mx-auto">
         {/* Stats Tab */}
-        {activeTab === "stats" && stats && (
+        {activeTab === "stats" && (
           <div className="pt-4">
             <h2 className="text-lg sm:text-xl font-bold mb-4">Thống kê tổng quan</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-              {/* Bài viết */}
-              <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <FileText className="text-blue-600 sm:w-6 sm:h-6" size={20} />
-                  <div className="text-xl sm:text-2xl font-bold text-blue-600">
-                    {stats.overview ? stats.overview.totalPosts.count : stats.totalPosts}
+            {!stats ? (
+              <div className="text-center py-8 text-gray-500">
+                Đang tải thống kê...
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                {/* Bài viết */}
+                <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="text-blue-600 sm:w-6 sm:h-6" size={20} />
+                    <div className="text-xl sm:text-2xl font-bold text-blue-600">
+                      {stats.overview ? stats.overview.totalPosts.count : (stats.totalPosts || 0)}
+                    </div>
                   </div>
+                  <div className="text-sm sm:text-base text-gray-600">Tổng bài viết</div>
+                  {stats.overview && (
+                    <div className="mt-2 text-sm">
+                      <div className="text-gray-500">
+                        Tháng này: {stats.overview.totalPosts.thisMonth}
+                      </div>
+                      <div className={`flex items-center ${stats.overview.totalPosts.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {stats.overview.totalPosts.growth >= 0 ?
+                          <TrendingUp size={14} className="mr-1" /> :
+                          <TrendingDown size={14} className="mr-1" />
+                        }
+                        {Math.abs(stats.overview.totalPosts.growth)}% so với tháng trước
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="text-sm sm:text-base text-gray-600">Tổng bài viết</div>
-                {stats.overview && (
+
+                {/* Lượt xem */}
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Eye className="text-green-600" size={24} />
+                    <div className="text-2xl font-bold text-green-600">
+                      {stats.overview ? stats.overview.totalViews.count : (stats.totalViews || 0)}
+                    </div>
+                  </div>
+                  <div className="text-gray-600">Tổng lượt xem</div>
+                  {stats.overview && (
+                    <div className="mt-2 text-sm">
+                      <div className="text-gray-500">
+                        Tháng này: {stats.overview.totalViews.thisMonth}
+                      </div>
+                      <div className={`flex items-center ${stats.overview.totalViews.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="mr-1">
+                          {stats.overview.totalViews.growth >= 0 ? '↗' : '↘'}
+                        </span>
+                        {Math.abs(stats.overview.totalViews.growth)}% so với tháng trước
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bình luận */}
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MessageCircle className="text-purple-600" size={24} />
+                    <div className="text-2xl font-bold text-purple-600">
+                      {stats.overview ? stats.overview.totalComments.count : (stats.totalComments || 0)}
+                    </div>
+                  </div>
+                  <div className="text-gray-600">Tổng bình luận</div>
+                  {stats.overview && (
+                    <div className="mt-2 text-sm">
+                      <div className="text-gray-500">
+                        Tháng này: {stats.overview.totalComments.thisMonth}
+                      </div>
+                      <div className={`flex items-center ${stats.overview.totalComments.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="mr-1">
+                          {stats.overview.totalComments.growth >= 0 ? '↗' : '↘'}
+                        </span>
+                        {Math.abs(stats.overview.totalComments.growth)}% so với tháng trước
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Emotes */}
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Heart className="text-red-600" size={24} />
+                    <div className="text-2xl font-bold text-red-600">
+                      {stats.overview ? stats.overview.totalEmotes.count : (stats.totalEmotes || 0)}
+                    </div>
+                  </div>
+                  <div className="text-gray-600">Tổng emote</div>
+                  {stats.overview && (
+                    <div className="mt-2 text-sm">
+                      <div className="text-gray-500">
+                        Tháng này: {stats.overview.totalEmotes.thisMonth}
+                      </div>
+                      <div className={`flex items-center ${stats.overview.totalEmotes.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="mr-1">
+                          {stats.overview.totalEmotes.growth >= 0 ? '↗' : '↘'}
+                        </span>
+                        {Math.abs(stats.overview.totalEmotes.growth)}% so với tháng trước
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Người dùng */}
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="text-yellow-600" size={24} />
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {stats.overview ? stats.overview.totalUsers.count : (stats.totalUsers || 0)}
+                    </div>
+                  </div>
+                  <div className="text-gray-600">Tổng người dùng</div>
+                  {stats.overview && (
+                    <div className="mt-2 text-sm">
+                      <div className="text-gray-500">
+                        Tháng này: {stats.overview.totalUsers.thisMonth}
+                      </div>
+                      <div className={`flex items-center ${stats.overview.totalUsers.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="mr-1">
+                          {stats.overview.totalUsers.growth >= 0 ? '↗' : '↘'}
+                        </span>
+                        {Math.abs(stats.overview.totalUsers.growth)}% so với tháng trước
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bài đã xuất bản */}
+                <div className="bg-indigo-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="text-indigo-600" size={24} />
+                    <div className="text-2xl font-bold text-indigo-600">
+                      {stats.overview ? stats.overview.publishedPosts.count : (stats.publishedPosts || 0)}
+                    </div>
+                  </div>
+                  <div className="text-gray-600">Bài đã đăng</div>
+                  {stats.overview && (
+                    <div className="mt-2 text-sm">
+                      <div className="text-gray-500">
+                        Tháng này: {stats.overview.publishedPosts.thisMonth}
+                      </div>
+                      <div className={`flex items-center ${stats.overview.publishedPosts.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="mr-1">
+                          {stats.overview.publishedPosts.growth >= 0 ? '↗' : '↘'}
+                        </span>
+                        {Math.abs(stats.overview.publishedPosts.growth)}% so với tháng trước
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bài riêng tư */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Edit className="text-gray-600" size={24} />
+                    <div className="text-2xl font-bold text-gray-600">
+                      {stats.overview ? stats.overview.draftPosts.count : (stats.draftPosts || 0)}
+                    </div>
+                  </div>
+                  <div className="text-gray-600">Bài riêng tư</div>
+                  {stats.overview && (
+                    <div className="mt-2 text-sm">
+                      <div className="text-gray-500">
+                        Tháng này: {stats.overview.draftPosts.thisMonth}
+                      </div>
+                      <div className={`flex items-center ${stats.overview.draftPosts.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="mr-1">
+                          {stats.overview.draftPosts.growth >= 0 ? '↗' : '↘'}
+                        </span>
+                        {Math.abs(stats.overview.draftPosts.growth)}% so với tháng trước
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Admin */}
+                <div className="bg-pink-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Crown className="text-pink-600" size={24} />
+                    <div className="text-2xl font-bold text-pink-600">
+                      {stats.overview ? stats.overview.adminUsers.count : (stats.adminUsers || 0)}
+                    </div>
+                  </div>
+                  <div className="text-gray-600">Admin</div>
+                  {stats.overview && (
+                    <div className="mt-2 text-sm">
+                      <div className="text-gray-500">
+                        Tháng này: {stats.overview.adminUsers.thisMonth}
+                      </div>
+                      <div className={`flex items-center ${stats.overview.adminUsers.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="mr-1">
+                          {stats.overview.adminUsers.growth >= 0 ? '↗' : '↘'}
+                        </span>
+                        {Math.abs(stats.overview.adminUsers.growth)}% so với tháng trước
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Người online */}
+                <div className="bg-emerald-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Wifi className="text-emerald-600" size={24} />
+                    <div className="text-2xl font-bold text-emerald-600">
+                      {onlineUsers.length}
+                    </div>
+                  </div>
+                  <div className="text-gray-600">Đang online</div>
                   <div className="mt-2 text-sm">
                     <div className="text-gray-500">
-                      Tháng này: {stats.overview.totalPosts.thisMonth}
-                    </div>
-                    <div className={`flex items-center ${stats.overview.totalPosts.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {stats.overview.totalPosts.growth >= 0 ?
-                        <TrendingUp size={14} className="mr-1" /> :
-                        <TrendingDown size={14} className="mr-1" />
-                      }
-                      {Math.abs(stats.overview.totalPosts.growth)}% so với tháng trước
+                      {stats.overview ? 
+                        Math.max(0, stats.overview.totalUsers.count - onlineUsers.length) : 
+                        Math.max(0, users.length - onlineUsers.length)
+                      } người offline
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
 
-              {/* Lượt xem */}
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Eye className="text-green-600" size={24} />
-                  <div className="text-2xl font-bold text-green-600">
-                    {stats.overview ? stats.overview.totalViews.count : stats.totalViews}
-                  </div>
-                </div>
-                <div className="text-gray-600">Tổng lượt xem</div>
-                {stats.overview && (
-                  <div className="mt-2 text-sm">
-                    <div className="text-gray-500">
-                      Tháng này: {stats.overview.totalViews.thisMonth}
-                    </div>
-                    <div className={`flex items-center ${stats.overview.totalViews.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      <span className="mr-1">
-                        {stats.overview.totalViews.growth >= 0 ? '↗' : '↘'}
-                      </span>
-                      {Math.abs(stats.overview.totalViews.growth)}% so với tháng trước
+                {/* Tổng lượt truy cập */}
+                <div className="bg-cyan-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <UserCheck className="text-cyan-600" size={24} />
+                    <div className="text-2xl font-bold text-cyan-600">
+                      {totalVisitors.toLocaleString()}
                     </div>
                   </div>
-                )}
-              </div>
-
-              {/* Bình luận */}
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <MessageCircle className="text-purple-600" size={24} />
-                  <div className="text-2xl font-bold text-purple-600">
-                    {stats.overview ? stats.overview.totalComments.count : stats.totalComments}
-                  </div>
-                </div>
-                <div className="text-gray-600">Tổng bình luận</div>
-                {stats.overview && (
-                  <div className="mt-2 text-sm">
-                    <div className="text-gray-500">
-                      Tháng này: {stats.overview.totalComments.thisMonth}
+                  <div className="text-gray-600">Tổng lượt truy cập</div>
+                  {visitorStats && (
+                    <div className="mt-2 text-sm space-y-1">
+                      <div className="text-gray-500">
+                        {visitorStats.totalUsers} người đã đăng ký
+                      </div>
+                      <div className="text-gray-500">
+                        {visitorStats.usersWithActivity} người đã hoạt động
+                      </div>
+                      <div className="text-gray-500">
+                        {visitorStats.onlineUsers} đang online
+                      </div>
                     </div>
-                    <div className={`flex items-center ${stats.overview.totalComments.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      <span className="mr-1">
-                        {stats.overview.totalComments.growth >= 0 ? '↗' : '↘'}
-                      </span>
-                      {Math.abs(stats.overview.totalComments.growth)}% so với tháng trước
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Emotes */}
-              <div className="bg-red-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Heart className="text-red-600" size={24} />
-                  <div className="text-2xl font-bold text-red-600">
-                    {stats.overview ? stats.overview.totalEmotes.count : stats.totalEmotes}
-                  </div>
-                </div>
-                <div className="text-gray-600">Tổng emote</div>
-                {stats.overview && (
-                  <div className="mt-2 text-sm">
-                    <div className="text-gray-500">
-                      Tháng này: {stats.overview.totalEmotes.thisMonth}
-                    </div>
-                    <div className={`flex items-center ${stats.overview.totalEmotes.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      <span className="mr-1">
-                        {stats.overview.totalEmotes.growth >= 0 ? '↗' : '↘'}
-                      </span>
-                      {Math.abs(stats.overview.totalEmotes.growth)}% so với tháng trước
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Người dùng */}
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="text-yellow-600" size={24} />
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {stats.overview ? stats.overview.totalUsers.count : stats.totalUsers}
-                  </div>
-                </div>
-                <div className="text-gray-600">Tổng người dùng</div>
-                {stats.overview && (
-                  <div className="mt-2 text-sm">
-                    <div className="text-gray-500">
-                      Tháng này: {stats.overview.totalUsers.thisMonth}
-                    </div>
-                    <div className={`flex items-center ${stats.overview.totalUsers.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      <span className="mr-1">
-                        {stats.overview.totalUsers.growth >= 0 ? '↗' : '↘'}
-                      </span>
-                      {Math.abs(stats.overview.totalUsers.growth)}% so với tháng trước
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Bài đã xuất bản */}
-              <div className="bg-indigo-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <FileText className="text-indigo-600" size={24} />
-                  <div className="text-2xl font-bold text-indigo-600">
-                    {stats.overview ? stats.overview.publishedPosts.count : stats.publishedPosts}
-                  </div>
-                </div>
-                <div className="text-gray-600">Bài đã đăng</div>
-                {stats.overview && (
-                  <div className="mt-2 text-sm">
-                    <div className="text-gray-500">
-                      Tháng này: {stats.overview.publishedPosts.thisMonth}
-                    </div>
-                    <div className={`flex items-center ${stats.overview.publishedPosts.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      <span className="mr-1">
-                        {stats.overview.publishedPosts.growth >= 0 ? '↗' : '↘'}
-                      </span>
-                      {Math.abs(stats.overview.publishedPosts.growth)}% so với tháng trước
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Bài riêng tư */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Edit className="text-gray-600" size={24} />
-                  <div className="text-2xl font-bold text-gray-600">
-                    {stats.overview ? stats.overview.draftPosts.count : stats.draftPosts}
-                  </div>
-                </div>
-                <div className="text-gray-600">Bài riêng tư</div>
-                {stats.overview && (
-                  <div className="mt-2 text-sm">
-                    <div className="text-gray-500">
-                      Tháng này: {stats.overview.draftPosts.thisMonth}
-                    </div>
-                    <div className={`flex items-center ${stats.overview.draftPosts.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      <span className="mr-1">
-                        {stats.overview.draftPosts.growth >= 0 ? '↗' : '↘'}
-                      </span>
-                      {Math.abs(stats.overview.draftPosts.growth)}% so với tháng trước
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Admin */}
-              <div className="bg-pink-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Crown className="text-pink-600" size={24} />
-                  <div className="text-2xl font-bold text-pink-600">
-                    {stats.overview ? stats.overview.adminUsers.count : stats.adminUsers}
-                  </div>
-                </div>
-                <div className="text-gray-600">Admin</div>
-                {stats.overview && (
-                  <div className="mt-2 text-sm">
-                    <div className="text-gray-500">
-                      Tháng này: {stats.overview.adminUsers.thisMonth}
-                    </div>
-                    <div className={`flex items-center ${stats.overview.adminUsers.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      <span className="mr-1">
-                        {stats.overview.adminUsers.growth >= 0 ? '↗' : '↘'}
-                      </span>
-                      {Math.abs(stats.overview.adminUsers.growth)}% so với tháng trước
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Người online */}
-              <div className="bg-emerald-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Wifi className="text-emerald-600" size={24} />
-                  <div className="text-2xl font-bold text-emerald-600">
-                    {onlineUsers.length}
-                  </div>
-                </div>
-                <div className="text-gray-600">Đang online</div>
-                <div className="mt-2 text-sm">
-                  <div className="text-gray-500">
-                    {Math.max(0, users.length - onlineUsers.length)} người offline
-                  </div>
+                  )}
                 </div>
               </div>
-
-              {/* Tổng lượt truy cập */}
-              <div className="bg-cyan-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <UserCheck className="text-cyan-600" size={24} />
-                  <div className="text-2xl font-bold text-cyan-600">
-                    {totalVisitors.toLocaleString()}
-                  </div>
-                </div>
-                <div className="text-gray-600">Tổng lượt truy cập</div>
-                {visitorStats && (
-                  <div className="mt-2 text-sm space-y-1">
-                    <div className="text-gray-500">
-                      {visitorStats.totalUsers} người đã đăng ký
-                    </div>
-                    <div className="text-gray-500">
-                      {visitorStats.usersWithActivity} người đã hoạt động
-                    </div>
-                    <div className="text-gray-500">
-                      {visitorStats.onlineUsers} đang online
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
 
             {/* Top Stats */}
-            <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top Posts */}
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <h3 className="font-bold mb-3">Top 5 bài viết có nhiều lượt xem nhất</h3>
-                {stats.topPosts?.map((post, index) => (
-                  <div key={post._id} className="flex justify-between items-center py-2 border-b last:border-b-0">
-                    <div>
-                      <div className="font-medium text-sm">{index + 1}. {post.title}</div>
-                      <div className="text-xs text-gray-500">by {post.author?.name}</div>
-                    </div>
-                    <div className="text-sm font-medium text-blue-600">{post.views} views</div>
-                  </div>
-                ))}
-              </div>
+            {stats && (
+              <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Top Posts */}
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <h3 className="font-bold mb-3">Top 5 bài viết có nhiều lượt xem nhất</h3>
+                  {stats.topPosts?.length > 0 ? (
+                    stats.topPosts.map((post, index) => (
+                      <div key={post._id} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                        <div>
+                          <div className="font-medium text-sm">{index + 1}. {post.title}</div>
+                          <div className="text-xs text-gray-500">by {post.author?.name}</div>
+                        </div>
+                        <div className="text-sm font-medium text-blue-600">{post.views} views</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">Chưa có dữ liệu</div>
+                  )}
+                </div>
 
-              {/* Top Users */}
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <h3 className="font-bold mb-3">Top 5 user có nhiều bài viết nhất</h3>
-                {stats.topUsers?.map((userStat, index) => (
-                  <div key={userStat._id} className="flex justify-between items-center py-2 border-b last:border-b-0">
-                    <div>
-                      <div className="font-medium text-sm">{index + 1}. {userStat.name}</div>
-                      <div className="text-xs text-gray-500">{userStat.role === "admin" ? "Admin" : "User"}</div>
-                    </div>
-                    <div className="text-sm font-medium text-green-600">{userStat.postCount} bài</div>
-                  </div>
-                ))}
+                {/* Top Users */}
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <h3 className="font-bold mb-3">Top 5 user có nhiều bài viết nhất</h3>
+                  {stats.topUsers?.length > 0 ? (
+                    stats.topUsers.map((userStat, index) => (
+                      <div key={userStat._id} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                        <div>
+                          <div className="font-medium text-sm">{index + 1}. {userStat.name}</div>
+                          <div className="text-xs text-gray-500">{userStat.role === "admin" ? "Admin" : "User"}</div>
+                        </div>
+                        <div className="text-sm font-medium text-green-600">{userStat.postCount} bài</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">Chưa có dữ liệu</div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
         {/* Users Tab */}
         {activeTab === "users" && (
           <div className="pt-4">
-            <h2 className="text-lg sm:text-xl font-bold mb-4">Quản lý người dùng ({users.length})</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full border border-gray-200 dark:border-gray-700 min-w-[600px]">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Avatar</th>
-                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Tên</th>
-                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm hidden sm:table-cell">Email</th>
-                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Quyền</th>
-                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm hidden md:table-cell">Ngày tham gia</th>
-                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm hidden lg:table-cell">Số bài viết</th>
-                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map(u => (
+            <h2 className="text-lg sm:text-xl font-bold mb-4">
+              Quản lý người dùng ({stats.overview ? stats.overview.totalUsers.count : users.length})
+            </h2>
+            {!users || users.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                Đang tải danh sách người dùng...
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border border-gray-200 dark:border-gray-700 min-w-[600px]">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Avatar</th>
+                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Tên</th>
+                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm hidden sm:table-cell">Email</th>
+                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Quyền</th>
+                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm hidden md:table-cell">Ngày tham gia</th>
+                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm hidden lg:table-cell">Số bài viết</th>
+                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map(u => (
                     <tr key={u._id} className="border-t border-gray-200 dark:border-gray-700">
                       <td className="px-2 sm:px-4 py-2">
                         <img
@@ -546,25 +633,17 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-2 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2">
                         <span className="text-xs sm:text-sm truncate">{u.name}</span>
-                        {u.isVerified && (
-                          <img
-                            src={
-                              u.role === "sololeveling" ? "/assets/Sung-tick.png"
-                                : u.role === "sybau" ? "/assets/Sybau-tick.png"
-                                  : u.role === "moxumexue" ? "/assets/moxumxue.png"
-                                    : u.role === "gay" ? "/assets/gay.png"
-                                      : u.role === "special" ? "/assets/special-user.jpg"
-                                        : "/assets/default-tick.png"
-                            }
-                            alt="Tích xanh"
-                            className="inline w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
-                          />
-                        )}
+                        <VerifiedBadge 
+                          role={u.role?.name || u.role} 
+                          isVerified={u.isVerified}
+                          roleData={typeof u.role === 'object' ? u.role : null}
+                          refreshTrigger={roleRefreshTrigger}
+                        />
                       </td>
                       <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm hidden sm:table-cell truncate max-w-[150px]">{u.email}</td>
                       <td className="px-2 sm:px-4 py-2">
                         <select
-                          value={u.role}
+                          value={u.role?.name || u.role}
                           onChange={async (e) => {
                             const newRole = e.target.value;
                             await updateUserRole(u._id, newRole);
@@ -572,13 +651,11 @@ export default function AdminDashboard() {
                           disabled={u._id === user._id}
                           className="btn-outline btn-xs sm:btn-sm text-xs sm:text-sm touch-target"
                         >
-                          <option value="user">User</option>
-                          <option value="sololeveling">Solo</option>
-                          <option value="sybau">Sybau</option>
-                          <option value="moxumxue">Keeper</option>
-                          <option value="admin">Admin</option>
-                          <option value="gay">Gay</option>
-                          <option value="special">Special</option>
+                          {availableRoles.map(role => (
+                            <option key={role.name} value={role.name}>
+                              {role.displayName}
+                            </option>
+                          ))}
                         </select>
                       </td>
                       <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm hidden md:table-cell">{new Date(u.createdAt).toLocaleDateString()}</td>
@@ -596,10 +673,11 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -844,7 +922,12 @@ export default function AdminDashboard() {
               </div>
               <div className="bg-gray-50 p-4 rounded-lg text-center">
                 <WifiOff className="text-gray-600 mx-auto mb-2" size={32} />
-                <div className="text-2xl font-bold text-gray-600">{Math.max(0, users.length - onlineUsers.length)}</div>
+                <div className="text-2xl font-bold text-gray-600">
+                  {stats.overview ? 
+                    Math.max(0, stats.overview.totalUsers.count - onlineUsers.length) : 
+                    Math.max(0, users.length - onlineUsers.length)
+                  }
+                </div>
                 <div className="text-gray-600">Offline</div>
               </div>
               <div className="bg-blue-50 p-4 rounded-lg text-center">
@@ -854,7 +937,9 @@ export default function AdminDashboard() {
               </div>
               <div className="bg-purple-50 p-4 rounded-lg text-center">
                 <Users className="text-purple-600 mx-auto mb-2" size={32} />
-                <div className="text-2xl font-bold text-purple-600">{users.length}</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {stats.overview ? stats.overview.totalUsers.count : users.length}
+                </div>
                 <div className="text-gray-600">Tổng người dùng</div>
               </div>
             </div>
@@ -910,21 +995,8 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3 font-medium">{user.name}</td>
                         <td className="px-4 py-3 text-gray-600">{user.email}</td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-full text-xs ${user.role === 'admin' ? 'bg-red-100 text-red-800' :
-                              user.role === 'sololeveling' ? 'bg-purple-100 text-purple-800' :
-                                user.role === 'sybau' ? 'bg-blue-100 text-blue-800' :
-                                  user.role === 'moxumxue' ? 'bg-pink-100 text-pink-800' :
-                                    user.role === 'gay' ? 'bg-pink-100 text-pink-800' :
-                                      user.role === 'special' ? 'bg-pink-100 text-pink-800' :
-                                        'bg-gray-100 text-gray-800'
-                            }`}>
-                            {user.role === 'admin' ? 'Admin' :
-                              user.role === 'sololeveling' ? 'Anh sung solo' :
-                                user.role === 'sybau' ? 'Ahh Sybau' :
-                                  user.role === 'moxumxue' ? 'Hero great tomb guard keeper' :
-                                    user.role === 'gay' ? 'Gay' :
-                                      user.role === 'special' ? 'Special' :
-                                        'User'}
+                          <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
+                            {user.role || 'User'}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -1005,6 +1077,18 @@ export default function AdminDashboard() {
                 Mở API Tester
               </a>
             </div>
+          </div>
+        )}
+
+        {/* Role Management Tab */}
+        {activeTab === "roles" && (
+          <div className="pt-4">
+            <RoleManagement onRolesChange={async () => {
+              // Load roles first
+              await loadAvailableRoles();
+              // Then refresh user data to get updated role info
+              await refreshAllData();
+            }} />
           </div>
         )}
       </div>

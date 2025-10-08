@@ -13,8 +13,8 @@ const UserSchema = new mongoose.Schema({
   // ==================== PHÂN QUYỀN ====================
   role: { 
     type: String, 
-    enum: ["user", "admin", "sololeveling", "sybau", "moxumxue", "gay", "special"], // Các role đặc biệt
-    default: "user" 
+    default: "user",
+    enum: ["user", "admin", "sololeveling", "sybau", "moxumxue", "gay", "special"]
   },
   
   // ==================== THÔNG TIN CÁ NHÂN ====================

@@ -124,7 +124,6 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
       // Lấy token mới với Safari-specific handling
       const newCSRFToken = await getCSRFToken(true); // Force refresh
       if (newCSRFToken) {
-        console.log("Got new CSRF token. Retrying request...");
         headers['X-CSRF-Token'] = newCSRFToken;
         
         // Safari-specific retry configuration

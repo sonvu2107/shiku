@@ -1,25 +1,61 @@
 import express from "express";
+import mongoose from "mongoose";
 import User from "../models/User.js";
 import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
 import Notification from "../models/Notification.js";
+import AuditLog from "../models/AuditLog.js";
 import { authRequired } from "../middleware/auth.js";
 import NotificationService from "../services/NotificationService.js";
+import sanitizeHtml from "sanitize-html";
+import { 
+  adminRateLimit, 
+  strictAdminRateLimit, 
+  notificationSlowDown,
+  statsCache,
+  userCache,
+  noCache,
+  roleCache
+} from "../middleware/adminSecurity.js";
 
 const router = express.Router();
 
 /**
- * Middleware kiểm tra quyền admin
+ * Middleware kiểm tra quyền admin với audit logging
  * Chỉ cho phép user có role "admin" truy cập các routes admin
  * @param {Object} req - Request object
  * @param {Object} res - Response object  
  * @param {Function} next - Next middleware function
  */
-const adminRequired = (req, res, next) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ error: "Chỉ admin mới có quyền truy cập" });
+const adminRequired = async (req, res, next) => {
+  try {
+    if (req.user.role !== "admin") {
+      // Log failed admin access attempt
+      await AuditLog.logAction(req.user._id, 'login_admin', {
+        result: 'failed',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        reason: 'Insufficient permissions'
+      });
+      return res.status(403).json({ error: "Chỉ admin mới có quyền truy cập" });
+    }
+    
+    // Check if admin is banned
+    if (req.user.isBanned && req.user.banExpiresAt && req.user.banExpiresAt > new Date()) {
+      await AuditLog.logAction(req.user._id, 'login_admin', {
+        result: 'failed',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        reason: 'Admin account is banned'
+      });
+      return res.status(403).json({ error: "Tài khoản admin bị cấm" });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Admin middleware error:', error);
+    res.status(500).json({ error: "Lỗi server" });
   }
-  next();
 };
 
 /**
@@ -30,25 +66,68 @@ const adminRequired = (req, res, next) => {
  * @param {string} req.body.reason - Lý do cấm
  * @returns {Object} Thông tin user đã bị cấm
  */
-router.post("/ban-user", authRequired, adminRequired, async (req, res, next) => {
+router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, async (req, res, next) => {
   try {
     const { userId, banDurationMinutes, reason } = req.body;
     
     // Kiểm tra thông tin bắt buộc
     if (!userId || !reason) {
+      await AuditLog.logAction(req.user._id, 'ban_user', {
+        result: 'failed',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        reason: 'Missing required fields'
+      });
       return res.status(400).json({ error: "Thiếu thông tin userId hoặc lý do cấm" });
     }
 
     // Tìm user cần cấm
     const user = await User.findById(userId);
     if (!user) {
+      await AuditLog.logAction(req.user._id, 'ban_user', {
+        targetId: userId,
+        targetType: 'user',
+        result: 'failed',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        reason: 'User not found'
+      });
       return res.status(404).json({ error: "User không tồn tại" });
+    }
+
+    // Không cho phép admin tự cấm chính mình
+    if (user._id.toString() === req.user._id.toString()) {
+      await AuditLog.logAction(req.user._id, 'ban_user', {
+        targetId: userId,
+        targetType: 'user',
+        result: 'failed',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        reason: 'Attempted self-ban'
+      });
+      return res.status(400).json({ error: "Không thể tự cấm chính mình" });
     }
 
     // Không cho phép cấm admin
     if (user.role === "admin") {
+      await AuditLog.logAction(req.user._id, 'ban_user', {
+        targetId: userId,
+        targetType: 'user',
+        result: 'failed',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        reason: 'Attempted to ban another admin'
+      });
       return res.status(400).json({ error: "Không thể cấm admin" });
     }
+
+    // Lưu dữ liệu trước khi thay đổi cho audit
+    const beforeData = {
+      isBanned: user.isBanned,
+      banReason: user.banReason,
+      bannedAt: user.bannedAt,
+      banExpiresAt: user.banExpiresAt
+    };
 
     // Tính thời gian hết hạn cấm
     const banExpiresAt = banDurationMinutes 
@@ -63,6 +142,28 @@ router.post("/ban-user", authRequired, adminRequired, async (req, res, next) => 
     user.bannedBy = req.user._id;
     
     await user.save();
+
+    // Log audit action
+    await AuditLog.logAction(req.user._id, 'ban_user', {
+      targetId: userId,
+      targetType: 'user',
+      result: 'success',
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      reason: reason,
+      beforeData,
+      afterData: {
+        isBanned: user.isBanned,
+        banReason: user.banReason,
+        bannedAt: user.bannedAt,
+        banExpiresAt: user.banExpiresAt
+      },
+      details: {
+        banDurationMinutes,
+        targetUserName: user.name,
+        targetUserEmail: user.email
+      }
+    });
 
     // Tạo thông báo cấm cho user
     try {
@@ -84,6 +185,13 @@ router.post("/ban-user", authRequired, adminRequired, async (req, res, next) => 
       }
     });
   } catch (error) {
+    // Log failed operation
+    await AuditLog.logAction(req.user._id, 'ban_user', {
+      result: 'failed',
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      reason: 'Server error: ' + error.message
+    });
     next(error);
   }
 });
@@ -144,7 +252,7 @@ router.post("/unban-user", authRequired, adminRequired, async (req, res, next) =
  * Bao gồm so sánh tháng này vs tháng trước và top rankings
  * @returns {Object} Thống kê chi tiết với growth indicators
  */
-router.get("/stats", authRequired, adminRequired, async (req, res, next) => {
+router.get("/stats", adminRateLimit, statsCache, authRequired, adminRequired, async (req, res, next) => {
   try {
     // Tính toán các mốc thời gian
     const now = new Date();
@@ -384,11 +492,43 @@ router.get("/stats", authRequired, adminRequired, async (req, res, next) => {
   }
 });
 
-// Lấy danh sách tất cả users
-router.get("/users", authRequired, adminRequired, async (req, res, next) => {
+// Lấy danh sách tất cả users với pagination và cache
+router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, async (req, res, next) => {
   try {
-    // Aggregate để lấy thêm số lượng bài viết của mỗi user
+    // Pagination parameters với validation
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    // Allow larger limits for admin dashboard (max 1000), but default to 20
+    const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+    
+    // Search filters
+    const searchQuery = req.query.search ? {
+      $or: [
+        { name: { $regex: req.query.search, $options: 'i' } },
+        { email: { $regex: req.query.search, $options: 'i' } }
+      ]
+    } : {};
+    
+    // Role filter
+    const roleFilter = req.query.role ? { role: req.query.role } : {};
+    
+    // Ban status filter
+    let banFilter = {};
+    if (req.query.banned === 'true') {
+      banFilter = { isBanned: true };
+    } else if (req.query.banned === 'false') {
+      banFilter = { isBanned: { $ne: true } };
+    }
+    
+    // Combine all filters
+    const matchQuery = { ...searchQuery, ...roleFilter, ...banFilter };
+    
+    // Get total count for pagination
+    const total = await User.countDocuments(matchQuery);
+    
+    // Aggregate để lấy thêm số lượng bài viết của mỗi user với pagination
     const users = await User.aggregate([
+      { $match: matchQuery },
       {
         $lookup: {
           from: "posts",
@@ -412,12 +552,43 @@ router.get("/users", authRequired, adminRequired, async (req, res, next) => {
           postCount: { $size: "$posts" }
         }
       },
-      { $sort: { createdAt: -1 } }
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit }
     ]);
 
+    // Log audit action for viewing user list
+    await AuditLog.logAction(req.user._id, 'view_user_list', {
+      result: 'success',
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      details: {
+        page,
+        limit,
+        total,
+        filters: { search: req.query.search, role: req.query.role, banned: req.query.banned }
+      }
+    });
 
-    res.json({ users });
+    res.json({ 
+      users,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1
+      }
+    });
   } catch (e) {
+    // Log failed operation
+    await AuditLog.logAction(req.user._id, 'view_user_list', {
+      result: 'failed',
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      reason: 'Server error: ' + e.message
+    });
     next(e);
   }
 });
@@ -426,8 +597,12 @@ router.get("/users", authRequired, adminRequired, async (req, res, next) => {
 router.put("/users/:id/role", authRequired, adminRequired, async (req, res, next) => {
   try {
     const { role } = req.body;
-    if (!["user", "admin", "sololeveling", "sybau", "moxumxue", "gay", "special"].includes(role)) {
-      return res.status(400).json({ error: "Quyền không hợp lệ" });
+    
+    // Kiểm tra role có tồn tại trong database không
+    const Role = mongoose.model('Role');
+    const existingRole = await Role.findOne({ name: role, isActive: true });
+    if (!existingRole && role !== 'user') {
+      return res.status(400).json({ error: "Quyền không hợp lệ hoặc không tồn tại" });
     }
 
     const user = await User.findById(req.params.id);
@@ -482,7 +657,7 @@ router.delete("/users/:id", authRequired, adminRequired, async (req, res, next) 
  * Lấy tất cả users có isOnline = true
  * @returns {Array} Danh sách users đang online
  */
-router.get("/online-users", authRequired, adminRequired, async (req, res, next) => {
+router.get("/online-users", adminRateLimit, noCache, authRequired, adminRequired, async (req, res, next) => {
   try {
     const onlineUsers = await User.find({ isOnline: true })
       .select('name email avatarUrl role lastSeen isOnline')
@@ -583,9 +758,16 @@ router.post("/update-offline-users", authRequired, adminRequired, async (req, re
  * @param {Array} req.body.userIds - Danh sách user IDs (nếu target = specific)
  * @returns {Object} Kết quả gửi thông báo
  */
-router.post("/send-notification", authRequired, adminRequired, async (req, res, next) => {
+router.post("/send-notification", notificationSlowDown, authRequired, adminRequired, async (req, res, next) => {
   try {
-    const { title, message, type = "info", target = "all", userIds = [] } = req.body;
+    const { title: rawTitle, message: rawMessage, type = "info", target = "all", userIds = [] } = req.body;
+
+    // XSS Protection: Sanitize title and message
+    const title = sanitizeHtml(rawTitle, { allowedTags: [], allowedAttributes: {} });
+    const message = sanitizeHtml(rawMessage, {
+      allowedTags: [ 'b', 'i', 'em', 'strong', 'a', 'p', 'br' ],
+      allowedAttributes: { 'a': [ 'href' ] }
+    });
     
     // Kiểm tra thông tin bắt buộc
     if (!title || !message) {
@@ -679,9 +861,9 @@ router.post("/send-notification", authRequired, adminRequired, async (req, res, 
 
 /**
  * GET /test-send-notification - Test endpoint để kiểm tra route hoạt động
- * Chỉ để test, không cần authentication
+ * ĐÃ ĐƯỢC BẢO VỆ: Yêu cầu quyền admin.
  */
-router.get("/test-send-notification", (req, res) => {
+router.get("/test-send-notification", authRequired, adminRequired, (req, res) => {
   res.json({
     success: true,
     message: "Send notification endpoint is working!",
@@ -692,6 +874,100 @@ router.get("/test-send-notification", (req, res) => {
     validTypes: ["info", "warning", "success", "error"],
     validTargets: ["all", "online", "specific"]
   });
+});
+
+/**
+ * GET /audit-logs - Xem nhật ký audit
+ * Admin có thể xem các hoạt động của admin khác
+ */
+router.get("/audit-logs", adminRateLimit, userCache, authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
+    
+    // Filters
+    const filters = {};
+    if (req.query.action) filters.action = req.query.action;
+    if (req.query.adminId) filters.adminId = req.query.adminId;
+    if (req.query.result) filters.result = req.query.result;
+    
+    // Date range filter
+    if (req.query.fromDate || req.query.toDate) {
+      filters.timestamp = {};
+      if (req.query.fromDate) filters.timestamp.$gte = new Date(req.query.fromDate);
+      if (req.query.toDate) filters.timestamp.$lte = new Date(req.query.toDate);
+    }
+    
+    const total = await AuditLog.countDocuments(filters);
+    
+    const logs = await AuditLog.find(filters)
+      .populate('adminId', 'name email role')
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    
+    // Log the audit log viewing
+    await AuditLog.logAction(req.user._id, 'view_admin_stats', {
+      result: 'success',
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      details: { endpoint: 'audit-logs', page, limit, total }
+    });
+    
+    res.json({
+      logs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    await AuditLog.logAction(req.user._id, 'view_admin_stats', {
+      result: 'failed',
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      reason: 'Server error: ' + error.message
+    });
+    next(error);
+  }
+});
+
+/**
+ * GET /suspicious-activities - Xem các hoạt động đáng nghi
+ */
+router.get("/suspicious-activities", adminRateLimit, noCache, authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const timeframe = parseInt(req.query.hours) || 24; // Default 24 hours
+    
+    const suspiciousActivities = await AuditLog.getSuspiciousActivities(timeframe);
+    
+    await AuditLog.logAction(req.user._id, 'view_admin_stats', {
+      result: 'success',
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      details: { endpoint: 'suspicious-activities', timeframe }
+    });
+    
+    res.json({
+      suspiciousActivities,
+      timeframe,
+      count: suspiciousActivities.length
+    });
+  } catch (error) {
+    await AuditLog.logAction(req.user._id, 'view_admin_stats', {
+      result: 'failed',
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      reason: 'Server error: ' + error.message
+    });
+    next(error);
+  }
 });
 
 export default router;

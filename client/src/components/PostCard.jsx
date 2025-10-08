@@ -7,7 +7,7 @@ import { safariAPI, safariPOST, safariPUT, safariDELETE } from "../utils/safariA
 import UserName from "./UserName";
 import VerifiedBadge from "./VerifiedBadge";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
-import LazyImage from "./LazyImage";
+import LazyImage from "./LazyImageSimple";
 import Poll from "./Poll";
 
 /**
@@ -193,12 +193,31 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
               src={displayMedia.url} 
               className="w-full h-full object-cover"
               controls
+              onError={(e) => {
+                console.warn(`Failed to load post video: ${displayMedia.url}`);
+                e.target.style.display = 'none';
+                // Hiển thị placeholder khi video lỗi
+                const placeholder = document.createElement('div');
+                placeholder.className = 'w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center';
+                placeholder.innerHTML = '<div class="text-gray-500 dark:text-gray-400 text-sm">Video không thể tải</div>';
+                e.target.parentNode.appendChild(placeholder);
+              }}
             />
           ) : (
-            <LazyImage 
+            <img 
               src={displayMedia.url} 
               alt="" 
-              className="w-full h-full hover:scale-105 transition-transform duration-300" 
+              className="w-full h-full hover:scale-105 transition-transform duration-300 object-cover"
+              loading="lazy"
+              onError={(e) => {
+                console.warn(`Failed to load post image: ${displayMedia.url}`);
+                e.target.style.display = 'none';
+                // Hiển thị placeholder khi ảnh lỗi
+                const placeholder = document.createElement('div');
+                placeholder.className = 'w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center';
+                placeholder.innerHTML = '<div class="text-gray-500 dark:text-gray-400 text-sm">Ảnh không thể tải</div>';
+                e.target.parentNode.appendChild(placeholder);
+              }}
             />
           )}
         </div>
@@ -246,7 +265,16 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
             .filter(([_, count]) => count > 0)
             .slice(0, 2)
               .map(([emo]) => (
-              <img key={emo} src={`/assets/${emoteMap[emo]}`} alt={emo} className="emote inline-block align-middle" />
+              <img 
+                key={emo} 
+                src={`/assets/${emoteMap[emo]}`} 
+                alt={emo} 
+                className="emote inline-block align-middle"
+                onError={(e) => {
+                  console.warn(`Failed to load emote: ${emo}`);
+                  e.target.style.display = 'none';
+                }}
+              />
             ))}
           {totalEmotes > 0 && (
             <span className="ml-1 font-semibold text-gray-800 ">{totalEmotes.toLocaleString()}</span>
@@ -291,7 +319,15 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
             >
               {emotes.map(e => (
                 <button key={e} className="emote-btn" type="button" onClick={() => { emote(e); setShowEmotePopup(false); }}>
-                  <img src={`/assets/${emoteMap[e]}`} alt={e} className="emote" />
+                  <img 
+                    src={`/assets/${emoteMap[e]}`} 
+                    alt={e} 
+                    className="emote"
+                    onError={(e) => {
+                      console.warn(`Failed to load emote: ${e}`);
+                      e.target.style.display = 'none';
+                    }}
+                  />
                 </button>
               ))}
             </div>

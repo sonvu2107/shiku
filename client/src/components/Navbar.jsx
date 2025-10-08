@@ -1,7 +1,6 @@
 // Import các dependencies cần thiết
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { api } from "../api";
 import { safariPOST, safariDELETE } from "../utils/safariAPI.js";
 import { removeAuthToken } from "../utils/auth";
@@ -306,6 +305,8 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
 
     // Xóa token khỏi localStorage
     removeAuthToken();
+    // Clear user cache
+    invalidateUserCache();
     // Reset user state
     if (setUser) setUser(null);
     // Redirect về trang chủ

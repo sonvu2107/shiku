@@ -28,7 +28,11 @@ export default function UserName({ user, className = "", maxLength = 50, showToo
 			
 			{/* Verified badge nếu có role */}
 			{user.role && (
-				<VerifiedBadge role={user.role} isVerified={user.isVerified} />
+				<VerifiedBadge 
+					role={typeof user.role === 'string' ? user.role : user.role.name} 
+					isVerified={user.isVerified}
+					roleData={typeof user.role === 'object' ? user.role : null}
+				/>
 			)}
 		</span>
 	);

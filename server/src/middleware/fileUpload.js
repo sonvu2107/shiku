@@ -91,7 +91,7 @@ export const validateFile = async (file, category = 'image') => {
   
   // Kiểm tra file có tồn tại
   if (!file || !file.buffer) {
-    errors.push('Không có file được upload');
+    errors.push('Không có file được tải lên');
     return { isValid: false, errors };
   }
 
@@ -178,7 +178,7 @@ export const uploadSingle = (category = 'image') => {
         if (!req.file) {
           return res.status(400).json({
             success: false,
-            message: 'Không có file được upload'
+            message: 'Không có file được tải lên'
           });
         }
 

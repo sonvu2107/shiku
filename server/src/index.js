@@ -41,6 +41,7 @@ import sitemapRoutes from "./routes/sitemap.js"; // Sitemap routes
 import searchHistoryRoutes from "./routes/searchHistory.js"; // Search history routes
 import storyRoutes from "./routes/stories.js"; // Stories routes
 import pollRoutes from "./routes/polls.js"; // Polls routes
+import roleRoutes from "./routes/roles.js"; // Role management routes
 
 // Load environment variables
 dotenv.config();
@@ -212,9 +213,10 @@ app.use((req, res, next) => {
     sessionID = crypto.randomBytes(16).toString('hex');
     res.cookie('sessionID', sessionID, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "development" ? false : true,
-      sameSite: process.env.NODE_ENV === "development" ? "lax" : "none",
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
+      secure: process.env.NODE_ENV === "production", // Only secure in production
+      sameSite: "lax", // Safari-friendly sameSite setting
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      path: "/" // Explicit path for Safari compatibility
     });
   }
 
@@ -509,6 +511,7 @@ app.use("/api/sitemap", sitemapRoutes); // Sitemap generation
 app.use("/api/search", searchHistoryRoutes); // Search history
 app.use("/api/stories", apiLimiter, storyRoutes); // Stories with rate limiting
 app.use("/api/polls", apiLimiter, pollRoutes); // Polls/Surveys with rate limiting
+app.use("/api/admin/roles", roleRoutes); // Role management
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);

@@ -102,21 +102,17 @@ export default function PostDetail() {
     }
   }, [slug]);
 
+  // Load user from cache
   useEffect(() => {
     (async () => {
       try {
-        if (data?.post?._id) {
-          const res = await api(`/api/posts/${data.post._id}/is-saved`);
-          setSaved(!!res.saved);
-        }
-      } catch (_) {}
+        const { loadUser } = await import("../utils/userCache");
+        const cachedUser = await loadUser();
+        setUser(cachedUser);
+      } catch (_) {
+        setUser(null);
+      }
     })();
-  }, [data?.post?._id]);
-
-  useEffect(() => {
-    api("/api/auth/me")
-      .then((res) => setUser(res.user))
-      .catch(() => setUser(null));
   }, []);
 
   // Fetch group context for permission decisions if post belongs to a group

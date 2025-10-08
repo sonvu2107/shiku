@@ -12,7 +12,7 @@ export default function Poll({ post, user }) {
   const [pollData, setPollData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
-  const [showVoters, setShowVoters] = useState(null); // Index của option đang show voters
+  const [showVoters, setShowVoters] = useState(null); 
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [newOptions, setNewOptions] = useState([""]);
   const [addingOptions, setAddingOptions] = useState(false);
@@ -69,18 +69,18 @@ export default function Poll({ post, user }) {
   // Handle vote
   const handleVote = async (optionIndex) => {
     if (!user) {
-      alert("Vui lòng đăng nhập để vote");
+      alert("Vui lòng đăng nhập để lựa chọn");
       return;
     }
 
     if (!pollData.isActive) {
-      alert("Poll đã đóng");
+      alert("Bình chọn đã đóng");
       return;
     }
 
     // Check expiry
     if (pollData.expiresAt && new Date() >= new Date(pollData.expiresAt)) {
-      alert("Poll đã hết hạn");
+      alert("Bình chọn đã hết hạn");
       return;
     }
 
@@ -95,7 +95,7 @@ export default function Poll({ post, user }) {
       setPollData(response.poll);
     } catch (error) {
       console.error("Error voting:", error);
-      alert(error.message || "Lỗi khi vote");
+      alert(error.message || "Lỗi khi lựa chọn");
     } finally {
       setVoting(false);
     }
@@ -115,7 +115,7 @@ export default function Poll({ post, user }) {
     }
 
     if (!pollData || !pollData._id) {
-      alert("Không tìm thấy thông tin poll");
+      alert("Không tìm thấy thông tin bình chọn");
       return;
     }
 
@@ -181,7 +181,7 @@ export default function Poll({ post, user }) {
       <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-gray-600">
         <div className="flex items-center gap-1">
           <Users size={16} />
-          <span>{pollData.totalVotes} lượt vote</span>
+          <span>{pollData.totalVotes} lượt lựa chọn</span>
         </div>
         {pollData.expiresAt && (
           <div className="flex items-center gap-1">
@@ -209,7 +209,7 @@ export default function Poll({ post, user }) {
                 onClick={() => canVote && handleVote(index)}
                 disabled={voting || !canVote}
                 aria-label={`Vote cho ${option.text}`}
-                title={canVote ? `Click để vote cho "${option.text}"` : hasVoted ? "Bạn đã vote" : "Đăng nhập để vote"}
+                title={canVote ? `Click để lựa chọn cho "${option.text}"` : hasVoted ? "Bạn đã lựa chọn" : "Đăng nhập để lựa chọn"}
                 className={`w-full text-left p-3 rounded-lg border-2 transition-all relative overflow-hidden ${
                   isUserVoted
                     ? "border-blue-500 bg-blue-50"
@@ -262,7 +262,7 @@ export default function Poll({ post, user }) {
                     onClick={() => setShowVoters(showVoters === index ? null : index)}
                     className="text-xs text-blue-600 hover:text-blue-700 ml-3"
                   >
-                    {showVoters === index ? "Ẩn" : "Xem"} {option.voteCount} người đã vote
+                    {showVoters === index ? "Ẩn" : "Xem"} {option.voteCount} người đã lựa chọn
                   </button>
 
                   {/* Voters List */}
@@ -387,7 +387,7 @@ export default function Poll({ post, user }) {
       {/* Footer Info */}
       {!user && pollData.isActive && (
         <p className="text-sm text-gray-500 text-center pt-2 border-t border-gray-200">
-          Đăng nhập để vote
+          Đăng nhập để lựa chọn
         </p>
       )}
     </div>

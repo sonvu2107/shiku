@@ -31,8 +31,10 @@ export function useAdminData() {
 
   const loadUsers = useCallback(async () => {
     try {
-      const res = await api("/api/admin/users");
-      setUsers(res.users);
+      // Load all users with a large limit to ensure we get the complete count
+      // Frontend cần tổng số users để hiển thị chính xác
+      const res = await api("/api/admin/users?page=1&limit=1000");
+      setUsers(res.users || []);
     } catch (e) {
       // Silent handling for users loading error
       setError("Không thể tải danh sách người dùng");
@@ -92,18 +94,44 @@ export function useAdminData() {
 
   // ==================== EFFECTS ====================
 
+  // Initial load only once
   useEffect(() => {
     refreshAllData();
-  }, [refreshAllData]);
+  }, []); // Empty dependency array - only run once
 
-  // Auto refresh every 30 seconds
+  // Auto refresh every 60 seconds when page is visible
   useEffect(() => {
-    const interval = setInterval(() => {
-      refreshAllData();
-    }, 30000);
+    let interval;
 
-    return () => clearInterval(interval);
-  }, [refreshAllData]);
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Clear interval when page is hidden
+        if (interval) clearInterval(interval);
+      } else {
+        // Refresh immediately when page becomes visible
+        refreshAllData();
+        // Set up interval for visible page
+        interval = setInterval(() => {
+          refreshAllData();
+        }, 60000); // 60 seconds instead of 30
+      }
+    };
+
+    // Initial setup
+    if (!document.hidden) {
+      interval = setInterval(() => {
+        refreshAllData();
+      }, 60000);
+    }
+
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []); // Empty dependency array - stable interval
 
   // ==================== RETURN ====================
 
@@ -124,6 +152,7 @@ export function useAdminData() {
     loadStats,
     loadUsers,
     loadOnlineUsers,
-    loadTotalVisitors
+    loadTotalVisitors,
+    setUsers // Expose setUsers for optimistic updates
   };
 }

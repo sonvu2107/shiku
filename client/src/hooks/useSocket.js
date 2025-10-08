@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import socketService from "../socket";
 
 /**
@@ -6,6 +6,9 @@ import socketService from "../socket";
  * @returns {Object} socket instance hoặc null
  */
 export function useSocket() {
+  // Tạm thời disable để tránh lỗi
+  return null;
+  
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {

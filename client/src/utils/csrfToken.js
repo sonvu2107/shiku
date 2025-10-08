@@ -14,14 +14,12 @@ export async function getCSRFToken(forceRefresh = false) {
   
   // Nếu token còn hợp lệ (trong vòng 1 giờ) và không force refresh, trả về token cached
   if (!forceRefresh && csrfToken && now < csrfTokenExpiry) {
-    console.log("Using cached CSRF token");
     return csrfToken;
   }
   
   try {
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
-    console.log(`Fetching new CSRF token from ${API_URL}/api/csrf-token`);
-    
+
     // Safari-specific headers and configuration
     const response = await fetch(`${API_URL}/api/csrf-token`, {
       method: 'GET',
@@ -34,18 +32,13 @@ export async function getCSRFToken(forceRefresh = false) {
         'X-Requested-With': 'XMLHttpRequest' // Safari compatibility
       }
     });
-    
-    console.log("CSRF token response status:", response.status);
-    console.log("CSRF token response headers:", Object.fromEntries(response.headers.entries()));
-    
+
     if (response.ok) {
       const data = await response.json();
-      console.log("CSRF token response data:", data);
-      
+
       if (data.csrfToken) {
         csrfToken = data.csrfToken;
         csrfTokenExpiry = now + (60 * 60 * 1000); // 1 giờ
-        console.log("CSRF token obtained successfully:", csrfToken?.substring(0, 6) + "...");
         return csrfToken;
       } else {
         console.error("No CSRF token in response:", data);
@@ -80,13 +73,10 @@ export function clearCSRFToken() {
  * This function should be called when the app loads
  */
 export async function initializeCSRFToken() {
-  console.log("Initializing CSRF token for Safari compatibility...");
-  
   // Force refresh to get a new token
   const token = await getCSRFToken(true);
-  
+
   if (token) {
-    console.log("CSRF token initialized successfully");
     return true;
   } else {
     console.error("Failed to initialize CSRF token");
@@ -107,11 +97,6 @@ export function hasValidCSRFToken() {
  * This function helps debug CSRF token issues in Safari
  */
 export async function debugCSRFToken() {
-  console.log("=== CSRF Token Debug Info ===");
-  console.log("Current token:", csrfToken ? csrfToken.substring(0, 6) + "..." : "None");
-  console.log("Token expiry:", new Date(csrfTokenExpiry).toISOString());
-  console.log("Is valid:", hasValidCSRFToken());
-  
   try {
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
     const response = await fetch(`${API_URL}/api/csrf-status`, {
@@ -119,18 +104,16 @@ export async function debugCSRFToken() {
       mode: 'cors',
       cache: 'no-cache'
     });
-    
+
     if (response.ok) {
       const status = await response.json();
-      console.log("Server CSRF status:", status);
+      return status;
     } else {
       console.error("Failed to get CSRF status:", response.status);
     }
   } catch (error) {
     console.error("Error checking CSRF status:", error);
   }
-  
-  console.log("=== End CSRF Debug ===");
 }
 
 /**
@@ -142,8 +125,7 @@ export async function ensureCSRFToken() {
   if (hasValidCSRFToken()) {
     return true;
   }
-  
-  console.log("CSRF token not available, attempting to fetch...");
+
   const token = await getCSRFToken(true); // Force refresh
   return !!token;
 }
@@ -165,7 +147,6 @@ export function handleSafariCSRFError(error, action = "thực hiện hành độ
     setTimeout(async () => {
       try {
         await getCSRFToken(true);
-        console.log("CSRF token refreshed in background");
       } catch (e) {
         console.error("Failed to refresh CSRF token:", e);
       }

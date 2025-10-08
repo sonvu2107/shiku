@@ -21,6 +21,7 @@ router.post('/batch', authRequired, async (req, res) => {
 
     const users = await User.find({ _id: { $in: userIds } })
       .select('_id name email avatarUrl bio role isOnline lastSeen isBanned createdAt')
+      .populate('role') // Populate the role field
       .lean();
 
     res.json({ users });
@@ -54,6 +55,7 @@ router.get('/', authRequired, async (req, res) => {
 
     const users = await User.find(query)
       .select('_id name email avatarUrl bio role isOnline lastSeen isBanned createdAt')
+      .populate('role') // Populate the role field
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -137,6 +139,7 @@ router.get('/:id', authRequired, async (req, res) => {
     
     const user = await User.findById(id)
       .select('-password -email') 
+      .populate('role') // Populate the role field
       .populate('friends', 'name avatarUrl isOnline lastSeen role');
 
     if (!user) {
