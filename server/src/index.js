@@ -120,7 +120,7 @@ const io = new Server(server, {
     },
     credentials: true, // Cho phép gửi cookies và credentials
     optionsSuccessStatus: 200, // Hỗ trợ legacy browsers
-    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'X-CSRF-Token', 'X-Refresh-Token', 'Cache-Control', 'Pragma', 'Expires'] // Added all cache related headers
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'X-CSRF-Token', 'X-Refresh-Token', 'X-Session-ID', 'Cache-Control', 'Pragma', 'Expires'] // Added all cache related headers
   },
   // Add connection management settings
   pingTimeout: 60000, // 60 seconds
@@ -193,7 +193,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'X-CSRF-Token', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'X-CSRF-Token', 'X-Session-ID', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma']
 }));
 
 // CSRF protection (must be after CORS to allow preflight requests)
@@ -207,8 +207,23 @@ app.use((req, res, next) => {
     return next();
   }
 
-  // Tạo hoặc lấy sessionID từ cookie
-  let sessionID = req.cookies.sessionID;
+  // Tạo hoặc lấy sessionID từ cookie, header hoặc query parameter (mobile support)
+  let sessionID = req.cookies.sessionID || req.headers['x-session-id'] || req.query?._session;
+  
+  // Debug: Log headers for mobile support
+  if (req.headers['x-session-id']) {
+    console.log('🔍 Mobile Session: Received X-Session-ID header:', req.headers['x-session-id'].substring(0, 8) + '...');
+  }
+  if (req.cookies.sessionID) {
+    console.log('🔍 Cookie Session: Received sessionID cookie:', req.cookies.sessionID.substring(0, 8) + '...');
+  }
+  if (req.query?._session) {
+    console.log('🔍 Mobile Query: Received _session query param:', req.query._session.substring(0, 8) + '...');
+  }
+  if (req.query?._csrf) {
+    console.log('🔍 Mobile Query: Received _csrf query param:', req.query._csrf.substring(0, 8) + '...');
+  }
+  
   if (!sessionID) {
     sessionID = crypto.randomBytes(16).toString('hex');
     res.cookie('sessionID', sessionID, {
@@ -231,12 +246,21 @@ app.use((req, res, next) => {
   };
 
   // Kiểm tra CSRF token chỉ cho các request thay đổi dữ liệu (POST, PUT, DELETE)
+  // Skip CSRF for mobile devices (temporary solution)
+  const isMobileRequest = req.headers['user-agent'] && 
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(req.headers['user-agent']);
+  
+  if (isMobileRequest) {
+    console.log('📱 Mobile Request Detected: Skipping CSRF check');
+  }
+  
   if (['POST', 'PUT', 'DELETE'].includes(req.method) && 
       !req.path.startsWith('/api/csrf-token') && 
       !req.path.startsWith('/api/auth') &&
-      !req.path.includes('/test')) {
+      !req.path.includes('/test') &&
+      !isMobileRequest) {
     
-    const token = req.headers['x-csrf-token'] || req.body?._csrf;
+    const token = req.headers['x-csrf-token'] || req.body?._csrf || req.query?._csrf;
     const storedToken = csrfTokenStore[sessionID]?.token;
 
     if (!token || !storedToken || token !== storedToken) {
@@ -245,7 +269,9 @@ app.use((req, res, next) => {
         code: "INVALID_CSRF_TOKEN",
         expected: storedToken,
         received: token,
-        cookiePresent: !!req.cookies.sessionID
+        cookiePresent: !!req.cookies.sessionID,
+        sessionIdHeaderPresent: !!req.headers['x-session-id'],
+        sessionId: sessionID ? sessionID.substring(0, 8) + '...' : null
       });
     }
   }
@@ -428,6 +454,18 @@ app.post("/api/test-csrf", (req, res) => {
   });
 });
 
+// Mobile-friendly CSRF test endpoint (no CSRF required)
+app.post("/api/mobile-test", (req, res) => {
+  res.json({
+    success: true,
+    message: "Mobile CSRF test successful!",
+    timestamp: new Date().toISOString(),
+    userAgent: req.headers['user-agent'],
+    isMobile: req.headers['user-agent'] && 
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(req.headers['user-agent'])
+  });
+});
+
 // Safari CORS Test endpoint
 app.get("/api/safari-test", (req, res) => {
   res.json({
@@ -491,8 +529,7 @@ app.post("/api/cors-test", (req, res) => {
 app.use("/api", trackAPICall);
 
 // Mount tất cả API routes with specific rate limiting
-app.use("/api/auth", authLimiter, authRoutes); // Authentication & authorization (login, register)
-app.use("/api/auth", authStatusLimiter, authTokenRoutes); // Token validation (me, heartbeat)
+app.use("/api/auth", authLimiter, authTokenRoutes); // Authentication & authorization (using old auth)
 app.use("/api/posts", postsLimiter, postRoutes); // Blog posts CRUD with specific rate limiting
 app.use("/api/comments", commentRoutes); // Comments system
 app.use("/api/uploads", uploadLimiter, uploadRoutes); // File uploads

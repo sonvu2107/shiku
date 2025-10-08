@@ -118,7 +118,7 @@ export default defineConfig({
     strictPort: true, // Fail nếu port đã được sử dụng
     proxy: {
       '/api': {
-        target: "http://192.168.1.34:4000",  // Đổi localhost -> IP LAN
+        target: "http://192.168.1.18:4000",  // IP hiện tại của máy tính
         changeOrigin: true,
         secure: false
       }

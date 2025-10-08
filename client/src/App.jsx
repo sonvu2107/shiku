@@ -62,7 +62,8 @@ import socketService from "./socket";   // Service quản lý WebSocket connecti
 const loadSafariUtils = () => Promise.all([
   import("./utils/csrfToken.js"),
   import("./utils/safariSession.js"),
-  import("./utils/safariTest.js")
+  import("./utils/safariTest.js"),
+  import("./utils/mobileCSRF.js")
 ]);
 
 /**
@@ -97,27 +98,32 @@ export default function App() {
         const [
           { getCSRFToken, initializeCSRFToken, debugCSRFToken },
           { initializeSafariSession, checkSafariSession, testSafariCookies, recoverSafariSession },
-          { runSafariTests }
+          { runSafariTests },
+          { initializeMobileCSRF, isMobileDevice, handleMobileCSRFError }
         ] = await loadSafariUtils();
 
         // 🚀 Parallel execution để giảm blocking time
         const [sessionInitialized, token] = await Promise.all([
-          initializeSafariSession(),
+          isMobileDevice() ? initializeMobileCSRF() : initializeSafariSession(),
           getValidAccessToken()
         ]);
         
         // Background tasks không block UI
         if (!sessionInitialized) {
-          console.warn("Safari session initialization failed, attempting recovery...");
+          console.warn("Session initialization failed, attempting recovery...");
           // Chạy background recovery
-          setTimeout(() => recoverSafariSession(), 0);
+          if (isMobileDevice()) {
+            setTimeout(() => initializeMobileCSRF(), 0);
+          } else {
+            setTimeout(() => recoverSafariSession(), 0);
+          }
         }
         
         // Background CSRF và cookie checks
         Promise.all([
           testSafariCookies(),
-          initializeCSRFToken()
-        ]).catch(err => console.warn("Background Safari tasks failed:", err));
+          isMobileDevice() ? initializeMobileCSRF() : initializeCSRFToken()
+        ]).catch(err => console.warn("Background tasks failed:", err));
         
         if (token) {
           // Nếu có token, gọi API để lấy thông tin user
@@ -243,8 +249,10 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen">
-        {/* Toast Container */}
-        <ToastContainer toasts={toasts} onRemove={removeToast} />
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      
+      {/* Mobile CSRF Debug Component */}
       
       {/* Hiển thị navbar cho tất cả trang trừ login/register và chat */}
       {!shouldHideNavbar && location.pathname !== "/chat" && (
