@@ -194,4 +194,7 @@ typings/
 .tern-port
 
 # Stores VSCode versions used for testing VSCode extensions
-.vscode-test*.md
+.vscode-test
+
+# Documentation files
+*.md

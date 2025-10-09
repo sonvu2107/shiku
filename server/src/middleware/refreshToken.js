@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import User from "../models/User.js";
 
 /**
@@ -114,6 +115,16 @@ export async function refreshAccessToken(req, res, next) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (tang tu 3 ngay)
+    });
+
+    // Tạo và set CSRF token mới
+    const csrfToken = crypto.randomBytes(32).toString("hex");
+    res.cookie("csrfToken", csrfToken, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      path: "/",
+      maxAge: 60 * 60 * 1000 // 1h
     });
 
     // Trả về access token mới
