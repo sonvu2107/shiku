@@ -193,7 +193,8 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'X-CSRF-Token', 'X-Session-ID', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'X-CSRF-Token', 'X-Session-ID', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma'],
+  exposedHeaders: ['set-cookie', 'Set-Cookie'] // Ensure cookies can be set cross-domain
 }));
 
 // CSRF protection (must be after CORS to allow preflight requests)
@@ -228,8 +229,8 @@ app.use((req, res, next) => {
     sessionID = crypto.randomBytes(16).toString('hex');
     res.cookie('sessionID', sessionID, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Only secure in production
-      sameSite: "lax", // Safari-friendly sameSite setting
+      secure: true, // Always secure for cross-domain cookies
+      sameSite: "none", // Allow cross-site requests (FE and BE on different domains)
       maxAge: 24 * 60 * 60 * 1000, // 1 day
       path: "/" // Explicit path for Safari compatibility
     });
@@ -324,6 +325,15 @@ app.get('/api/csrf-token', (req, res) => {
     
     // Generate CSRF token
     const csrfToken = req.csrfToken();
+    
+    // Set CSRF token cookie for cross-domain support
+    res.cookie('csrfToken', csrfToken, {
+      httpOnly: false, // Allow client-side access to read token
+      secure: true, // Always secure for cross-domain cookies
+      sameSite: "none", // Allow cross-site requests
+      path: "/",
+      maxAge: 60 * 60 * 1000 // 1 hour
+    });
     
     // Return the CSRF token
     return res.status(200).json({ 
