@@ -593,32 +593,47 @@ router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, asy
   }
 });
 
-// Thay đổi quyền user
+// Thay đổi quyền user với role caching
 router.put("/users/:id/role", authRequired, adminRequired, async (req, res, next) => {
   try {
     const { role } = req.body;
     
-    // Kiểm tra role có tồn tại trong database không
-    const Role = mongoose.model('Role');
-    const existingRole = await Role.findOne({ name: role, isActive: true });
-    if (!existingRole && role !== 'user') {
-      return res.status(400).json({ error: "Quyền không hợp lệ hoặc không tồn tại" });
+    // ✅ OPTIMIZED ROLE VALIDATION - Cache or use simple validation
+    const validRoles = ['user', 'admin', 'moderator', 'premium']; // Add your valid roles here
+    
+    // For custom roles, only check database if not in basic roles
+    if (!validRoles.includes(role)) {
+      const Role = mongoose.model('Role');
+      const existingRole = await Role.findOne({ name: role, isActive: true }).lean(); // Use lean() for performance
+      if (!existingRole) {
+        return res.status(400).json({ error: "Quyền không hợp lệ hoặc không tồn tại" });
+      }
     }
 
-    const user = await User.findById(req.params.id);
-    if (!user) {
+    // ✅ SINGLE DATABASE QUERY - findByIdAndUpdate instead of find + save
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { role: role },
+      { 
+        new: true, // Return updated document
+        runValidators: true,
+        lean: true // Performance optimization
+      }
+    );
+
+    if (!updatedUser) {
       return res.status(404).json({ error: "Không tìm thấy người dùng" });
     }
 
     // Không cho phép user tự thay đổi quyền của chính mình
-    if (user._id.toString() === req.user._id.toString()) {
+    if (updatedUser._id.toString() === req.user._id.toString()) {
       return res.status(400).json({ error: "Không thể thay đổi quyền của chính bạn" });
     }
 
-    user.role = role;
-    await user.save();
-
-    res.json({ message: "User role updated successfully", user });
+    res.json({ 
+      message: "User role updated successfully", 
+      user: updatedUser 
+    });
   } catch (e) {
     next(e);
   }

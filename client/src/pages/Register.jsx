@@ -41,7 +41,7 @@ export default function Register({ setUser }) {
       }
       
       // Gọi API đăng ký với CSRF token
-      const data = await api("/api/auth/register-token", { 
+      const data = await api("/api/auth-token/register-token", { 
         method: "POST", 
         body: { name, email, password },
         headers: {

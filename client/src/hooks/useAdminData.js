@@ -23,20 +23,23 @@ export function useAdminData() {
     try {
       const res = await api("/api/admin/stats");
       setStats(res.stats);
+      setError(null); // Clear error on success
     } catch (e) {
-      // Silent handling for stats loading error
+      console.error("Error loading stats:", e);
       setError("Không thể tải thống kê");
     }
   }, []);
 
   const loadUsers = useCallback(async () => {
     try {
-      // Load all users with a large limit to ensure we get the complete count
-      // Frontend cần tổng số users để hiển thị chính xác
-      const res = await api("/api/admin/users?page=1&limit=1000");
+      // Reduce limit to improve performance - only load what's needed for display
+      // Use pagination on frontend if needed for large user bases
+      const res = await api("/api/admin/users?page=1&limit=100");
       setUsers(res.users || []);
+      setError(null); // Clear error on success
     } catch (e) {
-      // Silent handling for users loading error
+      console.error("Error loading users:", e);
+      setUsers([]); // Reset to empty array on error
       setError("Không thể tải danh sách người dùng");
     }
   }, []);
@@ -47,7 +50,8 @@ export function useAdminData() {
       setOnlineUsers(res.onlineUsers || []);
       setLastUpdate(new Date());
     } catch (e) {
-      // Silent handling for online users loading error
+      console.error("Error loading online users:", e);
+      setOnlineUsers([]); // Reset to empty array on error
       setError("Không thể tải danh sách người online");
     }
   }, []);
@@ -98,7 +102,7 @@ export function useAdminData() {
     } finally {
       setLoading(false);
     }
-  }, [loadStats, loadUsers, loadOnlineUsers, loadTotalVisitors]);
+  }, []); // Remove dependencies to avoid infinite loops
 
   const updateOfflineUsers = useCallback(async () => {
     try {
@@ -126,18 +130,21 @@ export function useAdminData() {
         if (interval) clearInterval(interval);
       } else {
         // Refresh immediately when page becomes visible
-        refreshAllData();
+        loadStats();
+        loadOnlineUsers(); // Only refresh critical data
         // Set up interval for visible page
         interval = setInterval(() => {
-          refreshAllData();
-        }, 60000); // 60 seconds instead of 30
+          loadStats();
+          loadOnlineUsers(); // Only auto-refresh time-sensitive data
+        }, 60000); // 60 seconds
       }
     };
 
     // Initial setup
     if (!document.hidden) {
       interval = setInterval(() => {
-        refreshAllData();
+        loadStats();
+        loadOnlineUsers(); // Only auto-refresh time-sensitive data
       }, 60000);
     }
 
@@ -148,7 +155,13 @@ export function useAdminData() {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []); // Empty dependency array - stable interval
+  }, []); // Remove dependencies to avoid infinite loops
+
+  // ==================== CLEAR FUNCTIONS ====================
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
   // ==================== RETURN ====================
 
@@ -172,6 +185,7 @@ export function useAdminData() {
     loadTotalVisitors,
     loadSingleUser,
     updateSingleUserInState,
+    clearError,
     setUsers // Expose setUsers for optimistic updates
   };
 }

@@ -115,7 +115,6 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
         });
         if (csrfStatusRes.ok) {
           const csrfStatus = await csrfStatusRes.json();
-          console.info("CSRF Status:", csrfStatus);
         }
       } catch (e) {
         console.error("Failed to check CSRF status:", e);

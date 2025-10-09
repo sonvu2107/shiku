@@ -21,12 +21,6 @@ const CallIncomingModal = ({ open, caller, isVideo, onAccept, onReject }) => {
   const callerAvatar = caller?.avatarUrl || caller?.avatar || caller?.profilePicture;
   const callerInitial = callerName.charAt(0)?.toUpperCase() || "?";
 
-  console.log('👤 CallIncomingModal: Caller info', {
-    name: callerName,
-    avatar: callerAvatar,
-    callerObj: caller
-  });
-
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900 dark:bg-black backdrop-blur-sm">
       {/* Background gradient overlay */}

@@ -46,7 +46,6 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
       setRoles(response.roles || []);
     } catch (err) {
       setError("Không thể tải danh sách role");
-      console.error("Error loading roles:", err);
     } finally {
       setLoading(false);
     }
@@ -103,7 +102,6 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
       setSuccess("Upload ảnh thành công");
     } catch (err) {
       setError("Lỗi khi upload ảnh");
-      console.error("Upload error:", err);
     } finally {
       setUploading(false);
     }
@@ -127,12 +125,10 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
     try {
       if (editingRole) {
         // Update existing role
-        console.log("Updating role with data:", formData);
         const response = await api(`/api/admin/roles/${editingRole._id}`, {
           method: "PUT",
           body: formData
         });
-        console.log("Update response:", response);
 
         setSuccess(editingRole.isDefault
           ? "Cập nhật hiển thị role thành công (permissions không đổi)"
@@ -165,12 +161,10 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
       }
     } catch (err) {
       setError(err.message || "Có lỗi xảy ra");
-      console.error("Submit error:", err);
     }
   };
 
   const handleEdit = (role) => {
-    console.log("Edit clicked for role:", role.name);
     setEditingRole(role);
     setFormData({
       name: role.name,
@@ -197,7 +191,6 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
       onRolesChange();
     } catch (err) {
       setError(err.message || "Không thể xóa role");
-      console.error("Delete error:", err);
     }
   };
 
@@ -458,7 +451,6 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          console.log("Edit button clicked:", role.name);
                           handleEdit(role);
                         }}
                         className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"

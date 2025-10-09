@@ -17,6 +17,35 @@ const adminRequired = (req, res, next) => {
 };
 
 /**
+ * @route   GET /api/admin/roles/public
+ * @desc    Lấy thông tin roles cho hiển thị badges (public access)
+ * @access  Private (Authenticated users)
+ * @cache   10 minutes with revalidation
+ */
+router.get("/public", authRequired, staleWhileRevalidate(600, 1200), async (req, res, next) => {
+  try {
+    const roles = await Role.getActiveRoles();
+    
+    // Chỉ trả về thông tin cần thiết cho badges
+    const publicRoles = roles.map(role => ({
+      name: role.name,
+      displayName: role.displayName,
+      description: role.description,
+      iconUrl: role.iconUrl,
+      color: role.color
+    }));
+
+    res.json({ 
+      success: true, 
+      roles: publicRoles,
+      message: "Lấy thông tin roles thành công" 
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * @route   GET /api/admin/roles
  * @desc    Lấy danh sách tất cả roles
  * @access  Private (Admin only)

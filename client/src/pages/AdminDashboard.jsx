@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import AdminFeedback from "./AdminFeedback";
 import APIMonitoring from "../components/APIMonitoring";
 import RoleManagement from "../components/RoleManagement";
@@ -51,6 +51,9 @@ export default function AdminDashboard() {
     updateOfflineUsers,
     loadSingleUser,
     updateSingleUserInState,
+    clearError: clearDataError,
+    loadStats,
+    loadOnlineUsers,
     setUsers // For optimistic updates
   } = useAdminData();
 
@@ -74,11 +77,11 @@ export default function AdminDashboard() {
 
   // User & Auth
   const [user, setUser] = useState(null); // Admin user hiện tại
+  const [updatingRoles, setUpdatingRoles] = useState(new Set()); // Track which users are being updated
   const loading = dataLoading || actionLoading; // Combined loading state
 
   // UI states
   const [activeTab, setActiveTab] = useState("stats"); // Tab hiện tại
-  const [roleRefreshTrigger, setRoleRefreshTrigger] = useState(0); // Trigger để refresh roles
   const [availableRoles, setAvailableRoles] = useState([]); // Dynamic roles từ database
 
   const navigate = useNavigate();
@@ -88,14 +91,13 @@ export default function AdminDashboard() {
     loadAvailableRoles();
   }, []);
 
-  // Load available roles from database
-  const loadAvailableRoles = async () => {
+  // Load available roles from database với debounce
+  const loadAvailableRoles = useCallback(async () => {
     try {
       const response = await api("/api/admin/roles", { method: "GET" });
       if (response.success) {
         setAvailableRoles(response.roles || []);
-        // Trigger refresh for VerifiedBadge components
-        setRoleRefreshTrigger(prev => prev + 1);
+        // Không cần trigger refresh nữa - sẽ pass trực tiếp vào props
       }
     } catch (error) {
       console.error("Error loading roles:", error);
@@ -105,14 +107,18 @@ export default function AdminDashboard() {
         { name: "admin", displayName: "Admin" }
       ]);
     }
-  };
+  }, []);
 
-  // Auto refresh data when tab changes
+  // Auto refresh specific data when tab changes (avoid full refresh)
   useEffect(() => {
-    if (activeTab === "online" || activeTab === "stats") {
-      refreshAllData();
+    // Only refresh specific data that's relevant to the active tab
+    if (activeTab === "online") {
+      loadOnlineUsers(); // Only load online users for that tab
+    } else if (activeTab === "stats") {
+      loadStats(); // Only load stats for that tab
     }
-  }, [activeTab]); // Remove refreshAllData from dependencies
+    // Don't refresh users data unnecessarily - it's already loaded on mount
+  }, [activeTab, loadOnlineUsers, loadStats]);
 
   async function checkAdmin() {
     try {
@@ -135,51 +141,42 @@ export default function AdminDashboard() {
   async function updateUserRole(userId, newRoleName) {
     if (!window.confirm(`Bạn có chắc muốn đổi role user này thành ${newRoleName}?`)) return;
 
+    // ✅ LOADING STATE - Hiển thị loading cho user đang update
+    setUpdatingRoles(prev => new Set([...prev, userId]));
+
     const originalUsers = [...users];
     const newRoleObject = availableRoles.find(r => r.name === newRoleName);
 
-    // ✅ OPTIMISTIC UPDATE - Hiển thị ngay lập tức
-    const updatedUsers = users.map(u => {
-      if (u._id === userId) {
-        return {
-          ...u,
-          role: newRoleObject || { name: newRoleName, displayName: newRoleName }
-        };
-      }
-      return u;
+    // ✅ OPTIMISTIC UPDATE - Hiển thị ngay lập tức với role object đầy đủ
+    updateSingleUserInState(userId, {
+      role: newRoleObject || { name: newRoleName, displayName: newRoleName }
     });
-    setUsers(updatedUsers);
-
-    // Trigger refresh immediately for UI update
-    setRoleRefreshTrigger(prev => prev + 1);
 
     try {
       // ✅ API CALL - Cập nhật trong DB
-      await api(`/api/admin/users/${userId}/role`, {
+      const response = await api(`/api/admin/users/${userId}/role`, {
         method: "PUT",
         body: { role: newRoleName }
       });
 
-      // ✅ FETCH SINGLE USER - Thay vì refreshAllData() chậm
-      try {
-        const updatedUser = await loadSingleUser(userId);
-        updateSingleUserInState(userId, updatedUser);
-      } catch (fetchError) {
-        // Nếu fetch single user fail, fallback to refresh sau 3 giây
-        console.warn("Single user fetch failed, will refresh all data in 3s:", fetchError);
-        setTimeout(() => {
-          refreshAllData();
-        }, 3000);
+      // ✅ UPDATE WITH SERVER RESPONSE - Đảm bảo sync với server
+      if (response.user) {
+        updateSingleUserInState(userId, response.user);
       }
 
-      // ✅ DISPATCH EVENT - Thông báo cho các component khác
-      window.dispatchEvent(new CustomEvent('roleUpdated'));
+      // ✅ SUCCESS FEEDBACK - Không cần reload toàn bộ UI
 
     } catch (err) {
       // ❌ REVERT ON ERROR
       setUsers(originalUsers);
-      setRoleRefreshTrigger(prev => prev + 1);
       alert("Lỗi khi cập nhật role: " + err.message);
+    } finally {
+      // ✅ CLEAR LOADING STATE
+      setUpdatingRoles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
     }
   }
 
@@ -194,10 +191,28 @@ export default function AdminDashboard() {
     }
   }
 
-  if (loading) {
+  if (dataLoading && !user) {
     return (
       <div className="w-full px-6 py-6 pt-20">
-        <div className="card max-w-4xl mx-auto">Đang tải...</div>
+        <div className="card max-w-4xl mx-auto">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            Đang xác thực quyền admin...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (dataLoading && (!users.length || !stats)) {
+    return (
+      <div className="w-full px-6 py-6 pt-20">
+        <div className="card max-w-4xl mx-auto">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            Đang tải dữ liệu admin...
+          </div>
+        </div>
       </div>
     );
   }
@@ -210,7 +225,17 @@ export default function AdminDashboard() {
         <div className="card max-w-7xl mx-auto mb-4">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             {dataError || actionError}
-            <button onClick={clearError} className="ml-2 text-red-500 hover:text-red-700">
+            <button 
+              onClick={() => {
+                clearError();
+                clearDataError();
+                if (dataError) {
+                  // Clear data error by attempting to reload
+                  refreshAllData();
+                }
+              }} 
+              className="ml-2 text-red-500 hover:text-red-700"
+            >
               ×
             </button>
           </div>
@@ -648,7 +673,7 @@ export default function AdminDashboard() {
                           role={u.role?.name || u.role} 
                           isVerified={u.isVerified}
                           roleData={typeof u.role === 'object' ? u.role : null}
-                          refreshTrigger={roleRefreshTrigger}
+                          availableRoles={availableRoles}
                         />
                       </td>
                       <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm hidden sm:table-cell truncate max-w-[150px]">{u.email}</td>
@@ -659,10 +684,15 @@ export default function AdminDashboard() {
                             const newRole = e.target.value;
                             await updateUserRole(u._id, newRole);
                           }}
-                          disabled={u._id === user._id}
-                          className="btn-outline btn-xs sm:btn-sm text-xs sm:text-sm touch-target"
+                          disabled={u._id === user._id || updatingRoles.has(u._id)}
+                          className={`btn-outline btn-xs sm:btn-sm text-xs sm:text-sm touch-target ${
+                            updatingRoles.has(u._id) ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                         >
-                          {availableRoles.map(role => (
+                          {updatingRoles.has(u._id) && (
+                            <option>Đang cập nhật...</option>
+                          )}
+                          {!updatingRoles.has(u._id) && availableRoles.map(role => (
                             <option key={role.name} value={role.name}>
                               {role.displayName}
                             </option>
@@ -708,11 +738,13 @@ export default function AdminDashboard() {
                   className="input"
                 >
                   <option value="">Chọn người dùng</option>
-                  {users.filter(u => u.role !== "admin" && u._id !== user._id).map(u => (
-                    <option key={u._id} value={u._id}>
-                      {u.name} ({u.email})
-                    </option>
-                  ))}
+                  {users
+                    .filter(u => u && u.role !== "admin" && u._id !== user?._id && !u.isBanned)
+                    .map(u => (
+                      <option key={u._id} value={u._id}>
+                        {u.name || 'Unknown User'} ({u.email || 'Unknown Email'})
+                      </option>
+                    ))}
                 </select>
 
                 {/* Thời gian cấm */}
@@ -744,11 +776,33 @@ export default function AdminDashboard() {
                 />
 
                 <button
-                  onClick={handleBanSubmit}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    
+                    if (!banForm.userId || !banForm.duration || !banForm.reason.trim()) {
+                      return;
+                    }
+
+                    const success = await handleBanSubmit(e);
+                    if (success) {
+                      // Optimistic update for banned user
+                      const banExpiresAt = banForm.duration === "permanent" 
+                        ? null 
+                        : new Date(Date.now() + parseInt(banForm.duration) * 60 * 1000);
+                      
+                      updateSingleUserInState(banForm.userId, {
+                        isBanned: true,
+                        banReason: banForm.reason,
+                        bannedAt: new Date(),
+                        banExpiresAt,
+                        bannedBy: user._id
+                      });
+                    }
+                  }}
                   className="btn bg-red-600 text-white flex items-center justify-center"
-                  disabled={!banForm.userId || !banForm.duration || !banForm.reason.trim()}
+                  disabled={!banForm.userId || !banForm.duration || !banForm.reason.trim() || actionLoading}
                 >
-                  Cấm
+                  {actionLoading ? 'Đang xử lý...' : 'Cấm'}
                 </button>
               </div>
             </div>
@@ -768,19 +822,19 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.filter(u => u.isBanned).map(u => (
+                  {users.filter(u => u && u.isBanned).map(u => (
                     <tr key={u._id} className="border">
                       <td className="px-4 py-2 border">
                         <div className="flex items-center gap-2">
                           <img
-                            src={u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=cccccc&color=222222&size=32`}
+                            src={u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'Unknown')}&background=cccccc&color=222222&size=32`}
                             alt="avatar"
                             className="w-6 h-6 rounded-full object-cover"
                           />
-                          <span className="font-medium">{u.name}</span>
+                          <span className="font-medium">{u.name || 'Unknown User'}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-2 border">{u.banReason}</td>
+                      <td className="px-4 py-2 border">{u.banReason || 'Không có lý do'}</td>
                       <td className="px-4 py-2 border text-sm">
                         {u.bannedAt ? new Date(u.bannedAt).toLocaleString() : "N/A"}
                       </td>
@@ -808,18 +862,26 @@ export default function AdminDashboard() {
                           className="btn-outline btn-sm text-green-600"
                           onClick={async () => {
                             if (await unbanUser(u._id)) {
-                              await refreshAllData();
+                              // Optimistic update instead of full refresh
+                              updateSingleUserInState(u._id, {
+                                isBanned: false,
+                                banReason: null,
+                                bannedAt: null,
+                                banExpiresAt: null,
+                                bannedBy: null
+                              });
                             }
                           }}
+                          disabled={actionLoading}
                         >
-                          Gỡ cấm
+                          {actionLoading ? 'Đang xử lý...' : 'Gỡ cấm'}
                         </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {users.filter(u => u.isBanned).length === 0 && (
+              {users.filter(u => u && u.isBanned).length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   Không có người dùng nào bị cấm
                 </div>

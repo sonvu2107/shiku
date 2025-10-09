@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { api } from "../api";
 import { safariPOST, safariDELETE } from "../utils/safariAPI.js";
 import { removeAuthToken } from "../utils/auth";
+import { invalidateUserCache } from "../utils/userCache.js";
 
 // Import các components
 import Logo from "./Logo";

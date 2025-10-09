@@ -279,9 +279,31 @@ router.post("/logout",
         logout(req.token);
       }
 
-      // Clear cookies
-      res.clearCookie("accessToken");
-      res.clearCookie("refreshToken");
+      // Clear cookies with proper names and settings
+      res.clearCookie("token", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        path: "/"
+      });
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        path: "/"
+      });
+      res.clearCookie("sessionID", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        path: "/"
+      });
+      res.clearCookie("csrfToken", {
+        httpOnly: false,
+        secure: true,
+        sameSite: "none",
+        path: "/"
+      });
 
       // Cập nhật trạng thái offline
       if (req.user) {

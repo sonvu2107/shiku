@@ -179,9 +179,6 @@ export default function Profile() {
    */
   async function load() {
     const res = await api("/api/auth/me");
-    console.log("🔍 API /me response:", res);
-    console.log("🔍 User object:", res.user);
-    console.log("🔍 User._id:", res.user?._id);
     setUser(res.user);
 
     // Populate form với data từ server
@@ -213,21 +210,15 @@ export default function Profile() {
     setPostsError("");
 
     try {
-      console.log("🔍 Loading posts for user:", user._id || user.id, user.name);
-      
       // Load cả public và private posts của user
       const userId = user._id || user.id;
       const [publicData, privateData] = await Promise.all([
         api(`/api/posts?author=${userId}&status=published&limit=50`),
         api(`/api/posts?author=${userId}&status=private&limit=50`)
       ]);
-
-      console.log("📊 Public posts:", publicData.items?.length || 0);
-      console.log("📊 Private posts:", privateData.items?.length || 0);
       
       // Debug: Kiểm tra author của posts
       const allPosts = [...privateData.items, ...publicData.items];
-      console.log("🔍 All posts authors:", allPosts.map(p => ({ id: p._id, author: p.author?._id, authorName: p.author?.name })));
 
       // Merge và sort theo thời gian tạo
       const sortedPosts = allPosts

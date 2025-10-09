@@ -48,7 +48,7 @@ export default function Login({ setUser }) {
       }
       
       // Gọi API đăng nhập với CSRF token
-      const data = await api("/api/auth/login-token", { 
+      const data = await api("/api/auth-token/login-token", { 
         method: "POST", 
         body: { email, password },
         headers: {

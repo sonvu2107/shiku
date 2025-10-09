@@ -30,11 +30,15 @@ export function useAdminActions() {
     setSuccess(null);
 
     try {
-      const banExpiresAt = duration ? new Date(Date.now() + duration * 60 * 1000) : null;
+      // Parse duration correctly - handle "permanent" option
+      let banDurationMinutes = null;
+      if (duration && duration !== "permanent") {
+        banDurationMinutes = parseInt(duration);
+      }
       
       await api("/api/admin/ban-user", {
         method: "POST",
-        body: { userId, banExpiresAt, reason }
+        body: { userId, banDurationMinutes, reason }
       });
 
       setSuccess(`Đã ban user ${userId} thành công`);
@@ -100,13 +104,12 @@ export function useAdminActions() {
   const handleBanSubmit = useCallback(async (e) => {
     e.preventDefault();
     
-    if (!banForm.userId || !banForm.reason) {
+    if (!banForm.userId || !banForm.duration || !banForm.reason) {
       setError("Vui lòng điền đầy đủ thông tin");
-      return;
+      return false;
     }
 
-    const duration = banForm.duration ? parseInt(banForm.duration) : null;
-    await banUser(banForm.userId, duration, banForm.reason);
+    return await banUser(banForm.userId, banForm.duration, banForm.reason);
   }, [banForm, banUser]);
 
   const handleNotificationSubmit = useCallback(async (e) => {

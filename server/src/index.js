@@ -256,15 +256,20 @@ app.use((req, res, next) => {
   }
   
   if (['POST', 'PUT', 'DELETE'].includes(req.method) && 
-      !req.path.startsWith('/api/csrf-token') && 
-      !req.path.startsWith('/api/auth') &&
-      !req.path.includes('/test') &&
+      !req.originalUrl.startsWith('/api/csrf-token') && 
+      !req.originalUrl.startsWith('/api/auth/logout') && // ✅ Allow logout
+      !req.originalUrl.startsWith('/api/auth-token/login') &&  // ✅ Allow login-token
+      !req.originalUrl.startsWith('/api/auth-token/register') && // ✅ Allow register-token
+      !req.originalUrl.includes('/test') &&
       !isMobileRequest) {
+    
+    console.log('🧱 CSRF CHECK:', req.method, req.originalUrl, 'SessionID:', req.cookies.sessionID?.substring(0, 8) + '...');
     
     const token = req.headers['x-csrf-token'] || req.body?._csrf || req.query?._csrf;
     const storedToken = csrfTokenStore[sessionID]?.token;
 
     if (!token || !storedToken || token !== storedToken) {
+      console.log('🧱 CSRF BLOCKED:', req.method, req.originalUrl, 'SessionID:', req.cookies.sessionID?.substring(0, 8) + '...');
       return res.status(403).json({ 
         error: "CSRF token invalid", 
         code: "INVALID_CSRF_TOKEN",
@@ -539,7 +544,8 @@ app.post("/api/cors-test", (req, res) => {
 app.use("/api", trackAPICall);
 
 // Mount tất cả API routes with specific rate limiting
-app.use("/api/auth", authLimiter, authTokenRoutes); // Authentication & authorization (using old auth)
+app.use("/api/auth", authLimiter, authRoutes); // Authentication routes (auth-secure.js) with logout
+app.use("/api/auth-token", authLimiter, authTokenRoutes); // Token validation routes (auth-token.js)
 app.use("/api/posts", postsLimiter, postRoutes); // Blog posts CRUD with specific rate limiting
 app.use("/api/comments", commentRoutes); // Comments system
 app.use("/api/uploads", uploadLimiter, uploadRoutes); // File uploads

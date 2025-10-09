@@ -31,7 +31,7 @@ export async function loadRoles() {
   }
 
   // Start loading
-  loadingPromise = api("/api/admin/roles", { method: "GET" })
+  loadingPromise = api("/api/admin/roles/public", { method: "GET" })
     .then(response => {
       if (response.success) {
         const rolesMap = {};

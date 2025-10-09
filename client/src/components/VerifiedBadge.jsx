@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { loadRoles, getCachedRole, invalidateRoleCache } from "../utils/roleCache";
+import { loadRoles } from "../utils/roleCache";
 
 /**
  * Mapping các role với icon tương ứng (fallback cho role cũ)
@@ -28,62 +28,54 @@ const defaultRoleTooltips = {
 };
 
 /**
- * VerifiedBadge - Component hiển thị huy hiệu verify/role
+ * VerifiedBadge - Component hiển thị huy hiệu verify/role (HYBRID VERSION)
  * Hiển thị icon tương ứng với role và tooltip khi hover
  * Hỗ trợ cả role cũ (hardcoded) và role mới (dynamic từ database)
+ * BACKWARD COMPATIBLE: Hoạt động với và không có availableRoles props
  * @param {string} role - Role của user (admin, sololeveling, sybau, moxumxue)
  * @param {boolean} isVerified - User có được verify không (hiện tại chưa dùng)
  * @param {Object} roleData - Thông tin role từ database (optional)
+ * @param {Array} availableRoles - Danh sách roles từ parent (tối ưu performance cho admin)
  */
-export default function VerifiedBadge({ role, isVerified, roleData, refreshTrigger = 0 }) {
+export default function VerifiedBadge({ role, isVerified, roleData, availableRoles = [] }) {
   const [dynamicRoles, setDynamicRoles] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // Load dynamic roles từ global cache
+  // Load dynamic roles từ cache/API khi không có availableRoles props
   const loadDynamicRoles = async () => {
-    // Skip loading nếu roleData đã được truyền vào (tối ưu performance)
-    if (roleData && roleData.iconUrl) {
-      return;
-    }
+    // Skip nếu đã có availableRoles từ props (admin dashboard)
+    if (availableRoles.length > 0) return;
+    
+    // Skip loading nếu roleData đã được truyền vào và có iconUrl
+    if (roleData && roleData.iconUrl) return;
 
     try {
       setLoading(true);
-      // Sử dụng global cache thay vì fetch trực tiếp
+      // Sử dụng roleCache utility để load roles
       const rolesMap = await loadRoles();
       setDynamicRoles(rolesMap);
     } catch (error) {
-      console.error("Error loading dynamic roles:", error);
       // Fallback về default roles nếu không load được
     } finally {
       setLoading(false);
     }
   };
 
-  // Load roles khi component mount hoặc refreshTrigger thay đổi
+  // Load roles khi component mount (chỉ khi không có availableRoles)
   useEffect(() => {
-    loadDynamicRoles();
-  }, [refreshTrigger, roleData]); // Reload khi refreshTrigger hoặc roleData thay đổi
-
-  // Lắng nghe custom event để reload roles khi có thay đổi
-  useEffect(() => {
-    const handleRoleUpdate = () => {
-      // Invalidate cache và reload
-      invalidateRoleCache();
+    if (availableRoles.length === 0) {
       loadDynamicRoles();
-    };
-
-    window.addEventListener('roleUpdated', handleRoleUpdate);
-
-    // Cleanup listener on component unmount
-    return () => {
-      window.removeEventListener('roleUpdated', handleRoleUpdate);
-    };
-  }, []); // Chỉ chạy một lần để đăng ký listener
+    }
+  }, [availableRoles.length, roleData]); // Reload khi availableRoles hoặc roleData thay đổi
 
   // Không hiển thị gì nếu không có role
   if (!role) return null;
 
-  // Lấy thông tin role (ưu tiên roleData prop, sau đó dynamic roles, cuối cùng là default)
+  // Lấy thông tin role với priority order:
+  // 1. roleData props (nếu có)
+  // 2. availableRoles props (từ admin dashboard)
+  // 3. dynamicRoles (load từ cache/API)
+  // 4. defaultRoles (fallback)
   let icon, tooltip, color;
   
   if (roleData && roleData.iconUrl) {
@@ -91,13 +83,23 @@ export default function VerifiedBadge({ role, isVerified, roleData, refreshTrigg
     icon = roleData.iconUrl;
     tooltip = roleData.displayName;
     color = roleData.color;
+  } else if (availableRoles.length > 0) {
+    // Tìm role trong availableRoles từ parent (admin dashboard)
+    const foundRole = availableRoles.find(r => r.name === role);
+    if (foundRole && foundRole.iconUrl) {
+      icon = foundRole.iconUrl;
+      tooltip = foundRole.displayName;
+      color = foundRole.color;
+    }
   } else if (dynamicRoles[role]) {
-    // Sử dụng dynamic roles từ database
+    // Sử dụng dynamic roles từ cache/API (profile, posts, etc.)
     icon = dynamicRoles[role].iconUrl;
     tooltip = dynamicRoles[role].displayName;
     color = dynamicRoles[role].color;
-  } else {
-    // Fallback về default roles
+  }
+  
+  // Fallback về default roles nếu không tìm thấy
+  if (!icon) {
     icon = defaultRoleIcons[role];
     tooltip = defaultRoleTooltips[role];
     color = "#3B82F6"; // Default color
@@ -113,6 +115,7 @@ export default function VerifiedBadge({ role, isVerified, roleData, refreshTrigg
         src={icon} 
         alt="Verified" 
         className="w-5 h-5 rounded-full align-middle flex-shrink-0 object-cover border-2 border-gray-300" 
+        loading="lazy"
       />
       {/* Tooltip hiển thị khi hover */}
       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1
