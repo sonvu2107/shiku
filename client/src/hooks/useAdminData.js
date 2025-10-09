@@ -63,6 +63,23 @@ export function useAdminData() {
     }
   }, []);
 
+  // ==================== OPTIMIZED SINGLE USER LOAD ====================
+  
+  const loadSingleUser = useCallback(async (userId) => {
+    try {
+      const res = await api(`/api/admin/users/${userId}`);
+      return res.user;
+    } catch (e) {
+      throw new Error("Không thể tải thông tin user");
+    }
+  }, []);
+
+  const updateSingleUserInState = useCallback((userId, updatedUserData) => {
+    setUsers(prev => prev.map(u => 
+      u._id === userId ? { ...u, ...updatedUserData } : u
+    ));
+  }, []);
+
   // ==================== COMBINED FUNCTIONS ====================
 
   const refreshAllData = useCallback(async () => {
@@ -153,6 +170,8 @@ export function useAdminData() {
     loadUsers,
     loadOnlineUsers,
     loadTotalVisitors,
+    loadSingleUser,
+    updateSingleUserInState,
     setUsers // Expose setUsers for optimistic updates
   };
 }

@@ -624,6 +624,19 @@ router.put("/users/:id/role", authRequired, adminRequired, async (req, res, next
   }
 });
 
+// Lấy thông tin 1 user cụ thể (tối ưu cho update single user)
+router.get("/users/:id", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id).lean();
+    if (!user) {
+      return res.status(404).json({ error: "Không tìm thấy người dùng" });
+    }
+    res.json({ user });
+  } catch (e) {
+    next(e);
+  }
+});
+
 // Xóa user
 router.delete("/users/:id", authRequired, adminRequired, async (req, res, next) => {
   try {

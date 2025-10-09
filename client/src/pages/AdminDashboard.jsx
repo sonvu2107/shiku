@@ -49,6 +49,8 @@ export default function AdminDashboard() {
     error: dataError,
     refreshAllData,
     updateOfflineUsers,
+    loadSingleUser,
+    updateSingleUserInState,
     setUsers // For optimistic updates
   } = useAdminData();
 
@@ -136,7 +138,7 @@ export default function AdminDashboard() {
     const originalUsers = [...users];
     const newRoleObject = availableRoles.find(r => r.name === newRoleName);
 
-    // Optimistic update - update user với full role object
+    // ✅ OPTIMISTIC UPDATE - Hiển thị ngay lập tức
     const updatedUsers = users.map(u => {
       if (u._id === userId) {
         return {
@@ -152,20 +154,29 @@ export default function AdminDashboard() {
     setRoleRefreshTrigger(prev => prev + 1);
 
     try {
-      // Make API call
+      // ✅ API CALL - Cập nhật trong DB
       await api(`/api/admin/users/${userId}/role`, {
         method: "PUT",
         body: { role: newRoleName }
       });
 
-      // Refresh data to get the updated user list with populated roles from server
-      await refreshAllData();
+      // ✅ FETCH SINGLE USER - Thay vì refreshAllData() chậm
+      try {
+        const updatedUser = await loadSingleUser(userId);
+        updateSingleUserInState(userId, updatedUser);
+      } catch (fetchError) {
+        // Nếu fetch single user fail, fallback to refresh sau 3 giây
+        console.warn("Single user fetch failed, will refresh all data in 3s:", fetchError);
+        setTimeout(() => {
+          refreshAllData();
+        }, 3000);
+      }
 
-      // Dispatch event for other components (UserName, etc.)
+      // ✅ DISPATCH EVENT - Thông báo cho các component khác
       window.dispatchEvent(new CustomEvent('roleUpdated'));
 
     } catch (err) {
-      // Revert on error
+      // ❌ REVERT ON ERROR
       setUsers(originalUsers);
       setRoleRefreshTrigger(prev => prev + 1);
       alert("Lỗi khi cập nhật role: " + err.message);

@@ -14,7 +14,17 @@ const UserSchema = new mongoose.Schema({
   role: { 
     type: String, 
     default: "user",
-    enum: ["user", "admin", "sololeveling", "sybau", "moxumxue", "gay", "special"]
+    trim: true,
+    lowercase: true,
+    validate: {
+      validator: async function (value) {
+        const Role = mongoose.model('Role');
+        // Cho phép nếu tồn tại trong collection Role hoặc là 2 role mặc định
+        const exists = await Role.exists({ name: value });
+        return !!exists || value === 'user' || value === 'admin';
+      },
+      message: props => `Role "${props.value}" không tồn tại trong hệ thống`
+    }
   },
   
   // ==================== THÔNG TIN CÁ NHÂN ====================
