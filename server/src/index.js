@@ -134,14 +134,16 @@ app.use(express.json({ limit: "10mb" }));
 
 // Unified cookie configuration for Dev & Prod
 const isProd = process.env.NODE_ENV === "production";
+const cookieDomain = isProd ? ".shiku.click" : undefined;
 
-const csrfCookieOptions = {
+const buildCookieOptions = (maxAge, overrides = {}) => ({
   httpOnly: true,
-  sameSite: isProd ? "none" : "lax", // cần none khi FE và BE khác domain
-  secure: isProd,                    // secure = true cho HTTPS
+  secure: isProd,
+  sameSite: isProd ? "none" : "lax",
+  domain: cookieDomain,                 // secure = true cho HTTPS
   path: "/",
   maxAge: 60 * 60 * 1000, // 1h
-};
+});
 
 // Tạo CSRF protection middleware
 const csrfProtection = csrf({ cookie: csrfCookieOptions });
