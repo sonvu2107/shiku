@@ -168,6 +168,17 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 // ==================== ROUTES SETUP ====================
 
+// Root endpoint - API information
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "Shiku API",
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString(),
+    docs: "/api/health, /api/csrf-token, /api/posts, etc."
+  });
+});
+
 // Detailed health check endpoint
 app.get("/health", (req, res) => {
   const memoryUsage = process.memoryUsage();
