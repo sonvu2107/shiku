@@ -105,7 +105,7 @@ app.use(cookieParser());
 // CORS must come before CSRF
 app.use(cors({
  origin: [
-   "https://shiku.click",             // FE custom domain chính
+    "https://shiku.click",             // FE custom domain chính
     "https://www.shiku.click",         // FE có redirect www
     "https://shiku.netlify.app",       // Netlify fallback
     "https://shiku-production.up.railway.app", // BE domain
@@ -134,17 +134,14 @@ app.use(express.json({ limit: "10mb" }));
 
 // Unified cookie configuration for Dev & Prod
 const isProd = process.env.NODE_ENV === "production";
-const appDomain = process.env.COOKIE_DOMAIN || undefined;
 
 const csrfCookieOptions = {
   httpOnly: true,
-  sameSite: isProd ? "none" : "lax",     // Cross-domain cookie for prod
-  secure: isProd,                         // Chrome requires secure for SameSite=None
-  domain: isProd ? appDomain : undefined, // Flexible for shiku.click or Railway domain
+  sameSite: isProd ? "none" : "lax", // cần none khi FE và BE khác domain
+  secure: isProd,                    // secure = true cho HTTPS
   path: "/",
-  maxAge: 60 * 60 * 1000                 // 1 hour
+  maxAge: 60 * 60 * 1000, // 1h
 };
-
 
 // Tạo CSRF protection middleware
 const csrfProtection = csrf({ cookie: csrfCookieOptions });

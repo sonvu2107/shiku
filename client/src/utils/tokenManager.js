@@ -112,7 +112,7 @@ export async function refreshAccessToken() {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "X-CSRF-Token": csrfToken || "" // ✅ Chỉ dùng 1 header
+        "X-CSRF-Token": csrfToken || "" 
       },
       body: JSON.stringify(
         LEGACY_REFRESH_ALLOWED && legacyRefreshToken
