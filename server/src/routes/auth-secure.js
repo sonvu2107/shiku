@@ -37,9 +37,10 @@ const REFRESH_TOKEN_MAX_AGE =
 
 const buildCookieOptions = (maxAge, overrides = {}) => ({
   httpOnly: true,
-  secure: isProduction,
-  sameSite: "lax",
-  domain: cookieDomain,
+  path: "/",
+  sameSite: isProduction ? "none" : "lax",
+  secure: isProduction,                       // bắt buộc khi SameSite=None
+  domain: isProduction ? cookieDomain : undefined, // chỉ set domain ở prod
   maxAge,
   ...overrides
 });
