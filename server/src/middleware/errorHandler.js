@@ -1,3 +1,5 @@
+import { getClientAgent } from "../utils/clientAgent.js";
+
 export function notFound(req, res) {
   res.status(404).json({ error: "Không tìm thấy trang yêu cầu" });
 }
@@ -9,7 +11,7 @@ export function errorHandler(err, req, res, next) {
     url: req.url,
     method: req.method,
     ip: req.ip,
-    userAgent: req.get('User-Agent')
+    clientAgent: getClientAgent(req)
   });
 
   // Không gửi stack trace trong production

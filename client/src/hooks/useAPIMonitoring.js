@@ -48,50 +48,91 @@ export function useAPIMonitoring() {
 
   // Real-time WebSocket updates
   useEffect(() => {
-    if (!isRealtimeEnabled) return;
+    if (!isRealtimeEnabled) return undefined;
+
+    let isSubscribed = true;
+    let socketRef = null;
 
     const handleRealtimeUpdate = (update) => {
-      if (update.type === 'api_call') {
-        // Update stats with real-time data
-        setStats(prevStats => {
-          if (!prevStats) return null;
-          
-          return {
-            ...prevStats,
-            overview: {
-              ...prevStats.overview,
-              totalRequests: update.data.totalRequests,
-              rateLimitHits: update.data.rateLimitHits
-            },
-            topEndpoints: Object.entries(update.data.requestsByEndpoint)
-              .sort(([,a], [,b]) => b - a)
-              .slice(0, 10)
-              .map(([endpoint, count]) => ({ endpoint, count })),
-            hourlyDistribution: Array.from({ length: 24 }, (_, hour) => ({
-              hour,
-              requests: update.data.hourlyDistribution[hour] || 0
-            }))
-          };
-        });
+      if (update.type !== 'api_call') return;
 
-        // Add to real-time updates list
-        setRealtimeUpdates(prev => {
-          const newUpdate = {
-            ...update.data,
-            id: Date.now() + Math.random()
-          };
-          return [newUpdate, ...prev.slice(0, 49)]; // Keep last 50 updates
-        });
+      setStats(prevStats => {
+        if (!prevStats) return null;
 
-        setLastUpdate(new Date());
-      }
+        return {
+          ...prevStats,
+          overview: {
+            ...prevStats.overview,
+            totalRequests: update.data.totalRequests,
+            rateLimitHits: update.data.rateLimitHits
+          },
+          topEndpoints: Object.entries(update.data.requestsByEndpoint)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 10)
+            .map(([endpoint, count]) => ({ endpoint, count })),
+          hourlyDistribution: Array.from({ length: 24 }, (_, hour) => ({
+            hour,
+            requests: update.data.hourlyDistribution[hour] || 0
+          }))
+        };
+      });
+
+      setRealtimeUpdates(prev => {
+        const newUpdate = {
+          ...update.data,
+          id: Date.now() + Math.random()
+        };
+        return [newUpdate, ...prev.slice(0, 49)];
+      });
+
+      setLastUpdate(new Date());
     };
 
-    // Listen for real-time updates
-    socketService.socket.on('api_monitoring_update', handleRealtimeUpdate);
+    const cleanupFns = [];
+
+    const attachListener = async () => {
+      await socketService.ensureConnection();
+      if (!isSubscribed) return;
+      const socket = socketService.socket;
+      if (!socket || typeof socket.on !== "function") {
+        return;
+      }
+
+      socketRef = socket;
+
+      const joinMonitoringRoom = () => {
+        try {
+          socketRef.emit("join-api-monitoring");
+        } catch (_) {
+          // Silent error
+        }
+      };
+
+      joinMonitoringRoom();
+      socketRef.on("connect", joinMonitoringRoom);
+      socketRef.io?.on?.("reconnect", joinMonitoringRoom);
+      socketRef.on("api_monitoring_update", handleRealtimeUpdate);
+
+      cleanupFns.push(() => {
+        socketRef.off("connect", joinMonitoringRoom);
+        socketRef.io?.off?.("reconnect", joinMonitoringRoom);
+      });
+    };
+
+    attachListener();
 
     return () => {
-      socketService.socket.off('api_monitoring_update', handleRealtimeUpdate);
+      isSubscribed = false;
+      if (socketRef && typeof socketRef.off === 'function') {
+        socketRef.off('api_monitoring_update', handleRealtimeUpdate);
+      }
+      cleanupFns.forEach((fn) => {
+        try {
+          fn();
+        } catch (_) {
+          // ignore
+        }
+      });
     };
   }, [isRealtimeEnabled]);
 

@@ -49,8 +49,7 @@ export default function Register({ setUser }) {
         }
       });
       
-      // Lưu token vào localStorage
-      if (data.accessToken && data.refreshToken) {
+      if (data.accessToken) {
         saveTokens(data.accessToken, data.refreshToken);
       } else if (data.token) {
         // Fallback cho backward compatibility

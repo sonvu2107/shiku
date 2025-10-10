@@ -10,6 +10,80 @@ import { paginate } from "../utils/paginate.js";
 import { withCache, postCache, invalidateCache } from "../utils/cache.js";
 import mongoose from "mongoose";
 
+const PLAIN_SANITIZE_OPTIONS = { allowedTags: [], allowedAttributes: {} };
+const CONTENT_SANITIZE_OPTIONS = {
+  allowedTags: [
+    "p",
+    "br",
+    "strong",
+    "em",
+    "u",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "ul",
+    "ol",
+    "li",
+    "blockquote",
+    "a"
+  ],
+  allowedAttributes: {
+    a: ["href", "title"],
+    h1: ["id"],
+    h2: ["id"],
+    h3: ["id"],
+    h4: ["id"],
+    h5: ["id"],
+    h6: ["id"]
+  }
+};
+
+const sanitizePlain = (value = "") =>
+  sanitizeHtml(String(value).trim(), PLAIN_SANITIZE_OPTIONS);
+
+const sanitizeRichContent = (value = "") =>
+  sanitizeHtml(String(value).trim(), CONTENT_SANITIZE_OPTIONS);
+
+const normalizeTags = (tagsInput) => {
+  if (!Array.isArray(tagsInput)) return [];
+  const maxTags = 10;
+  return tagsInput
+    .filter((tag) => typeof tag === "string")
+    .map((tag) => sanitizePlain(tag).slice(0, 20).trim())
+    .filter((tag) => tag.length > 0)
+    .slice(0, maxTags);
+};
+
+export const sanitizePostFields = ({
+  title,
+  content,
+  tags,
+  coverUrl
+} = {}) => {
+  const sanitized = {};
+
+  if (title !== undefined) {
+    sanitized.title = sanitizePlain(title);
+  }
+
+  if (content !== undefined) {
+    sanitized.content = sanitizeRichContent(content);
+  }
+
+  if (tags !== undefined) {
+    sanitized.tags = normalizeTags(tags);
+  }
+
+  if (coverUrl !== undefined) {
+    sanitized.coverUrl = sanitizePlain(coverUrl);
+  }
+
+  return sanitized;
+};
+
 const router = express.Router();
 
 // Get current user's posts only (both published and private) - Optimized with caching
@@ -603,37 +677,26 @@ router.get("/edit/:id", authRequired, async (req, res, next) => {
 router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
   try {
     const { title, content, tags = [], coverUrl = "", status = "published", files = [], group = null } = req.body;
-    if (!title) return res.status(400).json({ error: "Vui lòng nhập tiêu đề" });
-    if (!content && !req.body.hasPoll) return res.status(400).json({ error: "Vui lòng nhập nội dung hoặc tạo poll" });
     if (!["private", "published"].includes(status)) {
       return res.status(400).json({ error: "Trạng thái không hợp lệ" });
     }
     // Sanitize input để chống XSS
-    const sanitizedTitle = sanitizeHtml(title.trim(), {
-      allowedTags: [],
-      allowedAttributes: {}
-    });
-    const sanitizedContent = content ? sanitizeHtml(content.trim(), {
-      allowedTags: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'a'],
-      allowedAttributes: {
-        'a': ['href', 'title'],
-        'h1': ['id'],
-        'h2': ['id'],
-        'h3': ['id'],
-        'h4': ['id'],
-        'h5': ['id'],
-        'h6': ['id']
-      }
-    }) : "";
-    const sanitizedTags = Array.isArray(tags) ? tags.map(tag => sanitizeHtml(tag.trim(), { allowedTags: [], allowedAttributes: {} })) : [];
-    const sanitizedCoverUrl = sanitizeHtml(coverUrl.trim(), { allowedTags: [], allowedAttributes: {} });
+    const sanitized = sanitizePostFields({ title, content, tags, coverUrl });
+
+    if (!sanitized.title) {
+      return res.status(400).json({ error: "Vui l�ng nh?p ti�u d?" });
+    }
+
+    if ((!sanitized.content || sanitized.content.length === 0) && !req.body.hasPoll) {
+      return res.status(400).json({ error: "Vui l�ng nh?p n?i dung ho?c t?o poll" });
+    }
 
     const post = await Post.create({
       author: req.user._id,
-      title: sanitizedTitle,
-      content: sanitizedContent,
-      tags: sanitizedTags,
-      coverUrl: sanitizedCoverUrl,
+      title: sanitized.title,
+      content: sanitized.content || "",
+      tags: sanitized.tags || [],
+      coverUrl: sanitized.coverUrl || "",
       status,
       files: Array.isArray(files) ? files : [],
       group
@@ -657,18 +720,32 @@ router.put("/:id", authRequired, checkBanStatus, async (req, res, next) => {
     if (post.author.toString() !== req.user._id.toString() && req.user.role !== "admin") {
       return res.status(403).json({ error: "Bạn không có quyền chỉnh sửa bài viết này" });
     }
-      const { title, content, tags, coverUrl, status, files } = req.body;
-    if (title !== undefined) post.title = title;
-    if (content !== undefined) post.content = content;
-    if (Array.isArray(tags)) post.tags = tags;
-    if (coverUrl !== undefined) post.coverUrl = coverUrl;
-      if (Array.isArray(files)) post.files = files;
-    if (status !== undefined) {
-      if (!["private", "published"].includes(status)) {
-        return res.status(400).json({ error: "Trạng thái không hợp lệ" });
-      }
-      post.status = status;
+    const { title, content, tags, coverUrl, status, files } = req.body;
+    const sanitizedUpdate = sanitizePostFields({ title, content, tags, coverUrl });
+
+    if (title !== undefined) {
+      post.title = sanitizedUpdate.title || "";
     }
+
+    if (content !== undefined) {
+      post.content = sanitizedUpdate.content || "";
+    }
+
+    if (tags !== undefined) {
+      post.tags = sanitizedUpdate.tags || [];
+    }
+
+    if (coverUrl !== undefined) {
+      post.coverUrl = sanitizedUpdate.coverUrl || "";
+    }
+
+    if (Array.isArray(files)) {
+      post.files = files;
+    }
+    if (!["private", "published"].includes(status)) {
+      return res.status(400).json({ error: "Trạng thái không hợp lệ" });
+    }
+    post.status = status;
     await post.save();
     
     // Invalidate cache for this user's posts and general posts

@@ -1,45 +1,30 @@
-/**
- * Authentication utilities - Quản lý JWT tokens trong client
- * Sử dụng localStorage để lưu trữ authentication token
- */
+import { saveTokens, getAccessToken, clearTokens } from "./tokenManager.js";
 
 /**
- * Lưu authentication token vào localStorage
- * @param {string} token - JWT token từ server
+ * Backwards-compatible auth helpers that now use the in-memory token manager.
  */
+
 export function setAuthToken(token) {
-  localStorage.setItem("token", token);
+  if (token) {
+    saveTokens(token);
+  }
 }
 
-/**
- * Lấy authentication token từ localStorage
- * @returns {string|null} JWT token hoặc null nếu không có
- */
 export function getAuthToken() {
-  return localStorage.getItem("token");
+  return getAccessToken();
 }
 
-/**
- * Xóa authentication token khỏi localStorage (logout)
- */
 export function removeAuthToken() {
-  localStorage.removeItem("token");
+  clearTokens();
 }
 
-/**
- * Decode JWT token để lấy thông tin user mà không cần gọi API
- * @returns {Object|null} User payload từ JWT hoặc null nếu invalid
- */
 export function getUserInfo() {
   try {
-    const token = getAuthToken();
+    const token = getAccessToken();
     if (!token) return null;
-    
-    // Decode phần payload của JWT (base64 encoded)
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
     return payload;
   } catch (error) {
-    // Silent handling for token decoding error
     return null;
   }
 }

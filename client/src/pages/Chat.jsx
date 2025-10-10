@@ -62,8 +62,7 @@ export default function Chat() {
 
   // Xử lý incoming calls - setup listener sau khi user và socket đã sẵn sàng
   useEffect(() => {
-    // Chỉ setup listener khi đã có currentUser và socket
-    if (!currentUser || !socketService.socket) {
+    if (!currentUser) {
       return;
     }
 
@@ -103,50 +102,79 @@ export default function Chat() {
 
   // Xử lý conversation change và join room
   useEffect(() => {
-    if (!selectedConversation || !socketService.socket) return;
-    
-    // Listen for conversation-joined confirmation
-    const handleConversationJoined = (data) => {
-      // Conversation joined confirmation
+    let active = true;
+    let socketRef = null;
+    let handleConversationJoined = null;
+
+    const setup = async () => {
+      if (!selectedConversation) return;
+      const connected = await socketService.ensureConnection();
+      if (!connected || !active) return;
+
+      socketRef = socketService.socket;
+      if (!socketRef) return;
+
+      handleConversationJoined = () => {};
+      socketRef.on("conversation-joined", handleConversationJoined);
     };
-    
-    socketService.socket.on('conversation-joined', handleConversationJoined);
-    
+
+    setup();
+
     return () => {
-      socketService.socket.off('conversation-joined', handleConversationJoined);
+      active = false;
+      if (socketRef && handleConversationJoined) {
+        socketRef.off("conversation-joined", handleConversationJoined);
+      }
     };
   }, [selectedConversation?._id]);
 
   // Handle messages for current conversation
   useEffect(() => {
-    if (!selectedConversation || !socketService.socket) return;
-    
-    const handleNewMessage = (message) => {
-      // Check if message belongs to current conversation
-      if (selectedConversation && (message.conversationId === selectedConversation._id || message.conversation === selectedConversation._id)) {
-        setMessages(prev => {
-          const exists = prev.some(m => m._id === message._id);
-          if (exists) {
-            return prev;
-          }
-          return [...prev, message];
-        });
-      }
-    };
+    let active = true;
+    let socketRef = null;
+    let handleNewMessage = null;
+    let handleReactionsUpdated = null;
 
-    const handleReactionsUpdated = (data) => {
+    const setup = async () => {
       if (!selectedConversation) return;
-      if (data.conversationId !== selectedConversation._id) return;
-      setMessages(prev => prev.map(m => m._id === data.messageId ? { ...m, reactions: data.reactions } : m));
+      const connected = await socketService.ensureConnection();
+      if (!connected || !active) return;
+
+      socketRef = socketService.socket;
+      if (!socketRef) return;
+
+      handleNewMessage = (message) => {
+        if (selectedConversation && (message.conversationId === selectedConversation._id || message.conversation === selectedConversation._id)) {
+          setMessages(prev => {
+            const exists = prev.some(m => m._id === message._id);
+            if (exists) {
+              return prev;
+            }
+            return [...prev, message];
+          });
+        }
+      };
+
+      handleReactionsUpdated = (data) => {
+        if (!selectedConversation) return;
+        if (data.conversationId !== selectedConversation._id) return;
+        setMessages(prev => prev.map(m => m._id === data.messageId ? { ...m, reactions: data.reactions } : m));
+      };
+
+      socketRef.on("new-message", handleNewMessage);
+      socketRef.on("message-reactions-updated", handleReactionsUpdated);
     };
 
-    // Set up message listener for this conversation
-    socketService.socket.on('new-message', handleNewMessage);
-    socketService.socket.on('message-reactions-updated', handleReactionsUpdated);
-    
+    setup();
+
     return () => {
-      socketService.socket.off('new-message', handleNewMessage);
-      socketService.socket.off('message-reactions-updated', handleReactionsUpdated);
+      active = false;
+      if (socketRef && handleNewMessage) {
+        socketRef.off("new-message", handleNewMessage);
+      }
+      if (socketRef && handleReactionsUpdated) {
+        socketRef.off("message-reactions-updated", handleReactionsUpdated);
+      }
     };
   }, [selectedConversation?._id]);
 
@@ -166,36 +194,54 @@ export default function Chat() {
 
   // Lắng nghe real-time updates cho online status
   useEffect(() => {
-    if (!socketService.socket) return;
+    let active = true;
+    let socketRef = null;
+    let handleFriendOnline = null;
+    let handleFriendOffline = null;
 
-    const handleFriendOnline = (data) => {
-      setUserOnlineStatus(prev => ({
-        ...prev,
-        [data.userId]: {
-          isOnline: data.isOnline,
-          lastSeen: data.lastSeen
-        }
-      }));
+    const setup = async () => {
+      const connected = await socketService.ensureConnection();
+      if (!connected || !active) return;
+
+      socketRef = socketService.socket;
+      if (!socketRef) return;
+
+      handleFriendOnline = (data) => {
+        setUserOnlineStatus(prev => ({
+          ...prev,
+          [data.userId]: {
+            isOnline: data.isOnline,
+            lastSeen: data.lastSeen
+          }
+        }));
+      };
+
+      handleFriendOffline = (data) => {
+        setUserOnlineStatus(prev => ({
+          ...prev,
+          [data.userId]: {
+            isOnline: data.isOnline,
+            lastSeen: data.lastSeen
+          }
+        }));
+      };
+
+      socketRef.on("friend-online", handleFriendOnline);
+      socketRef.on("friend-offline", handleFriendOffline);
     };
 
-    const handleFriendOffline = (data) => {
-      setUserOnlineStatus(prev => ({
-        ...prev,
-        [data.userId]: {
-          isOnline: data.isOnline,
-          lastSeen: data.lastSeen
-        }
-      }));
-    };
-
-    socketService.socket.on('friend-online', handleFriendOnline);
-    socketService.socket.on('friend-offline', handleFriendOffline);
+    setup();
 
     return () => {
-      socketService.socket.off('friend-online', handleFriendOnline);
-      socketService.socket.off('friend-offline', handleFriendOffline);
+      active = false;
+      if (socketRef && handleFriendOnline) {
+        socketRef.off("friend-online", handleFriendOnline);
+      }
+      if (socketRef && handleFriendOffline) {
+        socketRef.off("friend-offline", handleFriendOffline);
+      }
     };
-  }, [socketService.socket]);
+  }, []);
 
   const loadCurrentConversation = async () => {
     try {

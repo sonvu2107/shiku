@@ -55,15 +55,9 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 
 // Import các utilities và services (giữ nguyên - cần thiết ngay)
 import { api } from "./api.js";
+import { ensureCSRFToken } from "./utils/csrfToken.js";
 import { getValidAccessToken } from "./utils/tokenManager.js";
 import socketService from "./socket";   // Service quản lý WebSocket connection
-
-// 🚀 DYNAMIC IMPORTS cho Safari utilities (chỉ load khi cần)
-const loadSafariUtils = () => Promise.all([
-  import("./utils/csrfToken.js"),
-  import("./utils/safariSession.js"),
-  import("./utils/safariTest.js")
-]);
 
 /**
  * Component chính của ứng dụng - quản lý routing và authentication
@@ -91,66 +85,53 @@ export default function App() {
 
   // Effect chạy khi app khởi tạo để kiểm tra authentication
   useEffect(() => {
+    let cancelled = false;
+
     const checkAuth = async () => {
       try {
-        // 🚀 Dynamic import Safari utilities - chỉ load khi cần
-        const [
-          { getCSRFToken, initializeCSRFToken, debugCSRFToken },
-          { initializeSafariSession, checkSafariSession, testSafariCookies, recoverSafariSession },
-          { runSafariTests }
-        ] = await loadSafariUtils();
+        await ensureCSRFToken();
+        const token = await getValidAccessToken();
 
-        // 🚀 Parallel execution để giảm blocking time
-        const [sessionInitialized, token] = await Promise.all([
-          initializeSafariSession(),
-          getValidAccessToken()
-        ]);
-        
-        // Background tasks không block UI
-        if (!sessionInitialized) {
-          console.warn("Session initialization failed, attempting recovery...");
-          // Chạy background recovery
-          setTimeout(() => recoverSafariSession(), 0);
+        if (cancelled) {
+          return;
         }
-        
-        // Background CSRF và cookie checks
-        Promise.all([
-          testSafariCookies(),
-          initializeCSRFToken()
-        ]).catch(err => console.warn("Background tasks failed:", err));
-        
-        if (token) {
+
+        if (token && !cancelled) {
           // Nếu có token, gọi API để lấy thông tin user
           const res = await api("/api/auth/me");
-          setUser(res.user);
-          // Kết nối socket khi đã xác thực user thành công
-          socketService.connect(res.user);
-          // Background CSRF token sync
-          setTimeout(() => getCSRFToken(true), 0);
-        } else {
+          if (!cancelled) {
+            setUser(res.user);
+            // Kết nối socket khi đã xác thực user thành công
+            socketService.connect(res.user);
+          }
+        } else if (!cancelled) {
           // Không có token, set user null
           setUser(null);
         }
-
-        // 🚀 Expose debug functions globally (background)
-        setTimeout(() => {
-          window.debugCSRF = debugCSRFToken;
-          window.debugSafariSession = checkSafariSession;
-          window.testSafariCookies = testSafariCookies;
-          window.recoverSafariSession = recoverSafariSession;
-          window.runSafariTests = runSafariTests;
-        }, 0);
-
       } catch (error) {
         console.error("Authentication check failed:", error);
         // Nếu có lỗi (token không hợp lệ), reset user
-        setUser(null);
+        if (!cancelled) {
+          setUser(null);
+        }
       } finally {
-        setLoading(false); // Kết thúc loading
+        if (!cancelled) {
+          setLoading(false); // Kết thúc loading
+        }
       }
     };
     
     checkAuth();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      getValidAccessToken().catch(() => {});
+    }, 10 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   // Apply/remove dark class on root html element

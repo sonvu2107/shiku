@@ -8,14 +8,6 @@ import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck } from "
 import UserName from "../components/UserName";
 import Poll from "../components/Poll";
 
-/**
- * Mapping các role với icon tương ứng (hiện tại chưa sử dụng)
- */
-const roleIcons = {
-  solo: "/assets/Sung-tick.png",
-  sybau: "/assets/Sybau-tick.png",
-  keeper: "/assets/moxumxue.png"
-};
 
 /**
  * PostDetail - Trang chi tiết bài viết

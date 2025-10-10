@@ -115,7 +115,7 @@ const apiStatsSchema = new mongoose.Schema({
       type: Number,
       required: true
     },
-    userAgent: {
+    clientAgent: {
       type: String,
       maxlength: 200
     },
@@ -150,7 +150,7 @@ apiStatsSchema.methods.addRealtimeUpdate = function(updateData) {
     method: updateData.method,
     ip: updateData.ip,
     statusCode: updateData.statusCode,
-    userAgent: updateData.userAgent,
+    clientAgent: updateData.clientAgent,
     timestamp: new Date()
   });
   

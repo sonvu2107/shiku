@@ -14,8 +14,6 @@ import {
 } from 'lucide-react';
 import GroupCard from '../components/GroupCard';
 import { api } from '../api';
-import { safariPOST } from '../utils/safariAPI.js';
-
 /**
  * Groups Page - Trang quản lý và khám phá nhóm/communities
  * Bao gồm tìm kiếm, lọc, hiển thị danh sách nhóm và các chức năng quản lý
@@ -104,7 +102,10 @@ const Groups = () => {
     try {
       setIsJoining(prev => ({ ...prev, [groupId]: true }));
 
-      const response = await safariPOST(`/api/groups/${groupId}/join`, {}, "tham gia nhóm");
+      const response = await api(`/api/groups/${groupId}/join`, {
+      method: "POST",
+      body: {}
+    });
 
       if (response.success) {
         // Cập nhật UI
@@ -129,7 +130,10 @@ const Groups = () => {
     try {
       setIsLeaving(prev => ({ ...prev, [groupId]: true }));
 
-      const response = await safariPOST(`/api/groups/${groupId}/leave`, {}, "rời khỏi nhóm");
+      const response = await api(`/api/groups/${groupId}/leave`, {
+      method: "POST",
+      body: {}
+    });
 
       if (response.success) {
         // Cập nhật UI

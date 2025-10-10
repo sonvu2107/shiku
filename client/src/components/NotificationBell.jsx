@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, X, Check, CheckCheck } from "lucide-react";
 import { api } from "../api";
-import { safariPUT } from "../utils/safariAPI.js";
-
 /**
  * NotificationBell - Component chuông thông báo với dropdown
  * Hiển thị số lượng thông báo chưa đọc và danh sách thông báo
@@ -64,7 +62,10 @@ export default function NotificationBell({ user }) {
 
   const markAsRead = async (notificationId) => {
     try {
-      await safariPUT(`/api/notifications/${notificationId}/read`, {}, "đánh dấu thông báo đã đọc");
+      await api(`/api/notifications/${notificationId}/read`, {
+      method: "PUT",
+      body: {}
+    });
       setNotifications(prev => 
         prev.map(n => n._id === notificationId ? { ...n, read: true } : n)
       );
@@ -76,7 +77,10 @@ export default function NotificationBell({ user }) {
 
   const markAllAsRead = async () => {
     try {
-      await safariPUT("/api/notifications/mark-all-read", {}, "đánh dấu tất cả thông báo đã đọc");
+      await api("/api/notifications/mark-all-read", {
+      method: "PUT",
+      body: {}
+    });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (error) {

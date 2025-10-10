@@ -1,55 +1,89 @@
 /**
- * Token Manager - Quản lý access token và refresh token
- * Tự động refresh token khi cần thiết
+ * Token Manager - Keeps access tokens in-memory and refresh tokens in httpOnly cookies.
+ * Legacy localStorage fallback is controlled by VITE_ALLOW_LEGACY_LOCALSTORAGE_REFRESH (default: false).
  */
 
-const ACCESS_TOKEN_KEY = 'accessToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
+import { getCSRFToken } from "./csrfToken.js";
+
+const ACCESS_TOKEN_KEY = "accessToken";
+const REFRESH_TOKEN_KEY = "refreshToken";
+
+const env =
+  (typeof import.meta !== "undefined" && import.meta.env) ||
+  (typeof process !== "undefined" ? process.env : {}) ||
+  {};
+
+const API_URL =
+  env.VITE_API_URL ||
+  (typeof process !== "undefined" ? process.env?.VITE_API_URL : undefined) ||
+  "http://localhost:4000";
+const LEGACY_REFRESH_ALLOWED =
+  (env.VITE_ALLOW_LEGACY_LOCALSTORAGE_REFRESH ??
+    (typeof process !== "undefined"
+      ? process.env?.VITE_ALLOW_LEGACY_LOCALSTORAGE_REFRESH
+      : undefined)) === "true";
+
+let inMemoryAccessToken = null;
+
+const hasWindow = typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+const safeStorage = hasWindow
+  ? window.localStorage
+  : {
+    getItem: () => null,
+    setItem: () => { },
+    removeItem: () => { }
+  };
 
 /**
- * Lưu tokens vào localStorage
- * @param {string} accessToken - Access token
- * @param {string} refreshToken - Refresh token
+ * Persist access token in-memory. Optionally stores refresh token for legacy rollout.
  */
 export function saveTokens(accessToken, refreshToken) {
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  if (accessToken) {
+    inMemoryAccessToken = accessToken;
+  }
+
+  if (LEGACY_REFRESH_ALLOWED && refreshToken) {
+    safeStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  }
 }
 
 /**
- * Lấy access token từ localStorage
- * @returns {string|null} Access token hoặc null
+ * Retrieve the in-memory access token.
  */
 export function getAccessToken() {
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
+  return inMemoryAccessToken;
 }
 
 /**
- * Lấy refresh token từ localStorage
- * @returns {string|null} Refresh token hoặc null
+ * Retrieve refresh token only when legacy mode is explicitly enabled.
  */
 export function getRefreshToken() {
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!LEGACY_REFRESH_ALLOWED) {
+    return null;
+  }
+  return safeStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
 /**
- * Xóa tất cả tokens
+ * Clear tokens from memory (and legacy storage).
  */
 export function clearTokens() {
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  inMemoryAccessToken = null;
+  safeStorage.removeItem(ACCESS_TOKEN_KEY); // cleanup legacy storage
+
+  if (LEGACY_REFRESH_ALLOWED) {
+    safeStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
 }
 
 /**
- * Kiểm tra token có hết hạn không
- * @param {string} token - JWT token
- * @returns {boolean} true nếu token hết hạn
+ * Determine whether a JWT is expired.
  */
 export function isTokenExpired(token) {
   if (!token) return true;
-  
+
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
     const currentTime = Date.now() / 1000;
     return payload.exp < currentTime;
   } catch (error) {
@@ -58,57 +92,91 @@ export function isTokenExpired(token) {
 }
 
 /**
- * Refresh access token sử dụng refresh token
- * @returns {Promise<string|null>} New access token hoặc null nếu thất bại
+ * Request a new access token using the httpOnly refresh token cookie.
+ * Legacy mode sends the refresh token in the body for older clients.
  */
 export async function refreshAccessToken() {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
+  const legacyRefreshToken = getRefreshToken();
 
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/auth/refresh-token`, {
-      method: 'POST',
+    // Use cached CSRF token if still valid
+    const csrfToken = await getCSRFToken(false);
+
+    if (!csrfToken) {
+      console.warn("[tokenManager] Unable to obtain CSRF token before refresh");
+    }
+
+    const response = await fetch(`${API_URL}/api/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
       headers: {
-        'Content-Type': 'application/json',
-        'X-Refresh-Token': refreshToken,
-        'Accept': 'application/json' // Explicit header for Safari
-        // Removed Cache-Control header to prevent CORS issues
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-CSRF-Token": csrfToken || "" // ✅ Chỉ dùng 1 header
       },
-      credentials: 'include',
-      mode: 'cors' // Explicit CORS mode for Safari
+      body: JSON.stringify(
+        LEGACY_REFRESH_ALLOWED && legacyRefreshToken
+          ? { refreshToken: legacyRefreshToken }
+          : {}
+      )
     });
 
+
     if (!response.ok) {
-      throw new Error('Refresh token failed');
+      const errorText = await response.text().catch(() => "<no body>");
+      
+      // If 400/401 (no refresh token or expired), log as info instead of error
+      if (response.status === 400 || response.status === 401) {
+        console.info("[tokenManager] No valid refresh token available");
+      } else {
+        console.error(
+          "[tokenManager] Refresh token request failed",
+          response.status,
+          errorText
+        );
+      }
+      
+      clearTokens();
+      throw new Error("Refresh token request failed");
     }
 
     const data = await response.json();
-    
-    // Lưu access token mới
+
     if (data.accessToken) {
-      localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken);
-      return data.accessToken;
+      inMemoryAccessToken = data.accessToken;
+    } else {
+      console.warn("[tokenManager] Response missing accessToken field");
     }
 
-    return null;
+    return data.accessToken || null;
   } catch (error) {
-    // Silent handling for refresh token error
-    clearTokens(); // Clear tokens nếu refresh thất bại
+    console.error("[tokenManager] refreshAccessToken error:", error);
+    clearTokens();
     return null;
   }
 }
 
 /**
- * Lấy access token hợp lệ (tự động refresh nếu cần)
- * @returns {Promise<string|null>} Valid access token hoặc null
+ * Obtain a valid access token, refreshing when necessary.
  */
 export async function getValidAccessToken() {
-  let accessToken = getAccessToken();
-  
-  // Nếu không có access token hoặc đã hết hạn
-  if (!accessToken || isTokenExpired(accessToken)) {
-    accessToken = await refreshAccessToken();
+  // ✅ Nếu có access token hợp lệ trong memory, dùng luôn
+  if (inMemoryAccessToken && !isTokenExpired(inMemoryAccessToken)) {
+    return inMemoryAccessToken;
   }
+
+  // ✅ Nếu không có, kiểm tra xem có refresh token không
+  const legacyRefreshToken = getRefreshToken();
   
-  return accessToken;
+  // ✅ CHỈ gọi refresh nếu có refresh token (legacy hoặc cookie sẽ được gửi tự động)
+  // Nếu không có legacy token, vẫn thử gọi refresh vì có thể có httpOnly cookie
+  // Nhưng phải xử lý lỗi 400 gracefully
+  try {
+    inMemoryAccessToken = await refreshAccessToken();
+    return inMemoryAccessToken;
+  } catch (error) {
+    // ✅ Nếu refresh fail (user chưa login), trả null thay vì throw
+    console.log("[tokenManager] No valid token available, user needs to login");
+    return null;
+  }
 }

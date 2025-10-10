@@ -1,16 +1,15 @@
 // Import các thư viện cần thiết
+import 'dotenv/config';
 import express from "express";
 import helmet from "helmet"; // Security middleware
 import cookieParser from "cookie-parser"; // Parse cookies
 import cors from "cors"; // Cross-Origin Resource Sharing
 import morgan from "morgan"; // HTTP request logger
 import csrf from "csurf"; // CSRF protection
-import dotenv from "dotenv"; // Environment variables
 import path from "path";
 import { fileURLToPath } from "url";
 import { createServer } from "http"; // HTTP server
 import { Server } from "socket.io"; // WebSocket server
-import crypto from "crypto"; // Cryptographic functions for CSRF tokens
 
 // Import config và middleware
 import { connectDB } from "./config/db.js";
@@ -19,6 +18,7 @@ import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { requestTimeout } from "./middleware/timeout.js";
 import { authOptional } from "./middleware/auth.js";
 import User from "./models/User.js";
+import { getClientAgent } from "./utils/clientAgent.js";
 
 // Import tất cả routes
 import authRoutes from "./routes/auth-secure.js"; // Authentication routes
@@ -43,8 +43,7 @@ import storyRoutes from "./routes/stories.js"; // Stories routes
 import pollRoutes from "./routes/polls.js"; // Polls routes
 import roleRoutes from "./routes/roles.js"; // Role management routes
 
-// Load environment variables
-dotenv.config();
+// Environment variables are loaded via `import 'dotenv/config'` at the top
 
 // Tạo Express app và HTTP server
 const app = express();
@@ -53,74 +52,19 @@ const server = createServer(app);
 // Trust proxy để rate limiting hoạt động đúng với reverse proxy (Railway, Heroku, etc.)
 app.set("trust proxy", 1);
 
-// Danh sách các origin được phép truy cập (CORS)
-const allowedOrigins = [
-  // Development origins
-  ...(process.env.NODE_ENV === 'development' ? [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174",
-    "http://localhost:3000",
-    "http://localhost:3001"
-  ] : []),
-  
-  // Production origins - ưu tiên environment variables
-  ...(process.env.CORS_ORIGIN?.split(",").map(o => o.trim()) || []),
-  
-  // Fallback production domains (nếu không có CORS_ORIGIN)
-  ...(process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN ? [
-    // Custom domains
-    "https://shiku.click",
-    "https://www.shiku.click",
-    // Netlify domains
-    "https://shiku123.netlify.app",
-    "https://shiku123.netlify.com"
-  ] : []),
-  
-  // Wildcard patterns (luôn có)
-  "https://*.netlify.app",
-  "https://*.netlify.com"
-];
-
 // Tạo Socket.IO server với CORS configuration và improved settings
 const io = new Server(server, {
   cors: {
-    origin: (origin, callback) => {
-      // Kiểm tra origin có trong danh sách allowed không
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
-      
-      // Check exact match
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-      
-      // Check wildcard patterns
-      const isAllowed = allowedOrigins.some(allowedOrigin => {
-        if (allowedOrigin.includes('*')) {
-          const pattern = allowedOrigin.replace(/\*/g, '.*');
-          const regex = new RegExp(`^${pattern}$`);
-          return regex.test(origin);
-        }
-        return false;
-      });
-      
-      if (isAllowed) {
-        callback(null, true);
-      } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(" Blocked Socket.IO CORS:", origin);
-        }
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true, // Cho phép gửi cookies và credentials
-    optionsSuccessStatus: 200, // Hỗ trợ legacy browsers
-    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'X-CSRF-Token', 'X-Refresh-Token', 'X-Session-ID', 'Cache-Control', 'Pragma', 'Expires'] // Added all cache related headers
+    origin: [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "https://shiku.click",
+      "https://www.shiku.click",
+      "https://shiku123.netlify.app"
+    ],
+    credentials: true,
+    optionsSuccessStatus: 200,
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'X-CSRF-Token', 'X-Refresh-Token', 'X-Session-ID', 'Cache-Control', 'Pragma', 'Expires']
   },
   // Add connection management settings
   pingTimeout: 60000, // 60 seconds
@@ -130,6 +74,8 @@ const io = new Server(server, {
   transports: ['websocket', 'polling'],
   allowEIO3: true // Allow Engine.IO v3 clients
 });
+
+// Track connected users to prevent memory leaks (single shared Map declared above)
 
 // Port server sẽ chạy
 const PORT = process.env.PORT || 4000;
@@ -153,137 +99,58 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-// Parse cookies từ request headers
+// Parse cookies first
 app.use(cookieParser());
 
-// Parse JSON body với limit 10MB (cho upload hình ảnh base64)
-app.use(express.json({ limit: "10mb" }));
-
-// CORS configuration cho HTTP requests - Enhanced for Safari compatibility
-// Đặt CORS trước CSRF để đảm bảo preflight requests không bị chặn
+// CORS must come before CSRF
 app.use(cors({
-  origin: (origin, callback) => {
-    // Kiểm tra origin có trong danh sách allowed không
-    if (!origin) {
-      callback(null, true);
-      return;
-    }
-    
-    // Check exact match
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-      return;
-    }
-    
-    // Check wildcard patterns
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
-      if (allowedOrigin.includes('*')) {
-        const pattern = allowedOrigin.replace(/\*/g, '.*');
-        const regex = new RegExp(`^${pattern}$`);
-        return regex.test(origin);
-      }
-      return false;
-    });
-    
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+ origin: [
+   "https://shiku.click",             // FE custom domain chính
+    "https://www.shiku.click",         // FE có redirect www
+    "https://shiku.netlify.app",       // Netlify fallback
+    "https://shiku-production.up.railway.app", // BE domain
+    "http://localhost:5173"            // local dev
+],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'X-CSRF-Token', 'X-Session-ID', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma'],
-  exposedHeaders: ['set-cookie', 'Set-Cookie'] // Ensure cookies can be set cross-domain
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "x-csrf-token",
+    "X-CSRF-Token",
+    "X-Session-ID",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+    "Cache-Control",
+    "Pragma"
+  ],
+  exposedHeaders: ["set-cookie", "Set-Cookie"]
 }));
 
-// CSRF protection (must be after CORS to allow preflight requests)
-// Sử dụng đối tượng lưu trữ token thay vì cookie để tránh vấn đề CSRF với Safari và các thiết bị mobile
-const csrfTokenStore = {};
+// Parse JSON after CORS
+app.use(express.json({ limit: "10mb" }));
 
-// Thay thế csurf bằng middleware tự tạo
-app.use((req, res, next) => {
-  // Skip CSRF check for OPTIONS request (preflight CORS)
-  if (req.method === 'OPTIONS') {
-    return next();
-  }
 
-  // Tạo hoặc lấy sessionID từ cookie, header hoặc query parameter (mobile support)
-  let sessionID = req.cookies.sessionID || req.headers['x-session-id'] || req.query?._session;
-  
-  // Debug: Log headers for mobile support
-  if (req.headers['x-session-id']) {
-    console.log('🔍 Mobile Session: Received X-Session-ID header:', req.headers['x-session-id'].substring(0, 8) + '...');
-  }
-  if (req.cookies.sessionID) {
-    console.log('🔍 Cookie Session: Received sessionID cookie:', req.cookies.sessionID.substring(0, 8) + '...');
-  }
-  if (req.query?._session) {
-    console.log('🔍 Mobile Query: Received _session query param:', req.query._session.substring(0, 8) + '...');
-  }
-  if (req.query?._csrf) {
-    console.log('🔍 Mobile Query: Received _csrf query param:', req.query._csrf.substring(0, 8) + '...');
-  }
-  
-  if (!sessionID) {
-    sessionID = crypto.randomBytes(16).toString('hex');
-    res.cookie('sessionID', sessionID, {
-      httpOnly: true,
-      secure: true, // Always secure for cross-domain cookies
-      sameSite: "none", // Allow cross-site requests (FE and BE on different domains)
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-      path: "/" // Explicit path for Safari compatibility
-    });
-  }
+// Unified cookie configuration for Dev & Prod
+const isProd = process.env.NODE_ENV === "production";
+const appDomain = process.env.COOKIE_DOMAIN || undefined;
 
-  // Phương thức để tạo CSRF token
-  req.csrfToken = () => {
-    const token = crypto.randomBytes(16).toString('hex');
-    csrfTokenStore[sessionID] = {
-      token,
-      expiry: Date.now() + (60 * 60 * 1000) // 1 hour expiry
-    };
-    return token;
-  };
+const csrfCookieOptions = {
+  httpOnly: true,
+  sameSite: isProd ? "none" : "lax",     // Cross-domain cookie for prod
+  secure: isProd,                         // Chrome requires secure for SameSite=None
+  domain: isProd ? appDomain : undefined, // Flexible for shiku.click or Railway domain
+  path: "/",
+  maxAge: 60 * 60 * 1000                 // 1 hour
+};
 
-  // Kiểm tra CSRF token chỉ cho các request thay đổi dữ liệu (POST, PUT, DELETE)
-  // Skip CSRF for mobile devices (temporary solution)
-  const isMobileRequest = req.headers['user-agent'] && 
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(req.headers['user-agent']);
-  
-  if (isMobileRequest) {
-    console.log('📱 Mobile Request Detected: Skipping CSRF check');
-  }
-  
-  if (['POST', 'PUT', 'DELETE'].includes(req.method) && 
-      !req.originalUrl.startsWith('/api/csrf-token') && 
-      !req.originalUrl.startsWith('/api/auth/logout') && // ✅ Allow logout
-      !req.originalUrl.startsWith('/api/auth-token/login') &&  // ✅ Allow login-token
-      !req.originalUrl.startsWith('/api/auth-token/register') && // ✅ Allow register-token
-      !req.originalUrl.includes('/test') &&
-      !isMobileRequest) {
-    
-    console.log('🧱 CSRF CHECK:', req.method, req.originalUrl, 'SessionID:', req.cookies.sessionID?.substring(0, 8) + '...');
-    
-    const token = req.headers['x-csrf-token'] || req.body?._csrf || req.query?._csrf;
-    const storedToken = csrfTokenStore[sessionID]?.token;
 
-    if (!token || !storedToken || token !== storedToken) {
-      console.log('🧱 CSRF BLOCKED:', req.method, req.originalUrl, 'SessionID:', req.cookies.sessionID?.substring(0, 8) + '...');
-      return res.status(403).json({ 
-        error: "CSRF token invalid", 
-        code: "INVALID_CSRF_TOKEN",
-        expected: storedToken,
-        received: token,
-        cookiePresent: !!req.cookies.sessionID,
-        sessionIdHeaderPresent: !!req.headers['x-session-id'],
-        sessionId: sessionID ? sessionID.substring(0, 8) + '...' : null
-      });
-    }
-  }
+// Tạo CSRF protection middleware
+const csrfProtection = csrf({ cookie: csrfCookieOptions });
 
-  next();
-});
+// Áp dụng CSRF cho tất cả requests
+app.use(csrfProtection);
 
 // HTTP request logging - detailed trong production, simple trong development
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
@@ -305,79 +172,11 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 // ==================== ROUTES SETUP ====================
 
-// CORS test endpoint for Safari debugging
-app.options('/api/csrf-token', (req, res) => {
-  try {
-    res.status(200)
-      .header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-      .header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token')
-      .send();
-  } catch (error) {
-    console.error('Error in OPTIONS handler:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// CSRF token endpoint
-app.get('/api/csrf-token', (req, res) => {
-  try {
-    // Make sure csrfToken method exists
-    if (typeof req.csrfToken !== 'function') {
-      return res.status(500).json({ 
-        error: 'CSRF protection not properly initialized'
-      });
-    }
-    
-    // Generate CSRF token
-    const csrfToken = req.csrfToken();
-    
-    // Set CSRF token cookie for cross-domain support
-    res.cookie('csrfToken', csrfToken, {
-      httpOnly: false, // Allow client-side access to read token
-      secure: true, // Always secure for cross-domain cookies
-      sameSite: "none", // Allow cross-site requests
-      path: "/",
-      maxAge: 60 * 60 * 1000 // 1 hour
-    });
-    
-    // Return the CSRF token
-    return res.status(200).json({ 
-      csrfToken, 
-      sessionID: req.cookies.sessionID || 'No session ID found'
-    });
-  } catch (error) {
-    return res.status(500).json({ 
-      error: 'Failed to generate CSRF token',
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
-  }
-});
-
-// Health check endpoint with system stats
-app.get("/", (req, res) => {
-  const memoryUsage = process.memoryUsage();
-  const uptime = process.uptime();
-  
-  res.json({ 
-    ok: true, 
-    message: "Shiku API",
-    uptime: `${Math.floor(uptime / 60)} phút`,
-    memory: {
-      rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
-      heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
-      heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`
-    },
-    connectedSockets: connectedUsers.size,
-    timestamp: new Date().toISOString()
-  });
-});
-
 // Detailed health check endpoint
 app.get("/health", (req, res) => {
   const memoryUsage = process.memoryUsage();
   const uptime = process.uptime();
-  
+
   res.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
@@ -401,14 +200,26 @@ app.get("/heartbeat", (req, res) => {
   });
 });
 
+// Preflight helper for all routes
+app.options("*", cors());
+
 // CSRF token endpoint
 app.get("/api/csrf-token", (req, res) => {
-  const token = req.csrfToken();
-  res.json({ 
-    csrfToken: token,
-    sessionID: req.cookies.sessionID?.substr(0, 6) + "...",
-    timestamp: new Date().toISOString()
-  });
+  try {
+    // csurf will automatically:
+    // - Reuse secret if _csrf cookie exists
+    // - Create new secret if not present
+    const token = req.csrfToken();
+    
+    res.json({
+      csrfToken: token,
+      csrfEnabled: true,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("[SECURITY][CSRF] Failed to generate token", error);
+    res.status(500).json({ error: "Failed to generate CSRF token" });
+  }
 });
 
 // Test CSRF middleware để kiểm tra token
@@ -433,13 +244,13 @@ app.get("/api/debug", (req, res) => {
     }
     return allowedOrigin === origin;
   });
-  
+
   res.json({
     success: true,
     timestamp: new Date().toISOString(),
     origin: origin,
     isOriginAllowed: isOriginAllowed,
-    userAgent: req.get('User-Agent'),
+    clientAgent: getClientAgent(req),
     ip: req.ip,
     headers: {
       origin: req.get('Origin'),
@@ -447,7 +258,7 @@ app.get("/api/debug", (req, res) => {
       host: req.get('Host'),
       cookie: req.get('Cookie')
     },
-    csrfToken: req.csrfToken(),
+    csrfToken: (typeof req.csrfToken === 'function') ? req.csrfToken() : null,
     csrfCookie: req.cookies._csrf,
     corsConfig: {
       allowedOrigins: allowedOrigins,
@@ -469,47 +280,17 @@ app.post("/api/test-csrf", (req, res) => {
   });
 });
 
-// Mobile-friendly CSRF test endpoint (no CSRF required)
-app.post("/api/mobile-test", (req, res) => {
-  res.json({
-    success: true,
-    message: "Mobile CSRF test successful!",
-    timestamp: new Date().toISOString(),
-    userAgent: req.headers['user-agent'],
-    isMobile: req.headers['user-agent'] && 
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(req.headers['user-agent'])
-  });
-});
-
-// Safari CORS Test endpoint
-app.get("/api/safari-test", (req, res) => {
-  res.json({
-    success: true,
-    message: "Safari CORS test successful!",
-    timestamp: new Date().toISOString(),
-    browser: req.headers['user-agent'],
-    allHeaders: req.headers,
-    cookies: req.cookies
-  });
-});
-
 // CSRF và Session status endpoint
 app.get("/api/csrf-status", (req, res) => {
-  const sessionID = req.cookies.sessionID;
-  const csrfData = sessionID ? csrfTokenStore[sessionID] : null;
-  
+  const csrfCookie = req.cookies?._csrf;
+  const preview = csrfCookie ? `${csrfCookie.substring(0, 6)}...` : null;
+
   res.json({
     success: true,
     timestamp: new Date().toISOString(),
-    sessionStatus: {
-      hasSession: !!sessionID,
-      sessionID: sessionID ? sessionID.substr(0, 6) + "..." : null
-    },
-    csrfStatus: {
-      hasStoredToken: !!csrfData,
-      tokenExpiry: csrfData ? new Date(csrfData.expiry).toISOString() : null,
-      isTokenExpired: csrfData ? Date.now() > csrfData.expiry : null
-    },
+    csrfEnabled: true,
+    csrfCookiePresent: Boolean(csrfCookie),
+    csrfCookiePreview: preview,
     cookiesReceived: req.cookies
   });
 });
@@ -541,7 +322,9 @@ app.post("/api/cors-test", (req, res) => {
 });
 
 // Track API calls for monitoring
-app.use("/api", trackAPICall);
+if ((process.env.DISABLE_API_TRACKING ?? "false") !== "true") {
+  app.use("/api", trackAPICall);
+}
 
 // Mount tất cả API routes with specific rate limiting
 app.use("/api/auth", authLimiter, authRoutes); // Authentication routes (auth-secure.js) with logout
@@ -572,6 +355,29 @@ app.set("io", io);
 // ==================== ERROR HANDLING ====================
 
 // 404 handler cho routes không tồn tại
+app.use((err, req, res, next) => {
+  if (err && err.code === 'EBADCSRFTOKEN') {
+    console.warn('[SECURITY][CSRF] blocked request', {
+      method: req.method,
+      path: req.originalUrl,
+      ip: req.ip,
+      userAgent: getClientAgent(req),
+      receivedToken: req.headers['x-csrf-token'] || req.body?._csrf,
+      cookieSecret: req.cookies._csrf ? 'EXISTS' : 'MISSING',
+      cookieSecretValue: req.cookies._csrf, 
+      allCookies: Object.keys(req.cookies), 
+      headers: {
+        'x-csrf-token': req.headers['x-csrf-token'],
+        'cookie': req.headers.cookie ? 'HAS_COOKIE' : 'NO_COOKIE'
+      }
+    });
+    return res.status(403).json({
+      error: 'invalid csrf token',
+      code: 'INVALID_CSRF_TOKEN'
+    });
+  }
+  return next(err);
+});
 app.use(notFound);
 // Global error handler
 app.use(errorHandler);
@@ -585,13 +391,13 @@ const connectedUsers = new Map();
 io.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth.token;
-    
+
     if (token) {
       try {
         const jwt = await import("jsonwebtoken");
         const payload = jwt.default.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(payload.id).select("-password");
-        
+
         if (user) {
           socket.userId = user._id;
           socket.user = user;
@@ -600,7 +406,7 @@ io.use(async (socket, next) => {
         // Invalid token, continue without authentication
       }
     }
-    
+
     next();
   } catch (error) {
     next();
@@ -623,7 +429,7 @@ io.on("connection", async (socket) => {
         isOnline: true,
         lastSeen: new Date()
       });
-      
+
       // Thông báo cho tất cả bạn bè về trạng thái online
       const user = await User.findById(socket.userId).populate('friends', '_id');
       if (user && user.friends) {
@@ -641,7 +447,7 @@ io.on("connection", async (socket) => {
   }
 
   // ==================== WEBRTC CALL SIGNALING ====================
-  
+
   // WebRTC signaling - xử lý call offer với error handling
   socket.on("call-offer", ({ offer, conversationId, isVideo }) => {
     try {
@@ -723,6 +529,18 @@ io.on("connection", async (socket) => {
       if (userInfo) {
         userInfo.userId = userId;
         userInfo.joinedRooms.add(`user-${userId}`);
+      }
+    } catch (error) {
+      // Silent error handling
+    }
+  });
+
+  socket.on("join-api-monitoring", () => {
+    try {
+      socket.join("api-monitoring");
+      const userInfo = connectedUsers.get(socket.id);
+      if (userInfo) {
+        userInfo.joinedRooms.add("api-monitoring");
       }
     } catch (error) {
       // Silent error handling
@@ -823,7 +641,7 @@ io.on("connection", async (socket) => {
           isOnline: false,
           lastSeen: new Date()
         });
-        
+
         // Thông báo cho tất cả bạn bè về trạng thái offline
         const user = await User.findById(userInfo.userId).populate('friends', '_id');
         if (user && user.friends) {
@@ -839,7 +657,7 @@ io.on("connection", async (socket) => {
         console.error("Error updating user offline status:", error);
       }
     }
-    
+
     // Clean up user tracking
     connectedUsers.delete(socket.id);
   });
@@ -849,7 +667,7 @@ io.on("connection", async (socket) => {
 setInterval(() => {
   const now = new Date();
   const staleThreshold = 5 * 60 * 1000; // 5 minutes
-  
+
   for (const [socketId, userInfo] of connectedUsers.entries()) {
     if (now - userInfo.connectedAt > staleThreshold) {
       if (process.env.NODE_ENV === 'development') {
@@ -866,17 +684,17 @@ setInterval(() => {
   const heapUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
   const heapTotalMB = Math.round(memoryUsage.heapTotal / 1024 / 1024);
   const rssMB = Math.round(memoryUsage.rss / 1024 / 1024);
-  
+
   // Log memory stats every 5 minutes (only in development)
   if (process.env.NODE_ENV === 'development') {
     console.log(`📊 Memory Stats - Heap: ${heapUsedMB}/${heapTotalMB}MB, RSS: ${rssMB}MB, Sockets: ${connectedUsers.size}`);
   }
-  
+
   // Warning if memory usage is high
   if (heapUsedMB > 400) { // 400MB threshold
     console.warn(`⚠️ High memory usage detected: ${heapUsedMB}MB heap used`);
   }
-  
+
   // Critical warning if memory usage is very high
   if (heapUsedMB > 800) { // 800MB threshold
     console.error(`🚨 Critical memory usage: ${heapUsedMB}MB heap used - consider restarting`);
@@ -903,7 +721,7 @@ process.on('uncaughtException', (error) => {
     console.log('Server closed');
     process.exit(1);
   });
-  
+
   // Force exit if graceful shutdown takes too long
   setTimeout(() => {
     console.error('Forced shutdown');
@@ -927,17 +745,21 @@ process.on('SIGINT', () => {
   });
 });
 
+export { app, server };
 // ==================== SERVER STARTUP ====================
+if (process.env.DISABLE_SERVER_START === "true") {
+  console.log("[TEST] Server start skipped");
+} else {
+  connectDB(process.env.MONGODB_URI).then(async () => {
 
-// Kết nối database rồi start server
-connectDB(process.env.MONGODB_URI).then(async () => {
-
-  server.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Server listening on http://localhost:${PORT}`);
-    console.log(`📡 Network access: http://YOUR_IP:${PORT}`);
-    console.log("🔌 Socket.IO ready");
+    server.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server listening on http://localhost:${PORT}`);
+      console.log(`Network access: http://YOUR_IP:${PORT}`);
+      console.log('✅ Socket.IO ready');
+    });
+  }).catch((error) => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
   });
-}).catch((error) => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});
+}
+

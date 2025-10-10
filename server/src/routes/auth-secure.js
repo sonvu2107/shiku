@@ -28,6 +28,25 @@ import {
 // Apply auth logging middleware
 router.use(authLogger);
 
+const isProduction = process.env.NODE_ENV === "production";
+const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+const ACCESS_TOKEN_MAX_AGE =
+  ((Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 15 * 60) * 1000);
+const REFRESH_TOKEN_MAX_AGE =
+  ((Number(process.env.REFRESH_TOKEN_TTL_SECONDS) || 30 * 24 * 60 * 60) * 1000);
+
+const buildCookieOptions = (maxAge, overrides = {}) => ({
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: "lax",
+  domain: cookieDomain,
+  maxAge,
+  ...overrides
+});
+
+const accessCookieOptions = buildCookieOptions(ACCESS_TOKEN_MAX_AGE);
+const refreshCookieOptions = buildCookieOptions(REFRESH_TOKEN_MAX_AGE);
+
 /**
  * POST /register - Đăng ký tài khoản mới
  * @param {string} req.body.name - Tên người dùng
@@ -63,22 +82,11 @@ router.post("/register",
       });
 
       // Tạo token pair
-      const tokens = generateTokenPair(user);
+      const tokens = await generateTokenPair(user);
 
       // Set cookies
-      res.cookie("accessToken", tokens.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
-      });
-
-      res.cookie("refreshToken", tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 ngày
-      });
+      res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
+      res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
 
       // Log security event
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.REGISTER_SUCCESS, {
@@ -93,8 +101,7 @@ router.post("/register",
           email: user.email, 
           role: user.role 
         },
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken
+        accessToken: tokens.accessToken
       });
     } catch (error) {
       // Log register failed
@@ -173,22 +180,11 @@ router.post("/login",
       await user.save();
 
       // Tạo token pair
-      const tokens = generateTokenPair(user);
+      const tokens = await generateTokenPair(user);
 
       // Set cookies
-      res.cookie("accessToken", tokens.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
-      });
-
-      res.cookie("refreshToken", tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 ngày
-      });
+      res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
+      res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
 
       // Log successful login
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.LOGIN_SUCCESS, {
@@ -197,15 +193,14 @@ router.post("/login",
         ip: req.ip
       }, req);
 
-      res.json({ 
-        user: { 
-          id: user._id, 
-          name: user.name, 
-          email: user.email, 
-          role: user.role 
+      res.json({
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
         },
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken
+        accessToken: tokens.accessToken
       });
     } catch (error) {
       next(error);
@@ -222,7 +217,9 @@ router.post("/refresh",
   refreshTokenLimiter,
   async (req, res, next) => {
     try {
-      const { refreshToken } = req.body;
+      const bodyToken = req.body?.refreshToken;
+      const cookieToken = req.cookies?.refreshToken;
+      const refreshToken = bodyToken || cookieToken;
       
       if (!refreshToken) {
         return res.status(400).json({ 
@@ -234,23 +231,21 @@ router.post("/refresh",
       // Refresh access token
       const result = await refreshAccessToken(refreshToken);
 
-      // Set new access token cookie
-      res.cookie("accessToken", result.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 3 * 24 * 60 * 60 * 1000 // 3 ngày
-      });
+      // Issue rotated cookies
+      res.cookie("accessToken", result.accessToken, accessCookieOptions);
+      res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
 
       // Log refresh event
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.TOKEN_REFRESH, {
         userId: result.user.id,
-        ip: req.ip
+        ip: req.ip,
+        legacy: result.rotation?.legacy || false
       }, req);
 
-      res.json({ 
+      res.json({
         accessToken: result.accessToken,
-        user: result.user
+        user: result.user,
+        rotation: result.rotation
       });
     } catch (error) {
       logSecurityEvent(LOG_LEVELS.WARN, SECURITY_EVENTS.TOKEN_REFRESH, {
@@ -274,38 +269,17 @@ router.post("/logout",
   authRequired,
   async (req, res, next) => {
     try {
-      // Blacklist current token
-      if (req.token) {
-        logout(req.token);
-      }
-
-      // Clear cookies with proper names and settings
-      res.clearCookie("token", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        path: "/"
-      });
-      res.clearCookie("refreshToken", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        path: "/"
-      });
-      res.clearCookie("sessionID", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        path: "/"
-      });
-      res.clearCookie("csrfToken", {
-        httpOnly: false,
-        secure: true,
-        sameSite: "none",
-        path: "/"
+      await logout({
+        accessToken: req.token,
+        refreshToken: req.cookies?.refreshToken
       });
 
-      // Cập nhật trạng thái offline
+      res.clearCookie("accessToken", buildCookieOptions(0));
+      res.clearCookie("refreshToken", buildCookieOptions(0));
+      res.clearCookie("token", buildCookieOptions(0));
+      res.clearCookie("sessionID", buildCookieOptions(0));
+      res.clearCookie("csrfToken", buildCookieOptions(0, { httpOnly: false }));
+
       if (req.user) {
         await User.findByIdAndUpdate(req.user._id, {
           isOnline: false,
@@ -313,13 +287,13 @@ router.post("/logout",
         });
       }
 
-      // Log logout event
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.LOGOUT, {
-        userId: req.user?.id,
+        userId: req.user?._id,
         ip: req.ip
       }, req);
-
-      res.json({ message: "Đăng xuất thành công" });
+      res.json({
+        success: true
+      });
     } catch (error) {
       next(error);
     }
@@ -427,7 +401,7 @@ router.get("/me",
   authRequired,
   async (req, res, next) => {
     try {
-      // Log security event
+// Log security event
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.ADMIN_ACTION, {
         action: 'get_current_user',
         userId: req.user._id,
@@ -480,7 +454,7 @@ router.post("/heartbeat",
   authRequired,
   async (req, res, next) => {
     try {
-      // Update user's last seen timestamp
+// Update user's last seen timestamp
       req.user.lastSeen = new Date();
       await req.user.save();
 

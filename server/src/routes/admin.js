@@ -1,4 +1,5 @@
 import express from "express";
+import { getClientAgent } from "../utils/clientAgent.js";
 import mongoose from "mongoose";
 import User from "../models/User.js";
 import Post from "../models/Post.js";
@@ -34,7 +35,7 @@ const adminRequired = async (req, res, next) => {
       await AuditLog.logAction(req.user._id, 'login_admin', {
         result: 'failed',
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
+        clientAgent: getClientAgent(req),
         reason: 'Insufficient permissions'
       });
       return res.status(403).json({ error: "Chỉ admin mới có quyền truy cập" });
@@ -45,7 +46,7 @@ const adminRequired = async (req, res, next) => {
       await AuditLog.logAction(req.user._id, 'login_admin', {
         result: 'failed',
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
+        clientAgent: getClientAgent(req),
         reason: 'Admin account is banned'
       });
       return res.status(403).json({ error: "Tài khoản admin bị cấm" });
@@ -75,7 +76,7 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, asyn
       await AuditLog.logAction(req.user._id, 'ban_user', {
         result: 'failed',
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
+        clientAgent: getClientAgent(req),
         reason: 'Missing required fields'
       });
       return res.status(400).json({ error: "Thiếu thông tin userId hoặc lý do cấm" });
@@ -89,7 +90,7 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, asyn
         targetType: 'user',
         result: 'failed',
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
+        clientAgent: getClientAgent(req),
         reason: 'User not found'
       });
       return res.status(404).json({ error: "User không tồn tại" });
@@ -102,7 +103,7 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, asyn
         targetType: 'user',
         result: 'failed',
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
+        clientAgent: getClientAgent(req),
         reason: 'Attempted self-ban'
       });
       return res.status(400).json({ error: "Không thể tự cấm chính mình" });
@@ -115,7 +116,7 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, asyn
         targetType: 'user',
         result: 'failed',
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
+        clientAgent: getClientAgent(req),
         reason: 'Attempted to ban another admin'
       });
       return res.status(400).json({ error: "Không thể cấm admin" });
@@ -149,7 +150,7 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, asyn
       targetType: 'user',
       result: 'success',
       ipAddress: req.ip,
-      userAgent: req.get('User-Agent'),
+      clientAgent: getClientAgent(req),
       reason: reason,
       beforeData,
       afterData: {
@@ -189,7 +190,7 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, asyn
     await AuditLog.logAction(req.user._id, 'ban_user', {
       result: 'failed',
       ipAddress: req.ip,
-      userAgent: req.get('User-Agent'),
+      clientAgent: getClientAgent(req),
       reason: 'Server error: ' + error.message
     });
     next(error);
@@ -561,7 +562,7 @@ router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, asy
     await AuditLog.logAction(req.user._id, 'view_user_list', {
       result: 'success',
       ipAddress: req.ip,
-      userAgent: req.get('User-Agent'),
+      clientAgent: getClientAgent(req),
       details: {
         page,
         limit,
@@ -586,7 +587,7 @@ router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, asy
     await AuditLog.logAction(req.user._id, 'view_user_list', {
       result: 'failed',
       ipAddress: req.ip,
-      userAgent: req.get('User-Agent'),
+      clientAgent: getClientAgent(req),
       reason: 'Server error: ' + e.message
     });
     next(e);
@@ -940,7 +941,7 @@ router.get("/audit-logs", adminRateLimit, userCache, authRequired, adminRequired
     await AuditLog.logAction(req.user._id, 'view_admin_stats', {
       result: 'success',
       ipAddress: req.ip,
-      userAgent: req.get('User-Agent'),
+      clientAgent: getClientAgent(req),
       details: { endpoint: 'audit-logs', page, limit, total }
     });
     
@@ -959,7 +960,7 @@ router.get("/audit-logs", adminRateLimit, userCache, authRequired, adminRequired
     await AuditLog.logAction(req.user._id, 'view_admin_stats', {
       result: 'failed',
       ipAddress: req.ip,
-      userAgent: req.get('User-Agent'),
+      clientAgent: getClientAgent(req),
       reason: 'Server error: ' + error.message
     });
     next(error);
@@ -978,7 +979,7 @@ router.get("/suspicious-activities", adminRateLimit, noCache, authRequired, admi
     await AuditLog.logAction(req.user._id, 'view_admin_stats', {
       result: 'success',
       ipAddress: req.ip,
-      userAgent: req.get('User-Agent'),
+      clientAgent: getClientAgent(req),
       details: { endpoint: 'suspicious-activities', timeframe }
     });
     
@@ -991,7 +992,7 @@ router.get("/suspicious-activities", adminRateLimit, noCache, authRequired, admi
     await AuditLog.logAction(req.user._id, 'view_admin_stats', {
       result: 'failed',
       ipAddress: req.ip,
-      userAgent: req.get('User-Agent'),
+      clientAgent: getClientAgent(req),
       reason: 'Server error: ' + error.message
     });
     next(error);

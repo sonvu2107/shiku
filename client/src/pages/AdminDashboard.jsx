@@ -4,7 +4,6 @@ import APIMonitoring from "../components/APIMonitoring";
 import RoleManagement from "../components/RoleManagement";
 import VerifiedBadge from "../components/VerifiedBadge";
 import { api } from "../api";
-import { safariDELETE } from "../utils/safariAPI.js";
 import { useNavigate } from "react-router-dom";
 import { useAdminData } from "../hooks/useAdminData";
 import { useAdminActions } from "../hooks/useAdminActions";
@@ -183,7 +182,9 @@ export default function AdminDashboard() {
   async function deleteUser(userId) {
     if (!window.confirm("Bạn có chắc muốn xóa người dùng này? Tất cả bài viết và bình luận của họ sẽ bị xóa!")) return;
     try {
-      await safariDELETE(`/api/admin/users/${userId}`, "xóa người dùng");
+      await api(`/api/admin/users/${userId}`, {
+      method: "DELETE"
+    });
       await refreshAllData();
       alert("Đã xóa người dùng!");
     } catch (e) {

@@ -30,39 +30,35 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
   
-  // Lấy CSRF token cho các request không phải GET
-  if (method !== 'GET') {
-    const hasToken = await ensureCSRFToken();
-    if (hasToken) {
-      const csrf = await getCSRFToken();
-      if (csrf) {
-        headers['X-CSRF-Token'] = csrf;
-      } else {
-        console.error(`Failed to get CSRF token for ${method} request to ${path}`);
-        throw new Error('CSRF token not available. Please refresh the page and try again.');
-      }
+  if (method !== "GET") {
+    await ensureCSRFToken();
+    const csrf = await getCSRFToken();
+    if (!csrf) {
+      console.error(`Failed to get CSRF token for ${method} request to ${path}`);
+      throw new Error("CSRF token not available. Please refresh the page and try again.");
     }
+    headers["X-CSRF-Token"] = csrf; // ✅ Chỉ dùng 1 header
   }
   
-  // Thực hiện request - Safari-compatible config
+// Chuẩn bị request options
   const isFormData = body instanceof FormData;
-  
-  const requestOptions = {
-    method,
-    headers: {
-      ...headers,
-      'Accept': 'application/json', // Explicit header for Safari
-      // Removed Cache-Control header to prevent CORS issues
-    },
-    credentials: "include", // Bao gồm cookies trong request
-    mode: "cors", // Đảm bảo CORS mode
-    body: body ? (isFormData ? body : (typeof body === 'string' ? body : JSON.stringify(body))) : undefined,
+
+  const requestHeaders = {
+    ...headers,
+    Accept: "application/json"
   };
 
-  // Chỉ set Content-Type cho JSON, không set cho FormData
   if (!isFormData) {
-    requestOptions.headers["Content-Type"] = "application/json";
+    requestHeaders["Content-Type"] = "application/json";
   }
+
+  const requestOptions = {
+    method,
+    headers: requestHeaders,
+    credentials: "include",
+    mode: "cors",
+    body: body ? (isFormData ? body : (typeof body === "string" ? body : JSON.stringify(body))) : undefined,
+  };
 
   const res = await fetch(`${API_URL}${path}`, requestOptions);
 
@@ -103,47 +99,22 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
     }
     
     // Nếu là lỗi 403 (CSRF token invalid), thử refresh CSRF token
-    if (res.status === 403 && method !== 'GET') {
+    if (res.status === 403 && method !== "GET") {
       console.warn("CSRF token validation failed. Attempting to refresh CSRF token...");
-      
-      // Kiểm tra trạng thái CSRF trước
-      try {
-        const csrfStatusRes = await fetch(`${API_URL}/api/csrf-status`, {
-          credentials: "include",
-          mode: "cors",
-          cache: 'no-cache' // Safari cache fix
-        });
-        if (csrfStatusRes.ok) {
-          const csrfStatus = await csrfStatusRes.json();
-        }
-      } catch (e) {
-        console.error("Failed to check CSRF status:", e);
-      }
-      
-      // Lấy token mới
+
       const newCSRFToken = await getCSRFToken(true); // Force refresh
-      
+
       if (newCSRFToken) {
-        headers['X-CSRF-Token'] = newCSRFToken;
-        
-        // Safari-specific retry configuration
-        const retryHeaders = {
-          ...requestOptions.headers, 
-          ...headers,
-          'X-Requested-With': 'XMLHttpRequest' // Safari compatibility
-        };
-        
+        headers["X-CSRF-Token"] = newCSRFToken;
+
         const retryRes = await fetch(`${API_URL}${path}`, {
           ...requestOptions,
-          headers: retryHeaders,
-          mode: "cors",
-          cache: 'no-cache' // Safari cache fix
+          headers: { ...requestOptions.headers, ...headers },
+          mode: "cors"
         });
-        
+
         if (retryRes.ok) {
           return await retryRes.json();
-        } else {
-          console.error("Retry with new CSRF token still failed:", await retryRes.text());
         }
       } else {
         console.error("Failed to get new CSRF token.");

@@ -1,0 +1,9 @@
+process.env.NODE_ENV = process.env.NODE_ENV || "test";
+process.env.CSRF_FEATURE_FLAG = process.env.CSRF_FEATURE_FLAG ?? "true";
+process.env.ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "test-access-secret";
+process.env.REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "test-refresh-secret";
+process.env.JWT_SECRET = process.env.JWT_SECRET || "legacy-test-secret";
+process.env.DISABLE_SERVER_START = "true";
+process.env.DISABLE_API_TRACKING = "true";
+process.env.DISABLE_API_MONITORING = "true";
+process.env.DISABLE_API_TRACKING = "true";

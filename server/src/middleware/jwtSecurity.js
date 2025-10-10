@@ -1,183 +1,259 @@
+// Load environment variables early for secrets used below
+import 'dotenv/config';
 import jwt from "jsonwebtoken";
+import { v4 as uuidv4 } from "uuid";
 import User from "../models/User.js";
+import {
+  persistRefreshToken,
+  getRefreshToken,
+  markLegacySecret,
+  revokeRefreshToken
+} from "../services/refreshTokenStore.js";
 
 /**
- * JWT Security Middleware với Refresh Token và Blacklist
- * Cải thiện bảo mật JWT với cơ chế refresh token và token blacklist
+ * JWT security helpers implementing rotation, revocation, and CSRF-aligned cookie flow.
+ * Aligns with OWASP ASVS section 2.5.3 (session management) and 2.5.4 (token revocation).
  */
 
-// Token blacklist (trong production nên dùng Redis)
 const tokenBlacklist = new Set();
 
-// Cau hinh JWT
-const JWT_CONFIG = {
-  accessTokenExpiry: '7d', // Tang tu 3 ngay len 7 ngay
-  refreshTokenExpiry: '30d', // 30 ngay
-  algorithm: 'HS256'
-};
+const JWT_ALGORITHM = process.env.JWT_ALGORITHM || "HS256";
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || process.env.JWT_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET;
+const REFRESH_SECRET_OLD = process.env.REFRESH_SECRET_OLD;
 
-/**
- * Tạo access token
- * @param {Object} payload - Payload cho token
- * @returns {string} - Access token
- */
-export const generateAccessToken = (payload) => {
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: JWT_CONFIG.accessTokenExpiry,
-    algorithm: JWT_CONFIG.algorithm
+// 15 minutes access token lifetime (short-lived to reduce replay window)
+const ACCESS_TOKEN_TTL_SECONDS = Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 15 * 60;
+// 30 days refresh token lifetime keeps parity with the previous implementation
+const REFRESH_TOKEN_TTL_SECONDS = Number(process.env.REFRESH_TOKEN_TTL_SECONDS) || 30 * 24 * 60 * 60;
+
+if (!ACCESS_TOKEN_SECRET || !REFRESH_TOKEN_SECRET) {
+  console.warn(
+    "[SECURITY][JWT] Missing ACCESS_TOKEN_SECRET/REFRESH_TOKEN_SECRET env vars; falling back to JWT_SECRET. " +
+      "Please update configuration to dedicated secrets."
+  );
+}
+
+const signToken = (payload, secret, expiresInSeconds) =>
+  jwt.sign(payload, secret, {
+    expiresIn: expiresInSeconds,
+    algorithm: JWT_ALGORITHM
   });
-};
 
 /**
- * Tạo refresh token
- * @param {Object} payload - Payload cho token
- * @returns {string} - Refresh token
+ * Issue an access token (always embeds type=access).
+ * @param {Object} payload
+ * @returns {string}
  */
-export const generateRefreshToken = (payload) => {
-  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, {
-    expiresIn: JWT_CONFIG.refreshTokenExpiry,
-    algorithm: JWT_CONFIG.algorithm
-  });
+export const generateAccessToken = (payload = {}) => {
+  const tokenPayload = {
+    ...payload,
+    type: "access"
+  };
+
+  return signToken(tokenPayload, ACCESS_TOKEN_SECRET, ACCESS_TOKEN_TTL_SECONDS);
 };
 
 /**
- * Verify access token
- * @param {string} token - Access token
- * @returns {Object} - Decoded payload
+ * Issue a refresh token with jti tracking for revocation.
+ * @param {Object} payload
+ * @param {Object} [options]
+ * @param {boolean} [options.legacy=false]
+ * @returns {Promise<{token: string, jti: string, issuedAt: Date, expiresAt: Date}>}
+ */
+export const generateRefreshToken = async (payload = {}, { legacy = false } = {}) => {
+  const jti = uuidv4();
+  const issuedAt = new Date();
+  const expiresAt = new Date(issuedAt.getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000);
+
+  const tokenPayload = {
+    ...payload,
+    type: "refresh",
+    jti
+  };
+
+  const token = signToken(tokenPayload, REFRESH_TOKEN_SECRET, REFRESH_TOKEN_TTL_SECONDS);
+
+  await persistRefreshToken({
+    jti,
+    userId: payload.id,
+    issuedAt,
+    expiresAt,
+    legacy
+  });
+
+  return { token, jti, issuedAt, expiresAt };
+};
+
+const isTokenBlacklisted = (token) => tokenBlacklist.has(token);
+
+/**
+ * Verify access token and enforce token type.
+ * @param {string} token
+ * @returns {Object}
  */
 export const verifyAccessToken = (token) => {
+  if (!token) {
+    throw new Error("Access token missing");
+  }
+
+  if (isTokenBlacklisted(token)) {
+    throw new Error("Access token revoked");
+  }
+
+  const payload = jwt.verify(token, ACCESS_TOKEN_SECRET, {
+    algorithms: [JWT_ALGORITHM]
+  });
+
+  if (payload.type !== "access") {
+    throw new Error("Invalid token type");
+  }
+
+  return payload;
+};
+
+const decodeRefreshTokenWithFallback = (token) => {
   try {
-    // Kiểm tra token có trong blacklist không
-    if (tokenBlacklist.has(token)) {
-      throw new Error('Token đã bị thu hồi');
+    const payload = jwt.verify(token, REFRESH_TOKEN_SECRET, {
+      algorithms: [JWT_ALGORITHM]
+    });
+    return { payload, usedSecret: "primary" };
+  } catch (primaryError) {
+    if (!REFRESH_SECRET_OLD) {
+      throw primaryError;
     }
 
-    return jwt.verify(token, process.env.JWT_SECRET, {
-      algorithms: [JWT_CONFIG.algorithm]
+    const payload = jwt.verify(token, REFRESH_SECRET_OLD, {
+      algorithms: [JWT_ALGORITHM]
     });
-  } catch (error) {
-    throw new Error('Token không hợp lệ hoặc đã hết hạn');
+    return { payload, usedSecret: "legacy" };
   }
 };
 
 /**
- * Verify refresh token
- * @param {string} token - Refresh token
- * @returns {Object} - Decoded payload
+ * Verify refresh token (with dual-secret migration support).
+ * @param {string} token
+ * @returns {Promise<{payload: Object, legacy: boolean, needsRotation: boolean}>}
  */
-export const verifyRefreshToken = (token) => {
-  try {
-    return jwt.verify(token, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, {
-      algorithms: [JWT_CONFIG.algorithm]
-    });
-  } catch (error) {
-    throw new Error('Refresh token không hợp lệ hoặc đã hết hạn');
+export const verifyRefreshToken = async (token) => {
+  if (!token) {
+    throw new Error("Refresh token missing");
   }
-};
 
-/**
- * Thêm token vào blacklist
- * @param {string} token - Token cần blacklist
- */
-export const blacklistToken = (token) => {
-  tokenBlacklist.add(token);
-  
-  // Cleanup blacklist sau 24 giờ (trong production nên dùng Redis TTL)
-  setTimeout(() => {
-    tokenBlacklist.delete(token);
-  }, 24 * 60 * 60 * 1000);
-};
+  const { payload, usedSecret } = decodeRefreshTokenWithFallback(token);
 
-/**
- * Kiểm tra token có trong blacklist không
- * @param {string} token - Token cần kiểm tra
- * @returns {boolean} - True nếu token bị blacklist
- */
-export const isTokenBlacklisted = (token) => {
-  return tokenBlacklist.has(token);
-};
+  if (payload.type !== "refresh") {
+    throw new Error("Invalid refresh token type");
+  }
 
-/**
- * Tạo cặp access và refresh token
- * @param {Object} user - User object
- * @returns {Object} - Cặp tokens
- */
-export const generateTokenPair = (user) => {
-  const payload = {
-    id: user._id,
-    role: user.role,
-    type: 'access'
+  const result = {
+    payload,
+    legacy: usedSecret === "legacy",
+    needsRotation: usedSecret === "legacy" || !payload.jti
   };
 
-  const refreshPayload = {
-    id: user._id,
-    type: 'refresh'
+  if (!payload.jti) {
+    console.warn("[SECURITY][JWT] Refresh token missing jti; forcing rotation for user", payload.id);
+    return result;
+  }
+
+  let metadata = await getRefreshToken(payload.jti);
+  if (!metadata) {
+    const issuedAt = payload.iat ? new Date(payload.iat * 1000) : new Date();
+    const expiresAt = payload.exp
+      ? new Date(payload.exp * 1000)
+      : new Date(Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000);
+
+    await persistRefreshToken({
+      jti: payload.jti,
+      userId: payload.id,
+      issuedAt,
+      expiresAt,
+      legacy: usedSecret === "legacy"
+    });
+    metadata = await getRefreshToken(payload.jti);
+  }
+
+  if (metadata?.revoked) {
+    throw new Error("Refresh token revoked");
+  }
+
+  if (metadata?.expiresAt && metadata.expiresAt.getTime() <= Date.now()) {
+    await revokeRefreshToken(payload.jti, "expired");
+    throw new Error("Refresh token expired");
+  }
+
+  if (usedSecret === "legacy") {
+    await markLegacySecret(payload.jti);
+  }
+
+  return result;
+};
+
+/**
+ * Create access + refresh token pair and persist metadata.
+ * @param {Object} user
+ * @returns {Promise<{accessToken: string, refreshToken: string, refreshTokenJti: string, refreshTokenExpiresAt: Date}>}
+ */
+export const generateTokenPair = async (user) => {
+  const basePayload = {
+    id: user._id?.toString() || user.id,
+    role: user.role
   };
+
+  const accessToken = generateAccessToken(basePayload);
+  const refreshTokenInfo = await generateRefreshToken(basePayload);
 
   return {
-    accessToken: generateAccessToken(payload),
-    refreshToken: generateRefreshToken(refreshPayload)
+    accessToken,
+    refreshToken: refreshTokenInfo.token,
+    refreshTokenJti: refreshTokenInfo.jti,
+    refreshTokenExpiresAt: refreshTokenInfo.expiresAt
   };
 };
 
 /**
- * Middleware xác thực access token
+ * Strict auth middleware – requires valid access token (cookie or bearer header).
  */
 export const authRequired = async (req, res, next) => {
   try {
-    // Lấy token từ cookie hoặc header
     let token = req.cookies?.accessToken;
-    
     if (!token) {
       const header = req.headers.authorization || "";
       token = header.startsWith("Bearer ") ? header.slice(7) : null;
     }
 
     if (!token) {
-      return res.status(401).json({ 
-        error: "Vui lòng đăng nhập",
-        code: "NO_TOKEN"
-      });
+      return res.status(401).json({ error: "Vui lòng đăng nhập", code: "NO_TOKEN" });
     }
 
-    // Verify token
     const payload = verifyAccessToken(token);
-    
-    // Lấy user từ database
     const user = await User.findById(payload.id).select("-password");
     if (!user) {
-      return res.status(401).json({ 
-        error: "Token không hợp lệ",
-        code: "INVALID_TOKEN"
-      });
+      return res.status(401).json({ error: "Token không hợp lệ", code: "INVALID_TOKEN" });
     }
 
-    // Kiểm tra user có bị ban không
     if (user.isBanned) {
-      return res.status(403).json({ 
-        error: "Tài khoản đã bị cấm",
-        code: "USER_BANNED"
-      });
+      return res.status(403).json({ error: "Tài khoản đã bị cấm", code: "USER_BANNED" });
     }
 
     req.user = user;
     req.token = token;
+    req.authContext = { accessTokenPayload: payload };
     next();
   } catch (error) {
-    return res.status(401).json({ 
-      error: error.message,
-      code: "TOKEN_ERROR"
-    });
+    return res
+      .status(401)
+      .json({ error: error.message || "Token không hợp lệ", code: "TOKEN_ERROR" });
   }
 };
 
 /**
- * Middleware xác thực tùy chọn
+ * Optional auth middleware – attaches user when present.
  */
 export const authOptional = async (req, res, next) => {
   try {
     let token = req.cookies?.accessToken;
-    
     if (!token) {
       const header = req.headers.authorization || "";
       token = header.startsWith("Bearer ") ? header.slice(7) : null;
@@ -190,9 +266,10 @@ export const authOptional = async (req, res, next) => {
         if (user && !user.isBanned) {
           req.user = user;
           req.token = token;
+          req.authContext = { accessTokenPayload: payload };
         }
       } catch (error) {
-        // Ignore token errors trong authOptional
+        // Ignore optional auth errors, consumer can fall back to anonymous state.
       }
     }
 
@@ -202,87 +279,135 @@ export const authOptional = async (req, res, next) => {
   }
 };
 
-/**
- * Middleware kiểm tra quyền admin
- */
 export const adminOnly = (req, res, next) => {
   if (req.user?.role === "admin") {
     return next();
   }
-  return res.status(403).json({ 
+  return res.status(403).json({
     error: "Chỉ admin mới có quyền truy cập",
     code: "ADMIN_REQUIRED"
   });
 };
 
 /**
- * Refresh access token
- * @param {string} refreshToken - Refresh token
- * @returns {Object} - New access token
+ * Refresh token flow with rotation + revocation.
+ * @param {string} refreshToken
+ * @returns {Promise<Object>}
  */
 export const refreshAccessToken = async (refreshToken) => {
-  try {
-    const payload = verifyRefreshToken(refreshToken);
-    
-    // Lấy user từ database
-    const user = await User.findById(payload.id).select("-password");
-    if (!user || user.isBanned) {
-      throw new Error('User không tồn tại hoặc đã bị cấm');
+  const verification = await verifyRefreshToken(refreshToken);
+  const { payload } = verification;
+
+  const user = await User.findById(payload.id).select("-password");
+  if (!user || user.isBanned) {
+    throw new Error("User không tồn tại hoặc đã bị cấm");
+  }
+
+  if (payload.jti) {
+    try {
+      await revokeRefreshToken(payload.jti, verification.legacy ? "legacy-rotation" : "rotated");
+    } catch (error) {
+      console.warn("[SECURITY][JWT] Failed to revoke refresh token", payload.jti, error.message);
+    }
+  }
+
+  const tokens = await generateTokenPair(user);
+
+  return {
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    refreshTokenJti: tokens.refreshTokenJti,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    },
+    rotation: {
+      rotatedFrom: payload.jti || null,
+      legacy: verification.legacy,
+      needsRotation: verification.needsRotation
+    }
+  };
+};
+
+/**
+ * Logout helper – blacklist access token & revoke refresh token.
+ * @param {Object} params
+ * @param {string} [params.accessToken]
+ * @param {string} [params.refreshToken]
+ */
+export const logout = async ({ accessToken, refreshToken } = {}) => {
+  if (accessToken) {
+    tokenBlacklist.add(accessToken);
+    setTimeout(() => tokenBlacklist.delete(accessToken), 24 * 60 * 60 * 1000);
+  }
+
+  if (refreshToken) {
+    try {
+      const verification = await verifyRefreshToken(refreshToken);
+      if (verification.payload.jti) {
+        await revokeRefreshToken(verification.payload.jti, "logout");
+      }
+    } catch (error) {
+      console.warn(
+        "[SECURITY][JWT] Failed to revoke refresh token on logout",
+        error.message
+      );
     }
 
-    // Tạo access token mới
-    const newPayload = {
-      id: user._id,
-      role: user.role,
-      type: 'access'
-    };
+    // Try to revoke/delete from a persistent RefreshToken model if it exists.
+    // This is optional — projects using a DB-backed refresh token store should
+    // implement `models/RefreshToken.js` exporting a Mongoose model.
+    try {
+      // Decode token to find jti when possible
+      const decoded = jwt.decode(refreshToken) || {};
+      const jti = decoded.jti;
 
-    return {
-      accessToken: generateAccessToken(newPayload),
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
+      try {
+        const mod = await import("../models/RefreshToken.js").catch(() => null);
+        const RefreshTokenModel = mod ? (mod.default || mod.RefreshToken || mod.RefreshTokenModel) : null;
+        if (RefreshTokenModel) {
+          if (jti) {
+            // Prefer marking revoked by jti
+            await RefreshTokenModel.findOneAndUpdate({ jti }, { revoked: true }).exec();
+          } else {
+            // Fallback: remove by token string (if stored)
+            await RefreshTokenModel.deleteOne({ token: refreshToken }).exec();
+          }
+        }
+      } catch (err) {
+        // Model not present or DB error — don't fail logout
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[SECURITY][JWT] No RefreshToken model or failed DB revoke:', err.message);
+        }
       }
-    };
-  } catch (error) {
-    throw new Error('Refresh token không hợp lệ');
+    } catch (err) {
+      // ignore decode errors
+    }
   }
 };
 
 /**
- * Logout - thêm token vào blacklist
- * @param {string} token - Token cần logout
- */
-export const logout = (token) => {
-  if (token) {
-    blacklistToken(token);
-  }
-};
-
-/**
- * Middleware kiểm tra rate limit cho refresh token
+ * Refresh token rate limiter (in-memory fallback).
  */
 export const refreshTokenLimiter = (req, res, next) => {
-  // Giới hạn 5 lần refresh mỗi 15 phút
   const key = `refresh:${req.ip}`;
   const now = Date.now();
-  const windowMs = 15 * 60 * 1000; // 15 phút
+  const windowMs = 15 * 60 * 1000;
   const maxAttempts = 5;
 
-  // Trong production nên dùng Redis
   if (!global.refreshAttempts) {
     global.refreshAttempts = new Map();
   }
 
   const attempts = global.refreshAttempts.get(key) || [];
-  const validAttempts = attempts.filter(time => now - time < windowMs);
+  const validAttempts = attempts.filter((time) => now - time < windowMs);
 
   if (validAttempts.length >= maxAttempts) {
     return res.status(429).json({
-      error: 'Quá nhiều lần refresh token, vui lòng thử lại sau 15 phút',
-      code: 'REFRESH_RATE_LIMIT'
+      error: "Quá nhiều lần refresh token, vui lòng thử lại sau 15 phút",
+      code: "REFRESH_RATE_LIMIT"
     });
   }
 

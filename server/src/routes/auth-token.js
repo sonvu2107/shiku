@@ -42,14 +42,14 @@ tempRouter.post("/login-token", async (req, res, next) => {
     res.cookie('token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', // Safari-friendly sameSite setting
+      sameSite: 'lax', // Use lax to balance CSRF protection and cross-site navigation
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', // Safari-friendly sameSite setting
+      sameSite: 'lax', // Use lax to balance CSRF protection and cross-site navigation
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
     
@@ -109,14 +109,14 @@ tempRouter.post("/register-token", async (req, res, next) => {
     res.cookie('token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', // Safari-friendly sameSite setting
+      sameSite: 'lax', // Use lax to balance CSRF protection and cross-site navigation
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', // Safari-friendly sameSite setting
+      sameSite: 'lax', // Use lax to balance CSRF protection and cross-site navigation
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
     

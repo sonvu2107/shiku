@@ -1,3 +1,5 @@
+import { getClientAgent } from "../utils/clientAgent.js";
+
 /**
  * Rate Limit Headers Middleware
  * Thêm rate limit headers vào response để client biết trạng thái rate limiting
@@ -48,7 +50,7 @@ export const logRateLimitStatus = (req, res, next) => {
         remaining,
         current,
         resetTime: new Date(resetTime).toISOString(),
-        userAgent: req.get('User-Agent')
+        clientAgent: getClientAgent(req)
       });
     }
     
@@ -60,7 +62,7 @@ export const logRateLimitStatus = (req, res, next) => {
         remaining,
         current,
         resetTime: new Date(resetTime).toISOString(),
-        userAgent: req.get('User-Agent')
+        clientAgent: getClientAgent(req)
       });
     }
   }

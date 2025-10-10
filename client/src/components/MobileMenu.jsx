@@ -17,6 +17,7 @@ import {
   Image,
   Bookmark
 } from "lucide-react";
+import { removeAuthToken } from "../utils/auth.js";
 
 /**
  * MobileMenu - Component menu hamburger cho mobile
@@ -35,7 +36,7 @@ export default function MobileMenu({ user, setUser }) {
       // Silent handling for logout error
     }
     
-    localStorage.removeItem("token");
+    removeAuthToken();
     if (setUser) setUser(null);
     navigate("/");
     setIsOpen(false);

@@ -1,4 +1,5 @@
 import fs from "fs";
+import { getClientAgent } from "../utils/clientAgent.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -71,7 +72,7 @@ const createLogEntry = (level, event, data = {}, req = null) => {
         method: req.method,
         url: req.url,
         ip: req.ip,
-        userAgent: req.get('User-Agent'),
+        clientAgent: getClientAgent(req),
         userId: req.user?.id || null,
         userRole: req.user?.role || null
       } : null
@@ -121,7 +122,7 @@ export const requestLogger = (req, res, next) => {
       method: req.method,
       url: req.url,
       ip: req.ip,
-      userAgent: req.get('User-Agent'),
+      clientAgent: getClientAgent(req),
       userId: req.user?.id || null,
       userRole: req.user?.role || null,
       // Không log body để tránh leak sensitive data
@@ -332,7 +333,7 @@ export const rateLimitLogger = (req, res, next) => {
         method: req.method,
         ip: req.ip,
         userId: req.user?.id,
-        userAgent: req.get('User-Agent')
+        clientAgent: getClientAgent(req)
       }, req);
     }
     

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { api } from "../api";
-import { handleSafariCSRFError } from "../utils/csrfToken.js";
 import { 
   Heart, 
   MessageCircle, 
@@ -73,9 +72,7 @@ export default function CommentItem({
       setIsLiked(res.isLiked);
       setLikeCount(res.likeCount);
     } catch (error) {
-      // Enhanced error handling for Safari CSRF issues
-      const errorMessage = handleSafariCSRFError(error, "thích bình luận");
-      console.error("Like error:", errorMessage);
+      console.error("Like error:", error);
     } finally {
       setLoading(false);
     }
@@ -97,9 +94,7 @@ export default function CommentItem({
       setEmoteCount(res.emoteCount);
       setShowEmotePicker(false);
     } catch (error) {
-      // Enhanced error handling for Safari CSRF issues
-      const errorMessage = handleSafariCSRFError(error, "thêm cảm xúc");
-      console.error("Emote error:", errorMessage);
+      console.error("Emote error:", error);
     } finally {
       setLoading(false);
     }
@@ -116,7 +111,7 @@ export default function CommentItem({
   const userEmote = getUserEmote();
 
   return (
-    <div className={`${isReply ? 'ml-8 mt-2' : ''} border-b border-gray-100 pb-3`}>
+    <div className={`${isReply ? 'ml-8 mt-2' : ''} border-b border-gray-100 pb-3 relative overflow-visible`}>
       {/* Comment Content */}
       <div className="flex gap-3">
         {/* Avatar */}
@@ -181,7 +176,7 @@ export default function CommentItem({
 
               {/* Emote Picker */}
               {showEmotePicker && (
-                <div className="absolute top-8 left-0 bg-white border rounded-lg shadow-lg p-2 z-10">
+                <div className="absolute top-8 left-0 bg-white border rounded-lg shadow-lg p-2 z-20">
                   <div className="flex gap-2">
                     {Object.entries(emoteConfig).map(([type, config]) => {
                       const Icon = config.icon;
@@ -228,7 +223,7 @@ export default function CommentItem({
                 </button>
 
                 {showDropdown && (
-                  <div className="absolute right-0 top-8 bg-white border rounded-lg shadow-lg py-1 z-10 min-w-[120px]">
+                  <div className="absolute right-0 top-8 bg-white border rounded-lg shadow-lg py-1 z-[2000] min-w-[120px]">
                     <button
                       onClick={() => {
                         onEdit(comment._id, comment.content);
@@ -278,3 +273,6 @@ export default function CommentItem({
     </div>
   );
 }
+
+
+

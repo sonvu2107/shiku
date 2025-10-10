@@ -26,6 +26,7 @@ import {
 import { api } from '../api';
 import PostCard from '../components/PostCard';
 import PostCreator from '../components/PostCreator';
+import { getAccessToken } from '../utils/tokenManager.js';
 
 /**
  * GroupDetail Page - Trang chi tiết nhóm
@@ -423,7 +424,7 @@ const GroupDetail = () => {
 
   // Load group when user context is ready
   useEffect(() => {
-    const hasToken = localStorage.getItem('token');
+    const hasToken = !!getAccessToken();
     
     if (hasToken && !user) {
       // Has token but user not loaded yet, wait

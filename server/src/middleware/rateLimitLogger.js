@@ -1,3 +1,5 @@
+import { getClientAgent } from "../utils/clientAgent.js";
+
 /**
  * Rate Limit Logger Middleware
  * Log thông tin rate limit sau khi rate limiter chạy
@@ -21,7 +23,7 @@ export const rateLimitLogger = (req, res, next) => {
         current,
         url: req.url,
         method: req.method,
-        userAgent: req.get('User-Agent')
+        clientAgent: getClientAgent(req)
       });
     }
     
@@ -34,7 +36,7 @@ export const rateLimitLogger = (req, res, next) => {
         current,
         url: req.url,
         method: req.method,
-        userAgent: req.get('User-Agent')
+        clientAgent: getClientAgent(req)
       });
     }
   }

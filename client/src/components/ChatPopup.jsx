@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import CallModal from "./CallModal";
 import CallIncomingModal from "./CallIncomingModal";
 import { api } from "../api";
-import { safariPOST } from "../utils/safariAPI.js";
 import { getUserInfo } from "../utils/auth";
 import socketService from "../socket";
 import callManager from "../utils/callManager";
@@ -237,7 +236,10 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                               ].map(({ type, Icon, color }) => (
                                 <button key={type} onClick={async () => {
                                   try {
-                                    await safariPOST(`/api/messages/conversations/${conversation._id}/messages/${msg._id}/react`, { type }, "phản ứng tin nhắn");
+                                    await api(`/api/messages/conversations/${conversation._id}/messages/${msg._id}/react`, {
+      method: "POST",
+      body: { type }
+    });
                                   } catch (e) {}
                                 }} className={`p-1 ${color}`} title={type}>
                                   <Icon size={16} />
@@ -304,7 +306,10 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                               ].map(({ type, Icon, color }) => (
                                 <button key={type} onClick={async () => {
                                   try {
-                                    await safariPOST(`/api/messages/conversations/${conversation._id}/messages/${msg._id}/react`, { type }, "phản ứng tin nhắn");
+                                    await api(`/api/messages/conversations/${conversation._id}/messages/${msg._id}/react`, {
+      method: "POST",
+      body: { type }
+    });
                                   } catch (e) {}
                                 }} className={`p-1 ${color}`} title={type}>
                                   <Icon size={16} />

@@ -1,4 +1,5 @@
 import { io } from "socket.io-client";
+import { getAccessToken, getValidAccessToken } from "./utils/tokenManager.js";
 
 // URL của Socket.IO server
 const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
@@ -101,6 +102,7 @@ class SocketService {
   constructor() {
     this.socket = null; // Socket.IO client instance
     this.currentConversation = null; // ID của conversation hiện tại
+    this.currentUser = null; // User context for reconnection
   }
 
   /**
@@ -109,28 +111,35 @@ class SocketService {
    * @returns {Object} Socket instance
    */
   connect(user) {
-    // Disconnect socket cũ nếu có
+    if (user) {
+      this.currentUser = user;
+    }
+
     if (this.socket) {
+      if (this.socket.connected || this.socket.connecting) {
+        return this.socket;
+      }
       this.disconnect();
     }
 
-    // Tạo kết nối mới với authentication token
-    const token = localStorage.getItem('accessToken');
+    const token = getAccessToken();
     if (!token) {
+      console.warn("[socket] Missing access token, skipping socket connection");
       return null;
     }
+
     this.socket = io(SOCKET_URL, {
       auth: {
-        token: token
+        token
       },
-      transports: ['websocket', 'polling'], // Fallback từ websocket sang polling
+      transports: ["websocket", "polling"],
       autoConnect: true,
       reconnection: true,
-      reconnectionDelay: 500,  // Giảm delay giữa các lần kết nối lại
-      reconnectionDelayMax: 2000, // Giới hạn delay tối đa
-      reconnectionAttempts: 10,  // Tăng số lần thử kết nối
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 2000,
+      reconnectionAttempts: 10,
       maxReconnectionAttempts: 10,
-      timeout: 5000,  // Giảm timeout kết nối
+      timeout: 5000,
       forceNew: false,
       multiplex: true
     });
@@ -139,8 +148,9 @@ class SocketService {
     this.socket.on('connect', () => {
       // Connected to server
       // Join user room để nhận real-time updates
-      if (user && user._id) {
-        this.socket.emit('join-user', user._id);
+      const targetUser = this.currentUser || user;
+      if (targetUser && targetUser._id) {
+        this.socket.emit('join-user', targetUser._id);
       }
     });
     
@@ -251,23 +261,51 @@ class SocketService {
    * Đảm bảo socket được kết nối trước khi thực hiện operation
    */
   async ensureConnection() {
-    if (!this.socket || !this.socket.connected) {
-      // Kiểm tra server status trước
-      const serverRunning = await this.checkServerStatus();
-      if (!serverRunning) {
-        return false;
-      }
-      
-      // Thử reconnect nếu có token
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        this.connect({}); // Reconnect với empty user object
-        return false; // Vẫn return false vì chưa kết nối ngay lập tức
-      } else {
-        return false;
-      }
+    if (this.socket && this.socket.connected) {
+      return true;
     }
-    return true;
+
+    const serverRunning = await this.checkServerStatus();
+    if (!serverRunning) {
+      return false;
+    }
+
+    let token = getAccessToken();
+    if (!token) {
+      token = await getValidAccessToken();
+    }
+
+    if (!token) {
+      return false;
+    }
+
+    this.connect(this.currentUser || {});
+    return this.waitForConnection();
+  }
+
+  async waitForConnection(timeout = 5000) {
+    if (this.socket && this.socket.connected) {
+      return true;
+    }
+
+    if (!this.socket) {
+      return false;
+    }
+
+    return new Promise((resolve) => {
+      const handleConnect = () => {
+        clearTimeout(timer);
+        this.socket.off("connect", handleConnect);
+        resolve(true);
+      };
+
+      const timer = setTimeout(() => {
+        this.socket?.off("connect", handleConnect);
+        resolve(false);
+      }, timeout);
+
+      this.socket.on("connect", handleConnect);
+    });
   }
 
   // ==================== CONVERSATION MANAGEMENT ====================
@@ -276,12 +314,13 @@ class SocketService {
    * Join vào conversation để nhận messages real-time
    * @param {string} conversationId - ID của conversation cần join
    */
-  joinConversation(conversationId) {
+  async joinConversation(conversationId) {
     if (!conversationId) {
       return;
     }
 
-    if (!this.socket || !this.socket.connected) {
+    const connected = await this.ensureConnection();
+    if (!connected || !this.socket) {
       return;
     }
 

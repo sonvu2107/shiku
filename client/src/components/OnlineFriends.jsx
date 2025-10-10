@@ -22,7 +22,10 @@ export default function OnlineFriends({ user }) {
       // Join user room để nhận real-time updates
       socketService.ensureConnection().then(connected => {
         if (connected) {
-          socketService.socket.emit('join-user', user._id);
+          const socket = socketService.socket;
+          if (socket) {
+            socket.emit('join-user', user._id);
+          }
         }
       });
     }
@@ -30,7 +33,8 @@ export default function OnlineFriends({ user }) {
 
   // Lắng nghe real-time updates cho trạng thái online của bạn bè
   useEffect(() => {
-    if (!socketService.socket) return;
+    let isMounted = true;
+    let socketRef = null;
 
     const handleFriendOnline = (data) => {
       setOnlineFriends(prev => {
@@ -58,14 +62,29 @@ export default function OnlineFriends({ user }) {
       });
     };
 
-    socketService.socket.on('friend-online', handleFriendOnline);
-    socketService.socket.on('friend-offline', handleFriendOffline);
+    const attachListeners = async () => {
+      const connected = await socketService.ensureConnection();
+      if (!connected || !isMounted) {
+        return;
+      }
+
+      socketRef = socketService.socket;
+      if (!socketRef) return;
+
+      socketRef.on('friend-online', handleFriendOnline);
+      socketRef.on('friend-offline', handleFriendOffline);
+    };
+
+    attachListeners();
 
     return () => {
-      socketService.socket.off('friend-online', handleFriendOnline);
-      socketService.socket.off('friend-offline', handleFriendOffline);
+      isMounted = false;
+      if (socketRef) {
+        socketRef.off('friend-online', handleFriendOnline);
+        socketRef.off('friend-offline', handleFriendOffline);
+      }
     };
-  }, [socketService.socket]);
+  }, []);
 
   const loadOnlineFriends = async () => {
     try {

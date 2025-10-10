@@ -67,7 +67,7 @@ const auditLogSchema = new mongoose.Schema({
     required: true
   },
   
-  userAgent: {
+  clientAgent: {
     type: String,
     required: false
   },
@@ -124,7 +124,7 @@ auditLogSchema.statics.logAction = async function(adminId, action, options = {})
       details: options.details,
       result: options.result || 'success',
       ipAddress: options.ipAddress || 'unknown',
-      userAgent: options.userAgent,
+      clientAgent: options.clientAgent,
       reason: options.reason,
       beforeData: options.beforeData,
       afterData: options.afterData

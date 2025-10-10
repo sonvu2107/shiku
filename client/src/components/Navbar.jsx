@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { api } from "../api";
-import { safariPOST, safariDELETE } from "../utils/safariAPI.js";
 import { removeAuthToken } from "../utils/auth";
 import { invalidateUserCache } from "../utils/userCache.js";
 
@@ -217,11 +216,18 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
   async function syncHistory(action, payload) {
     try {
       if (action === 'add') {
-        await safariPOST('/api/search/history', payload, "lưu lịch sử tìm kiếm");
+        await api('/api/search/history', {
+      method: "POST",
+      body: payload
+    });
       } else if (action === 'delete') {
-        await safariDELETE(`/api/search/history/${payload.id}`, "xóa lịch sử tìm kiếm");
+        await api(`/api/search/history/${payload.id}`, {
+      method: "DELETE"
+    });
       } else if (action === 'clear') {
-        await safariDELETE('/api/search/history', "xóa tất cả lịch sử tìm kiếm");
+        await api('/api/search/history', {
+      method: "DELETE"
+    });
       }
     } catch (_) {
       // optional sync
@@ -299,7 +305,10 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
   async function logout() {
     try {
       // Gọi API logout để invalidate session trên server
-      await safariPOST("/api/auth/logout", {}, "đăng xuất");
+      await api("/api/auth/logout", {
+      method: "POST",
+      body: {}
+    });
     } catch (err) {
       // Silent handling for logout error
     }

@@ -6,13 +6,16 @@ import { BrowserRouter } from "react-router-dom";
 // Import component chính và styles
 import App from "./App.jsx";
 import "./styles.css";
+import { bootstrapAuth } from "./bootstrapAuth.js";
 
 /**
  * Entry point của ứng dụng React
  * Khởi tạo React app với React Router
  */
-createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
-    <App />
-  </BrowserRouter>
-);
+bootstrapAuth().finally(() => {
+  createRoot(document.getElementById("root")).render(
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  );
+});

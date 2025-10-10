@@ -1,8 +1,10 @@
 import express from "express";
 import { authRequired } from "../middleware/auth.js";
 import ApiStats from "../models/ApiStats.js";
+import { getClientAgent } from "../utils/clientAgent.js";
 
 const router = express.Router();
+const monitoringEnabled = (process.env.DISABLE_API_MONITORING ?? "false") !== "true";
 
 // Helper function to get Vietnam time
 const getVietnamTime = () => {
@@ -29,6 +31,9 @@ const getVietnamTime = () => {
 
 // Middleware to track API calls with database persistence
 export const trackAPICall = async (req, res, next) => {
+  if (!monitoringEnabled) {
+    return next();
+  }
   try {
     const endpoint = req.path;
     const ip = req.ip;
@@ -36,7 +41,7 @@ export const trackAPICall = async (req, res, next) => {
     const vietnamTime = getVietnamTime();
     const hour = vietnamTime.getHours();
     const method = req.method;
-    const userAgent = req.get('User-Agent') || 'Unknown';
+    const clientAgent = getClientAgent(req) || "Unknown";
 
     // Use atomic operations to avoid version conflicts
     const encodedIP = ip.replace(/\./g, '_').replace(/:/g, '_');
@@ -57,7 +62,7 @@ export const trackAPICall = async (req, res, next) => {
             method,
             ip,
             statusCode: res.statusCode,
-            userAgent: userAgent.substring(0, 100),
+            clientAgent: clientAgent.substring(0, 100),
             timestamp: new Date()
           }],
           $position: 0,
@@ -119,7 +124,7 @@ export const trackAPICall = async (req, res, next) => {
           ip,
           statusCode: res.statusCode,
           timestamp: new Date().toISOString(),
-          userAgent: userAgent.substring(0, 100),
+          clientAgent: clientAgent.substring(0, 100),
           totalRequests: stats.totalRequests,
           rateLimitHits: stats.rateLimitHits,
           requestsPerMinute: parseFloat(requestsPerMinute),
@@ -131,7 +136,7 @@ export const trackAPICall = async (req, res, next) => {
       };
 
       // Emit to all admin users
-      io.emit('api_monitoring_update', realTimeUpdate);
+      io.to('api-monitoring').emit('api_monitoring_update', realTimeUpdate);
     }
 
     next();
@@ -141,70 +146,74 @@ export const trackAPICall = async (req, res, next) => {
   }
 };
 
-// Reset current period stats every hour with database persistence
-setInterval(async () => {
-  try {
-    const stats = await ApiStats.getOrCreateStats();
-    stats.resetCurrentPeriod();
-    await stats.save();
-    console.log(`API Current Period Stats reset at ${new Date().toISOString()}`);
-  } catch (error) {
-    console.error('Error resetting API current period stats:', error);
-  }
-}, 60 * 60 * 1000); // Reset every hour
+if (monitoringEnabled) {
+  // Reset current period stats every hour with database persistence
+  setInterval(async () => {
+    try {
+      const stats = await ApiStats.getOrCreateStats();
+      stats.resetCurrentPeriod();
+      await stats.save();
+      console.log(`API Current Period Stats reset at ${new Date().toISOString()}`);
+    } catch (error) {
+      console.error('Error resetting API current period stats:', error);
+    }
+  }, 60 * 60 * 1000); // Reset every hour
 
-// Reset hourly stats daily at midnight (00:00)
-setInterval(async () => {
-  try {
-    const stats = await ApiStats.getOrCreateStats();
-    stats.resetHourlyStats();
-    await stats.save();
-    console.log(`API Hourly Stats reset at ${new Date().toISOString()} (Daily reset)`);
-  } catch (error) {
-    console.error('Error resetting API hourly stats:', error);
-  }
-}, 24 * 60 * 60 * 1000); // Reset every 24 hours
-
-// Schedule daily reset at midnight (Vietnam timezone)
-const scheduleDailyReset = () => {
-  const vietnamNow = getVietnamTime();
-  const tomorrow = new Date(vietnamNow);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0); // Set to midnight Vietnam time
-  
-  // Calculate time until Vietnam midnight
-  const timeUntilMidnight = tomorrow.getTime() - vietnamNow.getTime();
-  
-  setTimeout(async () => {
+  // Reset hourly stats daily at midnight (00:00)
+  setInterval(async () => {
     try {
       const stats = await ApiStats.getOrCreateStats();
       stats.resetHourlyStats();
       await stats.save();
-      console.log(`API Hourly Stats reset at ${new Date().toISOString()} (Scheduled midnight reset)`);
-      
-      // Schedule next reset
-      scheduleDailyReset();
+      console.log(`API Hourly Stats reset at ${new Date().toISOString()} (Daily reset)`);
     } catch (error) {
-      console.error('Error in scheduled hourly stats reset:', error);
-      // Schedule next reset even if this one failed
-      scheduleDailyReset();
+      console.error('Error resetting API hourly stats:', error);
     }
-  }, timeUntilMidnight);
-  
-  console.log(`Next hourly stats reset scheduled for Vietnam time: ${tomorrow.toISOString()}`);
-};
+  }, 24 * 60 * 60 * 1000); // Reset every 24 hours
 
-// Start the daily reset scheduler
-scheduleDailyReset();
+  // Schedule daily reset at midnight (Vietnam timezone)
+  const scheduleDailyReset = () => {
+    const vietnamNow = getVietnamTime();
+    const tomorrow = new Date(vietnamNow);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0); // Set to midnight Vietnam time
+    
+    // Calculate time until Vietnam midnight
+    const timeUntilMidnight = tomorrow.getTime() - vietnamNow.getTime();
+    
+    setTimeout(async () => {
+      try {
+        const stats = await ApiStats.getOrCreateStats();
+        stats.resetHourlyStats();
+        await stats.save();
+        console.log(`API Hourly Stats reset at ${new Date().toISOString()} (Scheduled midnight reset)`);
+        
+        // Schedule next reset
+        scheduleDailyReset();
+      } catch (error) {
+        console.error('Error in scheduled hourly stats reset:', error);
+        // Schedule next reset even if this one failed
+        scheduleDailyReset();
+      }
+    }, timeUntilMidnight);
+    
+    console.log(`Next hourly stats reset scheduled for Vietnam time: ${tomorrow.toISOString()}`);
+  };
 
-// Clean old data every 24 hours
-setInterval(async () => {
-  try {
-    await ApiStats.cleanOldData();
-  } catch (error) {
-    console.error('Error cleaning old API stats data:', error);
-  }
-}, 24 * 60 * 60 * 1000); // Clean every 24 hours
+  // Start the daily reset scheduler
+  scheduleDailyReset();
+
+  // Clean old data every 24 hours
+  setInterval(async () => {
+    try {
+      await ApiStats.cleanOldData();
+    } catch (error) {
+      console.error('Error cleaning old API stats data:', error);
+    }
+  }, 24 * 60 * 60 * 1000); // Clean every 24 hours
+} else {
+  console.log("[API Monitoring] Disabled via DISABLE_API_MONITORING flag");
+}
 
 /**
  * GET /api-monitoring/stats - Lấy thống kê API từ database
