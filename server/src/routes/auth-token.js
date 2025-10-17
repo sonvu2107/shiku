@@ -36,41 +36,34 @@ function sign(user) {
  * @returns {Object} User info va JWT token
  */
 tempRouter.post("/login-token", async (req, res, next) => {
+  const startTime = Date.now();
   try {
-    console.log("[auth-token] Login attempt for:", req.body.email);
     
     const { email, password } = req.body;
     
     if (!email || !password) {
-      console.log("[auth-token] Missing credentials");
       return res.status(400).json({ error: "Email và mật khẩu là bắt buộc!" });
     }
     
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      console.log("[auth-token] User not found:", email);
       return res.status(401).json({ error: "Email hoặc mật khẩu không đúng!" });
     }
     
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) {
-      console.log("[auth-token] Invalid password for:", email);
       return res.status(401).json({ error: "Email hoặc mật khẩu không đúng!" });
     }
     
-    console.log("[auth-token] User authenticated:", user.name);
     
     // ⚠️ DEPRECATED: This endpoint is for backward compatibility only
     // Clear old 'token' cookie if exists (from previous auth system)
     res.clearCookie("token", buildCookieOptions(0));
 
-    console.log("[auth-token] Generating token pair...");
     const tokens = await generateTokenPair(user);
-    console.log("[auth-token] Token pair generated successfully");
 
     res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
     res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
-    console.log("[auth-token] Cookies set successfully");
 
     const response = { 
       user: { 
@@ -93,14 +86,15 @@ tempRouter.post("/login-token", async (req, res, next) => {
       refreshToken: tokens.refreshToken
     };
     
-    console.log("[auth-token] Login successful for:", user.name);
+    const duration = Date.now() - startTime;
     
     // Reset rate limit for this IP after successful login
     resetRateLimit(req.ip);
     
     res.json(response);
   } catch (e) { 
-    console.error("[auth-token] Login error:", e);
+    const duration = Date.now() - startTime;
+    console.error("[auth-token] Login error:", e, `(${duration}ms)`);
     next(e); 
   }
 });
@@ -114,22 +108,19 @@ tempRouter.post("/login-token", async (req, res, next) => {
  * @returns {Object} User info va JWT token
  */
 tempRouter.post("/register-token", async (req, res, next) => {
+  const startTime = Date.now();
   try {
-    console.log("[auth-token] Register attempt for:", req.body.email);
     
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
-      console.log("[auth-token] Missing registration data");
       return res.status(400).json({ error: "Vui lòng điền đầy đủ thông tin!" });
     }
     
     const exists = await User.findOne({ email: email.toLowerCase() });
     if (exists) {
-      console.log("[auth-token] Email already exists:", email);
       return res.status(400).json({ error: "Email này đã được đăng ký!" });
     }
     
-    console.log("[auth-token] Creating new user...");
     const hash = await bcrypt.hash(password, 10);
     const user = await User.create({ 
       name, 
@@ -138,19 +129,15 @@ tempRouter.post("/register-token", async (req, res, next) => {
       isOnline: true,
       lastSeen: new Date()
     });
-    console.log("[auth-token] User created:", user.name);
     
     // ⚠️ DEPRECATED: This endpoint is for backward compatibility only
     // Clear old 'token' cookie if exists (from previous auth system)
     res.clearCookie("token", buildCookieOptions(0));
 
-    console.log("[auth-token] Generating token pair...");
     const tokens = await generateTokenPair(user);
-    console.log("[auth-token] Token pair generated successfully");
 
     res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
     res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
-    console.log("[auth-token] Cookies set successfully");
 
     const response = { 
       user: { 
@@ -173,14 +160,15 @@ tempRouter.post("/register-token", async (req, res, next) => {
       refreshToken: tokens.refreshToken
     };
     
-    console.log("[auth-token] Registration successful for:", user.name);
+    const duration = Date.now() - startTime;
     
     // Reset rate limit for this IP after successful registration
     resetRateLimit(req.ip);
     
     res.status(201).json(response);
   } catch (e) { 
-    console.error("[auth-token] Registration error:", e);
+    const duration = Date.now() - startTime;
+    console.error("[auth-token] Registration error:", e, `(${duration}ms)`);
     next(e); 
   }
 });

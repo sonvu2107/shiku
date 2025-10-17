@@ -63,85 +63,104 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
     body: body ? (isFormData ? body : (typeof body === "string" ? body : JSON.stringify(body))) : undefined,
   };
 
-  const res = await fetch(`${API_URL}${path}`, requestOptions);
-
-  // Parse và xử lý rate limit headers
-  const rateLimitInfo = parseRateLimitHeaders(res);
-  if (rateLimitInfo.limit) {
-    storeRateLimitInfo(path, rateLimitInfo);
+  // Add timeout handling
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+  
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      ...requestOptions,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
     
-    // Show warning if nearly exceeded
-    if (rateLimitInfo.warning || (rateLimitInfo.remaining && rateLimitInfo.remaining <= 10)) {
-      showRateLimitWarning(rateLimitInfo);
-    }
-  }
-
-  // Xử lý lỗi response
-  if (!res.ok) {
-    // Nếu là lỗi 401, thử refresh access token trước khi redirect
-    if (res.status === 401) {
-      const refreshOutcome = await refreshAccessToken();
-      if (refreshOutcome?.success && refreshOutcome.accessToken) {
-        headers.Authorization = `Bearer ${refreshOutcome.accessToken}`;
-        const retryRes = await fetch(`${API_URL}${path}`, {
-          ...requestOptions,
-          headers: { ...requestOptions.headers, ...headers },
-          mode: "cors"
-        });
-
-        if (retryRes.ok) {
-          return await retryRes.json();
-        }
-      }
-
-      clearTokens();
-      window.location.href = "/login";
-      return;
-    }
-    
-    // Nếu là lỗi 403 (CSRF token invalid), thử refresh CSRF token
-    if (res.status === 403 && method !== "GET") {
-
-      const newCSRFToken = await getCSRFToken(true); // Force refresh
-
-      if (newCSRFToken) {
-        headers["X-CSRF-Token"] = newCSRFToken;
-
-        const retryRes = await fetch(`${API_URL}${path}`, {
-          ...requestOptions,
-          headers: { ...requestOptions.headers, ...headers },
-          mode: "cors"
-        });
-
-        if (retryRes.ok) {
-          return await retryRes.json();
-        }
-      } else {
-        // Failed to get new CSRF token
+    // Parse và xử lý rate limit headers
+    const rateLimitInfo = parseRateLimitHeaders(res);
+    if (rateLimitInfo.limit) {
+      storeRateLimitInfo(path, rateLimitInfo);
+      
+      // Show warning if nearly exceeded
+      if (rateLimitInfo.warning || (rateLimitInfo.remaining && rateLimitInfo.remaining <= 10)) {
+        showRateLimitWarning(rateLimitInfo);
       }
     }
 
-    const data = await res.json().catch(() => ({}));
-    const error = new Error(data.message || data.error || `Request failed (${res.status})`);
-    
-    // Xử lý rate limit error
-    if (res.status === 429) {
-      showRateLimitError(rateLimitInfo);
-      error.rateLimitInfo = rateLimitInfo;
+    // Xử lý lỗi response
+    if (!res.ok) {
+      // Nếu là lỗi 401, thử refresh access token trước khi redirect
+      if (res.status === 401) {
+        const refreshOutcome = await refreshAccessToken();
+        if (refreshOutcome?.success && refreshOutcome.accessToken) {
+          headers.Authorization = `Bearer ${refreshOutcome.accessToken}`;
+          const retryRes = await fetch(`${API_URL}${path}`, {
+            ...requestOptions,
+            headers: { ...requestOptions.headers, ...headers },
+            mode: "cors"
+          });
+
+          if (retryRes.ok) {
+            return await retryRes.json();
+          }
+        }
+
+        clearTokens();
+        window.location.href = "/login";
+        return;
+      }
+      
+      // Nếu là lỗi 403 (CSRF token invalid), thử refresh CSRF token
+      if (res.status === 403 && method !== "GET") {
+        const newCSRFToken = await getCSRFToken(true); // Force refresh
+
+        if (newCSRFToken) {
+          headers["X-CSRF-Token"] = newCSRFToken;
+
+          const retryRes = await fetch(`${API_URL}${path}`, {
+            ...requestOptions,
+            headers: { ...requestOptions.headers, ...headers },
+            mode: "cors"
+          });
+
+          if (retryRes.ok) {
+            return await retryRes.json();
+          }
+        } else {
+          // Failed to get new CSRF token
+        }
+      }
+      
+      // Handle error responses (when !res.ok)
+      const data = await res.json().catch(() => ({}));
+      const error = new Error(data.message || data.error || `Request failed (${res.status})`);
+      
+      // Xử lý rate limit error
+      if (res.status === 429) {
+        showRateLimitError(rateLimitInfo);
+        error.rateLimitInfo = rateLimitInfo;
+      }
+      
+      // Thêm thông tin ban vào error nếu user bị cấm
+      if (data.isBanned) {
+        error.banInfo = {
+          isBanned: data.isBanned,
+          remainingMinutes: data.remainingMinutes,
+          banReason: data.banReason
+        };
+      }
+      
+      throw error;
     }
+
+    // If we reach here, the response was successful (res.ok = true)
+    return await res.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
     
-    // Thêm thông tin ban vào error nếu user bị cấm
-    if (data.isBanned) {
-      error.banInfo = {
-        isBanned: data.isBanned,
-        remainingMinutes: data.remainingMinutes,
-        banReason: data.banReason
-      };
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout - server không phản hồi kịp thời');
     }
-    
     throw error;
   }
-  return res.json();
 }
 
 

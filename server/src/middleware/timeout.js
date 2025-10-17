@@ -3,12 +3,24 @@
  */
 export const requestTimeout = (timeout = 30000) => {
   return (req, res, next) => {
+    const startTime = Date.now();
+    
     // Set timeout for the request
     const timeoutId = setTimeout(() => {
       if (!res.headersSent) {
-        console.error(`⏰ Request timeout for ${req.method} ${req.path}`);
+        const duration = Date.now() - startTime;
+        console.error(`⏰ Request timeout for ${req.method} ${req.path} after ${duration}ms`);
+        console.error(`⏰ Request details:`, {
+          method: req.method,
+          path: req.path,
+          ip: req.ip,
+          userAgent: req.get('User-Agent'),
+          duration: duration
+        });
         res.status(408).json({ 
-          error: "Yêu cầu mất quá nhiều thời gian, vui lòng thử lại" 
+          error: "Yêu cầu mất quá nhiều thời gian, vui lòng thử lại",
+          code: "REQUEST_TIMEOUT",
+          timeout: timeout
         });
       }
     }, timeout);
@@ -16,6 +28,10 @@ export const requestTimeout = (timeout = 30000) => {
     // Clear timeout when response is finished
     res.on('finish', () => {
       clearTimeout(timeoutId);
+      const duration = Date.now() - startTime;
+      if (duration > 10000) { // Log slow requests (>10s)
+        console.warn(`🐌 Slow request: ${req.method} ${req.path} took ${duration}ms`);
+      }
     });
 
     // Clear timeout when response is closed

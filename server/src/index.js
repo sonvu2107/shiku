@@ -392,6 +392,22 @@ app.post("/api/clear-rate-limit", (req, res) => {
   }
 });
 
+// Test timeout endpoint
+app.get("/api/test-timeout", (req, res) => {
+  const delay = parseInt(req.query.delay) || 5000;
+  const startTime = Date.now();
+  
+  setTimeout(() => {
+    const duration = Date.now() - startTime;
+    res.json({
+      success: true,
+      message: `Test completed after ${duration}ms`,
+      requestedDelay: delay,
+      actualDelay: duration
+    });
+  }, delay);
+});
+
 // Test token generation endpoint
 app.post("/api/test-token-generation", async (req, res) => {
   try {
@@ -593,8 +609,9 @@ if ((process.env.DISABLE_API_TRACKING ?? "false") !== "true") {
 }
 
 // Mount tất cả API routes with specific rate limiting
-app.use("/api/auth", authLimiter, authRoutes); // Authentication routes (auth-secure.js) with logout
-app.use("/api/auth-token", authLimiter, authTokenRoutes); // Token validation routes (auth-token.js)
+// Auth routes need longer timeout due to token generation and database operations
+app.use("/api/auth", requestTimeout(60000), authLimiter, authRoutes); // Authentication routes (auth-secure.js) with logout
+app.use("/api/auth-token", requestTimeout(60000), authLimiter, authTokenRoutes); // Token validation routes (auth-token.js)
 app.use("/api/posts", postsLimiter, postRoutes); // Blog posts CRUD with specific rate limiting
 app.use("/api/comments", commentRoutes); // Comments system
 app.use("/api/uploads", uploadLimiter, uploadRoutes); // File uploads

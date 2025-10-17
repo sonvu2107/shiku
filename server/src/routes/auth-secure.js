@@ -220,13 +220,6 @@ router.post("/refresh",
       // Better logging for production debugging
       const isProduction = process.env.NODE_ENV === "production";
       if (isProduction) {
-        console.log("[PROD] Refresh request from:", req.get('Origin') || req.get('Referer'));
-        console.log("[PROD] Has body token:", !!refreshToken);
-        console.log("[PROD] Has cookie token:", !!cookieRefreshToken);
-        console.log("[PROD] Cookie names:", Object.keys(req.cookies || {}));
-      } else {
-        console.log("[DEBUG] Refresh request - body token:", !!refreshToken, "cookie token:", !!cookieRefreshToken);
-        console.log("[DEBUG] Cookies:", req.cookies);
       }
 
       const tokenToUse = refreshToken || cookieRefreshToken;
@@ -235,7 +228,6 @@ router.post("/refresh",
         const errorMsg = "Refresh token là bắt buộc";
         // Only log in development or if this is not a repeated request
         if (!isProduction) {
-          console.log("[DEBUG] No refresh token found");
         }
         return res.status(400).json({
           error: errorMsg,
@@ -245,9 +237,6 @@ router.post("/refresh",
       }
 
       if (isProduction) {
-        console.log("[PROD] Using refresh token:", tokenToUse.substring(0, 20) + "...");
-      } else {
-        console.log("[DEBUG] Using refresh token:", tokenToUse.substring(0, 20) + "...");
       }
 
       // Simplified refresh logic - just verify and create new token
@@ -258,9 +247,6 @@ router.post("/refresh",
         );
         
         if (isProduction) {
-          console.log("[PROD] Token payload valid for user:", payload.id);
-        } else {
-          console.log("[DEBUG] Token payload:", payload);
         }
 
         if (payload.type !== 'refresh') {
@@ -273,9 +259,6 @@ router.post("/refresh",
         }
 
         if (isProduction) {
-          console.log("[PROD] User found:", user.name);
-        } else {
-          console.log("[DEBUG] User found:", user.name);
         }
 
         // Create new access token
@@ -293,9 +276,6 @@ router.post("/refresh",
         res.cookie("accessToken", newAccessToken, accessCookieOptions);
 
         if (isProduction) {
-          console.log("[PROD] Refresh successful for user:", user.name);
-        } else {
-          console.log("[DEBUG] Refresh successful for user:", user.name);
         }
 
         res.json({
@@ -310,9 +290,6 @@ router.post("/refresh",
 
       } catch (jwtError) {
         if (isProduction) {
-          console.log("[PROD] JWT verification error:", jwtError.message);
-        } else {
-          console.log("[DEBUG] JWT verification error:", jwtError.message);
         }
         throw jwtError;
       }
@@ -320,10 +297,6 @@ router.post("/refresh",
     } catch (error) {
       const isProduction = process.env.NODE_ENV === "production";
       if (isProduction) {
-        console.log("[PROD] Refresh error:", error.message);
-      } else {
-        console.log("[DEBUG] Refresh error:", error.message);
-        console.log("[DEBUG] Error stack:", error.stack);
       }
 
       res.status(401).json({
@@ -347,8 +320,6 @@ router.get("/session",
   },
   async (req, res, next) => {
     try {
-      console.log("[DEBUG] Session check - cookies:", Object.keys(req.cookies));
-      console.log("[DEBUG] Session check - auth header:", req.headers.authorization ? "EXISTS" : "NONE");
 
       // Lấy token từ cookie hoặc header
       let token = req.cookies?.accessToken;
@@ -357,37 +328,34 @@ router.get("/session",
         token = header.startsWith("Bearer ") ? header.slice(7) : null;
       }
 
-      console.log("[DEBUG] Session check - token found:", !!token);
-
       if (!token) {
-        console.log("[DEBUG] Session check - no token, returning unauthenticated");
         return res.json({ authenticated: false });
       }
 
       // Verify JWT token
       const payload = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("[DEBUG] Session check - token payload:", payload);
-
       const user = await User.findById(payload.id).select("-password");
 
       if (!user) {
-        console.log("[DEBUG] Session check - user not found");
         return res.json({ authenticated: false });
       }
-
-      console.log("[DEBUG] Session check - user found:", user.name);
 
       res.json({
         authenticated: true,
         user: {
           id: user._id,
+          _id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          bio: user.bio,
+          avatarUrl: user.avatarUrl,
+          isOnline: user.isOnline,
+          isVerified: user.isVerified,
+          lastSeen: user.lastSeen
         }
       });
     } catch (error) {
-      console.log("[DEBUG] Session check - error:", error.message);
       res.json({ authenticated: false });
     }
   });
