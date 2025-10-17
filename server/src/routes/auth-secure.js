@@ -94,6 +94,7 @@ router.post("/register",
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
+        domain: process.env.NODE_ENV === "production" ? process.env.COOKIE_DOMAIN : undefined,
         maxAge: 15 * 60 * 1000 // 15 phút
       });
 
@@ -101,10 +102,12 @@ router.post("/register",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: "/",          
+        path: "/",
+        domain: process.env.NODE_ENV === "production" ? process.env.COOKIE_DOMAIN : undefined,
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 ngày
       });
-      
+
+
       // Log security event
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.REGISTER_SUCCESS, {
         email: email,
@@ -256,10 +259,10 @@ router.post("/refresh",
       // Lấy refresh token từ body hoặc cookie
       const { refreshToken } = req.body;
       const cookieRefreshToken = req.cookies?.refreshToken;
-      
+
       console.log("[DEBUG] Refresh request - body token:", !!refreshToken, "cookie token:", !!cookieRefreshToken);
       console.log("[DEBUG] Cookies:", req.cookies);
-      
+
       const tokenToUse = refreshToken || cookieRefreshToken;
 
       if (!tokenToUse) {
@@ -271,7 +274,7 @@ router.post("/refresh",
       }
 
       console.log("[DEBUG] Using refresh token:", tokenToUse.substring(0, 20) + "...");
-      
+
       // Simplified refresh logic - just verify and create new token
       try {
         const payload = jwt.verify(
@@ -279,25 +282,25 @@ router.post("/refresh",
           process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET
         );
         console.log("[DEBUG] Token payload:", payload);
-        
+
         if (payload.type !== 'refresh') {
           throw new Error("Invalid token type");
         }
-        
+
         const user = await User.findById(payload.id).select("-password");
         if (!user) {
           throw new Error("User not found");
         }
-        
+
         console.log("[DEBUG] User found:", user.name);
-        
+
         // Create new access token
         const newAccessToken = jwt.sign(
-          { 
-            id: user._id, 
+          {
+            id: user._id,
             type: 'access',
-            role: user.role 
-          }, 
+            role: user.role
+          },
           process.env.JWT_SECRET,
           { expiresIn: "15m" }
         );
@@ -322,16 +325,16 @@ router.post("/refresh",
             role: user.role
           }
         });
-        
+
       } catch (jwtError) {
         console.log("[DEBUG] JWT verification error:", jwtError.message);
         throw jwtError;
       }
-      
+
     } catch (error) {
       console.log("[DEBUG] Refresh error:", error.message);
       console.log("[DEBUG] Error stack:", error.stack);
-      
+
       res.status(401).json({
         error: "Refresh token không hợp lệ",
         code: "INVALID_REFRESH_TOKEN",
@@ -345,58 +348,58 @@ router.post("/refresh",
  * GET /session - Kiểm tra session hiện tại
  * @returns {Object} Session status
  */
-router.get("/session", 
+router.get("/session",
   // Skip CSRF validation for session endpoint
   (req, res, next) => {
     req.csrfToken = () => 'skip-csrf';
     next();
   },
   async (req, res, next) => {
-  try {
-    console.log("[DEBUG] Session check - cookies:", Object.keys(req.cookies));
-    console.log("[DEBUG] Session check - auth header:", req.headers.authorization ? "EXISTS" : "NONE");
-    
-    // Lấy token từ cookie hoặc header
-    let token = req.cookies?.accessToken;
-    if (!token) {
-      const header = req.headers.authorization || "";
-      token = header.startsWith("Bearer ") ? header.slice(7) : null;
-    }
-    
-    console.log("[DEBUG] Session check - token found:", !!token);
-    
-    if (!token) {
-      console.log("[DEBUG] Session check - no token, returning unauthenticated");
-      return res.json({ authenticated: false });
-    }
-    
-    // Verify JWT token
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("[DEBUG] Session check - token payload:", payload);
-    
-    const user = await User.findById(payload.id).select("-password");
-    
-    if (!user) {
-      console.log("[DEBUG] Session check - user not found");
-      return res.json({ authenticated: false });
-    }
-    
-    console.log("[DEBUG] Session check - user found:", user.name);
-    
-    res.json({ 
-      authenticated: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
+    try {
+      console.log("[DEBUG] Session check - cookies:", Object.keys(req.cookies));
+      console.log("[DEBUG] Session check - auth header:", req.headers.authorization ? "EXISTS" : "NONE");
+
+      // Lấy token từ cookie hoặc header
+      let token = req.cookies?.accessToken;
+      if (!token) {
+        const header = req.headers.authorization || "";
+        token = header.startsWith("Bearer ") ? header.slice(7) : null;
       }
-    });
-  } catch (error) {
-    console.log("[DEBUG] Session check - error:", error.message);
-    res.json({ authenticated: false });
-  }
-});
+
+      console.log("[DEBUG] Session check - token found:", !!token);
+
+      if (!token) {
+        console.log("[DEBUG] Session check - no token, returning unauthenticated");
+        return res.json({ authenticated: false });
+      }
+
+      // Verify JWT token
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("[DEBUG] Session check - token payload:", payload);
+
+      const user = await User.findById(payload.id).select("-password");
+
+      if (!user) {
+        console.log("[DEBUG] Session check - user not found");
+        return res.json({ authenticated: false });
+      }
+
+      console.log("[DEBUG] Session check - user found:", user.name);
+
+      res.json({
+        authenticated: true,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      });
+    } catch (error) {
+      console.log("[DEBUG] Session check - error:", error.message);
+      res.json({ authenticated: false });
+    }
+  });
 
 /**
  * POST /logout - Đăng xuất
@@ -544,11 +547,11 @@ router.get("/me",
         ip: req.ip
       }, req);
 
-      res.json({ 
-        user: { 
-          id: req.user._id, 
-          name: req.user.name, 
-          email: req.user.email, 
+      res.json({
+        user: {
+          id: req.user._id,
+          name: req.user.name,
+          email: req.user.email,
           role: req.user.role,
           bio: req.user.bio,
           nickname: req.user.nickname,
