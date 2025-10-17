@@ -56,7 +56,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 // Import các utilities và services (giữ nguyên - cần thiết ngay)
 import { api } from "./api.js";
 import { ensureCSRFToken } from "./utils/csrfToken.js";
-import { getValidAccessToken } from "./utils/tokenManager.js";
+import { initializeAccessToken } from "./utils/tokenManager.js";
 import socketService from "./socket";   // Service quản lý WebSocket connection
 import { heartbeatManager } from "./services/heartbeatManager";
 
@@ -90,22 +90,43 @@ export default function App() {
 
     const checkAuth = async () => {
       try {
+        console.log("[App] Starting authentication check...");
+        
         await ensureCSRFToken();
-        const token = await getValidAccessToken();
+        console.log("[App] CSRF token ensured");
+        
+        // Try to initialize access token from cookies (will attempt refresh if needed)
+        const token = await initializeAccessToken();
+        console.log("[App] Token initialization result:", token ? "SUCCESS" : "FAILED");
 
         if (cancelled) {
           return;
         }
 
         if (token && !cancelled) {
+          console.log("[App] Token available, checking session...");
           // Nếu có token, gọi API để lấy thông tin user
-          const res = await api("/api/auth/me");
-          if (!cancelled) {
-            setUser(res.user);
-            // Kết nối socket khi đã xác thực user thành công
-            socketService.connect(res.user);
+          try {
+            const res = await api("/api/auth/session");
+            console.log("[App] Session check result:", res);
+            
+            if (!cancelled && res.authenticated && res.user) {
+              console.log("[App] User authenticated:", res.user.name);
+              setUser(res.user);
+              // Kết nối socket khi đã xác thực user thành công
+              socketService.connect(res.user);
+            } else {
+              console.log("[App] User not authenticated or missing user data");
+              setUser(null);
+            }
+          } catch (error) {
+            console.log("[App] Session check failed:", error.message);
+            if (!cancelled) {
+              setUser(null);
+            }
           }
         } else if (!cancelled) {
+          console.log("[App] No token available, user needs to login");
           // Không có token, set user null
           setUser(null);
         }

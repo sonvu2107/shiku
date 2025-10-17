@@ -146,7 +146,16 @@ const csrfCookieOptions = buildCookieOptions(60 * 60 * 1000, { httpOnly: true })
 
 // CSRF middleware (phải sau CORS, cookieParser, bodyParser)
 const csrfProtection = csrf({ cookie: csrfCookieOptions });
-app.use(csrfProtection);
+
+// Custom CSRF middleware that excludes refresh endpoint
+app.use((req, res, next) => {
+  // Skip CSRF for refresh endpoint
+  if (req.path === '/api/auth/refresh' && req.method === 'POST') {
+    return next();
+  }
+  // Apply CSRF protection for all other routes
+  csrfProtection(req, res, next);
+});
 
 // Logging và timeout
 app.use(morgan(isProd ? "combined" : "dev"));
@@ -297,6 +306,131 @@ app.get("/api/debug-cookies", (req, res) => {
       httpOnly: true
     }
   });
+});
+
+// Test refresh endpoint without CSRF
+app.post("/api/test-refresh", (req, res) => {
+  res.json({
+    success: true,
+    message: "Refresh endpoint test - no CSRF required",
+    timestamp: new Date().toISOString(),
+    cookies: req.cookies,
+    hasRefreshToken: !!req.cookies?.refreshToken,
+    method: req.method,
+    path: req.path
+  });
+});
+
+// Authentication status endpoint
+app.get("/api/auth-status", (req, res) => {
+  const isProduction = process.env.NODE_ENV === "production";
+  
+  res.json({
+    authenticated: false, // This endpoint doesn't require auth
+    timestamp: new Date().toISOString(),
+    cookies: req.cookies,
+    cookieNames: Object.keys(req.cookies || {}),
+    hasRefreshToken: !!req.cookies?.refreshToken,
+    hasAccessToken: !!req.cookies?.accessToken,
+    hasCSRFToken: !!req.cookies?._csrf,
+    environment: process.env.NODE_ENV,
+    message: "Use this endpoint to check authentication status"
+  });
+});
+
+// Test session persistence endpoint
+app.get("/api/test-session-persistence", async (req, res) => {
+  try {
+    const cookies = req.cookies;
+    const hasAccessToken = !!cookies?.accessToken;
+    const hasRefreshToken = !!cookies?.refreshToken;
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      cookies: {
+        accessToken: hasAccessToken ? "EXISTS" : "MISSING",
+        refreshToken: hasRefreshToken ? "EXISTS" : "MISSING",
+        csrf: !!cookies?._csrf ? "EXISTS" : "MISSING"
+      },
+      cookieNames: Object.keys(cookies || {}),
+      message: "Check if cookies are properly set for session persistence"
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Internal server error",
+      details: error.message
+    });
+  }
+});
+
+// Test login endpoint
+app.post("/api/test-login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({
+        error: "Email and password required",
+        code: "MISSING_CREDENTIALS"
+      });
+    }
+    
+    // Import User model
+    const User = (await import("./models/User.js")).default;
+    const bcrypt = (await import("bcryptjs")).default;
+    const { generateTokenPair } = await import("./middleware/jwtSecurity.js");
+    const { buildCookieOptions } = await import("./utils/cookieOptions.js");
+    
+    // Find user
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(401).json({
+        error: "Invalid credentials",
+        code: "INVALID_CREDENTIALS"
+      });
+    }
+    
+    // Check password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        error: "Invalid credentials", 
+        code: "INVALID_CREDENTIALS"
+      });
+    }
+    
+    // Generate tokens
+    const tokens = await generateTokenPair(user);
+    
+    // Set cookies
+    const accessCookieOptions = buildCookieOptions(15 * 60 * 1000);
+    const refreshCookieOptions = buildCookieOptions(30 * 24 * 60 * 60 * 1000);
+    
+    res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
+    res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
+    
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      },
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      message: "Test login successful"
+    });
+    
+  } catch (error) {
+    console.error("Test login error:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      code: "INTERNAL_ERROR",
+      details: process.env.NODE_ENV === "production" ? undefined : error.message
+    });
+  }
 });
 
 // Test CSRF endpoint

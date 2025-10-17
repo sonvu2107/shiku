@@ -118,26 +118,30 @@ export function isTokenExpired(token) {
 export async function refreshAccessToken() {
   const legacyRefreshToken = getRefreshToken();
 
+  // In production, refresh token is in httpOnly cookies, so we can always try refresh
+  // Only check legacy refresh token if in legacy mode
+  if (LEGACY_REFRESH_ALLOWED && !legacyRefreshToken) {
+    console.info("[tokenManager] No legacy refresh token available - user needs to login");
+    clearTokens();
+    return null;
+  }
+
   try {
-    // Use cached CSRF token if still valid
-    const csrfToken = await getCSRFToken(false);
-
-    if (!csrfToken) {
-      console.warn("[tokenManager] Unable to obtain CSRF token before refresh");
-    }
-
+    console.log("[tokenManager] Attempting to refresh access token...");
+    
+    // No CSRF token needed for refresh endpoint - it's excluded from CSRF protection
     const response = await fetch(`${API_URL}/api/auth/refresh`, {
       method: "POST",
-      credentials: "include",
+      credentials: "include", // This will send httpOnly cookies
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json",
-        "X-CSRF-Token": csrfToken || ""
+        Accept: "application/json"
+        // Note: No CSRF token for refresh endpoint - it's excluded from CSRF protection
       },
       body: JSON.stringify(
         LEGACY_REFRESH_ALLOWED && legacyRefreshToken
           ? { refreshToken: legacyRefreshToken }
-          : {}
+          : {} // Empty body for cookie-based refresh
       )
     });
 
@@ -167,11 +171,12 @@ export async function refreshAccessToken() {
 
     if (data.accessToken) {
       inMemoryAccessToken = data.accessToken;
+      console.log("[tokenManager] Successfully refreshed access token");
+      return data.accessToken;
     } else {
       console.warn("[tokenManager] Response missing accessToken field");
+      return null;
     }
-
-    return data.accessToken || null;
   } catch (error) {
     console.error("[tokenManager] refreshAccessToken error:", error);
     clearTokens();
@@ -181,18 +186,87 @@ export async function refreshAccessToken() {
 
 
 /**
+ * Check if we have cookies available (for debugging)
+ */
+export async function checkCookies() {
+  try {
+    const response = await fetch(`${API_URL}/api/test-session-persistence`, {
+      method: "GET",
+      credentials: "include"
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log("[tokenManager] Cookie check:", data);
+      return data;
+    }
+    return null;
+  } catch (error) {
+    console.error("[tokenManager] Failed to check cookies:", error);
+    return null;
+  }
+}
+
+/**
+ * Initialize access token from cookies on app startup
+ * This helps restore session after page refresh
+ */
+export async function initializeAccessToken() {
+  try {
+    console.log("[tokenManager] Initializing access token...");
+    
+    // First check what cookies we have
+    const cookieInfo = await checkCookies();
+    if (cookieInfo) {
+      console.log("[tokenManager] Cookie status:", cookieInfo.cookies);
+    }
+    
+    // Try to get a valid access token (will attempt refresh if needed)
+    const token = await getValidAccessToken();
+    if (token) {
+      console.log("[tokenManager] Successfully initialized access token from cookies");
+      return token;
+    }
+    console.log("[tokenManager] No valid access token found in cookies");
+    return null;
+  } catch (error) {
+    console.error("[tokenManager] Failed to initialize access token:", error);
+    return null;
+  }
+}
+
+/**
  * Lấy access token hợp lệ, tự động refresh nếu hết hạn
+ * Sẽ cố gắng restore từ cookies nếu không có trong RAM
  */
 export async function getValidAccessToken() {
+  // First check if we have a valid token in memory
   if (inMemoryAccessToken && !isTokenExpired(inMemoryAccessToken)) {
     return inMemoryAccessToken;
   }
-  // Nếu hết hạn thì gọi refresh
-  const refreshResult = await refreshAccessToken();
-  if (refreshResult?.success && refreshResult.accessToken) {
-    inMemoryAccessToken = refreshResult.accessToken;
-  } else if (refreshResult && "accessToken" in refreshResult) {
-    inMemoryAccessToken = refreshResult.accessToken;
+  
+  // If no token in memory or expired, try to refresh
+  console.log("[tokenManager] No valid token in memory, attempting refresh...");
+  
+  // In production, refresh token is in httpOnly cookies
+  // Only check legacy refresh token if in legacy mode
+  if (LEGACY_REFRESH_ALLOWED) {
+    const legacyRefreshToken = getRefreshToken();
+    if (!legacyRefreshToken) {
+      console.log("[tokenManager] No legacy refresh token available, user needs to login");
+      return null;
+    }
   }
-  return inMemoryAccessToken;
+  
+  // Attempt to refresh the access token
+  const refreshResult = await refreshAccessToken();
+  if (refreshResult) {
+    // refreshAccessToken returns the new access token directly
+    inMemoryAccessToken = refreshResult;
+    console.log("[tokenManager] Successfully refreshed access token");
+    return refreshResult;
+  }
+  
+  console.log("[tokenManager] Failed to refresh access token");
+  return null;
 }

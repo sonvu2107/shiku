@@ -7,6 +7,7 @@ import PostCreator from "../components/PostCreator";
 import Stories from "../components/Stories";
 import Shortcuts from "../components/Shortcuts";
 import OnlineFriends from "../components/OnlineFriends";
+import SessionDebug from "../components/SessionDebug";
 import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2 } from "lucide-react";
 
 /**
@@ -468,8 +469,9 @@ export default function Home({ user }) {
 
           {/* Right Sidebar - Online Friends (ẩn trên mobile, hiện từ lg trở lên) */}
           <div className="hidden lg:block w-72 flex-shrink-0">
-            <div className="sticky top-24">
+            <div className="sticky top-24 space-y-6">
               <OnlineFriends user={user} />
+              <SessionDebug />
             </div>
           </div>
         </div>

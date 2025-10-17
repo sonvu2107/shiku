@@ -49,11 +49,21 @@ export default function Register({ setUser }) {
         }
       });
       
-      if (data.accessToken) {
+      console.log("Register response:", data); // Debug log
+      
+      // Handle response - check for both accessToken and token fields
+      if (data && data.accessToken) {
         saveTokens(data.accessToken, data.refreshToken);
-      } else if (data.token) {
+      } else if (data && data.token) {
         // Fallback cho backward compatibility
-        saveTokens(data.token, data.token);
+        saveTokens(data.token, data.refreshToken || data.token);
+      } else {
+        throw new Error("Không nhận được token từ server");
+      }
+      
+      // Validate user data
+      if (!data.user) {
+        throw new Error("Không nhận được thông tin user từ server");
       }
       
       // Tạo CSRF token mới sau khi register để đồng bộ với sessionID

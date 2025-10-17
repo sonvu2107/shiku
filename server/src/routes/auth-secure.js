@@ -211,12 +211,6 @@ router.post("/login",
  */
 router.post("/refresh",
   refreshTokenLimiter,
-  // Skip CSRF validation for refresh endpoint
-  (req, res, next) => {
-    // Temporarily disable CSRF for this endpoint
-    req.csrfToken = () => 'skip-csrf';
-    next();
-  },
   async (req, res, next) => {
     try {
       // Lấy refresh token từ body hoặc cookie
@@ -239,9 +233,8 @@ router.post("/refresh",
 
       if (!tokenToUse) {
         const errorMsg = "Refresh token là bắt buộc";
-        if (isProduction) {
-          console.log("[PROD] No refresh token found - cookies:", Object.keys(req.cookies || {}));
-        } else {
+        // Only log in development or if this is not a repeated request
+        if (!isProduction) {
           console.log("[DEBUG] No refresh token found");
         }
         return res.status(400).json({
