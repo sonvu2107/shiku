@@ -28,6 +28,7 @@ import {
   LOG_LEVELS
 } from "../middleware/securityLogging.js";
 import { buildCookieOptions } from "../utils/cookieOptions.js";
+import { requestTimeout } from "../middleware/timeout.js";
 
 // Apply auth logging middleware
 router.use(authLogger);
@@ -404,6 +405,7 @@ router.post("/logout",
  * @returns {Object} Thông báo đã gửi email
  */
 router.post("/forgot-password",
+  requestTimeout(15000), // 15 seconds timeout cho forgot-password
   validate(forgotPasswordSchema, 'body'),
   async (req, res, next) => {
     try {
@@ -427,17 +429,27 @@ router.post("/forgot-password",
         ip: req.ip
       }, req);
 
-      // Gửi email reset password
-      const resetLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`;
-      await sendEmail({
-        to: email,
-        subject: "Đặt lại mật khẩu Shiku",
-        html: `<p>Chào bạn,<br/>Bạn vừa yêu cầu đặt lại mật khẩu. Nhấn vào link bên dưới để đặt lại mật khẩu mới:</p>
-        <p><a href='${resetLink}'>Đặt lại mật khẩu</a></p>
-        <p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`
+      // Trả về response ngay lập tức để tránh timeout
+      res.json({ message: "Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu!" });
+
+      // Gửi email bất đồng bộ (không chờ response)
+      setImmediate(async () => {
+        try {
+          const resetLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`;
+          await sendEmail({
+            to: email,
+            subject: "Đặt lại mật khẩu Shiku",
+            html: `<p>Chào bạn,<br/>Bạn vừa yêu cầu đặt lại mật khẩu. Nhấn vào link bên dưới để đặt lại mật khẩu mới:</p>
+            <p><a href='${resetLink}'>Đặt lại mật khẩu</a></p>
+            <p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`,
+            timeout: 25000 // 25 seconds timeout
+          });
+        } catch (emailError) {
+          console.error("[forgot-password] Email sending failed:", emailError.message);
+          // Không crash app nếu email fail
+        }
       });
 
-      res.json({ message: "Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu!" });
     } catch (error) {
       next(error);
     }

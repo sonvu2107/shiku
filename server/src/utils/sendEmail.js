@@ -7,30 +7,43 @@ import nodemailer from "nodemailer";
  * @param {string} options.to - Địa chỉ email người nhận
  * @param {string} options.subject - Tiêu đề email
  * @param {string} options.html - Nội dung HTML của email
+ * @param {number} options.timeout - Timeout trong milliseconds (mặc định 30s)
  */
-export async function sendEmail({ to, subject, html }) {
-  console.log("[sendEmail] Chuẩn bị gửi email:", { to, subject });
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465,
-    secure: true,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
+export async function sendEmail({ to, subject, html, timeout = 30000 }) {
+  return new Promise(async (resolve, reject) => {
+    // Set timeout cho toàn bộ quá trình gửi email
+    const timeoutId = setTimeout(() => {
+      reject(new Error('Email sending timeout - server không phản hồi kịp thời'));
+    }, timeout);
+
+    try {
+      const transporter = nodemailer.createTransporter({
+        host: process.env.SMTP_HOST || "smtp.gmail.com",
+        port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465,
+        secure: true,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        },
+        // Thêm timeout cho SMTP connection
+        connectionTimeout: 10000, // 10 seconds
+        greetingTimeout: 5000,   // 5 seconds
+        socketTimeout: 10000     // 10 seconds
+      });
+
+      // Gửi email
+      const info = await transporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to,
+        subject,
+        html
+      });
+
+      clearTimeout(timeoutId);
+      resolve(info);
+    } catch (err) {
+      clearTimeout(timeoutId);
+      reject(err);
     }
   });
-
-  try {
-    // Gửi email
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER, // Địa chỉ gửi
-      to,      // Địa chỉ nhận
-      subject, // Tiêu đề
-      html     // Nội dung HTML
-    });
-    console.log("[sendEmail] Gửi email thành công:", info.messageId);
-  } catch (err) {
-    console.error("[sendEmail] Lỗi gửi email:", err);
-    // Không throw error để không crash app
-  }
 }
