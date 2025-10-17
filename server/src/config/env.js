@@ -44,15 +44,8 @@ export const validateEnvVars = () => {
     }
   });
 
-  // Kiểm tra các biến có giá trị hợp lệ
-  if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
-    invalidVars.push('JWT_SECRET phải có ít nhất 32 ký tự');
-  }
-
-  if (process.env.JWT_REFRESH_SECRET && process.env.JWT_REFRESH_SECRET.length < 32) {
-    invalidVars.push('JWT_REFRESH_SECRET phải có ít nhất 32 ký tự');
-  }
-
+  // ❌ Bỏ kiểm tra độ dài JWT_SECRET và JWT_REFRESH_SECRET
+  // Giữ lại kiểm tra các biến còn lại
   if (process.env.MONGODB_URI && !process.env.MONGODB_URI.startsWith('mongodb')) {
     invalidVars.push('MONGODB_URI phải là một MongoDB connection string hợp lệ');
   }
