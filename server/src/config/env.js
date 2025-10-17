@@ -127,7 +127,7 @@ export const securityConfig = {
 
   // CORS Configuration
   cors: {
-    origins: isProduction() ? [
+    origins: process.env.NODE_ENV === 'production' ? [
       // Production origins for shiku.click
       "https://shiku.click",
       "https://www.shiku.click",
