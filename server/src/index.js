@@ -19,6 +19,7 @@ import { requestTimeout } from "./middleware/timeout.js";
 import { authOptional } from "./middleware/auth.js";
 import User from "./models/User.js";
 import { getClientAgent } from "./utils/clientAgent.js";
+import { buildCookieOptions } from "./utils/cookieOptions.js";
 
 // Import tất cả routes
 import authRoutes from "./routes/auth-secure.js"; // Authentication routes
@@ -138,17 +139,8 @@ app.options("*", cors(corsOptions)); // Đảm bảo preflight hoạt động
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// CSRF Cookie Options - Unified configuration for Dev & Prod
-const cookieDomain = isProd ? ".shiku.click" : undefined; // luôn .shiku.click trong production
-
-const csrfCookieOptions = {
-  httpOnly: true,
-  path: "/",
-  sameSite: isProd ? "none" : "lax", // cross-site
-  secure: isProd,                    // bắt buộc khi SameSite=None
-  domain: cookieDomain,              // cho phép chia sẻ subdomain (.shiku.click)
-  maxAge: 60 * 60 * 1000 // 1 hour
-};
+// CSRF Cookie Options - Sử dụng buildCookieOptions để đồng bộ
+const csrfCookieOptions = buildCookieOptions(60 * 60 * 1000, { httpOnly: true });
 
 // CSRF middleware (phải sau CORS, cookieParser, bodyParser)
 const csrfProtection = csrf({ cookie: csrfCookieOptions });

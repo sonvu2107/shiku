@@ -1,24 +1,14 @@
-const isProduction = process.env.NODE_ENV === "production";
-const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+export const buildCookieOptions = (maxAge, overrides = {}) => {
+  const isProduction = process.env.NODE_ENV === "production";
+  const cookieDomain = isProduction ? process.env.COOKIE_DOMAIN : undefined;
 
-export function buildCookieOptions(maxAge, overrides = {}) {
-  const base = {
+  return {
     httpOnly: true,
     path: "/",
+    secure: process.env.COOKIE_SECURE === "true",
     sameSite: isProduction ? "none" : "lax",
-    secure: isProduction,
+    domain: cookieDomain,  // 🔹 domain đồng bộ
     maxAge,
-    ...overrides
+    ...overrides,
   };
-
-  if (isProduction && cookieDomain) {
-    base.domain = cookieDomain;
-  }
-
-  if (!isProduction) {
-    delete base.domain;
-    base.secure = false;
-  }
-
-  return base;
-}
+};
