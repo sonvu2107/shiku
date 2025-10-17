@@ -66,8 +66,7 @@ export default defineConfig(({ command, mode }) => {
             // Admin pages (ít sử dụng)
             'admin': [
               './src/pages/AdminDashboard.jsx',
-              './src/pages/AdminFeedback.jsx', 
-              './src/pages/ApiTester.jsx'
+              './src/pages/AdminFeedback.jsx'
             ],
             
             // Event pages
