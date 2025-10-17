@@ -20,6 +20,7 @@ import { authOptional } from "./middleware/auth.js";
 import User from "./models/User.js";
 import { getClientAgent } from "./utils/clientAgent.js";
 import { buildCookieOptions } from "./utils/cookieOptions.js";
+import { checkProductionEnvironment } from "./utils/checkProductionEnv.js";
 
 // Import tất cả routes
 import authRoutes from "./routes/auth-secure.js"; // Authentication routes
@@ -43,6 +44,7 @@ import searchHistoryRoutes from "./routes/searchHistory.js"; // Search history r
 import storyRoutes from "./routes/stories.js"; // Stories routes
 import pollRoutes from "./routes/polls.js"; // Polls routes
 import healthRoutes from "./routes/health.js"; // Health check routes
+import roleRoutes from "./routes/roles.js"; // Roles routes
 
 // Environment variables are loaded via `import 'dotenv/config'` at the top
 
@@ -267,6 +269,32 @@ app.get("/api/debug", (req, res) => {
       allowedOrigins: allowedOrigins,
       corsOriginEnv: process.env.CORS_ORIGIN,
       environment: process.env.NODE_ENV
+    },
+    cookies: req.cookies,
+    cookieNames: Object.keys(req.cookies || {})
+  });
+});
+
+// Production cookie debug endpoint
+app.get("/api/debug-cookies", (req, res) => {
+  const isProduction = process.env.NODE_ENV === "production";
+  
+  res.json({
+    environment: process.env.NODE_ENV,
+    isProduction,
+    cookies: req.cookies,
+    cookieNames: Object.keys(req.cookies || {}),
+    headers: {
+      origin: req.get('Origin'),
+      referer: req.get('Referer'),
+      host: req.get('Host'),
+      userAgent: req.get('User-Agent')
+    },
+    cookieSettings: {
+      domain: isProduction ? ".shiku.click" : undefined,
+      secure: isProduction,
+      sameSite: "lax",
+      httpOnly: true
     }
   });
 });
@@ -351,6 +379,7 @@ app.use("/api/search", searchHistoryRoutes); // Search history
 app.use("/api/stories", apiLimiter, storyRoutes); // Stories with rate limiting
 app.use("/api/polls", apiLimiter, pollRoutes); // Polls/Surveys with rate limiting
 app.use("/api/health", healthRoutes); // Health check endpoint
+app.use("/api/admin/roles", roleRoutes); // Roles routes
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);
@@ -740,12 +769,27 @@ export { app, server };
 if (process.env.DISABLE_SERVER_START === "true") {
   console.log("[TEST] Server start skipped");
 } else {
+  // Check production environment before starting
+  const envCheck = checkProductionEnvironment();
+  if (!envCheck.isValid) {
+    console.error("❌ Server startup aborted due to environment issues");
+    process.exit(1);
+  }
+
   connectDB(process.env.MONGODB_URI).then(async () => {
 
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`Server listening on http://localhost:${PORT}`);
       console.log(`Network access: http://YOUR_IP:${PORT}`);
       console.log('✅ Socket.IO ready');
+      
+      // Log environment info
+      if (process.env.NODE_ENV === "production") {
+        console.log("🚀 Production server started");
+        console.log(`Environment: ${envCheck.environment.nodeEnv}`);
+        console.log(`Cookie Domain: ${envCheck.environment.cookieDomain}`);
+        console.log(`CORS Origin: ${envCheck.environment.corsOrigin}`);
+      }
     });
   }).catch((error) => {
     console.error('Failed to start server:', error);

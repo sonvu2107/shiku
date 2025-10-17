@@ -1,13 +1,15 @@
 export const buildCookieOptions = (maxAge, overrides = {}) => {
   const isProduction = process.env.NODE_ENV === "production";
-  const cookieDomain = isProduction ? process.env.COOKIE_DOMAIN : undefined;
-
+  
+  // For production, use more permissive settings for cross-domain cookies
+  const cookieDomain = isProduction ? ".shiku.click" : undefined;
+  
   return {
     httpOnly: true,
     path: "/",
-    secure: process.env.COOKIE_SECURE === "true",
-    sameSite: isProduction ? "none" : "lax",
-    domain: cookieDomain,  // 🔹 domain đồng bộ
+    secure: isProduction, // Always secure in production
+    sameSite: isProduction ? "lax" : "lax", // Use 'lax' for better compatibility
+    domain: cookieDomain,
     maxAge,
     ...overrides,
   };

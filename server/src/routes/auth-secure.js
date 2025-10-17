@@ -223,20 +223,39 @@ router.post("/refresh",
       const { refreshToken } = req.body;
       const cookieRefreshToken = req.cookies?.refreshToken;
 
-      console.log("[DEBUG] Refresh request - body token:", !!refreshToken, "cookie token:", !!cookieRefreshToken);
-      console.log("[DEBUG] Cookies:", req.cookies);
+      // Better logging for production debugging
+      const isProduction = process.env.NODE_ENV === "production";
+      if (isProduction) {
+        console.log("[PROD] Refresh request from:", req.get('Origin') || req.get('Referer'));
+        console.log("[PROD] Has body token:", !!refreshToken);
+        console.log("[PROD] Has cookie token:", !!cookieRefreshToken);
+        console.log("[PROD] Cookie names:", Object.keys(req.cookies || {}));
+      } else {
+        console.log("[DEBUG] Refresh request - body token:", !!refreshToken, "cookie token:", !!cookieRefreshToken);
+        console.log("[DEBUG] Cookies:", req.cookies);
+      }
 
       const tokenToUse = refreshToken || cookieRefreshToken;
 
       if (!tokenToUse) {
-        console.log("[DEBUG] No refresh token found");
+        const errorMsg = "Refresh token là bắt buộc";
+        if (isProduction) {
+          console.log("[PROD] No refresh token found - cookies:", Object.keys(req.cookies || {}));
+        } else {
+          console.log("[DEBUG] No refresh token found");
+        }
         return res.status(400).json({
-          error: "Refresh token là bắt buộc",
-          code: "MISSING_REFRESH_TOKEN"
+          error: errorMsg,
+          code: "MISSING_REFRESH_TOKEN",
+          debug: isProduction ? undefined : { cookies: req.cookies }
         });
       }
 
-      console.log("[DEBUG] Using refresh token:", tokenToUse.substring(0, 20) + "...");
+      if (isProduction) {
+        console.log("[PROD] Using refresh token:", tokenToUse.substring(0, 20) + "...");
+      } else {
+        console.log("[DEBUG] Using refresh token:", tokenToUse.substring(0, 20) + "...");
+      }
 
       // Simplified refresh logic - just verify and create new token
       try {
@@ -244,7 +263,12 @@ router.post("/refresh",
           tokenToUse,
           process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET
         );
-        console.log("[DEBUG] Token payload:", payload);
+        
+        if (isProduction) {
+          console.log("[PROD] Token payload valid for user:", payload.id);
+        } else {
+          console.log("[DEBUG] Token payload:", payload);
+        }
 
         if (payload.type !== 'refresh') {
           throw new Error("Invalid token type");
@@ -255,7 +279,11 @@ router.post("/refresh",
           throw new Error("User not found");
         }
 
-        console.log("[DEBUG] User found:", user.name);
+        if (isProduction) {
+          console.log("[PROD] User found:", user.name);
+        } else {
+          console.log("[DEBUG] User found:", user.name);
+        }
 
         // Create new access token
         const newAccessToken = jwt.sign(
@@ -268,10 +296,14 @@ router.post("/refresh",
           { expiresIn: "15m" }
         );
 
-        // Set new access token cookie
+        // Set new access token cookie with proper options
         res.cookie("accessToken", newAccessToken, accessCookieOptions);
 
-        console.log("[DEBUG] Refresh successful for user:", user.name);
+        if (isProduction) {
+          console.log("[PROD] Refresh successful for user:", user.name);
+        } else {
+          console.log("[DEBUG] Refresh successful for user:", user.name);
+        }
 
         res.json({
           accessToken: newAccessToken,
@@ -284,18 +316,27 @@ router.post("/refresh",
         });
 
       } catch (jwtError) {
-        console.log("[DEBUG] JWT verification error:", jwtError.message);
+        if (isProduction) {
+          console.log("[PROD] JWT verification error:", jwtError.message);
+        } else {
+          console.log("[DEBUG] JWT verification error:", jwtError.message);
+        }
         throw jwtError;
       }
 
     } catch (error) {
-      console.log("[DEBUG] Refresh error:", error.message);
-      console.log("[DEBUG] Error stack:", error.stack);
+      const isProduction = process.env.NODE_ENV === "production";
+      if (isProduction) {
+        console.log("[PROD] Refresh error:", error.message);
+      } else {
+        console.log("[DEBUG] Refresh error:", error.message);
+        console.log("[DEBUG] Error stack:", error.stack);
+      }
 
       res.status(401).json({
         error: "Refresh token không hợp lệ",
         code: "INVALID_REFRESH_TOKEN",
-        details: error.message
+        details: isProduction ? undefined : error.message
       });
     }
   }
@@ -552,16 +593,29 @@ router.post("/heartbeat",
   authRequired,
   async (req, res, next) => {
     try {
+      // Validate user exists
+      if (!req.user) {
+        return res.status(401).json({ 
+          error: "User not authenticated",
+          code: "USER_NOT_AUTHENTICATED"
+        });
+      }
+
       // Update user's last seen timestamp
       req.user.lastSeen = new Date();
       await req.user.save();
 
-      // Log security event
-      logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.ADMIN_ACTION, {
-        action: 'heartbeat',
-        userId: req.user._id,
-        ip: req.ip
-      }, req);
+      // Log security event (only if logging is enabled)
+      try {
+        logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.ADMIN_ACTION, {
+          action: 'heartbeat',
+          userId: req.user._id,
+          ip: req.ip
+        }, req);
+      } catch (logError) {
+        // Don't fail heartbeat if logging fails
+        console.warn("Heartbeat logging failed:", logError.message);
+      }
 
       res.json({
         status: "ok",
@@ -570,7 +624,12 @@ router.post("/heartbeat",
         isOnline: true
       });
     } catch (error) {
-      next(error);
+      console.error("Heartbeat error:", error);
+      res.status(500).json({ 
+        error: "Heartbeat failed",
+        code: "HEARTBEAT_ERROR",
+        message: error.message
+      });
     }
   }
 );

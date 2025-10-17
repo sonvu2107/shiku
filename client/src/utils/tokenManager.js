@@ -143,13 +143,20 @@ export async function refreshAccessToken() {
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "<no body>");
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText };
+      }
+      
       if (response.status === 400 || response.status === 401) {
-        console.info("[tokenManager] No valid refresh token available");
+        console.info("[tokenManager] No valid refresh token available:", errorData.code || errorData.error);
       } else {
         console.error(
           "[tokenManager] Refresh token request failed",
           response.status,
-          errorText
+          errorData
         );
       }
       clearTokens();

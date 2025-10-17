@@ -125,79 +125,71 @@ class SocketService {
 
     const token = getAccessToken();
     if (!token) {
+      console.warn('No access token available for Socket.IO connection');
       return null;
     }
 
+    // Add a small delay to ensure authentication is complete
+    setTimeout(() => {
+      this._establishConnection(token);
+    }, 100);
+
+    return null; // Will return socket after connection is established
+  }
+
+  /**
+   * Establish Socket.IO connection
+   * @private
+   */
+  _establishConnection(token) {
     this.socket = io(SOCKET_URL, {
       auth: {
         token
       },
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"], // Try polling first, then websocket
       autoConnect: true,
       reconnection: true,
-      reconnectionDelay: 500,
-      reconnectionDelayMax: 2000,
-      reconnectionAttempts: 10,
-      maxReconnectionAttempts: 10,
-      timeout: 5000,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+      maxReconnectionAttempts: 5,
+      timeout: 10000,
       forceNew: false,
-      multiplex: true
+      multiplex: true,
+      upgrade: true,
+      rememberUpgrade: false
     });
 
     // Event handlers cho connection
     this.socket.on('connect', () => {
-      // Connected to server
+      console.log('Socket connected successfully');
       // Join user room để nhận real-time updates
-      const targetUser = this.currentUser || user;
+      const targetUser = this.currentUser;
       if (targetUser && targetUser._id) {
         this.socket.emit('join-user', targetUser._id);
       }
     });
     
     this.socket.on('connect_error', (error) => {
-      // Kết nối socket bị lỗi
+      console.warn('Socket connection error:', error.message);
+      // Don't show error to user, just log it
     });
     
     this.socket.on('connect_timeout', () => {
-      // Kết nối socket timeout
+      console.warn('Socket connection timeout');
     });
     
     this.socket.io.on('reconnect_attempt', (attempt) => {
-      // Đang thử kết nối lại
+      console.log(`Socket reconnection attempt ${attempt}`);
     });
     
     this.socket.io.on('reconnect', (attempt) => {
-      // Đã kết nối lại thành công
+      console.log(`Socket reconnected after ${attempt} attempts`);
     });
 
-    this.socket.on('disconnect', () => {
-      // Disconnected from server
+    this.socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
     });
-
-    this.socket.on('connect_error', (error) => {
-      // Nếu lỗi authentication, có thể token đã hết hạn
-      if (error.message === 'Authentication error' || error.type === 'UnauthorizedError') {
-        // Có thể trigger logout hoặc refresh token ở đây
-      }
-    });
-
-    this.socket.on('reconnect', (attemptNumber) => {
-      // Reconnected after attempts
-    });
-
-    this.socket.on('reconnect_attempt', (attemptNumber) => {
-      // Reconnection attempt
-    });
-
-    this.socket.on('reconnect_error', (error) => {
-      // Reconnection error
-    });
-
-    this.socket.on('reconnect_failed', () => {
-      // Failed to reconnect after maximum attempts
-    });
-
-    return this.socket;
   }
 
   /**
