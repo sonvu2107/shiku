@@ -156,6 +156,10 @@ export async function refreshAccessToken() {
       
       if (response.status === 400 || response.status === 401) {
         console.info("[tokenManager] No valid refresh token available:", errorData.code || errorData.error);
+      } else if (response.status === 429) {
+        console.warn("[tokenManager] Rate limited:", errorData.error);
+        // Don't clear tokens on rate limit, just return null
+        return null;
       } else {
         console.error(
           "[tokenManager] Refresh token request failed",

@@ -6,7 +6,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
-import { generateTokenPair } from "../middleware/jwtSecurity.js";
+import { generateTokenPair, resetRateLimit } from "../middleware/jwtSecurity.js";
 import { buildCookieOptions } from "../utils/cookieOptions.js";
 
 const tempRouter = express.Router();
@@ -94,6 +94,10 @@ tempRouter.post("/login-token", async (req, res, next) => {
     };
     
     console.log("[auth-token] Login successful for:", user.name);
+    
+    // Reset rate limit for this IP after successful login
+    resetRateLimit(req.ip);
+    
     res.json(response);
   } catch (e) { 
     console.error("[auth-token] Login error:", e);
@@ -170,6 +174,10 @@ tempRouter.post("/register-token", async (req, res, next) => {
     };
     
     console.log("[auth-token] Registration successful for:", user.name);
+    
+    // Reset rate limit for this IP after successful registration
+    resetRateLimit(req.ip);
+    
     res.status(201).json(response);
   } catch (e) { 
     console.error("[auth-token] Registration error:", e);

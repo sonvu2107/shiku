@@ -379,6 +379,19 @@ export const logout = async ({ accessToken, refreshToken } = {}) => {
 
 
 /**
+ * Reset rate limit cho IP khi login thành công
+ */
+export const resetRateLimit = (ip) => {
+  if (!global.refreshAttempts) {
+    global.refreshAttempts = new Map();
+  }
+  
+  const key = `refresh:${ip}`;
+  global.refreshAttempts.delete(key);
+  console.log(`[RATE LIMIT] Reset rate limit for IP: ${ip}`);
+};
+
+/**
  * Middleware giới hạn số lần refresh token (rate limit, lưu trong RAM)
  * Giúp chống brute-force hoặc abuse refresh token
  */
@@ -386,13 +399,16 @@ export const refreshTokenLimiter = (req, res, next) => {
   const key = `refresh:${req.ip}`;
   const now = Date.now();
   const windowMs = 15 * 60 * 1000; // 15 phút
-  // Cho phép nhiều hơn khi dev, nghiêm ngặt khi production
-  const maxAttempts = process.env.NODE_ENV === 'production' ? 10 : 50;
+  // Tăng limit để tránh block legitimate users
+  const maxAttempts = process.env.NODE_ENV === 'production' ? 30 : 100;
+  
   if (!global.refreshAttempts) {
     global.refreshAttempts = new Map();
   }
+  
   const attempts = global.refreshAttempts.get(key) || [];
   const validAttempts = attempts.filter((time) => now - time < windowMs);
+  
   if (validAttempts.length >= maxAttempts) {
     console.warn(`[RATE LIMIT] IP ${req.ip} vượt quá giới hạn refresh token: ${validAttempts.length}/${maxAttempts}`);
     return res.status(429).json({
@@ -401,12 +417,15 @@ export const refreshTokenLimiter = (req, res, next) => {
       retryAfter: Math.ceil(windowMs / 1000)
     });
   }
+  
   validAttempts.push(now);
   global.refreshAttempts.set(key, validAttempts);
+  
   // Thêm header rate limit chuẩn
   res.setHeader('X-RateLimit-Limit', maxAttempts);
   res.setHeader('X-RateLimit-Remaining', Math.max(0, maxAttempts - validAttempts.length));
   res.setHeader('X-RateLimit-Reset', new Date(now + windowMs).toISOString());
+  
   next();
 };
 

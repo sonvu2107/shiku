@@ -364,6 +364,34 @@ app.get("/api/test-session-persistence", async (req, res) => {
   }
 });
 
+// Clear rate limit endpoint (for debugging)
+app.post("/api/clear-rate-limit", (req, res) => {
+  try {
+    const { ip } = req.body;
+    const targetIP = ip || req.ip;
+    
+    if (!global.refreshAttempts) {
+      global.refreshAttempts = new Map();
+    }
+    
+    const key = `refresh:${targetIP}`;
+    const hadLimit = global.refreshAttempts.has(key);
+    global.refreshAttempts.delete(key);
+    
+    res.json({
+      success: true,
+      message: `Rate limit cleared for IP: ${targetIP}`,
+      hadLimit: hadLimit,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to clear rate limit",
+      details: error.message
+    });
+  }
+});
+
 // Test token generation endpoint
 app.post("/api/test-token-generation", async (req, res) => {
   try {
