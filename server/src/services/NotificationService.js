@@ -172,13 +172,15 @@ class NotificationService {
       query.read = true;
     }
     
+    // PHASE 4: Add .lean() for better performance
     const notifications = await Notification
       .find(query)
       .populate("sender", "name avatarUrl")
       .populate("data.post", "title slug")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const total = await Notification.countDocuments(query);
     const unreadCount = await Notification.countDocuments({ 

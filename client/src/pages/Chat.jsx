@@ -62,7 +62,8 @@ export default function Chat() {
 
   // Xử lý incoming calls - setup listener sau khi user và socket đã sẵn sàng
   useEffect(() => {
-    if (!currentUser) {
+    // Chỉ setup listener khi đã có currentUser và socket
+    if (!currentUser || !socketService.socket) {
       return;
     }
 
@@ -448,9 +449,29 @@ export default function Chat() {
 
   const handleCreateConversation = async (conversationData) => {
     try {
-      const newConversation = await chatAPI.createConversation(conversationData);
-      setConversations(prev => [newConversation, ...prev]);
+      let newConversation;
+      
+      // Nếu có existingConversation, sử dụng nó thay vì tạo mới
+      if (conversationData.existingConversation) {
+        newConversation = conversationData.existingConversation;
+        
+        // Kiểm tra xem conversation đã có trong danh sách chưa
+        const existingInList = conversations.find(conv => conv._id === newConversation._id);
+        if (!existingInList) {
+          // Thêm vào đầu danh sách nếu chưa có
+          setConversations(prev => [newConversation, ...prev]);
+        }
+      } else {
+        // Tạo conversation mới như bình thường
+        newConversation = await chatAPI.createConversation(conversationData);
+        setConversations(prev => [newConversation, ...prev]);
+      }
+      
       setSelectedConversation(newConversation);
+      
+      // Lưu conversation hiện tại
+      await saveCurrentConversation(newConversation._id);
+      
     } catch (error) {
       throw error;
     }

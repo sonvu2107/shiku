@@ -1,30 +1,35 @@
+
+// Middleware bảo vệ các endpoint admin bằng giới hạn tốc độ và cache
 import rateLimit from 'express-rate-limit';
 import slowDown from 'express-slow-down';
 
+
 /**
- * Admin Rate Limiting - Bảo vệ admin endpoints khỏi abuse
+ * Giới hạn tốc độ cho các endpoint admin để chống spam/abuse
  */
 
-// General admin rate limit - 100 requests per 15 minutes
+
+// Giới hạn chung cho admin: mỗi IP chỉ được 100 request mỗi 15 phút
 export const adminRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 100, // Tối đa 100 request mỗi IP trong 15 phút
   message: {
     error: "Quá nhiều requests từ IP này, vui lòng thử lại sau 15 phút",
     code: "ADMIN_RATE_LIMIT_EXCEEDED"
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  standardHeaders: true, // Trả về thông tin rate limit qua header chuẩn
+  legacyHeaders: false, // Không dùng header cũ
   skip: (req) => {
-    // Skip rate limiting for localhost in development
+    // Bỏ qua giới hạn khi chạy local dev
     return process.env.NODE_ENV === 'development' && req.ip === '127.0.0.1';
   }
 });
 
-// Strict rate limit for sensitive admin actions (ban, unban, delete)
+
+// Giới hạn nghiêm ngặt cho các thao tác admin nhạy cảm (ban, unban, xóa...)
 export const strictAdminRateLimit = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 10, // Limit each IP to 10 requests per 5 minutes
+  windowMs: 5 * 60 * 1000, // 5 phút
+  max: 10, // Tối đa 10 request mỗi IP trong 5 phút
   message: {
     error: "Quá nhiều hành động admin nhạy cảm, vui lòng thử lại sau 5 phút",
     code: "STRICT_ADMIN_RATE_LIMIT_EXCEEDED"
@@ -32,27 +37,32 @@ export const strictAdminRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
+    // Bỏ qua giới hạn khi chạy local dev
     return process.env.NODE_ENV === 'development' && req.ip === '127.0.0.1';
   }
 });
 
-// Slow down for notification sending - increasingly delay responses
+
+// Làm chậm gửi thông báo: sau 5 request sẽ bị delay dần (chống spam gửi noti)
 export const notificationSlowDown = slowDown({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  delayAfter: 5, // Allow 5 requests per windowMs without delay
-  delayMs: () => 500, // Fixed 500ms delay per request after delayAfter
-  maxDelayMs: 10000, // Maximum delay of 10 seconds
-  validate: { delayMs: false }, // Disable warning
+  windowMs: 15 * 60 * 1000, // 15 phút
+  delayAfter: 5, // 5 request đầu không delay
+  delayMs: () => 500, // Sau đó mỗi request bị delay 500ms
+  maxDelayMs: 10000, // Tối đa delay 10 giây
+  validate: { delayMs: false }, // Không cảnh báo
   skip: (req) => {
+    // Bỏ qua khi dev local
     return process.env.NODE_ENV === 'development' && req.ip === '127.0.0.1';
   }
 });
+
 
 /**
- * Cache Headers - Cải thiện performance với caching strategies
+ * Các middleware set header cache cho từng loại dữ liệu (tăng hiệu năng)
  */
 
-// Stale-while-revalidate cache for stats data (cache 5 minutes, stale for 10 minutes)
+
+// Cache kiểu stale-while-revalidate cho dữ liệu thống kê (5 phút, stale 10 phút)
 export function statsCache(req, res, next) {
   if (req.method === 'GET') {
     res.set({
@@ -63,7 +73,8 @@ export function statsCache(req, res, next) {
   next();
 }
 
-// Short cache for user data (cache 2 minutes, stale for 5 minutes)
+
+// Cache ngắn cho dữ liệu user (2 phút, stale 5 phút)
 export function userCache(req, res, next) {
   if (req.method === 'GET') {
     res.set({
@@ -74,7 +85,8 @@ export function userCache(req, res, next) {
   next();
 }
 
-// No cache for real-time data (online users, notifications)
+
+// Không cache cho dữ liệu realtime (user online, thông báo...)
 export function noCache(req, res, next) {
   res.set({
     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -84,7 +96,8 @@ export function noCache(req, res, next) {
   next();
 }
 
-// Long cache for role data (cache 30 minutes, stale for 1 hour)
+
+// Cache lâu cho dữ liệu role (30 phút, stale 1 tiếng)
 export function roleCache(req, res, next) {
   if (req.method === 'GET') {
     res.set({

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
+import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import {
   UserPlus,
   UserMinus,
@@ -18,6 +19,7 @@ import {
 import MessageButton from "../components/MessageButton";
 import UserName from "../components/UserName";
 import PostCard from "../components/PostCard";
+import { useSavedPosts } from "../hooks/useSavedPosts";
 
 /**
  * UserProfile - Trang profile của user khác
@@ -36,6 +38,7 @@ export default function UserProfile() {
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState("");
+  const { savedMap, updateSavedState } = useSavedPosts(posts);
 
   useEffect(() => {
     loadProfile();
@@ -202,7 +205,7 @@ export default function UserProfile() {
             <MessageButton
               user={profile.user}
               className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm"
-              style={{backgroundColor: '#000', color: '#fff'}}
+              style={{ backgroundColor: '#000', color: '#fff' }}
             />
             <button
               onClick={removeFriend}
@@ -320,8 +323,7 @@ export default function UserProfile() {
                   <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg overflow-hidden">
                     <img
                       src={
-                        user.avatarUrl ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222&size=128`
+                        getUserAvatarUrl(user, AVATAR_SIZES.XLARGE)
                       }
                       alt="Avatar"
                       className="w-full h-full object-cover"
@@ -350,7 +352,7 @@ export default function UserProfile() {
                             (user.showBirthday !== false && user.birthday) ||
                             (user.showHobbies !== false && user.hobbies)
                           );
-                          
+
                           if (!hasContactInfo) {
                             return (
                               <div className="bg-gray-50 rounded-lg p-3 text-center mb-3">
@@ -358,7 +360,7 @@ export default function UserProfile() {
                               </div>
                             );
                           }
-                          
+
                           return (
                             <div className="grid [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] gap-2 text-sm text-gray-700 mb-2">
                               {user.showEmail !== false && user.email && (
@@ -419,7 +421,6 @@ export default function UserProfile() {
                         )}
                       </div>
                     </div>
-
                     <div className="flex gap-2 flex-shrink-0">{renderFriendButton()}</div>
                   </div>
                 </div>
@@ -442,11 +443,10 @@ export default function UserProfile() {
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`${
-                    activeTab === id
+                  className={`${activeTab === id
                       ? "border-blue-500 text-blue-600"
                       : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  } whitespace-nowrap py-4 px-3 md:px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+                    } whitespace-nowrap py-4 px-3 md:px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="text-sm">{label}</span>
@@ -461,11 +461,13 @@ export default function UserProfile() {
           </div>
 
           {/* Content */}
-          <div className="min-h-[500px] p-4 md:p-6">
+          <div className="min-h-[50px] p-4 md:p-6">
             {activeTab === "posts" && (
               <div>
                 {user.showPosts === false ? (
-                  <div className="text-center py-16 text-gray-500">Bài đăng đã được đặt ở chế độ riêng tư</div>
+                  <div className="text-center py-16 text-gray-500">
+                    Bài đăng đã được đặt ở chế độ riêng tư
+                  </div>
                 ) : postsLoading ? (
                   <div>Đang tải bài đăng...</div>
                 ) : postsError ? (
@@ -473,7 +475,14 @@ export default function UserProfile() {
                 ) : posts.length > 0 ? (
                   <div className="space-y-4">
                     {posts.map((post) => (
-                      <PostCard key={post._id} post={post} hidePublicIcon={true} />
+                      <PostCard
+                        key={post._id}
+                        post={post}
+                        hidePublicIcon={true}
+                        isSaved={savedMap[post._id]}
+                        onSavedChange={updateSavedState}
+                        skipSavedStatusFetch={true}
+                      />
                     ))}
                   </div>
                 ) : (
@@ -484,11 +493,6 @@ export default function UserProfile() {
 
             {activeTab === 'friends' && (
               <div>
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Bạn bè</h3>
-                  <p className="text-sm text-gray-500">{user.friends?.length || 0} người bạn</p>
-                </div>
-
                 {user.showFriends === false ? (
                   <div className="text-center py-16">
                     <div className="w-20 h-20 mx-auto mb-6 bg-blue-50 rounded-full flex items-center justify-center">
@@ -517,18 +521,16 @@ export default function UserProfile() {
                                 />
                               ) : null}
                               <div
-                                className={`w-full h-full flex items-center justify-center text-gray-600 font-medium text-lg ${
-                                  friend.avatarUrl ? 'hidden' : 'flex'
-                                }`}
+                                className={`w-full h-full flex items-center justify-center text-gray-600 font-medium text-lg ${friend.avatarUrl ? 'hidden' : 'flex'
+                                  }`}
                               >
                                 {friend.name ? friend.name.charAt(0).toUpperCase() : '?'}
                               </div>
                             </div>
                             {/* Chấm online/offline */}
                             <div
-                              className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-                                friend.isOnline ? 'bg-green-500' : 'bg-gray-400'
-                              }`}
+                              className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${friend.isOnline ? 'bg-green-500' : 'bg-gray-400'
+                                }`}
                             />
                           </div>
 

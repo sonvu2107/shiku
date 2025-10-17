@@ -97,7 +97,7 @@ async function validateFiles(req, res, next) {
 router.get("/post/:postId", authOptional, async (req, res, next) => {
   try {
     let items = await Comment.find({ post: req.params.postId })
-      .populate("author", "name avatarUrl role blockedUsers")
+      .populate("author", "name nickname avatarUrl role blockedUsers")
       .populate("parent")
       .populate("likes", "name")
       .populate("emotes.user", "name avatarUrl")

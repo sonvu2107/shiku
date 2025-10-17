@@ -18,6 +18,7 @@ import {
   Bookmark
 } from "lucide-react";
 import { removeAuthToken } from "../utils/auth.js";
+import { api } from "../api.js";
 
 /**
  * MobileMenu - Component menu hamburger cho mobile
@@ -31,7 +32,7 @@ export default function MobileMenu({ user, setUser }) {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await api("/api/auth/logout", { method: "POST" });
     } catch (err) {
       // Silent handling for logout error
     }

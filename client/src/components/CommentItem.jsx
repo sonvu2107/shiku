@@ -126,8 +126,7 @@ export default function CommentItem({
           {/* Author & Time */}
           <div className="flex items-center gap-2 mb-1">
             <UserName 
-              name={comment.author?.name} 
-              role={comment.author?.role}
+              user={comment.author}
               className="font-medium text-gray-900"
             />
             <span className="text-xs text-gray-500">

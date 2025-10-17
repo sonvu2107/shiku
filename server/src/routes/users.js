@@ -58,7 +58,8 @@ router.get('/', authRequired, async (req, res) => {
       .populate('role') // Populate the role field
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean(); // PHASE 4: Add .lean() for better performance
 
     const total = await User.countDocuments(query);
 
@@ -132,6 +133,21 @@ router.get('/current-conversation', authRequired, async (req, res) => {
   }
 });
 
+// Lưu conversation hiện tại của user
+router.post('/current-conversation', authRequired, async (req, res) => {
+  try {
+    const { conversationId } = req.body;
+    
+    await User.findByIdAndUpdate(req.user._id, {
+      currentConversation: conversationId
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
 // Lấy profile user khác (không bao gồm thông tin nhạy cảm)
 router.get('/:id', authRequired, async (req, res) => {
   try {
@@ -140,7 +156,7 @@ router.get('/:id', authRequired, async (req, res) => {
     const user = await User.findById(id)
       .select('-password -email') 
       .populate('role') // Populate the role field
-      .populate('friends', 'name avatarUrl isOnline lastSeen role');
+      .populate('friends', 'name nickname avatarUrl isOnline lastSeen role');
 
     if (!user) {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });

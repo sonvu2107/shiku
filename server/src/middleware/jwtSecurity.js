@@ -1,4 +1,5 @@
-// Load environment variables early for secrets used below
+
+// Nạp biến môi trường sớm để sử dụng các secret bên dưới
 import 'dotenv/config';
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
@@ -11,37 +12,44 @@ import {
 } from "../services/refreshTokenStore.js";
 
 /**
- * JWT security helpers implementing rotation, revocation, and CSRF-aligned cookie flow.
- * Aligns with OWASP ASVS section 2.5.3 (session management) and 2.5.4 (token revocation).
+ * Các hàm hỗ trợ bảo mật JWT: xoay vòng, thu hồi token, và flow cookie chống CSRF.
+ * Đáp ứng tiêu chuẩn OWASP ASVS mục 2.5.3 (quản lý phiên) và 2.5.4 (thu hồi token).
  */
 
+// Danh sách đen lưu các access token đã bị thu hồi (chỉ lưu trong RAM)
 const tokenBlacklist = new Set();
 
+
+// Thuật toán ký JWT, secret cho access/refresh token, và secret cũ (nếu có)
 const JWT_ALGORITHM = process.env.JWT_ALGORITHM || "HS256";
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || process.env.JWT_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET;
 const REFRESH_SECRET_OLD = process.env.REFRESH_SECRET_OLD;
 
-// 15 minutes access token lifetime (short-lived to reduce replay window)
+// Thời gian sống của access token: 15 phút (giảm nguy cơ bị lộ)
 const ACCESS_TOKEN_TTL_SECONDS = Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 15 * 60;
-// 30 days refresh token lifetime keeps parity with the previous implementation
+// Thời gian sống của refresh token: 30 ngày
 const REFRESH_TOKEN_TTL_SECONDS = Number(process.env.REFRESH_TOKEN_TTL_SECONDS) || 30 * 24 * 60 * 60;
 
+
+// Cảnh báo nếu thiếu secret riêng cho access/refresh token
 if (!ACCESS_TOKEN_SECRET || !REFRESH_TOKEN_SECRET) {
   console.warn(
-    "[SECURITY][JWT] Missing ACCESS_TOKEN_SECRET/REFRESH_TOKEN_SECRET env vars; falling back to JWT_SECRET. " +
-      "Please update configuration to dedicated secrets."
+    "[SECURITY][JWT] Thiếu ACCESS_TOKEN_SECRET/REFRESH_TOKEN_SECRET, đang dùng JWT_SECRET chung. Nên cấu hình secret riêng biệt."
   );
 }
 
+
+// Hàm ký JWT với payload, secret và thời hạn
 const signToken = (payload, secret, expiresInSeconds) =>
   jwt.sign(payload, secret, {
     expiresIn: expiresInSeconds,
     algorithm: JWT_ALGORITHM
   });
 
+
 /**
- * Issue an access token (always embeds type=access).
+ * Tạo access token (thêm type=access vào payload)
  * @param {Object} payload
  * @returns {string}
  */
@@ -50,15 +58,15 @@ export const generateAccessToken = (payload = {}) => {
     ...payload,
     type: "access"
   };
-
   return signToken(tokenPayload, ACCESS_TOKEN_SECRET, ACCESS_TOKEN_TTL_SECONDS);
 };
 
+
 /**
- * Issue a refresh token with jti tracking for revocation.
+ * Tạo refresh token (thêm jti để quản lý thu hồi)
  * @param {Object} payload
  * @param {Object} [options]
- * @param {boolean} [options.legacy=false]
+ * @param {boolean} [options.legacy=false] - Có phải token cũ không
  * @returns {Promise<{token: string, jti: string, issuedAt: Date, expiresAt: Date}>}
  */
 export const generateRefreshToken = async (payload = {}, { legacy = false } = {}) => {
@@ -74,6 +82,7 @@ export const generateRefreshToken = async (payload = {}, { legacy = false } = {}
 
   const token = signToken(tokenPayload, REFRESH_TOKEN_SECRET, REFRESH_TOKEN_TTL_SECONDS);
 
+  // Lưu metadata của refresh token vào kho lưu trữ (DB hoặc RAM)
   await persistRefreshToken({
     jti,
     userId: payload.id,
@@ -85,33 +94,34 @@ export const generateRefreshToken = async (payload = {}, { legacy = false } = {}
   return { token, jti, issuedAt, expiresAt };
 };
 
+
+// Kiểm tra access token có nằm trong blacklist không
 const isTokenBlacklisted = (token) => tokenBlacklist.has(token);
 
+
 /**
- * Verify access token and enforce token type.
+ * Xác thực access token, kiểm tra loại token và blacklist
  * @param {string} token
  * @returns {Object}
  */
 export const verifyAccessToken = (token) => {
   if (!token) {
-    throw new Error("Access token missing");
+    throw new Error("Thiếu access token");
   }
-
   if (isTokenBlacklisted(token)) {
-    throw new Error("Access token revoked");
+    throw new Error("Access token đã bị thu hồi");
   }
-
   const payload = jwt.verify(token, ACCESS_TOKEN_SECRET, {
     algorithms: [JWT_ALGORITHM]
   });
-
   if (payload.type !== "access") {
     throw new Error("Invalid token type");
   }
-
   return payload;
 };
 
+
+// Giải mã refresh token, hỗ trợ cả secret cũ (nếu có)
 const decodeRefreshTokenWithFallback = (token) => {
   try {
     const payload = jwt.verify(token, REFRESH_TOKEN_SECRET, {
@@ -122,7 +132,6 @@ const decodeRefreshTokenWithFallback = (token) => {
     if (!REFRESH_SECRET_OLD) {
       throw primaryError;
     }
-
     const payload = jwt.verify(token, REFRESH_SECRET_OLD, {
       algorithms: [JWT_ALGORITHM]
     });
@@ -130,40 +139,37 @@ const decodeRefreshTokenWithFallback = (token) => {
   }
 };
 
+
 /**
- * Verify refresh token (with dual-secret migration support).
+ * Xác thực refresh token (hỗ trợ chuyển đổi secret cũ)
  * @param {string} token
  * @returns {Promise<{payload: Object, legacy: boolean, needsRotation: boolean}>}
  */
 export const verifyRefreshToken = async (token) => {
   if (!token) {
-    throw new Error("Refresh token missing");
+    throw new Error("Thiếu refresh token");
   }
-
   const { payload, usedSecret } = decodeRefreshTokenWithFallback(token);
-
   if (payload.type !== "refresh") {
-    throw new Error("Invalid refresh token type");
+    throw new Error("Sai loại refresh token");
   }
-
   const result = {
     payload,
     legacy: usedSecret === "legacy",
     needsRotation: usedSecret === "legacy" || !payload.jti
   };
-
+  // Nếu token không có jti, buộc phải xoay vòng lại
   if (!payload.jti) {
-    console.warn("[SECURITY][JWT] Refresh token missing jti; forcing rotation for user", payload.id);
+    console.warn("[SECURITY][JWT] Refresh token thiếu jti, buộc phải xoay vòng lại cho user", payload.id);
     return result;
   }
-
+  // Kiểm tra metadata của refresh token trong kho lưu trữ
   let metadata = await getRefreshToken(payload.jti);
   if (!metadata) {
     const issuedAt = payload.iat ? new Date(payload.iat * 1000) : new Date();
     const expiresAt = payload.exp
       ? new Date(payload.exp * 1000)
       : new Date(Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000);
-
     await persistRefreshToken({
       jti: payload.jti,
       userId: payload.id,
@@ -173,25 +179,22 @@ export const verifyRefreshToken = async (token) => {
     });
     metadata = await getRefreshToken(payload.jti);
   }
-
   if (metadata?.revoked) {
-    throw new Error("Refresh token revoked");
+    throw new Error("Refresh token đã bị thu hồi");
   }
-
   if (metadata?.expiresAt && metadata.expiresAt.getTime() <= Date.now()) {
     await revokeRefreshToken(payload.jti, "expired");
-    throw new Error("Refresh token expired");
+    throw new Error("Refresh token đã hết hạn");
   }
-
   if (usedSecret === "legacy") {
     await markLegacySecret(payload.jti);
   }
-
   return result;
 };
 
+
 /**
- * Create access + refresh token pair and persist metadata.
+ * Tạo cặp access token + refresh token cho user
  * @param {Object} user
  * @returns {Promise<{accessToken: string, refreshToken: string, refreshTokenJti: string, refreshTokenExpiresAt: Date}>}
  */
@@ -200,10 +203,8 @@ export const generateTokenPair = async (user) => {
     id: user._id?.toString() || user.id,
     role: user.role
   };
-
   const accessToken = generateAccessToken(basePayload);
   const refreshTokenInfo = await generateRefreshToken(basePayload);
-
   return {
     accessToken,
     refreshToken: refreshTokenInfo.token,
@@ -212,8 +213,10 @@ export const generateTokenPair = async (user) => {
   };
 };
 
+
 /**
- * Strict auth middleware – requires valid access token (cookie or bearer header).
+ * Middleware bắt buộc xác thực: yêu cầu access token hợp lệ (qua cookie hoặc header)
+ * Nếu hợp lệ, gán user vào req.user, nếu không trả về lỗi 401/403
  */
 export const authRequired = async (req, res, next) => {
   try {
@@ -222,21 +225,17 @@ export const authRequired = async (req, res, next) => {
       const header = req.headers.authorization || "";
       token = header.startsWith("Bearer ") ? header.slice(7) : null;
     }
-
     if (!token) {
       return res.status(401).json({ error: "Vui lòng đăng nhập", code: "NO_TOKEN" });
     }
-
     const payload = verifyAccessToken(token);
     const user = await User.findById(payload.id).select("-password");
     if (!user) {
       return res.status(401).json({ error: "Token không hợp lệ", code: "INVALID_TOKEN" });
     }
-
     if (user.isBanned) {
       return res.status(403).json({ error: "Tài khoản đã bị cấm", code: "USER_BANNED" });
     }
-
     req.user = user;
     req.token = token;
     req.authContext = { accessTokenPayload: payload };
@@ -248,8 +247,9 @@ export const authRequired = async (req, res, next) => {
   }
 };
 
+
 /**
- * Optional auth middleware – attaches user when present.
+ * Middleware xác thực tùy chọn: nếu có access token hợp lệ thì gán user vào req.user, không thì bỏ qua
  */
 export const authOptional = async (req, res, next) => {
   try {
@@ -258,7 +258,6 @@ export const authOptional = async (req, res, next) => {
       const header = req.headers.authorization || "";
       token = header.startsWith("Bearer ") ? header.slice(7) : null;
     }
-
     if (token) {
       try {
         const payload = verifyAccessToken(token);
@@ -269,16 +268,17 @@ export const authOptional = async (req, res, next) => {
           req.authContext = { accessTokenPayload: payload };
         }
       } catch (error) {
-        // Ignore optional auth errors, consumer can fall back to anonymous state.
+        // Bỏ qua lỗi xác thực, cho phép truy cập ẩn danh
       }
     }
-
     next();
   } catch (error) {
     next();
   }
 };
 
+
+// Middleware chỉ cho phép admin truy cập
 export const adminOnly = (req, res, next) => {
   if (req.user?.role === "admin") {
     return next();
@@ -289,30 +289,27 @@ export const adminOnly = (req, res, next) => {
   });
 };
 
+
 /**
- * Refresh token flow with rotation + revocation.
+ * Xử lý refresh token: xác thực, thu hồi token cũ, tạo token mới
  * @param {string} refreshToken
  * @returns {Promise<Object>}
  */
 export const refreshAccessToken = async (refreshToken) => {
   const verification = await verifyRefreshToken(refreshToken);
   const { payload } = verification;
-
   const user = await User.findById(payload.id).select("-password");
   if (!user || user.isBanned) {
     throw new Error("User không tồn tại hoặc đã bị cấm");
   }
-
   if (payload.jti) {
     try {
       await revokeRefreshToken(payload.jti, verification.legacy ? "legacy-rotation" : "rotated");
     } catch (error) {
-      console.warn("[SECURITY][JWT] Failed to revoke refresh token", payload.jti, error.message);
+      console.warn("[SECURITY][JWT] Không thể thu hồi refresh token", payload.jti, error.message);
     }
   }
-
   const tokens = await generateTokenPair(user);
-
   return {
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
@@ -331,8 +328,9 @@ export const refreshAccessToken = async (refreshToken) => {
   };
 };
 
+
 /**
- * Logout helper – blacklist access token & revoke refresh token.
+ * Đăng xuất: đưa access token vào blacklist và thu hồi refresh token
  * @param {Object} params
  * @param {string} [params.accessToken]
  * @param {string} [params.refreshToken]
@@ -342,7 +340,6 @@ export const logout = async ({ accessToken, refreshToken } = {}) => {
     tokenBlacklist.add(accessToken);
     setTimeout(() => tokenBlacklist.delete(accessToken), 24 * 60 * 60 * 1000);
   }
-
   if (refreshToken) {
     try {
       const verification = await verifyRefreshToken(refreshToken);
@@ -351,68 +348,83 @@ export const logout = async ({ accessToken, refreshToken } = {}) => {
       }
     } catch (error) {
       console.warn(
-        "[SECURITY][JWT] Failed to revoke refresh token on logout",
+        "[SECURITY][JWT] Không thể thu hồi refresh token khi đăng xuất",
         error.message
       );
     }
-
-    // Try to revoke/delete from a persistent RefreshToken model if it exists.
-    // This is optional — projects using a DB-backed refresh token store should
-    // implement `models/RefreshToken.js` exporting a Mongoose model.
+    // Nếu có model RefreshToken (DB), thử thu hồi trong DB luôn
     try {
-      // Decode token to find jti when possible
       const decoded = jwt.decode(refreshToken) || {};
       const jti = decoded.jti;
-
       try {
         const mod = await import("../models/RefreshToken.js").catch(() => null);
         const RefreshTokenModel = mod ? (mod.default || mod.RefreshToken || mod.RefreshTokenModel) : null;
         if (RefreshTokenModel) {
           if (jti) {
-            // Prefer marking revoked by jti
             await RefreshTokenModel.findOneAndUpdate({ jti }, { revoked: true }).exec();
           } else {
-            // Fallback: remove by token string (if stored)
             await RefreshTokenModel.deleteOne({ token: refreshToken }).exec();
           }
         }
       } catch (err) {
-        // Model not present or DB error — don't fail logout
         if (process.env.NODE_ENV !== 'production') {
-          console.warn('[SECURITY][JWT] No RefreshToken model or failed DB revoke:', err.message);
+          console.warn('[SECURITY][JWT] Không có model RefreshToken hoặc lỗi DB:', err.message);
         }
       }
     } catch (err) {
-      // ignore decode errors
+      // Bỏ qua lỗi decode
     }
   }
 };
 
+
 /**
- * Refresh token rate limiter (in-memory fallback).
+ * Middleware giới hạn số lần refresh token (rate limit, lưu trong RAM)
+ * Giúp chống brute-force hoặc abuse refresh token
  */
 export const refreshTokenLimiter = (req, res, next) => {
   const key = `refresh:${req.ip}`;
   const now = Date.now();
-  const windowMs = 15 * 60 * 1000;
-  const maxAttempts = 5;
-
+  const windowMs = 15 * 60 * 1000; // 15 phút
+  // Cho phép nhiều hơn khi dev, nghiêm ngặt khi production
+  const maxAttempts = process.env.NODE_ENV === 'production' ? 10 : 50;
   if (!global.refreshAttempts) {
     global.refreshAttempts = new Map();
   }
-
   const attempts = global.refreshAttempts.get(key) || [];
   const validAttempts = attempts.filter((time) => now - time < windowMs);
-
   if (validAttempts.length >= maxAttempts) {
+    console.warn(`[RATE LIMIT] IP ${req.ip} vượt quá giới hạn refresh token: ${validAttempts.length}/${maxAttempts}`);
     return res.status(429).json({
       error: "Quá nhiều lần refresh token, vui lòng thử lại sau 15 phút",
-      code: "REFRESH_RATE_LIMIT"
+      code: "REFRESH_RATE_LIMIT",
+      retryAfter: Math.ceil(windowMs / 1000)
     });
   }
-
   validAttempts.push(now);
   global.refreshAttempts.set(key, validAttempts);
-
+  // Thêm header rate limit chuẩn
+  res.setHeader('X-RateLimit-Limit', maxAttempts);
+  res.setHeader('X-RateLimit-Remaining', Math.max(0, maxAttempts - validAttempts.length));
+  res.setHeader('X-RateLimit-Reset', new Date(now + windowMs).toISOString());
   next();
 };
+
+
+// Dọn dẹp các lần refresh cũ mỗi 5 phút để tránh rò rỉ bộ nhớ
+if (typeof global.refreshAttemptsCleanup === 'undefined') {
+  global.refreshAttemptsCleanup = setInterval(() => {
+    if (global.refreshAttempts) {
+      const now = Date.now();
+      const windowMs = 15 * 60 * 1000;
+      for (const [key, attempts] of global.refreshAttempts.entries()) {
+        const validAttempts = attempts.filter((time) => now - time < windowMs);
+        if (validAttempts.length === 0) {
+          global.refreshAttempts.delete(key);
+        } else {
+          global.refreshAttempts.set(key, validAttempts);
+        }
+      }
+    }
+  }, 5 * 60 * 1000); // Mỗi 5 phút
+}

@@ -58,4 +58,9 @@ const notificationSchema = new mongoose.Schema({
 notificationSchema.index({ recipient: 1, createdAt: -1 });
 notificationSchema.index({ recipient: 1, read: 1 });
 
+// PHASE 4: Lightweight unread counter
+notificationSchema.statics.countUnread = function(recipientId) {
+  return this.countDocuments({ recipient: recipientId, read: false });
+};
+
 export default mongoose.model("Notification", notificationSchema);

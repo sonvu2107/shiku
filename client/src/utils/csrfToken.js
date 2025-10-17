@@ -1,24 +1,23 @@
+
+// Biến lưu CSRF token và thời gian hết hạn (cache trong RAM)
 let csrfToken = null;
 let csrfTokenExpiry = 0;
 
+
 /**
- * Fetch and cache a CSRF token for subsequent requests.
- * @param {boolean} forceRefresh - when true, always request a new token.
+ * Lấy và cache CSRF token cho các request tiếp theo
+ * @param {boolean} forceRefresh - true: luôn gọi API lấy mới, false: dùng cache nếu còn hạn
  * @returns {Promise<string|null>}
  */
 export async function getCSRFToken(forceRefresh = false) {
   const now = Date.now();
-
+  // Nếu không bắt buộc làm mới và token còn hạn thì trả về token cache
   if (!forceRefresh && csrfToken && now < csrfTokenExpiry) {
     return csrfToken;
   }
-
   try {
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
-    
-    // ❌ XOÁ: Không xoá cookie trước khi gọi API
-    // Server sẽ tự xoá và tạo mới
-    
+    const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "" : "http://localhost:4000");
+    // Gọi API lấy CSRF token mới
     const response = await fetch(`${API_URL}/api/csrf-token`, {
       method: "GET",
       credentials: "include",
@@ -26,61 +25,57 @@ export async function getCSRFToken(forceRefresh = false) {
         Accept: "application/json"
       }
     });
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Failed to obtain CSRF token:", response.status, errorText);
       clearCSRFToken();
       return null;
     }
-
     const data = await response.json();
     if (data?.csrfToken) {
       csrfToken = data.csrfToken;
-      csrfTokenExpiry = now + 60 * 60 * 1000; // 1 hour
+      csrfTokenExpiry = now + 60 * 60 * 1000; // 1 tiếng
       return csrfToken;
     }
-
-    console.error("Response missing csrfToken field:", data);
     clearCSRFToken();
   } catch (error) {
-    console.error("Error fetching CSRF token:", error);
     clearCSRFToken();
   }
-
   return null;
 }
 
+
 /**
- * Clear any cached CSRF token.
+ * Xoá CSRF token khỏi cache (reset)
  */
 export function clearCSRFToken() {
   csrfToken = null;
   csrfTokenExpiry = 0;
 }
 
+
 /**
- * Preload a CSRF token during application bootstrap.
+ * Lấy sẵn CSRF token khi khởi động app (bootstrap)
  */
 export async function initializeCSRFToken() {
   const token = await getCSRFToken(true);
   if (token) {
     return true;
   }
-  console.error("Unable to initialize CSRF token");
   return false;
 }
 
+
 /**
- * Check whether the cached CSRF token is still valid.
+ * Kiểm tra token CSRF cache còn hạn không
  */
 export function hasValidCSRFToken() {
   const now = Date.now();
   return Boolean(csrfToken && now < csrfTokenExpiry);
 }
 
+
 /**
- * Ensure that a CSRF token is available before issuing a mutating request.
+ * Đảm bảo luôn có CSRF token hợp lệ trước khi gửi request thay đổi dữ liệu
  * @returns {Promise<boolean>}
  */
 export async function ensureCSRFToken() {

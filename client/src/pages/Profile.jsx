@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { api, uploadImage } from "../api";
 import UserName from "../components/UserName";
 import PostCard from "../components/PostCard";
+import { useSavedPosts } from "../hooks/useSavedPosts";
+import { generateAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import PostCreator from "../components/PostCreator";
 import ProfileCustomization from "../components/ProfileCustomization";
 import {
@@ -100,6 +102,7 @@ export default function Profile() {
   const [form, setForm] = useState({
     name: "", // Tên hiển thị
     email: "", // Email
+    nickname: "", // Biệt danh
     birthday: "", // Ngày sinh
     gender: "", // Giới tính
     hobbies: "", // Sở thích
@@ -119,6 +122,7 @@ export default function Profile() {
   const [posts, setPosts] = useState([]); // Danh sách bài đăng cá nhân
   const [postsLoading, setPostsLoading] = useState(false); // Loading posts
   const [postsError, setPostsError] = useState(""); // Error khi load posts
+  const { savedMap, updateSavedState } = useSavedPosts(posts);
 
   // Tab states
   const [activeTab, setActiveTab] = useState('posts'); // Tab hiện tại đang active
@@ -185,6 +189,7 @@ export default function Profile() {
     setForm({
       name: res.user.name || "",
       email: res.user.email || "",
+      nickname: res.user.nickname || "",
       birthday: res.user.birthday || "",
       gender: res.user.gender || "",
       hobbies: res.user.hobbies || "",
@@ -226,7 +231,7 @@ export default function Profile() {
 
       setPosts(sortedPosts);
     } catch (error) {
-      console.error("❌ Error loading posts:", error);
+      console.error("Error loading posts:", error);
       setPostsError('Không thể tải bài đăng. Vui lòng thử lại.');
     } finally {
       setPostsLoading(false);
@@ -464,9 +469,7 @@ export default function Profile() {
                         onError={e => {
                           e.target.onerror = null;
                           e.target.src =
-                            "https://ui-avatars.com/api/?name=" +
-                            encodeURIComponent(form.name) +
-                            "&background=cccccc&color=222222&size=128";
+                            generateAvatarUrl(form.name, AVATAR_SIZES.XLARGE);
                         }}
                       />
                     ) : (
@@ -698,6 +701,7 @@ export default function Profile() {
                         const newFormData = {
                           name: response.user.name || "",
                           email: response.user.email || "",
+                          nickname: response.user.nickname || "",
                           birthday: response.user.birthday || "",
                           gender: response.user.gender || "",
                           hobbies: response.user.hobbies || "",
@@ -726,6 +730,16 @@ export default function Profile() {
                       <input
                         value={form.name}
                         onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Biệt danh</label>
+                      <input
+                        value={form.nickname}
+                        onChange={e => setForm(f => ({ ...f, nickname: e.target.value }))}
+                        placeholder="Nhập biệt danh của bạn..."
+                        maxLength={30}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -944,7 +958,16 @@ export default function Profile() {
                         key={post._id}
                         className="bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors overflow-hidden"
                       >
-                        <PostCard post={post} user={user} onUpdate={loadPosts} hidePublicIcon={true} />
+                        <PostCard
+                          post={post}
+                          user={user}
+                          onUpdate={loadPosts}
+                          hidePublicIcon={true}
+                          hideActionsMenu={true}
+                          isSaved={savedMap[post._id]}
+                          onSavedChange={updateSavedState}
+                          skipSavedStatusFetch={true}
+                        />
                       </div>
                     ))}
                   </div>

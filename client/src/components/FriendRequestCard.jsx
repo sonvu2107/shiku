@@ -1,5 +1,6 @@
 import { UserCheck, UserX, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import UserName from "./UserName";
 
 /**
  * FriendRequestCard - Component hiển thị thẻ lời mời kết bạn
@@ -40,9 +41,9 @@ export default function FriendRequestCard({ request, onAccept, onReject }) {
           <Link 
             to={`/user/${from._id}`}
             className="font-semibold text-gray-800 hover:text-blue-600 text-sm sm:text-base truncate block"
-            title={from.name}
+            title={from.nickname || from.name}
           >
-            {from.name}
+            <UserName user={from} />
           </Link>
           
           {/* Request Date */}

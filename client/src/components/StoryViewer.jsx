@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight, Heart, ThumbsUp, Laugh, Frown, Angry, Smile, Eye, Trash2, BarChart3 } from 'lucide-react';
 import { api } from '../api';
 import StoryAnalytics from './StoryAnalytics';
+import VerifiedBadge from './VerifiedBadge';
 
 /**
  * StoryViewer - Component xem stories fullscreen
@@ -237,11 +238,11 @@ export default function StoryViewer({
       }}
     >
       {/* Story Container */}
-      <div className="relative w-full max-w-lg h-full md:h-[90vh] bg-black">
+      <div className="relative w-full max-w-2xl h-full md:h-[95vh] bg-black">
         {/* Progress Bars */}
-        <div className="absolute top-0 left-0 right-0 flex gap-1 p-2 z-10">
+        <div className="absolute top-0 left-0 right-0 flex gap-1 p-3 z-10">
           {stories.map((_, idx) => (
-            <div key={idx} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+            <div key={idx} className="flex-1 h-2 bg-white/30 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-white transition-all"
                 style={{ 
@@ -253,43 +254,43 @@ export default function StoryViewer({
         </div>
 
         {/* Mobile-optimized Header */}
-        <div className="absolute top-2 sm:top-4 left-0 right-0 flex items-center justify-between px-2 sm:px-4 z-10">
+        <div className="absolute top-8 sm:top-12 left-0 right-0 flex items-center justify-between px-3 sm:px-6 z-10">
           {/* Author Info - Mobile compact */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
             <img
               src={author?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(author?.name || 'User')}`}
               alt={author?.name}
-              className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-white flex-shrink-0"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white flex-shrink-0"
             />
             <div className="text-white min-w-0 flex-1">
-              <div className="flex items-center gap-1 sm:gap-2">
-                <span className="font-semibold text-xs sm:text-sm truncate">{author?.name}</span>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="font-semibold text-sm sm:text-base truncate">{author?.name}</span>
                 {author?.isVerified && (
-                  <VerifiedBadge size={12} className="sm:w-4 sm:h-4" />
+                  <VerifiedBadge size={16} className="sm:w-5 sm:h-5" />
                 )}
               </div>
-              <p className="text-xs text-white/80">
+              <p className="text-sm text-white/80">
                 {new Date(currentStory.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
           </div>
           
           {/* Right Controls - Mobile compact */}
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {/* Pause/Play Button */}
             <button
               onClick={() => setIsPaused(!isPaused)}
-              className={`text-white hover:text-white/80 transition-colors rounded-full p-1.5 sm:p-2 ${
+              className={`text-white hover:text-white/80 transition-colors rounded-full p-3 sm:p-4 ${
                 isPaused ? 'bg-red-500/80' : 'bg-black/30'
               }`}
               title={isPaused ? "Tiếp tục" : "Tạm dừng"}
             >
               {isPaused ? (
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z"/>
                 </svg>
               ) : (
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
                 </svg>
               )}
@@ -299,10 +300,10 @@ export default function StoryViewer({
             {isOwner && (
               <button
                 onClick={() => setShowAnalytics(true)}
-                className="text-white hover:text-white/80 transition-colors bg-black/30 rounded-full p-1.5 sm:p-2"
+                className="text-white hover:text-white/80 transition-colors bg-black/30 rounded-full p-3 sm:p-4"
                 title="Xem thống kê"
               >
-                <BarChart3 size={14} className="sm:w-4 sm:h-4" />
+                <BarChart3 size={20} className="sm:w-6 sm:h-6" />
               </button>
             )}
             
@@ -310,20 +311,20 @@ export default function StoryViewer({
             {isOwner && (
               <button
                 onClick={handleDelete}
-                className="text-white hover:text-red-500 transition-colors bg-black/30 rounded-full p-1.5 sm:p-2"
+                className="text-white hover:text-red-500 transition-colors bg-black/30 rounded-full p-3 sm:p-4"
                 title="Xóa story"
               >
-                <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                <Trash2 size={20} className="sm:w-6 sm:h-6" />
               </button>
             )}
             
             {/* Close */}
             <button
               onClick={safeClose}
-              className="text-white hover:text-white/80 transition-colors bg-black/30 rounded-full p-1.5 sm:p-2"
+              className="text-white hover:text-white/80 transition-colors bg-black/30 rounded-full p-3 sm:p-4"
               title="Đóng"
             >
-              <X size={14} className="sm:w-4 sm:h-4" />
+              <X size={20} className="sm:w-6 sm:h-6" />
             </button>
           </div>
         </div>
@@ -359,8 +360,8 @@ export default function StoryViewer({
           
           {/* Caption Overlay */}
           {currentStory.caption && (
-            <div className="absolute bottom-20 left-0 right-0 px-6">
-              <p className="text-white text-center text-lg font-medium drop-shadow-lg">
+            <div className="absolute bottom-24 left-0 right-0 px-8">
+              <p className="text-white text-center text-xl font-medium drop-shadow-lg">
                 {currentStory.caption}
               </p>
             </div>
@@ -378,8 +379,8 @@ export default function StoryViewer({
             disabled={currentIndex === 0}
           >
             {currentIndex > 0 && (
-              <div className="bg-black/30 hover:bg-black/50 rounded-full p-1.5 sm:p-2 transition-colors">
-                <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <div className="bg-black/30 hover:bg-black/50 rounded-full p-2.5 sm:p-3 transition-colors">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
                 </svg>
               </div>
@@ -400,8 +401,8 @@ export default function StoryViewer({
             disabled={currentIndex === stories.length - 1}
           >
             {currentIndex < stories.length - 1 && (
-              <div className="bg-black/30 hover:bg-black/50 rounded-full p-1.5 sm:p-2 transition-colors">
-                <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <div className="bg-black/30 hover:bg-black/50 rounded-full p-2.5 sm:p-3 transition-colors">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
                 </svg>
               </div>
@@ -413,26 +414,26 @@ export default function StoryViewer({
 
         {/* Mobile-optimized Reaction Button */}
         {!isOwner && (
-          <div className="absolute bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="absolute bottom-6 sm:bottom-8 left-1/2 transform -translate-x-1/2 z-10">
             <div className="relative">
               <button
                 onClick={() => setShowReactions(!showReactions)}
-                className="bg-black/50 hover:bg-black/70 text-white rounded-full px-4 sm:px-6 py-2 sm:py-3 flex items-center gap-2 sm:gap-3 transition-all duration-200 shadow-lg"
+                className="bg-black/50 hover:bg-black/70 text-white rounded-full px-6 sm:px-8 py-3 sm:py-4 flex items-center gap-3 sm:gap-4 transition-all duration-200 shadow-lg"
               >
-                <Smile size={16} className="sm:w-5 sm:h-5" />
-                <span className="font-medium text-sm sm:text-base">Cảm xúc</span>
+                <Smile size={18} className="sm:w-6 sm:h-6" />
+                <span className="font-medium text-base sm:text-lg">Cảm xúc</span>
               </button>
               
               {/* Reactions Popup - Mobile optimized */}
               {showReactions && (
-                <div className="absolute bottom-full mb-2 sm:mb-3 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-lg px-3 sm:px-4 py-2 sm:py-3 flex gap-2 sm:gap-3">
+                <div className="absolute bottom-full mb-2 sm:mb-3 left-1/2 -translate-x-1/2 bg-white rounded-lg shadow-lg px-2 sm:px-3 py-1.5 sm:py-2 flex gap-1.5 sm:gap-2">
                   {Object.entries(reactionConfig).map(([type, { Icon, color }]) => (
                     <button
                       key={type}
                       onClick={() => handleReaction(type)}
-                      className={`p-1.5 sm:p-2 hover:scale-110 transition-transform rounded-full ${color}`}
+                      className={`p-1 sm:p-1.5 hover:scale-110 transition-transform rounded-full ${color}`}
                     >
-                      <Icon size={20} className="sm:w-6 sm:h-6" />
+                      <Icon size={18} className="sm:w-5 sm:h-5" />
                     </button>
                   ))}
                 </div>

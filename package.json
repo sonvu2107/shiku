@@ -1,0 +1,27 @@
+{
+  "name": "myblog",
+  "version": "1.0.0",
+  "main": "api-monitor.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check:all": "node comprehensive-check.js",
+    "check:after-login": "node after-login-api-check.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sonvu2107/shiku.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sonvu2107/shiku/issues"
+  },
+  "homepage": "https://github.com/sonvu2107/shiku#readme",
+  "description": "",
+  "dependencies": {
+    "@vitalets/google-translate-api": "^9.2.1",
+    "fs-extra": "^11.3.2",
+    "glob": "^11.0.3"
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { chatAPI } from '../../chatAPI';
+import { getUserAvatarUrl, AVATAR_SIZES } from '../../utils/avatarUtils';
 
 /**
  * AddMembersModal - Modal thêm thành viên vào nhóm chat
@@ -135,7 +136,7 @@ const AddMembersModal = ({
                   <div key={user._id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg border border-gray-100">
                     <div className="flex items-center space-x-3">
                       <img
-                        src={user.avatarUrl || '/default-avatar.png'}
+                        src={getUserAvatarUrl(user, AVATAR_SIZES.MEDIUM)}
                         alt={user.name}
                         className="w-10 h-10 rounded-full object-cover"
                       />

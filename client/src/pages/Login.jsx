@@ -236,7 +236,7 @@ export default function Login({ setUser }) {
               />
               <button
                 type="submit"
-                className="w-full bg-blue-600 text-white py-2 rounded font-semibold"
+                className="w-full bg-red-600 text-white py-2 rounded font-semibold"
                 disabled={forgotLoading}
               >
                 {forgotLoading ? "Đang gửi..." : "Gửi yêu cầu"}

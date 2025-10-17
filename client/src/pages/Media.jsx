@@ -98,7 +98,7 @@ export default function Media() {
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Kho media</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Kho ảnh & video của bạn</h1>
             <button 
               onClick={() => setShowUploadModal(true)}
               className="btn flex items-center justify-center gap-2 w-full sm:w-auto touch-target"

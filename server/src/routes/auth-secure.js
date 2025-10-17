@@ -2,27 +2,30 @@ import { Router } from "express";
 const router = Router();
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { sendEmail } from "../utils/sendEmail.js";
-import { 
-  registerSchema, 
-  loginSchema, 
+import {
+  registerSchema,
+  loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   updateProfileSchema,
   validate,
-  sanitizeHtml 
+  sanitizeHtml
 } from "../middleware/validation.js";
-import { 
-  generateTokenPair, 
-  refreshAccessToken, 
+import {
+  generateTokenPair,
+  refreshAccessToken,
   logout,
   refreshTokenLimiter,
   authRequired
 } from "../middleware/jwtSecurity.js";
-import { 
+import {
   authLogger,
   logSecurityEvent,
   SECURITY_EVENTS,
-  LOG_LEVELS 
+  LOG_LEVELS
 } from "../middleware/securityLogging.js";
 
 // Apply auth logging middleware
@@ -55,16 +58,16 @@ const refreshCookieOptions = buildCookieOptions(REFRESH_TOKEN_MAX_AGE);
  * @param {string} req.body.password - Mật khẩu
  * @returns {Object} User info và tokens
  */
-router.post("/register", 
+router.post("/register",
   validate(registerSchema, 'body'),
   async (req, res, next) => {
     try {
       const { name, email, password } = req.body;
-      
+
       // Kiểm tra email đã tồn tại
       const existingUser = await User.findOne({ email });
       if (existingUser) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Email này đã được đăng ký",
           code: "EMAIL_EXISTS"
         });
@@ -72,9 +75,9 @@ router.post("/register",
 
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 12);
-      
+
       // Tạo user mới
-      const user = await User.create({ 
+      const user = await User.create({
         name: sanitizeHtml(name),
         email: email.toLowerCase(),
         password: hashedPassword,
@@ -83,26 +86,40 @@ router.post("/register",
       });
 
       // Tạo token pair
-      const tokens = await generateTokenPair(user);
+      const tokens = generateTokenPair(user);
 
       // Set cookies
-      res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
-      res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
+      res.cookie("accessToken", tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        path: "/",
+        maxAge: 15 * 60 * 1000 // 15 phút
+      });
 
+      res.cookie("refreshToken", tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        path: "/",          
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 ngày
+      });
+      
       // Log security event
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.REGISTER_SUCCESS, {
         email: email,
         ip: req.ip
       }, req);
 
-      res.status(201).json({ 
-        user: { 
-          id: user._id, 
-          name: user.name, 
-          email: user.email, 
-          role: user.role 
+      res.status(201).json({
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
         },
-        accessToken: tokens.accessToken
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken
       });
     } catch (error) {
       // Log register failed
@@ -111,7 +128,7 @@ router.post("/register",
         ip: req.ip,
         error: error.message
       }, req);
-      
+
       next(error);
     }
   }
@@ -123,12 +140,12 @@ router.post("/register",
  * @param {string} req.body.password - Mật khẩu
  * @returns {Object} User info và tokens
  */
-router.post("/login", 
+router.post("/login",
   validate(loginSchema, 'body'),
   async (req, res, next) => {
     try {
       const { email, password } = req.body;
-      
+
       // Tìm user
       const user = await User.findOne({ email: email.toLowerCase() });
       if (!user) {
@@ -138,8 +155,8 @@ router.post("/login",
           ip: req.ip,
           reason: "User not found"
         }, req);
-        
-        return res.status(401).json({ 
+
+        return res.status(401).json({
           error: "Email hoặc mật khẩu không đúng",
           code: "INVALID_CREDENTIALS"
         });
@@ -154,8 +171,8 @@ router.post("/login",
           ip: req.ip,
           reason: "Invalid password"
         }, req);
-        
-        return res.status(401).json({ 
+
+        return res.status(401).json({
           error: "Email hoặc mật khẩu không đúng",
           code: "INVALID_CREDENTIALS"
         });
@@ -168,8 +185,8 @@ router.post("/login",
           ip: req.ip,
           reason: "User banned"
         }, req);
-        
-        return res.status(403).json({ 
+
+        return res.status(403).json({
           error: "Tài khoản đã bị cấm",
           code: "USER_BANNED"
         });
@@ -184,8 +201,19 @@ router.post("/login",
       const tokens = await generateTokenPair(user);
 
       // Set cookies
-      res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
-      res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
+      res.cookie("accessToken", tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 15 * 60 * 1000 // 15 phút
+      });
+
+      res.cookie("refreshToken", tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 ngày
+      });
 
       // Log successful login
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.LOGIN_SUCCESS, {
@@ -201,7 +229,8 @@ router.post("/login",
           email: user.email,
           role: user.role
         },
-        accessToken: tokens.accessToken
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken
       });
     } catch (error) {
       next(error);
@@ -210,77 +239,183 @@ router.post("/login",
 );
 
 /**
- * POST /refresh - Refresh access token
+ * POST /refresh - Refresh access token (Simplified version)
  * @param {string} req.body.refreshToken - Refresh token
  * @returns {Object} New access token
  */
-router.post("/refresh", 
+router.post("/refresh",
   refreshTokenLimiter,
+  // Skip CSRF validation for refresh endpoint
+  (req, res, next) => {
+    // Temporarily disable CSRF for this endpoint
+    req.csrfToken = () => 'skip-csrf';
+    next();
+  },
   async (req, res, next) => {
     try {
-      const bodyToken = req.body?.refreshToken;
-      const cookieToken = req.cookies?.refreshToken;
-      const refreshToken = bodyToken || cookieToken;
+      // Lấy refresh token từ body hoặc cookie
+      const { refreshToken } = req.body;
+      const cookieRefreshToken = req.cookies?.refreshToken;
       
-      if (!refreshToken) {
-        return res.status(400).json({ 
+      console.log("[DEBUG] Refresh request - body token:", !!refreshToken, "cookie token:", !!cookieRefreshToken);
+      console.log("[DEBUG] Cookies:", req.cookies);
+      
+      const tokenToUse = refreshToken || cookieRefreshToken;
+
+      if (!tokenToUse) {
+        console.log("[DEBUG] No refresh token found");
+        return res.status(400).json({
           error: "Refresh token là bắt buộc",
           code: "MISSING_REFRESH_TOKEN"
         });
       }
 
-      // Refresh access token
-      const result = await refreshAccessToken(refreshToken);
-
-      // Issue rotated cookies
-      res.cookie("accessToken", result.accessToken, accessCookieOptions);
-      res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
-
-      // Log refresh event
-      logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.TOKEN_REFRESH, {
-        userId: result.user.id,
-        ip: req.ip,
-        legacy: result.rotation?.legacy || false
-      }, req);
-
-      res.json({
-        accessToken: result.accessToken,
-        user: result.user,
-        rotation: result.rotation
-      });
-    } catch (error) {
-      logSecurityEvent(LOG_LEVELS.WARN, SECURITY_EVENTS.TOKEN_REFRESH, {
-        error: error.message,
-        ip: req.ip
-      }, req);
+      console.log("[DEBUG] Using refresh token:", tokenToUse.substring(0, 20) + "...");
       
-      res.status(401).json({ 
+      // Simplified refresh logic - just verify and create new token
+      try {
+        const payload = jwt.verify(
+          tokenToUse,
+          process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET
+        );
+        console.log("[DEBUG] Token payload:", payload);
+        
+        if (payload.type !== 'refresh') {
+          throw new Error("Invalid token type");
+        }
+        
+        const user = await User.findById(payload.id).select("-password");
+        if (!user) {
+          throw new Error("User not found");
+        }
+        
+        console.log("[DEBUG] User found:", user.name);
+        
+        // Create new access token
+        const newAccessToken = jwt.sign(
+          { 
+            id: user._id, 
+            type: 'access',
+            role: user.role 
+          }, 
+          process.env.JWT_SECRET,
+          { expiresIn: "15m" }
+        );
+
+        // Set new access token cookie
+        res.cookie("accessToken", newAccessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+          path: "/",
+          maxAge: 15 * 60 * 1000 // 15 phút
+        });
+
+        console.log("[DEBUG] Refresh successful for user:", user.name);
+
+        res.json({
+          accessToken: newAccessToken,
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          }
+        });
+        
+      } catch (jwtError) {
+        console.log("[DEBUG] JWT verification error:", jwtError.message);
+        throw jwtError;
+      }
+      
+    } catch (error) {
+      console.log("[DEBUG] Refresh error:", error.message);
+      console.log("[DEBUG] Error stack:", error.stack);
+      
+      res.status(401).json({
         error: "Refresh token không hợp lệ",
-        code: "INVALID_REFRESH_TOKEN"
+        code: "INVALID_REFRESH_TOKEN",
+        details: error.message
       });
     }
   }
 );
 
 /**
+ * GET /session - Kiểm tra session hiện tại
+ * @returns {Object} Session status
+ */
+router.get("/session", 
+  // Skip CSRF validation for session endpoint
+  (req, res, next) => {
+    req.csrfToken = () => 'skip-csrf';
+    next();
+  },
+  async (req, res, next) => {
+  try {
+    console.log("[DEBUG] Session check - cookies:", Object.keys(req.cookies));
+    console.log("[DEBUG] Session check - auth header:", req.headers.authorization ? "EXISTS" : "NONE");
+    
+    // Lấy token từ cookie hoặc header
+    let token = req.cookies?.accessToken;
+    if (!token) {
+      const header = req.headers.authorization || "";
+      token = header.startsWith("Bearer ") ? header.slice(7) : null;
+    }
+    
+    console.log("[DEBUG] Session check - token found:", !!token);
+    
+    if (!token) {
+      console.log("[DEBUG] Session check - no token, returning unauthenticated");
+      return res.json({ authenticated: false });
+    }
+    
+    // Verify JWT token
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("[DEBUG] Session check - token payload:", payload);
+    
+    const user = await User.findById(payload.id).select("-password");
+    
+    if (!user) {
+      console.log("[DEBUG] Session check - user not found");
+      return res.json({ authenticated: false });
+    }
+    
+    console.log("[DEBUG] Session check - user found:", user.name);
+    
+    res.json({ 
+      authenticated: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.log("[DEBUG] Session check - error:", error.message);
+    res.json({ authenticated: false });
+  }
+});
+
+/**
  * POST /logout - Đăng xuất
  * @returns {Object} Thông báo logout thành công
  */
-router.post("/logout", 
+router.post("/logout",
   authRequired,
   async (req, res, next) => {
     try {
-      await logout({
-        accessToken: req.token,
-        refreshToken: req.cookies?.refreshToken
-      });
+      // Blacklist current token
+      if (req.token) {
+        logout(req.token);
+      }
 
-      res.clearCookie("accessToken", buildCookieOptions(0));
-      res.clearCookie("refreshToken", buildCookieOptions(0));
-      res.clearCookie("token", buildCookieOptions(0));
-      res.clearCookie("sessionID", buildCookieOptions(0));
-      res.clearCookie("csrfToken", buildCookieOptions(0, { httpOnly: false }));
+      // Clear cookies
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
 
+      // Cập nhật trạng thái offline
       if (req.user) {
         await User.findByIdAndUpdate(req.user._id, {
           isOnline: false,
@@ -288,13 +423,13 @@ router.post("/logout",
         });
       }
 
+      // Log logout event
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.LOGOUT, {
-        userId: req.user?._id,
+        userId: req.user?.id,
         ip: req.ip
       }, req);
-      res.json({
-        success: true
-      });
+
+      res.json({ message: "Đăng xuất thành công" });
     } catch (error) {
       next(error);
     }
@@ -306,13 +441,13 @@ router.post("/logout",
  * @param {string} req.body.email - Email cần reset password
  * @returns {Object} Thông báo đã gửi email
  */
-router.post("/forgot-password", 
-  validate(loginSchema, 'body'),
+router.post("/forgot-password",
+  validate(forgotPasswordSchema, 'body'),
   async (req, res, next) => {
     try {
       const { email } = req.body;
       const user = await User.findOne({ email: email.toLowerCase() });
-      
+
       // Luôn trả về success để tránh email enumeration
       if (!user) {
         return res.json({ message: "Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu!" });
@@ -339,7 +474,7 @@ router.post("/forgot-password",
         <p><a href='${resetLink}'>Đặt lại mật khẩu</a></p>
         <p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`
       });
-      
+
       res.json({ message: "Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu!" });
     } catch (error) {
       next(error);
@@ -353,19 +488,19 @@ router.post("/forgot-password",
  * @param {string} req.body.password - Mật khẩu mới
  * @returns {Object} Thông báo reset thành công
  */
-router.post("/reset-password", 
-  validate(registerSchema, 'body'),
+router.post("/reset-password",
+  validate(resetPasswordSchema, 'body'),
   async (req, res, next) => {
     try {
       const { token, password } = req.body;
-      
-      const user = await User.findOne({ 
-        resetPasswordToken: token, 
-        resetPasswordExpires: { $gt: Date.now() } 
+
+      const user = await User.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpires: { $gt: Date.now() }
       });
-      
+
       if (!user) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Token không hợp lệ hoặc đã hết hạn",
           code: "INVALID_TOKEN"
         });
@@ -373,7 +508,7 @@ router.post("/reset-password",
 
       // Hash password mới
       const hashedPassword = await bcrypt.hash(password, 12);
-      
+
       // Cập nhật password và xóa token
       user.password = hashedPassword;
       user.resetPasswordToken = undefined;
@@ -398,11 +533,11 @@ router.post("/reset-password",
  * GET /me - Lấy thông tin user hiện tại
  * @returns {Object} User info
  */
-router.get("/me", 
+router.get("/me",
   authRequired,
   async (req, res, next) => {
     try {
-// Log security event
+      // Log security event
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.ADMIN_ACTION, {
         action: 'get_current_user',
         userId: req.user._id,
@@ -416,6 +551,7 @@ router.get("/me",
           email: req.user.email, 
           role: req.user.role,
           bio: req.user.bio,
+          nickname: req.user.nickname,
           birthday: req.user.birthday,
           gender: req.user.gender,
           hobbies: req.user.hobbies,
@@ -438,7 +574,8 @@ router.get("/me",
           showEvents: req.user.showEvents,
           isOnline: req.user.isOnline,
           isVerified: req.user.isVerified,
-          lastSeen: req.user.lastSeen
+          lastSeen: req.user.lastSeen,
+          blockedUsers: req.user.blockedUsers || []
         }
       });
     } catch (error) {
@@ -451,11 +588,11 @@ router.get("/me",
  * POST /heartbeat - Heartbeat endpoint for frontend monitoring
  * @returns {Object} Heartbeat status
  */
-router.post("/heartbeat", 
+router.post("/heartbeat",
   authRequired,
   async (req, res, next) => {
     try {
-// Update user's last seen timestamp
+      // Update user's last seen timestamp
       req.user.lastSeen = new Date();
       await req.user.save();
 
@@ -466,7 +603,7 @@ router.post("/heartbeat",
         ip: req.ip
       }, req);
 
-      res.json({ 
+      res.json({
         status: "ok",
         timestamp: new Date().toISOString(),
         userId: req.user._id,
@@ -483,23 +620,23 @@ router.post("/heartbeat",
  * @param {Object} req.body - Thông tin cần cập nhật
  * @returns {Object} User info đã cập nhật
  */
-router.put("/update-profile", 
+router.put("/update-profile",
   authRequired,
   validate(updateProfileSchema, 'body'),
   async (req, res, next) => {
     try {
-      const { 
-        name, email, password, bio, birthday, gender, hobbies, avatarUrl,
+      const {
+        name, email, password, bio, nickname, birthday, gender, hobbies, avatarUrl,
         coverUrl, location, website, phone, profileTheme, profileLayout, useCoverImage,
-        showEmail, showPhone, showBirthday, showLocation, showWebsite, 
+        showEmail, showPhone, showBirthday, showLocation, showWebsite,
         showHobbies, showFriends, showPosts
       } = req.body;
-      
+
       // Kiểm tra email có bị trùng không
       if (email && email !== req.user.email) {
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {
-          return res.status(400).json({ 
+          return res.status(400).json({
             error: "Email này đã được sử dụng",
             code: "EMAIL_EXISTS"
           });
@@ -510,6 +647,7 @@ router.put("/update-profile",
       if (name) req.user.name = sanitizeHtml(name);
       if (email) req.user.email = email.toLowerCase();
       if (bio) req.user.bio = sanitizeHtml(bio);
+      if (nickname !== undefined) req.user.nickname = sanitizeHtml(nickname);
       if (birthday) req.user.birthday = birthday;
       if (gender) req.user.gender = gender;
       if (hobbies) req.user.hobbies = sanitizeHtml(hobbies);
@@ -531,7 +669,7 @@ router.put("/update-profile",
       if (showHobbies !== undefined) req.user.showHobbies = showHobbies;
       if (showFriends !== undefined) req.user.showFriends = showFriends;
       if (showPosts !== undefined) req.user.showPosts = showPosts;
-      
+
       if (password) {
         req.user.password = await bcrypt.hash(password, 12);
       }
@@ -545,13 +683,14 @@ router.put("/update-profile",
         ip: req.ip
       }, req);
 
-      res.json({ 
-        user: { 
-          id: req.user._id, 
-          name: req.user.name, 
-          email: req.user.email, 
+      res.json({
+        user: {
+          id: req.user._id,
+          name: req.user.name,
+          email: req.user.email,
           role: req.user.role,
           bio: req.user.bio,
+          nickname: req.user.nickname,
           birthday: req.user.birthday,
           gender: req.user.gender,
           hobbies: req.user.hobbies,

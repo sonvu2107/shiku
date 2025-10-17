@@ -9,8 +9,8 @@ import User from "../models/User.js";
  * @param {Function} next - Express next function
  */
 export async function authRequired(req, res, next) {
-  // Lấy token từ cookie trước
-  let token = req.cookies?.token;
+  // Lấy token từ cookie trước (sửa từ 'token' thành 'accessToken')
+  let token = req.cookies?.accessToken;
   
   // Nếu không có trong cookie, kiểm tra Authorization header
   if (!token) {

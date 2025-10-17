@@ -3,6 +3,51 @@ import { authRequired } from "../middleware/auth.js";
 import ApiStats from "../models/ApiStats.js";
 import { getClientAgent } from "../utils/clientAgent.js";
 
+// TEMP: Cleanup invalid env keys - SIMPLIFIED
+(async () => {
+  try {
+    console.log('[Cleanup] Starting cleanup...');
+    
+    // Remove invalid 'env' keys (simplified - no $* syntax)
+    const result = await ApiStats.updateMany({}, {
+      $unset: {
+        "currentPeriod.requestsByEndpoint.env": "",
+        "dailyTopStats.topEndpoints.env": ""
+      }
+    });
+    
+    if (result.modifiedCount) {
+      console.log(`[Cleanup] Removed invalid 'env' keys: ${result.modifiedCount} docs updated`);
+    }
+    
+    // Check if any problematic docs still exist
+    const problematicDocs = await ApiStats.find({
+      $or: [
+        { "currentPeriod.requestsByEndpoint.env": { $exists: true } },
+        { "dailyTopStats.topEndpoints.env": { $exists: true } }
+      ]
+    });
+    
+    if (problematicDocs.length > 0) {
+      console.log(`[Cleanup] Found ${problematicDocs.length} problematic docs, deleting all...`);
+      await ApiStats.deleteMany({});
+      console.log('[Cleanup] All ApiStats documents deleted - will recreate on first API call');
+    } else {
+      console.log('[Cleanup] No problematic documents found');
+    }
+    
+  } catch (err) {
+    console.error("[Cleanup] Failed:", err.message);
+    // If cleanup fails, delete everything as last resort
+    try {
+      await ApiStats.deleteMany({});
+      console.log('[Cleanup] Emergency: Deleted all ApiStats documents');
+    } catch (deleteErr) {
+      console.error('[Cleanup] Emergency delete failed:', deleteErr.message);
+    }
+  }
+})();
+
 const router = express.Router();
 const monitoringEnabled = (process.env.DISABLE_API_MONITORING ?? "false") !== "true";
 
@@ -35,7 +80,20 @@ export const trackAPICall = async (req, res, next) => {
     return next();
   }
   try {
-    const endpoint = req.path;
+    // Normalize endpoint to safe MongoDB Map key
+    let endpoint = req.path.replace(/\./g, '_').replace(/\//g, '_').replace(/:/g, '_');
+    
+    // Additional safety: ensure endpoint is not empty and doesn't contain problematic characters
+    if (!endpoint || endpoint.length === 0) {
+      endpoint = 'unknown_endpoint';
+    }
+    
+    // Remove any remaining problematic characters
+    endpoint = endpoint.replace(/[^a-zA-Z0-9_]/g, '_');
+    
+    // Debug logging
+    console.log(`[API Tracking] Endpoint: ${req.path} -> ${endpoint}`);
+    
     const ip = req.ip;
     // Get hour in Vietnam timezone (GMT+7)
     const vietnamTime = getVietnamTime();
@@ -233,13 +291,18 @@ router.get("/stats", authRequired, async (req, res) => {
     }
     
     // Calculate top endpoints from daily stats (reset at midnight)
-    const topEndpoints = Array.from(stats.dailyTopStats.topEndpoints.entries())
+    const topEndpointsMap = stats?.dailyTopStats?.topEndpoints;
+    const topEndpoints = Array.from((topEndpointsMap && typeof topEndpointsMap.entries === 'function') ? topEndpointsMap.entries() : [])
       .sort(([,a], [,b]) => b - a)
       .slice(0, 10)
-      .map(([endpoint, count]) => ({ endpoint, count }));
+      .map(([endpoint, count]) => ({ 
+        endpoint: endpoint.replace(/_/g, '/'), // Decode endpoint for display
+        count 
+      }));
     
     // Calculate top IPs from daily stats (reset at midnight)
-    const topIPs = Array.from(stats.dailyTopStats.topIPs.entries())
+    const topIPsMap = stats?.dailyTopStats?.topIPs;
+    const topIPs = Array.from((topIPsMap && typeof topIPsMap.entries === 'function') ? topIPsMap.entries() : [])
       .sort(([,a], [,b]) => b - a)
       .slice(0, 10)
       .map(([encodedIP, count]) => ({ 
@@ -248,9 +311,10 @@ router.get("/stats", authRequired, async (req, res) => {
       }));
     
     // Calculate hourly distribution from current period
+    const requestsByHour = stats?.currentPeriod?.requestsByHour;
     const hourlyDistribution = Array.from({ length: 24 }, (_, hour) => ({
       hour,
-      requests: stats.currentPeriod.requestsByHour.get(hour.toString()) || 0
+      requests: (requestsByHour && typeof requestsByHour.get === 'function') ? (requestsByHour.get(hour.toString()) || 0) : 0
     }));
     
     // Calculate rate limit hit rate
@@ -295,7 +359,10 @@ router.get("/stats", authRequired, async (req, res) => {
       : 0;
     
     // Convert Maps to objects for JSON response
-    const rateLimitHitsByEndpoint = Object.fromEntries(stats.currentPeriod.rateLimitHitsByEndpoint);
+    const rlhbe = stats?.currentPeriod?.rateLimitHitsByEndpoint;
+    const rateLimitHitsByEndpoint = rlhbe && typeof rlhbe.entries === 'function'
+      ? Object.fromEntries(rlhbe)
+      : {};
     
     res.json({
       success: true,
@@ -306,8 +373,8 @@ router.get("/stats", authRequired, async (req, res) => {
           rateLimitHitRate: parseFloat(rateLimitHitRate),
           requestsPerMinute: parseFloat(requestsPerMinute), // Daily requests per minute (since midnight)
           dailyRequestsPerMinute: parseFloat(dailyRequestsPerMinute), // Total requests per minute (since midnight)
-          lastDailyReset: stats.dailyReset.lastDailyReset,
-          timeSinceMidnight: Math.round(timeSinceMidnight)
+          lastReset: stats.dailyReset.lastDailyReset, // Frontend expects 'lastReset'
+          timeSinceReset: Math.round(timeSinceMidnight) // Frontend expects 'timeSinceReset'
         },
         topEndpoints,
         topIPs,
@@ -385,24 +452,9 @@ router.get("/rate-limits", authRequired, (req, res) => {
  */
 router.post("/reset", authRequired, async (req, res) => {
   try {
-    const stats = await ApiStats.getOrCreateStats();
-    
-    // Reset all stats
-    stats.totalRequests = 0;
-    stats.rateLimitHits = 0;
-    stats.currentPeriod.requestsByEndpoint = new Map();
-    stats.currentPeriod.requestsByIP = new Map();
-    stats.currentPeriod.requestsByHour = new Map();
-    stats.currentPeriod.rateLimitHitsByEndpoint = new Map();
-    stats.dailyTopStats.topEndpoints = new Map();
-    stats.dailyTopStats.topIPs = new Map();
-    stats.dailyReset.lastDailyReset = new Date();
-    stats.dailyReset.dailyTotalRequests = 0;
-    stats.lastReset = new Date();
-    stats.hourlyStats = [];
-    stats.realtimeUpdates = [];
-    
-    await stats.save();
+    // Hard reset: delete all documents and recreate fresh
+    await ApiStats.deleteMany({});
+    await ApiStats.getOrCreateStats();
     
     res.json({
       success: true,

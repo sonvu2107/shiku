@@ -355,6 +355,60 @@ router.post("/conversations/:conversationId/messages/image", authRequired, async
   }
 });
 
+// Check if private conversation exists between two users
+router.get("/conversations/private/check/:recipientId", authRequired, async (req, res) => {
+  try {
+    const { recipientId } = req.params;
+
+    if (recipientId === req.user._id) {
+      return res.status(400).json({ message: "Không thể tạo cuộc trò chuyện với chính mình" });
+    }
+
+    // Check if recipient exists
+    const recipient = await User.findById(recipientId);
+    if (!recipient) {
+      return res.status(404).json({ message: "Người dùng không tồn tại" });
+    }
+
+    // Check if conversation already exists
+    const existingConversation = await Conversation.findOne({
+      conversationType: 'private',
+      'participants.user': { $all: [req.user._id, recipientId] },
+      'participants.leftAt': null
+    })
+    .populate('participants.user', 'name avatarUrl isOnline lastSeen')
+    .populate('lastMessage');
+
+    if (existingConversation) {
+      // Format response similar to getConversations
+      const otherParticipants = existingConversation.participants.filter(
+        p => p.user._id.toString() !== req.user._id.toString() && !p.leftAt
+      );
+
+      const formattedConversation = {
+        _id: existingConversation._id,
+        conversationType: existingConversation.conversationType,
+        groupName: existingConversation.groupName,
+        groupAvatar: existingConversation.groupAvatar,
+        participants: existingConversation.participants,
+        otherParticipants,
+        lastMessage: existingConversation.lastMessage,
+        lastActivity: existingConversation.lastActivity,
+        unreadCount: 0,
+        createdAt: existingConversation.createdAt,
+        exists: true
+      };
+
+      return res.json(formattedConversation);
+    }
+
+    res.json({ exists: false });
+  } catch (error) {
+    console.error("Error checking private conversation:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
 // Create private conversation
 router.post("/conversations/private", authRequired, async (req, res) => {
   try {
@@ -1193,6 +1247,172 @@ router.delete("/conversations/:conversationId", authRequired, async (req, res) =
     res.json({ message: "Xóa cuộc trò chuyện thành công" });
   } catch (error) {
     console.error("Error deleting conversation:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
+// ==================== NICKNAME MANAGEMENT ====================
+
+// Set nickname for a participant in conversation
+router.post("/conversations/:conversationId/nickname", authRequired, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { targetUserId, nickname } = req.body;
+
+    // Validate input
+    if (!targetUserId) {
+      return res.status(400).json({ message: "Thiếu ID người dùng" });
+    }
+
+    if (!nickname || nickname.trim().length === 0) {
+      return res.status(400).json({ message: "Biệt danh không được để trống" });
+    }
+
+    if (nickname.trim().length > 30) {
+      return res.status(400).json({ message: "Biệt danh không được quá 30 ký tự" });
+    }
+
+    // Check if user has access to conversation
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      participants: {
+        $elemMatch: {
+          user: req.user._id,
+          leftAt: null
+        }
+      }
+    });
+
+    if (!conversation) {
+      return res.status(403).json({ message: "Không có quyền truy cập cuộc trò chuyện này" });
+    }
+
+    // Check if target user is in conversation
+    const targetParticipant = conversation.participants.find(p => 
+      p.user.toString() === targetUserId && !p.leftAt
+    );
+
+    if (!targetParticipant) {
+      return res.status(404).json({ message: "Người dùng không có trong cuộc trò chuyện này" });
+    }
+
+    // Update nickname for the target user
+    await Conversation.findByIdAndUpdate(conversationId, {
+      $set: {
+        'participants.$[elem].nickname': nickname.trim()
+      }
+    }, {
+      arrayFilters: [{ 'elem.user': targetUserId }]
+    });
+
+    // Get updated conversation
+    const updatedConversation = await Conversation.findById(conversationId)
+      .populate('participants.user', 'name avatarUrl isOnline lastSeen');
+
+    res.json({
+      message: "Đặt biệt danh thành công",
+      conversation: updatedConversation
+    });
+  } catch (error) {
+    console.error("Error setting nickname:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
+// Remove nickname for a participant in conversation
+router.delete("/conversations/:conversationId/nickname", authRequired, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { targetUserId } = req.body;
+
+    // Validate input
+    if (!targetUserId) {
+      return res.status(400).json({ message: "Thiếu ID người dùng" });
+    }
+
+    // Check if user has access to conversation
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      participants: {
+        $elemMatch: {
+          user: req.user._id,
+          leftAt: null
+        }
+      }
+    });
+
+    if (!conversation) {
+      return res.status(403).json({ message: "Không có quyền truy cập cuộc trò chuyện này" });
+    }
+
+    // Check if target user is in conversation
+    const targetParticipant = conversation.participants.find(p => 
+      p.user.toString() === targetUserId && !p.leftAt
+    );
+
+    if (!targetParticipant) {
+      return res.status(404).json({ message: "Người dùng không có trong cuộc trò chuyện này" });
+    }
+
+    // Remove nickname for the target user
+    await Conversation.findByIdAndUpdate(conversationId, {
+      $unset: {
+        'participants.$[elem].nickname': ""
+      }
+    }, {
+      arrayFilters: [{ 'elem.user': targetUserId }]
+    });
+
+    // Get updated conversation
+    const updatedConversation = await Conversation.findById(conversationId)
+      .populate('participants.user', 'name avatarUrl isOnline lastSeen');
+
+    res.json({
+      message: "Xóa biệt danh thành công",
+      conversation: updatedConversation
+    });
+  } catch (error) {
+    console.error("Error removing nickname:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
+// Get nickname for a participant in conversation
+router.get("/conversations/:conversationId/nickname/:targetUserId", authRequired, async (req, res) => {
+  try {
+    const { conversationId, targetUserId } = req.params;
+
+    // Check if user has access to conversation
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      participants: {
+        $elemMatch: {
+          user: req.user._id,
+          leftAt: null
+        }
+      }
+    }).populate('participants.user', 'name avatarUrl');
+
+    if (!conversation) {
+      return res.status(403).json({ message: "Không có quyền truy cập cuộc trò chuyện này" });
+    }
+
+    // Find target participant
+    const targetParticipant = conversation.participants.find(p => 
+      p.user._id.toString() === targetUserId && !p.leftAt
+    );
+
+    if (!targetParticipant) {
+      return res.status(404).json({ message: "Người dùng không có trong cuộc trò chuyện này" });
+    }
+
+    res.json({
+      nickname: targetParticipant.nickname || null,
+      userName: targetParticipant.user.name,
+      userId: targetParticipant.user._id
+    });
+  } catch (error) {
+    console.error("Error getting nickname:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });

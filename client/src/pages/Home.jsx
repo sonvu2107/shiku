@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api";
+import { useSavedPosts } from "../hooks/useSavedPosts";
 import PostCard from "../components/PostCard";
 import PostCreator from "../components/PostCreator";
 import Stories from "../components/Stories";
@@ -28,6 +29,7 @@ export default function Home({ user }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadingAll, setLoadingAll] = useState(false);
   const [error, setError] = useState(null);
+  const { savedMap, updateSavedState } = useSavedPosts(items);
   
   // Search and sorting
   const [searchParams] = useSearchParams();
@@ -377,7 +379,16 @@ export default function Home({ user }) {
                       ref={isLastPost ? lastPostElementRef : null}
                       className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden"
                     >
-                      <PostCard post={post} user={user} onUpdate={loadInitial} hidePublicIcon={true} hideActionsMenu={true} />
+                      <PostCard
+                        post={post}
+                        user={user}
+                        onUpdate={loadInitial}
+                        hidePublicIcon={true}
+                        hideActionsMenu={true}
+                        isSaved={savedMap[post._id]}
+                        onSavedChange={updateSavedState}
+                        skipSavedStatusFetch={true}
+                      />
                     </div>
                   );
                 })}

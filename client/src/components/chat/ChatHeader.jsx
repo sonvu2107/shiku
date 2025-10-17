@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { MoreVertical, Users, Settings, UserPlus, Edit3, LogOut, Trash2, Phone, Video } from "lucide-react";
+import { MoreVertical, Users, Settings, UserPlus, Edit3, LogOut, Trash2, Phone, Video, User } from "lucide-react";
 import GroupSettingsModal from "./GroupSettingsModal";
+import NicknameModal from "./NicknameModal";
+import { getUserAvatarUrl, AVATAR_SIZES } from "../../utils/avatarUtils";
 
 /**
  * ChatHeader - Header của cuộc trò chuyện
@@ -32,6 +34,7 @@ export default function ChatHeader({
   const [showMenu, setShowMenu] = useState(false); // Trạng thái hiển thị menu dropdown
   const [showEditName, setShowEditName] = useState(false); // Trạng thái edit tên nhóm
   const [showGroupSettings, setShowGroupSettings] = useState(false); // Trạng thái hiển thị group settings
+  const [showNicknameModal, setShowNicknameModal] = useState(false); // Trạng thái hiển thị nickname modal
   
   // Form states
   const [newName, setNewName] = useState(conversation?.name || ''); // Tên mới của nhóm
@@ -80,6 +83,24 @@ export default function ChatHeader({
     return isGroupAdmin() || conversation?.allowMemberManagement;
   };
 
+  const getOtherUser = () => {
+    if (isGroup) return null;
+    
+    const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
+    
+    const otherParticipant = conversation.participants?.find(p => {
+      const participantId = p.user?._id || p.user?.id || p._id || p.id;
+      return participantId !== currentUserId;
+    });
+    
+    return otherParticipant?.user || otherParticipant;
+  };
+
+  const handleNicknameUpdated = () => {
+    // Trigger conversation refresh
+    onUpdateConversation?.(conversation._id, {});
+  };
+
   const getDisplayName = () => {
     if (isGroup) {
           return conversation.groupName || conversation.name || 'Nhóm chat';
@@ -111,15 +132,7 @@ const getAvatarUrl = () => {
 
   const user = otherParticipant?.user || otherParticipant;
 
-  if (user?.avatarUrl && user.avatarUrl.trim() !== "") {
-    return user.avatarUrl;
-  }
-  if (user?.name) {
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      user.name
-    )}&background=cccccc&color=222222`;
-  }
-  return "/default-avatar.png";
+  return getUserAvatarUrl(user, AVATAR_SIZES.LARGE);
 };
 
 
@@ -142,7 +155,7 @@ const getAvatarUrl = () => {
                 src={conversation.groupAvatar}
                 alt={getDisplayName()}
                 className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100"
-                onError={e => { e.target.src = '/default-avatar.png'; }}
+                onError={e => { e.target.src = ''; }}
               />
             ) : (
               <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
@@ -156,7 +169,7 @@ const getAvatarUrl = () => {
                 alt={getDisplayName()}
                 className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100"
                 onError={(e) => {
-                  e.target.src = '/default-avatar.png';
+                  e.target.src = '';
                 }}
               />
             </>
@@ -267,6 +280,20 @@ const getAvatarUrl = () => {
                   </>
                 )}
                 
+                {/* Nickname management for private conversations */}
+                {!isGroup && getOtherUser() && (
+                  <button
+                    onClick={() => {
+                      setShowNicknameModal(true);
+                      setShowMenu(false);
+                    }}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <User size={16} className="mr-3" />
+                    Quản lý biệt danh
+                  </button>
+                )}
+                
                 <button
                   onClick={handleLeave}
                   className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
@@ -298,6 +325,17 @@ const getAvatarUrl = () => {
           isOpen={showGroupSettings}
           onClose={() => setShowGroupSettings(false)}
           onUpdateConversation={onUpdateConversation}
+        />
+      )}
+
+      {/* Nickname Modal */}
+      {showNicknameModal && (
+        <NicknameModal
+          isOpen={showNicknameModal}
+          onClose={() => setShowNicknameModal(false)}
+          conversation={conversation}
+          targetUser={getOtherUser()}
+          onNicknameUpdated={handleNicknameUpdated}
         />
       )}
     </div>

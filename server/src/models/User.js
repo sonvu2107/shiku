@@ -29,13 +29,14 @@ const UserSchema = new mongoose.Schema({
   
   // ==================== THÔNG TIN CÁ NHÂN ====================
   bio: { type: String, default: "" }, // Tiểu sử
+  nickname: { type: String, default: "", trim: true, maxlength: [30, 'Biệt danh không được quá 30 ký tự'] }, // Biệt danh
   avatarUrl: {
     type: String,
     // Default avatar từ UI Avatars service
     default: function () {
       const name = (this.name || "User").trim();
       const encoded = encodeURIComponent(name);
-      return `https://ui-avatars.com/api/?name=${encoded}&length=2&background=cccccc&color=222222`;
+      return `https://ui-avatars.com/api/?name=${encoded}&length=2&background=3b82f6&color=ffffff&size=64&bold=true`;
     }
   },
   coverUrl: { type: String, default: "" }, // Ảnh bìa profile

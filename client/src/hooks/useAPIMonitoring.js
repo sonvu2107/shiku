@@ -24,7 +24,8 @@ export function useAPIMonitoring() {
         api('/api/api-monitoring/rate-limits')
       ]);
       
-      setStats(statsRes.data);
+      // Unwrap data: API returns { success, data: {...} }, we need the inner data
+      setStats(statsRes.data.data || statsRes.data);
       setRateLimits(rateLimitsRes.data);
       setLastUpdate(new Date());
       setError(null);
@@ -69,7 +70,7 @@ export function useAPIMonitoring() {
           topEndpoints: Object.entries(update.data.requestsByEndpoint)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 10)
-            .map(([endpoint, count]) => ({ endpoint, count })),
+            .map(([endpoint, count]) => ({ endpoint: endpoint.replace(/_/g, '/'), count })),
           hourlyDistribution: Array.from({ length: 24 }, (_, hour) => ({
             hour,
             requests: update.data.hourlyDistribution[hour] || 0

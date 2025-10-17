@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, X, Check, CheckCheck } from "lucide-react";
 import { api } from "../api";
+import { 
+  useNotifications, 
+  useUnreadNotificationsCount,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead 
+} from "../hooks/useNotifications";
+
 /**
  * NotificationBell - Component chuông thông báo với dropdown
  * Hiển thị số lượng thông báo chưa đọc và danh sách thông báo
@@ -10,66 +17,24 @@ import { api } from "../api";
 export default function NotificationBell({ user }) {
   // ==================== STATE MANAGEMENT ====================
   
-  const [notifications, setNotifications] = useState([]); // Danh sách thông báo
-  const [unreadCount, setUnreadCount] = useState(0); // Số thông báo chưa đọc
   const [showDropdown, setShowDropdown] = useState(false); // Hiện dropdown
-  const [loading, setLoading] = useState(false); // Loading state
   const navigate = useNavigate();
 
-  // ==================== EFFECTS ====================
-  
-  /**
-   * Load unread count và setup polling khi user đăng nhập
-   */
-  useEffect(() => {
-    if (user) {
-      loadUnreadCount();
-      // Polling mỗi 30 giây để cập nhật unread count
-      const interval = setInterval(loadUnreadCount, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [user]);
+  // React Query hooks
+  const { data: notificationsData, isLoading: notificationsLoading } = useNotifications();
+  const { data: unreadCountData } = useUnreadNotificationsCount();
+  const markReadMutation = useMarkNotificationRead();
+  const markAllReadMutation = useMarkAllNotificationsRead();
+
+  const notifications = notificationsData?.notifications || [];
+  const unreadCount = unreadCountData?.unreadCount || 0;
+  const loading = notificationsLoading; // Fix: define loading from isLoading
 
   // ==================== API FUNCTIONS ====================
-  
-  /**
-   * Load số lượng thông báo chưa đọc
-   */
-  const loadUnreadCount = async () => {
-    try {
-      const data = await api("/api/notifications/unread-count");
-      setUnreadCount(data.unreadCount);
-    } catch (error) {
-      // Silent handling for unread count loading error
-    }
-  };
-
-  /**
-   * Load danh sách thông báo (10 thông báo gần nhất)
-   */
-  const loadNotifications = async () => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      const data = await api("/api/notifications?limit=10");
-      setNotifications(data.notifications);
-    } catch (error) {
-      // Silent handling for notifications loading error
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const markAsRead = async (notificationId) => {
     try {
-      await api(`/api/notifications/${notificationId}/read`, {
-      method: "PUT",
-      body: {}
-    });
-      setNotifications(prev => 
-        prev.map(n => n._id === notificationId ? { ...n, read: true } : n)
-      );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      await markReadMutation.mutateAsync(notificationId);
     } catch (error) {
       // Silent handling for mark as read error
     }
@@ -77,12 +42,7 @@ export default function NotificationBell({ user }) {
 
   const markAllAsRead = async () => {
     try {
-      await api("/api/notifications/mark-all-read", {
-      method: "PUT",
-      body: {}
-    });
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
+      await markAllReadMutation.mutateAsync();
     } catch (error) {
       // Silent handling for mark all as read error
     }
@@ -90,9 +50,7 @@ export default function NotificationBell({ user }) {
 
   const handleBellClick = () => {
     setShowDropdown(!showDropdown);
-    if (!showDropdown) {
-      loadNotifications();
-    }
+    // React Query sẽ tự động load notifications khi cần
   };
 
   const getNotificationIcon = (type) => {

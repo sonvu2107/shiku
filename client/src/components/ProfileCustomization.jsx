@@ -41,6 +41,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
   // Personal info state
   const [personalInfo, setPersonalInfo] = useState({
     bio: "",
+    nickname: "",
     location: "",
     website: "",
     phone: "",
@@ -77,6 +78,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
     if (user) {
       setPersonalInfo({
         bio: user.bio || "",
+        nickname: user.nickname || "",
         location: user.location || "",
         website: user.website || "",
         phone: user.phone || "",
@@ -159,6 +161,9 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
       // Personal info - only include if changed
       if (personalInfo.bio !== (user.bio || "")) {
         updateData.bio = personalInfo.bio;
+      }
+      if (personalInfo.nickname !== (user.nickname || "")) {
+        updateData.nickname = personalInfo.nickname;
       }
       if (personalInfo.location !== (user.location || "")) {
         updateData.location = personalInfo.location;
@@ -249,6 +254,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
   const hasUnsavedChanges = () => {
     return (
       personalInfo.bio !== (user.bio || "") ||
+      personalInfo.nickname !== (user.nickname || "") ||
       personalInfo.location !== (user.location || "") ||
       personalInfo.coverUrl !== (user.coverUrl || "") ||
       personalInfo.website !== (user.website || "") ||
@@ -366,6 +372,25 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                 />
                 <div className="text-right text-sm text-gray-500 mt-1">
                   {personalInfo.bio.length}/500
+                </div>
+              </div>
+
+              {/* Nickname */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <User className="w-4 h-4 inline mr-1" />
+                  Biệt danh
+                </label>
+                <input
+                  type="text"
+                  value={personalInfo.nickname}
+                  onChange={(e) => setPersonalInfo(prev => ({ ...prev, nickname: e.target.value }))}
+                  placeholder="Nhập biệt danh của bạn..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  maxLength={30}
+                />
+                <div className="text-right text-sm text-gray-500 mt-1">
+                  {personalInfo.nickname.length}/30
                 </div>
               </div>
 

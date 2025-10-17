@@ -98,7 +98,7 @@ router.get("/",
 
       // Thực hiện query với timeout
       const posts = await Post.find(filter)
-        .populate("author", "name avatarUrl role")
+        .populate("author", "name nickname avatarUrl role")
         .sort(pagination.sort)
         .skip(pagination.skip)
         .limit(pagination.limit)
@@ -152,7 +152,7 @@ router.get("/:id",
       }
 
       let post = await Post.findById(id)
-        .populate("author", "name avatarUrl role");
+        .populate("author", "name nickname avatarUrl role");
 
       // Kiểm tra quyền truy cập cho bài viết private
       if (post && post.status === "private") {
@@ -173,7 +173,7 @@ router.get("/:id",
 
       // Lấy comments
       const comments = await Comment.find({ post: post._id })
-        .populate("author", "name avatarUrl role")
+        .populate("author", "name nickname avatarUrl role")
         .populate("parent", "_id")
         .sort({ createdAt: -1 })
         .maxTimeMS(3000);
@@ -420,6 +420,48 @@ router.post("/:id/comments",
 );
 
 // ==================== SAVED POSTS ====================
+
+// Batch check if posts are saved by current user
+router.get("/is-saved", authRequired, async (req, res, next) => {
+  try {
+    const rawIds = req.query.ids;
+    if (!rawIds) {
+      return res.json({});
+    }
+
+    const ids = rawIds
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+    if (ids.length === 0) {
+      return res.json({});
+    }
+
+    const validIds = ids.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validIds.length === 0) {
+      const emptyResponse = {};
+      ids.forEach((id) => {
+        emptyResponse[id] = false;
+      });
+      return res.json(emptyResponse);
+    }
+
+    const user = await User.findById(req.user._id).select("savedPosts");
+    const savedIds = new Set(
+      (user?.savedPosts || []).map((savedId) => savedId.toString())
+    );
+
+    const response = {};
+    ids.forEach((id) => {
+      response[id] = savedIds.has(id);
+    });
+
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Toggle save/unsave a post
 router.post("/:id/save", authRequired, async (req, res, next) => {

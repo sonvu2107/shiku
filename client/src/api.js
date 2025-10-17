@@ -1,7 +1,7 @@
-// URL của API server - lấy từ environment variable hoặc default IP
-const API_URL = import.meta.env.VITE_API_URL || "http://192.168.1.18:4000";
+// URL của API server - sử dụng proxy trong dev, absolute URL trong production
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "" : "http://localhost:4000");
 
-import { getValidAccessToken, clearTokens, getRefreshToken, refreshAccessToken } from "./utils/tokenManager.js";
+import { getValidAccessToken, clearTokens, refreshAccessToken } from "./utils/tokenManager.js";
 import { getCSRFToken, ensureCSRFToken } from "./utils/csrfToken.js";
 import { 
   parseRateLimitHeaders, 
@@ -26,6 +26,7 @@ import {
 export async function api(path, { method = "GET", body, headers = {} } = {}) {
   // Lấy valid access token (tự động refresh nếu cần)
   const token = await getValidAccessToken();
+  
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -75,27 +76,25 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
 
   // Xử lý lỗi response
   if (!res.ok) {
-    // Nếu là lỗi 401 và có refresh token, thử refresh
-    if (res.status === 401 && getRefreshToken()) {
-      const newToken = await refreshAccessToken();
-      if (newToken) {
-        // Retry request với token mới
-        headers.Authorization = `Bearer ${newToken}`;
+    // Nếu là lỗi 401, thử refresh access token trước khi redirect
+    if (res.status === 401) {
+      const refreshOutcome = await refreshAccessToken();
+      if (refreshOutcome?.success && refreshOutcome.accessToken) {
+        headers.Authorization = `Bearer ${refreshOutcome.accessToken}`;
         const retryRes = await fetch(`${API_URL}${path}`, {
           ...requestOptions,
           headers: { ...requestOptions.headers, ...headers },
           mode: "cors"
         });
-        
+
         if (retryRes.ok) {
           return await retryRes.json();
         }
-      } else {
-        // Refresh thất bại, clear tokens và redirect to login
-        clearTokens();
-        window.location.href = '/login';
-        return;
       }
+
+      clearTokens();
+      window.location.href = "/login";
+      return;
     }
     
     // Nếu là lỗi 403 (CSRF token invalid), thử refresh CSRF token

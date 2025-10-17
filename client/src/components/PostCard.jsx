@@ -21,7 +21,15 @@ import Poll from "./Poll";
  * @param {Array} post.files - Media files đính kèm
  * @param {string} post.status - Trạng thái (published/private)
  */
-export default function PostCard({ post, user, hidePublicIcon = false, hideActionsMenu = false }) {
+export default function PostCard({
+  post,
+  user,
+  hidePublicIcon = false,
+  hideActionsMenu = false,
+  isSaved: isSavedProp,
+  onSavedChange,
+  skipSavedStatusFetch = false
+}) {
   // ==================== STATE & REFS ====================
   const navigate = useNavigate();
   // Note: User data should be passed as prop or obtained from context
@@ -111,10 +119,22 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
   // ==================== EMOTE SYSTEM ====================
   
   const [emotesState, setEmotesState] = useState(post.emotes || []); // Local emote state
-  const [saved, setSaved] = useState(false);
+  const savedPropProvided = typeof isSavedProp === "boolean";
+  const [saved, setSaved] = useState(() => (savedPropProvided ? isSavedProp : false));
 
-  // Load saved state
+  // Sync saved state when prop provided via batch hook
   React.useEffect(() => {
+    if (savedPropProvided) {
+      setSaved(isSavedProp);
+    }
+  }, [isSavedProp, savedPropProvided]);
+
+  // Fallback: fetch saved status only when prop not provided and fetching is allowed
+  React.useEffect(() => {
+    if (savedPropProvided || skipSavedStatusFetch) {
+      return undefined;
+    }
+
     let active = true;
     (async () => {
       try {
@@ -122,8 +142,10 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
         if (active) setSaved(!!res.saved);
       } catch (_) {}
     })();
-    return () => { active = false; };
-  }, [post._id]);
+    return () => {
+      active = false;
+    };
+  }, [post._id, savedPropProvided, skipSavedStatusFetch]);
 
   /**
    * Thêm/xóa emote cho bài viết
@@ -146,10 +168,14 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
   async function toggleSave() {
     try {
       const res = await api(`/api/posts/${post._id}/save`, {
-      method: "POST",
-      body: {}
-    });
-      setSaved(!!res.saved);
+        method: "POST",
+        body: {}
+      });
+      const nextState = !!res.saved;
+      setSaved(nextState);
+      if (typeof onSavedChange === "function") {
+        onSavedChange(post._id, nextState);
+      }
     } catch (e) {
       alert(e.message || "Không thể lưu bài viết");
     }
@@ -247,10 +273,7 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
           className="flex items-center gap-2 hover:text-blue-600 transition-colors min-w-0"
         >
           <User size={18} />
-          <span className="truncate">{post.author?.name}</span>
-          {post.author?.role && (
-            <VerifiedBadge role={post.author.role} isVerified={post.author.isVerified} />
-          )}
+          <UserName user={post.author} className="truncate" />
         </Link>
         {post.group && (
           <Link 
@@ -308,7 +331,7 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
             setShowEmotePopup(true);
           }}
           onMouseLeave={() => {
-            emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 3000);
+            emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1500);
           }}
         >
           <button className="btn-outline flex items-center gap-2" type="button" onClick={() => setShowEmotePopup(true)}> 
@@ -324,7 +347,7 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
                 setShowEmotePopup(true);
               }}
               onMouseLeave={() => {
-                emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1000);
+                emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1500);
               }}
             >
               {emotes.map(e => (
@@ -439,3 +462,5 @@ export default function PostCard({ post, user, hidePublicIcon = false, hideActio
     </ComponentErrorBoundary>
   );
 }
+
+

@@ -122,7 +122,7 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
               localField: "author",
               foreignField: "_id",
               as: "author",
-              pipeline: [{ $project: { name: 1, avatarUrl: 1 } }]
+              pipeline: [{ $project: { name: 1, nickname: 1, avatarUrl: 1 } }]
             }
           },
           {
@@ -181,7 +181,7 @@ router.get("/my-published", authRequired, async (req, res, next) => {
     ];
     
     const posts = await Post.find(filter)
-      .populate("author", "name avatarUrl")
+      .populate("author", "name nickname avatarUrl")
       .populate("group", "name")
       .sort({ createdAt: -1 })
       .limit(limit * 1)
@@ -223,7 +223,7 @@ router.get("/my-private", authRequired, async (req, res, next) => {
     ];
     
     const posts = await Post.find(filter)
-      .populate("author", "name avatarUrl")
+      .populate("author", "name nickname avatarUrl")
       .populate("group", "name")
       .sort({ createdAt: -1 })
       .limit(limit * 1)
@@ -275,7 +275,7 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
     ];
     
     const posts = await Post.find(filter)
-      .populate("author", "name avatarUrl")
+      .populate("author", "name nickname avatarUrl")
       .populate("group", "name")
       .sort({ createdAt: -1 })
       .limit(limit * 1)
@@ -301,6 +301,8 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
 router.get("/feed", authOptional, async (req, res, next) => {
   try {
     const { page = 1, limit = 100, tag, q } = req.query;
+    const pg = Number(page) || 1;
+    const lim = Number(limit) || 100;
 
     // Base filter for published posts
     const publishedFilter = {
@@ -349,25 +351,26 @@ router.get("/feed", authOptional, async (req, res, next) => {
 
       [publishedPosts, privatePosts] = await Promise.all([
         Post.find(publishedFilter)
-          .populate({ path: "author", select: "name avatarUrl role blockedUsers" })
-          .populate({ path: "role", select: "name displayName iconUrl" })
+          .populate({ path: "author", select: "name nickname avatarUrl role blockedUsers" })
           .sort({ createdAt: -1 })
-          .limit(limit * 1)
-          .skip((page - 1) * limit),
+          .limit(lim)
+          .skip((pg - 1) * lim)
+          .lean(),
         Post.find(privateFilter)
-          .populate({ path: "author", select: "name avatarUrl role blockedUsers" })
-          .populate({ path: "role", select: "name displayName iconUrl" })
+          .populate({ path: "author", select: "name nickname avatarUrl role blockedUsers" })
           .sort({ createdAt: -1 })
-          .limit(limit * 1)
+          .limit(lim)
+          .skip((pg - 1) * lim)
+          .lean()
       ]);
     } else {
       // Not logged in - only fetch published posts
       publishedPosts = await Post.find(publishedFilter)
         .populate({ path: "author", select: "name avatarUrl role blockedUsers" })
-        .populate({ path: "role", select: "name displayName iconUrl" })
         .sort({ createdAt: -1 })
-        .limit(limit * 1)
-        .skip((page - 1) * limit);
+        .limit(lim)
+        .skip((pg - 1) * lim)
+        .lean();
     }
 
     // Combine and sort posts
@@ -376,7 +379,7 @@ router.get("/feed", authOptional, async (req, res, next) => {
 
     // Filter blocked users if logged in
     if (req.user?._id) {
-      const currentUser = await User.findById(req.user._id).select("blockedUsers");
+      const currentUser = await User.findById(req.user._id).select("blockedUsers").lean(); // PHASE 4: Add .lean()
       allPosts = allPosts.filter(post => {
         const author = post.author;
         if (!author) return false;
@@ -387,19 +390,23 @@ router.get("/feed", authOptional, async (req, res, next) => {
     }
 
     // Batch fetch comment counts
-    const postIds = allPosts.map(post => post._id);
-    const commentCounts = await Comment.aggregate([
-      { $match: { post: { $in: postIds } } },
-      { $group: { _id: "$post", count: { $sum: 1 } } }
-    ]);
+    const postIds = allPosts.map(post => post._id).filter(Boolean);
+    let commentCounts = [];
+    if (postIds.length > 0) {
+      commentCounts = await Comment.aggregate([
+        { $match: { post: { $in: postIds } } },
+        { $group: { _id: "$post", count: { $sum: 1 } } }
+      ]);
+    }
 
     const commentCountMap = new Map();
     commentCounts.forEach(item => {
       commentCountMap.set(item._id.toString(), item.count);
     });
 
+    // PHASE 4: No need for .toObject() since we used .lean()
     const itemsWithCommentCount = allPosts.map(post => ({
-      ...post.toObject(),
+      ...post,
       commentCount: commentCountMap.get(post._id.toString()) || 0
     }));
 
@@ -408,8 +415,8 @@ router.get("/feed", authOptional, async (req, res, next) => {
     res.json({
       items: itemsWithCommentCount,
       total,
-      page: Number(page),
-      pages: Math.ceil(total / Number(limit)),
+      page: pg,
+      pages: Math.ceil(total / lim),
       hasPrivatePosts: privatePosts.length > 0
     });
   } catch (e) {
@@ -449,7 +456,7 @@ router.get("/feed-legacy", authOptional, async (req, res, next) => {
     }
     
     const posts = await Post.find(filter)
-      .populate("author", "name avatarUrl")
+      .populate("author", "name nickname avatarUrl")
       .populate("group", "name")
       .sort({ createdAt: -1 })
       .limit(limit * 1)
@@ -529,24 +536,42 @@ router.get("/", authOptional, async (req, res, next) => {
       }
     }
 
-    let query = Post.find(filter)
+    // PHASE 4: Add projection to limit fields returned and trim populate (remove blockedUsers heavy array)
+    const postProjection = {
+      title: 1,
+      slug: 1,
+      tags: 1,
+      createdAt: 1,
+      author: 1,
+      role: 1,
+      status: 1,
+      views: 1,
+      coverUrl: 1,      // Ảnh cover/thumbnail cho PostCard
+      files: 1,         // Media files (ảnh/video)
+      content: 1,       // Nội dung (có thể cần cho preview)
+      emotes: 1         // Reactions/likes
+    };
+
+    let query = Post.find(filter, postProjection)
       .populate({
         path: "author",
-        select: "name avatarUrl role blockedUsers"
+        select: "name nickname avatarUrl role" // removed blockedUsers to reduce payload
       })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean(); // PHASE 4: Add .lean() for better performance
 
     let items = await paginate(query, { page: Number(page), limit: Number(limit) }).exec();
 
     // Lọc bài viết của user đã block mình hoặc bị mình block
     if (req.user?._id) {
-      const currentUser = await User.findById(req.user._id).select("blockedUsers");
+      const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
+      // We removed author's blockedUsers from populate; if mutual block logic is essential, fetch authors' blocked lists in one batch.
+      // For now, only apply filter for users current user blocked (fast path). Optional enhancement: batch fetch authors' block lists.
+      const blockedSet = new Set((currentUser.blockedUsers || []).map(id => id.toString()));
       items = items.filter(post => {
         const author = post.author;
         if (!author) return false;
-        const iBlockedThem = (currentUser.blockedUsers || []).map(id => id.toString()).includes(author._id.toString());
-        const theyBlockedMe = (author.blockedUsers || []).map(id => id.toString()).includes(req.user._id.toString());
-        return !iBlockedThem && !theyBlockedMe;
+        return !blockedSet.has(author._id.toString());
       });
     }
 
@@ -565,7 +590,7 @@ router.get("/", authOptional, async (req, res, next) => {
     
     // Add comment counts to posts
     const itemsWithCommentCount = items.map(post => ({
-      ...post.toObject(),
+      ...post, // PHASE 4: No need for .toObject() since we used .lean()
       commentCount: commentCountMap.get(post._id.toString()) || 0
     }));
 
@@ -584,8 +609,8 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
       { $inc: { views: 1 } },
       { new: true }
     )
-      .populate({ path: "author", select: "name avatarUrl role blockedUsers", populate: { path: "role", select: "name displayName iconUrl" } })
-      .populate({ path: "emotes.user", select: "name avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
+      .populate({ path: "author", select: "name nickname avatarUrl role blockedUsers", populate: { path: "role", select: "name displayName iconUrl" } })
+      .populate({ path: "emotes.user", select: "name nickname avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
       .populate({ path: "group", select: "name settings members" });
 
     // If not found, check private
@@ -595,8 +620,8 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
         { $inc: { views: 1 } },
         { new: true }
       )
-        .populate({ path: "author", select: "name avatarUrl role blockedUsers", populate: { path: "role", select: "name displayName iconUrl" } })
-        .populate({ path: "emotes.user", select: "name avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
+        .populate({ path: "author", select: "name nickname avatarUrl role blockedUsers", populate: { path: "role", select: "name displayName iconUrl" } })
+        .populate({ path: "emotes.user", select: "name nickname avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
         .populate({ path: "group", select: "name settings members" });
 
       if (post) {
@@ -624,7 +649,7 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
     // Fetch comments and check if saved in parallel
     const [comments, isSaved] = await Promise.all([
       Comment.find({ post: post._id })
-        .populate({ path: "author", select: "name avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
+        .populate({ path: "author", select: "name nickname avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
         .populate("parent", "_id")
         .sort({ createdAt: -1 }),
       // Check if post is saved by current user
@@ -800,7 +825,7 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
     }
 
     await post.save();
-    await post.populate("emotes.user", "name avatarUrl role");
+    await post.populate("emotes.user", "name nickname avatarUrl role");
     res.json({ emotes: post.emotes });
   } catch (e) {
     next(e);
@@ -905,6 +930,50 @@ router.get("/analytics", authRequired, async (req, res, next) => {
 
 // ==================== SAVED POSTS ====================
 
+// Batch check if posts are saved by current user
+router.get("/is-saved", authRequired, async (req, res, next) => {
+  try {
+    const rawIds = req.query.ids;
+    if (!rawIds) {
+      return res.json({});
+    }
+
+    const ids = rawIds
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+    if (ids.length === 0) {
+      return res.json({});
+    }
+
+    // Filter valid ObjectIds but keep original ids so client gets consistent keys
+    const validIds = ids.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validIds.length === 0) {
+      // No valid ids, respond with false for provided ids
+      const emptyResponse = {};
+      ids.forEach((id) => {
+        emptyResponse[id] = false;
+      });
+      return res.json(emptyResponse);
+    }
+
+    const user = await User.findById(req.user._id).select("savedPosts");
+    const savedIds = new Set(
+      (user?.savedPosts || []).map((savedId) => savedId.toString())
+    );
+
+    const response = {};
+    ids.forEach((id) => {
+      response[id] = savedIds.has(id);
+    });
+
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Toggle save/unsave a post
 router.post("/:id/save", authRequired, async (req, res, next) => {
   try {
@@ -963,7 +1032,7 @@ router.get("/saved/list", authRequired, async (req, res, next) => {
     const pageIds = ids.slice(start, end);
 
     const posts = await Post.find({ _id: { $in: pageIds } })
-      .populate("author", "name avatarUrl")
+      .populate("author", "name nickname avatarUrl")
       .populate("group", "name")
       .sort({ createdAt: -1 });
 

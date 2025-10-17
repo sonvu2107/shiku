@@ -28,6 +28,7 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
   const [friends, setFriends] = useState([]); // Danh sách bạn bè
   const [selectedUsers, setSelectedUsers] = useState([]); // Users đã chọn
   const [groupName, setGroupName] = useState(''); // Tên nhóm
+  const [existingConversations, setExistingConversations] = useState({}); // Map user ID -> existing conversation
   
   // Loading states
   const [isLoading, setIsLoading] = useState(false); // Loading state chung
@@ -53,7 +54,22 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
     try {
       setIsLoading(true);
       const response = await chatAPI.getFriends();
-      setFriends(response.friends || []);
+      const friendsList = response.friends || [];
+      setFriends(friendsList);
+      
+      // Kiểm tra existing conversations cho từng bạn bè
+      const existingMap = {};
+      for (const friend of friendsList) {
+        try {
+          const existingConv = await chatAPI.checkPrivateConversation(friend._id);
+          if (existingConv.exists) {
+            existingMap[friend._id] = existingConv;
+          }
+        } catch (error) {
+          // Silent fail for individual checks
+        }
+      }
+      setExistingConversations(existingMap);
     } catch (error) {
       setFriends([]);
     } finally {
@@ -88,9 +104,10 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
 
   const handleUserSelect = (user) => {
     if (conversationType === 'private') {
+      // Cho private chat, chỉ cho phép chọn 1 người
       setSelectedUsers([user]);
-      handleCreateConversation([user]);
     } else {
+      // Cho group chat, cho phép chọn nhiều người
       setSelectedUsers(prev => {
         const isSelected = prev.some(u => u._id === user._id);
         if (isSelected) {
@@ -108,10 +125,23 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
     setIsLoading(true);
     try {
       if (conversationType === 'private') {
-        await onCreateConversation({
-          type: 'private',
-          participants: [users[0]._id]
-        });
+        // Kiểm tra xem cuộc trò chuyện đã tồn tại chưa
+        const existingConversation = await chatAPI.checkPrivateConversation(users[0]._id);
+        
+        if (existingConversation.exists) {
+          // Nếu đã tồn tại, mở cuộc trò chuyện hiện có
+          await onCreateConversation({
+            type: 'private',
+            participants: [users[0]._id],
+            existingConversation: existingConversation
+          });
+        } else {
+          // Tạo cuộc trò chuyện mới
+          await onCreateConversation({
+            type: 'private',
+            participants: [users[0]._id]
+          });
+        }
       } else {
         await onCreateConversation({
           type: 'group',
@@ -133,13 +163,22 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-2 sm:mx-4 max-h-[90vh] sm:max-h-[80vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
             {step === 1 && 'Tạo cuộc trò chuyện mới'}
-            {step === 2 && `Chọn ${conversationType === 'private' ? 'người dùng' : 'thành viên nhóm'}`}
+            {step === 2 && (
+              <div className="flex items-center space-x-2">
+                <span>Chọn {conversationType === 'private' ? 'người dùng' : 'thành viên nhóm'}</span>
+                {selectedUsers.length > 0 && (
+                  <span className="text-sm font-normal text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                    {selectedUsers.length} đã chọn
+                  </span>
+                )}
+              </div>
+            )}
             {step === 3 && 'Cài đặt nhóm'}
           </h2>
           <button
@@ -151,24 +190,24 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Step 1: Choose conversation type */}
           {step === 1 && (
-            <div className="p-4 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4">
               <div className="space-y-3">
                 <button
                   onClick={() => {
                     setConversationType('private');
                     setStep(2);
                   }}
-                  className="w-full flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center space-x-3 p-4 sm:p-5 border border-gray-200 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors touch-target"
                 >
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-blue-600" />
+                  <div className="w-12 h-12 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <User className="w-6 h-6 sm:w-5 sm:h-5 text-blue-600" />
                   </div>
-                  <div className="text-left">
-                    <h3 className="font-medium text-gray-900">Tin nhắn riêng</h3>
-                    <p className="text-sm text-gray-500">Nhắn tin với một người</p>
+                  <div className="text-left flex-1">
+                    <h3 className="font-medium text-gray-900 text-base sm:text-sm">Tin nhắn riêng</h3>
+                    <p className="text-sm text-gray-500 mt-1">Nhắn tin với một người</p>
                   </div>
                 </button>
 
@@ -177,14 +216,14 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
                     setConversationType('group');
                     setStep(2);
                   }}
-                  className="w-full flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center space-x-3 p-4 sm:p-5 border border-gray-200 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors touch-target"
                 >
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <Users className="w-5 h-5 text-green-600" />
+                  <div className="w-12 h-12 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Users className="w-6 h-6 sm:w-5 sm:h-5 text-green-600" />
                   </div>
-                  <div className="text-left">
-                    <h3 className="font-medium text-gray-900">Nhóm chat</h3>
-                    <p className="text-sm text-gray-500">Tạo nhóm với nhiều người</p>
+                  <div className="text-left flex-1">
+                    <h3 className="font-medium text-gray-900 text-base sm:text-sm">Nhóm chat</h3>
+                    <p className="text-sm text-gray-500 mt-1">Tạo nhóm với nhiều người</p>
                   </div>
                 </button>
               </div>
@@ -193,35 +232,38 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
 
           {/* Step 2: Select users */}
           {step === 2 && (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col flex-1 min-h-0">
               {/* Tabs */}
-              <div className="flex border-b border-gray-200">
+              <div className="flex-shrink-0 flex border-b border-gray-200">
                 <button
                   onClick={() => setSearchMode('friends')}
-                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  className={`flex-1 px-3 sm:px-4 py-3 sm:py-4 text-sm font-medium transition-colors touch-target ${
                     searchMode === 'friends'
                       ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                      : 'text-gray-500 hover:text-gray-700'
+                      : 'text-gray-500 hover:text-gray-700 active:bg-gray-50'
                   }`}
                 >
-                  <Users className="w-4 h-4 inline mr-2" />
-                  Bạn bè ({friends.length})
+                  <Users className="w-4 h-4 inline mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Bạn bè</span>
+                  <span className="sm:hidden">Bạn bè</span>
+                  <span className="ml-1">({friends.length})</span>
                 </button>
                 <button
                   onClick={() => setSearchMode('all')}
-                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  className={`flex-1 px-3 sm:px-4 py-3 sm:py-4 text-sm font-medium transition-colors touch-target ${
                     searchMode === 'all'
                       ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                      : 'text-gray-500 hover:text-gray-700'
+                      : 'text-gray-500 hover:text-gray-700 active:bg-gray-50'
                   }`}
                 >
-                  <Search className="w-4 h-4 inline mr-2" />
-                  Tìm kiếm tất cả
+                  <Search className="w-4 h-4 inline mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Tìm kiếm tất cả</span>
+                  <span className="sm:hidden">Tìm kiếm</span>
                 </button>
               </div>
 
               {/* Search */}
-              <div className="p-4 border-b border-gray-200">
+              <div className="flex-shrink-0 p-3 sm:p-4 border-b border-gray-200">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
@@ -229,29 +271,35 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder={searchMode === 'friends' ? 'Tìm kiếm trong bạn bè...' : 'Tìm kiếm tất cả người dùng...'}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base sm:text-sm"
                   />
                 </div>
               </div>
 
-              {/* Selected users (for group) */}
-              {conversationType === 'group' && selectedUsers.length > 0 && (
-                <div className="p-4 border-b border-gray-200">
+              {/* Selected users */}
+              {selectedUsers.length > 0 && (
+                <div className="flex-shrink-0 p-3 sm:p-4 border-b border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium text-gray-700">
+                      {conversationType === 'private' ? 'Người được chọn:' : 'Thành viên đã chọn:'}
+                    </h3>
+                    <span className="text-xs text-gray-500">{selectedUsers.length} người</span>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {selectedUsers.map(user => (
                       <div
                         key={user._id}
-                        className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                        className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-full text-sm"
                       >
                         <img
-                          src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
+                          src={user.avatarUrl}
                           alt={user.name}
-                          className="w-5 h-5 rounded-full"
+                          className="w-6 h-6 sm:w-5 sm:h-5 rounded-full"
                         />
-                        <span>{user.name}</span>
+                        <span className="font-medium">{user.name}</span>
                         <button
                           onClick={() => setSelectedUsers(prev => prev.filter(u => u._id !== user._id))}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="text-blue-600 hover:text-blue-800 active:text-blue-900 transition-colors touch-target p-1"
                         >
                           <X size={14} />
                         </button>
@@ -261,8 +309,8 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
                 </div>
               )}
 
-              {/* Search results */}
-              <div className="flex-1 overflow-y-auto p-4">
+              {/* Scrollable friend list */}
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 custom-scrollbar">
                 {isSearching ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -271,38 +319,52 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
                 ) : searchTerm.trim() ? (
                   // Hiển thị kết quả tìm kiếm
                   searchResults.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className="space-y-2 pb-4">
                       {searchResults.map(user => {
                         const isSelected = selectedUsers.some(u => u._id === user._id);
                         return (
                           <button
                             key={user._id}
                             onClick={() => handleUserSelect(user)}
-                            className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                            className={`w-full flex items-center space-x-3 p-4 sm:p-3 rounded-lg transition-colors touch-target ${
                               isSelected 
                                 ? 'bg-blue-50 border-2 border-blue-200' 
-                                : 'hover:bg-gray-50 border-2 border-transparent'
+                                : 'hover:bg-gray-50 active:bg-gray-100 border-2 border-transparent'
                             }`}
                           >
                             <img
-                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
+                              src={user.avatarUrl}
                               alt={user.name}
-                              className="w-10 h-10 rounded-full"
+                              className="w-12 h-12 sm:w-10 sm:h-10 rounded-full flex-shrink-0"
                             />
-                            <div className="flex-1 text-left">
-                              <h4 className="font-medium text-gray-900">{user.name}</h4>
-                              {/* Ẩn email của user */}
-                              {user.isOnline !== undefined && (
-                                <div className="flex items-center mt-1">
-                                  <div className={`w-2 h-2 rounded-full mr-1 ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                                  <span className="text-xs text-gray-500">
-                                    {user.isOnline ? 'Đang hoạt động' : 'Không hoạt động'}
+                            <div className="flex-1 text-left min-w-0">
+                              <h4 className={`font-medium text-base sm:text-sm truncate ${
+                                isSelected ? 'text-blue-900' : 'text-gray-900'
+                              }`}>{user.name}</h4>
+                              <div className="flex items-center mt-1 space-x-2">
+                                {/* Online status */}
+                                {user.isOnline !== undefined && (
+                                  <div className="flex items-center">
+                                    <div className={`w-2 h-2 rounded-full mr-1 ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                                    <span className="text-xs text-gray-500">
+                                      {user.isOnline ? 'Đang hoạt động' : 'Không hoạt động'}
+                                    </span>
+                                  </div>
+                                )}
+                                {/* Existing conversation indicator */}
+                                {existingConversations[user._id] && (
+                                  <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                                    Đã tạo
                                   </span>
-                                </div>
-                              )}
+                                )}
+                              </div>
                             </div>
                             {isSelected && (
-                              <Check className="w-5 h-5 text-blue-600" />
+                              <div className="flex-shrink-0">
+                                <div className="w-6 h-6 sm:w-5 sm:h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                                  <Check className="w-4 h-4 sm:w-3 sm:h-3 text-white" />
+                                </div>
+                              </div>
                             )}
                           </button>
                         );
@@ -316,36 +378,50 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
                 ) : searchMode === 'friends' ? (
                   // Hiển thị danh sách bạn bè khi không có từ khóa tìm kiếm
                   friends.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className="space-y-2 pb-4">
                       {friends.map(user => {
                         const isSelected = selectedUsers.some(u => u._id === user._id);
                         return (
                           <button
                             key={user._id}
                             onClick={() => handleUserSelect(user)}
-                            className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                            className={`w-full flex items-center space-x-3 p-4 sm:p-3 rounded-lg transition-colors touch-target ${
                               isSelected 
                                 ? 'bg-blue-50 border-2 border-blue-200' 
-                                : 'hover:bg-gray-50 border-2 border-transparent'
+                                : 'hover:bg-gray-50 active:bg-gray-100 border-2 border-transparent'
                             }`}
                           >
                             <img
-                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
+                              src={user.avatarUrl}
                               alt={user.name}
-                              className="w-10 h-10 rounded-full"
+                              className="w-12 h-12 sm:w-10 sm:h-10 rounded-full flex-shrink-0"
                             />
-                            <div className="flex-1 text-left">
-                              <h4 className="font-medium text-gray-900">{user.name}</h4>
-                              {/* Ẩn email của user ở friend list */}
-                              <div className="flex items-center mt-1">
-                                <div className={`w-2 h-2 rounded-full mr-1 ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                                <span className="text-xs text-gray-500">
-                                  {user.isOnline ? 'Đang hoạt động' : 'Không hoạt động'}
-                                </span>
+                            <div className="flex-1 text-left min-w-0">
+                              <h4 className={`font-medium text-base sm:text-sm truncate ${
+                                isSelected ? 'text-blue-900' : 'text-gray-900'
+                              }`}>{user.name}</h4>
+                              <div className="flex items-center mt-1 space-x-2">
+                                {/* Online status */}
+                                <div className="flex items-center">
+                                  <div className={`w-2 h-2 rounded-full mr-1 ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                                  <span className="text-xs text-gray-500">
+                                    {user.isOnline ? 'Đang hoạt động' : 'Không hoạt động'}
+                                  </span>
+                                </div>
+                                {/* Existing conversation indicator */}
+                                {existingConversations[user._id] && (
+                                  <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                                    Đã tạo 
+                                  </span>
+                                )}
                               </div>
                             </div>
                             {isSelected && (
-                              <Check className="w-5 h-5 text-blue-600" />
+                              <div className="flex-shrink-0">
+                                <div className="w-6 h-6 sm:w-5 sm:h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                                  <Check className="w-4 h-4 sm:w-3 sm:h-3 text-white" />
+                                </div>
+                              </div>
                             )}
                           </button>
                         );
@@ -394,7 +470,7 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
                   {selectedUsers.map(user => (
                     <div key={user._id} className="flex items-center space-x-3 p-2">
                       <img
-                        src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
+                              src={user.avatarUrl}
                         alt={user.name}
                         className="w-8 h-8 rounded-full"
                       />
@@ -408,12 +484,12 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-4 border-t border-gray-200">
+        <div className="flex items-center justify-between p-3 sm:p-4 border-t border-gray-200">
           <div>
             {step > 1 && (
               <button
                 onClick={() => setStep(step - 1)}
-                className="text-gray-600 hover:text-gray-800"
+                className="text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors touch-target px-2 py-1"
               >
                 Quay lại
               </button>
@@ -423,7 +499,7 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
           <div className="flex space-x-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              className="px-3 sm:px-4 py-2 text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors touch-target"
             >
               Hủy
             </button>
@@ -432,18 +508,38 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
               <>
                 {conversationType === 'private' ? (
                   <button
-                    disabled={selectedUsers.length === 0}
-                    className="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed"
+                    onClick={() => handleCreateConversation()}
+                    disabled={selectedUsers.length === 0 || isLoading}
+                    className={`px-3 sm:px-4 py-2 rounded-lg touch-target flex items-center space-x-2 ${
+                      selectedUsers.length > 0 && !isLoading
+                        ? 'bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                   >
-                    Chọn người dùng để tạo chat
+                    {isLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Đang tạo...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={16} />
+                        <span>
+                          {selectedUsers.length > 0 && existingConversations[selectedUsers[0]._id] 
+                            ? 'Mở cuộc trò chuyện' 
+                            : 'Xác nhận'
+                          }
+                        </span>
+                      </>
+                    )}
                   </button>
                 ) : (
                   <button
                     onClick={() => setStep(3)}
                     disabled={!canProceedToGroupSettings}
-                    className={`px-4 py-2 rounded-lg ${
+                    className={`px-3 sm:px-4 py-2 rounded-lg touch-target ${
                       canProceedToGroupSettings
-                        ? 'bg-blue-500 text-white hover:bg-blue-600'
+                        ? 'bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                   >
@@ -457,9 +553,9 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
               <button
                 onClick={() => handleCreateConversation()}
                 disabled={!canCreateGroup || isLoading}
-                className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
+                className={`px-3 sm:px-4 py-2 rounded-lg flex items-center space-x-2 touch-target ${
                   canCreateGroup && !isLoading
-                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    ? 'bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >

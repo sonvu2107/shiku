@@ -218,20 +218,20 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
             Quản lý Role
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
             Thêm, chỉnh sửa và quản lý các role trong hệ thống
           </p>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+          className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm sm:text-base touch-target w-full sm:w-auto justify-center"
         >
           <Plus size={16} />
           Thêm Role
@@ -240,28 +240,28 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
 
       {/* Messages */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-3 rounded-lg flex items-center gap-2 text-sm sm:text-base">
           <AlertCircle size={16} />
           {error}
         </div>
       )}
       
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+        <div className="bg-green-50 border border-green-200 text-green-700 px-3 sm:px-4 py-3 rounded-lg text-sm sm:text-base">
           {success}
         </div>
       )}
 
       {/* Add/Edit Form */}
       {showAddForm && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
               {editingRole ? "Chỉnh sửa Role" : "Thêm Role Mới"}
             </h3>
             <button
               onClick={resetForm}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 touch-target"
             >
               <X size={20} />
             </button>
@@ -277,9 +277,9 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Tên Role (không dấu, không khoảng trắng)
                 </label>
                 <input
@@ -288,7 +288,7 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="vd: vip, moderator"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed touch-target"
                   disabled={!!editingRole}
                   required
                 />
@@ -300,7 +300,7 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Tên Hiển Thị
                 </label>
                 <input
@@ -309,14 +309,14 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
                   value={formData.displayName}
                   onChange={handleInputChange}
                   placeholder="vd: VIP Member, Moderator"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Mô Tả
               </label>
               <textarea
@@ -325,53 +325,50 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
                 onChange={handleInputChange}
                 placeholder="Mô tả về role này..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Logo/Badge
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Logo/Badge
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="flex items-center gap-2 px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 touch-target"
+                >
+                  <Upload size={16} />
+                  {uploading ? "Đang upload..." : "Chọn ảnh"}
                 </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="image-upload"
+                {formData.iconUrl && (
+                  <img
+                    src={formData.iconUrl}
+                    alt="Preview"
+                    className="w-8 h-8 rounded-full object-cover"
                   />
-                  <label
-                    htmlFor="image-upload"
-                    className="flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <Upload size={16} />
-                    {uploading ? "Đang upload..." : "Chọn ảnh"}
-                  </label>
-                  {formData.iconUrl && (
-                    <img
-                      src={formData.iconUrl}
-                      alt="Preview"
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  )}
-                </div>
+                )}
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="px-4 py-2 text-sm sm:text-base text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 touch-target w-full sm:w-auto"
               >
                 Hủy
               </button>
               <button
                 type="submit"
-                className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm sm:text-base bg-black text-white rounded-lg hover:bg-gray-800 transition-colors touch-target w-full sm:w-auto justify-center"
               >
                 <Save size={16} />
                 {editingRole ? "Cập nhật" : "Thêm"}
@@ -383,13 +380,14 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
 
       {/* Roles List */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
             Danh Sách Role ({roles.length})
           </h3>
         </div>
         
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -478,6 +476,80 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="sm:hidden">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            {roles.map((role) => (
+              <div key={role._id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {/* Logo */}
+                    <div className="flex-shrink-0">
+                      {role.iconUrl ? (
+                        <img
+                          src={role.iconUrl}
+                          alt={role.displayName}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                          <ImageIcon size={18} className="text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Role Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 dark:text-white text-sm">
+                        {role.displayName}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        {role.name}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                        {role.userCount || 0} người dùng
+                      </div>
+                      {role.description && (
+                        <div className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                          {role.description}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(role);
+                      }}
+                      className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 touch-target"
+                      title="Chỉnh sửa"
+                      type="button"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    {!role.isDefault && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(role._id);
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded hover:bg-red-50 dark:hover:bg-red-900/20 touch-target"
+                        title="Xóa"
+                        type="button"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { User, Users, ChevronUp, ThumbsUp, Heart, Laugh, Angry, Frown, Smile } from "lucide-react";
 import { api } from "../../api";
+import ImageViewer from "../ImageViewer";
 
 /**
  * MessageList - Component hiển thị danh sách tin nhắn
@@ -25,6 +26,7 @@ export default function MessageList({
   // ==================== STATE MANAGEMENT ====================
   
   const [showScrollButton, setShowScrollButton] = useState(false); // Hiển thị nút scroll to bottom
+  const [imageViewer, setImageViewer] = useState({ isOpen: false, imageUrl: null, alt: "" }); // Image viewer state
   
   // ==================== REFS ====================
   
@@ -181,13 +183,13 @@ export default function MessageList({
             {message.sender.avatarUrl ? (
               <img
                 src={message.sender.avatarUrl}
-                alt={message.sender.name}
+                alt={message.sender.nickname || message.sender.name}
                 className="w-8 h-8 rounded-full object-cover"
               />
             ) : (
               <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
                 <span className="text-white text-xs font-semibold">
-                  {message.sender.name.charAt(0).toUpperCase()}
+                  {(message.sender.nickname || message.sender.name || 'U').charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
@@ -224,17 +226,17 @@ export default function MessageList({
                 <img
                   src={message.imageUrl}
                   alt="Hình ảnh"
-                  className="max-w-full h-auto rounded-xl mb-2"
+                  className="max-w-full h-auto rounded-xl mb-2 cursor-pointer hover:opacity-90 transition-opacity"
                   style={{ maxHeight: '300px' }}
+                  onClick={() => setImageViewer({ isOpen: true, imageUrl: message.imageUrl, alt: "Hình ảnh" })}
                 />
                 {message.content && message.content !== 'Đã gửi một hình ảnh' && (
                   <p className="text-sm leading-relaxed">{message.content}</p>
                 )}
               </div>
             ) : message.messageType === 'emote' ? (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-center">
                 <span className="text-2xl">{message.emote}</span>
-                <span className="text-sm leading-relaxed">{message.content}</span>
               </div>
             ) : message.messageType === 'system' ? (
               <p className="text-xs leading-relaxed text-gray-500 italic text-center">
@@ -354,6 +356,14 @@ export default function MessageList({
           <ChevronUp size={20} className="transform rotate-180" />
         </button>
       )}
+
+      {/* Image Viewer */}
+      <ImageViewer
+        isOpen={imageViewer.isOpen}
+        imageUrl={imageViewer.imageUrl}
+        alt={imageViewer.alt}
+        onClose={() => setImageViewer({ isOpen: false, imageUrl: null, alt: "" })}
+      />
     </div>
   );
 }

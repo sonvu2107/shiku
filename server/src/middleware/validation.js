@@ -57,6 +57,39 @@ export const loginSchema = Joi.object({
     })
 });
 
+// Schema validation cho quên mật khẩu (chỉ cần email)
+export const forgotPasswordSchema = Joi.object({
+  email: Joi.string()
+    .email()
+    .lowercase()
+    .trim()
+    .required()
+    .messages({
+      'string.email': 'Email không hợp lệ',
+      'any.required': 'Email là bắt buộc'
+    })
+});
+
+// Schema validation cho đặt lại mật khẩu (cần token và password mới)
+export const resetPasswordSchema = Joi.object({
+  token: Joi.string()
+    .required()
+    .messages({
+      'any.required': 'Token là bắt buộc'
+    }),
+  password: Joi.string()
+    .min(8)
+    .max(128)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .required()
+    .messages({
+      'string.min': 'Mật khẩu phải có ít nhất 8 ký tự',
+      'string.max': 'Mật khẩu không được quá 128 ký tự',
+      'string.pattern.base': 'Mật khẩu phải có ít nhất 1 chữ thường, 1 chữ hoa, 1 số và 1 ký tự đặc biệt',
+      'any.required': 'Mật khẩu là bắt buộc'
+    })
+});
+
 // Schema validation cho tạo bài viết
 export const createPostSchema = Joi.object({
   title: Joi.string()
@@ -156,6 +189,13 @@ export const updateProfileSchema = Joi.object({
     .optional()
     .messages({
       'string.max': 'Bio không được quá 500 ký tự'
+    }),
+  nickname: Joi.string()
+    .max(30)
+    .trim()
+    .optional()
+    .messages({
+      'string.max': 'Biệt danh không được quá 30 ký tự'
     }),
   birthday: Joi.string()
     .pattern(/^\d{4}-\d{2}-\d{2}$/)

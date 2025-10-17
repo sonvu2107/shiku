@@ -16,9 +16,10 @@ export default defineConfig({
     strictPort: true, // Fail nếu port đã được sử dụng
     proxy: {
       '/api': {
-        target: "http://192.168.1.34:4000",  // Đổi localhost -> IP LAN
+        target: "http://localhost:4000",
         changeOrigin: true,
-        secure: false
+        secure: false,
+        ws: true, // Support WebSocket for socket.io
       }
     },
     // Cấu hình MIME types cho dev server

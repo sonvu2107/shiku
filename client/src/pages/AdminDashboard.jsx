@@ -3,6 +3,7 @@ import AdminFeedback from "./AdminFeedback";
 import APIMonitoring from "../components/APIMonitoring";
 import RoleManagement from "../components/RoleManagement";
 import VerifiedBadge from "../components/VerifiedBadge";
+import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { api } from "../api";
 import { useNavigate } from "react-router-dom";
 import { useAdminData } from "../hooks/useAdminData";
@@ -82,6 +83,8 @@ export default function AdminDashboard() {
   // UI states
   const [activeTab, setActiveTab] = useState("stats"); // Tab hiện tại
   const [availableRoles, setAvailableRoles] = useState([]); // Dynamic roles từ database
+  const [userSearchTerm, setUserSearchTerm] = useState(""); // Search term for users
+  const [userRoleFilter, setUserRoleFilter] = useState(""); // Role filter for users
 
   const navigate = useNavigate();
 
@@ -255,20 +258,9 @@ export default function AdminDashboard() {
       )}
 
       <div className="card max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h1 className="text-xl sm:text-3xl font-bold mb-2">QUẢN LÝ NGƯỜI DÙNG</h1>
             <div className="text-sm sm:text-base text-gray-600">Chào mừng, {user?.name}!</div>
-          </div>
-          <button
-            onClick={refreshAllData}
-            className="btn-outline btn-sm flex items-center gap-2 w-full sm:w-auto justify-center touch-target"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Làm mới
-          </button>
         </div>
       </div>
 
@@ -276,66 +268,51 @@ export default function AdminDashboard() {
       <div className="card max-w-7xl mx-auto">
         <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 scrollbar-hide">
           <button
-            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "stats" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "stats" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("stats")}
           >
-            <BarChart3 size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span className="text-sm sm:text-base">Thống kê</span>
           </button>
           <button
-            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "users" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`min-w-[110px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "users" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("users")}
           >
-            <Users size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span className="text-sm sm:text-base">Người dùng</span>
           </button>
           <button
-            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "bans" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`min-w-[60px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "bans" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("bans")}
           >
-            <Crown size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span className="text-sm sm:text-base">Cấm</span>
           </button>
           <button
-            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "notifications" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "notifications" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("notifications")}
           >
-            <Bell size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span className="text-sm sm:text-base">Thông báo</span>
           </button>
           <button
-            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "online" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`min-w-[80px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "online" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("online")}
           >
-            <Wifi size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span className="text-sm sm:text-base">Truy cập</span>
           </button>
           <button
-            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "feedback" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`min-w-[70px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "feedback" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("feedback")}
           >
-            <MessageCircle size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span className="text-sm sm:text-base">Góp ý</span>
           </button>
           <button
-            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "api-monitoring" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`min-w-[100px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "api-monitoring" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("api-monitoring")}
           >
-            <Activity size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span className="text-sm sm:text-base">API Monitor</span>
           </button>
           <button
-            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "api" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("api")}
-          >
-            <Code size={16} className="sm:w-[18px] sm:h-[18px]" />
-            <span className="text-sm sm:text-base">API Test</span>
-          </button>
-          <button
-            className={`px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "roles" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "roles" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("roles")}
           >
-            <Shield size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span className="text-sm sm:text-base">Quản lý Role</span>
           </button>
         </div>
@@ -640,36 +617,81 @@ export default function AdminDashboard() {
             <h2 className="text-lg sm:text-xl font-bold mb-4">
               Quản lý người dùng ({stats.overview ? stats.overview.totalUsers.count : users.length})
             </h2>
+            
+            {/* Search and Filter */}
+            <div className="mb-4 space-y-3 sm:space-y-0 sm:flex sm:gap-4">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm theo tên hoặc email..."
+                  value={userSearchTerm}
+                  onChange={(e) => setUserSearchTerm(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target"
+                />
+              </div>
+              <div className="sm:w-48">
+                <select
+                  value={userRoleFilter}
+                  onChange={(e) => setUserRoleFilter(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target"
+                >
+                  <option value="">Tất cả quyền</option>
+                  {availableRoles.map(role => (
+                    <option key={role.name} value={role.name}>
+                      {role.displayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             {!users || users.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 Đang tải danh sách người dùng...
               </div>
+            ) : (() => {
+              // Filter users based on search term and role filter
+              const filteredUsers = users.filter(u => {
+                const matchesSearch = !userSearchTerm || 
+                  u.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                  u.email?.toLowerCase().includes(userSearchTerm.toLowerCase());
+                const matchesRole = !userRoleFilter || 
+                  (u.role?.name || u.role) === userRoleFilter;
+                return matchesSearch && matchesRole;
+              });
+
+              return filteredUsers.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Không tìm thấy người dùng nào phù hợp với bộ lọc
+              </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border border-gray-200 dark:border-gray-700 min-w-[600px]">
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="w-full border border-gray-200 dark:border-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Avatar</th>
-                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Tên</th>
-                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm hidden sm:table-cell">Email</th>
-                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Quyền</th>
-                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm hidden md:table-cell">Ngày tham gia</th>
-                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm hidden lg:table-cell">Số bài viết</th>
-                      <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Hành động</th>
+                        <th className="px-4 py-2 text-left text-sm">Avatar</th>
+                        <th className="px-4 py-2 text-left text-sm">Tên</th>
+                        <th className="px-4 py-2 text-left text-sm">Email</th>
+                        <th className="px-4 py-2 text-left text-sm">Quyền</th>
+                        <th className="px-4 py-2 text-left text-sm hidden md:table-cell">Ngày tham gia</th>
+                        <th className="px-4 py-2 text-left text-sm hidden lg:table-cell">Số bài viết</th>
+                        <th className="px-4 py-2 text-left text-sm">Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map(u => (
+                      {filteredUsers.map(u => (
                     <tr key={u._id} className="border-t border-gray-200 dark:border-gray-700">
-                      <td className="px-2 sm:px-4 py-2">
+                        <td className="px-4 py-2">
                         <img
-                          src={u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=cccccc&color=222222&size=40`}
+                          src={getUserAvatarUrl(u, AVATAR_SIZES.SMALL)}
                           alt="avatar"
-                          className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover"
+                            className="w-8 h-8 rounded-full object-cover"
                         />
                       </td>
-                      <td className="px-2 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2">
-                        <span className="text-xs sm:text-sm truncate">{u.name}</span>
+                        <td className="px-4 py-2 font-medium flex items-center gap-2">
+                          <span className="text-sm truncate">{u.name}</span>
                         <VerifiedBadge 
                           role={u.role?.name || u.role} 
                           isVerified={u.isVerified}
@@ -677,8 +699,8 @@ export default function AdminDashboard() {
                           availableRoles={availableRoles}
                         />
                       </td>
-                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm hidden sm:table-cell truncate max-w-[150px]">{u.email}</td>
-                      <td className="px-2 sm:px-4 py-2">
+                        <td className="px-4 py-2 text-sm truncate max-w-[150px]">{u.email}</td>
+                        <td className="px-4 py-2">
                         <select
                           value={u.role?.name || u.role}
                           onChange={async (e) => {
@@ -686,7 +708,7 @@ export default function AdminDashboard() {
                             await updateUserRole(u._id, newRole);
                           }}
                           disabled={u._id === user._id || updatingRoles.has(u._id)}
-                          className={`btn-outline btn-xs sm:btn-sm text-xs sm:text-sm touch-target ${
+                            className={`btn-outline btn-sm text-sm ${
                             updatingRoles.has(u._id) ? 'opacity-50 cursor-not-allowed' : ''
                           }`}
                         >
@@ -700,17 +722,16 @@ export default function AdminDashboard() {
                           ))}
                         </select>
                       </td>
-                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm hidden md:table-cell">{new Date(u.createdAt).toLocaleDateString()}</td>
-                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm hidden lg:table-cell">{u.postCount}</td>
-                      <td className="px-2 sm:px-4 py-2">
-                        <div className="flex gap-1 sm:gap-2">
+                        <td className="px-4 py-2 text-sm hidden md:table-cell">{new Date(u.createdAt).toLocaleDateString()}</td>
+                        <td className="px-4 py-2 text-sm hidden lg:table-cell">{u.postCount}</td>
+                        <td className="px-4 py-2">
+                          <div className="flex gap-2">
                           <button
-                            className="btn-outline btn-xs sm:btn-sm text-red-600 touch-target"
+                              className="btn-outline btn-sm text-red-600"
                             onClick={() => deleteUser(u._id)}
                             disabled={u._id === user._id}
                           >
-                            <span className="hidden sm:inline">Xóa</span>
-                            <span className="sm:hidden">Xóa</span>
+                              Xóa
                           </button>
                         </div>
                       </td>
@@ -719,7 +740,91 @@ export default function AdminDashboard() {
                   </tbody>
                 </table>
               </div>
-            )}
+
+                {/* Mobile Card View */}
+                <div className="sm:hidden space-y-3">
+                  {filteredUsers.map(u => (
+                    <div key={u._id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {/* Avatar */}
+                          <img
+                            src={getUserAvatarUrl(u, AVATAR_SIZES.SMALL)}
+                            alt="avatar"
+                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                          />
+                          
+                          {/* User Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-medium text-gray-900 dark:text-white text-sm truncate">
+                                {u.name}
+                              </h3>
+                              <VerifiedBadge 
+                                role={u.role?.name || u.role} 
+                                isVerified={u.isVerified}
+                                roleData={typeof u.role === 'object' ? u.role : null}
+                                availableRoles={availableRoles}
+                              />
+                            </div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 truncate mb-1">
+                              {u.email}
+                            </p>
+                            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                              <span>{new Date(u.createdAt).toLocaleDateString()}</span>
+                              <span>•</span>
+                              <span>{u.postCount} bài viết</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Actions */}
+                        <div className="flex-shrink-0 ml-2">
+                          <button
+                            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg touch-target"
+                            onClick={() => deleteUser(u._id)}
+                            disabled={u._id === user._id}
+                            title="Xóa người dùng"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Role Selector */}
+                      <div className="mt-3">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Quyền hạn
+                        </label>
+                        <select
+                          value={u.role?.name || u.role}
+                          onChange={async (e) => {
+                            const newRole = e.target.value;
+                            await updateUserRole(u._id, newRole);
+                          }}
+                          disabled={u._id === user._id || updatingRoles.has(u._id)}
+                          className={`w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target ${
+                            updatingRoles.has(u._id) ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          {updatingRoles.has(u._id) && (
+                            <option>Đang cập nhật...</option>
+                          )}
+                          {!updatingRoles.has(u._id) && availableRoles.map(role => (
+                            <option key={role.name} value={role.name}>
+                              {role.displayName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+              );
+            })()}
           </div>
         )}
 
@@ -828,7 +933,7 @@ export default function AdminDashboard() {
                       <td className="px-4 py-2 border">
                         <div className="flex items-center gap-2">
                           <img
-                            src={u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'Unknown')}&background=cccccc&color=222222&size=32`}
+                            src={getUserAvatarUrl(u, AVATAR_SIZES.SMALL)}
                             alt="avatar"
                             className="w-6 h-6 rounded-full object-cover"
                           />
@@ -1061,7 +1166,7 @@ export default function AdminDashboard() {
                       <tr key={user._id} className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td className="px-4 py-3">
                           <img
-                            src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=cccccc&color=222222&size=40`}
+                            src={getUserAvatarUrl(user, AVATAR_SIZES.SMALL)}
                             alt="avatar"
                             className="w-8 h-8 rounded-full object-cover"
                           />
@@ -1094,7 +1199,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Refresh Button & Last Update */}
+            {/* Last Update */}
             <div className="mt-4 flex justify-between items-center">
               <div className="text-sm text-gray-500">
                 Cập nhật lần cuối: {lastUpdate.toLocaleTimeString()}
@@ -1105,12 +1210,6 @@ export default function AdminDashboard() {
                   className="btn-outline btn-sm text-orange-600"
                 >
                   Cập nhật offline
-                </button>
-                <button
-                  onClick={refreshAllData}
-                  className="btn-outline btn-sm"
-                >
-                  Làm mới danh sách
                 </button>
               </div>
             </div>
@@ -1134,25 +1233,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* API Tester Tab */}
-        {activeTab === "api" && (
-          <div className="pt-4">
-            <div className="text-center py-4">
-              <h3 className="text-lg font-semibold mb-4">API Testing Tool</h3>
-              <p className="text-gray-600 mb-4">
-                Test tất cả các API endpoints để kiểm tra hoạt động
-              </p>
-              <a
-                href="/admin/api-tester"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn bg-blue-600 text-white hover:bg-blue-700"
-              >
-                Mở API Tester
-              </a>
-            </div>
-          </div>
-        )}
 
         {/* Role Management Tab */}
         {activeTab === "roles" && (

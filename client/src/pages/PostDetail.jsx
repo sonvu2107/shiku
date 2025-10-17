@@ -471,7 +471,7 @@ export default function PostDetail() {
               onMouseLeave={() => {
                 emotePopupTimeout.current = setTimeout(
                   () => setShowEmotePopup(false),
-                  3000
+                  1500
                 );
               }}
             >
@@ -494,7 +494,7 @@ export default function PostDetail() {
                   onMouseLeave={() => {
                     emotePopupTimeout.current = setTimeout(
                       () => setShowEmotePopup(false),
-                      3000
+                      1500
                     );
                   }}
                 >

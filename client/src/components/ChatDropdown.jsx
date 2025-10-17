@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { api } from "../api";
+import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 
 /**
  * ChatDropdown - Dropdown hiển thị danh sách cuộc trò chuyện
@@ -61,27 +62,20 @@ export default function ChatDropdown({ onOpenChat }) {
     const isGroup = conv.conversationType === "group";
 
     if (isGroup) {
-      return conv.groupAvatar || "/default-avatar.png";
+      return conv.groupAvatar || getUserAvatarUrl({ name: conv.groupName || 'Group' }, AVATAR_SIZES.MEDIUM);
     }
 
     const otherUser = conv.otherParticipants?.[0]?.user;
-    const name = otherUser?.name || "Không tên";
-
-    if (otherUser?.avatarUrl && otherUser.avatarUrl.trim() !== "") {
-      return otherUser.avatarUrl;
-    }
-
-    // fallback ui-avatars
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      name
-    )}&length=2&background=cccccc&color=222222`;
+    return getUserAvatarUrl(otherUser, AVATAR_SIZES.MEDIUM);
   };
 
   const getName = (conv) => {
     if (conv.conversationType === "group") {
       return conv.groupName || "Nhóm";
     }
-    return conv.otherParticipants?.[0]?.user?.name || "Không tên";
+    // Ưu tiên hiển thị nickname trước tên thật
+    const otherParticipant = conv.otherParticipants?.[0];
+    return otherParticipant?.nickname || otherParticipant?.user?.name || "Không tên";
   };
 
   return (
@@ -117,13 +111,19 @@ export default function ChatDropdown({ onOpenChat }) {
                       alt={name}
                       className="w-10 h-10 rounded-full object-cover"
                       onError={(e) => {
-                        e.target.src = "/default-avatar.png";
+                        e.target.src = getUserAvatarUrl({ name: name }, AVATAR_SIZES.MEDIUM);
                       }}
                     />
                     <div className="flex-1">
                       <div className="font-medium text-gray-900">{name}</div>
                       <div className="text-xs text-gray-500">
-                        {conv.lastMessage?.content || "Chưa có tin nhắn"}
+                        {conv.lastMessage?.messageType === "emote" ? (
+                          <span className="text-lg">{conv.lastMessage.emote}</span>
+                        ) : conv.lastMessage?.messageType === "image" ? (
+                          "Đã gửi một hình ảnh"
+                        ) : (
+                          conv.lastMessage?.content || "Chưa có tin nhắn"
+                        )}
                       </div>
                     </div>
                     <div className="text-xs text-gray-400">

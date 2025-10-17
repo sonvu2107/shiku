@@ -198,3 +198,66 @@ typings/
 
 # Documentation files
 *.md
+
+# Test files and scripts
+script_test/
+test-*.js
+*-test.js
+test-*.bat
+*-test.bat
+test-*.cmd
+*-test.cmd
+
+# Batch files (.bat)
+*.bat
+*.cmd
+
+# Test directories
+tests/
+test/
+__tests__/
+spec/
+specs/
+
+# Test configuration files
+jest.config.js
+jest.config.cjs
+mocha.opts
+.nycrc
+karma.conf.js
+vitest.config.js
+
+# Test coverage
+coverage/
+.nyc_output/
+test-results/
+test-reports/
+
+# Test data
+test-data/
+test-fixtures/
+fixtures/
+
+# Development scripts
+dev-*.js
+dev-*.bat
+dev-*.cmd
+start-*.js
+start-*.bat
+start-*.cmd
+
+# Setup scripts
+setup-*.js
+setup-*.bat
+setup-*.cmd
+install-*.js
+install-*.bat
+install-*.cmd
+
+# Utility scripts
+util-*.js
+util-*.bat
+util-*.cmd
+tool-*.js
+tool-*.bat
+tool-*.cmd

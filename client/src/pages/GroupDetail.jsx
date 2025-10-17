@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { getUserAvatarUrl, AVATAR_SIZES } from '../utils/avatarUtils';
 import { 
   ArrowLeft, 
   Settings, 
@@ -24,6 +25,7 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { api } from '../api';
+import { useSavedPosts } from '../hooks/useSavedPosts';
 import PostCard from '../components/PostCard';
 import PostCreator from '../components/PostCreator';
 import { getAccessToken } from '../utils/tokenManager.js';
@@ -46,6 +48,7 @@ const GroupDetail = () => {
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsPage, setPostsPage] = useState(1);
+  const { savedMap, updateSavedState } = useSavedPosts(posts);
   const [hasMorePosts, setHasMorePosts] = useState(true);
 
   // State cho UI
@@ -861,7 +864,14 @@ const GroupDetail = () => {
                     {posts.length > 0 ? (
                       <div className="space-y-4">
                         {posts.map((post) => (
-                          <PostCard key={post._id} post={post} user={user} />
+                          <PostCard
+                            key={post._id}
+                            post={post}
+                            user={user}
+                            isSaved={savedMap[post._id]}
+                            onSavedChange={updateSavedState}
+                            skipSavedStatusFetch={true}
+                          />
                         ))}
                         
                         {hasMorePosts && (
@@ -899,19 +909,11 @@ const GroupDetail = () => {
                         {group.members.map((member) => (
                           <div key={member.user._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
-                              {member.user.avatarUrl ? (
-                                <img 
-                                  src={member.user.avatarUrl} 
-                                  alt={member.user.name || member.user.fullName || member.user.username || 'User'}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                                  <span className="text-sm font-medium text-gray-600">
-                                    {(member.user.name || member.user.fullName || member.user.username || 'U').charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                              )}
+                              <img 
+                                src={getUserAvatarUrl(member.user, AVATAR_SIZES.MEDIUM)} 
+                                alt={member.user.name || member.user.fullName || member.user.username || 'User'}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
                             
                             <div className="flex-1 min-w-0">
@@ -1070,13 +1072,7 @@ const GroupDetail = () => {
                         {pendingRequests.map((req) => (
                           <div key={req._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
-                              {req.user?.avatarUrl ? (
-                                <img src={req.user.avatarUrl} alt={req.user?.name || 'User'} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                                  <span className="text-sm font-medium text-gray-600">{(req.user?.name || 'U').charAt(0).toUpperCase()}</span>
-                                </div>
-                              )}
+                              <img src={getUserAvatarUrl(req.user, AVATAR_SIZES.MEDIUM)} alt={req.user?.name || 'User'} className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-gray-900 truncate">{req.user?.name || 'Người dùng'}</p>
@@ -1417,19 +1413,11 @@ const GroupDetail = () => {
               
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
-                  {group.owner?.avatarUrl ? (
-                    <img 
-                      src={group.owner.avatarUrl} 
-                      alt={group.owner?.name || group.owner?.fullName || group.owner?.username || 'User'}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                      <span className="text-sm font-medium text-gray-600">
-                        {(group.owner?.name || group.owner?.fullName || group.owner?.username || 'U').charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
+                  <img 
+                    src={getUserAvatarUrl(group.owner, AVATAR_SIZES.MEDIUM)} 
+                    alt={group.owner?.name || group.owner?.fullName || group.owner?.username || 'User'}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 
                 <div>
@@ -1514,4 +1502,5 @@ const GroupDetail = () => {
 };
 
 export default GroupDetail;
+
 

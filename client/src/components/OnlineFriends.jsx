@@ -4,21 +4,25 @@ import { MessageCircle, Users, RefreshCw } from 'lucide-react';
 import { api } from '../api';
 import { chatAPI } from '../chatAPI';
 import { ChatPopupWithCallModal } from './ChatPopup';
+import ChatPopupManager from './ChatPopupManager';
 import socketService from '../socket';
+import { useOnlineFriends } from '../hooks/useFriends';
+import UserName from './UserName';
+import { useChat } from '../contexts/ChatContext';
 
 /**
  * OnlineFriends - Component hiển thị danh sách bạn bè online
  * Giống sidebar phải của Facebook Messenger
  */
 export default function OnlineFriends({ user }) {
-  const [onlineFriends, setOnlineFriends] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [openPopups, setOpenPopups] = useState([]); // Chat popups đang mở
+  const { addChatPopup } = useChat();
+
+  // Sử dụng React Query cho online friends
+  const { data: onlineFriendsData, isLoading, refetch } = useOnlineFriends();
+  const onlineFriends = onlineFriendsData?.friends || [];
 
   useEffect(() => {
     if (user) {
-      loadOnlineFriends();
-      
       // Join user room để nhận real-time updates
       socketService.ensureConnection().then(connected => {
         if (connected) {
@@ -37,29 +41,13 @@ export default function OnlineFriends({ user }) {
     let socketRef = null;
 
     const handleFriendOnline = (data) => {
-      setOnlineFriends(prev => {
-        const exists = prev.find(friend => friend._id === data.userId);
-        if (exists) {
-          // Cập nhật trạng thái online của bạn bè hiện có
-          return prev.map(friend => 
-            friend._id === data.userId 
-              ? { ...friend, isOnline: data.isOnline, lastSeen: data.lastSeen }
-              : friend
-          );
-        } else if (data.isOnline) {
-          // Thêm bạn bè mới vào danh sách online (nếu họ vừa online)
-          // Cần load thông tin đầy đủ của bạn bè này
-          loadOnlineFriends();
-        }
-        return prev;
-      });
+      // Refetch danh sách online friends khi có thay đổi
+      refetch();
     };
 
     const handleFriendOffline = (data) => {
-      setOnlineFriends(prev => {
-        // Xóa bạn bè khỏi danh sách online khi họ offline
-        return prev.filter(friend => friend._id !== data.userId);
-      });
+      // Refetch danh sách online friends khi có thay đổi
+      refetch();
     };
 
     const attachListeners = async () => {
@@ -84,25 +72,7 @@ export default function OnlineFriends({ user }) {
         socketRef.off('friend-offline', handleFriendOffline);
       }
     };
-  }, []);
-
-  const loadOnlineFriends = async () => {
-    try {
-      setLoading(true);
-      // Load tất cả bạn bè và filter những người online
-      const response = await api('/api/friends/list');
-      const allFriends = response.friends || [];
-      
-      // Filter chỉ những bạn bè đang online (isOnline === true)
-      const onlineFriends = allFriends.filter(friend => friend.isOnline === true);
-      setOnlineFriends(onlineFriends);
-    } catch (error) {
-      // Silent handling for online friends loading error
-      setOnlineFriends([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [refetch]);
 
   // Format thời gian lastSeen
   const formatLastSeen = (lastSeen) => {
@@ -165,21 +135,13 @@ export default function OnlineFriends({ user }) {
       };
       
       // Thêm vào danh sách popups đang mở
-      setOpenPopups(prev => {
-        // Nếu đã mở rồi thì đưa lên cuối
-        const exists = prev.find(p => p._id === conversationData._id);
-        let newPopups = exists ? prev.filter(p => p._id !== conversationData._id) : [...prev];
-        newPopups.push(conversationData);
-        // Giới hạn tối đa 2 popup
-        if (newPopups.length > 2) newPopups = newPopups.slice(1);
-        return newPopups;
-      });
+      addChatPopup(conversationData);
     } catch (error) {
       alert('Không thể mở cuộc trò chuyện');
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex items-center gap-2 mb-4">
@@ -212,7 +174,7 @@ export default function OnlineFriends({ user }) {
           </span>
         </div>
         <button
-          onClick={loadOnlineFriends}
+          onClick={() => refetch()}
           className="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100 transition-colors"
           title="Refresh danh sách"
         >
@@ -253,7 +215,7 @@ export default function OnlineFriends({ user }) {
               
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-900 text-sm truncate group-hover:text-blue-600 transition-colors">
-                  {friend.name}
+                  <UserName user={friend} />
                 </p>
                 <p className="text-xs text-gray-500 truncate">
                   {friend.isOnline ? 'Đang online' : formatLastSeen(friend.lastSeen)}
@@ -274,16 +236,6 @@ export default function OnlineFriends({ user }) {
           ))}
         </div>
       )}
-
-      {/* Chat Popups */}
-      {openPopups.map((conv, idx) => (
-        <div key={conv._id || idx} style={{ position: 'fixed', bottom: 16, right: 16 + idx * 340, zIndex: 100 + idx }}>
-          <ChatPopupWithCallModal
-            conversation={conv}
-            onClose={() => setOpenPopups(popups => popups.filter(p => p._id !== conv._id))}
-          />
-        </div>
-      ))}
     </div>
   );
 }

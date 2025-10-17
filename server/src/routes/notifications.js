@@ -22,10 +22,18 @@ router.get("/", authRequired, async (req, res, next) => {
 });
 
 // Get unread count
+// Lightweight unread count (PHASE 4 optimization: avoid full notifications fetch)
 router.get("/unread-count", authRequired, async (req, res, next) => {
   try {
-    const unreadCount = await NotificationService.getUserNotifications(req.user._id, 1, 1);
-    res.json({ unreadCount: unreadCount.unreadCount });
+    // Direct count using indexed fields { recipient, read }
+    const unreadCount = await NotificationService.countUnread?.(req.user._id);
+    if (typeof unreadCount === 'number') {
+      return res.json({ unreadCount });
+    }
+    // Fallback if countUnread helper not implemented yet
+    const { default: Notification } = await import("../models/Notification.js");
+    const count = await Notification.countDocuments({ recipient: req.user._id, read: false });
+    res.json({ unreadCount: count });
   } catch (error) {
     next(error);
   }

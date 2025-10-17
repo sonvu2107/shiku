@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, UserMinus, Crown, Camera, Users } from 'lucide-react';
+import { X, UserPlus, UserMinus, Crown, Camera, Users, Edit3 } from 'lucide-react';
 import { chatAPI } from '../../chatAPI';
 import { uploadImage } from '../../api';
+import GroupMembersModal from './GroupMembersModal';
 
 /**
  * GroupSettingsModal - Modal cài đặt nhóm chat
@@ -26,6 +27,7 @@ const GroupSettingsModal = ({
   // UI states
   const [activeTab, setActiveTab] = useState('info'); // Tab hiện tại: info, members, permissions
   const [loading, setLoading] = useState(false); // Loading state
+  const [showMembersModal, setShowMembersModal] = useState(false); // Hiển thị modal quản lý thành viên
   
   // Data states
   const [conversationDetails, setConversationDetails] = useState(null); // Chi tiết conversation
@@ -259,16 +261,25 @@ const GroupSettingsModal = ({
               {/* Members Tab */}
               {activeTab === 'members' && (
                 <div className="space-y-4">
-                  <h4 className="font-medium text-gray-700">
-                    Thành viên ({conversationDetails?.memberCount || 0})
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-gray-700">
+                      Thành viên ({conversationDetails?.memberCount || 0})
+                    </h4>
+                    <button
+                      onClick={() => setShowMembersModal(true)}
+                      className="flex items-center space-x-2 px-3 py-1.5 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors"
+                    >
+                      <Edit3 size={16} />
+                      <span>Quản lý biệt danh</span>
+                    </button>
+                  </div>
                   
                   <div className="space-y-2">
                     {conversationDetails?.participants.map((participant) => (
                       <div key={participant.user._id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
                         <div className="flex items-center space-x-3">
                           <img
-                            src={participant.user.avatarUrl || '/default-avatar.png'}
+                            src={participant.user.avatarUrl}
                             alt={participant.user.name}
                             className="w-10 h-10 rounded-full object-cover"
                           />
@@ -327,7 +338,7 @@ const GroupSettingsModal = ({
                         <div key={participant.user._id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                           <div className="flex items-center space-x-3">
                             <img
-                              src={participant.user.avatarUrl || '/default-avatar.png'}
+                              src={participant.user.avatarUrl}
                               alt={participant.user.name}
                               className="w-8 h-8 rounded-full object-cover"
                             />
@@ -359,6 +370,20 @@ const GroupSettingsModal = ({
           )}
         </div>
       </div>
+
+      {/* Group Members Modal */}
+      {showMembersModal && (
+        <GroupMembersModal
+          isOpen={showMembersModal}
+          onClose={() => setShowMembersModal(false)}
+          conversation={conversation}
+          currentUser={currentUser}
+          onMembersUpdated={() => {
+            loadConversationDetails();
+            onUpdateConversation?.(conversation._id);
+          }}
+        />
+      )}
     </div>
   );
 };

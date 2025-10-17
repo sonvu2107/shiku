@@ -8,6 +8,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { ToastContainer, useToast } from "./components/Toast.jsx";
 import { PageLoader, LazyErrorBoundary } from "./components/PageLoader.jsx";
+import { ChatProvider } from "./contexts/ChatContext.jsx";
 
 // 🚀 LAZY IMPORT CÁC PAGES - Code Splitting
 // Core pages (load ngay)
@@ -47,7 +48,6 @@ const Saved = lazy(() => import("./pages/Saved.jsx"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard.jsx"));
 const AdminFeedback = lazy(() => import("./pages/AdminFeedback.jsx"));
 const Support = lazy(() => import("./pages/Support.jsx"));
-const ApiTester = lazy(() => import("./pages/ApiTester.jsx"));
 
 // Utility pages
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory.jsx"));
@@ -58,6 +58,7 @@ import { api } from "./api.js";
 import { ensureCSRFToken } from "./utils/csrfToken.js";
 import { getValidAccessToken } from "./utils/tokenManager.js";
 import socketService from "./socket";   // Service quản lý WebSocket connection
+import { heartbeatManager } from "./services/heartbeatManager";
 
 /**
  * Component chính của ứng dụng - quản lý routing và authentication
@@ -80,7 +81,7 @@ export default function App() {
   const { toasts, removeToast } = useToast();
 
   // Danh sách các trang không hiển thị navbar
-  const hideNavbarPages = ["/login", "/register"];
+  const hideNavbarPages = ["/login", "/register", "/reset-password"];
   const shouldHideNavbar = hideNavbarPages.includes(location.pathname);
 
   // Effect chạy khi app khởi tạo để kiểm tra authentication
@@ -144,53 +145,42 @@ export default function App() {
     }
     localStorage.setItem('app:darkMode', darkMode ? '1' : '0');
   }, [darkMode]);
-
-  // Effect để gửi heartbeat định kỳ khi user đã đăng nhập
+  // Centralized heartbeat manager (1 request/min)
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      heartbeatManager.stop();
+      return;
+    }
 
-    // Gửi heartbeat ngay lập tức
-    const sendHeartbeat = () => {
-      api("/api/auth/heartbeat", { method: "POST" })
-    };
+    heartbeatManager.start();
 
-    // Gửi heartbeat đầu tiên
-    sendHeartbeat();
-
-    // Thiết lập interval để gửi heartbeat mỗi 30 giây
-    const heartbeatInterval = setInterval(sendHeartbeat, 30000);
-
-    // Event listener để cập nhật trạng thái offline khi user rời khỏi trang
-    const handleBeforeUnload = () => {
-      // Gửi request để cập nhật trạng thái offline
-      navigator.sendBeacon('/api/auth/logout');
-    };
-
-    // Event listener để cập nhật trạng thái offline khi user đóng tab
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Khi tab bị ẩn, cập nhật trạng thái offline
-        api("/api/auth/heartbeat", { 
+        heartbeatManager.stop();
+        api("/api/auth/heartbeat", {
           method: "POST",
           body: { isOnline: false }
         }).catch(() => {});
       } else {
-        // Khi tab được hiển thị lại, cập nhật trạng thái online
-        sendHeartbeat();
+        heartbeatManager.start();
+        heartbeatManager.ping();
       }
     };
 
-    // Thêm event listeners
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const handleBeforeUnload = () => {
+      navigator.sendBeacon("/api/auth/logout");
+    };
 
-    // Cleanup khi component unmount hoặc user thay đổi
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
-      clearInterval(heartbeatInterval);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      heartbeatManager.stop();
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [user]);
+
 
   // Effect để đồng bộ user state khi user thay đổi (đảm bảo có đầy đủ thông tin)
   useEffect(() => {
@@ -223,16 +213,17 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen">
-      {/* Toast Container */}
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-      
-      {/* Mobile CSRF Debug Component */}
-      
-      {/* Hiển thị navbar cho tất cả trang trừ login/register và chat */}
-      {!shouldHideNavbar && location.pathname !== "/chat" && (
-        <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
-      )}
+      <ChatProvider>
+        <div className="min-h-screen">
+        {/* Toast Container */}
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
+        
+        {/* Mobile CSRF Debug Component */}
+        
+        {/* Hiển thị navbar cho tất cả trang trừ login/register và chat */}
+        {!shouldHideNavbar && location.pathname !== "/chat" && (
+          <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
+        )}
 
       {/* Routing logic dựa trên loại trang */}
       {shouldHideNavbar ? (
@@ -241,6 +232,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login setUser={setUser} />} />
             <Route path="/register" element={<Register setUser={setUser} />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
           </Routes>
         </Suspense>
       ) : location.pathname === "/chat" ? (
@@ -291,12 +283,10 @@ export default function App() {
               {/* Trang admin */}
               <Route path="/admin" element={<ProtectedRoute user={user}><AdminDashboard /></ProtectedRoute>} />
               <Route path="/admin/feedback" element={<ProtectedRoute user={user}><AdminFeedback /></ProtectedRoute>} />
-              <Route path="/admin/api-tester" element={<ProtectedRoute user={user}><ApiTester /></ProtectedRoute>} />
               
               {/* Các trang khác */}
               <Route path="/settings" element={<ProtectedRoute user={user}><Settings /></ProtectedRoute>} />
               <Route path="/support" element={<ProtectedRoute user={user}><Support /></ProtectedRoute>} />
-              <Route path="/reset-password" element={<ResetPassword />} />
               
               {/* Catch-all route - redirect về trang chủ */}
               <Route path="*" element={<Navigate to="/" />} />
@@ -305,7 +295,8 @@ export default function App() {
         </div>
       )}
       
-      </div>
+        </div>
+      </ChatProvider>
     </ErrorBoundary>
   );
 }

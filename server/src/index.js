@@ -99,40 +99,49 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-// Parse cookies first
+// ==================== MIDDLEWARE SETUP ====================
+
+// Parse cookie trước
 app.use(cookieParser());
 
-// CORS must come before CSRF
-app.use(cors({
- origin: [
-    "https://shiku.click",             // FE custom domain chính
-    "https://www.shiku.click",         // FE có redirect www
-    "https://shiku.netlify.app",       // Netlify fallback
-    "https://shiku-production.up.railway.app", // BE domain
-    "http://localhost:5173"            // local dev
-],
-  credentials: true,
+// CORS cấu hình đầy đủ 
+const isProd = process.env.NODE_ENV === "production";
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://shiku.click",
+  "https://www.shiku.click",
+  "https://shiku123.netlify.app"
+];
+
+const corsOptions = {
+  origin: allowedOrigins,
+  credentials: true, // Cho phép gửi cookie cross-origin
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
     "Authorization",
     "x-csrf-token",
     "X-CSRF-Token",
-    "X-Session-ID",
     "X-Requested-With",
+    "X-Session-ID",
     "Accept",
     "Origin",
     "Cache-Control",
     "Pragma"
   ],
   exposedHeaders: ["set-cookie", "Set-Cookie"]
-}));
+};
+
+// Tạo middleware
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // Đảm bảo preflight hoạt động
 
 // Parse JSON after CORS
 app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
 
 // CSRF Cookie Options - Unified configuration for Dev & Prod
-const isProd = process.env.NODE_ENV === "production";
 const cookieDomain = isProd ? ".shiku.click" : undefined; // luôn .shiku.click trong production
 
 const csrfCookieOptions = {
@@ -144,14 +153,12 @@ const csrfCookieOptions = {
   maxAge: 60 * 60 * 1000 // 1 hour
 };
 
-// Tạo middleware
+// CSRF middleware (phải sau CORS, cookieParser, bodyParser)
 const csrfProtection = csrf({ cookie: csrfCookieOptions });
 app.use(csrfProtection);
 
-// HTTP request logging - detailed trong production, simple trong development
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
-
-// Request timeout middleware - 30 seconds for regular requests
+// Logging và timeout
+app.use(morgan(isProd ? "combined" : "dev"));
 app.use(requestTimeout(30000));
 
 
@@ -208,15 +215,21 @@ app.get("/heartbeat", (req, res) => {
 });
 
 // Preflight helper for all routes
-app.options("*", cors());
 
 // CSRF token endpoint
 app.get("/api/csrf-token", (req, res) => {
   try {
+    const existingSecret = req.cookies._csrf;
+    console.log("[CSRF] GET /api/csrf-token");
+    console.log("[CSRF] Existing _csrf cookie:", existingSecret ? 'EXISTS' : 'NONE');
+    
     // csurf will automatically:
     // - Reuse secret if _csrf cookie exists
     // - Create new secret if not present
     const token = req.csrfToken();
+    
+    console.log("[CSRF] Generated token:", token);
+    console.log("[CSRF] Secret", existingSecret ? 'reused' : 'created new');
     
     res.json({
       csrfToken: token,
@@ -769,4 +782,5 @@ if (process.env.DISABLE_SERVER_START === "true") {
     process.exit(1);
   });
 }
+
 

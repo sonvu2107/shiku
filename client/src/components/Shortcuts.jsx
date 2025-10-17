@@ -10,97 +10,71 @@ import {
   Clock,
   Image as ImageIcon
 } from 'lucide-react';
-import { api } from '../api';
+import { useMyGroups } from '../hooks/useMyGroups';
+import { useMyEvents } from '../hooks/useEvents';
 
 /**
  * Shortcuts - Component hiển thị lối tắt như Facebook
  * Bao gồm nhóm, sự kiện, trang đã lưu và các shortcut khác
  */
 export default function Shortcuts({ user }) {
-  const [shortcuts, setShortcuts] = useState([]);
-  const [myGroups, setMyGroups] = useState([]);
-  const [myEvents, setMyEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadShortcuts();
+  // Sử dụng React Query cho groups và events
+  const { data: groupsData, isLoading: groupsLoading } = useMyGroups();
+  const { data: eventsData, isLoading: eventsLoading } = useMyEvents({ filter: 'my', limit: 3 });
+  
+  const myGroups = groupsData?.data?.groups?.slice(0, 3) || [];
+  const myEvents = eventsData?.events?.slice(0, 3) || [];
+
+  // Tạo shortcuts list trực tiếp, không cần useState + useEffect
+  const shortcuts = [
+    // Groups
+    ...myGroups.map(group => ({
+      id: group._id,
+      type: 'group',
+      title: group.name,
+      icon: <Users size={16} />,
+      url: `/groups/${group._id}`,
+      avatar: group.avatar
+    })),
+    
+    // Events
+    ...myEvents.map(event => ({
+      id: event._id,
+      type: 'event',
+      title: event.title,
+      icon: <Calendar size={16} />,
+      url: `/events/${event._id}`,
+      avatar: event.coverImage
+    })),
+    
+    // Static shortcuts
+    {
+      id: 'groups',
+      type: 'groups',
+      title: 'Nhóm',
+      icon: <Users size={16} />,
+      url: '/groups',
+      avatar: null
+    },
+    {
+      id: 'media',
+      type: 'media',
+      title: 'Kho media',
+      icon: <ImageIcon size={16} />,
+      url: '/media',
+      avatar: null
+    },
+    {
+      id: 'saved',
+      type: 'saved',
+      title: 'Bài đã lưu',
+      icon: <Bookmark size={16} />,
+      url: '/saved',
+      avatar: null
     }
-  }, [user]);
-
-  const loadShortcuts = async () => {
-    try {
-      setLoading(true);
-      
-      // Load groups của user
-      const groupsResponse = await api('/api/groups/my-groups');
-      if (groupsResponse.success) {
-        setMyGroups(groupsResponse.data.groups.slice(0, 3));
-      }
-
-      // Load events của user
-      const eventsResponse = await api('/api/events?filter=my&limit=3');
-      if (eventsResponse.events) {
-        setMyEvents(eventsResponse.events.slice(0, 3));
-      }
-
-      // Tạo danh sách shortcuts
-      const shortcutsList = [
-        // Groups
-        ...myGroups.map(group => ({
-          id: group._id,
-          type: 'group',
-          title: group.name,
-          icon: <Users size={16} />,
-          url: `/groups/${group._id}`,
-          avatar: group.avatar
-        })),
-        
-        // Events
-        ...myEvents.map(event => ({
-          id: event._id,
-          type: 'event',
-          title: event.title,
-          icon: <Calendar size={16} />,
-          url: `/events/${event._id}`,
-          avatar: event.coverImage
-        })),
-        
-        // Static shortcuts
-        {
-          id: 'groups',
-          type: 'groups',
-          title: 'Nhóm',
-          icon: <Users size={16} />,
-          url: '/groups',
-          avatar: null
-        },
-        {
-          id: 'media',
-          type: 'media',
-          title: 'Kho media',
-          icon: <ImageIcon size={16} />,
-          url: '/media',
-          avatar: null
-        },
-        {
-          id: 'saved',
-          type: 'saved',
-          title: 'Bài đã lưu',
-          icon: <Bookmark size={16} />,
-          url: '/saved',
-          avatar: null
-        }
-      ];
-
-      setShortcuts(shortcutsList);
-    } catch (error) {
-      // Silent handling for shortcuts loading error
-    } finally {
-      setLoading(false);
-    }
-  };
+  ];
 
   const getAvatar = (shortcut) => {
     if (shortcut.avatar) {
@@ -122,7 +96,7 @@ export default function Shortcuts({ user }) {
 
   const visibleShortcuts = showAll ? shortcuts : shortcuts.slice(0, 6);
 
-  if (loading) {
+  if (groupsLoading || eventsLoading) {
     return (
       <div className="bg-white rounded-r-lg shadow-sm border border-gray-200 border-l-0">
         {/* Header skeleton */}

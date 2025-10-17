@@ -12,6 +12,23 @@ export const chatAPI = {
    * @returns {Promise<Array>} Danh sách conversations
    */
   getConversations: () => api("/api/messages/conversations"),
+
+  /**
+   * Lấy conversation hiện tại của user
+   * @returns {Promise<Object>} Current conversation ID
+   */
+  getCurrentConversation: () => api("/api/users/current-conversation"),
+
+  /**
+   * Lưu conversation hiện tại của user
+   * @param {string} conversationId - ID của conversation
+   * @returns {Promise<Object>} Response
+   */
+  setCurrentConversation: (conversationId) => 
+    api("/api/users/current-conversation", {
+      method: "POST",
+      body: { conversationId }
+    }),
   
   /**
    * Tạo conversation mới (private hoặc group)
@@ -30,6 +47,14 @@ export const chatAPI = {
     throw new Error('Invalid conversation type');
   },
   
+  /**
+   * Kiểm tra xem cuộc trò chuyện private đã tồn tại giữa 2 user chưa
+   * @param {string} recipientId - ID của người nhận
+   * @returns {Promise<Object>} Object chứa thông tin conversation nếu tồn tại, hoặc {exists: false}
+   */
+  checkPrivateConversation: (recipientId) => 
+    api(`/api/messages/conversations/private/check/${recipientId}`),
+
   /**
    * Tạo conversation private với 1 user khác
    * @param {string} recipientId - ID của người nhận
@@ -272,5 +297,41 @@ export const chatAPI = {
    * @returns {Promise<Object>} Current conversation info
    */
   getCurrentConversation: () =>
-    api("/api/users/current-conversation")
+    api("/api/users/current-conversation"),
+
+  // ==================== NICKNAME MANAGEMENT ====================
+
+  /**
+   * Đặt biệt danh cho một người dùng trong cuộc trò chuyện
+   * @param {string} conversationId - ID của cuộc trò chuyện
+   * @param {string} targetUserId - ID của người dùng cần đặt biệt danh
+   * @param {string} nickname - Biệt danh mới
+   * @returns {Promise<Object>} Response với conversation đã cập nhật
+   */
+  setNickname: (conversationId, targetUserId, nickname) =>
+    api(`/api/messages/conversations/${conversationId}/nickname`, {
+      method: "POST",
+      body: { targetUserId, nickname }
+    }),
+
+  /**
+   * Xóa biệt danh của một người dùng trong cuộc trò chuyện
+   * @param {string} conversationId - ID của cuộc trò chuyện
+   * @param {string} targetUserId - ID của người dùng cần xóa biệt danh
+   * @returns {Promise<Object>} Response với conversation đã cập nhật
+   */
+  removeNickname: (conversationId, targetUserId) =>
+    api(`/api/messages/conversations/${conversationId}/nickname`, {
+      method: "DELETE",
+      body: { targetUserId }
+    }),
+
+  /**
+   * Lấy biệt danh của một người dùng trong cuộc trò chuyện
+   * @param {string} conversationId - ID của cuộc trò chuyện
+   * @param {string} targetUserId - ID của người dùng cần lấy biệt danh
+   * @returns {Promise<Object>} Object chứa nickname, userName, userId
+   */
+  getNickname: (conversationId, targetUserId) =>
+    api(`/api/messages/conversations/${conversationId}/nickname/${targetUserId}`)
 };

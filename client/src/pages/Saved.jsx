@@ -40,7 +40,7 @@ export default function Saved() {
           ) : (
             posts.map(p => (
               <div key={p._id} className="bg-white rounded-lg shadow-sm border border-gray-200">
-                <PostCard post={p} />
+                <PostCard post={p} isSaved={true} skipSavedStatusFetch={true} />
               </div>
             ))
           )}
@@ -49,3 +49,4 @@ export default function Saved() {
     </div>
   );
 }
+

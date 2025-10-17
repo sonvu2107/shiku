@@ -37,7 +37,7 @@ export function generateAccessToken(user) {
       role: user.role 
     }, 
     process.env.JWT_SECRET, 
-    { expiresIn: "7d" } // Tang tu 3 ngay len 7 ngay
+  { expiresIn: "7d" } // Tăng từ 3 ngày lên 7 ngày
   );
 }
 
@@ -91,13 +91,13 @@ export async function refreshAccessToken(req, res, next) {
       return res.status(401).json({ error: "Refresh token không hợp lệ" });
     }
 
-    // Lấy user từ database
+  // Lấy user từ cơ sở dữ liệu
     const user = await User.findById(decoded.id).select("-password");
     if (!user) {
       return res.status(401).json({ error: "User không tồn tại" });
     }
 
-    // Kiểm tra user có bị ban không
+  // Kiểm tra user có bị ban không
     if (user.isCurrentlyBanned && user.isCurrentlyBanned()) {
       return res.status(403).json({ 
         error: "Tài khoản đã bị cấm",
@@ -106,28 +106,28 @@ export async function refreshAccessToken(req, res, next) {
       });
     }
 
-    // Tạo access token mới
+  // Tạo access token mới
     const newAccessToken = generateAccessToken(user);
     
-    // Set cookie cho access token
+  // Đặt cookie cho access token
     res.cookie('token', newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (tang tu 3 ngay)
+  maxAge: 7 * 24 * 60 * 60 * 1000 // 7 ngày (tăng từ 3 ngày)
     });
 
-    // Tạo và set CSRF token mới
+  // Tạo và đặt CSRF token mới
     const csrfToken = crypto.randomBytes(32).toString("hex");
     res.cookie("csrfToken", csrfToken, {
       httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "none",
       path: "/",
-      maxAge: 60 * 60 * 1000 // 1h
+  maxAge: 60 * 60 * 1000 // 1 giờ
     });
 
-    // Trả về access token mới
+  // Trả về access token mới
     res.json({
       accessToken: newAccessToken,
       user: {

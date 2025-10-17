@@ -1,8 +1,8 @@
 import { io } from "socket.io-client";
 import { getAccessToken, getValidAccessToken } from "./utils/tokenManager.js";
 
-// URL của Socket.IO server
-const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+// URL của Socket.IO server - sử dụng proxy trong dev, absolute URL trong production
+const SOCKET_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "" : "http://localhost:4000");
 
 /**
  * Service quản lý WebSocket connection và real-time communication

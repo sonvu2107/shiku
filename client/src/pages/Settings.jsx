@@ -1,5 +1,6 @@
 import React from "react";
 import { api } from "../api";
+import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 
 /**
  * Settings - Trang cài đặt tài khoản
@@ -34,13 +35,14 @@ export default function Settings() {
   const refreshBlockedUsers = async () => {
     try {
       const res = await api("/api/auth/me");
+      
       // res.user.blockedUsers là mảng id, lấy thông tin tất cả users trong một lần gọi
       if (res.user.blockedUsers && res.user.blockedUsers.length > 0) {
         const batchRes = await api("/api/users/batch", {
           method: "POST",
           body: { userIds: res.user.blockedUsers }
         });
-        setBlockedUsers(batchRes.users);
+        setBlockedUsers(batchRes.users || []);
       } else {
         setBlockedUsers([]);
       }
@@ -66,13 +68,32 @@ export default function Settings() {
     }
   }, [activeTab]);
 
+  // Thêm listener để refresh khi focus lại window (để sync với các tab khác)
+  React.useEffect(() => {
+    const handleFocus = () => {
+      if (activeTab === "blocked") {
+        refreshBlockedUsers();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [activeTab]);
+
   const unblockUser = async (userId) => {
     try {
       await api(`/api/users/unblock/${userId}`, { method: "POST" });
+      
       // Refresh lại danh sách để đảm bảo đồng bộ với server
       await refreshBlockedUsers();
+      
+      // Thêm một lần refresh nữa sau 500ms để đảm bảo
+      setTimeout(() => {
+        refreshBlockedUsers();
+      }, 500);
+      
     } catch (err) {
-      alert("Lỗi khi gỡ chặn");
+      alert("Lỗi khi gỡ chặn: " + (err.message || "Lỗi hệ thống"));
     }
   };
 
@@ -123,7 +144,7 @@ export default function Settings() {
         {activeTab === "blocked" && (
           <div className="card rounded-2xl p-6 shadow-sm border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-black dark:text-gray-100">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Người bạn đã chặn</h2>
+              <h2 className="text-lg font-semibold">Người bạn đã chặn ({blockedUsers.length})</h2>
               <button
                 onClick={refreshBlockedUsers}
                 className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2"
@@ -143,10 +164,7 @@ export default function Settings() {
                 {blockedUsers.map((user) => (
                   <li key={user._id} className="flex items-center gap-4">
                     <img
-                      src={
-                        user.avatarUrl ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "User")}&length=2&background=cccccc&color=222222&size=40`
-                      }
+                      src={getUserAvatarUrl(user, AVATAR_SIZES.SMALL)}
                       alt={user.name}
                       className="w-8 h-8 rounded-full object-cover"
                     />

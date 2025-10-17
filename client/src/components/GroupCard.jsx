@@ -14,6 +14,7 @@ import {
   Lock,
   Unlock
 } from 'lucide-react';
+import UserName from './UserName';
 
 /**
  * GroupCard Component - Hiển thị thông tin nhóm trong dạng card
@@ -272,7 +273,7 @@ const GroupCard = ({
               <div>
                 <p className="text-xs text-gray-500">Tạo bởi</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {group.owner?.name || group.owner?.fullName || group.owner?.username || group.owner?.displayName || 'Unknown'}
+                  <UserName user={group.owner} />
                 </p>
               </div>
             </div>

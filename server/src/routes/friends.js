@@ -72,8 +72,8 @@ router.post('/send-request', authRequired, async (req, res) => {
     );
 
     const populatedRequest = await FriendRequest.findById(friendRequest._id)
-      .populate('from', 'name email avatarUrl')
-      .populate('to', 'name email avatarUrl');
+      .populate('from', 'name nickname email avatarUrl')
+      .populate('to', 'name nickname email avatarUrl');
 
     res.json({ 
       message: 'Đã gửi lời mời kết bạn',
@@ -124,8 +124,8 @@ router.post('/accept-request/:requestId', authRequired, async (req, res) => {
     });
 
     const populatedRequest = await FriendRequest.findById(requestId)
-      .populate('from', 'name email avatarUrl')
-      .populate('to', 'name email avatarUrl');
+      .populate('from', 'name nickname email avatarUrl')
+      .populate('to', 'name nickname email avatarUrl');
 
     res.json({ 
       message: 'Đã chấp nhận lời mời kết bạn',
@@ -178,7 +178,7 @@ router.get('/requests', authRequired, async (req, res) => {
     const requests = await FriendRequest.find({
       to: userId,
       status: 'pending'
-    }).populate('from', 'name email avatarUrl isOnline lastSeen')
+    }).populate('from', 'name nickname email avatarUrl isOnline lastSeen')
       .sort({ createdAt: -1 });
 
     res.json({ requests });
@@ -197,7 +197,7 @@ router.get('/list', authRequired, async (req, res) => {
     const userId = req.user._id.toString(); // Convert to string
     
     const user = await User.findById(userId)
-      .populate('friends', 'name email avatarUrl isOnline lastSeen')
+      .populate('friends', 'name nickname email avatarUrl isOnline lastSeen')
       .lean();
 
     // Ensure all friends have default values for isOnline and lastSeen
@@ -240,7 +240,7 @@ router.get('/suggestions', authRequired, async (req, res) => {
       _id: { 
         $nin: [...user.friends, userId, ...pendingUserIds] 
       }
-    }).select('name email avatarUrl isOnline lastSeen')
+    }).select('name nickname email avatarUrl isOnline lastSeen')
       .limit(10)
       .lean();
 
@@ -342,7 +342,7 @@ router.get('/search', authRequired, async (req, res) => {
         { name: { $regex: escapedQuery, $options: 'i' } },
         { email: { $regex: escapedQuery, $options: 'i' } }
       ]
-    }).select('name email avatarUrl isOnline lastSeen')
+    }).select('name nickname email avatarUrl isOnline lastSeen')
       .limit(20);
 
     res.json({ users });
@@ -367,7 +367,7 @@ router.get('/search-friends', authRequired, async (req, res) => {
 
     const userId = req.user._id.toString();
     const user = await User.findById(userId)
-      .populate('friends', 'name email avatarUrl isOnline lastSeen')
+      .populate('friends', 'name nickname email avatarUrl isOnline lastSeen')
       .lean();
 
     if (!user) {

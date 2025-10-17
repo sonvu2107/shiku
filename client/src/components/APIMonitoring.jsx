@@ -227,12 +227,12 @@ export default function APIMonitoring() {
           <div className="flex items-center gap-2 mb-1 sm:mb-2">
             <Clock className="text-green-600 w-4 h-4 sm:w-6 sm:h-6 flex-shrink-0" />
             <div className="text-lg sm:text-2xl font-bold text-green-600 mobile-number">
-              {stats.overview.timeSinceReset}
+              {stats.overview?.timeSinceReset || 0}
             </div>
           </div>
           <div className="text-xs sm:text-sm text-gray-600 mobile-text">Phút từ reset</div>
           <div className="text-xs text-gray-500 mt-1 truncate mobile-text">
-            {new Date(stats.overview.lastReset).toLocaleTimeString()}
+            {stats.overview?.lastReset ? new Date(stats.overview.lastReset).toLocaleTimeString() : 'Chưa có dữ liệu'}
           </div>
         </div>
 
@@ -241,12 +241,12 @@ export default function APIMonitoring() {
           <div className="flex items-center gap-2 mb-1 sm:mb-2">
             <TrendingUp className="text-purple-600 w-4 h-4 sm:w-6 sm:h-6 flex-shrink-0" />
             <div className="text-lg sm:text-2xl font-bold text-purple-600 mobile-number">
-              {stats.topEndpoints[0]?.count || 0}
+              {(stats.topEndpoints && stats.topEndpoints[0]?.count) || 0}
             </div>
           </div>
           <div className="text-xs sm:text-sm text-gray-600 mobile-text">Top endpoint</div>
           <div className="text-xs text-gray-500 mt-1 truncate mobile-text">
-            {stats.topEndpoints[0]?.endpoint || 'N/A'}
+            {(stats.topEndpoints && stats.topEndpoints[0]?.endpoint) || 'N/A'}
           </div>
         </div>
       </div>
@@ -261,7 +261,7 @@ export default function APIMonitoring() {
           </h3>
           <div className="space-y-2 overflow-x-auto">
             <div className="min-w-[300px] space-y-2">
-              {stats.topEndpoints.map((endpoint, index) => (
+              {(stats.topEndpoints || []).map((endpoint, index) => (
                 <div key={endpoint.endpoint} className="flex items-center justify-between py-1">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span className="text-xs sm:text-sm font-medium text-gray-500 w-4 sm:w-6 flex-shrink-0">
@@ -276,7 +276,7 @@ export default function APIMonitoring() {
                       <div
                         className="bg-blue-500 h-2 rounded-full"
                         style={{
-                          width: `${stats.topEndpoints[0]?.count ? (endpoint.count / stats.topEndpoints[0].count) * 100 : 0}%`
+                          width: `${(stats.topEndpoints && stats.topEndpoints[0]?.count) ? (endpoint.count / stats.topEndpoints[0].count) * 100 : 0}%`
                         }}
                       />
                     </div>
@@ -298,7 +298,7 @@ export default function APIMonitoring() {
           </h3>
           <div className="space-y-2 overflow-x-auto">
             <div className="min-w-[300px] space-y-2">
-              {stats.topIPs.map((ip, index) => (
+              {(stats.topIPs || []).map((ip, index) => (
                 <div key={ip.ip} className="flex items-center justify-between py-1">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span className="text-xs sm:text-sm font-medium text-gray-500 w-4 sm:w-6 flex-shrink-0">
@@ -313,7 +313,7 @@ export default function APIMonitoring() {
                       <div
                         className="bg-green-500 h-2 rounded-full"
                         style={{
-                          width: `${stats.topIPs[0]?.count ? (ip.count / stats.topIPs[0].count) * 100 : 0}%`
+                          width: `${(stats.topIPs && stats.topIPs[0]?.count) ? (ip.count / stats.topIPs[0].count) * 100 : 0}%`
                         }}
                       />
                     </div>
@@ -363,7 +363,7 @@ export default function APIMonitoring() {
         </h3>
         <div className="overflow-x-auto">
           <div className="grid grid-cols-12 gap-1 min-w-[600px]">
-            {stats.hourlyDistribution.map((hour, index) => (
+            {(stats.hourlyDistribution || []).map((hour, index) => (
               <div key={hour.hour} className="text-center">
                 <div className="text-xs text-gray-500 mb-1">
                   {hour.hour}h
@@ -372,7 +372,7 @@ export default function APIMonitoring() {
                   <div
                     className="bg-blue-500 w-full rounded"
                     style={{
-                      height: `${Math.max(2, (hour.requests / Math.max(...stats.hourlyDistribution.map(h => h.requests))) * 100)}%`
+                      height: `${Math.max(2, (hour.requests / Math.max(1, ...((stats.hourlyDistribution || []).map(h => h.requests || 0)))) * 100)}%`
                     }}
                   />
                 </div>
@@ -386,14 +386,14 @@ export default function APIMonitoring() {
       </div>
 
       {/* Rate Limit Hits by Endpoint - Mobile Optimized */}
-      {Object.keys(stats.rateLimitHitsByEndpoint).length > 0 && (
+      {Object.keys(stats.rateLimitHitsByEndpoint || {}).length > 0 && (
         <div className="bg-white border rounded-lg p-4 sm:p-6">
           <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
             Rate Limit Hits by Endpoint
           </h3>
           <div className="space-y-2">
-            {Object.entries(stats.rateLimitHitsByEndpoint).map(([endpoint, hits]) => (
+            {Object.entries(stats.rateLimitHitsByEndpoint || {}).map(([endpoint, hits]) => (
               <div key={endpoint} className="flex items-center justify-between bg-red-50 p-2 sm:p-3 rounded">
                 <span className="text-xs sm:text-sm font-medium truncate flex-1 min-w-0">{endpoint}</span>
                 <span className="text-xs sm:text-sm font-bold text-red-600 flex-shrink-0 ml-2">{hits} hits</span>

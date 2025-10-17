@@ -11,8 +11,10 @@ import NotificationBell from "./NotificationBell";
 import ChatDropdown from "./ChatDropdown";
 import ChatPopup from "./ChatPopup";
 import { ChatPopupWithCallModal } from "./ChatPopup";
+import ChatPopupManager from "./ChatPopupManager";
 import MobileMenu from "./MobileMenu";
 import UserName from "./UserName";
+import { useChat } from "../contexts/ChatContext";
 
 // Import icons từ Lucide React
 import {
@@ -42,7 +44,7 @@ import {
  */
 export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
   // ==================== STATE MANAGEMENT ====================
-  const [openPopups, setOpenPopups] = useState([]); // Chat popups đang mở
+  const { openPopups, addChatPopup, closeChatPopup } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -343,7 +345,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
               <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder=""
+                placeholder="Tìm kiếm trên Shiku"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 maxLength={100}
@@ -437,17 +439,11 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                 )
               )}
             </div>
-            <button
-              type="submit"
-              className="btn flex items-center gap-2 px-3 py-2"
-            >
-              Tìm
-            </button>
           </form>
         </div>
 
         {/* CENTER ZONE: Main Menu Icons */}
-        <div className="hidden lg:flex items-center gap-2 justify-center flex-1">
+        <div className="hidden lg:flex items-center gap-6 justify-center flex-1">
           {user && (
             <React.Fragment key="user-nav-links">
               <Link
@@ -510,11 +506,11 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           {/* Dark mode toggle */}
           <button
             onClick={() => setDarkMode && setDarkMode(!darkMode)}
-            className="btn-outline p-2 rounded-lg"
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label={darkMode ? "Tắt dark mode" : "Bật dark mode"}
             title={darkMode ? "Tắt dark mode" : "Bật dark mode"}
           >
-            {darkMode ? <Moon size={18} /> : <Sun size={18} />}
+            {darkMode ? <Moon size={22} /> : <Sun size={22} />}
           </button>
           {/* Friends Icon */}
           <div className="hidden md:flex items-center gap-2">
@@ -529,32 +525,24 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
               </Link>
             )}
           </div>
-          {/* Mobile Menu */}
-          <MobileMenu user={user} setUser={setUser} />
-
           {/* Mobile search button */}
           <button
             onClick={() => setShowMobileSearch(!showMobileSearch)}
-            className="md:hidden btn-outline p-2 touch-target mobile-search"
+            className="md:hidden p-2 touch-target mobile-search hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
             title="Tìm kiếm"
           >
             <Search size={16} />
           </button>
+
+          {/* Mobile Menu */}
+          <MobileMenu user={user} setUser={setUser} />
 
           {/* Desktop Navigation - Hidden on mobile */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <React.Fragment key="user-desktop-nav">
                 <ChatDropdown onOpenChat={(conv) => {
-                  setOpenPopups(prev => {
-                    // Nếu đã mở rồi thì đưa lên cuối
-                    const exists = prev.find(p => p._id === conv._id);
-                    let newPopups = exists ? prev.filter(p => p._id !== conv._id) : [...prev];
-                    newPopups.push(conv);
-                    // Giới hạn tối đa 2 popup
-                    if (newPopups.length > 2) newPopups = newPopups.slice(1);
-                    return newPopups;
-                  });
+                  addChatPopup(conv);
                 }} />
                 <NotificationBell user={user} />
                 <div className="relative" onKeyDown={(e) => { if (e.key === 'Escape') setShowProfileMenu(false); }}>
@@ -627,14 +615,10 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           </div>
         </div>
         {/* Popup chat Messenger */}
-        {openPopups.map((conv, idx) => (
-          <div key={conv._id || idx} style={{ position: 'fixed', bottom: 16, right: 16 + idx * 340, zIndex: 100 + idx }}>
-            <ChatPopupWithCallModal
-              conversation={conv}
-              onClose={() => setOpenPopups(popups => popups.filter(p => p._id !== conv._id))}
-            />
-          </div>
-        ))}
+        <ChatPopupManager 
+          conversations={openPopups}
+          onCloseConversation={closeChatPopup}
+        />
       </div>
 
       {/* Mobile search bar */}
@@ -644,7 +628,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
             <div className="relative flex-1">
               <input
                 type="text"
-                placeholder=""
+                placeholder="Tìm kiếm trên Shiku"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-4 pr-4 py-2.5 w-full border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
@@ -753,12 +737,6 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                 )
               )}
             </div>
-            <button
-              type="submit"
-              className="btn flex items-center gap-1 sm:gap-2 px-3 py-2.5 text-sm touch-target"
-            >
-              <span>Tìm</span>
-            </button>
             <button
               type="button"
               onClick={() => setShowMobileSearch(false)}

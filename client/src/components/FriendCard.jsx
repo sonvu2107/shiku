@@ -1,6 +1,7 @@
 import { MessageCircle, UserMinus, Circle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import MessageButton from "./MessageButton";
+import UserName from "./UserName";
 
 /**
  * FriendCard - Component hiển thị thông tin bạn bè
@@ -74,13 +75,13 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
           <Link 
             to={`/user/${friend._id}`}
             className="font-semibold text-gray-800 hover:text-blue-600 text-sm sm:text-base truncate block"
-            title={friend.name}
+            title={friend.nickname || friend.name}
           >
-            {friend.name}
+            <UserName user={friend} />
           </Link>
           <div className="text-xs sm:text-sm text-gray-500 truncate">
             {friend.isOnline ? (
-              <span className="text-green-600">● Đang hoạt động</span>
+              <span className="text-green-600">Đang hoạt động</span>
             ) : (
               <span>{getLastSeenText(friend.lastSeen)}</span>
             )}

@@ -1,11 +1,49 @@
 import { useEffect, useState, useRef } from "react";
 import CallModal from "./CallModal";
 import CallIncomingModal from "./CallIncomingModal";
+import ImageViewer from "./ImageViewer";
 import { api } from "../api";
 import { getUserInfo } from "../utils/auth";
 import socketService from "../socket";
 import callManager from "../utils/callManager";
-import { X, Phone, Video, ChevronDown, MessageCircle, ThumbsUp, Heart, Laugh, Angry, Frown, Smile } from "lucide-react";
+import { X, Phone, Video, ChevronDown, MessageCircle, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, Image } from "lucide-react";
+import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
+
+// Custom CSS for enhanced shadows
+const customStyles = `
+  .hover\\:shadow-3xl:hover {
+    box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
+  }
+`;
+
+// Inject custom styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement("style");
+  styleSheet.textContent = customStyles;
+  document.head.appendChild(styleSheet);
+}
+
+/**
+ * Danh sách emoji để chọn trong chat
+ */
+const EMOTES = [
+  '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+  '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+  '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
+  '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+  '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬',
+  '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗',
+  '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯',
+  '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐',
+  '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈',
+  '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉',
+  '👆', '🖕', '👇', '☝️', '👋', '🤚', '🖐️', '✋', '🖖', '👏',
+  '🙌', '🤲', '🤝', '🙏', '✍️', '💪', '🦾', '🦿', '🦵', '🦶',
+  '❤️', '🧡', '💛', '💚', '💙', '💜', '🤎', '🖤', '🤍', '💔',
+  '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️',
+  '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐',
+  '⚛️', '🆔', '⚕️', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸'
+];
 
 /**
  * ChatPopup - Popup chat window với khả năng gọi video/voice
@@ -17,7 +55,7 @@ import { X, Phone, Video, ChevronDown, MessageCircle, ThumbsUp, Heart, Laugh, An
  * @param {Function} props.setIsVideoCall - Callback set loại cuộc gọi
  * @returns {JSX.Element} Component chat popup
  */
-export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVideoCall }) {
+export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVideoCall, index = 0 }) {
   // ==================== EFFECTS ====================
   
   // Join conversation khi có conversationId
@@ -66,10 +104,12 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   // UI states
   const [minimized, setMinimized] = useState(false); // Trạng thái thu nhỏ popup
   const [uploading, setUploading] = useState(false); // Trạng thái upload ảnh
+  const [imageViewer, setImageViewer] = useState({ isOpen: false, imageUrl: null, alt: "" }); // Image viewer state
   
   // Message states
   const [messages, setMessages] = useState([]); // Danh sách tin nhắn
   const [input, setInput] = useState(""); // Nội dung tin nhắn đang nhập
+  const [showEmotePicker, setShowEmotePicker] = useState(false); // Hiện emoji picker
   
   // Refs
   const messagesEndRef = useRef(null); // Ref để scroll xuống cuối tin nhắn
@@ -116,20 +156,34 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
     }
   };
 
+  const handleEmoteSelect = async (emote) => {
+    // Send emote as a separate message
+    try {
+      const response = await api(`/api/messages/conversations/${conversation._id}/messages`, {
+        method: "POST",
+        body: { content: "", messageType: "emote", emote: emote },
+      });
+      
+      // Add the sent message to the list immediately (optimistic update)
+      if (response.message) {
+        setMessages(prev => [...prev, response.message]);
+      }
+    } catch (error) {
+      console.error("Error sending emote:", error);
+      alert("Không thể gửi emote: " + error.message);
+    }
+    
+    setShowEmotePicker(false);
+  };
+
   const isGroup = conversation.conversationType === "group";
   const name = isGroup
     ? conversation.groupName || "Nhóm"
-    : conversation.otherParticipants?.[0]?.user?.name || "Không tên";
+    : conversation.otherParticipants?.[0]?.nickname || conversation.otherParticipants?.[0]?.user?.name || "Không tên";
 
   const avatar = isGroup
-    ? conversation.groupAvatar ||
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        name
-      )}&length=2&background=cccccc&color=222222`
-    : conversation.otherParticipants?.[0]?.user?.avatarUrl ||
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        name
-      )}&length=2&background=cccccc&color=222222`;
+    ? conversation.groupAvatar || getUserAvatarUrl({ name: conversation.groupName || 'Group' }, AVATAR_SIZES.MEDIUM)
+    : getUserAvatarUrl(conversation.otherParticipants?.[0]?.user, AVATAR_SIZES.MEDIUM);
 
   const getOtherUserOnlineStatus = () => {
     if (isGroup) return false;
@@ -140,49 +194,79 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   };
 
   return (
-    <div className="w-72 sm:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col chat-popup-mobile">
+    <div 
+      className={`bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col chat-popup-mobile transition-all duration-300 ${
+        minimized 
+          ? `w-12 h-12 rounded-full hover:scale-110 hover:shadow-3xl cursor-pointer minimized` 
+          : 'w-72 sm:w-80 rounded-xl'
+      }`} 
+      onClick={minimized ? () => setMinimized(false) : undefined}
+    >
       {/* Header */}
-      <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-t-xl">
+      <div className={`flex items-center gap-1 sm:gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 ${
+        minimized ? 'border-b-0 rounded-full h-full w-full justify-center p-0' : 'px-2 sm:px-4 py-2 rounded-t-xl'
+      }`}>
         <div className="relative flex-shrink-0">
-          <img src={avatar} alt={name} className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover" />
+          <img src={avatar} alt={name} className={`rounded-full object-cover ${
+            minimized ? 'w-12 h-12' : 'w-7 h-7 sm:w-9 sm:h-9'
+          }`} />
           {/* Online status indicator for private conversations */}
-          {!isGroup && getOtherUserOnlineStatus() && (
+          {!isGroup && getOtherUserOnlineStatus() && !minimized && (
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
           )}
         </div>
-        <div className="flex-1 font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base truncate min-w-0">{name}</div>
-        <div className="flex gap-0.5 sm:gap-1">
-          <button
-            className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
-            onClick={() => {
-              setCallOpen && setCallOpen(true);
-              setIsVideoCall && setIsVideoCall(false);
-            }}
-            title="Gọi thoại"
-          >
-            <Phone size={14} className="sm:w-4 sm:h-4" />
-          </button>
-          <button
-            className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
-            onClick={() => {
-              setCallOpen && setCallOpen(true);
-              setIsVideoCall && setIsVideoCall(true);
-            }}
-            title="Gọi video"
-          >
-            <Video size={14} className="sm:w-4 sm:h-4" />
-          </button>
-        </div>
-        <button
-          className="p-1 hover:bg-gray-200 rounded-full touch-target"
-          onClick={() => setMinimized(true)}
-          title="Thu nhỏ"
-        >
-          <ChevronDown size={14} className="sm:w-4 sm:h-4" />
-        </button>
-        <button className="p-1 hover:bg-gray-200 rounded-full touch-target" onClick={onClose}>
-          <X size={14} className="sm:w-4 sm:h-4" />
-        </button>
+        {!minimized && (
+          <>
+            <div className="flex-1 font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base truncate min-w-0">{name}</div>
+            <div className="flex gap-0.5 sm:gap-1">
+              <button
+                className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
+                onClick={() => {
+                  setCallOpen && setCallOpen(true);
+                  setIsVideoCall && setIsVideoCall(false);
+                }}
+                title="Gọi thoại"
+              >
+                <Phone size={14} className="sm:w-4 sm:h-4" />
+              </button>
+              <button
+                className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
+                onClick={() => {
+                  setCallOpen && setCallOpen(true);
+                  setIsVideoCall && setIsVideoCall(true);
+                }}
+                title="Gọi video"
+              >
+                <Video size={14} className="sm:w-4 sm:h-4" />
+              </button>
+            </div>
+            <button
+              className="p-1 hover:bg-gray-200 rounded-full touch-target"
+              onClick={() => setMinimized(!minimized)}
+              title={minimized ? "Phóng to" : "Thu nhỏ"}
+            >
+              <ChevronDown size={14} className={`sm:w-4 sm:h-4 transition-transform ${minimized ? 'rotate-180' : ''}`} />
+            </button>
+            <button className="p-1 hover:bg-gray-200 rounded-full touch-target" onClick={onClose}>
+              <X size={14} className="sm:w-4 sm:h-4" />
+            </button>
+          </>
+        )}
+        {minimized && (
+          <>
+            {/* Online status indicator cho private conversations */}
+            {!isGroup && getOtherUserOnlineStatus() && (
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+            )}
+            
+            {/* Hiển thị số tin nhắn chưa đọc nếu có */}
+            {conversation.unreadCount > 0 && (
+              <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Nội dung chat */}
@@ -204,17 +288,36 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                 }
                 // Chuẩn hóa sender
                 const senderId = typeof msg.sender === 'string' ? msg.sender : (msg.sender?._id || msg.sender?.id);
-                const senderName = typeof msg.sender === 'object' ? (msg.sender?.name || "Không tên") : (conversation.otherParticipants?.[0]?.user?.name || "Không tên");
-                const senderAvatar = typeof msg.sender === 'object' && msg.sender?.avatarUrl
-                  ? msg.sender.avatarUrl
-                  : conversation.otherParticipants?.[0]?.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(senderName)}&length=2&background=cccccc&color=222222`;
+                
+                // Tìm participant để lấy nickname
+                const senderParticipant = conversation.participants?.find(p => 
+                  (p.user?._id || p.user?.id) === senderId
+                );
+                
+                const senderName = typeof msg.sender === 'object' 
+                  ? (senderParticipant?.nickname || msg.sender?.name || "Không tên")
+                  : (senderParticipant?.nickname || conversation.otherParticipants?.[0]?.user?.name || "Không tên");
+                
+                const senderAvatar = getUserAvatarUrl(
+                  typeof msg.sender === 'object' ? msg.sender : conversation.otherParticipants?.[0]?.user,
+                  AVATAR_SIZES.SMALL
+                );
 
                 if (senderId === me) {
                   return (
                     <div key={msg._id || idx} className="mb-2 flex justify-end">
                       <div className="flex flex-col items-end">
                         {msg.messageType === "image" ? (
-                          <img src={msg.imageUrl} alt="Ảnh" className="max-w-[60%] rounded-xl" />
+                          <img 
+                            src={msg.imageUrl} 
+                            alt="Ảnh" 
+                            className="max-w-[60%] rounded-xl cursor-pointer hover:opacity-90 transition-opacity" 
+                            onClick={() => setImageViewer({ isOpen: true, imageUrl: msg.imageUrl, alt: "Ảnh" })}
+                          />
+                        ) : msg.messageType === "emote" ? (
+                          <div className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white flex items-center justify-center">
+                            <span className="text-2xl">{msg.emote}</span>
+                          </div>
                         ) : (
                           <div className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white">
                             {msg.content}
@@ -284,7 +387,16 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           {senderName}
                         </div>
                         {msg.messageType === "image" ? (
-                          <img src={msg.imageUrl} alt="Ảnh" className="max-w-[60%] rounded-xl" />
+                          <img 
+                            src={msg.imageUrl} 
+                            alt="Ảnh" 
+                            className="max-w-[60%] rounded-xl cursor-pointer hover:opacity-90 transition-opacity" 
+                            onClick={() => setImageViewer({ isOpen: true, imageUrl: msg.imageUrl, alt: "Ảnh" })}
+                          />
+                        ) : msg.messageType === "emote" ? (
+                          <div className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center">
+                            <span className="text-2xl">{msg.emote}</span>
+                          </div>
                         ) : (
                           <div className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                             {msg.content}
@@ -347,7 +459,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
           </div>
 
           {/* Ô nhập */}
-          <div className="flex items-center gap-2 px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-xl">
+          <div className="flex items-center gap-2 px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-xl relative">
             <label className="cursor-pointer">
               <svg
                 width="24"
@@ -393,6 +505,37 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                 }}
               />
             </label>
+            
+            {/* Emote picker */}
+            {showEmotePicker && (
+              <div className="absolute bottom-full left-2 right-2 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-4 max-h-48 overflow-y-auto z-10">
+                <div className="grid grid-cols-6 gap-2">
+                  {EMOTES.map((emote, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleEmoteSelect(emote)}
+                      className="p-2 text-xl hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-target"
+                    >
+                      {emote}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <button
+              type="button"
+              onClick={() => setShowEmotePicker(!showEmotePicker)}
+              className={`p-2 rounded-full transition-colors touch-target ${
+                showEmotePicker 
+                  ? 'text-blue-600 bg-blue-50' 
+                  : 'text-blue-500 hover:bg-blue-50 active:bg-blue-100'
+              }`}
+              title="Chọn emote"
+            >
+              <Smile size={20} />
+            </button>
+            
             <input
               className="flex-1 px-3 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring"
               value={input}
@@ -412,17 +555,13 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
         </>
       )}
 
-      {minimized && (
-        <div
-          className="flex items-center gap-2 px-3 py-2 cursor-pointer"
-          onClick={() => setMinimized(false)}
-          title="Mở lại chat"
-        >
-          <img src={avatar} alt={name} className="w-8 h-8 rounded-full object-cover" />
-          <div className="font-semibold text-gray-900 flex-1 truncate">{name}</div>
-          <MessageCircle size={20} className="text-blue-500" />
-        </div>
-      )}
+      {/* Image Viewer */}
+      <ImageViewer
+        isOpen={imageViewer.isOpen}
+        imageUrl={imageViewer.imageUrl}
+        alt={imageViewer.alt}
+        onClose={() => setImageViewer({ isOpen: false, imageUrl: null, alt: "" })}
+      />
     </div>
   );
 }

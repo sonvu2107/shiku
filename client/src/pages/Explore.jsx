@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api";
 import { Search, Users, Calendar, Image, MessageCircle, Heart, MessageSquare } from "lucide-react";
 import UserName from "../components/UserName";
+import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 
 /**
  * Explore - Trang khám phá nội dung
@@ -143,7 +144,7 @@ export default function Explore() {
                     <div key={post._id} className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
                       <div className="flex items-start gap-3 sm:gap-4">
                         <img
-                          src={post.author?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author?.name || '')}&length=2&background=cccccc&color=222222`}
+                          src={getUserAvatarUrl(post.author, AVATAR_SIZES.MEDIUM)}
                           alt={post.author?.name}
                           className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0"
                         />
@@ -194,7 +195,7 @@ export default function Explore() {
                     <div key={user._id} className="bg-white rounded-lg shadow-sm border p-3 sm:p-4">
                       <div className="flex items-center gap-3">
                         <img
-                          src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
+                          src={getUserAvatarUrl(user, AVATAR_SIZES.MEDIUM)}
                           alt={user.name}
                           className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex-shrink-0"
                         />
