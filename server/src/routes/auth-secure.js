@@ -27,26 +27,15 @@ import {
   SECURITY_EVENTS,
   LOG_LEVELS
 } from "../middleware/securityLogging.js";
+import { buildCookieOptions } from "../utils/cookieOptions.js";
 
 // Apply auth logging middleware
 router.use(authLogger);
 
-const isProduction = process.env.NODE_ENV === "production";
-const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 const ACCESS_TOKEN_MAX_AGE =
   ((Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 15 * 60) * 1000);
 const REFRESH_TOKEN_MAX_AGE =
   ((Number(process.env.REFRESH_TOKEN_TTL_SECONDS) || 30 * 24 * 60 * 60) * 1000);
-
-const buildCookieOptions = (maxAge, overrides = {}) => ({
-  httpOnly: true,
-  path: "/",
-  sameSite: isProduction ? "none" : "lax",
-  secure: isProduction,                       // bắt buộc khi SameSite=None
-  domain: isProduction ? cookieDomain : undefined, // chỉ set domain ở prod
-  maxAge,
-  ...overrides
-});
 
 const accessCookieOptions = buildCookieOptions(ACCESS_TOKEN_MAX_AGE);
 const refreshCookieOptions = buildCookieOptions(REFRESH_TOKEN_MAX_AGE);
@@ -89,23 +78,8 @@ router.post("/register",
       const tokens = generateTokenPair(user);
 
       // Set cookies
-      res.cookie("accessToken", tokens.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: "/",
-        domain: process.env.NODE_ENV === "production" ? process.env.COOKIE_DOMAIN : undefined,
-        maxAge: 15 * 60 * 1000 // 15 phút
-      });
-
-      res.cookie("refreshToken", tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: "/",
-        domain: process.env.NODE_ENV === "production" ? process.env.COOKIE_DOMAIN : undefined,
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 ngày
-      });
+      res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
+      res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
 
 
       // Log security event
@@ -204,19 +178,8 @@ router.post("/login",
       const tokens = await generateTokenPair(user);
 
       // Set cookies
-      res.cookie("accessToken", tokens.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        maxAge: 15 * 60 * 1000 // 15 phút
-      });
-
-      res.cookie("refreshToken", tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 ngày
-      });
+      res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
+      res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
 
       // Log successful login
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.LOGIN_SUCCESS, {
@@ -306,13 +269,7 @@ router.post("/refresh",
         );
 
         // Set new access token cookie
-        res.cookie("accessToken", newAccessToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-          path: "/",
-          maxAge: 15 * 60 * 1000 // 15 phút
-        });
+        res.cookie("accessToken", newAccessToken, accessCookieOptions);
 
         console.log("[DEBUG] Refresh successful for user:", user.name);
 
