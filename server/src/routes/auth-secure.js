@@ -75,7 +75,7 @@ router.post("/register",
       });
 
       // Tạo token pair
-      const tokens = generateTokenPair(user);
+      const tokens = await generateTokenPair(user);
 
       // Set cookies
       res.cookie("accessToken", tokens.accessToken, accessCookieOptions);

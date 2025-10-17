@@ -469,7 +469,7 @@ export default function Home({ user }) {
 
           {/* Right Sidebar - Online Friends (ẩn trên mobile, hiện từ lg trở lên) */}
           <div className="hidden lg:block w-72 flex-shrink-0">
-            <div className="sticky top-24 space-y-6">
+-            <div className="sticky top-24 space-y-6">
               <OnlineFriends user={user} />
               <SessionDebug />
             </div>

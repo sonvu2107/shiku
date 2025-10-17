@@ -364,6 +364,79 @@ app.get("/api/test-session-persistence", async (req, res) => {
   }
 });
 
+// Test token generation endpoint
+app.post("/api/test-token-generation", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({
+        error: "Email and password required",
+        code: "MISSING_CREDENTIALS"
+      });
+    }
+    
+    // Import dependencies
+    const User = (await import("./models/User.js")).default;
+    const bcrypt = (await import("bcryptjs")).default;
+    const { generateTokenPair } = await import("./middleware/jwtSecurity.js");
+    
+    // Find user
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(401).json({
+        error: "Invalid credentials",
+        code: "INVALID_CREDENTIALS"
+      });
+    }
+    
+    // Check password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        error: "Invalid credentials", 
+        code: "INVALID_CREDENTIALS"
+      });
+    }
+    
+    console.log("[test-token] User found:", user.name);
+    console.log("[test-token] Attempting to generate token pair...");
+    
+    // Test token generation
+    const tokens = await generateTokenPair(user);
+    
+    console.log("[test-token] Token generation successful");
+    console.log("[test-token] Access token length:", tokens.accessToken?.length);
+    console.log("[test-token] Refresh token length:", tokens.refreshToken?.length);
+    
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      },
+      tokens: {
+        accessToken: tokens.accessToken ? "GENERATED" : "MISSING",
+        refreshToken: tokens.refreshToken ? "GENERATED" : "MISSING",
+        accessTokenLength: tokens.accessToken?.length,
+        refreshTokenLength: tokens.refreshToken?.length
+      },
+      message: "Token generation test successful"
+    });
+    
+  } catch (error) {
+    console.error("[test-token] Token generation error:", error);
+    res.status(500).json({
+      error: "Token generation failed",
+      code: "TOKEN_GENERATION_ERROR",
+      details: process.env.NODE_ENV === "production" ? undefined : error.message,
+      stack: process.env.NODE_ENV === "production" ? undefined : error.stack
+    });
+  }
+});
+
 // Test login endpoint
 app.post("/api/test-login", async (req, res) => {
   try {
