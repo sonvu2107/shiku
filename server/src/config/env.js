@@ -18,7 +18,7 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
  */
 const requiredEnvVars = [
   'JWT_SECRET',
-  'JWT_REFRESH_SECRET',
+  'REFRESH_TOKEN_SECRET',
   'MONGODB_URI',
   'CLOUDINARY_CLOUD_NAME',
   'CLOUDINARY_API_KEY',
@@ -27,7 +27,10 @@ const requiredEnvVars = [
   'SMTP_PORT',
   'SMTP_USER',
   'SMTP_PASS',
-  'SMTP_FROM'
+  'SMTP_FROM',
+  'NODE_ENV',
+  'FRONTEND_URL',
+  'APP_URL'
 ];
 
 /**
@@ -82,7 +85,7 @@ export const securityConfig = {
   // JWT Configuration
   jwt: {
     secret: process.env.JWT_SECRET,
-    refreshSecret: process.env.JWT_REFRESH_SECRET,
+    refreshSecret: process.env.REFRESH_TOKEN_SECRET,
     accessTokenExpiry: '15m',
     refreshTokenExpiry: '7d'
   },
