@@ -17,7 +17,7 @@ export async function sendEmail({ to, subject, html, timeout = 30000 }) {
     }, timeout);
 
     try {
-      const transporter = nodemailer.createTransporter({
+      const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || "smtp.gmail.com",
         port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465,
         secure: true,
