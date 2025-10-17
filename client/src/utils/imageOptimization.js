@@ -205,12 +205,10 @@ export const trackImagePerformance = (imageUrl, label = 'image-load') => {
         value: Math.round(loadTime)
       });
     }
-    
-    console.log(`Image loaded: ${imageUrl} in ${loadTime.toFixed(2)}ms`);
   };
   
   img.onerror = () => {
-    console.error(`Failed to load image: ${imageUrl}`);
+    // Failed to load image
   };
   
   img.src = imageUrl;

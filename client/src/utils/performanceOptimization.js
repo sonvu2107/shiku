@@ -78,7 +78,6 @@ export const optimizeFontLoading = (fontUrls) => {
  */
 export const setupPerformanceMonitoring = () => {
   // Temporarily disable performance monitoring to fix errors
-  console.log('Performance monitoring temporarily disabled');
   return;
   
   // Monitor Core Web Vitals
@@ -86,7 +85,6 @@ export const setupPerformanceMonitoring = () => {
     for (const entry of list.getEntries()) {
       // Safely handle entry values
       if (!entry || typeof entry.value === 'undefined' || entry.value === null) {
-        console.warn('Invalid performance entry:', entry);
         continue;
       }
       
@@ -98,8 +96,6 @@ export const setupPerformanceMonitoring = () => {
           metric_rating: entry.rating || 'good'
         });
       }
-      
-      console.log(`${entry.name}: ${entry.value.toFixed(2)}ms`);
     }
   });
 
@@ -107,7 +103,7 @@ export const setupPerformanceMonitoring = () => {
   try {
     observer.observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift'] });
   } catch (e) {
-    console.warn('Performance Observer not supported:', e);
+    // Performance Observer not supported
   }
 };
 
@@ -152,7 +148,6 @@ export const setupServiceWorker = async (swPath = '/sw.js') => {
   if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register(swPath);
-      console.log('Service Worker registered:', registration);
       
       // Handle updates
       registration.addEventListener('updatefound', () => {
@@ -168,7 +163,7 @@ export const setupServiceWorker = async (swPath = '/sw.js') => {
       });
       
     } catch (error) {
-      console.error('Service Worker registration failed:', error);
+      // Service Worker registration failed
     }
   }
 };
@@ -232,7 +227,6 @@ export const preloadCriticalResources = () => {
  */
 export const measurePerformance = () => {
   // Temporarily disable to fix errors
-  console.log('Performance measurement temporarily disabled');
   return;
   
   window.addEventListener('load', () => {
@@ -241,7 +235,6 @@ export const measurePerformance = () => {
       const paintData = performance.getEntriesByType('paint');
       
       if (!perfData) {
-        console.warn('Navigation performance data not available');
         return;
       }
       

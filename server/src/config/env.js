@@ -127,9 +127,17 @@ export const securityConfig = {
 
   // CORS Configuration
   cors: {
-    origins: [
+    origins: isProduction() ? [
+      // Production origins for shiku.click
+      "https://shiku.click",
+      "https://www.shiku.click",
+      "https://api.shiku.click", // Render backend URL
+      ...(process.env.CORS_ORIGIN?.split(",").map(o => o.trim()) || [])
+    ] : [
+      // Development origins
       "http://localhost:5173",
       "http://localhost:5174",
+      "http://127.0.0.1:5173",
       "http://172.29.100.73:5173",
       "http://172.29.100.73:5174",
       "http://192.168.0.101:5173",

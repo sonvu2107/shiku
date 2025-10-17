@@ -102,7 +102,6 @@ export default function AdminDashboard() {
         // Không cần trigger refresh nữa - sẽ pass trực tiếp vào props
       }
     } catch (error) {
-      console.error("Error loading roles:", error);
       // Fallback to default roles
       setAvailableRoles([
         { name: "user", displayName: "User" },

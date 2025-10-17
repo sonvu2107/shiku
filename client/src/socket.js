@@ -1,8 +1,9 @@
 import { io } from "socket.io-client";
 import { getAccessToken, getValidAccessToken } from "./utils/tokenManager.js";
+import { API_CONFIG } from "./config/environment.js";
 
-// URL của Socket.IO server - sử dụng proxy trong dev, absolute URL trong production
-const SOCKET_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "" : "http://localhost:4000");
+// URL của Socket.IO server - sử dụng environment config
+const SOCKET_URL = API_CONFIG.baseURL;
 
 /**
  * Service quản lý WebSocket connection và real-time communication
@@ -124,7 +125,6 @@ class SocketService {
 
     const token = getAccessToken();
     if (!token) {
-      console.warn("[socket] Missing access token, skipping socket connection");
       return null;
     }
 

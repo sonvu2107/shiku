@@ -110,7 +110,6 @@ export default function App() {
           setUser(null);
         }
       } catch (error) {
-        console.error("Authentication check failed:", error);
         // Nếu có lỗi (token không hợp lệ), reset user
         if (!cancelled) {
           setUser(null);

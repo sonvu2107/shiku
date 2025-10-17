@@ -23,11 +23,8 @@ class HeartbeatManager {
    */
   start() {
     if (this.interval) {
-      console.log('[HEARTBEAT] Already running');
       return;
     }
-
-    console.log(`[HEARTBEAT] Starting with ${this.frequency / 1000}s interval`);
     this.isActive = true;
     
     // Send immediate heartbeat
@@ -47,7 +44,6 @@ class HeartbeatManager {
       clearInterval(this.interval);
       this.interval = null;
       this.isActive = false;
-      console.log('[HEARTBEAT] Stopped');
     }
   }
 
@@ -62,14 +58,10 @@ class HeartbeatManager {
       this.lastHeartbeat = new Date();
 
       const onlineStatus = data.isOnline ?? data.online ?? 'N/A';
-      console.log('[HEARTBEAT] Success', {
-        time: this.lastHeartbeat.toLocaleTimeString(),
-        online: onlineStatus
-      });
 
       this.notifyListeners(data);
     } catch (err) {
-      console.error('[HEARTBEAT] Error:', err.message);
+      // Heartbeat error
     }
   }
 
@@ -96,7 +88,7 @@ class HeartbeatManager {
       try {
         callback(data);
       } catch (err) {
-        console.error('[HEARTBEAT] Listener error:', err);
+        // Listener error
       }
     });
   }
@@ -105,7 +97,6 @@ class HeartbeatManager {
    * Manually trigger heartbeat (useful for debugging)
    */
   ping() {
-    console.log('[HEARTBEAT] Manual ping');
     this.sendHeartbeat();
   }
 
@@ -133,7 +124,6 @@ class HeartbeatManager {
     }
     
     this.frequency = ms;
-    console.log(`[HEARTBEAT] Frequency changed to ${ms / 1000}s`);
     
     if (wasActive) {
       this.start();
@@ -176,16 +166,15 @@ class WebSocketHeartbeat {
     this.ws = new WebSocket(wsUrl);
     
     this.ws.onopen = () => {
-      console.log('[WS HEARTBEAT] Connected');
+      // Connected
     };
     
     this.ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('[WS HEARTBEAT] Pong', data);
+      // Handle pong
     };
     
     this.ws.onclose = () => {
-      console.log('[WS HEARTBEAT] Disconnected, reconnecting...');
       this.reconnectTimeout = setTimeout(() => this.connect(), 5000);
     };
   }

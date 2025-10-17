@@ -169,7 +169,6 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
         setMessages(prev => [...prev, response.message]);
       }
     } catch (error) {
-      console.error("Error sending emote:", error);
       alert("Không thể gửi emote: " + error.message);
     }
     

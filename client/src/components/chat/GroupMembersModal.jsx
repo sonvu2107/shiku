@@ -107,7 +107,6 @@ export default function GroupMembersModal({
       setNewNickname("");
       onMembersUpdated?.();
     } catch (error) {
-      console.error("Error setting nickname:", error);
       setError(error.message || "Không thể đặt biệt danh");
     } finally {
       setLoading(false);

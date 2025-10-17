@@ -1,5 +1,8 @@
-// URL của API server - sử dụng proxy trong dev, absolute URL trong production
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "" : "http://localhost:4000");
+// Import environment configuration
+import { API_CONFIG, SECURITY_CONFIG, isProduction } from './config/environment.js';
+
+// URL của API server - sử dụng environment config
+const API_URL = API_CONFIG.baseURL;
 
 import { getValidAccessToken, clearTokens, refreshAccessToken } from "./utils/tokenManager.js";
 import { getCSRFToken, ensureCSRFToken } from "./utils/csrfToken.js";
@@ -35,7 +38,6 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
     await ensureCSRFToken();
     const csrf = await getCSRFToken();
     if (!csrf) {
-      console.error(`Failed to get CSRF token for ${method} request to ${path}`);
       throw new Error("CSRF token not available. Please refresh the page and try again.");
     }
     headers["X-CSRF-Token"] = csrf; // ✅ Chỉ dùng 1 header
@@ -99,7 +101,6 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
     
     // Nếu là lỗi 403 (CSRF token invalid), thử refresh CSRF token
     if (res.status === 403 && method !== "GET") {
-      console.warn("CSRF token validation failed. Attempting to refresh CSRF token...");
 
       const newCSRFToken = await getCSRFToken(true); // Force refresh
 
@@ -116,7 +117,7 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
           return await retryRes.json();
         }
       } else {
-        console.error("Failed to get new CSRF token.");
+        // Failed to get new CSRF token
       }
     }
 

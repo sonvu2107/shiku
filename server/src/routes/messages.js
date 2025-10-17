@@ -89,7 +89,6 @@ router.get("/conversations", authRequired, async (req, res) => {
 
     res.json({ conversations: formattedConversations });
   } catch (error) {
-    console.error("Error fetching conversations:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -166,7 +165,6 @@ router.get("/conversations/:conversationId/messages", authRequired, async (req, 
       }
     });
   } catch (error) {
-    console.error("Error fetching messages:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -241,7 +239,6 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
 
     res.status(201).json(message);
   } catch (error) {
-    console.error("Error sending message:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 }); 
@@ -293,7 +290,6 @@ router.post("/conversations/:conversationId/messages/:messageId/react", authRequ
 
     res.json({ reactions: updated.reactions });
   } catch (error) {
-    console.error('Error reacting to message:', error);
     res.status(500).json({ message: 'Lỗi server' });
   }
 });
@@ -350,7 +346,6 @@ router.post("/conversations/:conversationId/messages/image", authRequired, async
 
     res.status(201).json(message);
   } catch (error) {
-    console.error("Error uploading image:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -404,7 +399,6 @@ router.get("/conversations/private/check/:recipientId", authRequired, async (req
 
     res.json({ exists: false });
   } catch (error) {
-    console.error("Error checking private conversation:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -468,7 +462,6 @@ router.post("/conversations/private", authRequired, async (req, res) => {
 
     res.status(201).json(formattedConversation);
   } catch (error) {
-    console.error("Error creating private conversation:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -530,7 +523,6 @@ router.post("/conversations/group", authRequired, async (req, res) => {
 
     res.status(201).json(formattedConversation);
   } catch (error) {
-    console.error("Error creating group conversation:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -675,7 +667,6 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
 
     res.json({ message: "Đã thêm thành viên thành công" });
   } catch (error) {
-    console.error("Error adding participants:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -713,7 +704,6 @@ router.put("/conversations/:conversationId/name", authRequired, async (req, res)
     const canChangeName = userParticipant.role === 'admin' || (conversation.allowMemberManagement === true);
     
     // Debug: Group name change permission check
-    // console.log('Group name change permission check:', { userId: req.user._id, userRole: userParticipant.role, allowMemberManagement: conversation.allowMemberManagement, canChangeName });
     
     if (!canChangeName) {
       return res.status(403).json({ message: "Bạn không có quyền đổi tên nhóm" });
@@ -745,7 +735,6 @@ router.put("/conversations/:conversationId/name", authRequired, async (req, res)
 
     res.json({ message: "Đã cập nhật tên nhóm thành công" });
   } catch (error) {
-    console.error("Error updating group name:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -779,7 +768,6 @@ router.put("/conversations/:conversationId/nickname", authRequired, async (req, 
 
     res.json({ message: "Đã cập nhật biệt danh thành công" });
   } catch (error) {
-    console.error("Error updating nickname:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -850,7 +838,6 @@ router.put("/conversations/:conversationId/participants/:userId/role", authRequi
 
     res.json({ message: `Đã thay đổi quyền thành ${roleText}` });
   } catch (error) {
-    console.error("Error changing participant role:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -898,7 +885,6 @@ router.put("/conversations/:conversationId/member-management", authRequired, asy
 
     res.json({ message: `Đã ${statusText} thành viên quản lý nhóm` });
   } catch (error) {
-    console.error("Error updating member management setting:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -919,7 +905,6 @@ router.post("/conversations/:conversationId/leave", authRequired, async (req, re
     }
 
     // Debug: User leaving conversation
-    // console.log('User leaving conversation:', { userId: req.user._id, conversationId, participantsBefore: conversation.participants.map(p => ({ userId: p.user, leftAt: p.leftAt })) });
 
     // Update ALL participant records for this user (in case there are duplicates)
     const updateResult = await Conversation.updateMany(
@@ -963,7 +948,6 @@ router.post("/conversations/:conversationId/leave", authRequired, async (req, re
 
     res.json({ message: "Đã rời khỏi cuộc trò chuyện" });
   } catch (error) {
-    console.error("Error leaving conversation:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -993,7 +977,6 @@ router.get("/users/search", authRequired, async (req, res) => {
 
     res.json(users);
   } catch (error) {
-    console.error("Error searching users:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -1023,7 +1006,6 @@ router.put("/conversations/:conversationId/avatar", authRequired, async (req, re
 
     res.json({ message: "Cập nhật avatar nhóm thành công" });
   } catch (error) {
-    console.error("Error updating group avatar:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -1062,7 +1044,6 @@ router.get("/conversations/:conversationId/details", authRequired, async (req, r
       lastActivity: conversation.lastActivity
     });
   } catch (error) {
-    console.error("Error fetching conversation details:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -1095,7 +1076,6 @@ router.delete("/conversations/:conversationId/participants/:userId", authRequire
     const canRemoveMembers = userParticipant.role === 'admin' || (conversation.allowMemberManagement === true);
     
     // Debug: Member removal permission check
-    // console.log('Member removal permission check:', { userId: req.user._id, userRole: userParticipant.role, allowMemberManagement: conversation.allowMemberManagement, canRemoveMembers });
     
     if (!canRemoveMembers) {
       return res.status(403).json({ message: "Bạn không có quyền xóa thành viên" });
@@ -1129,10 +1109,8 @@ router.delete("/conversations/:conversationId/participants/:userId", authRequire
       const removerUser = await User.findById(req.user._id).select('name');
       
       // Debug: User removal debug
-      // console.log('User removal debug:', { removedUser: removedUser?.name, removerUser: removerUser?.name });
       
       if (!removedUser || !removerUser) {
-        console.error('🔥 User not found:', { removedUser: !!removedUser, removerUser: !!removerUser });
         return res.json({ message: "Đã xóa thành viên khỏi nhóm" });
       }
       
@@ -1158,16 +1136,15 @@ router.delete("/conversations/:conversationId/participants/:userId", authRequire
         };
         ioForRemoval.to(`conversation-${conversationId}`).emit('new-message', messageData);
       } else {
-        console.error('🔥 Socket.io not available');
+        // Socket.io not available
       }
     } catch (systemError) {
-      console.error('🔥 Error creating system message:', systemError);
+      // Error creating system message
       // Don't fail the main operation
     }
 
     res.json({ message: "Đã xóa thành viên khỏi nhóm" });
   } catch (error) {
-    console.error("Error removing participant:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -1210,7 +1187,6 @@ router.put("/conversations/:conversationId", authRequired, async (req, res) => {
       conversation: updatedConversation
     });
   } catch (error) {
-    console.error("Error updating conversation:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -1246,7 +1222,6 @@ router.delete("/conversations/:conversationId", authRequired, async (req, res) =
     
     res.json({ message: "Xóa cuộc trò chuyện thành công" });
   } catch (error) {
-    console.error("Error deleting conversation:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -1314,7 +1289,6 @@ router.post("/conversations/:conversationId/nickname", authRequired, async (req,
       conversation: updatedConversation
     });
   } catch (error) {
-    console.error("Error setting nickname:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -1372,7 +1346,6 @@ router.delete("/conversations/:conversationId/nickname", authRequired, async (re
       conversation: updatedConversation
     });
   } catch (error) {
-    console.error("Error removing nickname:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -1412,7 +1385,6 @@ router.get("/conversations/:conversationId/nickname/:targetUserId", authRequired
       userId: targetParticipant.user._id
     });
   } catch (error) {
-    console.error("Error getting nickname:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });

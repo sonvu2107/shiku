@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview --port 5173"
+    "build:prod": "NODE_ENV=production vite build",
+    "preview": "vite preview --port 5173",
+    "preview:prod": "NODE_ENV=production vite preview --port 5173"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.2",

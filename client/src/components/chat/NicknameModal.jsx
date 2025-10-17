@@ -55,7 +55,6 @@ export default function NicknameModal({
       setNickname(response.nickname || "");
       setNewNickname(response.nickname || "");
     } catch (error) {
-      console.error("Error loading nickname:", error);
       setError("Không thể tải biệt danh hiện tại");
     } finally {
       setLoading(false);
@@ -83,7 +82,6 @@ export default function NicknameModal({
       setIsEditing(false);
       onNicknameUpdated?.();
     } catch (error) {
-      console.error("Error setting nickname:", error);
       setError(error.message || "Không thể đặt biệt danh");
     } finally {
       setLoading(false);
@@ -106,7 +104,6 @@ export default function NicknameModal({
       setIsEditing(false);
       onNicknameUpdated?.();
     } catch (error) {
-      console.error("Error removing nickname:", error);
       setError(error.message || "Không thể xóa biệt danh");
     } finally {
       setLoading(false);

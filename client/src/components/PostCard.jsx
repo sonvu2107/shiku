@@ -230,7 +230,6 @@ export default function PostCard({
               className="w-full h-full object-cover"
               controls
               onError={(e) => {
-                console.warn(`Failed to load post video: ${displayMedia.url}`);
                 e.target.style.display = 'none';
                 // Hiển thị placeholder khi video lỗi
                 const placeholder = document.createElement('div');
@@ -246,7 +245,6 @@ export default function PostCard({
               className="w-full h-full hover:scale-105 transition-transform duration-300 object-cover"
               loading="lazy"
               onError={(e) => {
-                console.warn(`Failed to load post image: ${displayMedia.url}`);
                 e.target.style.display = 'none';
                 // Hiển thị placeholder khi ảnh lỗi
                 const placeholder = document.createElement('div');
@@ -304,7 +302,6 @@ export default function PostCard({
                 alt={emo} 
                 className="emote inline-block align-middle"
                 onError={(e) => {
-                  console.warn(`Failed to load emote: ${emo}`);
                   e.target.style.display = 'none';
                 }}
               />
@@ -357,7 +354,6 @@ export default function PostCard({
                     alt={e} 
                     className="emote"
                     onError={(e) => {
-                      console.warn(`Failed to load emote: ${e}`);
                       e.target.style.display = 'none';
                     }}
                   />

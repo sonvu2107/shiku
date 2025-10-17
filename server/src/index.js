@@ -41,7 +41,7 @@ import sitemapRoutes from "./routes/sitemap.js"; // Sitemap routes
 import searchHistoryRoutes from "./routes/searchHistory.js"; // Search history routes
 import storyRoutes from "./routes/stories.js"; // Stories routes
 import pollRoutes from "./routes/polls.js"; // Polls routes
-import roleRoutes from "./routes/roles.js"; // Role management routes
+import healthRoutes from "./routes/health.js"; // Health check routes
 
 // Environment variables are loaded via `import 'dotenv/config'` at the top
 
@@ -49,19 +49,16 @@ import roleRoutes from "./routes/roles.js"; // Role management routes
 const app = express();
 const server = createServer(app);
 
-// Trust proxy để rate limiting hoạt động đúng với reverse proxy (Railway, Heroku, etc.)
+// Trust proxy để rate limiting hoạt động đúng với reverse proxy (Render, Railway, Heroku, etc.)
 app.set("trust proxy", 1);
+
+// Import security config
+import { securityConfig, isProduction } from "./config/env.js";
 
 // Tạo Socket.IO server với CORS configuration và improved settings
 const io = new Server(server, {
   cors: {
-    origin: [
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-      "https://shiku.click",
-      "https://www.shiku.click",
-      "https://shiku123.netlify.app"
-    ],
+    origin: securityConfig.cors.origins,
     credentials: true,
     optionsSuccessStatus: 200,
     allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'X-CSRF-Token', 'X-Refresh-Token', 'X-Session-ID', 'Cache-Control', 'Pragma', 'Expires']
@@ -220,16 +217,11 @@ app.get("/heartbeat", (req, res) => {
 app.get("/api/csrf-token", (req, res) => {
   try {
     const existingSecret = req.cookies._csrf;
-    console.log("[CSRF] GET /api/csrf-token");
-    console.log("[CSRF] Existing _csrf cookie:", existingSecret ? 'EXISTS' : 'NONE');
     
     // csurf will automatically:
     // - Reuse secret if _csrf cookie exists
     // - Create new secret if not present
     const token = req.csrfToken();
-    
-    console.log("[CSRF] Generated token:", token);
-    console.log("[CSRF] Secret", existingSecret ? 'reused' : 'created new');
     
     res.json({
       csrfToken: token,
@@ -237,7 +229,6 @@ app.get("/api/csrf-token", (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error("[SECURITY][CSRF] Failed to generate token", error);
     res.status(500).json({ error: "Failed to generate CSRF token" });
   }
 });
@@ -367,30 +358,17 @@ app.use("/api/sitemap", sitemapRoutes); // Sitemap generation
 app.use("/api/search", searchHistoryRoutes); // Search history
 app.use("/api/stories", apiLimiter, storyRoutes); // Stories with rate limiting
 app.use("/api/polls", apiLimiter, pollRoutes); // Polls/Surveys with rate limiting
-app.use("/api/admin/roles", roleRoutes); // Role management
+app.use("/api/health", healthRoutes); // Health check endpoint
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);
 
 // ==================== ERROR HANDLING ====================
 
-// 404 handler cho routes không tồn tại
+// CSRF error handler
 app.use((err, req, res, next) => {
   if (err && err.code === 'EBADCSRFTOKEN') {
-    console.warn('[SECURITY][CSRF] blocked request', {
-      method: req.method,
-      path: req.originalUrl,
-      ip: req.ip,
-      userAgent: getClientAgent(req),
-      receivedToken: req.headers['x-csrf-token'] || req.body?._csrf,
-      cookieSecret: req.cookies._csrf ? 'EXISTS' : 'MISSING',
-      cookieSecretValue: req.cookies._csrf, 
-      allCookies: Object.keys(req.cookies), 
-      headers: {
-        'x-csrf-token': req.headers['x-csrf-token'],
-        'cookie': req.headers.cookie ? 'HAS_COOKIE' : 'NO_COOKIE'
-      }
-    });
+    // CSRF token validation failed
     return res.status(403).json({
       error: 'invalid csrf token',
       code: 'INVALID_CSRF_TOKEN'
@@ -648,7 +626,7 @@ io.on("connection", async (socket) => {
 
   // Handle connection errors
   socket.on("error", (error) => {
-    console.error("Socket error:", error);
+    // Socket error
   });
 
   // Xử lý khi user disconnect với cleanup
@@ -674,7 +652,7 @@ io.on("connection", async (socket) => {
           });
         }
       } catch (error) {
-        console.error("Error updating user offline status:", error);
+        // Error updating user offline status
       }
     }
 
@@ -691,7 +669,7 @@ setInterval(() => {
   for (const [socketId, userInfo] of connectedUsers.entries()) {
     if (now - userInfo.connectedAt > staleThreshold) {
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Cleaning up stale connection: ${socketId}`);
+        // Cleaning up stale connection
       }
       connectedUsers.delete(socketId);
     }
@@ -707,12 +685,12 @@ setInterval(() => {
 
   // Log memory stats every 5 minutes (only in development)
   if (process.env.NODE_ENV === 'development') {
-    console.log(`📊 Memory Stats - Heap: ${heapUsedMB}/${heapTotalMB}MB, RSS: ${rssMB}MB, Sockets: ${connectedUsers.size}`);
+    // Memory stats logged
   }
 
   // Warning if memory usage is high
   if (heapUsedMB > 400) { // 400MB threshold
-    console.warn(`⚠️ High memory usage detected: ${heapUsedMB}MB heap used`);
+    // High memory usage detected
   }
 
   // Critical warning if memory usage is very high

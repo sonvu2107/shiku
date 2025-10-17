@@ -55,7 +55,7 @@ export default function ImageViewer({ isOpen, imageUrl, onClose, alt = "Ảnh" }
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Error downloading image:', error);
+      // Error downloading image
     }
   };
 

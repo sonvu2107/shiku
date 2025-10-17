@@ -15,7 +15,6 @@ export const loadCacheUtils = async () => {
       sessionCache: sessionCache?.default
     };
   } catch (error) {
-    console.warn("Failed to load cache utilities:", error);
     return null;
   }
 };
@@ -25,7 +24,6 @@ export const loadPerformanceUtils = async () => {
     const performanceUtils = await import("../utils/performance.js").catch(() => null);
     return performanceUtils?.default;
   } catch (error) {
-    console.warn("Failed to load performance utilities:", error);
     return null;
   }
 };
@@ -42,7 +40,6 @@ export const loadAuthUtils = async () => {
       authHelpers: authHelpers?.default
     };
   } catch (error) {
-    console.warn("Failed to load auth utilities:", error);
     return null;
   }
 };
@@ -52,7 +49,6 @@ export const loadThemeUtils = async () => {
     const themeUtils = await import("../utils/themeManager.js").catch(() => null);
     return themeUtils?.default;
   } catch (error) {
-    console.warn("Failed to load theme utilities:", error);
     return null;
   }
 };
@@ -62,7 +58,6 @@ export const loadAnalyticsUtils = async () => {
     const analyticsUtils = await import("../utils/analytics.js").catch(() => null);
     return analyticsUtils?.default;
   } catch (error) {
-    console.warn("Failed to load analytics utilities:", error);
     return null;
   }
 };
@@ -79,7 +74,6 @@ export const loadMediaUtils = async () => {
       videoUtils: videoUtils?.default
     };
   } catch (error) {
-    console.warn("Failed to load media utilities:", error);
     return null;
   }
 };
@@ -89,7 +83,6 @@ export const loadSocketUtils = async () => {
     const socketUtils = await import("../utils/socketHelpers.js").catch(() => null);
     return socketUtils?.default;
   } catch (error) {
-    console.warn("Failed to load socket utilities:", error);
     return null;
   }
 };
@@ -99,7 +92,6 @@ export const loadSecurityUtils = async () => {
     const securityUtils = await import("../utils/security.js").catch(() => null);
     return securityUtils?.default;
   } catch (error) {
-    console.warn("Failed to load security utilities:", error);
     return null;
   }
 };
