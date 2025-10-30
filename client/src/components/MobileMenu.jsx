@@ -71,7 +71,7 @@ export default function MobileMenu({ user, setUser }) {
         className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors touch-target"
         aria-label="Mở menu"
       >
-        <Menu size={24} />
+        <Menu size={20} />
       </button>
 
       {/* Overlay */}

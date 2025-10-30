@@ -95,7 +95,7 @@ export default function Register({ setUser }) {
             <Logo size="large" showText={true} />
           </div>
           <p className="text-xl text-gray-700 dark:text-gray-300 leading-relaxed">
-            Tham gia cộng đồng blogger và bắt đầu hành trình chia sẻ câu chuyện của bạn.
+            Tham gia cộng đồng và bắt đầu hành trình chia sẻ câu chuyện của bạn.
           </p>
           <div className="hidden lg:block space-y-4">
             <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
@@ -115,7 +115,7 @@ export default function Register({ setUser }) {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Tạo tài khoản</h2>
-              <p className="text-gray-600 dark:text-gray-300">Bắt đầu hành trình viết blog của bạn</p>
+              <p className="text-gray-600 dark:text-gray-300">Bắt đầu hành trình chia sẻ các câu chuyện của bạn</p>
             </div>
 
             <form onSubmit={submit} className="space-y-4">

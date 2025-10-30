@@ -24,24 +24,35 @@ export default function Saved() {
     }
   }
 
-  if (loading) return <div className="card">Đang tải...</div>;
-  if (error) return <div className="card text-red-600">{error}</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 transition-colors duration-300">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="card bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300">Đang tải...</div>
+      </div>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 transition-colors duration-300">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="card bg-white dark:bg-gray-800 text-red-600 dark:text-red-400">{error}</div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 transition-colors duration-300">
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-4">
-          <h1 className="text-xl font-bold">Bài đã lưu</h1>
-          <p className="text-sm text-gray-500">Các bài viết bạn đã đánh dấu lưu.</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Bài đã lưu</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Các bài viết bạn đã đánh dấu lưu.</p>
         </div>
         <div className="space-y-4">
           {posts.length === 0 ? (
-            <div className="card text-gray-500">Chưa có bài viết nào.</div>
+            <div className="card text-gray-500 dark:text-gray-400">Chưa có bài viết nào.</div>
           ) : (
             posts.map(p => (
-              <div key={p._id} className="bg-white rounded-lg shadow-sm border border-gray-200">
-                <PostCard post={p} isSaved={true} skipSavedStatusFetch={true} />
-              </div>
+              <PostCard key={p._id} post={p} isSaved={true} skipSavedStatusFetch={true} />
             ))
           )}
         </div>

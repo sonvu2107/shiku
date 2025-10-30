@@ -33,7 +33,8 @@ import {
   Calendar,     // Icon sự kiện
   Image,        // Icon kho media
   Moon,
-  Sun
+  Sun,
+  Settings      // Icon cài đặt thú cưng
 } from "lucide-react";
 
 /**
@@ -448,9 +449,9 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
             <React.Fragment key="user-nav-links">
               <Link
                 to="/"
-                className={`p-2 rounded-full transition-colors ${location.pathname === "/"
-                  ? "bg-blue-100 text-blue-600"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                className={`p-2 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 ${location.pathname === "/"
+                  ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100"
                   }`}
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 title="Trang chủ"
@@ -459,9 +460,9 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
               </Link>
               <Link
                 to="/explore"
-                className={`p-2 rounded-full transition-colors ${location.pathname === "/explore"
-                  ? "bg-blue-100 text-blue-600"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                className={`p-2 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 ${location.pathname === "/explore"
+                  ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100"
                   }`}
                 title="Khám phá"
               >
@@ -469,9 +470,9 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
               </Link>
               <Link
                 to="/groups"
-                className={`p-2 rounded-full transition-colors ${location.pathname === "/groups"
-                  ? "bg-blue-100 text-blue-600"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                className={`p-2 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 ${location.pathname === "/groups"
+                  ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100"
                   }`}
                 title="Nhóm"
               >
@@ -479,9 +480,9 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
               </Link>
               <Link
                 to="/events"
-                className={`p-2 rounded-full transition-colors ${location.pathname === "/events"
-                  ? "bg-blue-100 text-blue-600"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                className={`p-2 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 ${location.pathname === "/events"
+                  ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100"
                   }`}
                 title="Sự kiện"
               >
@@ -489,9 +490,9 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
               </Link>
               <Link
                 to="/media"
-                className={`p-2 rounded-full transition-colors ${location.pathname === "/media"
-                  ? "bg-blue-100 text-blue-600"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                className={`p-2 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 ${location.pathname === "/media"
+                  ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100"
                   }`}
                 title="Kho media"
               >
@@ -502,21 +503,21 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         </div>
 
         {/* RIGHT ZONE: Friends + Chat + Notifications + Avatar */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end">
+        <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-end">
           {/* Dark mode toggle */}
-          <button
-            onClick={() => setDarkMode && setDarkMode(!darkMode)}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="p-2 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/50 transition-all duration-200 transform hover:scale-105 active:scale-95 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
             aria-label={darkMode ? "Tắt dark mode" : "Bật dark mode"}
             title={darkMode ? "Tắt dark mode" : "Bật dark mode"}
           >
-            {darkMode ? <Moon size={22} /> : <Sun size={22} />}
+            {darkMode ? <Moon size={20} /> : <Sun size={20} />}
           </button>
           {/* Friends Icon */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden md:flex items-center">
             {user && (
-              <Link to="/friends" className="p-2 rounded-full hover:bg-gray-100 transition-colors relative" title="Bạn bè">
-                <Users size={22} />
+              <Link to="/friends" className="p-2 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/50 transition-all duration-200 transform hover:scale-105 active:scale-95 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 relative" title="Bạn bè">
+                <Users size={20} />
                 {pendingRequests > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                     {pendingRequests}
@@ -528,17 +529,17 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           {/* Mobile search button */}
           <button
             onClick={() => setShowMobileSearch(!showMobileSearch)}
-            className="md:hidden p-2 touch-target mobile-search hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            className="md:hidden p-2 touch-target mobile-search hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
             title="Tìm kiếm"
           >
-            <Search size={16} />
+            <Search size={20} />
           </button>
 
           {/* Mobile Menu */}
           <MobileMenu user={user} setUser={setUser} />
 
           {/* Desktop Navigation - Hidden on mobile */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-1">
             {user ? (
               <React.Fragment key="user-desktop-nav">
                 <ChatDropdown onOpenChat={(conv) => {
@@ -547,7 +548,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                 <NotificationBell user={user} />
                 <div className="relative" onKeyDown={(e) => { if (e.key === 'Escape') setShowProfileMenu(false); }}>
                   <button
-                    className="flex items-center gap-2 focus:outline-none"
+                    className="flex items-center gap-2 focus:outline-none hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-full p-1 transition-all duration-200 transform hover:scale-105 active:scale-95"
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                   >
                     <img

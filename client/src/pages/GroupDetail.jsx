@@ -868,6 +868,7 @@ const GroupDetail = () => {
                             key={post._id}
                             post={post}
                             user={user}
+                            hideActionsMenu={true}
                             isSaved={savedMap[post._id]}
                             onSavedChange={updateSavedState}
                             skipSavedStatusFetch={true}

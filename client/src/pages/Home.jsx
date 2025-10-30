@@ -233,33 +233,33 @@ export default function Home({ user }) {
   // ==================== LOADING SKELETON ====================
   
   const LoadingSkeleton = useCallback(() => (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors duration-200">
       <div className="p-4">
         {/* Header skeleton */}
         <div className="flex items-center space-x-3 mb-4">
-          <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
           <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
-            <div className="h-3 bg-gray-200 rounded animate-pulse w-20"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-32"></div>
+            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-20"></div>
           </div>
         </div>
 
         {/* Content skeleton */}
         <div className="space-y-2 mb-4">
-          <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-          <div className="h-4 bg-gray-200 rounded animate-pulse w-4/5"></div>
-          <div className="h-4 bg-gray-200 rounded animate-pulse w-3/5"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-4/5"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-3/5"></div>
         </div>
 
         {/* Image skeleton */}
-        <div className="h-64 bg-gray-200 rounded-lg animate-pulse mb-4"></div>
+        <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse mb-4"></div>
 
         {/* Actions skeleton */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-600">
           <div className="flex space-x-6">
-            <div className="h-8 bg-gray-200 rounded animate-pulse w-16"></div>
-            <div className="h-8 bg-gray-200 rounded animate-pulse w-20"></div>
-            <div className="h-8 bg-gray-200 rounded animate-pulse w-18"></div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-16"></div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-20"></div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-18"></div>
           </div>
         </div>
       </div>
@@ -268,19 +268,19 @@ export default function Home({ user }) {
 
   // ==================== RENDER ====================
   return (
-    <div className="min-h-screen bg-gray-50 pt-16 sm:pt-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 sm:pt-16 transition-colors duration-300">
       {/* Accessible, SEO-friendly heading without affecting layout */}
       <h1 className="sr-only">Shiku - Mạng xã hội hiện đại kết nối bạn bè</h1>
       <p className="sr-only">Shiku là nơi bạn có thể chia sẻ khoảnh khắc, kết nối bạn bè, tham gia nhóm và sự kiện.</p>
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold text-gray-900">Bảng tin</h2>
               {items.length > 0 && (
-                <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full transition-colors duration-200">
                   {items.length} bài viết
                 </span>
               )}
@@ -289,7 +289,7 @@ export default function Home({ user }) {
             <div className="relative sort-dropdown">
               <button
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 touch-manipulation"
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 touch-manipulation"
               >
                 {getSortIcon(sortBy)}
                 <span className="hidden sm:inline">{getSortLabel(sortBy)}</span>
@@ -297,7 +297,7 @@ export default function Home({ user }) {
               </button>
 
               {showSortDropdown && (
-                <div className="absolute right-0 top-full mt-2 w-48 sm:w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1">
+                <div className="absolute right-0 top-full mt-2 w-48 sm:w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 py-1 transition-colors duration-200">
                   {[
                     { key: 'newest', label: 'Mới nhất', icon: <Clock size={14} /> },
                     { key: 'oldest', label: 'Cũ nhất', icon: <Clock size={14} className="rotate-180" /> },
@@ -310,8 +310,8 @@ export default function Home({ user }) {
                         setSortBy(option.key);
                         setShowSortDropdown(false);
                       }}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-gray-50 flex items-center gap-2 sm:gap-3 transition-colors touch-manipulation ${
-                        sortBy === option.key ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-500' : 'text-gray-700'
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 sm:gap-3 transition-colors touch-manipulation ${
+                        sortBy === option.key ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-2 border-blue-500' : 'text-gray-700 dark:text-gray-300'
                       }`}
                     >
                       {option.icon}
@@ -338,14 +338,10 @@ export default function Home({ user }) {
           {/* Center Column - Main Feed (luôn hiển thị) */}
           <div className="flex-1 w-full lg:max-w-2xl lg:mx-0 space-y-4">
             {/* Stories Section */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <Stories user={user} />
-            </div>
+            <Stories user={user} />
 
             {/* Post Creator */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <PostCreator user={user} />
-            </div>
+            <PostCreator user={user} />
 
             {/* Posts Feed */}
             {loading ? (
@@ -355,15 +351,15 @@ export default function Home({ user }) {
                 ))}
               </div>
             ) : error ? (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-6 text-center transition-colors duration-200">
+                <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-800/50 rounded-full flex items-center justify-center">
                   <TrendingUp size={24} className="text-red-400" />
                 </div>
                 <h3 className="text-lg font-medium text-red-900 mb-2">Có lỗi xảy ra</h3>
                 <p className="text-red-600 mb-4">{error}</p>
                 <button
                   onClick={loadInitial}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors touch-manipulation"
+                  className="px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg transition-all duration-200 touch-manipulation shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Thử lại
                 </button>
@@ -377,7 +373,7 @@ export default function Home({ user }) {
                     <div
                       key={post._id}
                       ref={isLastPost ? lastPostElementRef : null}
-                      className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden"
+                      className="hover:shadow-md transition-shadow duration-200"
                     >
                       <PostCard
                         post={post}
@@ -408,7 +404,7 @@ export default function Home({ user }) {
                   <div className="flex flex-col sm:flex-row gap-3 justify-center py-4">
                     <button
                       onClick={loadMore}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors touch-manipulation"
+                      className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all duration-200 touch-manipulation shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
                     >
                       Tải thêm 15 bài viết
                     </button>

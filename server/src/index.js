@@ -93,10 +93,24 @@ app.use(helmet({
       scriptSrc: ["'self'"],
       connectSrc: ["'self'", "ws:", "wss:"],
       objectSrc: ["'none'"],
+      frameSrc: ["'none'"], // Anti-clickjacking protection
+      frameAncestors: ["'none'"], // Anti-clickjacking protection
       upgradeInsecureRequests: []
     }
   },
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  // Anti-clickjacking protection
+  frameguard: { action: 'deny' },
+  // Prevent MIME type sniffing
+  noSniff: true,
+  // Additional security headers
+  xssFilter: true,
+  hidePoweredBy: true,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
 }));
 
 // ==================== MIDDLEWARE SETUP ====================

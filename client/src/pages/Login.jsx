@@ -102,7 +102,7 @@ export default function Login({ setUser }) {
             <Logo size="large" showText={true} />
           </div>
           <p className="text-xl text-gray-700 dark:text-gray-300 leading-relaxed">
-            Shiku giúp bạn kết nối và chia sẻ với mọi người trong cộng đồng blog của bạn.
+            Shiku giúp bạn kết nối và chia sẻ với mọi người trong cộng đồng của bạn.
           </p>
           <div className="hidden lg:block space-y-4">
             <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">

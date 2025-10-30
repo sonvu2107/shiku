@@ -9,7 +9,7 @@ import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
  * Explore - Trang khám phá nội dung
  * Hiển thị các bài viết, người dùng, nhóm được đề xuất
  */
-export default function Explore() {
+export default function Explore({ user }) {
   const [activeTab, setActiveTab] = useState("posts");
   const [posts, setPosts] = useState([]);
   const [users, setUsers] = useState([]);
@@ -82,11 +82,11 @@ export default function Explore() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16 sm:pt-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 sm:pt-20 transition-colors duration-300">
       <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Khám phá</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">Khám phá</h1>
           
           {/* Search */}
           <form onSubmit={handleSearch} className="relative">
@@ -96,24 +96,24 @@ export default function Explore() {
               placeholder="Tìm kiếm bài viết, người dùng, nhóm..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
+              className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent outline-none text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
             />
           </form>
         </div>
 
         {/* Tabs */}
         <div className="mb-4 sm:mb-6">
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto scrollbar-hide">
+          <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg overflow-x-auto scrollbar-hide transition-colors duration-200">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-md transition-colors whitespace-nowrap flex-shrink-0 touch-target ${
+                  className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-md transition-all duration-200 whitespace-nowrap flex-shrink-0 touch-target ${
                     activeTab === tab.id
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700"
                   }`}
                 >
                   <Icon size={16} />

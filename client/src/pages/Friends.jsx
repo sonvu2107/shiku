@@ -286,7 +286,7 @@ export default function Friends() {
   );
 
   return (
-    <div className="w-full px-3 sm:px-6 py-6 pt-20 sm:pt-24">
+    <div className="w-full px-3 sm:px-6 py-6 pt-20 sm:pt-24 min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
 
         {/* Header */}
@@ -331,19 +331,19 @@ export default function Friends() {
         <div className="card">
           <div className="flex overflow-x-auto border-b mb-4 scrollbar-hide">
             <button
-              className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target ${activeTab === 'friends' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+              className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg ${activeTab === 'friends' ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
               onClick={() => setActiveTab('friends')}
             >
               Bạn bè ({friends.length})
             </button>
             <button
-              className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target ${activeTab === 'requests' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+              className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg ${activeTab === 'requests' ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
               onClick={() => setActiveTab('requests')}
             >
               Lời mời ({requests.length})
             </button>
             <button
-              className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target ${activeTab === 'suggestions' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+              className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg ${activeTab === 'suggestions' ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
               onClick={() => setActiveTab('suggestions')}
             >
               Gợi ý
@@ -363,7 +363,9 @@ export default function Friends() {
                   />
                 ))
               ) : (
-                <p className="text-gray-500 col-span-2">Chưa có bạn bè nào</p>
+                <div className="col-span-2 flex items-center justify-center py-12">
+                  <p className="text-gray-500 dark:text-gray-400 text-center">Chưa có bạn bè nào</p>
+                </div>
               )}
             </div>
           )}
@@ -380,7 +382,9 @@ export default function Friends() {
                   />
                 ))
               ) : (
-                <p className="text-gray-500">Không có lời mời nào</p>
+                <div className="flex items-center justify-center py-12">
+                  <p className="text-gray-500 dark:text-gray-400 text-center">Không có lời mời nào</p>
+                </div>
               )}
             </div>
           )}
@@ -392,7 +396,9 @@ export default function Friends() {
                   <UserCard key={user._id} user={user} showActions={true} showEmail={false} />
                 ))
               ) : (
-                <p className="text-gray-500">Không có gợi ý nào</p>
+                <div className="flex items-center justify-center py-12">
+                  <p className="text-gray-500 dark:text-gray-400 text-center">Không có gợi ý nào</p>
+                </div>
               )}
             </div>
           )}
