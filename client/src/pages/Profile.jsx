@@ -118,15 +118,15 @@ export default function Profile() {
     website: "", // Website
     phone: "" // Số điện thoại
   });
-  const [avatarUploading, setAvatarUploading] = useState(false); // Loading khi upload avatar
+  const [avatarUploading, setAvatarUploading] = useState(false); // Tải lại khi upload avatar
 
-  // Customization states
-  const [showCustomization, setShowCustomization] = useState(false); // Hiển thị modal customization
+  // Trạng thái tùy chỉnh
+  const [showCustomization, setShowCustomization] = useState(false); // Hiển thị modal tùy chỉnh
 
   // Posts states
   const [posts, setPosts] = useState([]); // Danh sách bài đăng cá nhân
-  const [postsLoading, setPostsLoading] = useState(false); // Loading posts
-  const [postsError, setPostsError] = useState(""); // Error khi load posts
+  const [postsLoading, setPostsLoading] = useState(false); // Tải bài đăng
+  const [postsError, setPostsError] = useState(""); // Lỗi khi tải bài đăng
   const { savedMap, updateSavedState } = useSavedPosts(posts);
 
   // Tab states
@@ -134,14 +134,14 @@ export default function Profile() {
 
   // Friends and Events states
   const [friends, setFriends] = useState([]); // Danh sách bạn bè
-  const [friendsLoading, setFriendsLoading] = useState(false); // Loading friends
-  const [friendsError, setFriendsError] = useState(""); // Error khi load friends
+  const [friendsLoading, setFriendsLoading] = useState(false); // Tải bạn bè
+  const [friendsError, setFriendsError] = useState(""); // Lỗi khi tải bạn bè
 
   // Analytics states
-  const [analytics, setAnalytics] = useState(null); // Analytics data
-  const [analyticsLoading, setAnalyticsLoading] = useState(false); // Loading analytics
-  const [analyticsError, setAnalyticsError] = useState(""); // Error khi load analytics
-  const [analyticsPeriod, setAnalyticsPeriod] = useState('30d'); // Analytics period
+  const [analytics, setAnalytics] = useState(null); // Dữ liệu phân tích
+  const [analyticsLoading, setAnalyticsLoading] = useState(false); // Tải phân tích
+  const [analyticsError, setAnalyticsError] = useState(""); // Lỗi khi tải phân tích
+  const [analyticsPeriod, setAnalyticsPeriod] = useState('30d'); // Thời gian phân tích
 
 
   // ==================== EFFECTS ====================
@@ -503,7 +503,7 @@ export default function Profile() {
                             const { url } = await uploadImage(file);
                             setForm(f => ({ ...f, avatarUrl: url }));
                           } catch (err) {
-                            alert("Upload thất bại: " + err.message);
+                            alert("Tải lên thất bại: " + err.message);
                           } finally {
                             setAvatarUploading(false);
                           }
@@ -627,20 +627,20 @@ export default function Profile() {
                   onSubmit={async e => {
                     e.preventDefault();
                     try {
-                      // Pre-process website field
+                      // Tiền xử lý trường trang web
                       if (form.website && form.website !== "" && !form.website.startsWith('http://') && !form.website.startsWith('https://')) {
                         form.website = `https://${form.website}`;
                       }
 
                       const updateData = Object.fromEntries(
                         Object.entries(form).filter(([key, value]) => {
-                          // Always include name and email
+                          // Luôn luôn bao gồm tên và email
                           if (key === "name" || key === "email") return true;
 
-                          // Include avatarUrl and coverUrl if not empty
+                          // Bao gồm avatarUrl và coverUrl nếu không rỗng
                           if ((key === "avatarUrl" || key === "coverUrl") && value !== "") return true;
 
-                          // Password validation
+                          // Xác thực mật khẩu
                           if (key === "password") {
                             if (value === "") return false;
                             const hasMinLength = value.length >= 8;
@@ -656,7 +656,7 @@ export default function Profile() {
                             return true;
                           }
 
-                          // Birthday validation
+                          // Xác thực ngày sinh
                           if (key === "birthday") {
                             if (value === "") return false;
                             if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -668,16 +668,16 @@ export default function Profile() {
                             return true;
                           }
 
-                          // Website validation
+                          // Xác thực trang web
                           if (key === "website") {
                             if (value === "") return false;
-                            return true; // Already processed above
+                            return true; // Đã được xử lý ở trên
                           }
 
-                          // Phone validation
+                          // Xác thực số điện thoại
                           if (key === "phone") {
                             if (value === "") return false;
-                            // Basic phone validation
+                            // Xác thực điện thoại cơ bản
                             const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,15}$/;
                             if (!phoneRegex.test(value)) {
                               alert("Số điện thoại không hợp lệ");
@@ -686,7 +686,7 @@ export default function Profile() {
                             return true;
                           }
 
-                          // Include other fields if not empty
+                          // Loại bỏ các trường trống khác
                           return value !== "";
                         })
                       );
@@ -713,7 +713,7 @@ export default function Profile() {
                           bio: response.user.bio || "",
                           avatarUrl: response.user.avatarUrl || "",
                           coverUrl: response.user.coverUrl || "",
-                          password: "", // Reset password field
+                          password: "", // Luôn reset password field
                           location: response.user.location || "",
                           website: response.user.website || "",
                           phone: response.user.phone || ""

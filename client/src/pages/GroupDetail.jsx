@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getUserAvatarUrl, AVATAR_SIZES } from '../utils/avatarUtils';
-import { 
-  ArrowLeft, 
-  Settings, 
-  Users, 
-  Calendar, 
-  MapPin, 
-  Tag, 
+import {
+  ArrowLeft,
+  Settings,
+  Users,
+  Calendar,
+  MapPin,
+  Tag,
   MoreVertical,
   UserPlus,
   UserMinus,
@@ -37,7 +37,7 @@ import { getAccessToken } from '../utils/tokenManager.js';
 const GroupDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   // State cho nhóm
   const [group, setGroup] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +52,7 @@ const GroupDetail = () => {
   const [hasMorePosts, setHasMorePosts] = useState(true);
 
   // State cho UI
-  const [activeTab, setActiveTab] = useState('posts'); // posts, members, pending, settings
+  const [activeTab, setActiveTab] = useState('posts'); // bài đăng, thành viên, cài đặt, chờ duyệt
   const [showMemberMenu, setShowMemberMenu] = useState(null);
   const [isJoining, setIsJoining] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -76,16 +76,23 @@ const GroupDetail = () => {
 
       const timestamp = Date.now();
       const response = await api(`/api/groups/${id}?t=${timestamp}`, { method: 'GET' });
-      
+
+      /**
+    * Xử lý logic tải thông tin nhóm:
+    * 1. Gọi API lấy dữ liệu nhóm.
+    * 2. Nếu thành công:
+    *    - Lưu dữ liệu nhóm vào state.
+    *    - Kiểm tra xem user có đang chờ duyệt tham gia nhóm không (từ server/localStorage).
+    *    - Nếu user đã là thành viên -> xóa trạng thái "pending" cục bộ.
+    * 3. Nếu lỗi -> hiển thị thông báo lỗi phù hợp.
+    * 4. Cuối cùng -> tắt trạng thái loading.
+    */
       if (response.success) {
-        // Success - group loaded with correct userRole
         setGroup(response.data);
         const locallyPending = (() => { try { return localStorage.getItem(pendingKey) === '1'; } catch { return false; } })();
-        // Pending if server says so OR we have a local pending flag
         setIsPendingJoin(!!response.data.hasPendingJoinRequest || locallyPending);
-        // If now a member, clear local flag
         if (response.data.userRole) {
-          try { localStorage.removeItem(pendingKey); } catch {}
+          try { localStorage.removeItem(pendingKey); } catch { }
         }
       }
     } catch (error) {
@@ -95,13 +102,13 @@ const GroupDetail = () => {
     }
   };
 
-  // Load group posts
+  // Tải các bài đăng trong nhóm
   const loadPosts = async (page = 1, reset = false) => {
     try {
       setPostsLoading(true);
 
-  const response = await api(`/api/groups/${id}/posts?page=${page}&limit=10`, { method: 'GET' });
-      
+      const response = await api(`/api/groups/${id}/posts?page=${page}&limit=10`, { method: 'GET' });
+
       if (response.items) {
         if (reset) {
           setPosts(response.items);
@@ -116,19 +123,19 @@ const GroupDetail = () => {
         setHasMorePosts(response.items.length === 10); // hoặc kiểm tra response.total
       }
     } catch (error) {
-      // Error loading group posts
+      // Lỗi khi tải bài đăng trong nhóm
     } finally {
       setPostsLoading(false);
     }
   };
 
-  // Join group
+  // Tham gia nhóm
   const handleJoin = async () => {
     try {
       setIsJoining(true);
-      
+
       const response = await api(`/api/groups/${id}/join`, { method: 'POST' });
-      
+
       if (response.success) {
         if (response.joined) {
           await loadGroup();
@@ -137,7 +144,7 @@ const GroupDetail = () => {
         if (response.pending || group?.settings?.joinApproval !== 'anyone') {
           setIsPendingJoin(true);
           setActiveTab('posts');
-          try { localStorage.setItem(pendingKey, '1'); } catch {}
+          try { localStorage.setItem(pendingKey, '1'); } catch { }
           await loadGroup();
           return;
         }
@@ -156,9 +163,9 @@ const GroupDetail = () => {
     if (!confirm('Bạn có chắc muốn rời khỏi nhóm này?')) return;
     try {
       setIsLeaving(true);
-      
+
       const response = await api(`/api/groups/${id}/leave`, { method: 'POST' });
-      
+
       if (response.success) {
         // Ở lại trang nhóm và cập nhật UI để có thể tham gia lại
         await loadGroup();
@@ -171,20 +178,20 @@ const GroupDetail = () => {
     }
   };
 
-  // Load more posts
+  // Tải thêm nhiều bài đăng
   const loadMorePosts = () => {
     if (hasMorePosts && !postsLoading) {
       loadPosts(postsPage + 1, false);
     }
   };
 
-  // Handle successful post creation
+  // Xử lý việc tạo bài đăng thành công
   const handlePostCreated = () => {
     setShowPostCreator(false);
-    loadPosts(1, true); // Reload posts from the beginning
+    loadPosts(1, true); // Tải lại bài đăng từ đầu
   };
 
-  // Initialize settings data when group loads
+  // Khởi tạo dữ liệu cài đặt khi nhóm tải xong
   useEffect(() => {
     if (group) {
       setSettingsData({
@@ -201,7 +208,7 @@ const GroupDetail = () => {
         location: group.location?.name || ''
       });
 
-      // Update group stats
+      // Cập nhật thống kê nhóm
       setGroupStats({
         memberCount: group.stats?.memberCount || group.members?.length || 0,
         postCount: posts.length,
@@ -210,7 +217,7 @@ const GroupDetail = () => {
     }
   }, [group, posts]);
 
-  // Handle settings input change
+  // Xử lý thay đổi đầu vào cài đặt
   const handleSettingsChange = (field, value) => {
     setSettingsData(prev => ({
       ...prev,
@@ -218,11 +225,11 @@ const GroupDetail = () => {
     }));
   };
 
-  // Save settings
+  // Lưu các cài đặt
   const handleSaveSettings = async () => {
     try {
       setSettingsLoading(true);
-      
+
       const updateData = new FormData();
       updateData.append('name', settingsData.name);
       updateData.append('description', settingsData.description);
@@ -293,7 +300,7 @@ const GroupDetail = () => {
 
     try {
       setUploadingAvatar(true);
-      
+
       const formData = new FormData();
       formData.append('avatar', file);
 
@@ -332,7 +339,7 @@ const GroupDetail = () => {
 
     try {
       setUploadingCover(true);
-      
+
       const formData = new FormData();
       formData.append('coverImage', file);
 
@@ -428,12 +435,12 @@ const GroupDetail = () => {
   // Load group when user context is ready
   useEffect(() => {
     const hasToken = !!getAccessToken();
-    
+
     if (hasToken && !user) {
       // Has token but user not loaded yet, wait
       return;
     }
-    
+
     // Only load if not already loaded with this user context
     const userKey = user?._id || 'no-user';
     if (hasLoadedWithUser !== userKey) {
@@ -541,20 +548,20 @@ const GroupDetail = () => {
   // Check specific permissions
   const hasPermission = (action) => {
     const role = group?.userRole;
-    
+
     switch (action) {
       // Chỉ owner và admin
       case 'change_settings':
       case 'promote_to_admin':
         return role === 'owner' || role === 'admin';
-      
+
       // Owner, admin và moderator
       case 'remove_member':
       case 'ban_member':
       case 'promote_to_moderator':
       case 'approve_join_request':
         return role === 'owner' || role === 'admin' || role === 'moderator';
-      
+
       default:
         return false;
     }
@@ -632,7 +639,7 @@ const GroupDetail = () => {
               {group.userRole ? (
                 <>
                   {hasPermission('change_settings') && (
-                    <button 
+                    <button
                       onClick={() => setActiveTab('settings')}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                       title="Cài đặt nhóm"
@@ -680,8 +687,8 @@ const GroupDetail = () => {
               {/* Cover Image with Avatar */}
               <div className="w-full h-48 rounded-lg overflow-hidden mb-4 relative group-cover">
                 {group.coverImage ? (
-                  <img 
-                    src={group.coverImage} 
+                  <img
+                    src={group.coverImage}
                     alt={`Cover của ${group.name}`}
                     className="w-full h-full object-cover"
                   />
@@ -693,7 +700,7 @@ const GroupDetail = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Upload Cover Button for Admin */}
                 {isAdmin() && (
                   <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 hover:opacity-100">
@@ -722,8 +729,8 @@ const GroupDetail = () => {
                 <div className="absolute bottom-4 left-4">
                   <div className="w-20 h-20 rounded-full overflow-hidden bg-white border-4 border-white shadow-lg relative">
                     {group.avatar ? (
-                      <img 
-                        src={group.avatar} 
+                      <img
+                        src={group.avatar}
                         alt={`Avatar của ${group.name}`}
                         className="w-full h-full object-cover"
                       />
@@ -732,7 +739,7 @@ const GroupDetail = () => {
                         <Users className="w-8 h-8 text-gray-500" />
                       </div>
                     )}
-                    
+
                     {/* Avatar Upload for Admin */}
                     {isAdmin() && (
                       <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-40 transition-all duration-200 flex items-center justify-center opacity-0 hover:opacity-100 rounded-full">
@@ -748,7 +755,7 @@ const GroupDetail = () => {
                         </label>
                       </div>
                     )}
-                    
+
                     {uploadingAvatar && (
                       <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-full">
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -811,11 +818,10 @@ const GroupDetail = () => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap touch-target ${
-                        activeTab === tab.id
+                      className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap touch-target ${activeTab === tab.id
                           ? 'border-blue-500 text-blue-600'
                           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       {tab.label}
                       {tab.count > 0 && (
@@ -842,8 +848,8 @@ const GroupDetail = () => {
                           onClick={async () => {
                             try {
                               await api(`/api/groups/${id}/join-requests/cancel`, { method: 'POST' });
-                            } catch (_) {}
-                            try { localStorage.removeItem(pendingKey); } catch {}
+                            } catch (_) { }
+                            try { localStorage.removeItem(pendingKey); } catch { }
                             await loadGroup();
                           }}
                           className="px-3 py-1.5 bg-white text-yellow-700 border border-yellow-300 rounded-lg text-sm hover:bg-yellow-100"
@@ -854,7 +860,7 @@ const GroupDetail = () => {
                     )}
                     {canPost() && (
                       <div className="mb-6">
-                        <PostCreator 
+                        <PostCreator
                           user={user}
                           groupId={id}
                         />
@@ -874,7 +880,7 @@ const GroupDetail = () => {
                             skipSavedStatusFetch={true}
                           />
                         ))}
-                        
+
                         {hasMorePosts && (
                           <div className="text-center">
                             <button
@@ -892,8 +898,8 @@ const GroupDetail = () => {
                         <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có bài viết nào</h3>
                         <p className="text-gray-600">
-                          {canPost() 
-                            ? 'Hãy là người đầu tiên đăng bài trong nhóm này' 
+                          {canPost()
+                            ? 'Hãy là người đầu tiên đăng bài trong nhóm này'
                             : 'Chưa có bài viết nào trong nhóm này'
                           }
                         </p>
@@ -910,13 +916,13 @@ const GroupDetail = () => {
                         {group.members.map((member) => (
                           <div key={member.user._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
-                              <img 
-                                src={getUserAvatarUrl(member.user, AVATAR_SIZES.MEDIUM)} 
+                              <img
+                                src={getUserAvatarUrl(member.user, AVATAR_SIZES.MEDIUM)}
                                 alt={member.user.name || member.user.fullName || member.user.username || 'User'}
                                 className="w-full h-full object-cover"
                               />
                             </div>
-                            
+
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-gray-900 truncate">
                                 {member.user.name || member.user.fullName || member.user.username || member.user.displayName || 'Unknown'}
@@ -932,9 +938,9 @@ const GroupDetail = () => {
                                   <UserCheck className="w-4 h-4 text-green-500" />
                                 )}
                                 <span className="text-sm text-gray-600 capitalize">
-                                  {member.role === 'owner' ? 'Chủ sở hữu' : 
-                                   member.role === 'admin' ? 'Quản trị viên' : 
-                                   member.role === 'moderator' ? 'Điều hành viên' : 'Thành viên'}
+                                  {member.role === 'owner' ? 'Chủ sở hữu' :
+                                    member.role === 'admin' ? 'Quản trị viên' :
+                                      member.role === 'moderator' ? 'Điều hành viên' : 'Thành viên'}
                                 </span>
                               </div>
                             </div>
@@ -947,14 +953,14 @@ const GroupDetail = () => {
                                 >
                                   <MoreVertical className="w-4 h-4" />
                                 </button>
-                                
+
                                 {showMemberMenu === member.user._id && (
                                   <div className="absolute right-0 top-8 bg-white rounded-lg shadow-lg py-1 z-10 min-w-[180px] border">
                                     {/* Role Management - Phân quyền chi tiết */}
-                                    
+
                                     {/* Chỉ Owner mới có thể thăng Admin */}
                                     {group.userRole === 'owner' && member.role !== 'admin' && (
-                                      <button 
+                                      <button
                                         onClick={() => {
                                           handleMemberRoleChange(member.user._id, 'admin');
                                           setShowMemberMenu(null);
@@ -965,10 +971,10 @@ const GroupDetail = () => {
                                         Thăng Quản trị viên
                                       </button>
                                     )}
-                                    
+
                                     {/* Chỉ Owner mới có thể hạ Admin */}
                                     {group.userRole === 'owner' && member.role === 'admin' && (
-                                      <button 
+                                      <button
                                         onClick={() => {
                                           handleMemberRoleChange(member.user._id, 'member');
                                           setShowMemberMenu(null);
@@ -979,10 +985,10 @@ const GroupDetail = () => {
                                         Hạ xuống Thành viên
                                       </button>
                                     )}
-                                    
+
                                     {/* Admin và Owner có thể thăng Moderator */}
                                     {hasPermission('promote_to_moderator') && member.role === 'member' && (
-                                      <button 
+                                      <button
                                         onClick={() => {
                                           handleMemberRoleChange(member.user._id, 'moderator');
                                           setShowMemberMenu(null);
@@ -993,10 +999,10 @@ const GroupDetail = () => {
                                         Thăng Điều hành viên
                                       </button>
                                     )}
-                                    
+
                                     {/* Admin và Owner có thể hạ Moderator */}
                                     {hasPermission('promote_to_moderator') && member.role === 'moderator' && (
-                                      <button 
+                                      <button
                                         onClick={() => {
                                           handleMemberRoleChange(member.user._id, 'member');
                                           setShowMemberMenu(null);
@@ -1007,14 +1013,14 @@ const GroupDetail = () => {
                                         Hạ xuống Thành viên
                                       </button>
                                     )}
-                                    
+
                                     {/* Chỉ hiển thị actions nếu có quyền và không phải Admin (trừ Owner) */}
                                     {(hasPermission('remove_member') && (member.role !== 'admin' || group.userRole === 'owner')) && (
                                       <>
                                         <div className="border-t my-1"></div>
-                                        
+
                                         {/* Actions */}
-                                        <button 
+                                        <button
                                           onClick={() => {
                                             handleRemoveMember(member.user._id, member.user.name || 'thành viên');
                                             setShowMemberMenu(null);
@@ -1024,7 +1030,7 @@ const GroupDetail = () => {
                                           <UserX className="w-4 h-4" />
                                           Xóa khỏi nhóm
                                         </button>
-                                        <button 
+                                        <button
                                           onClick={() => {
                                             handleBanMember(member.user._id, member.user.name || 'thành viên');
                                             setShowMemberMenu(null);
@@ -1036,11 +1042,11 @@ const GroupDetail = () => {
                                         </button>
                                       </>
                                     )}
-                                    
+
                                     {/* Thông báo nếu không có quyền */}
                                     {!hasPermission('remove_member') || (member.role === 'admin' && group.userRole !== 'owner') ? (
                                       <div className="px-4 py-2 text-xs text-gray-500 italic">
-                                        {member.role === 'admin' && group.userRole !== 'owner' 
+                                        {member.role === 'admin' && group.userRole !== 'owner'
                                           ? 'Chỉ chủ sở hữu mới có thể quản lý admin'
                                           : 'Quyền hạn hạn chế'
                                         }
@@ -1384,7 +1390,7 @@ const GroupDetail = () => {
             {/* Group Info */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h3 className="font-semibold text-gray-900 mb-4">Thông tin nhóm</h3>
-              
+
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-gray-500" />
@@ -1393,13 +1399,13 @@ const GroupDetail = () => {
                     {new Date(group.createdAt).toLocaleDateString('vi-VN')}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-gray-500" />
                   <span className="text-gray-600">Thành viên:</span>
                   <span className="text-gray-900">{groupStats.memberCount}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-gray-500" />
                   <span className="text-gray-600">Bài viết:</span>
@@ -1411,16 +1417,16 @@ const GroupDetail = () => {
             {/* Owner Info */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h3 className="font-semibold text-gray-900 mb-4">Chủ sở hữu</h3>
-              
+
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
-                  <img 
-                    src={getUserAvatarUrl(group.owner, AVATAR_SIZES.MEDIUM)} 
+                  <img
+                    src={getUserAvatarUrl(group.owner, AVATAR_SIZES.MEDIUM)}
                     alt={group.owner?.name || group.owner?.fullName || group.owner?.username || 'User'}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                
+
                 <div>
                   <p className="font-medium text-gray-900">
                     {group.owner?.name || group.owner?.fullName || group.owner?.username || group.owner?.displayName || 'Unknown'}

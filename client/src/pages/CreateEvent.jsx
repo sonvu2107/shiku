@@ -221,7 +221,7 @@ export default function CreateEvent() {
                 <div className="text-center">
                   <Image className="mx-auto h-12 w-12 text-gray-400" />
                   <p className="mt-2 text-sm text-gray-600">Tải lên ảnh bìa</p>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF tối đa 10MB</p>
+                  <p className="text-xs text-gray-500">PNG, JPG, GIF (tối đa 10MB)</p>
                 </div>
               </ImageUpload>
             )}
@@ -310,7 +310,7 @@ export default function CreateEvent() {
           <div>
             <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
               <Tag className="inline w-4 h-4 mr-1" />
-              Tags (cách nhau bởi dấu phẩy)
+              Tags
             </label>
             <input
               type="text"

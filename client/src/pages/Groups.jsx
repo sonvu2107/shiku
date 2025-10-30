@@ -38,7 +38,7 @@ const Groups = () => {
   const [viewMode, setViewMode] = useState('grid'); // grid hoặc list
 
   // State cho tab hiện tại
-  const [activeTab, setActiveTab] = useState('discover'); // discover, my-groups, trending
+  const [activeTab, setActiveTab] = useState('discover'); // khám phá, nhóm của tôi, xu hướng
 
   // State cho UI
   const [showFilters, setShowFilters] = useState(false);

@@ -6,7 +6,7 @@ import { useSocket } from "../hooks/useSocket";
 /**
  * Poll Component - Hiển thị poll/survey với realtime voting
  * @param {Object} post - Post object chứa poll
- * @param {Object} user - Current user
+ * @param {Object} user - Người dùng hiện tại
  */
 export default function Poll({ post, user }) {
   const [pollData, setPollData] = useState(null);
@@ -18,7 +18,7 @@ export default function Poll({ post, user }) {
   const [addingOptions, setAddingOptions] = useState(false);
   const socket = useSocket();
 
-  // Load poll data
+  // Tải dữ liệu cuộc bình chọn
   useEffect(() => {
     const loadPoll = async () => {
       try {
@@ -42,13 +42,13 @@ export default function Poll({ post, user }) {
   useEffect(() => {
     if (!socket || !pollData) return;
 
-    // Join poll room
+    // Tham gia vào phòng bình chọn
     socket.emit("join-poll", pollData._id);
 
-    // Listen for poll updates
+    // Lắng nghe các cập nhật bình chọn
     const handlePollUpdate = (data) => {
       if (data.pollId?.toString() === pollData._id?.toString()) {
-        // Update results
+        // Cập nhật kết quả
         setPollData(prev => ({
           ...prev,
           results: data.results,
@@ -59,17 +59,17 @@ export default function Poll({ post, user }) {
 
     socket.on("poll-update", handlePollUpdate);
 
-    // Cleanup
+    // Dọn dẹp
     return () => {
       socket.off("poll-update", handlePollUpdate);
       socket.emit("leave-poll", pollData._id);
     };
   }, [socket, pollData]);
 
-  // Handle vote
+  // Xử lý phiếu bầu
   const handleVote = async (optionIndex) => {
     if (!user) {
-      alert("Vui lòng đăng nhập để lựa chọn");
+      alert("Vui lòng đăng nhập để bình chọn");
       return;
     }
 
@@ -78,7 +78,7 @@ export default function Poll({ post, user }) {
       return;
     }
 
-    // Check expiry
+    // Kiểm tra hết hạn
     if (pollData.expiresAt && new Date() >= new Date(pollData.expiresAt)) {
       alert("Bình chọn đã hết hạn");
       return;
@@ -91,7 +91,7 @@ export default function Poll({ post, user }) {
         body: { optionIndex }
       });
 
-      // Update local poll data
+      // Cập nhật dữ liệu bình chọn sau khi bầu
       setPollData(response.poll);
     } catch (error) {
       console.error("Error voting:", error);

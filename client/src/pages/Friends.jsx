@@ -151,7 +151,7 @@ export default function Friends() {
         body: { to: userId }
       });
       alert('Đã gửi lời mời kết bạn!');
-      loadSuggestions(); // Refresh suggestions
+      loadSuggestions(); // Cập nhật lại gợi ý
     } catch (error) {
       alert(error.message || 'Có lỗi xảy ra');
     }
@@ -197,7 +197,7 @@ export default function Friends() {
   };
 
   const getLastSeenText = (lastSeen, isOnline) => {
-    if (isOnline) return '● Đang hoạt động';
+    if (isOnline) return 'Đang hoạt động';
 
     if (!lastSeen) return 'Chưa có thông tin';
 

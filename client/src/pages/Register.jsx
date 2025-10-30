@@ -18,6 +18,7 @@ export default function Register({ setUser }) {
   const [name, setName] = useState(""); // Họ và tên
   const [email, setEmail] = useState(""); // Email
   const [password, setPassword] = useState(""); // Mật khẩu
+  const [passwordStrength, setPasswordStrength] = useState(0); // Độ mạnh mật khẩu (0-5)
   const [err, setErr] = useState(""); // Error message
   const [loading, setLoading] = useState(false); // Loading state
   const navigate = useNavigate();
@@ -34,6 +35,11 @@ export default function Register({ setUser }) {
     setLoading(true);
     
     try {
+      // Kiểm tra mật khẩu có đủ mạnh không
+      if (passwordStrength < 3) {
+        throw new Error("Mật khẩu chưa đủ mạnh. Vui lòng chọn mật khẩu có độ bảo mật từ 'Trung bình' trở lên.");
+      }
+      
       // Lấy CSRF token trước khi đăng ký
       const csrfToken = await getCSRFToken();
       if (!csrfToken) {
@@ -84,6 +90,109 @@ export default function Register({ setUser }) {
       setLoading(false);
     }
   }
+
+  // ==================== VALIDATION FUNCTIONS ====================
+  
+  /**
+   * Tính toán độ mạnh của mật khẩu
+   * @param {string} password - Mật khẩu cần kiểm tra
+   * @returns {number} - Điểm từ 0-5 (0: rất yếu, 5: rất mạnh)
+   */
+  const calculatePasswordStrength = (password) => {
+    if (!password) return 0;
+    
+    let score = 0;
+    
+    // Kiểm tra độ dài
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    
+    // Kiểm tra các loại ký tự
+    if (/[a-z]/.test(password)) score++; // Chữ thường
+    if (/[A-Z]/.test(password)) score++; // Chữ hoa
+    if (/\d/.test(password)) score++; // Số
+    if (/[@$!%*?&]/.test(password)) score++; // Ký tự đặc biệt
+    
+    // Bonus cho mật khẩu rất dài
+    if (password.length >= 16) score++;
+    
+    return Math.min(score, 5); // Tối đa 5 điểm
+  };
+
+  /**
+   * Lấy thông tin về độ mạnh mật khẩu
+   * @param {number} strength - Điểm strength (0-5)
+   * @returns {Object} - {text, color, bgColor}
+   */
+  const getPasswordStrengthInfo = (strength) => {
+    switch (strength) {
+      case 0:
+      case 1:
+        return {
+          text: "Rất yếu",
+          color: "text-red-600 dark:text-red-400",
+          bgColor: "bg-red-500",
+          percentage: 20
+        };
+      case 2:
+        return {
+          text: "Yếu", 
+          color: "text-orange-600 dark:text-orange-400",
+          bgColor: "bg-orange-500",
+          percentage: 40
+        };
+      case 3:
+        return {
+          text: "Trung bình",
+          color: "text-yellow-600 dark:text-yellow-400", 
+          bgColor: "bg-yellow-500",
+          percentage: 60
+        };
+      case 4:
+        return {
+          text: "Mạnh",
+          color: "text-green-600 dark:text-green-400",
+          bgColor: "bg-green-500", 
+          percentage: 80
+        };
+      case 5:
+        return {
+          text: "Rất mạnh",
+          color: "text-green-700 dark:text-green-300",
+          bgColor: "bg-green-600",
+          percentage: 100
+        };
+      default:
+        return {
+          text: "",
+          color: "",
+          bgColor: "",
+          percentage: 0
+        };
+    }
+  };
+
+  /**
+   * Kiểm tra độ an toàn mật khẩu
+   * @param {string} key - Tên field cần validate
+   * @param {string} value - Giá trị cần validate
+   * @returns {boolean} - true nếu hợp lệ, false nếu không hợp lệ
+   */
+  const validateInput = (key, value) => {
+    if (key === "password") {
+      const strength = calculatePasswordStrength(value);
+      setPasswordStrength(strength);
+      
+      if (value === "") return true; // Cho phép rỗng khi đang nhập
+      
+      // Yêu cầu tối thiểu strength >= 3 (trung bình)
+      if (strength < 3) {
+        return true; // Vẫn cho phép nhập nhưng hiển thị warning
+      }
+      return true;
+    }
+    return true;
+  };
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-slate-100 dark:from-gray-900 dark:to-gray-900 flex items-center justify-center">
@@ -150,14 +259,59 @@ export default function Register({ setUser }) {
                 <Lock size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="password"
-                  placeholder="Mật khẩu (tối thiểu 6 ký tự)"
+                  placeholder="Mật khẩu (tối thiểu 8 ký tự)"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={e => {
+                    const newValue = e.target.value;
+                    setPassword(newValue);
+                    validateInput("password", newValue);
+                  }}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400"
                   required
-                  minLength="6"
+                  minLength="8"
                 />
               </div>
+
+              {/* Password Strength Meter */}
+              {password && (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-600 dark:text-gray-400">Độ bảo mật:</span>
+                    <span className={`font-medium ${getPasswordStrengthInfo(passwordStrength).color}`}>
+                      {getPasswordStrengthInfo(passwordStrength).text}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthInfo(passwordStrength).bgColor}`}
+                      style={{ width: `${getPasswordStrengthInfo(passwordStrength).percentage}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                    <div>Yêu cầu mật khẩu:</div>
+                    <div className="grid grid-cols-2 gap-1 text-xs">
+                      <div className={password.length >= 8 ? "text-green-600 dark:text-green-400" : ""}>
+                        • Ít nhất 8 ký tự
+                      </div>
+                      <div className={/[a-z]/.test(password) ? "text-green-600 dark:text-green-400" : ""}>
+                        • Chữ thường (a-z)
+                      </div>
+                      <div className={/[A-Z]/.test(password) ? "text-green-600 dark:text-green-400" : ""}>
+                        • Chữ hoa (A-Z)
+                      </div>
+                      <div className={/\d/.test(password) ? "text-green-600 dark:text-green-400" : ""}>
+                        • Số (0-9)
+                      </div>
+                      <div className={/[@$!%*?&]/.test(password) ? "text-green-600 dark:text-green-400" : ""}>
+                        • Ký tự đặc biệt
+                      </div>
+                      <div className={password.length >= 12 ? "text-green-600 dark:text-green-400" : "text-gray-400"}>
+                        • 12+ ký tự (bonus)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Error Message */}
               {err && (

@@ -26,7 +26,7 @@ export default function AdminFeedback() {
       <div className="max-w-3xl mx-auto card p-6">
         <h1 className="text-2xl font-bold mb-4">Góp ý từ người dùng</h1>
         {loading ? (
-          <div className="text-gray-500">Đang tải...</div>
+          <div className="text-gray-500">Đang tải danh sách góp ý...</div>
         ) : error ? (
           <div className="text-red-600">{error}</div>
         ) : feedbacks.length === 0 ? (

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import AdminFeedback from "./AdminFeedback";
 import APIMonitoring from "../components/APIMonitoring";
 import RoleManagement from "../components/RoleManagement";
+import AutoLikeBot from "../components/AutoLikeBot";
 import VerifiedBadge from "../components/VerifiedBadge";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { api } from "../api";
@@ -142,37 +143,37 @@ export default function AdminDashboard() {
   async function updateUserRole(userId, newRoleName) {
     if (!window.confirm(`Bạn có chắc muốn đổi role user này thành ${newRoleName}?`)) return;
 
-    // ✅ LOADING STATE - Hiển thị loading cho user đang update
+    // LOADING STATE - Hiển thị loading cho user đang update
     setUpdatingRoles(prev => new Set([...prev, userId]));
 
     const originalUsers = [...users];
     const newRoleObject = availableRoles.find(r => r.name === newRoleName);
 
-    // ✅ OPTIMISTIC UPDATE - Hiển thị ngay lập tức với role object đầy đủ
+    // OPTIMISTIC UPDATE - Hiển thị ngay lập tức với role object đầy đủ
     updateSingleUserInState(userId, {
       role: newRoleObject || { name: newRoleName, displayName: newRoleName }
     });
 
     try {
-      // ✅ API CALL - Cập nhật trong DB
+      // API CALL - Cập nhật trong DB
       const response = await api(`/api/admin/users/${userId}/role`, {
         method: "PUT",
         body: { role: newRoleName }
       });
 
-      // ✅ UPDATE WITH SERVER RESPONSE - Đảm bảo sync với server
+      // UPDATE WITH SERVER RESPONSE - Đảm bảo sync với server
       if (response.user) {
         updateSingleUserInState(userId, response.user);
       }
 
-      // ✅ SUCCESS FEEDBACK - Không cần reload toàn bộ UI
+      // SUCCESS FEEDBACK - Không cần reload toàn bộ UI
 
     } catch (err) {
-      // ❌ REVERT ON ERROR
+      // REVERT ON ERROR
       setUsers(originalUsers);
       alert("Lỗi khi cập nhật role: " + err.message);
     } finally {
-      // ✅ CLEAR LOADING STATE
+      // CLEAR LOADING STATE
       setUpdatingRoles(prev => {
         const newSet = new Set(prev);
         newSet.delete(userId);
@@ -200,7 +201,7 @@ export default function AdminDashboard() {
         <div className="card max-w-4xl mx-auto">
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            Đang xác thực quyền admin...
+            Đang xác thực quyền hạn của người dùng...
           </div>
         </div>
       </div>
@@ -213,7 +214,7 @@ export default function AdminDashboard() {
         <div className="card max-w-4xl mx-auto">
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            Đang tải dữ liệu admin...
+            Đang tải dữ liệu...
           </div>
         </div>
       </div>
@@ -313,6 +314,13 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab("roles")}
           >
             <span className="text-sm sm:text-base">Quản lý Role</span>
+          </button>
+          <button
+            className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "auto-like" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            onClick={() => setActiveTab("auto-like")}
+          >
+            <Heart className="w-4 h-4" />
+            <span className="text-sm sm:text-base">Auto Like</span>
           </button>
         </div>
       </div>
@@ -590,7 +598,7 @@ export default function AdminDashboard() {
 
                 {/* Top Users */}
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                  <h3 className="font-bold mb-3">Top 5 user có nhiều bài viết nhất</h3>
+                  <h3 className="font-bold mb-3">Top 5 người dùng có nhiều bài viết nhất</h3>
                   {stats.topUsers?.length > 0 ? (
                     stats.topUsers.map((userStat, index) => (
                       <div key={userStat._id} className="flex justify-between items-center py-2 border-b last:border-b-0">
@@ -1028,9 +1036,9 @@ export default function AdminDashboard() {
                     onChange={(e) => setNotificationForm({ ...notificationForm, targetRole: e.target.value })}
                     className="input w-full"
                   >
-                    <option value="">Tất cả người dùng</option>
+                    <option value="">Tất cả</option>
                     <option value="admin">Chỉ Admin</option>
-                    <option value="user">Chỉ User thường</option>
+                    <option value="user">Chỉ người dùng</option>
                   </select>
 
                   <button
@@ -1242,6 +1250,12 @@ export default function AdminDashboard() {
               // Then refresh user data to get updated role info
               await refreshAllData();
             }} />
+          </div>
+        )}
+
+        {activeTab === "auto-like" && (
+          <div className="pt-4">
+            <AutoLikeBot />
           </div>
         )}
       </div>

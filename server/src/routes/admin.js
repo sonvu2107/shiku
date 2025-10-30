@@ -999,4 +999,154 @@ router.get("/suspicious-activities", adminRateLimit, noCache, authRequired, admi
   }
 });
 
+/**
+ * POST /admin/auto-like-posts - Chạy auto like bot cho test users
+ * Endpoint cho admin chạy script auto like posts
+ */
+router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimit, async (req, res, next) => {
+  try {
+    const { 
+      maxPostsPerUser = 4, 
+      likeProbability = 1, 
+      selectedUsers = [], 
+      emoteTypes = ['👍', '❤️', '😂', '😮', '😢', '😡']
+    } = req.body;
+
+    await AuditLog.logAction(req.user._id, 'admin_auto_like', {
+      result: 'started',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      details: { maxPostsPerUser, likeProbability, userCount: selectedUsers.length }
+    });
+
+    // Get test users
+    const testUsers = await User.find({
+      email: { $regex: /^test\d+@example\.com$/ }
+    }).select('email name').lean();
+
+    if (testUsers.length === 0) {
+      return res.status(404).json({ error: "Không tìm thấy test users nào" });
+    }
+
+    // Filter users if specific ones selected
+    const usersToProcess = selectedUsers.length > 0 
+      ? testUsers.filter(user => selectedUsers.includes(user.email))
+      : []; // Return empty array if no users selected
+
+    // Check if no users to process
+    if (usersToProcess.length === 0) {
+      return res.status(400).json({ 
+        error: "Vui lòng chọn ít nhất một test user để chạy auto like bot",
+        availableUsers: testUsers.map(u => u.email)
+      });
+    }
+
+    // Get recent posts
+    const posts = await Post.find({ 
+      status: 'published',
+      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
+    }).select('_id title author').limit(50).lean();
+
+    if (posts.length === 0) {
+      return res.status(404).json({ error: "Không có bài viết nào để like" });
+    }
+
+    let totalLikes = 0;
+    const results = [];
+
+    // Process each user
+    for (const user of usersToProcess) {
+      try {
+        // Get random posts for this user
+        const shuffledPosts = posts.sort(() => 0.5 - Math.random());
+        const postsToLike = shuffledPosts.slice(0, Math.min(maxPostsPerUser, posts.length));
+
+        let userLikes = 0;
+
+        for (const post of postsToLike) {
+          // Skip if user is the author
+          if (post.author.toString() === user._id?.toString()) continue;
+
+          // Random chance to like
+          if (Math.random() <= likeProbability) {
+            // Random emote
+            const randomEmote = emoteTypes[Math.floor(Math.random() * emoteTypes.length)];
+            
+            // Add emote to post
+            const updatedPost = await Post.findByIdAndUpdate(
+              post._id,
+              {
+                $pull: { emotes: { user: user._id } }, // Remove existing emote from this user
+              },
+              { new: true }
+            );
+
+            await Post.findByIdAndUpdate(
+              post._id,
+              {
+                $push: { 
+                  emotes: { 
+                    user: user._id,
+                    type: randomEmote,
+                    createdAt: new Date()
+                  }
+                }
+              }
+            );
+
+            userLikes++;
+            totalLikes++;
+
+            // Small delay between likes
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+
+        results.push({
+          user: user.email,
+          likesGiven: userLikes,
+          postsProcessed: postsToLike.length
+        });
+
+      } catch (userError) {
+        console.error(`Error processing user ${user.email}:`, userError);
+        results.push({
+          user: user.email,
+          error: userError.message,
+          likesGiven: 0
+        });
+      }
+    }
+
+    await AuditLog.logAction(req.user._id, 'admin_auto_like', {
+      result: 'completed',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      details: { 
+        totalLikes, 
+        usersProcessed: usersToProcess.length,
+        postsAvailable: posts.length
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Auto like completed: ${totalLikes} likes given by ${usersToProcess.length} users`,
+      totalLikes,
+      usersProcessed: usersToProcess.length,
+      postsAvailable: posts.length,
+      results
+    });
+
+  } catch (error) {
+    await AuditLog.logAction(req.user._id, 'admin_auto_like', {
+      result: 'failed',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      reason: 'Server error: ' + error.message
+    });
+    next(error);
+  }
+});
+
 export default router;

@@ -11,7 +11,7 @@ export default function Events() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState("all"); // all, upcoming, past, my
+  const [filter, setFilter] = useState("all"); // Tất cả, sắp diễn ra, đã kết thúc, của tôi
 
   useEffect(() => {
     loadEvents();
@@ -28,7 +28,7 @@ export default function Events() {
       setEvents(res.events || []);
     } catch (error) {
       // Silent handling for events loading error
-      // Fallback to empty array if API fails
+      // Quay lại mảng trống nếu API không thành công
       setEvents([]);
     } finally {
       setLoading(false);
@@ -55,7 +55,7 @@ export default function Events() {
   const handleJoinEvent = async (eventId) => {
     try {
       await api(`/api/events/${eventId}/join`, { method: "POST" });
-      loadEvents(); // Reload events to update attendee count
+      loadEvents(); // Tải lại sự kiện để cập nhật số lượng người tham dự
     } catch (error) {
       // Silent handling for event joining error
     }

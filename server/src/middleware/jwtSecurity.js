@@ -300,7 +300,7 @@ export const refreshAccessToken = async (refreshToken) => {
   const { payload } = verification;
   const user = await User.findById(payload.id).select("-password");
   if (!user || user.isBanned) {
-    throw new Error("User không tồn tại hoặc đã bị cấm");
+    throw new Error("Người dùng không tồn tại hoặc đã bị cấm");
   }
   if (payload.jti) {
     try {

@@ -63,7 +63,7 @@ export function useAdminData() {
       setVisitorStats(res);
     } catch (e) {
       // Silent handling for visitors loading error
-      setError("Không thể tải thống kê visitors");
+      setError("Không thể tải thống kê người truy cập");
     }
   }, []);
 
@@ -74,7 +74,7 @@ export function useAdminData() {
       const res = await api(`/api/admin/users/${userId}`);
       return res.user;
     } catch (e) {
-      throw new Error("Không thể tải thông tin user");
+      throw new Error("Không thể tải thông tin người dùng");
     }
   }, []);
 

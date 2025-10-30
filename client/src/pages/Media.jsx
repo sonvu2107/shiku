@@ -33,7 +33,7 @@ export default function Media() {
       setMedia(res.media || []);
     } catch (error) {
       // Silent handling for media loading error
-      // Fallback to empty array if API fails
+      // Fallback để làm trống mảng nếu API không thành công
       setMedia([]);
     } finally {
       setLoading(false);
@@ -73,7 +73,7 @@ export default function Media() {
         
         // Tăng lượt xem
         await api(`/api/media/${mediaId}/view`, { method: "POST" });
-        loadMedia(); // Reload media to update view count
+        loadMedia(); // Reload để cập nhật lượt xem
       }
     } catch (error) {
       // Silent handling for media viewing error
@@ -81,7 +81,7 @@ export default function Media() {
   };
 
   const handleUploadSuccess = (uploadedMedia) => {
-    // Reload media list to show newly uploaded files
+    // Reload media sau khi upload thành công
     loadMedia();
     setShowUploadModal(false);
   };
@@ -113,7 +113,7 @@ export default function Media() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
-              placeholder="Tìm kiếm media..."
+              placeholder="Tìm kiếm phương tiện..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
@@ -181,13 +181,13 @@ export default function Media() {
             {media.length === 0 ? (
               <div className="text-center py-8 sm:py-12 text-gray-500">
                 <Image size={40} className="mx-auto mb-3 sm:mb-4 text-gray-300" />
-                <p className="text-sm sm:text-base">Không có media nào để hiển thị</p>
+                <p className="text-sm sm:text-base">Không có phương tiện nào để hiển thị</p>
                 <button 
                   onClick={() => setShowUploadModal(true)}
                   className="btn mt-3 sm:mt-4 flex items-center gap-2 mx-auto touch-target"
                 >
                   <Upload size={18} />
-                  <span className="text-sm sm:text-base">Tải lên media đầu tiên</span>
+                  <span className="text-sm sm:text-base">Tải lên phương tiện đầu tiên</span>
                 </button>
               </div>
             ) : viewMode === "grid" ? (

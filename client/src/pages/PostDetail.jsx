@@ -71,7 +71,7 @@ export default function PostDetail() {
   const [user, setUser] = useState(null);
   const [groupCtx, setGroupCtx] = useState(null); // { userRole, settings }
 
-  // modal media
+  // Modal media
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -94,7 +94,7 @@ export default function PostDetail() {
     }
   }, [slug]);
 
-  // Load user from cache
+  // Tải người dùng từ bộ nhớ đệm
   useEffect(() => {
     (async () => {
       try {
@@ -107,7 +107,7 @@ export default function PostDetail() {
     })();
   }, []);
 
-  // Fetch group context for permission decisions if post belongs to a group
+  // Lấy ngữ cảnh nhóm nếu bài viết thuộc về nhóm
   useEffect(() => {
     const fetchGroupCtx = async () => {
       try {
@@ -120,7 +120,7 @@ export default function PostDetail() {
           setGroupCtx(null);
         }
       } catch (_) {
-        // If cannot fetch (e.g., private and not a member), fall back to permissive UI
+        // Nếu lỗi, đặt ngữ cảnh nhóm là null
         setGroupCtx(null);
       }
     };
@@ -192,8 +192,8 @@ export default function PostDetail() {
 
       alert(
         newStatus === "private"
-          ? "Đã chuyển thành riêng tư"
-          : "Đã công khai bài viết"
+          ? "Đã chuyển trạng thái thành riêng tư"
+          : "Đã chuyển thành trạng thái công khai"
       );
     } catch (e) {
       alert(e.message);
@@ -214,7 +214,7 @@ export default function PostDetail() {
   const p = data.post;
   const counts = countEmotes();
 
-  // all media = cover + files
+  // Tất cả phương tiện = bìa + tệp
   const allMedia = [
     ...(p.coverUrl
       ? (() => {
@@ -273,8 +273,6 @@ export default function PostDetail() {
         </div>
         {/* Tiêu đề */}
         <h1 className="text-xl font-bold mb-2">{p.title}</h1>
-
-        {/* Cover removed. Only files are shown as media. */}
 
         {/* Content */}
         {p.content && (
@@ -536,7 +534,7 @@ export default function PostDetail() {
       <div className="card max-w-4xl mx-auto">
         <h2 className="text-xl font-semibold mb-4">Bình luận</h2>
         {(() => {
-          // Determine comment permission if the post belongs to a group
+          // Xác định quyền bình luận nếu bài đăng thuộc về một nhóm
           const groupInfo = p.group || null;
           if (!groupInfo) {
             return (
@@ -548,7 +546,7 @@ export default function PostDetail() {
             );
           }
 
-          // Prefer fetched group context; if not available, allow commenting to avoid blocking UX
+          // Ưu tiên ngữ cảnh nhóm được tìm nạp; nếu không có sẵn, hãy cho phép bình luận để tránh chặn UX
           const setting = groupCtx?.settings?.commentPermissions || 'all_members';
           const role = groupCtx?.userRole || null;
           const userIsAdmin = role === 'owner' || role === 'admin';
@@ -557,7 +555,7 @@ export default function PostDetail() {
           let canComment = true;
           if (setting === 'admins_only') canComment = userIsAdmin;
           else if (setting === 'members_only') canComment = userIsMember;
-          else canComment = userIsMember || true; // all_members ⇒ allow if role unknown
+          else canComment = userIsMember || true; // 'all_members'
 
           if (canComment) {
             return (

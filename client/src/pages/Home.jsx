@@ -17,37 +17,37 @@ import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2 } from "lucide-react";
  */
 export default function Home({ user }) {
   // ==================== STATE MANAGEMENT ====================
-  
-  // Posts data
+
+  // Dữ liệu bài viết
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalPages, setTotalPages] = useState(0);
-  
-  // Loading states
+
+  // Tải trạng thái
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadingAll, setLoadingAll] = useState(false);
   const [error, setError] = useState(null);
   const { savedMap, updateSavedState } = useSavedPosts(items);
-  
-  // Search and sorting
+
+  // Tìm kiếm và sắp xếp
   const [searchParams] = useSearchParams();
   const q = searchParams.get('q') || '';
   const [sortBy, setSortBy] = useState('newest');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  
+
   // Infinite scroll
   const observer = useRef();
   const loadingRef = useRef(false);
 
   // ==================== INFINITE SCROLL ====================
-  
+
   const lastPostElementRef = useCallback(node => {
     if (loadingRef.current || !hasMore) return;
-    
+
     if (observer.current) observer.current.disconnect();
-    
+
     observer.current = new IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting && hasMore && !loadingRef.current) {
@@ -60,12 +60,12 @@ export default function Home({ user }) {
         threshold: 0.1
       }
     );
-    
+
     if (node) observer.current.observe(node);
   }, [hasMore]);
 
   // ==================== EFFECTS ====================
-  
+
   useEffect(() => {
     setItems([]);
     setPage(1);
@@ -96,18 +96,18 @@ export default function Home({ user }) {
   }, []);
 
   // ==================== API CALLS ====================
-  
+
   const loadInitial = useCallback(async () => {
     setLoading(true);
     setError(null);
     loadingRef.current = true;
-    
+
     try {
       const limit = 100; // Giới hạn bài viết 
       const publishedData = await api(`/api/posts?page=1&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
       let allItems = publishedData.items;
 
-      // Load private posts if user is logged in
+      // Tải bài viết riêng tư nếu người dùng đã đăng nhập
       if (user) {
         try {
           const privateData = await api(`/api/posts?page=1&limit=${limit}&status=private&author=${user._id}`);
@@ -117,7 +117,7 @@ export default function Home({ user }) {
         }
       }
 
-      // Apply sorting
+      // Áp dụng sắp xếp
       allItems = sortPosts(allItems, sortBy);
 
       setItems(allItems);
@@ -140,7 +140,7 @@ export default function Home({ user }) {
     setLoadingMore(true);
     setError(null);
     loadingRef.current = true;
-    
+
     try {
       const limit = 15;
       const publishedData = await api(`/api/posts?page=${page}&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
@@ -163,16 +163,16 @@ export default function Home({ user }) {
     setLoadingAll(true);
     setError(null);
     loadingRef.current = true;
-    
+
     try {
       const allRemainingPosts = [];
       let currentPage = page;
-      
+
       // Nếu chưa có hasMore, bắt đầu từ trang 2
       if (!hasMore && totalPages > 1) {
         currentPage = 2;
       }
-      
+
       while (currentPage <= totalPages) {
         const publishedData = await api(`/api/posts?page=${currentPage}&limit=15&q=${encodeURIComponent(q)}&status=published`);
         const newItems = sortPosts(publishedData.items, sortBy);
@@ -192,7 +192,7 @@ export default function Home({ user }) {
   }, [page, hasMore, loadingAll, totalPages, q, sortBy]);
 
   // ==================== HELPER FUNCTIONS ====================
-  
+
   const sortPosts = useCallback((posts, sortType) => {
     const sortedPosts = [...posts];
 
@@ -231,7 +231,7 @@ export default function Home({ user }) {
   }, []);
 
   // ==================== LOADING SKELETON ====================
-  
+
   const LoadingSkeleton = useCallback(() => (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors duration-200">
       <div className="p-4">
@@ -310,9 +310,8 @@ export default function Home({ user }) {
                         setSortBy(option.key);
                         setShowSortDropdown(false);
                       }}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 sm:gap-3 transition-colors touch-manipulation ${
-                        sortBy === option.key ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-2 border-blue-500' : 'text-gray-700 dark:text-gray-300'
-                      }`}
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 sm:gap-3 transition-colors touch-manipulation ${sortBy === option.key ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-2 border-blue-500' : 'text-gray-700 dark:text-gray-300'
+                        }`}
                     >
                       {option.icon}
                       <span className="text-xs sm:text-sm font-medium">{option.label}</span>
@@ -368,7 +367,7 @@ export default function Home({ user }) {
               <div className="space-y-4">
                 {items.map((post, index) => {
                   const isLastPost = index === items.length - 1;
-                  
+
                   return (
                     <div
                       key={post._id}
@@ -464,7 +463,7 @@ export default function Home({ user }) {
 
           {/* Right Sidebar - Online Friends (ẩn trên mobile, hiện từ lg trở lên) */}
           <div className="hidden lg:block w-72 flex-shrink-0">
--            <div className="sticky top-24 space-y-6">
+            <div className="sticky top-24 space-y-6">
               <OnlineFriends user={user} />
             </div>
           </div>

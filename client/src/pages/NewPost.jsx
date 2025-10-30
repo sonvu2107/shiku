@@ -16,7 +16,7 @@ export default function NewPost() {
   const [tags, setTags] = useState(""); // Tags (phân cách bằng phẩy)
   const [content, setContent] = useState(""); // Nội dung Markdown
   const [coverUrl, setCoverUrl] = useState(""); // URL ảnh cover
-  const [status, setStatus] = useState("published"); // Trạng thái (published/private)
+  const [status, setStatus] = useState("published"); // Trạng thái (công khai/riêng tư)
   const [err, setErr] = useState(""); // Error message
   
   const navigate = useNavigate();

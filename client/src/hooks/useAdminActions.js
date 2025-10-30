@@ -41,12 +41,12 @@ export function useAdminActions() {
         body: { userId, banDurationMinutes, reason }
       });
 
-      setSuccess(`Đã ban user ${userId} thành công`);
+      setSuccess(`Đã cấm người dùng ${userId} thành công`);
       setBanForm({ userId: "", duration: "", reason: "" });
       
       return true;
     } catch (e) {
-      setError(`Lỗi ban user: ${e.message}`);
+      setError(`Lỗi cấm người dùng: ${e.message}`);
       return false;
     } finally {
       setLoading(false);
@@ -64,10 +64,10 @@ export function useAdminActions() {
         body: { userId }
       });
 
-      setSuccess(`Đã unban user ${userId} thành công`);
+      setSuccess(`Đã bỏ cấm người dùng ${userId} thành công`);
       return true;
     } catch (e) {
-      setError(`Lỗi unban user: ${e.message}`);
+      setError(`Lỗi bỏ cấm người dùng: ${e.message}`);
       return false;
     } finally {
       setLoading(false);

@@ -17,7 +17,7 @@ export default function NotificationHistory() {
   const [hasMore, setHasMore] = useState(true); // Có thêm thông báo để load
   
   // Filter & Selection
-  const [filter, setFilter] = useState("all"); // Filter: all, unread, read
+  const [filter, setFilter] = useState("all"); // Bộ lọc: tất cả, chưa đọc, đã đọc
   const [selectedNotifications, setSelectedNotifications] = useState([]); // Thông báo đã chọn
   
   const navigate = useNavigate();
@@ -163,7 +163,7 @@ export default function NotificationHistory() {
       markAsRead(notification._id);
     }
     
-    // Navigate to relevant page if URL is provided
+    // Điều hướng đến trang có liên quan nếu URL được cung cấp
     if (notification.data?.url) {
       navigate(notification.data.url);
     }

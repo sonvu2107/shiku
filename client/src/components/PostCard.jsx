@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck, MoreHorizontal, Edit, Trash2, BarChart3 } from "lucide-react";
+import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck, MoreHorizontal, Edit, Trash2, BarChart3, Eye } from "lucide-react";
 import { api } from "../api";
 import { deduplicatedApi } from "../utils/requestDeduplication.js";
 import UserName from "./UserName";
@@ -19,7 +19,7 @@ import Poll from "./Poll";
  * @param {Object} post.author - Thông tin tác giả
  * @param {Array} post.emotes - Danh sách emotes
  * @param {Array} post.files - Media files đính kèm
- * @param {string} post.status - Trạng thái (published/private)
+ * @param {string} post.status - Trạng thái (công khai/riêng tư)
  */
 export default function PostCard({
   post,
@@ -290,7 +290,7 @@ export default function PostCard({
       </div>
 
       {/* Emote bar */}
-      <div className="flex items-center justify-between py-2 border-b border-gray-200">
+      <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-1">
           {Object.entries(counts)
             .filter(([_, count]) => count > 0)
@@ -307,8 +307,14 @@ export default function PostCard({
               />
             ))}
           {totalEmotes > 0 && (
-            <span className="ml-1 font-semibold text-gray-800 ">{totalEmotes.toLocaleString()}</span>
+            <span className="ml-1 font-semibold text-gray-800 dark:text-gray-200">{totalEmotes.toLocaleString()}</span>
           )}
+        </div>
+        
+        {/* View count */}
+        <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+          <Eye size={16} />
+          <span>{(post.views || 0).toLocaleString()} lượt xem</span>
         </div>
       </div>
 

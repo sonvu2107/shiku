@@ -58,7 +58,7 @@ export default function Login({ setUser }) {
       
       console.log("Login response:", data); // Debug log
       
-      // Handle response - check for both accessToken and token fields
+      // Xử lý phản hồi - kiểm tra cả trường accessToken và token
       if (data && data.accessToken) {
         saveTokens(data.accessToken, data.refreshToken);
       } else if (data && data.token) {
@@ -68,9 +68,9 @@ export default function Login({ setUser }) {
         throw new Error("Không nhận được token từ server");
       }
       
-      // Validate user data
+      // Xác thực dữ liệu người dùng
       if (!data.user) {
-        throw new Error("Không nhận được thông tin user từ server");
+        throw new Error("Không nhận được thông tin người dùng từ server");
       }
       
       // Tạo CSRF token mới sau khi login để đồng bộ với sessionID
