@@ -54,7 +54,7 @@ class HeartbeatManager {
     if (!this.isActive) return;
 
     try {
-      const data = (await api('/api/auth/heartbeat', { method: 'POST' })) || {};
+      const data = (await api('/api/auth-token/heartbeat', { method: 'POST' })) || {};
       this.lastHeartbeat = new Date();
 
       const onlineStatus = data.isOnline ?? data.online ?? 'N/A';

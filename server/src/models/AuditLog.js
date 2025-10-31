@@ -29,7 +29,9 @@ const auditLogSchema = new mongoose.Schema({
       'view_admin_stats',
       'view_user_list',
       'login_admin',
-      'logout_admin'
+      'logout_admin',
+      'admin_auto_like',
+      'admin_auto_view'
     ],
     index: true
   },
@@ -56,7 +58,7 @@ const auditLogSchema = new mongoose.Schema({
   // Kết quả hành động
   result: {
     type: String,
-    enum: ['success', 'failed', 'partial'],
+    enum: ['success', 'failed', 'partial', 'started', 'completed'],
     required: true,
     default: 'success'
   },

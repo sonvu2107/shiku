@@ -115,11 +115,11 @@ export default function Stories({ user }) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex gap-4 overflow-x-auto scrollbar-hide">
-          {[1, 2, 3, 4].map(i => (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide">
+          {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="flex-shrink-0">
-              <div className="w-28 h-40 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="w-[112px] h-[200px] bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse"></div>
             </div>
           ))}
         </div>
@@ -134,31 +134,42 @@ export default function Stories({ user }) {
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
           {/* My Story - Tạo story mới hoặc xem story của mình */}
           {user && (
             <div className="flex-shrink-0">
               {myStories.length === 0 ? (
-                // Chưa có story - hiển thị nút tạo
+                // Chưa có story - hiển thị nút tạo với design giống Facebook
                 <button
                   onClick={() => setShowStoryCreator(true)}
-                  className="block w-28 h-40 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl border-2 border-dashed border-white hover:from-blue-600 hover:to-purple-700 transition-all flex flex-col items-center justify-center relative overflow-hidden group"
+                  className="block w-[112px] h-[200px] bg-gray-100 dark:bg-gray-700 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all flex flex-col relative overflow-hidden group"
                 >
-                  <img
-                    src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`}
-                    alt={user.name}
-                    className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity"
-                  />
-                  <div className="relative z-10">
-                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-2 shadow-lg">
-                      <Plus size={24} className="text-blue-600" />
+                  {/* Background Image */}
+                  <div className="flex-1 relative">
+                    <img
+                      src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`}
+                      alt={user.name}
+                      className="w-full h-32 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white dark:to-gray-700"></div>
+                  </div>
+                  
+                  {/* Create Button Section */}
+                  <div className="p-3 bg-white dark:bg-gray-700 relative">
+                    {/* Plus Icon Circle */}
+                    <div className="absolute -top-5 left-1/2 transform -translate-x-1/2">
+                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg">
+                        <Plus size={20} className="text-white" />
+                      </div>
                     </div>
-                    <span className="text-sm text-white font-medium text-center px-1 drop-shadow">Tạo tin</span>
+                    <div className="pt-4 text-center">
+                      <span className="text-sm text-gray-900 dark:text-gray-100 font-medium">Tạo tin</span>
+                    </div>
                   </div>
                 </button>
               ) : (
-                // Đã có story - hiển thị preview
+                // Đã có story - hiển thị preview với style Facebook
                 <button
                   onClick={() => {
                     const myStoryGroup = {
@@ -169,9 +180,9 @@ export default function Stories({ user }) {
                     };
                     handleViewStory(myStoryGroup, 0);
                   }}
-                  className="block w-28 h-40 rounded-xl overflow-hidden relative group"
+                  className="block w-[112px] h-[200px] rounded-2xl overflow-hidden relative group hover:transform hover:scale-105 transition-all duration-200"
                 >
-                  {/* Story Preview */}
+                  {/* Story Preview Image/Video */}
                   {myStories[0].mediaType === 'image' ? (
                     <img
                       src={myStories[0].mediaUrl}
@@ -186,12 +197,12 @@ export default function Stories({ user }) {
                     />
                   )}
                   
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                  {/* Dark gradient overlay at bottom */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
                   
-                  {/* User Avatar */}
-                  <div className="absolute top-2 left-2">
-                    <div className="w-10 h-10 rounded-full ring-4 ring-blue-500 overflow-hidden">
+                  {/* User Avatar with blue ring */}
+                  <div className="absolute top-3 left-3">
+                    <div className="w-10 h-10 rounded-full ring-3 ring-blue-500 ring-offset-2 ring-offset-transparent overflow-hidden">
                       <img
                         src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`}
                         alt={user.name}
@@ -200,18 +211,27 @@ export default function Stories({ user }) {
                     </div>
                   </div>
                   
-                  {/* User Name & Add Button */}
-                  <div className="absolute bottom-2 left-2 right-2">
-                    <p className="text-white text-sm font-medium truncate mb-1">{user.name}</p>
+                  {/* Story count badge */}
+                  {myStories.length > 1 && (
+                    <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium">
+                      {myStories.length}
+                    </div>
+                  )}
+                  
+                  {/* Bottom content: Name + Add button */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-white text-sm font-semibold truncate flex-1">{user.name}</p>
+                    </div>
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowStoryCreator(true);
                       }}
-                      className="w-full bg-white/90 hover:bg-white text-blue-600 rounded-full py-1 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                      className="mt-2 w-full bg-white/90 hover:bg-white text-blue-600 rounded-lg py-1.5 text-xs font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer"
                     >
-                      <Plus size={14} />
-                      Thêm
+                      <Plus size={12} />
+                      Thêm vào tin
                     </div>
                   </div>
                 </button>
@@ -244,7 +264,7 @@ export default function Stories({ user }) {
               <div key={author._id || index} className="flex-shrink-0">
                 <button
                   onClick={() => handleViewStory(storyGroup, 0)}
-                  className="block w-28 h-40 rounded-xl overflow-hidden relative group"
+                  className="block w-[112px] h-[200px] rounded-2xl overflow-hidden relative group hover:transform hover:scale-105 transition-all duration-200"
                 >
                   {/* Story Preview */}
                   {latestStory.mediaType === 'image' ? (
@@ -262,19 +282,19 @@ export default function Stories({ user }) {
                       />
                       {/* Video Play Icon */}
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center">
-                          <Play size={20} className="text-white ml-0.5" />
+                        <div className="w-12 h-12 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center">
+                          <Play size={24} className="text-white ml-1" />
                         </div>
                       </div>
                     </>
                   )}
                   
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                  {/* Dark gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
                   
                   {/* User Avatar with Ring */}
-                  <div className="absolute top-2 left-2">
-                    <div className={`w-10 h-10 rounded-full ring-4 ${viewed ? 'ring-gray-400' : 'ring-blue-500'} overflow-hidden`}>
+                  <div className="absolute top-3 left-3">
+                    <div className={`w-10 h-10 rounded-full ring-3 ${viewed ? 'ring-gray-400' : 'ring-blue-500'} ring-offset-2 ring-offset-transparent overflow-hidden`}>
                       <img
                         src={author.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name || 'User')}`}
                         alt={author.name}
@@ -285,15 +305,15 @@ export default function Stories({ user }) {
                   
                   {/* Story Count Badge */}
                   {storyGroup.storyCount > 1 && (
-                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full">
+                    <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium">
                       {storyGroup.storyCount}
                     </div>
                   )}
                   
-                  {/* User Name & Time */}
-                  <div className="absolute bottom-2 left-2 right-2">
-                    <p className="text-white text-sm font-medium truncate">{author?.name || 'Người dùng'}</p>
-                    <p className="text-white/80 text-xs">{getTimeAgo(latestStory?.createdAt)}</p>
+                  {/* User Name & Time at bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <p className="text-white text-sm font-semibold truncate">{author?.name || 'Người dùng'}</p>
+                    <p className="text-white/80 text-xs mt-0.5">{getTimeAgo(latestStory?.createdAt)}</p>
                   </div>
                 </button>
               </div>

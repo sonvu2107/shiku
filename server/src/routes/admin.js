@@ -1009,23 +1009,33 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
       maxPostsPerUser = 4, 
       likeProbability = 1, 
       selectedUsers = [], 
-      emoteTypes = ['👍', '❤️', '😂', '😮', '😢', '😡']
+      emoteTypes = ['👍', '❤️', '😂', '😮', '😢', '😡'],
+      enableAutoView = false,
+      maxViewsPerUser = 8,
+      forceOverride = false // Option để ghi đè reactions cũ
     } = req.body;
 
     await AuditLog.logAction(req.user._id, 'admin_auto_like', {
       result: 'started',
       ipAddress: req.ip,
       clientAgent: getClientAgent(req),
-      details: { maxPostsPerUser, likeProbability, userCount: selectedUsers.length }
+      details: { 
+        maxPostsPerUser, 
+        likeProbability, 
+        userCount: selectedUsers.length,
+        enableAutoView,
+        maxViewsPerUser,
+        forceOverride
+      }
     });
 
     // Get test users
     const testUsers = await User.find({
       email: { $regex: /^test\d+@example\.com$/ }
-    }).select('email name').lean();
+    }).select('_id email name').lean();
 
     if (testUsers.length === 0) {
-      return res.status(404).json({ error: "Không tìm thấy test users nào" });
+      return res.status(404).json({ error: "Không tìm thấy tài khoản nào" });
     }
 
     // Filter users if specific ones selected
@@ -1036,52 +1046,90 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
     // Check if no users to process
     if (usersToProcess.length === 0) {
       return res.status(400).json({ 
-        error: "Vui lòng chọn ít nhất một test user để chạy auto like bot",
+        error: "Vui lòng chọn ít nhất một tài khoản để chạy auto like bot",
         availableUsers: testUsers.map(u => u.email)
       });
     }
 
-    // Get recent posts
+    // Get recent posts - increased limit to ensure enough posts
     const posts = await Post.find({ 
       status: 'published',
-      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
-    }).select('_id title author').limit(50).lean();
+      createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days instead of 7
+    }).select('_id title author').limit(100).lean(); // Increased limit
 
     if (posts.length === 0) {
       return res.status(404).json({ error: "Không có bài viết nào để like" });
     }
 
+    console.log(`Found ${posts.length} posts for auto-like`);
+
     let totalLikes = 0;
+    let totalViews = 0;
     const results = [];
 
     // Process each user
     for (const user of usersToProcess) {
       try {
-        // Get random posts for this user
-        const shuffledPosts = posts.sort(() => 0.5 - Math.random());
-        const postsToLike = shuffledPosts.slice(0, Math.min(maxPostsPerUser, posts.length));
+        console.log(`\n=== Processing user: ${user.email} (ID: ${user._id}) ===`);
+        
+        // Get posts excluding user's own posts (if any)
+        const availablePosts = posts.filter(post => 
+          post.author.toString() !== user._id.toString()
+        );
+        
+        console.log(`User ${user.email}: Total posts: ${posts.length}, Available posts (excluding own): ${availablePosts.length}, requesting ${maxPostsPerUser} likes${enableAutoView ? `, ${maxViewsPerUser} views` : ''}`);
+        
+        if (availablePosts.length === 0) {
+          console.log(`⚠️ User ${user.email}: No available posts to like (may be author of all posts)`);
+          results.push({
+            user: user.email,
+            error: "No available posts to like",
+            likesGiven: 0,
+            viewsGiven: 0,
+            postsProcessed: 0
+          });
+          continue;
+        }
+        
+        // Get random posts for this user - FIXED: ensure we process the exact number requested
+        const shuffledPosts = availablePosts.sort(() => 0.5 - Math.random());
+        const postsToLike = shuffledPosts.slice(0, Math.min(maxPostsPerUser, availablePosts.length));
+
+        console.log(`User ${user.email}: will process ${postsToLike.length} posts`);
 
         let userLikes = 0;
+        let userViews = 0;
 
+        // Process likes
         for (const post of postsToLike) {
-          // Skip if user is the author
-          if (post.author.toString() === user._id?.toString()) continue;
+          console.log(`  Checking post ${post._id} (${post.title}) for user ${user.email}`);
+          
+          // Check if user already has an emote on this post
+          const existingPost = await Post.findById(post._id).select('emotes').lean();
+          const hasExistingEmote = existingPost.emotes?.some(emote => 
+            emote.user.toString() === user._id.toString()
+          );
 
-          // Random chance to like
-          if (Math.random() <= likeProbability) {
+          if (!hasExistingEmote || forceOverride) {
             // Random emote
             const randomEmote = emoteTypes[Math.floor(Math.random() * emoteTypes.length)];
             
-            // Add emote to post
-            const updatedPost = await Post.findByIdAndUpdate(
-              post._id,
-              {
-                $pull: { emotes: { user: user._id } }, // Remove existing emote from this user
-              },
-              { new: true }
-            );
-
-            await Post.findByIdAndUpdate(
+            if (hasExistingEmote && forceOverride) {
+              console.log(`  🔄 Force override: Replacing existing emote for ${user.email} on post ${post._id}`);
+              
+              // Remove existing emote first, then add new one
+              await Post.findByIdAndUpdate(
+                post._id,
+                {
+                  $pull: { emotes: { user: user._id } }
+                }
+              );
+            }
+            
+            console.log(`  ✅ Adding ${randomEmote} from ${user.email} to post ${post._id}`);
+            
+            // Add emote to post (only if user hasn't reacted yet or force override)
+            const updateResult = await Post.findByIdAndUpdate(
               post._id,
               {
                 $push: { 
@@ -1091,29 +1139,65 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
                     createdAt: new Date()
                   }
                 }
-              }
+              },
+              { new: true }
             );
 
-            userLikes++;
-            totalLikes++;
+            if (updateResult) {
+              userLikes++;
+              totalLikes++;
+              console.log(`  ✅ Successfully added emote. User likes: ${userLikes}, Total likes: ${totalLikes}`);
+            } else {
+              console.log(`  ❌ Failed to update post ${post._id}`);
+            }
+          } else {
+            console.log(`  ⚠️ ${user.email} already reacted to post ${post._id}, skipping (use Force Override to replace)`);
+          }
 
-            // Small delay between likes
-            await new Promise(resolve => setTimeout(resolve, 100));
+          // Small delay between likes
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        console.log(`User ${user.email} completed: ${userLikes} likes given out of ${postsToLike.length} posts processed`);
+
+        // Process views if enabled
+        if (enableAutoView) {
+          const postsToView = shuffledPosts.slice(0, Math.min(maxViewsPerUser, availablePosts.length));
+          
+          for (const post of postsToView) {
+            // Increment view count - FIXED: use correct field name 'views'
+            await Post.findByIdAndUpdate(
+              post._id,
+              { $inc: { views: 1 } }
+            );
+
+            userViews++;
+            totalViews++;
+
+            // Small delay between views
+            await new Promise(resolve => setTimeout(resolve, 50));
           }
         }
 
         results.push({
           user: user.email,
           likesGiven: userLikes,
-          postsProcessed: postsToLike.length
+          viewsGiven: userViews,
+          postsProcessed: postsToLike.length,
+          availablePosts: availablePosts.length
         });
 
+        console.log(`✅ User ${user.email} final result: ${userLikes} likes, ${userViews} views, ${postsToLike.length} posts processed\n`);
+
       } catch (userError) {
-        console.error(`Error processing user ${user.email}:`, userError);
+        console.error(`❌ Error processing user ${user.email}:`, userError);
         results.push({
           user: user.email,
           error: userError.message,
-          likesGiven: 0
+          likesGiven: 0,
+          viewsGiven: 0,
+          postsProcessed: 0,
+          availablePosts: 0
         });
       }
     }
@@ -1123,16 +1207,23 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
       ipAddress: req.ip,
       clientAgent: getClientAgent(req),
       details: { 
-        totalLikes, 
+        totalLikes,
+        totalViews,
         usersProcessed: usersToProcess.length,
-        postsAvailable: posts.length
+        postsAvailable: posts.length,
+        enableAutoView
       }
     });
 
+    const message = enableAutoView 
+      ? `Auto like & view completed: ${totalLikes} likes + ${totalViews} views by ${usersToProcess.length} users`
+      : `Auto like completed: ${totalLikes} likes by ${usersToProcess.length} users`;
+
     res.json({
       success: true,
-      message: `Auto like completed: ${totalLikes} likes given by ${usersToProcess.length} users`,
+      message,
       totalLikes,
+      totalViews,
       usersProcessed: usersToProcess.length,
       postsAvailable: posts.length,
       results
@@ -1145,6 +1236,196 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
       clientAgent: getClientAgent(req),
       reason: 'Server error: ' + error.message
     });
+    next(error);
+  }
+});
+
+/**
+ * POST /admin/auto-view-posts - Chạy auto view bot cho test users
+ * Endpoint riêng để chỉ tăng views, không like
+ */
+router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimit, async (req, res, next) => {
+  try {
+    const { 
+      maxViewsPerUser = 8, 
+      selectedUsers = []
+    } = req.body;
+
+    await AuditLog.logAction(req.user._id, 'admin_auto_view', {
+      result: 'started',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      details: { 
+        maxViewsPerUser, 
+        userCount: selectedUsers.length
+      }
+    });
+
+    // Get test users
+    const testUsers = await User.find({
+      email: { $regex: /^test\d+@example\.com$/ }
+    }).select('_id email name').lean();
+
+    if (testUsers.length === 0) {
+      return res.status(404).json({ error: "Không tìm thấy tài khoản nào" });
+    }
+
+    // Filter users if specific ones selected
+    const usersToProcess = selectedUsers.length > 0 
+      ? testUsers.filter(user => selectedUsers.includes(user.email))
+      : [];
+
+    if (usersToProcess.length === 0) {
+      return res.status(400).json({ 
+        error: "Vui lòng chọn ít nhất một tài khoản để chạy auto view bot",
+        availableUsers: testUsers.map(u => u.email)
+      });
+    }
+
+    // Get recent posts - increased limit to ensure enough posts
+    const posts = await Post.find({ 
+      status: 'published',
+      createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
+    }).select('_id title author').limit(100).lean();
+
+    if (posts.length === 0) {
+      return res.status(404).json({ error: "Không có bài viết nào để view" });
+    }
+
+    console.log(`Found ${posts.length} posts for auto-view`);
+
+    let totalViews = 0;
+    const results = [];
+
+    // Process each user
+    for (const user of usersToProcess) {
+      try {
+        // Get posts excluding user's own posts (if any)
+        const availablePosts = posts.filter(post => 
+          post.author.toString() !== user._id.toString()
+        );
+        
+        console.log(`User ${user.email}: ${availablePosts.length} available posts, requesting ${maxViewsPerUser} views`);
+        
+        // Get random posts for this user
+        const shuffledPosts = availablePosts.sort(() => 0.5 - Math.random());
+        const postsToView = shuffledPosts.slice(0, Math.min(maxViewsPerUser, availablePosts.length));
+
+        console.log(`User ${user.email}: will view ${postsToView.length} posts`);
+
+        let userViews = 0;
+
+        // Process views
+        for (const post of postsToView) {
+          // Increment view count
+          await Post.findByIdAndUpdate(
+            post._id,
+            { $inc: { views: 1 } }
+          );
+
+          userViews++;
+          totalViews++;
+
+          // Small delay between views
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        results.push({
+          user: user.email,
+          viewsGiven: userViews,
+          postsProcessed: postsToView.length
+        });
+
+      } catch (userError) {
+        console.error(`Error processing user ${user.email}:`, userError);
+        results.push({
+          user: user.email,
+          error: userError.message,
+          viewsGiven: 0
+        });
+      }
+    }
+
+    await AuditLog.logAction(req.user._id, 'admin_auto_view', {
+      result: 'completed',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      details: { 
+        totalViews,
+        usersProcessed: usersToProcess.length,
+        postsAvailable: posts.length
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Auto view completed: ${totalViews} views by ${usersToProcess.length} users`,
+      totalViews,
+      totalLikes: 0, // No likes in view-only mode
+      usersProcessed: usersToProcess.length,
+      postsAvailable: posts.length,
+      results
+    });
+
+  } catch (error) {
+    await AuditLog.logAction(req.user._id, 'admin_auto_view', {
+      result: 'failed',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      reason: 'Server error: ' + error.message
+    });
+    next(error);
+  }
+});
+
+/**
+ * POST /admin/clear-test-reactions - Xóa tất cả reactions của test users
+ * Endpoint để reset lại reactions cho testing
+ */
+router.post("/clear-test-reactions", authRequired, adminRequired, strictAdminRateLimit, async (req, res, next) => {
+  try {
+    // Get test users
+    const testUsers = await User.find({
+      email: { $regex: /^test\d+@example\.com$/ }
+    }).select('_id email').lean();
+
+    if (testUsers.length === 0) {
+      return res.status(404).json({ error: "Không tìm thấy tài khoản test nào" });
+    }
+
+    const testUserIds = testUsers.map(u => u._id);
+
+    // Remove all emotes from test users
+    const result = await Post.updateMany(
+      {},
+      {
+        $pull: { 
+          emotes: { 
+            user: { $in: testUserIds } 
+          }
+        }
+      }
+    );
+
+    await AuditLog.logAction(req.user._id, 'admin_auto_like', {
+      result: 'success',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      details: { 
+        action: 'clear_test_reactions',
+        testUsersCount: testUsers.length,
+        postsModified: result.modifiedCount
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Đã xóa tất cả reactions của ${testUsers.length} tài khoản test khỏi ${result.modifiedCount} posts`,
+      testUsersCount: testUsers.length,
+      postsModified: result.modifiedCount
+    });
+
+  } catch (error) {
     next(error);
   }
 });

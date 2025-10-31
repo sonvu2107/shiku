@@ -65,13 +65,13 @@ export default function MobileMenu({ user, setUser }) {
 
   return (
     <>
-      {/* Hamburger Button */}
+      {/* Menu Button - Compact for mobile */}
       <button
         onClick={() => setIsOpen(true)}
-        className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors touch-target"
+        className="md:hidden p-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
         aria-label="Mở menu"
       >
-        <Menu size={20} />
+        <Menu size={18} />
       </button>
 
       {/* Overlay */}
@@ -82,16 +82,16 @@ export default function MobileMenu({ user, setUser }) {
         />
       )}
 
-      {/* Slide-out Menu */}
-      <div className={`fixed top-0 left-0 h-full w-80 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out md:hidden flex flex-col ${
+      {/* Slide-out Menu - Dark mode support */}
+      <div className={`fixed top-0 left-0 h-full w-80 bg-white dark:bg-gray-800 shadow-xl z-50 transform transition-transform duration-300 ease-in-out md:hidden flex flex-col ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Menu</h2>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors touch-target"
+            className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             aria-label="Đóng menu"
           >
             <X size={20} />
@@ -100,16 +100,16 @@ export default function MobileMenu({ user, setUser }) {
 
         {/* User Info */}
         {user && (
-          <div className="p-4 border-b border-gray-200 flex-shrink-0">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div className="flex items-center gap-3">
               <img
                 src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                 alt={user.name}
-                className="w-12 h-12 rounded-full border border-gray-300"
+                className="w-12 h-12 rounded-full border border-gray-300 dark:border-gray-600"
               />
               <div>
-                <div className="font-medium text-gray-900">{user.name}</div>
-                <div className="text-sm text-gray-500">{user.email}</div>
+                <div className="font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
               </div>
             </div>
           </div>

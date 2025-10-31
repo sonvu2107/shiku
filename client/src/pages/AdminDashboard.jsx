@@ -258,7 +258,7 @@ export default function AdminDashboard() {
       )}
 
       <div className="card max-w-7xl mx-auto">
-          <div>
+          <div className="text-center">
             <h1 className="text-xl sm:text-3xl font-bold mb-2">QUẢN LÝ NGƯỜI DÙNG</h1>
             <div className="text-sm sm:text-base text-gray-600">Chào mừng, {user?.name}!</div>
         </div>
@@ -266,61 +266,69 @@ export default function AdminDashboard() {
 
       {/* Tab Navigation */}
       <div className="card max-w-7xl mx-auto">
-        <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 scrollbar-hide">
+        <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 scrollbar-hide justify-center">
           <button
             className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "stats" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("stats")}
           >
+            <BarChart3 className="w-4 h-4" />
             <span className="text-sm sm:text-base">Thống kê</span>
           </button>
           <button
             className={`min-w-[110px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "users" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("users")}
           >
+            <Users className="w-4 h-4" />
             <span className="text-sm sm:text-base">Người dùng</span>
-          </button>
-          <button
-            className={`min-w-[60px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "bans" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("bans")}
-          >
-            <span className="text-sm sm:text-base">Cấm</span>
-          </button>
-          <button
-            className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "notifications" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("notifications")}
-          >
-            <span className="text-sm sm:text-base">Thông báo</span>
           </button>
           <button
             className={`min-w-[80px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "online" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("online")}
           >
+            <Activity className="w-4 h-4" />
             <span className="text-sm sm:text-base">Truy cập</span>
-          </button>
-          <button
-            className={`min-w-[70px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "feedback" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("feedback")}
-          >
-            <span className="text-sm sm:text-base">Góp ý</span>
-          </button>
-          <button
-            className={`min-w-[100px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "api-monitoring" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("api-monitoring")}
-          >
-            <span className="text-sm sm:text-base">API Monitor</span>
           </button>
           <button
             className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "roles" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("roles")}
           >
-            <span className="text-sm sm:text-base">Quản lý Role</span>
+            <Crown className="w-4 h-4" />
+            <span className="text-sm sm:text-base">Vai trò</span>
           </button>
           <button
             className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "auto-like" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
             onClick={() => setActiveTab("auto-like")}
           >
             <Heart className="w-4 h-4" />
-            <span className="text-sm sm:text-base">Auto Like</span>
+            <span className="text-sm sm:text-base">Auto Bot</span>
+          </button>
+          <button
+            className={`min-w-[60px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "bans" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            onClick={() => setActiveTab("bans")}
+          >
+            <Shield className="w-4 h-4" />
+            <span className="text-sm sm:text-base">Cấm</span>
+          </button>
+          <button
+            className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "notifications" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            onClick={() => setActiveTab("notifications")}
+          >
+            <Bell className="w-4 h-4" />
+            <span className="text-sm sm:text-base">Thông báo</span>
+          </button>
+          <button
+            className={`min-w-[70px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "feedback" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            onClick={() => setActiveTab("feedback")}
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span className="text-sm sm:text-base">Góp ý</span>
+          </button>
+          <button
+            className={`min-w-[100px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "api-monitoring" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+            onClick={() => setActiveTab("api-monitoring")}
+          >
+            <Code className="w-4 h-4" />
+            <span className="text-sm sm:text-base">API Monitor</span>
           </button>
         </div>
       </div>

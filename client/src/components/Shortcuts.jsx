@@ -88,7 +88,7 @@ export default function Shortcuts({ user }) {
     }
     
     return (
-      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+      <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-center">
         {shortcut.icon}
       </div>
     );
@@ -120,15 +120,15 @@ export default function Shortcuts({ user }) {
   }
 
   return (
-    <div className="bg-white rounded-r-lg shadow-sm border border-gray-200 border-l-0">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100">
+      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">Lối tắt của bạn</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Lối tắt của bạn</h3>
           {shortcuts.length > 6 && (
             <button
               onClick={() => setShowAll(!showAll)}
-              className="text-gray-500 hover:text-gray-700 transition-colors"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
             >
               <ChevronDown size={16} className={showAll ? 'rotate-180' : ''} />
             </button>
@@ -142,10 +142,10 @@ export default function Shortcuts({ user }) {
           <Link
             key={shortcut.id}
             to={shortcut.url}
-            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors group"
+            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
           >
             {getAvatar(shortcut)}
-            <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
+            <span className="text-sm text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
               {shortcut.title}
             </span>
             {shortcut.type === 'group' && (
@@ -167,27 +167,27 @@ export default function Shortcuts({ user }) {
         ))}
 
         {/* Quick actions */}
-        <div className="pt-2 border-t border-gray-100">
+        <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
           <Link
             to="/groups/create"
-            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors group"
+            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
           >
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <Plus size={16} className="text-blue-600" />
+            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-300">
+              <Plus size={16} className="" />
             </div>
-            <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
+            <span className="text-sm text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
               Tạo nhóm
             </span>
           </Link>
           
           <Link
             to="/events/create"
-            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors group"
+            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
           >
-            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-              <Plus size={16} className="text-green-600" />
+            <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-300">
+              <Plus size={16} className="" />
             </div>
-            <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
+            <span className="text-sm text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
               Tạo sự kiện
             </span>
           </Link>

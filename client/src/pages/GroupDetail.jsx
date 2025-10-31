@@ -937,7 +937,7 @@ const GroupDetail = () => {
                                 {member.role === 'moderator' && (
                                   <UserCheck className="w-4 h-4 text-green-500" />
                                 )}
-                                <span className="text-sm text-gray-600 capitalize">
+                                <span className="text-sm text-gray-600 dark:text-gray-300 capitalize">
                                   {member.role === 'owner' ? 'Chủ sở hữu' :
                                     member.role === 'admin' ? 'Quản trị viên' :
                                       member.role === 'moderator' ? 'Điều hành viên' : 'Thành viên'}

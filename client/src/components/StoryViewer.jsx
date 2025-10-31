@@ -237,14 +237,36 @@ export default function StoryViewer({
         }
       }}
     >
-      {/* Story Container */}
-      <div className="relative w-full max-w-2xl h-full md:h-[95vh] bg-black">
-        {/* Progress Bars */}
-        <div className="absolute top-0 left-0 right-0 flex gap-1 p-3 z-10">
+      {/* Custom CSS for paper slide animation */}
+      <style jsx>{`
+        @keyframes slideInFromLeft {
+          0% {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+          60% {
+            transform: translateX(5%);
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        .animate-slide-from-left {
+          animation: slideInFromLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+      `}</style>
+      
+      {/* Story Container - Facebook style */}
+      <div className="relative w-full max-w-md h-full md:max-w-lg md:h-[95vh] bg-black md:rounded-2xl overflow-hidden">
+        {/* Progress Bars - Facebook style thinner */}
+        <div className="absolute top-0 left-0 right-0 flex gap-0.5 p-2 z-20">
           {stories.map((_, idx) => (
-            <div key={idx} className="flex-1 h-2 bg-white/30 rounded-full overflow-hidden">
+            <div key={idx} className="flex-1 h-0.5 bg-white/40 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-white transition-all"
+                className="h-full bg-white transition-all duration-100"
                 style={{ 
                   width: idx < currentIndex ? '100%' : idx === currentIndex ? `${progress}%` : '0%'
                 }}
@@ -253,78 +275,82 @@ export default function StoryViewer({
           ))}
         </div>
 
-        {/* Mobile-optimized Header */}
-        <div className="absolute top-8 sm:top-12 left-0 right-0 flex items-center justify-between px-3 sm:px-6 z-10">
-          {/* Author Info - Mobile compact */}
-          <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-            <img
-              src={author?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(author?.name || 'User')}`}
-              alt={author?.name}
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white flex-shrink-0"
-            />
+        {/* Header - Facebook style */}
+        <div className="absolute top-6 left-0 right-0 flex items-center justify-between px-4 z-20">
+          {/* Author Info */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="relative">
+              <img
+                src={author?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(author?.name || 'User')}`}
+                alt={author?.name}
+                className="w-10 h-10 rounded-full border-2 border-white"
+              />
+              {/* Online indicator for active stories */}
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-black rounded-full"></div>
+            </div>
             <div className="text-white min-w-0 flex-1">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <span className="font-semibold text-sm sm:text-base truncate">{author?.name}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm truncate">{author?.name}</span>
                 {author?.isVerified && (
-                  <VerifiedBadge size={16} className="sm:w-5 sm:h-5" />
+                  <VerifiedBadge size={14} />
                 )}
               </div>
-              <p className="text-sm text-white/80">
-                {new Date(currentStory.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+              <p className="text-xs text-white/80">
+                {(() => {
+                  const now = new Date();
+                  const storyTime = new Date(currentStory.createdAt);
+                  const diffMinutes = Math.floor((now - storyTime) / (1000 * 60));
+                  
+                  if (diffMinutes < 1) return 'Vừa xong';
+                  if (diffMinutes < 60) return `${diffMinutes}p`;
+                  if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h`;
+                  return `${Math.floor(diffMinutes / 1440)}d`;
+                })()}
               </p>
             </div>
           </div>
           
-          {/* Right Controls - Mobile compact */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          {/* Right Controls */}
+          <div className="flex items-center gap-1 flex-shrink-0">
             {/* Pause/Play Button */}
             <button
               onClick={() => setIsPaused(!isPaused)}
-              className={`text-white hover:text-white/80 transition-colors rounded-full p-3 sm:p-4 ${
-                isPaused ? 'bg-red-500/80' : 'bg-black/30'
-              }`}
+              className="text-white/80 hover:text-white transition-colors p-2"
               title={isPaused ? "Tiếp tục" : "Tạm dừng"}
             >
               {isPaused ? (
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z"/>
                 </svg>
               ) : (
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
                 </svg>
               )}
             </button>
 
-            {/* Analytics (owner only) */}
+            {/* More options menu for owner */}
             {isOwner && (
-              <button
-                onClick={() => setShowAnalytics(true)}
-                className="text-white hover:text-white/80 transition-colors bg-black/30 rounded-full p-3 sm:p-4"
-                title="Xem thống kê"
-              >
-                <BarChart3 size={20} className="sm:w-6 sm:h-6" />
-              </button>
-            )}
-            
-            {/* Delete (owner only) */}
-            {isOwner && (
-              <button
-                onClick={handleDelete}
-                className="text-white hover:text-red-500 transition-colors bg-black/30 rounded-full p-3 sm:p-4"
-                title="Xóa story"
-              >
-                <Trash2 size={20} className="sm:w-6 sm:h-6" />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowViewers(!showViewers)}
+                  className="text-white/80 hover:text-white transition-colors p-2"
+                  title="Tùy chọn"
+                >
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                  </svg>
+                </button>
+              </div>
             )}
             
             {/* Close */}
             <button
               onClick={safeClose}
-              className="text-white hover:text-white/80 transition-colors bg-black/30 rounded-full p-3 sm:p-4"
+              className="text-white/80 hover:text-white transition-colors p-2"
               title="Đóng"
             >
-              <X size={20} className="sm:w-6 sm:h-6" />
+              <X size={24} />
             </button>
           </div>
         </div>
@@ -337,11 +363,48 @@ export default function StoryViewer({
           onTouchStart={() => setIsPaused(true)}
           onTouchEnd={() => setIsPaused(false)}
         >
+          {/* Click areas for navigation - Facebook style */}
+          <div className="absolute inset-0 flex z-10">
+            {/* Previous area - Left 1/3 */}
+            <button
+              onClick={handlePrev}
+              className="w-1/3 h-full flex items-center justify-start pl-4 opacity-0 hover:opacity-100 transition-opacity"
+              disabled={currentIndex === 0}
+            >
+              {currentIndex > 0 && (
+                <div className="bg-black/40 backdrop-blur-sm rounded-full p-2 text-white">
+                  <ChevronLeft size={24} />
+                </div>
+              )}
+            </button>
+
+            {/* Center area - pause/play by tap */}
+            <div 
+              className="w-1/3 h-full flex items-center justify-center"
+              onClick={() => setIsPaused(!isPaused)}
+            />
+
+            {/* Next area - Right 1/3 */}
+            <button
+              onClick={handleNext}
+              className="w-1/3 h-full flex items-center justify-end pr-4 opacity-0 hover:opacity-100 transition-opacity"
+              disabled={currentIndex === stories.length - 1}
+            >
+              {currentIndex < stories.length - 1 && (
+                <div className="bg-black/40 backdrop-blur-sm rounded-full p-2 text-white">
+                  <ChevronRight size={24} />
+                </div>
+              )}
+            </button>
+          </div>
+
+          {/* Media Content */}
           {currentStory.mediaType === 'image' ? (
             <img
               src={currentStory.mediaUrl}
               alt="Story"
               className="max-w-full max-h-full object-contain"
+              style={{ maxHeight: 'calc(100vh - 120px)' }}
             />
           ) : (
             <video
@@ -349,98 +412,95 @@ export default function StoryViewer({
               src={currentStory.mediaUrl}
               autoPlay
               playsInline
-              controls
+              muted
               className="max-w-full max-h-full object-contain"
+              style={{ maxHeight: 'calc(100vh - 120px)' }}
               onLoadedMetadata={() => {
-                // Reset progress when video metadata loads
                 setProgress(0);
               }}
             />
           )}
           
-          {/* Caption Overlay */}
+          {/* Caption Overlay - Facebook style */}
           {currentStory.caption && (
-            <div className="absolute bottom-24 left-0 right-0 px-8">
-              <p className="text-white text-center text-xl font-medium drop-shadow-lg">
+            <div className="absolute bottom-20 left-4 right-4 z-10">
+              <p className="text-white text-center font-medium leading-relaxed drop-shadow-lg">
                 {currentStory.caption}
               </p>
             </div>
           )}
-
-
         </div>
 
-        {/* Mobile-optimized Navigation */}
-        <div className="absolute inset-0 flex">
-          {/* Previous Button - Left side */}
-          <button
-            onClick={handlePrev}
-            className="w-1/3 h-full flex items-center justify-start pl-2 sm:pl-4"
-            disabled={currentIndex === 0}
-          >
-            {currentIndex > 0 && (
-              <div className="bg-black/30 hover:bg-black/50 rounded-full p-2.5 sm:p-3 transition-colors">
-                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-                </svg>
+        {/* Bottom Actions - Facebook style */}
+        <div className="absolute bottom-0 left-0 right-0 z-20">
+          {/* Reaction Button for non-owners - Compact left corner */}
+          {!isOwner && (
+            <div className="absolute bottom-6 left-4">
+              <div className="relative">
+                <button
+                  onClick={() => setShowReactions(!showReactions)}
+                  className="bg-black/30 backdrop-blur-sm text-white rounded-full px-4 py-3 flex items-center gap-3 hover:bg-black/50 transition-all"
+                >
+                  <Heart size={18} />
+                  <span className="text-sm font-medium">Cảm xúc</span>
+                </button>
+                
+                {/* Reactions Popup - To the right of button, matching height */}
+                {showReactions && (
+                  <div className="absolute left-full ml-2 top-0 bg-black/30 backdrop-blur-sm rounded-full shadow-lg px-4 py-3 flex gap-3 h-[48px] items-center animate-slide-from-left">
+                    {Object.entries(reactionConfig).map(([type, { Icon, color }], index) => (
+                      <button
+                        key={type}
+                        onClick={() => handleReaction(type)}
+                        className={`p-2.5 hover:scale-110 transition-all duration-200 rounded-full hover:bg-white/20 ${color}`}
+                        style={{
+                          transform: 'translateX(-100%)',
+                          opacity: 0,
+                          animationDelay: `${index * 80}ms`,
+                          animation: `slideInFromLeft 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards ${index * 80}ms`
+                        }}
+                      >
+                        <Icon size={18} />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </button>
+            </div>
+          )}
 
-          {/* Center area - Click to pause/play */}
-          <div 
-            className="w-1/3 h-full flex items-center justify-center"
-            onClick={() => setIsPaused(!isPaused)}
-          >
-          </div>
-
-          {/* Next Button - Right side */}
-          <button
-            onClick={handleNext}
-            className="w-1/3 h-full flex items-center justify-end pr-2 sm:pr-4"
-            disabled={currentIndex === stories.length - 1}
-          >
-            {currentIndex < stories.length - 1 && (
-              <div className="bg-black/30 hover:bg-black/50 rounded-full p-2.5 sm:p-3 transition-colors">
-                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
-                </svg>
-              </div>
-            )}
-          </button>
-        </div>
-
-
-
-        {/* Mobile-optimized Reaction Button */}
-        {!isOwner && (
-          <div className="absolute bottom-6 sm:bottom-8 left-1/2 transform -translate-x-1/2 z-10">
-            <div className="relative">
+          {/* Owner actions */}
+          {isOwner && (
+            <div className="flex justify-center gap-4 pb-6">
               <button
-                onClick={() => setShowReactions(!showReactions)}
-                className="bg-black/50 hover:bg-black/70 text-white rounded-full px-6 sm:px-8 py-3 sm:py-4 flex items-center gap-3 sm:gap-4 transition-all duration-200 shadow-lg"
+                onClick={loadViewers}
+                className="bg-black/30 backdrop-blur-sm text-white rounded-full px-4 py-2 flex items-center gap-2 hover:bg-black/50 transition-all"
+                disabled={loading}
               >
-                <Smile size={18} className="sm:w-6 sm:h-6" />
-                <span className="font-medium text-base sm:text-lg">Cảm xúc</span>
+                <Eye size={18} />
+                <span className="text-sm font-medium">
+                  {currentStory.viewCount || 0} lượt xem
+                </span>
               </button>
               
-              {/* Reactions Popup - Mobile optimized */}
-              {showReactions && (
-                <div className="absolute bottom-full mb-2 sm:mb-3 left-1/2 -translate-x-1/2 bg-white rounded-lg shadow-lg px-2 sm:px-3 py-1.5 sm:py-2 flex gap-1.5 sm:gap-2">
-                  {Object.entries(reactionConfig).map(([type, { Icon, color }]) => (
-                    <button
-                      key={type}
-                      onClick={() => handleReaction(type)}
-                      className={`p-1 sm:p-1.5 hover:scale-110 transition-transform rounded-full ${color}`}
-                    >
-                      <Icon size={18} className="sm:w-5 sm:h-5" />
-                    </button>
-                  ))}
-                </div>
-              )}
+              <button
+                onClick={() => setShowAnalytics(true)}
+                className="bg-black/30 backdrop-blur-sm text-white rounded-full px-4 py-2 flex items-center gap-2 hover:bg-black/50 transition-all"
+              >
+                <BarChart3 size={18} />
+                <span className="text-sm font-medium">Thống kê</span>
+              </button>
+              
+              <button
+                onClick={handleDelete}
+                className="bg-black/30 backdrop-blur-sm text-white rounded-full px-4 py-2 flex items-center gap-2 hover:bg-red-500/50 transition-all"
+              >
+                <Trash2 size={18} />
+                <span className="text-sm font-medium">Xóa</span>
+              </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Viewers Modal */}

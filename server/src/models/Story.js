@@ -242,24 +242,29 @@ StorySchema.statics.getActiveStoriesForUser = async function(userId) {
 };
 
 /**
- * Lấy stories feed cho user (stories của bạn bè)
+ * Lấy stories feed cho user (stories của bạn bè + stories công khai)
  */
 StorySchema.statics.getStoriesFeed = async function(userId, friendIds) {
   try {
     console.log(`🔍 getStoriesFeed called for user: ${userId}`);
     console.log(`👥 Friend IDs: ${JSON.stringify(friendIds)}`);
     
-    // Lấy stories của bạn bè và chính mình
-    const allUserIds = [userId, ...(friendIds || [])];
-    console.log(`📚 All user IDs: ${JSON.stringify(allUserIds)}`);
-    
     // Group stories theo author
     const stories = await this.aggregate([
       {
         $match: {
-          author: { $in: allUserIds.map(id => new mongoose.Types.ObjectId(id)) },
           isActive: true,
-          expiresAt: { $gt: new Date() }
+          expiresAt: { $gt: new Date() },
+          $or: [
+            // Stories của chính mình
+            { author: new mongoose.Types.ObjectId(userId) },
+            // Stories của bạn bè (tất cả visibility)
+            { 
+              author: { $in: (friendIds || []).map(id => new mongoose.Types.ObjectId(id)) }
+            },
+            // Stories công khai của tất cả mọi người (kể cả không phải bạn bè)
+            { visibility: 'public' }
+          ]
         }
       },
       {
@@ -298,46 +303,40 @@ StorySchema.statics.getStoriesFeed = async function(userId, friendIds) {
         console.log(`🔍 Processing story group for author: ${authorId}`);
         console.log(`📚 Stories in group: ${storyGroup.storyCount}`);
         
-        // Check if current user can see this author's stories
-        let canSeeAuthor = false;
-        
-        // User can always see their own stories
-        if (authorId.toString() === userId.toString()) {
-          canSeeAuthor = true;
-          console.log(`✅ User can see own stories`);
-        }
-        // Check if author is a friend (for friends visibility)
-        else if (userFriends.some(fid => fid.toString() === authorId.toString())) {
-          canSeeAuthor = true;
-          console.log(`✅ User can see friend's stories`);
-        }
-        // Check if any story is public
-        else if (storyGroup.stories.some(story => story.visibility === 'public')) {
-          canSeeAuthor = true;
-          console.log(`✅ User can see public stories`);
-        }
-        
-        if (canSeeAuthor) {
-          // Filter stories within this group based on visibility
-          const visibleStories = storyGroup.stories.filter(story => {
-            if (story.author.toString() === userId.toString()) return true; // Own stories
-            if (story.visibility === 'public') return true;
-            if (story.visibility === 'friends' && userFriends.some(fid => fid.toString() === story.author.toString())) return true;
-            return false;
-          });
-          
-          console.log(`👀 Visible stories: ${visibleStories.length}/${storyGroup.storyCount}`);
-          
-          if (visibleStories.length > 0) {
-            filteredStories.push({
-              ...storyGroup,
-              stories: visibleStories,
-              storyCount: visibleStories.length,
-              latestStory: visibleStories[0] // Most recent visible story
-            });
+        // Filter stories within this group based on visibility
+        const visibleStories = storyGroup.stories.filter(story => {
+          // Own stories - always visible
+          if (story.author.toString() === userId.toString()) {
+            return true;
           }
-        } else {
-          console.log(`❌ User cannot see this author's stories`);
+          
+          // Check if story is hidden from this user
+          if (story.hiddenFrom && story.hiddenFrom.some(id => id.toString() === userId.toString())) {
+            return false;
+          }
+          
+          // Public stories - always visible to everyone
+          if (story.visibility === 'public') {
+            return true;
+          }
+          
+          // Friends stories - only visible to friends
+          if (story.visibility === 'friends' && userFriends.some(fid => fid.toString() === story.author.toString())) {
+            return true;
+          }
+          
+          return false;
+        });
+        
+        console.log(`👀 Visible stories: ${visibleStories.length}/${storyGroup.storyCount}`);
+        
+        if (visibleStories.length > 0) {
+          filteredStories.push({
+            ...storyGroup,
+            stories: visibleStories,
+            storyCount: visibleStories.length,
+            latestStory: visibleStories[0] // Most recent visible story
+          });
         }
       } catch (groupError) {
         console.error(`❌ Error processing story group:`, groupError);

@@ -56,7 +56,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 // Import các utilities và services (giữ nguyên - cần thiết ngay)
 import { api } from "./api.js";
 import { ensureCSRFToken } from "./utils/csrfToken.js";
-import { initializeAccessToken } from "./utils/tokenManager.js";
+import { initializeAccessToken, getValidAccessToken } from "./utils/tokenManager.js";
 import socketService from "./socket";   // Service quản lý WebSocket connection
 import { heartbeatManager } from "./services/heartbeatManager";
 
@@ -177,7 +177,7 @@ export default function App() {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         heartbeatManager.stop();
-        api("/api/auth/heartbeat", {
+        api("/api/auth-token/heartbeat", {
           method: "POST",
           body: { isOnline: false }
         }).catch(() => {});
@@ -225,8 +225,31 @@ export default function App() {
   // Hiển thị loading screen khi app đang khởi tạo
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">Đang tải...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="flex flex-col items-center space-y-4">
+          {/* Spinner vòng tròn */}
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-gray-200 dark:border-gray-600 rounded-full animate-spin border-t-black dark:border-t-white"></div>
+            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent rounded-full animate-ping border-t-gray-600 dark:border-t-gray-300 opacity-20"></div>
+          </div>
+          
+          {/* Loading text */}
+          <div className="text-center">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">
+              Đang khởi tạo Shiku
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 animate-pulse">
+              Vui lòng chờ trong giây lát...
+            </p>
+          </div>
+          
+          {/* Loading dots animation */}
+          <div className="flex space-x-1">
+            <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+        </div>
       </div>
     );
   }
