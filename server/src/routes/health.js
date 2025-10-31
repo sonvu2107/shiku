@@ -6,7 +6,7 @@ const router = express.Router();
  * @route GET /api/health
  * @returns {Object} Health status information
  */
-router.get('/health', (req, res) => {
+router.get('/', (req, res) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),

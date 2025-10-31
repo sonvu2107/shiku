@@ -227,7 +227,7 @@ export default function AdminDashboard() {
       {/* Error and Success Messages */}
       {(dataError || actionError) && (
         <div className="card max-w-7xl mx-auto mb-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded">
             {dataError || actionError}
             <button 
               onClick={() => {
@@ -238,7 +238,7 @@ export default function AdminDashboard() {
                   refreshAllData();
                 }
               }} 
-              className="ml-2 text-red-500 hover:text-red-700"
+              className="ml-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
             >
               ×
             </button>
@@ -248,9 +248,9 @@ export default function AdminDashboard() {
 
       {actionSuccess && (
         <div className="card max-w-7xl mx-auto mb-4">
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded">
             {actionSuccess}
-            <button onClick={clearSuccess} className="ml-2 text-green-500 hover:text-green-700">
+            <button onClick={clearSuccess} className="ml-2 text-green-500 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300">
               ×
             </button>
           </div>
@@ -259,77 +259,120 @@ export default function AdminDashboard() {
 
       <div className="card max-w-7xl mx-auto">
           <div className="text-center">
-            <h1 className="text-xl sm:text-3xl font-bold mb-2">QUẢN LÝ NGƯỜI DÙNG</h1>
-            <div className="text-sm sm:text-base text-gray-600">Chào mừng, {user?.name}!</div>
+            <h1 className="text-xl sm:text-3xl font-bold mb-2 text-gray-900 dark:text-white">QUẢN LÝ NGƯỜI DÙNG</h1>
+            <div className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Chào mừng, {user?.name}!</div>
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="card max-w-7xl mx-auto">
-        <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 scrollbar-hide justify-center">
-          <button
-            className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "stats" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("stats")}
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span className="text-sm sm:text-base">Thống kê</span>
-          </button>
-          <button
-            className={`min-w-[110px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "users" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("users")}
-          >
-            <Users className="w-4 h-4" />
-            <span className="text-sm sm:text-base">Người dùng</span>
-          </button>
-          <button
-            className={`min-w-[80px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "online" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("online")}
-          >
-            <Activity className="w-4 h-4" />
-            <span className="text-sm sm:text-base">Truy cập</span>
-          </button>
-          <button
-            className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "roles" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("roles")}
-          >
-            <Crown className="w-4 h-4" />
-            <span className="text-sm sm:text-base">Vai trò</span>
-          </button>
-          <button
-            className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "auto-like" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("auto-like")}
-          >
-            <Heart className="w-4 h-4" />
-            <span className="text-sm sm:text-base">Auto Bot</span>
-          </button>
-          <button
-            className={`min-w-[60px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "bans" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("bans")}
-          >
-            <Shield className="w-4 h-4" />
-            <span className="text-sm sm:text-base">Cấm</span>
-          </button>
-          <button
-            className={`min-w-[90px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "notifications" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("notifications")}
-          >
-            <Bell className="w-4 h-4" />
-            <span className="text-sm sm:text-base">Thông báo</span>
-          </button>
-          <button
-            className={`min-w-[70px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "feedback" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("feedback")}
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span className="text-sm sm:text-base">Góp ý</span>
-          </button>
-          <button
-            className={`min-w-[100px] px-3 sm:px-4 py-2 font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap touch-target ${activeTab === "api-monitoring" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
-            onClick={() => setActiveTab("api-monitoring")}
-          >
-            <Code className="w-4 h-4" />
-            <span className="text-sm sm:text-base">API Monitor</span>
-          </button>
+      {/* Tab Navigation - Mobile Optimized */}
+      <div className="card max-w-7xl mx-auto sticky top-16 z-30 bg-white dark:bg-gray-800">
+        {/* Mobile: Horizontal scrollable tabs with indicators */}
+        <div className="relative">
+          {/* Scroll gradient indicators */}
+          <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-white dark:from-gray-800 to-transparent z-10 pointer-events-none md:hidden"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-white dark:from-gray-800 to-transparent z-10 pointer-events-none md:hidden"></div>
+          
+          <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 scrollbar-hide px-2 md:px-0 md:justify-center">
+            <button
+              className={`flex-shrink-0 px-2 md:px-4 py-3 md:py-2 font-medium flex flex-col md:flex-row items-center gap-1 md:gap-2 touch-target transition-colors min-w-[60px] md:min-w-[90px] ${
+                activeTab === "stats" 
+                  ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400" 
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+              onClick={() => setActiveTab("stats")}
+            >
+              <BarChart3 className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-xs md:text-sm lg:text-base">Stats</span>
+            </button>
+            <button
+              className={`flex-shrink-0 px-2 md:px-4 py-3 md:py-2 font-medium flex flex-col md:flex-row items-center gap-1 md:gap-2 touch-target transition-colors min-w-[60px] md:min-w-[110px] ${
+                activeTab === "users" 
+                  ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400" 
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+              onClick={() => setActiveTab("users")}
+            >
+              <Users className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-xs md:text-sm lg:text-base">Users</span>
+            </button>
+            <button
+              className={`flex-shrink-0 px-2 md:px-4 py-3 md:py-2 font-medium flex flex-col md:flex-row items-center gap-1 md:gap-2 touch-target transition-colors min-w-[60px] md:min-w-[80px] ${
+                activeTab === "online" 
+                  ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400" 
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+              onClick={() => setActiveTab("online")}
+            >
+              <Activity className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-xs md:text-sm lg:text-base">Online</span>
+            </button>
+            <button
+              className={`flex-shrink-0 px-2 md:px-4 py-3 md:py-2 font-medium flex flex-col md:flex-row items-center gap-1 md:gap-2 touch-target transition-colors min-w-[60px] md:min-w-[90px] ${
+                activeTab === "roles" 
+                  ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400" 
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+              onClick={() => setActiveTab("roles")}
+            >
+              <Crown className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-xs md:text-sm lg:text-base">Roles</span>
+            </button>
+            <button
+              className={`flex-shrink-0 px-2 md:px-4 py-3 md:py-2 font-medium flex flex-col md:flex-row items-center gap-1 md:gap-2 touch-target transition-colors min-w-[60px] md:min-w-[90px] ${
+                activeTab === "auto-like" 
+                  ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400" 
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+              onClick={() => setActiveTab("auto-like")}
+            >
+              <Heart className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-xs md:text-sm lg:text-base">Bot</span>
+            </button>
+            <button
+              className={`flex-shrink-0 px-2 md:px-4 py-3 md:py-2 font-medium flex flex-col md:flex-row items-center gap-1 md:gap-2 touch-target transition-colors min-w-[60px] md:min-w-[60px] ${
+                activeTab === "bans" 
+                  ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400" 
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+              onClick={() => setActiveTab("bans")}
+            >
+              <Shield className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-xs md:text-sm lg:text-base">Ban</span>
+            </button>
+            <button
+              className={`flex-shrink-0 px-2 md:px-4 py-3 md:py-2 font-medium flex flex-col md:flex-row items-center gap-1 md:gap-2 touch-target transition-colors min-w-[60px] md:min-w-[90px] ${
+                activeTab === "notifications" 
+                  ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400" 
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+              onClick={() => setActiveTab("notifications")}
+            >
+              <Bell className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-xs md:text-sm lg:text-base">Notify</span>
+            </button>
+            <button
+              className={`flex-shrink-0 px-2 md:px-4 py-3 md:py-2 font-medium flex flex-col md:flex-row items-center gap-1 md:gap-2 touch-target transition-colors min-w-[60px] md:min-w-[70px] ${
+                activeTab === "feedback" 
+                  ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400" 
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+              onClick={() => setActiveTab("feedback")}
+            >
+              <MessageCircle className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-xs md:text-sm lg:text-base">Feedback</span>
+            </button>
+            <button
+              className={`flex-shrink-0 px-2 md:px-4 py-3 md:py-2 font-medium flex flex-col md:flex-row items-center gap-1 md:gap-2 touch-target transition-colors min-w-[60px] md:min-w-[100px] ${
+                activeTab === "api-monitoring" 
+                  ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400" 
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+              onClick={() => setActiveTab("api-monitoring")}
+            >
+              <Code className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-xs md:text-sm lg:text-base">API</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -338,9 +381,9 @@ export default function AdminDashboard() {
         {/* Stats Tab */}
         {activeTab === "stats" && (
           <div className="pt-4">
-            <h2 className="text-lg sm:text-xl font-bold mb-4">Thống kê tổng quan</h2>
+            <h2 className="text-lg sm:text-xl font-bold mb-4 text-gray-900 dark:text-white">Thống kê tổng quan</h2>
             {!stats ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 Đang tải thống kê...
               </div>
             ) : (
@@ -629,34 +672,72 @@ export default function AdminDashboard() {
         {/* Users Tab */}
         {activeTab === "users" && (
           <div className="pt-4">
-            <h2 className="text-lg sm:text-xl font-bold mb-4">
+            <h2 className="text-lg sm:text-xl font-bold mb-4 text-gray-900 dark:text-white">
               Quản lý người dùng ({stats.overview ? stats.overview.totalUsers.count : users.length})
             </h2>
             
-            {/* Search and Filter */}
-            <div className="mb-4 space-y-3 sm:space-y-0 sm:flex sm:gap-4">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm theo tên hoặc email..."
-                  value={userSearchTerm}
-                  onChange={(e) => setUserSearchTerm(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target"
-                />
+            {/* Search and Filter - Mobile Optimized */}
+            <div className="mb-6 space-y-3">
+              {/* Search and Filter Row */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Search Input */}
+                <div className="flex-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm theo tên hoặc email..."
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target shadow-sm"
+                  />
+                  {userSearchTerm && (
+                    <button
+                      onClick={() => setUserSearchTerm('')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                
+                {/* Role Filter */}
+                <div className="w-full sm:w-60">
+                  <select
+                    value={userRoleFilter}
+                    onChange={(e) => setUserRoleFilter(e.target.value)}
+                    className="w-full px-3 py-3 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target shadow-sm"
+                  >
+                    <option value="">Tất cả quyền</option>
+                    {availableRoles.map(role => (
+                      <option key={role.name} value={role.name}>
+                        {role.displayName} ({role.userCount || 0})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div className="sm:w-48">
-                <select
-                  value={userRoleFilter}
-                  onChange={(e) => setUserRoleFilter(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target"
-                >
-                  <option value="">Tất cả quyền</option>
-                  {availableRoles.map(role => (
-                    <option key={role.name} value={role.name}>
-                      {role.displayName}
-                    </option>
-                  ))}
-                </select>
+              
+              {/* Results Count */}
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-medium text-sm">
+                  {(() => {
+                    const filteredUsers = users.filter(u => {
+                      const matchesSearch = !userSearchTerm || 
+                        u.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                        u.email?.toLowerCase().includes(userSearchTerm.toLowerCase());
+                      const matchesRole = !userRoleFilter || 
+                        (u.role?.name || u.role) === userRoleFilter;
+                      return matchesSearch && matchesRole;
+                    });
+                    return filteredUsers.length;
+                  })()} kết quả
+                </span>
               </div>
             </div>
 
@@ -675,6 +756,11 @@ export default function AdminDashboard() {
                 return matchesSearch && matchesRole;
               });
 
+              // Helper function to check if user is online
+              const isUserOnline = (userId) => {
+                return onlineUsers.some(onlineUser => onlineUser._id === userId);
+              };
+
               return filteredUsers.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   Không tìm thấy người dùng nào phù hợp với bộ lọc
@@ -690,6 +776,7 @@ export default function AdminDashboard() {
                         <th className="px-4 py-2 text-left text-sm">Tên</th>
                         <th className="px-4 py-2 text-left text-sm">Email</th>
                         <th className="px-4 py-2 text-left text-sm">Quyền</th>
+                        <th className="px-4 py-2 text-left text-sm hidden md:table-cell">Trạng thái</th>
                         <th className="px-4 py-2 text-left text-sm hidden md:table-cell">Ngày tham gia</th>
                         <th className="px-4 py-2 text-left text-sm hidden lg:table-cell">Số bài viết</th>
                         <th className="px-4 py-2 text-left text-sm">Hành động</th>
@@ -737,6 +824,19 @@ export default function AdminDashboard() {
                           ))}
                         </select>
                       </td>
+                        <td className="px-4 py-2 hidden md:table-cell">
+                          {isUserOnline(u._id) ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <span className="text-green-600 dark:text-green-400 font-medium text-sm">Online</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                              <span className="text-gray-500 dark:text-gray-400 text-sm">Offline</span>
+                            </div>
+                          )}
+                        </td>
                         <td className="px-4 py-2 text-sm hidden md:table-cell">{new Date(u.createdAt).toLocaleDateString()}</td>
                         <td className="px-4 py-2 text-sm hidden lg:table-cell">{u.postCount}</td>
                         <td className="px-4 py-2">
@@ -756,23 +856,34 @@ export default function AdminDashboard() {
                 </table>
               </div>
 
-                {/* Mobile Card View */}
+                {/* Mobile Card View - Enhanced */}
                 <div className="sm:hidden space-y-3">
                   {filteredUsers.map(u => (
-                    <div key={u._id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-3">
+                    <div key={u._id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+                      {/* Header with Avatar and Actions */}
+                      <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          {/* Avatar */}
-                          <img
-                            src={getUserAvatarUrl(u, AVATAR_SIZES.SMALL)}
-                            alt="avatar"
-                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                          />
+                          {/* Avatar with Status */}
+                          <div className="relative">
+                            <img
+                              src={getUserAvatarUrl(u, AVATAR_SIZES.SMALL)}
+                              alt="avatar"
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                            {/* Online Status Indicator */}
+                            {isUserOnline(u._id) ? (
+                              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full flex items-center justify-center">
+                                <div className="w-2 h-2 bg-white rounded-full"></div>
+                              </div>
+                            ) : (
+                              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-gray-400 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                            )}
+                          </div>
                           
                           {/* User Info */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-medium text-gray-900 dark:text-white text-sm truncate">
+                              <h3 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
                                 {u.name}
                               </h3>
                               <VerifiedBadge 
@@ -782,57 +893,85 @@ export default function AdminDashboard() {
                                 availableRoles={availableRoles}
                               />
                             </div>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 truncate mb-1">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {u.email}
                             </p>
-                            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                              <span>{new Date(u.createdAt).toLocaleDateString()}</span>
-                              <span>•</span>
-                              <span>{u.postCount} bài viết</span>
-                            </div>
                           </div>
                         </div>
                         
-                        {/* Actions */}
-                        <div className="flex-shrink-0 ml-2">
+                        {/* Quick Actions */}
+                        <div className="flex items-center gap-1">
                           <button
-                            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg touch-target"
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg touch-target transition-colors"
                             onClick={() => deleteUser(u._id)}
                             disabled={u._id === user._id}
                             title="Xóa người dùng"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
                       
-                      {/* Role Selector */}
-                      <div className="mt-3">
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {/* Stats Row */}
+                      <div className="grid grid-cols-3 gap-4 mb-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <div className="text-center">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {u.postCount || 0}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Bài viết</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {new Date(u.createdAt).toLocaleDateString('vi-VN')}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Tham gia</div>
+                        </div>
+                        <div className="text-center">
+                          {isUserOnline(u._id) ? (
+                            <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+                              Online
+                            </div>
+                          ) : (
+                            <div className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+                              Offline
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Trạng thái</div>
+                        </div>
+                      </div>
+                      
+                      {/* Role Management */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
                           Quyền hạn
                         </label>
-                        <select
-                          value={u.role?.name || u.role}
-                          onChange={async (e) => {
-                            const newRole = e.target.value;
-                            await updateUserRole(u._id, newRole);
-                          }}
-                          disabled={u._id === user._id || updatingRoles.has(u._id)}
-                          className={`w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target ${
-                            updatingRoles.has(u._id) ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                        >
+                        <div className="flex gap-2">
+                          <select
+                            value={u.role?.name || u.role}
+                            onChange={async (e) => {
+                              const newRole = e.target.value;
+                              await updateUserRole(u._id, newRole);
+                            }}
+                            disabled={u._id === user._id || updatingRoles.has(u._id)}
+                            className={`flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target transition-colors ${
+                              updatingRoles.has(u._id) ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            {updatingRoles.has(u._id) && (
+                              <option>Đang cập nhật...</option>
+                            )}
+                            {!updatingRoles.has(u._id) && availableRoles.map(role => (
+                              <option key={role.name} value={role.name}>
+                                {role.displayName}
+                              </option>
+                            ))}
+                          </select>
                           {updatingRoles.has(u._id) && (
-                            <option>Đang cập nhật...</option>
+                            <div className="flex items-center px-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                            </div>
                           )}
-                          {!updatingRoles.has(u._id) && availableRoles.map(role => (
-                            <option key={role.name} value={role.name}>
-                              {role.displayName}
-                            </option>
-                          ))}
-                        </select>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -846,17 +985,17 @@ export default function AdminDashboard() {
         {/* Ban Management Tab */}
         {activeTab === "bans" && (
           <div className="pt-4">
-            <h2 className="text-xl font-bold mb-4">Quản lý cấm người dùng</h2>
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Quản lý cấm người dùng</h2>
 
             {/* Ban Form */}
-            <div className="bg-gray-50 p-4 rounded-lg mb-6">
-              <h3 className="font-semibold mb-3">Cấm người dùng</h3>
+            <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg mb-6">
+              <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Cấm người dùng</h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Chọn user */}
                 <select
                   value={banForm.userId}
                   onChange={(e) => setBanForm({ ...banForm, userId: e.target.value })}
-                  className="input"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 >
                   <option value="">Chọn người dùng</option>
                   {users
@@ -872,7 +1011,7 @@ export default function AdminDashboard() {
                 <select
                   value={banForm.duration}
                   onChange={(e) => setBanForm({ ...banForm, duration: e.target.value })}
-                  className="input"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 >
                   <option value="">Chọn thời gian cấm</option>
                   <option value="15">15 phút</option>
@@ -893,7 +1032,7 @@ export default function AdminDashboard() {
                   value={banForm.reason}
                   onChange={(e) => setBanForm({ ...banForm, reason: e.target.value })}
                   placeholder="Nhập lý do cấm..."
-                  className="input"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 />
 
                 <button
@@ -920,7 +1059,7 @@ export default function AdminDashboard() {
                       });
                     }
                   }}
-                  className="btn bg-red-600 text-white flex items-center justify-center"
+                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center"
                   disabled={!banForm.userId || !banForm.duration || !banForm.reason.trim() || actionLoading}
                 >
                   {actionLoading ? 'Đang xử lý...' : 'Cấm'}
@@ -929,83 +1068,188 @@ export default function AdminDashboard() {
             </div>
 
             {/* Banned Users List */}
-            <div className="overflow-x-auto">
-              <h3 className="font-semibold mb-3">Danh sách người dùng bị cấm</h3>
-              <table className="w-full border-collapse border">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left border">Người dùng</th>
-                    <th className="px-4 py-2 text-left border">Lý do</th>
-                    <th className="px-4 py-2 text-left border">Thời gian cấm</th>
-                    <th className="px-4 py-2 text-left border">Hết hạn</th>
-                    <th className="px-4 py-2 text-left border">Trạng thái</th>
-                    <th className="px-4 py-2 text-left border">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.filter(u => u && u.isBanned).map(u => (
-                    <tr key={u._id} className="border">
-                      <td className="px-4 py-2 border">
-                        <div className="flex items-center gap-2">
+            <div>
+              <h3 className="font-semibold mb-4">Danh sách người dùng bị cấm</h3>
+              
+              {users.filter(u => u && u.isBanned).length === 0 ? (
+                <div className="text-center py-8 text-gray-500 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  Không có người dùng nào bị cấm
+                </div>
+              ) : (
+                <>
+                  {/* Desktop Table View */}
+                  <div className="hidden lg:block overflow-x-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <table className="w-full border-collapse">
+                      <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Người dùng</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Lý do</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Thời gian cấm</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Hết hạn</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Trạng thái</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Hành động</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {users.filter(u => u && u.isBanned).map(u => (
+                          <tr key={u._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={getUserAvatarUrl(u, AVATAR_SIZES.SMALL)}
+                                  alt="avatar"
+                                  className="w-8 h-8 rounded-full object-cover"
+                                />
+                                <div>
+                                  <div className="font-medium text-gray-900 dark:text-white">{u.name || 'Unknown User'}</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">{u.email}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-white max-w-[200px]">
+                              <div className="truncate" title={u.banReason || 'Không có lý do'}>
+                                {u.banReason || 'Không có lý do'}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                              {u.bannedAt ? new Date(u.bannedAt).toLocaleDateString('vi-VN') : "N/A"}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                              {u.banExpiresAt ? new Date(u.banExpiresAt).toLocaleDateString('vi-VN') : "Vĩnh viễn"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${!u.banExpiresAt
+                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                    : new Date() < new Date(u.banExpiresAt)
+                                      ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+                                      : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                  }`}
+                              >
+                                {!u.banExpiresAt
+                                  ? "Vĩnh viễn"
+                                  : new Date() < new Date(u.banExpiresAt)
+                                    ? "Đang cấm"
+                                    : "Hết hạn"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                className="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-800 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900/20 transition-colors"
+                                onClick={async () => {
+                                  if (await unbanUser(u._id)) {
+                                    updateSingleUserInState(u._id, {
+                                      isBanned: false,
+                                      banReason: null,
+                                      bannedAt: null,
+                                      banExpiresAt: null,
+                                      bannedBy: null
+                                    });
+                                  }
+                                }}
+                                disabled={actionLoading}
+                              >
+                                {actionLoading ? 'Đang xử lý...' : 'Gỡ cấm'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="lg:hidden space-y-4">
+                    {users.filter(u => u && u.isBanned).map(u => (
+                      <div key={u._id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+                        {/* Header with User Info */}
+                        <div className="flex items-center gap-3 mb-4">
                           <img
                             src={getUserAvatarUrl(u, AVATAR_SIZES.SMALL)}
                             alt="avatar"
-                            className="w-6 h-6 rounded-full object-cover"
+                            className="w-12 h-12 rounded-full object-cover"
                           />
-                          <span className="font-medium">{u.name || 'Unknown User'}</span>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900 dark:text-white truncate">
+                              {u.name || 'Unknown User'}
+                            </h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                              {u.email}
+                            </p>
+                          </div>
+                          <div className="flex-shrink-0">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${!u.banExpiresAt
+                                  ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                  : new Date() < new Date(u.banExpiresAt)
+                                    ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+                                    : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                }`}
+                            >
+                              {!u.banExpiresAt
+                                ? "Vĩnh viễn"
+                                : new Date() < new Date(u.banExpiresAt)
+                                  ? "Đang cấm"
+                                  : "Hết hạn"}
+                            </span>
+                          </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-2 border">{u.banReason || 'Không có lý do'}</td>
-                      <td className="px-4 py-2 border text-sm">
-                        {u.bannedAt ? new Date(u.bannedAt).toLocaleString() : "N/A"}
-                      </td>
-                      <td className="px-4 py-2 border text-sm">
-                        {u.banExpiresAt ? new Date(u.banExpiresAt).toLocaleString() : "Vĩnh viễn"}
-                      </td>
-                      <td className="px-4 py-2 border">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs ${!u.banExpiresAt
-                              ? "bg-red-100 text-red-800"
-                              : new Date() < new Date(u.banExpiresAt)
-                                ? "bg-orange-100 text-orange-800"
-                                : "bg-green-100 text-green-800"
-                            }`}
-                        >
-                          {!u.banExpiresAt
-                            ? "Vĩnh viễn"
-                            : new Date() < new Date(u.banExpiresAt)
-                              ? "Đang cấm"
-                              : "Hết hạn"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 border">
-                        <button
-                          className="btn-outline btn-sm text-green-600"
-                          onClick={async () => {
-                            if (await unbanUser(u._id)) {
-                              // Optimistic update instead of full refresh
-                              updateSingleUserInState(u._id, {
-                                isBanned: false,
-                                banReason: null,
-                                bannedAt: null,
-                                banExpiresAt: null,
-                                bannedBy: null
-                              });
-                            }
-                          }}
-                          disabled={actionLoading}
-                        >
-                          {actionLoading ? 'Đang xử lý...' : 'Gỡ cấm'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {users.filter(u => u && u.isBanned).length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  Không có người dùng nào bị cấm
-                </div>
+
+                        {/* Ban Details */}
+                        <div className="space-y-3 mb-4">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              Lý do cấm
+                            </label>
+                            <p className="text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded px-3 py-2">
+                              {u.banReason || 'Không có lý do'}
+                            </p>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Thời gian cấm
+                              </label>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {u.bannedAt ? new Date(u.bannedAt).toLocaleDateString('vi-VN') : "N/A"}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Hết hạn
+                              </label>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {u.banExpiresAt ? new Date(u.banExpiresAt).toLocaleDateString('vi-VN') : "Vĩnh viễn"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action Button */}
+                        <div className="flex justify-end">
+                          <button
+                            className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-green-300 text-sm font-medium rounded-lg text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-800 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900/20 transition-colors touch-target"
+                            onClick={async () => {
+                              if (await unbanUser(u._id)) {
+                                updateSingleUserInState(u._id, {
+                                  isBanned: false,
+                                  banReason: null,
+                                  bannedAt: null,
+                                  banExpiresAt: null,
+                                  bannedBy: null
+                                });
+                              }
+                            }}
+                            disabled={actionLoading}
+                          >
+                            {actionLoading ? 'Đang xử lý...' : 'Gỡ cấm người dùng'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -1015,34 +1259,34 @@ export default function AdminDashboard() {
         {/* Notifications Tab */}
         {activeTab === "notifications" && (
           <div className="pt-4">
-            <h2 className="text-xl font-bold mb-4">Gửi thông báo</h2>
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Gửi thông báo</h2>
 
             {/* Notification Forms */}
             <div className="grid gap-6 lg:grid-cols-2">
 
               {/* System Notification */}
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-3 text-blue-800">Thông báo hệ thống</h3>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+                <h3 className="font-semibold mb-3 text-blue-800 dark:text-blue-300">Thông báo hệ thống</h3>
                 <div className="space-y-3">
                   <input
                     type="text"
                     placeholder="Tiêu đề thông báo..."
                     value={notificationForm.title}
                     onChange={(e) => setNotificationForm({ ...notificationForm, title: e.target.value })}
-                    className="input w-full"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   />
 
                   <textarea
                     placeholder="Nội dung thông báo..."
                     value={notificationForm.message}
                     onChange={(e) => setNotificationForm({ ...notificationForm, message: e.target.value })}
-                    className="input w-full h-20 resize-none"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white h-20 resize-none"
                   />
 
                   <select
                     value={notificationForm.targetRole}
                     onChange={(e) => setNotificationForm({ ...notificationForm, targetRole: e.target.value })}
-                    className="input w-full"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Tất cả</option>
                     <option value="admin">Chỉ Admin</option>
@@ -1051,7 +1295,7 @@ export default function AdminDashboard() {
 
                   <button
                     onClick={handleNotificationSubmit}
-                    className="btn bg-blue-600 text-white w-full hover:bg-blue-700 flex items-center justify-center"
+                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center"
                     disabled={!notificationForm.title.trim() || !notificationForm.message.trim()}
                   >
                     Gửi thông báo hệ thống
@@ -1060,27 +1304,27 @@ export default function AdminDashboard() {
               </div>
 
               {/* Admin Broadcast */}
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-3 text-green-800">Thông báo từ Admin</h3>
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 rounded-lg">
+                <h3 className="font-semibold mb-3 text-green-800 dark:text-green-300">Thông báo từ Admin</h3>
                 <div className="space-y-3">
                   <input
                     type="text"
                     placeholder="Tiêu đề thông báo..."
                     value={notificationForm.title}
                     onChange={(e) => setNotificationForm({ ...notificationForm, title: e.target.value })}
-                    className="input w-full"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   />
 
                   <textarea
                     placeholder="Nội dung thông báo..."
                     value={notificationForm.message}
                     onChange={(e) => setNotificationForm({ ...notificationForm, message: e.target.value })}
-                    className="input w-full h-20 resize-none"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white h-20 resize-none"
                   />
 
                   <button
                     onClick={handleNotificationSubmit}
-                    className="btn bg-green-600 text-white w-full hover:bg-green-700 flex items-center justify-center"
+                    className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center"
                     disabled={!notificationForm.title.trim() || !notificationForm.message.trim()}
                   >
                     Gửi thông báo
@@ -1090,9 +1334,9 @@ export default function AdminDashboard() {
             </div>
 
             {/* Info */}
-            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <h4 className="font-medium mb-2">Phân biệt các loại thông báo:</h4>
-              <ul className="text-sm text-gray-600 space-y-1">
+            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <h4 className="font-medium mb-2 text-gray-900 dark:text-white">Phân biệt các loại thông báo:</h4>
+              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                 <li><strong>Thông báo hệ thống:</strong> Thông báo về cập nhật server, bảo trì, thay đổi chính sách (có thể chọn đối tượng)</li>
                 <li><strong>Thông báo từ Admin:</strong> Thông báo cá nhân từ admin đến tất cả người dùng</li>
               </ul>
@@ -1103,35 +1347,35 @@ export default function AdminDashboard() {
         {/* Visitor Stats Tab */}
         {activeTab === "online" && (
           <div className="pt-4">
-            <h2 className="text-xl font-bold mb-4">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
               Thống kê truy cập và người dùng
             </h2>
 
             {/* Visitor Stats Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="bg-emerald-50 p-4 rounded-lg text-center">
-                <Wifi className="text-emerald-600 mx-auto mb-2" size={32} />
-                <div className="text-2xl font-bold text-emerald-600">{onlineUsers.length}</div>
-                <div className="text-gray-600">Đang online</div>
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 rounded-lg text-center">
+                <Wifi className="text-emerald-600 dark:text-emerald-400 mx-auto mb-2" size={32} />
+                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{onlineUsers.length}</div>
+                <div className="text-gray-600 dark:text-gray-400">Đang online</div>
               </div>
-              <div className="bg-gray-50 p-4 rounded-lg text-center">
-                <WifiOff className="text-gray-600 mx-auto mb-2" size={32} />
-                <div className="text-2xl font-bold text-gray-600">
+              <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg text-center">
+                <WifiOff className="text-gray-600 dark:text-gray-400 mx-auto mb-2" size={32} />
+                <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
                   {stats.overview ? 
                     Math.max(0, stats.overview.totalUsers.count - onlineUsers.length) : 
                     Math.max(0, users.length - onlineUsers.length)
                   }
                 </div>
-                <div className="text-gray-600">Offline</div>
+                <div className="text-gray-600 dark:text-gray-400">Offline</div>
               </div>
-              <div className="bg-blue-50 p-4 rounded-lg text-center">
-                <UserCheck className="text-blue-600 mx-auto mb-2" size={32} />
-                <div className="text-2xl font-bold text-blue-600">{totalVisitors.toLocaleString()}</div>
-                <div className="text-gray-600">Tổng lượt truy cập</div>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg text-center">
+                <UserCheck className="text-blue-600 dark:text-blue-400 mx-auto mb-2" size={32} />
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalVisitors.toLocaleString()}</div>
+                <div className="text-gray-600 dark:text-gray-400">Tổng lượt truy cập</div>
               </div>
-              <div className="bg-purple-50 p-4 rounded-lg text-center">
-                <Users className="text-purple-600 mx-auto mb-2" size={32} />
-                <div className="text-2xl font-bold text-purple-600">
+              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-4 rounded-lg text-center">
+                <Users className="text-purple-600 dark:text-purple-400 mx-auto mb-2" size={32} />
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                   {stats.overview ? stats.overview.totalUsers.count : users.length}
                 </div>
                 <div className="text-gray-600">Tổng người dùng</div>

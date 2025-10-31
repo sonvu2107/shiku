@@ -59,6 +59,7 @@ import { ensureCSRFToken } from "./utils/csrfToken.js";
 import { initializeAccessToken, getValidAccessToken } from "./utils/tokenManager.js";
 import socketService from "./socket";   // Service quản lý WebSocket connection
 import { heartbeatManager } from "./services/heartbeatManager";
+import { startKeepAlive } from "./utils/keepalive.js"; // Server keepalive service
 
 /**
  * Component chính của ứng dụng - quản lý routing và authentication
@@ -165,7 +166,7 @@ export default function App() {
     }
     localStorage.setItem('app:darkMode', darkMode ? '1' : '0');
   }, [darkMode]);
-  // Centralized heartbeat manager (1 request/min)
+    // Centralized heartbeat manager (1 request/min)
   useEffect(() => {
     if (!user) {
       heartbeatManager.stop();
@@ -200,6 +201,19 @@ export default function App() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [user]);
+
+  // Server keepalive service (production only)
+  useEffect(() => {
+    // Chỉ chạy trong production để tránh server Render sleep
+    if (process.env.NODE_ENV === 'production') {
+      console.log('[App] 🚀 Starting server keepalive service...');
+      const cleanup = startKeepAlive(12, true); // Ping mỗi 12 phút, chỉ khi tab active
+      
+      return cleanup;
+    }
+  }, []);
+
+  // Toggle dark mode function
 
 
   // Effect để đồng bộ user state khi user thay đổi (đảm bảo có đầy đủ thông tin)

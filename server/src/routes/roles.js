@@ -213,16 +213,22 @@ router.put("/:id", authRequired, adminRequired, async (req, res, next) => {
  */
 router.delete("/:id", authRequired, adminRequired, async (req, res, next) => {
   try {
+    console.log(`🗑️ DELETE role request for ID: ${req.params.id}`);
+    
     const role = await Role.findById(req.params.id);
     if (!role) {
+      console.log(`❌ Role not found: ${req.params.id}`);
       return res.status(404).json({
         success: false,
         error: "Không tìm thấy role"
       });
     }
     
+    console.log(`📋 Found role: ${role.name} (isDefault: ${role.isDefault})`);
+    
     // Không cho phép xóa role mặc định
     if (role.isDefault) {
+      console.log(`❌ Cannot delete default role: ${role.name}`);
       return res.status(400).json({
         success: false,
         error: "Không thể xóa role mặc định"
@@ -231,7 +237,10 @@ router.delete("/:id", authRequired, adminRequired, async (req, res, next) => {
     
     // Kiểm tra có user nào đang sử dụng role này không
     const usersWithRole = await User.countDocuments({ role: role.name });
+    console.log(`👥 Users with role ${role.name}: ${usersWithRole}`);
+    
     if (usersWithRole > 0) {
+      console.log(`❌ Cannot delete role ${role.name} - still in use by ${usersWithRole} users`);
       return res.status(400).json({
         success: false,
         error: `Không thể xóa role này vì có ${usersWithRole} người dùng đang sử dụng`
@@ -241,13 +250,17 @@ router.delete("/:id", authRequired, adminRequired, async (req, res, next) => {
     // Xóa role (soft delete)
     role.isActive = false;
     await role.save();
+    console.log(`✅ Successfully soft-deleted role: ${role.name}`);
+    
+    // Invalidate cache by calling next with cache invalidation
+    req.cacheInvalidate = true;
     
     res.json({
       success: true,
       message: "Xóa role thành công"
     });
   } catch (error) {
-    console.error("Error deleting role:", error);
+    console.error("❌ Error deleting role:", error);
     next(error);
   }
 });

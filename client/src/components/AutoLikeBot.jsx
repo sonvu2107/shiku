@@ -37,7 +37,7 @@ export default function AutoLikeBot() {
 
   const runAutoLikeBot = async () => {
     if (selectedUsers.length === 0) {
-      setError("Vui lòng chọn ít nhất một tài khoản để chạy auto like bot.");
+      setError("Vui lòng chọn ít nhất một tài khoản để chạy bot.");
       return;
     }
 
@@ -56,12 +56,12 @@ export default function AutoLikeBot() {
           emoteTypes: config.emoteTypes,
           enableAutoView: false, // Chỉ like, không view
           maxViewsPerUser: 0,
-          forceOverride: config.forceOverride, // Thêm option force
+          forceOverride: config.forceOverride, 
         },
       });
       setResults(res);
     } catch (err) {
-      setError(err.message || "Đã xảy ra lỗi khi chạy Auto Like Bot.");
+      setError(err.message || "Đã xảy ra lỗi khi chạy Bot.");
     } finally {
       setLoading(false);
       setIsRunning(false);
@@ -70,7 +70,7 @@ export default function AutoLikeBot() {
 
   const runAutoViewBot = async () => {
     if (selectedUsers.length === 0) {
-      setError("Vui lòng chọn ít nhất một tài khoản để chạy auto view bot.");
+      setError("Vui lòng chọn ít nhất một tài khoản để chạy bot.");
       return;
     }
 
@@ -89,7 +89,7 @@ export default function AutoLikeBot() {
       });
       setResults(res);
     } catch (err) {
-      setError(err.message || "Đã xảy ra lỗi khi chạy Auto View Bot.");
+      setError(err.message || "Đã xảy ra lỗi khi chạy Bot.");
     } finally {
       setLoading(false);
       setIsRunning(false);
@@ -108,7 +108,7 @@ export default function AutoLikeBot() {
   const clearUserSelection = () => setSelectedUsers([]);
 
   const clearAllReactions = async () => {
-    if (!confirm("Bạn có chắc muốn xóa tất cả reactions của test users? Hành động này không thể hoàn tác.")) {
+    if (!confirm("Bạn có chắc muốn xóa tất cả cảm xúc của các tài khoản test? Hành động này không thể hoàn tác.")) {
       return;
     }
 
@@ -121,73 +121,73 @@ export default function AutoLikeBot() {
         body: {}
       });
 
-      alert(`✅ ${res.message}`);
+      alert(` ${res.message}`);
       setResults(null); // Clear previous results
     } catch (err) {
-      setError(err.message || "Đã xảy ra lỗi khi xóa reactions.");
+      setError(err.message || "Đã xảy ra lỗi khi xóa cảm xúc.");
     } finally {
       setClearingReactions(false);
     }
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen py-10 px-4">
-      <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="p-3 bg-black text-white rounded-xl">
-            {botMode === "like" ? <Heart className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen py-4 md:py-10 px-2 md:px-4">
+      <div className="max-w-6xl mx-auto bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl shadow-xl p-4 md:p-8 border border-gray-200 dark:border-gray-700">
+        {/* Header - Mobile Responsive */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-6">
+          <div className="p-3 bg-black text-white rounded-xl w-fit">
+            {botMode === "like" ? <Heart className="w-5 h-5 md:w-6 md:h-6" /> : <Eye className="w-5 h-5 md:w-6 md:h-6" />}
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
               Auto BOT
             </h2>
-            <p className="text-gray-600">
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
               Tự động tăng likes và views bằng tài khoản test (Admin)
             </p>
           </div>
         </div>
 
-        {/* Bot Mode Tabs */}
-        <div className="flex bg-gray-100 rounded-xl p-1 mb-8">
+        {/* Bot Mode Tabs - Mobile Responsive */}
+        <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-1 mb-6 md:mb-8">
           <button
             onClick={() => setBotMode("like")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all ${
+            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-semibold transition-all text-sm sm:text-base ${
               botMode === "like"
-                ? "bg-white text-black shadow-sm"
-                : "text-gray-600 hover:text-gray-800"
+                ? "bg-white dark:bg-gray-600 text-black dark:text-white shadow-sm"
+                : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
             }`}
           >
-            <Heart className="w-5 h-5" />
-            Auto Like Bot
+            <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-xs sm:text-sm">Auto Like Bot</span>
           </button>
           <button
             onClick={() => setBotMode("view")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all ${
+            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-semibold transition-all text-sm sm:text-base ${
               botMode === "view"
-                ? "bg-white text-black shadow-sm"
-                : "text-gray-600 hover:text-gray-800"
+                ? "bg-white dark:bg-gray-600 text-black dark:text-white shadow-sm"
+                : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
             }`}
           >
-            <Eye className="w-5 h-5" />
-            Auto View Bot
+            <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-xs sm:text-sm">Auto View Bot</span>
           </button>
         </div>
 
-        {/* Layout */}
-        <div className="grid lg:grid-cols-2 gap-10">
-          {/* Cấu hình Bot */}
-          <div className="space-y-6">
+        {/* Layout - Mobile First */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
+          {/* Cấu hình Bot - Mobile Responsive */}
+          <div className="space-y-4 md:space-y-6">
             <div className="flex items-center gap-2 mb-1">
-              <Settings className="w-5 h-5 text-gray-800" />
-              <h3 className="text-lg font-semibold text-gray-900">Cấu hình Bot</h3>
+              <Settings className="w-4 h-4 md:w-5 md:h-5 text-gray-800 dark:text-gray-200" />
+              <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">Cấu hình Bot</h3>
             </div>
 
-            <div className="bg-gray-100 rounded-xl p-4 space-y-4">
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-xl p-3 md:p-4 space-y-3 md:space-y-4">
               {botMode === "like" && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">
+                    <label className="block text-xs md:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                       Số bài viết tối đa mỗi tài khoản (Like)
                     </label>
                     <input
@@ -201,12 +201,12 @@ export default function AutoLikeBot() {
                           maxPostsPerUser: parseInt(e.target.value),
                         }))
                       }
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-black focus:outline-none"
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-gray-600 dark:text-white touch-target"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">
+                    <label className="block text-xs md:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                       Xác suất like (0–1)
                     </label>
                     <input
@@ -221,15 +221,15 @@ export default function AutoLikeBot() {
                           likeProbability: parseFloat(e.target.value),
                         }))
                       }
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-black focus:outline-none"
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-gray-600 dark:text-white touch-target"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                    <label className="block text-xs md:text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
                       Loại cảm xúc
                     </label>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                       {["👍", "❤️", "😂", "😮", "😢", "😡"].map((emote) => (
                         <button
                           key={emote}
@@ -239,10 +239,10 @@ export default function AutoLikeBot() {
                               : [...config.emoteTypes, emote];
                             setConfig((p) => ({ ...p, emoteTypes: list }));
                           }}
-                          className={`px-3 py-2 rounded-lg text-lg border transition-all ${
+                          className={`px-2 py-2 md:px-3 md:py-2 rounded-lg text-lg border transition-all touch-target ${
                             config.emoteTypes.includes(emote)
-                              ? "bg-black text-white border-black"
-                              : "bg-white border-gray-300 hover:bg-gray-100"
+                              ? "bg-black dark:bg-blue-600 text-white border-black dark:border-blue-600"
+                              : "bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-500"
                           }`}
                         >
                           {emote}
@@ -252,18 +252,18 @@ export default function AutoLikeBot() {
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <label className="flex items-center gap-2 text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300">
                       <input
                         type="checkbox"
                         checked={config.forceOverride}
                         onChange={(e) =>
                           setConfig((p) => ({ ...p, forceOverride: e.target.checked }))
                         }
-                        className="w-4 h-4 accent-black"
+                        className="w-3 h-3 sm:w-3 sm:h-3 accent-black dark:accent-blue-400 rounded focus:ring-0"
                       />
                       <span>Force Override - Ghi đè reactions cũ</span>
                     </label>
-                    <p className="text-xs text-gray-500 mt-1 ml-6">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
                       Bật tùy chọn này để thay thế reactions cũ bằng reactions mới
                     </p>
                   </div>
@@ -272,7 +272,7 @@ export default function AutoLikeBot() {
 
               {botMode === "view" && (
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                  <label className="block text-xs md:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                     Số bài viết tối đa mỗi tài khoản (View)
                   </label>
                   <input
@@ -286,69 +286,69 @@ export default function AutoLikeBot() {
                         maxViewsPerUser: parseInt(e.target.value),
                       }))
                     }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-gray-600 dark:text-white touch-target"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Mỗi tài khoản sẽ view {config.maxViewsPerUser} bài viết để tăng view count
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Mỗi tài khoản sẽ xem {config.maxViewsPerUser} bài viết để tăng lượt xem của bài viết.
                   </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Danh sách User */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          {/* Danh sách User - Mobile Responsive */}
+          <div className="space-y-3 md:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-gray-800" />
-                <h3 className="text-lg font-semibold text-gray-900">
+                <Users className="w-4 h-4 md:w-5 md:h-5 text-gray-800 dark:text-gray-200" />
+                <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
                   Danh sách tài khoản test
                 </h3>
               </div>
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={selectAllUsers}
-                  className="text-xs px-3 py-1.5 bg-black text-white rounded-md hover:bg-gray-900 transition"
+                  className="text-xs px-2 md:px-3 py-1.5 bg-black dark:bg-blue-600 text-white rounded-md hover:bg-gray-900 dark:hover:bg-blue-700 transition touch-target"
                 >
                   Chọn tất cả
                 </button>
                 <button
                   onClick={clearUserSelection}
-                  className="text-xs px-3 py-1.5 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition"
+                  className="text-xs px-2 md:px-3 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition touch-target"
                 >
                   Bỏ chọn
                 </button>
                 <button
                   onClick={clearAllReactions}
                   disabled={clearingReactions}
-                  className="text-xs px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition disabled:bg-red-400"
+                  className="text-xs px-2 md:px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition disabled:bg-red-400 touch-target"
                 >
                   {clearingReactions ? "Đang xóa..." : "Xóa Reactions"}
                 </button>
               </div>
             </div>
 
-            <div className="border border-gray-200 rounded-xl bg-gray-50 overflow-hidden">
-              <div className="max-h-64 overflow-y-auto divide-y divide-gray-200">
+            <div className="border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 overflow-hidden">
+              <div className="max-h-48 md:max-h-64 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-600">
                 {testUsers.length ? (
                   testUsers
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map((u) => (
                       <label
                         key={u._id}
-                        className="flex items-center justify-between px-4 py-3 hover:bg-white cursor-pointer transition"
+                        className="flex items-center justify-between px-3 md:px-4 py-3 hover:bg-white dark:hover:bg-gray-600 cursor-pointer transition"
                       >
                         <div>
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium text-gray-900 dark:text-white text-sm md:text-base">
                             {u.name}
                           </div>
-                          <div className="text-sm text-gray-600">{u.email}</div>
+                          <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">{u.email}</div>
                         </div>
                         <input
                           type="checkbox"
                           checked={selectedUsers.includes(u.email)}
                           onChange={() => toggleUserSelection(u.email)}
-                          className="w-4 h-4 accent-black"
+                          className="w-3 h-3 sm:w-3 sm:h-3 accent-black dark:accent-blue-400 rounded focus:ring-0"
                         />
                       </label>
                     ))
@@ -360,26 +360,26 @@ export default function AutoLikeBot() {
               </div>
             </div>
 
-            <div className="text-sm text-gray-700">
+            <div className="text-xs md:text-sm text-gray-700 dark:text-gray-300">
               {selectedUsers.length > 0 ? (
                 <span>Đã chọn {selectedUsers.length} tài khoản</span>
               ) : (
-                <span className="text-orange-600">⚠️ Chưa chọn tài khoản nào</span>
+                <span className="text-orange-600 dark:text-orange-400">⚠️ Chưa chọn tài khoản nào</span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Nút chạy bot */}
-        <div className="mt-8">
+        {/* Nút chạy bot - Mobile Responsive */}
+        <div className="mt-6 md:mt-8">
           {botMode === "like" ? (
             <button
               onClick={runAutoLikeBot}
               disabled={loading || isRunning || selectedUsers.length === 0}
-              className={`w-full py-2.5 font-medium rounded-lg text-white text-base transition-all flex items-center justify-center gap-2 ${
+              className={`w-full py-3 md:py-2.5 font-medium rounded-lg text-white text-sm md:text-base transition-all flex items-center justify-center gap-2 touch-target ${
                 loading || isRunning || selectedUsers.length === 0
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-black hover:bg-gray-900 shadow-md"
+                  : "bg-black dark:bg-blue-600 hover:bg-gray-900 dark:hover:bg-blue-700 shadow-md"
               }`}
             >
               {loading ? (
@@ -398,10 +398,10 @@ export default function AutoLikeBot() {
             <button
               onClick={runAutoViewBot}
               disabled={loading || isRunning || selectedUsers.length === 0}
-              className={`w-full py-2.5 font-medium rounded-lg text-white text-base transition-all flex items-center justify-center gap-2 ${
+              className={`w-full py-3 md:py-2.5 font-medium rounded-lg text-white text-sm md:text-base transition-all flex items-center justify-center gap-2 touch-target ${
                 loading || isRunning || selectedUsers.length === 0
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-black hover:bg-gray-900 shadow-md"
+                  : "bg-black dark:bg-blue-600 hover:bg-gray-900 dark:hover:bg-blue-700 shadow-md"
               }`}
             >
               {loading ? (
@@ -419,24 +419,24 @@ export default function AutoLikeBot() {
           )}
         </div>
 
-        {/* Hiển thị lỗi */}
+        {/* Hiển thị lỗi - Mobile Responsive */}
         {error && (
-          <div className="mt-6 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
+          <div className="mt-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg p-3 md:p-4 text-sm md:text-base">
             {error}
           </div>
         )}
 
-        {/* Kết quả */}
+        {/* Kết quả - Mobile Responsive */}
         {results && (
-          <div className="mt-10 bg-gray-100 border border-gray-200 rounded-xl p-6">
+          <div className="mt-6 md:mt-10 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-4 md:p-6">
             <div className="flex items-center gap-2 mb-4">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <h3 className="text-lg font-semibold text-gray-900">
-                Kết quả thực thi
+              <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" />
+              <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
+                Kết quả
               </h3>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 mb-4 md:mb-6">
               <Stat label="Tổng lượt like" value={results.totalLikes} />
               <Stat label="Tổng view" value={results.totalViews || 0} />
               <Stat label="Tài khoản chạy" value={results.usersProcessed} />
@@ -457,15 +457,15 @@ export default function AutoLikeBot() {
                   {results.results.map((r, i) => (
                     <div
                       key={i}
-                      className="py-2 flex justify-between items-center"
+                      className="py-2 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0"
                     >
-                      <span className="font-medium text-gray-800">
+                      <span className="font-medium text-gray-800 dark:text-gray-200 text-sm">
                         {r.user}
                       </span>
                       {r.error ? (
-                        <span className="text-red-600">Lỗi: {r.error}</span>
+                        <span className="text-red-600 dark:text-red-400 text-xs">Lỗi: {r.error}</span>
                       ) : (
-                        <span className="text-green-600">
+                        <span className="text-green-600 dark:text-green-400 text-xs">
                           {r.likesGiven} likes • {r.viewsGiven || 0} views • {r.postsProcessed} bài viết • {r.availablePosts || 0} posts khả dụng
                         </span>
                       )}

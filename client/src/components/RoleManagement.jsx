@@ -42,7 +42,8 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
   const loadRoles = async () => {
     try {
       setLoading(true);
-      const response = await api("/api/admin/roles", { method: "GET" });
+      // Add timestamp to bypass cache
+      const response = await api(`/api/admin/roles?t=${Date.now()}`, { method: "GET" });
       setRoles(response.roles || []);
     } catch (err) {
       setError("Không thể tải danh sách role");
@@ -54,7 +55,7 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    // Auto-format role name to lowercase and replace spaces with underscores
+    // Tự động định dạng tên vai trò thành chữ thường và thay thế khoảng trắng bằng dấu gạch dưới
     if (name === 'name') {
       const formattedValue = value.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
       setFormData(prev => ({

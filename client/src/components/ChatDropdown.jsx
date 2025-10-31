@@ -81,20 +81,22 @@ export default function ChatDropdown({ onOpenChat }) {
   return (
     <div className="relative" ref={wrapperRef}>
       <button
-        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-200"
         onClick={() => setOpen(!open)}
         title="Tin nhắn"
       >
         <MessageCircle size={22} />
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-96 bg-white border border-gray-200 rounded-xl shadow-xl z-50">
-          <div className="p-4 border-b font-semibold text-lg">Tin nhắn</div>
+        <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 font-semibold text-lg text-gray-900 dark:text-white">
+            Tin nhắn
+          </div>
           <div className="max-h-96 overflow-y-auto">
             {loading ? (
-              <div className="p-4 text-gray-500">Đang tải...</div>
+              <div className="p-4 text-gray-500 dark:text-gray-400">Đang tải...</div>
             ) : conversations.length === 0 ? (
-              <div className="p-4 text-gray-500">Không có hội thoại nào</div>
+              <div className="p-4 text-gray-500 dark:text-gray-400">Không có hội thoại nào</div>
             ) : (
               conversations.map((conv) => {
                 const avatar = getAvatar(conv);
@@ -103,7 +105,7 @@ export default function ChatDropdown({ onOpenChat }) {
                 return (
                   <div
                     key={conv._id}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 transition-colors"
                     onClick={() => onOpenChat(conv)}
                   >
                     <img
@@ -115,8 +117,8 @@ export default function ChatDropdown({ onOpenChat }) {
                       }}
                     />
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">{name}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="font-medium text-gray-900 dark:text-white">{name}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
                         {conv.lastMessage?.messageType === "emote" ? (
                           <span className="text-lg">{conv.lastMessage.emote}</span>
                         ) : conv.lastMessage?.messageType === "image" ? (
@@ -126,7 +128,7 @@ export default function ChatDropdown({ onOpenChat }) {
                         )}
                       </div>
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
                       {conv.updatedAt
                         ? new Date(conv.updatedAt).toLocaleTimeString()
                         : ""}
@@ -137,7 +139,7 @@ export default function ChatDropdown({ onOpenChat }) {
             )}
           </div>
           <button
-            className="w-full py-3 text-center text-blue-600 font-medium hover:bg-blue-50 border-t"
+            className="w-full py-3 text-center text-blue-600 dark:text-blue-400 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 border-t border-gray-200 dark:border-gray-700 transition-colors"
             onClick={() => {
               setOpen(false);
               window.location.href = "/chat";
