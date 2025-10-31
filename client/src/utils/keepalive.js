@@ -11,7 +11,7 @@ let isKeepAliveActive = false;
  */
 const pingServer = async () => {
   try {
-    const response = await fetch('/api/health', {
+    const response = await fetch('/', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -19,10 +19,9 @@ const pingServer = async () => {
     });
     
     if (response.ok) {
-      const data = await response.json();
       console.log('✅ Server keepalive ping successful:', {
-        status: data.status,
-        uptime: Math.round(data.uptime / 60) + ' minutes',
+        status: response.status,
+        statusText: response.statusText,
         timestamp: new Date().toLocaleTimeString()
       });
     } else {

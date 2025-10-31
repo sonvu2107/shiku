@@ -16,7 +16,7 @@ jobs:
           echo "🔄 Pinging server to keep it alive..."
           
           # URL thực tế của server
-          HEALTH_URL="https://api.shiku.click/api/health"
+          HEALTH_URL="https://api.shiku.click"
           
           # Ping health endpoint với timeout 30s
           response=$(curl -s -w "%{http_code}" -o /tmp/response.json --max-time 30 "$HEALTH_URL" || echo "000")
@@ -52,7 +52,7 @@ jobs:
           
           # Check if it's a cold start (long response time indicates server was sleeping)
           start_time=$(date +%s%N)
-          curl -s --max-time 30 "https://api.shiku.click/api/health" > /dev/null
+          curl -s --max-time 30 "https://api.shiku.click" > /dev/null
           end_time=$(date +%s%N)
           duration=$(( (end_time - start_time) / 1000000 )) # Convert to milliseconds
           
@@ -71,4 +71,4 @@ jobs:
           echo "- Render service issues"
           echo "- Network connectivity problems"
           echo ""
-          echo "Manual check recommended: https://api.shiku.click/api/health"
+          echo "Manual check recommended: https://api.shiku.click"

@@ -8,7 +8,7 @@
 
 # Configuration
 SERVER_URL="https://api.shiku.click"
-HEALTH_ENDPOINT="/api/health"
+HEALTH_ENDPOINT=""
 PING_INTERVAL=600  # 10 phút (600 giây)
 LOG_FILE="keepalive.log"
 
