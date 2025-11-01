@@ -12,11 +12,6 @@ export default function Settings() {
   
   // Tab management
   const [activeTab, setActiveTab] = React.useState("blocked"); // Tab hiện tại
-  const [darkMode, setDarkMode] = React.useState(() => {
-    const saved = localStorage.getItem('app:darkMode');
-    if (saved != null) return saved === '1';
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
   
   // Blocked users management
   const [blockedUsers, setBlockedUsers] = React.useState([]); // Danh sách người đã chặn
@@ -55,11 +50,6 @@ export default function Settings() {
   React.useEffect(() => {
     refreshBlockedUsers();
   }, []);
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) root.classList.add('dark'); else root.classList.remove('dark');
-    try { localStorage.setItem('app:darkMode', darkMode ? '1' : '0'); } catch (_) {}
-  }, [darkMode]);
 
   // Refresh danh sách blocked users khi chuyển sang tab blocked
   React.useEffect(() => {
@@ -111,33 +101,23 @@ export default function Settings() {
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           <button
-              className={`px-4 py-2 rounded-lg font-semibold border transition-colors ${activeTab === "blocked"
-                  ? "bg-black text-white"
-                  : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                }`}
+            className={`flex-1 px-3 sm:px-4 py-2 sm:py-2 rounded-lg font-semibold border transition-colors text-sm sm:text-base ${activeTab === "blocked"
+              ? "bg-black dark:bg-blue-600 text-white border-black dark:border-blue-600"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700"
+            }`}
             onClick={() => setActiveTab("blocked")}
           >
-            Danh sách chặn
+             Danh sách chặn
           </button>
           <button
-              className={`px-4 py-2 rounded-lg font-semibold border transition-colors ${activeTab === "privacy"
-                  ? "bg-black text-white"
-                  : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                }`}
+            className={`flex-1 px-3 sm:px-4 py-2 sm:py-2 rounded-lg font-semibold border transition-colors text-sm sm:text-base ${activeTab === "privacy"
+              ? "bg-black dark:bg-blue-600 text-white border-black dark:border-blue-600"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700"
+            }`}
             onClick={() => setActiveTab("privacy")}
           >
-            Bảo mật tài khoản
+             Bảo mật tài khoản
           </button>
-          <div className="flex-1" />
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 dark:text-gray-300">Dark mode</span>
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors ${darkMode ? 'bg-blue-600' : 'bg-gray-300'}`}
-            >
-              <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${darkMode ? 'translate-x-7' : 'translate-x-1'}`} />
-            </button>
-          </div>
         </div>
 
         {/* Blocked Users */}
@@ -147,12 +127,13 @@ export default function Settings() {
               <h2 className="text-lg font-semibold">Người bạn đã chặn ({blockedUsers.length})</h2>
               <button
                 onClick={refreshBlockedUsers}
-                className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2"
+                className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 
+                          text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-1 sm:gap-2"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Làm mới
+                <span className="hidden sm:inline">Làm mới</span>
               </button>
             </div>
             {blockedUsers.length === 0 ? (
@@ -162,19 +143,20 @@ export default function Settings() {
             ) : (
               <ul className="space-y-3">
                 {blockedUsers.map((user) => (
-                  <li key={user._id} className="flex items-center gap-4">
+                  <li key={user._id} className="flex items-center gap-3 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <img
                       src={getUserAvatarUrl(user, AVATAR_SIZES.SMALL)}
                       alt={user.name}
-                      className="w-8 h-8 rounded-full object-cover"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
                     />
-                    <span className="font-semibold flex-1">{user.name}</span>
+                    <span className="font-semibold flex-1 text-sm sm:text-base truncate">{user.name}</span>
                     <button
-                      className="px-4 py-2 rounded-lg bg-black text-white text-sm font-semibold transition-colors hover:bg-gray-900"
-                      style={{ minWidth: 100 }}
+                      className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-red-600 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-800 
+                                text-white text-xs sm:text-sm font-semibold transition-colors flex-shrink-0"
                       onClick={() => unblockUser(user._id)}
                     >
-                      Gỡ chặn
+                      <span className="hidden sm:inline">Gỡ chặn</span>
+                      <span className="sm:hidden">❌</span>
                     </button>
                   </li>
                 ))}

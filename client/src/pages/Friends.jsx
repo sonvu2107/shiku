@@ -222,7 +222,7 @@ export default function Friends() {
   };
 
   const UserCard = ({ user, showActions = false, isRequest = false, requestId = null, showEmail = true }) => (
-    <div className="bg-white border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:shadow-md transition-all duration-200">
       <div className="flex items-center gap-2 sm:gap-3">
         <div className="relative flex-shrink-0">
           <img
@@ -238,14 +238,14 @@ export default function Friends() {
 
         <div className="flex-1 min-w-0">
           <h3
-            className="font-semibold cursor-pointer hover:text-blue-600 transition-colors text-sm sm:text-base truncate"
+            className="font-semibold cursor-pointer text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm sm:text-base truncate"
             onClick={() => navigate(`/user/${user._id}`)}
             title={user.name}
           >
             {user.name}
           </h3>
-          {showEmail && <p className="text-xs sm:text-sm text-gray-600 truncate">{user.email}</p>}
-          <p className="text-xs text-gray-500 flex items-center gap-1">
+          {showEmail && <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{user.email}</p>}
+          <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
             <Clock size={10} className="sm:w-3 sm:h-3" />
             <span className="truncate">{getLastSeenText(user.lastSeen, user.isOnline)}</span>
           </p>
@@ -257,14 +257,14 @@ export default function Friends() {
               <>
                 <button
                   onClick={() => acceptRequest(requestId)}
-                  className="btn-outline text-green-600 border-green-600 hover:bg-green-50 p-1.5 sm:p-2 touch-target"
+                  className="btn-outline text-green-600 dark:text-green-400 border-green-600 dark:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 p-1.5 sm:p-2 touch-target transition-colors"
                   title="Chấp nhận"
                 >
                   <UserCheck size={14} className="sm:w-4 sm:h-4" />
                 </button>
                 <button
                   onClick={() => rejectRequest(requestId)}
-                  className="btn-outline text-red-600 border-red-600 hover:bg-red-50 p-1.5 sm:p-2 touch-target"
+                  className="btn-outline text-red-600 dark:text-red-400 border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 sm:p-2 touch-target transition-colors"
                   title="Từ chối"
                 >
                   <UserX size={14} className="sm:w-4 sm:h-4" />
@@ -273,7 +273,9 @@ export default function Friends() {
             ) : (
               <button
                 onClick={() => sendFriendRequest(user._id)}
-                className="btn-outline flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target"
+                className="btn-outline flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target 
+                          border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 
+                          hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
                 <UserPlus size={14} className="sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Kết bạn</span>
@@ -290,31 +292,35 @@ export default function Friends() {
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
 
         {/* Header */}
-        <div className="card">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-4 flex items-center gap-2 sm:gap-3">
+        <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4 flex items-center gap-2 sm:gap-3 text-gray-900 dark:text-gray-100">
             <Users size={24} className="sm:w-8 sm:h-8" />
             Bạn bè
           </h1>
 
           {/* Search */}
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               placeholder="Tìm kiếm người dùng..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent text-sm sm:text-base py-2 sm:py-3"
+              className="pl-10 w-full border border-gray-300 dark:border-gray-600 rounded-lg 
+                        bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                        placeholder-gray-500 dark:placeholder-gray-400
+                        focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 
+                        focus:border-transparent text-sm sm:text-base py-2 sm:py-3 transition-colors"
             />
           </div>
         </div>
 
         {/* Search Results */}
         {searchQuery.trim() && (
-          <div className="card">
-            <h2 className="text-xl font-semibold mb-4">Kết quả tìm kiếm</h2>
+          <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Kết quả tìm kiếm</h2>
             {loading ? (
-              <p>Đang tìm kiếm...</p>
+              <p className="text-gray-600 dark:text-gray-400">Đang tìm kiếm...</p>
             ) : searchResults.length > 0 ? (
               <div className="grid gap-4">
                 {searchResults.map(user => (
@@ -322,14 +328,14 @@ export default function Friends() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500">Không tìm thấy người dùng nào</p>
+              <p className="text-gray-500 dark:text-gray-400">Không tìm thấy người dùng nào</p>
             )}
           </div>
         )}
 
         {/* Tabs */}
-        <div className="card">
-          <div className="flex overflow-x-auto border-b mb-4 scrollbar-hide">
+        <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 mb-4 scrollbar-hide">
             <button
               className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg ${activeTab === 'friends' ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
               onClick={() => setActiveTab('friends')}

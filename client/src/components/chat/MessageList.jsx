@@ -142,8 +142,8 @@ export default function MessageList({
     if (message.messageType === 'system') {
       return (
         <div key={message._id} className="flex justify-center mb-4">
-          <div className="bg-gray-100 px-3 py-1 rounded-full">
-            <p className="text-xs text-gray-600 text-center">
+          <div className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+            <p className="text-xs text-gray-600 dark:text-gray-300 text-center">
               {message.content}
             </p>
           </div>
@@ -203,7 +203,7 @@ export default function MessageList({
         <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${isOwn ? 'ml-12' : 'mr-12'}`}>
           {/* Sender name for group chats */}
           {showSenderInfo && !isOwn && conversation.conversationType === 'group' && (
-            <div className="text-xs text-gray-500 mb-1 ml-2">
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 ml-2">
               {getMessageSenderName(message)}
             </div>
           )}
@@ -212,8 +212,8 @@ export default function MessageList({
           <div
             className={`relative px-4 py-2 rounded-3xl shadow-sm ${
               isOwn
-                ? 'bg-blue-500 text-white ml-auto'
-                : 'bg-gray-100 text-gray-800 mr-auto'
+                ? 'bg-blue-500 dark:bg-blue-600 text-white ml-auto'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 mr-auto'
             }`}
             style={{
               borderTopRightRadius: isOwn && isLastInGroup ? '8px' : '24px',
@@ -239,7 +239,7 @@ export default function MessageList({
                 <span className="text-2xl">{message.emote}</span>
               </div>
             ) : message.messageType === 'system' ? (
-              <p className="text-xs leading-relaxed text-gray-500 italic text-center">
+              <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400 italic text-center">
                 {message.content}
               </p>
             ) : (
@@ -253,10 +253,10 @@ export default function MessageList({
           <div className="mt-1 px-2 flex items-center gap-1">
             {/* Reaction picker */}
             <div className="relative group">
-              <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-100" title="Thả cảm xúc" tabIndex={0}>
+              <button className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600" title="Thả cảm xúc" tabIndex={0}>
                 <Smile size={16} />
               </button>
-              <div className={`absolute hidden group-hover:flex group-focus-within:flex top-0 -translate-y-full ${isOwn ? 'right-0' : 'left-0'} bg-white border border-gray-200 rounded-full shadow px-2 py-1 gap-1 z-50` }>
+              <div className={`absolute hidden group-hover:flex group-focus-within:flex top-0 -translate-y-full ${isOwn ? 'right-0' : 'left-0'} bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full shadow px-2 py-1 gap-1 z-50` }>
                 {Object.entries(reactionConfig).map(([type, cfg]) => (
                   <button key={type} onClick={() => toggleReaction(message._id, type)} className={`p-1 ${cfg.color}`} title={type}>
                     <cfg.Icon size={16} />
@@ -282,7 +282,7 @@ export default function MessageList({
           </div>
 
           {/* Message time - shown on hover or for latest message */}
-          <div className={`text-xs text-gray-400 mt-1 px-2 ${
+          <div className={`text-xs text-gray-400 dark:text-gray-500 mt-1 px-2 ${
             isOwn ? 'text-right' : 'text-left'
           }`}>
             {formatMessageTime(message.createdAt)}
@@ -320,7 +320,7 @@ export default function MessageList({
         {/* Load more indicator */}
         {loading && (
           <div className="text-center py-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 dark:border-blue-400 mx-auto"></div>
           </div>
         )}
         
@@ -330,10 +330,10 @@ export default function MessageList({
         {messages.length === 0 && !loading ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-4">💬</div>
-            <h3 className="text-lg font-semibold text-gray-600 mb-2">
+            <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">
               Bắt đầu cuộc trò chuyện
             </h3>
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               Gửi tin nhắn đầu tiên để bắt đầu trò chuyện!
             </p>
           </div>
@@ -351,7 +351,7 @@ export default function MessageList({
       {showScrollButton && (
         <button
           onClick={scrollToBottom}
-          className="absolute bottom-4 right-4 bg-blue-500 text-white p-2 rounded-full shadow-lg hover:bg-blue-600 transition-colors"
+          className="absolute bottom-4 right-4 bg-blue-500 dark:bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
         >
           <ChevronUp size={20} className="transform rotate-180" />
         </button>

@@ -138,14 +138,14 @@ const getAvatarUrl = () => {
 
   if (!conversation) {
     return (
-      <div className="flex items-center justify-center h-14 border-b border-gray-100 bg-white">
-        <p className="text-gray-500">Chọn một cuộc trò chuyện để bắt đầu</p>
+      <div className="flex items-center justify-center h-14 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <p className="text-gray-500 dark:text-gray-400">Chọn một cuộc trò chuyện để bắt đầu</p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full bg-white border-b border-gray-100 flex items-center justify-between h-14 px-4">
+    <div className="relative w-full bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between h-14 px-4">
       {/* Left side - Avatar and info */}
       <div className="flex items-center space-x-3">
         <div className="relative">
@@ -154,7 +154,7 @@ const getAvatarUrl = () => {
               <img
                 src={conversation.groupAvatar}
                 alt={getDisplayName()}
-                className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100"
+                className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-600"
                 onError={e => { e.target.src = ''; }}
               />
             ) : (
@@ -167,7 +167,7 @@ const getAvatarUrl = () => {
               <img
                 src={getAvatarUrl()}
                 alt={getDisplayName()}
-                className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100"
+                className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-600"
                 onError={(e) => {
                   e.target.src = '';
                 }}
@@ -185,15 +185,15 @@ const getAvatarUrl = () => {
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleUpdateName()}
                 onBlur={handleUpdateName}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 autoFocus
               />
             </div>
           ) : (
             <div>
-              <h3 className="font-semibold text-gray-900 text-sm truncate max-w-[200px]" title={getDisplayName()}>{getDisplayName()}</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate max-w-[200px]" title={getDisplayName()}>{getDisplayName()}</h3>
               {isGroup && (
-                <p className="text-xs text-gray-500">{memberCount} thành viên</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{memberCount} thành viên</p>
               )}
               {!isGroup && (
                 <p className="text-xs text-green-500"></p>
@@ -210,7 +210,7 @@ const getAvatarUrl = () => {
           <>
             <button
               onClick={() => onVoiceCall?.(conversation._id)}
-              className="p-2.5 text-blue-500 hover:bg-blue-50 rounded-full transition-all duration-200 hover:scale-110"
+              className="p-2.5 text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-all duration-200 hover:scale-110"
               title={isGroup ? "Gọi thoại nhóm" : "Gọi thoại"}
             >
               <Phone size={18} />
@@ -218,7 +218,7 @@ const getAvatarUrl = () => {
             
             <button
               onClick={() => onVideoCall?.(conversation._id)}
-              className="p-2.5 text-blue-500 hover:bg-blue-50 rounded-full transition-all duration-200 hover:scale-110"
+              className="p-2.5 text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-all duration-200 hover:scale-110"
               title={isGroup ? "Gọi video nhóm" : "Gọi video"}
             >
               <Video size={18} />
@@ -230,7 +230,7 @@ const getAvatarUrl = () => {
         <div className="relative">
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
             title="Tùy chọn"
           >
             <MoreVertical size={18} />
@@ -238,13 +238,13 @@ const getAvatarUrl = () => {
 
           {/* Dropdown menu */}
           {showMenu && (
-            <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+            <div className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10">
               <div className="py-1">
                 {isGroup && (
                   <>
                     <button
                       onClick={handleGroupInfo}
-                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
                       <Users size={16} className="mr-3" />
                       Thông tin nhóm
@@ -256,7 +256,7 @@ const getAvatarUrl = () => {
                           setShowEditName(true);
                           setShowMenu(false);
                         }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                       >
                         <Edit3 size={16} className="mr-3" />
                         Đổi tên nhóm
@@ -269,14 +269,14 @@ const getAvatarUrl = () => {
                           onAddMembers?.(conversation._id);
                           setShowMenu(false);
                         }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                       >
                         <UserPlus size={16} className="mr-3" />
                         Thêm thành viên
                       </button>
                     )}
                     
-                    <div className="border-t border-gray-100"></div>
+                    <div className="border-t border-gray-100 dark:border-gray-600"></div>
                   </>
                 )}
                 
@@ -287,7 +287,7 @@ const getAvatarUrl = () => {
                       setShowNicknameModal(true);
                       setShowMenu(false);
                     }}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
                     <User size={16} className="mr-3" />
                     Quản lý biệt danh
@@ -296,7 +296,7 @@ const getAvatarUrl = () => {
                 
                 <button
                   onClick={handleLeave}
-                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
                   <LogOut size={16} className="mr-3" />
                   {isGroup ? 'Rời nhóm' : 'Xóa cuộc trò chuyện'}
@@ -305,7 +305,7 @@ const getAvatarUrl = () => {
                 {isGroup && (
                   <button
                     onClick={handleDelete}
-                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                   >
                     <Trash2 size={16} className="mr-3" />
                     Xóa nhóm

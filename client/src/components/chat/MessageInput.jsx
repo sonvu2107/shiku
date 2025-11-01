@@ -117,10 +117,10 @@ export default function MessageInput({ onSendMessage }) {
   };
 
   return (
-    <div className="border-t border-gray-200 bg-white relative">
+    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 relative">
       {/* Image preview */}
       {imagePreview && (
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="relative inline-block">
             <img
               src={imagePreview}
@@ -129,7 +129,7 @@ export default function MessageInput({ onSendMessage }) {
             />
             <button
               onClick={removeImage}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+              className="absolute -top-2 -right-2 bg-red-500 dark:bg-red-600 text-white rounded-full p-1 hover:bg-red-600 dark:hover:bg-red-700 transition-colors"
             >
               <X size={14} />
             </button>
@@ -139,13 +139,13 @@ export default function MessageInput({ onSendMessage }) {
 
       {/* Emote picker */}
       {showEmotePicker && (
-        <div className="absolute bottom-full left-2 right-2 sm:left-4 sm:right-4 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-4 max-h-48 overflow-y-auto z-10 emote-picker-mobile">
+        <div className="absolute bottom-full left-2 right-2 sm:left-4 sm:right-4 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg p-4 max-h-48 overflow-y-auto z-10 emote-picker-mobile">
           <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
             {EMOTES.map((emote, index) => (
             <button
               key={index}
               onClick={() => handleEmoteSelect(emote)}
-              className="p-2 text-xl sm:text-2xl hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-target"
+              className="p-2 text-xl sm:text-2xl hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 rounded-lg transition-colors touch-target"
             >
               {emote}
             </button>
@@ -162,7 +162,7 @@ export default function MessageInput({ onSendMessage }) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-blue-500 hover:bg-blue-50 active:bg-blue-100 rounded-full transition-colors touch-target"
+              className="p-2 text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:bg-blue-100 dark:active:bg-blue-900/30 rounded-full transition-colors touch-target"
               title="Gửi hình ảnh"
             >
               <Image size={20} />
@@ -173,8 +173,8 @@ export default function MessageInput({ onSendMessage }) {
               onClick={() => setShowEmotePicker(!showEmotePicker)}
               className={`p-2 rounded-full transition-colors touch-target ${
                 showEmotePicker 
-                  ? 'text-blue-600 bg-blue-50' 
-                  : 'text-blue-500 hover:bg-blue-50 active:bg-blue-100'
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' 
+                  : 'text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:bg-blue-100 dark:active:bg-blue-900/30'
               }`}
               title="Chọn emote"
             >
@@ -190,7 +190,7 @@ export default function MessageInput({ onSendMessage }) {
               onChange={handleTextareaChange}
               onKeyPress={handleKeyPress}
               placeholder="Aa"
-              className="w-full max-h-32 px-4 py-3 bg-gray-100 rounded-2xl resize-none focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 border-0 placeholder-gray-500 text-base"
+              className="w-full max-h-32 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-2xl resize-none focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-blue-500 border-0 placeholder-gray-500 dark:placeholder-gray-400 text-base"
               rows={1}
               style={{ minHeight: '44px' }}
             />
@@ -200,7 +200,7 @@ export default function MessageInput({ onSendMessage }) {
           {(message.trim() || selectedImage) && (
             <button
               type="submit"
-              className="p-2 bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 touch-target"
+              className="p-2 bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700 active:bg-blue-700 dark:active:bg-blue-800 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 touch-target"
               title="Gửi tin nhắn"
             >
               <Send size={20} />

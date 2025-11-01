@@ -43,7 +43,7 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
   };
   
   return (
-    <div className="bg-white rounded-lg border p-3 sm:p-4 space-y-3">
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 space-y-3 transition-colors duration-200">
       {/* Header với avatar và thông tin */}
       <div className="flex items-center gap-2 sm:gap-3">
         <div className="relative flex-shrink-0">
@@ -51,7 +51,7 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
           <img
             src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=cccccc&color=222222&size=64`}
             alt="avatar"
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-300 bg-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => navigate(`/user/${friend._id}`)}
           />
           
@@ -63,7 +63,7 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
                 className={`sm:w-4 sm:h-4 ${
                   friend.isOnline 
                     ? 'text-green-500 fill-green-500' 
-                    : 'text-gray-400 fill-gray-400'
+                    : 'text-gray-400 dark:text-gray-500 fill-gray-400 dark:fill-gray-500'
                 }`}
               />
             </div>
@@ -74,14 +74,14 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
         <div className="flex-1 min-w-0">
           <Link 
             to={`/user/${friend._id}`}
-            className="font-semibold text-gray-800 hover:text-blue-600 text-sm sm:text-base truncate block"
+            className="font-semibold text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 text-sm sm:text-base truncate block transition-colors"
             title={friend.nickname || friend.name}
           >
             <UserName user={friend} />
           </Link>
-          <div className="text-xs sm:text-sm text-gray-500 truncate">
+          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
             {friend.isOnline ? (
-              <span className="text-green-600">Đang hoạt động</span>
+              <span className="text-green-600 dark:text-green-400">Đang hoạt động</span>
             ) : (
               <span>{getLastSeenText(friend.lastSeen)}</span>
             )}
@@ -94,7 +94,8 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
         {/* Message button */}
         <MessageButton 
           user={friend} 
-          className="flex-1 btn flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-2.5 touch-target" 
+          className="flex-1 btn bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white 
+                    flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-2.5 touch-target" 
         >
           <MessageCircle size={14} className="sm:w-4 sm:h-4" />
           <span className="hidden sm:inline">Nhắn tin</span>
@@ -104,7 +105,10 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
         {/* Remove friend button */}
         <button
           onClick={() => onRemoveFriend(friend._id)}
-          className="px-2 sm:px-4 py-2 sm:py-2.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 rounded-lg flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm touch-target"
+          className="px-2 sm:px-4 py-2 sm:py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 
+                    active:bg-gray-300 dark:active:bg-gray-500 text-gray-700 dark:text-gray-300 
+                    border border-gray-300 dark:border-gray-600 rounded-lg 
+                    flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm touch-target"
         >
           <UserMinus size={14} className="sm:w-4 sm:h-4" />
           <span className="hidden sm:inline">Hủy kết bạn</span>

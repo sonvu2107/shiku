@@ -39,9 +39,9 @@ export default function ConversationList({
     
     switch (message.messageType) {
       case 'image':
-        return "📷 Đã gửi một hình ảnh";
+        return "Đã gửi một hình ảnh";
       case 'emote':
-        return `${message.emote} ${message.content}`;
+        return message.emote;
       default:
         return message.content;
     }
@@ -86,10 +86,10 @@ export default function ConversationList({
         <div className="animate-pulse space-y-4">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
+              <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
               <div className="flex-1">
-                <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+                <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
               </div>
             </div>
           ))}
@@ -102,8 +102,8 @@ export default function ConversationList({
     return (
       <div className="p-8 text-center">
         <div className="text-4xl mb-4">💬</div>
-        <h3 className="text-lg font-semibold text-gray-600 mb-2">Chưa có cuộc trò chuyện nào</h3>
-        <p className="text-gray-500 text-sm">Bắt đầu cuộc trò chuyện đầu tiên của bạn!</p>
+        <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">Chưa có cuộc trò chuyện nào</h3>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">Bắt đầu cuộc trò chuyện đầu tiên của bạn!</p>
       </div>
     );
   }
@@ -121,8 +121,8 @@ export default function ConversationList({
             onClick={() => onSelectConversation(conversation)}
             className={`p-3 rounded-lg cursor-pointer transition-colors ${
               isSelected 
-                ? 'bg-blue-50 border-l-4 border-blue-500' 
-                : 'hover:bg-gray-50'
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' 
+                : 'hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             <div className="flex items-center space-x-3">
@@ -135,18 +135,18 @@ export default function ConversationList({
                     className="w-12 h-12 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
                     {conversation.conversationType === 'group' ? (
-                      <Users size={20} className="text-gray-500" />
+                      <Users size={20} className="text-gray-500 dark:text-gray-400" />
                     ) : (
-                      <User size={20} className="text-gray-500" />
+                      <User size={20} className="text-gray-500 dark:text-gray-400" />
                     )}
                   </div>
                 )}
                 
                 {/* Online status indicator for private conversations */}
                 {conversation.conversationType === 'private' && getOtherUserOnlineStatus(conversation) && (
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
                 )}
                 
                 {/* Unread badge */}
@@ -161,12 +161,12 @@ export default function ConversationList({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
                   <h3 className={`font-medium truncate ${
-                    isSelected ? 'text-blue-700' : 'text-gray-800'
+                    isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-800 dark:text-gray-200'
                   }`}>
                     {name}
                   </h3>
                   {conversation.lastMessage && (
-                    <span className="text-xs text-gray-500 flex-shrink-0">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                       {formatTime(conversation.lastMessage.createdAt)}
                     </span>
                   )}
@@ -175,15 +175,15 @@ export default function ConversationList({
                 <div className="flex items-center justify-between">
                   <p className={`text-sm truncate ${
                     conversation.unreadCount > 0 
-                      ? 'text-gray-800 font-medium' 
-                      : 'text-gray-500'
+                      ? 'text-gray-800 dark:text-gray-200 font-medium' 
+                      : 'text-gray-500 dark:text-gray-400'
                   }`}>
                     {getLastMessagePreview(conversation.lastMessage)}
                   </p>
                   
                   {conversation.conversationType === 'group' && (
                     <div className="flex-shrink-0 ml-2">
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
                         {conversation.participants.filter(p => !p.leftAt).length} người
                       </span>
                     </div>
