@@ -83,7 +83,7 @@ export default function UserProfile() {
     setPostsError("");
 
     try {
-      const response = await api(`/api/posts?author=${profile.user._id}&limit=20`);
+      const response = await api(`/api/posts?author=${profile.user._id}&limit=50`);
       setPosts(response.items || []);
     } catch (err) {
       setPostsError("Không thể tải bài đăng: " + err.message);

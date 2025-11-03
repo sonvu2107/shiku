@@ -329,30 +329,39 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
   // ==================== RENDER ====================
 
   // Helper component cho navigation icons
-  const NavIcon = ({ icon: Icon, active, to, title, badge = null }) => (
-    <Link
-      to={to}
-      title={title}
-      className={`p-2 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 relative ${
-        active
-          ? "bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-blue-400 shadow-md dark:shadow-[inset_0_0_4px_rgba(255,255,255,0.1)]"
-          : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200"
-      }`}
-      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-    >
-      <Icon size={20} />
-      {badge && (
-        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-          {badge}
-        </span>
-      )}
-    </Link>
-  );
+  const NavIcon = ({ icon: Icon, active, to, title, badge = null, variant = 'center' }) => {
+    const variantStyles = {
+      center: { padding: 'p-3', size: 24, base: 'rounded-xl' },
+      right: { padding: 'p-2.5', size: 22, base: 'rounded-full' },
+      subtle: { padding: 'p-2', size: 18, base: 'rounded-full' }
+    };
+    const v = variantStyles[variant] || variantStyles.center;
+
+    return (
+      <Link
+        to={to}
+        title={title}
+        className={`${v.padding} ${v.base} transition-all duration-200 relative ${
+          active
+            ? "bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-blue-400 shadow-md dark:shadow-[inset_0_0_4px_rgba(255,255,255,0.1)]"
+            : "text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
+        }`}
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      >
+        <Icon size={v.size} />
+        {badge && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+            {badge}
+          </span>
+        )}
+      </Link>
+    );
+  };
 
   return (
     // Main navbar container - compact & modern
-    <div className="fixed top-0 left-0 w-full z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors">
-      <div className="flex items-center justify-between px-4 h-[56px]">
+    <div className="fixed top-0 left-0 w-full z-50 bg-white dark:bg-[#242526] border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors">
+      <div className="flex items-center justify-between px-6 h-[64px]">
         {/* LEFT ZONE: Logo + Search */}
         <div className="flex items-center gap-2 flex-1">
           <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
@@ -362,16 +371,16 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           </Link>
 
           {/* Search bar - compact design */}
-          <form onSubmit={handleSearch} className="relative hidden md:flex items-center ml-2">
+          <form onSubmit={handleSearch} className="relative hidden md:flex items-center ml-3">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Tìm kiếm trên Shiku..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 maxLength={100}
-                className="pl-8 pr-3 py-1.5 w-56 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200"
+                className="pl-10 pr-4 py-2.5 w-72 text-sm rounded-full border-0 bg-gray-100 dark:bg-[#3A3B3C] text-gray-900 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
                 autoComplete="off"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setTimeout(() => {
@@ -490,7 +499,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         </div>
 
         {/* CENTER ZONE: Main Menu Icons - Modern compact layout */}
-        <div className="hidden lg:flex items-center justify-center flex-1 gap-6">
+        <div className="hidden lg:flex items-center justify-center flex-1 gap-10">
           {user && (
             <React.Fragment key="user-nav-links">
               <NavIcon
@@ -532,11 +541,11 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           {/* Dark mode toggle - Compact design */}
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="p-2 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200"
+            className="p-2 rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
             aria-label={darkMode ? "Tắt dark mode" : "Bật dark mode"}
             title={darkMode ? "Tắt dark mode" : "Bật dark mode"}
           >
-            {darkMode ? <Moon size={20} /> : <Sun size={20} />}
+            {darkMode ? <Moon size={18} /> : <Sun size={18} />}
           </button>
           
           {/* Friends Icon with badge - Desktop only */}
@@ -548,6 +557,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                 to="/friends"
                 title="Bạn bè"
                 badge={pendingRequests > 0 ? pendingRequests : null}
+                variant="right"
               />
             )}
           </div>
@@ -555,10 +565,10 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           {/* Mobile search button - Compact */}
           <button
             onClick={() => setShowMobileSearch(!showMobileSearch)}
-            className="md:hidden p-2 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200"
+            className="md:hidden p-2 rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
             title="Tìm kiếm"
           >
-            <Search size={20} />
+            <Search size={18} />
           </button>
 
           {/* Mobile Menu */}
@@ -574,13 +584,13 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                 <NotificationBell user={user} />
                 <div className="relative" onKeyDown={(e) => { if (e.key === 'Escape') setShowProfileMenu(false); }}>
                   <button
-                    className="flex items-center gap-2 focus:outline-none rounded-full p-1 transition-all duration-200 transform hover:scale-105 active:scale-95 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className="flex items-center gap-2 focus:outline-none rounded-full p-2 transition-all duration-200 hover:bg-gray-200/60 dark:hover:bg-gray-700/60"
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                   >
                     <img
                       src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                       alt={user.name}
-                      className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 shadow-sm"
+                      className="w-9 h-9 rounded-full border border-gray-300 dark:border-gray-600 shadow-sm"
                     />
                   </button>
                   {showProfileMenu && (

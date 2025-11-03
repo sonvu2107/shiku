@@ -17,7 +17,7 @@ import { useMyEvents } from '../hooks/useEvents';
  * Shortcuts - Component hiển thị lối tắt như Facebook
  * Bao gồm nhóm, sự kiện, trang đã lưu và các shortcut khác
  */
-export default function Shortcuts({ user }) {
+export default function Shortcuts({ user, minimal = false }) {
   const [showAll, setShowAll] = useState(false);
 
   // Sử dụng React Query cho groups và events
@@ -98,7 +98,7 @@ export default function Shortcuts({ user }) {
 
   if (groupsLoading || eventsLoading) {
     return (
-      <div className="bg-white rounded-r-lg shadow-sm border border-gray-200 border-l-0">
+      <div className={minimal ? "" : "bg-white rounded-r-lg shadow-sm border border-gray-200 border-l-0"}>
         {/* Header skeleton */}
         <div className="px-4 py-3 border-b border-gray-100">
           <div className="h-5 bg-gray-200 rounded animate-pulse w-32"></div>
@@ -120,9 +120,9 @@ export default function Shortcuts({ user }) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+    <div className={minimal ? "" : "bg-white rounded-lg shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700"}>
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+      <div className={minimal ? "px-1 py-1" : "px-4 py-3 border-b border-gray-100 dark:border-gray-700"}>
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-gray-900 dark:text-gray-100">Lối tắt của bạn</h3>
           {shortcuts.length > 6 && (
@@ -137,15 +137,15 @@ export default function Shortcuts({ user }) {
       </div>
 
       {/* Shortcuts List */}
-      <div className="py-2">
+      <div className={minimal ? "py-1" : "py-2"}>
         {visibleShortcuts.map((shortcut) => (
           <Link
             key={shortcut.id}
             to={shortcut.url}
-            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
+            className={minimal ? "flex items-center gap-3 px-2 py-2 hover:bg-gray-50/40 dark:hover:bg-gray-700/40 transition-colors group rounded-lg" : "flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"}
           >
             {getAvatar(shortcut)}
-            <span className="text-sm text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+            <span className="text-sm text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors font-medium">
               {shortcut.title}
             </span>
             {shortcut.type === 'group' && (
@@ -167,27 +167,27 @@ export default function Shortcuts({ user }) {
         ))}
 
         {/* Quick actions */}
-        <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+        <div className={minimal ? "pt-2" : "pt-2 border-t border-gray-100 dark:border-gray-700"}>
           <Link
             to="/groups/create"
-            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
+            className={minimal ? "flex items-center gap-3 px-2 py-2 hover:bg-gray-50/40 dark:hover:bg-gray-700/40 transition-colors group rounded-lg" : "flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"}
           >
             <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-300">
               <Plus size={16} className="" />
             </div>
-            <span className="text-sm text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+            <span className="text-sm text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors font-medium">
               Tạo nhóm
             </span>
           </Link>
           
           <Link
             to="/events/create"
-            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
+            className={minimal ? "flex items-center gap-3 px-2 py-2 hover:bg-gray-50/40 dark:hover:bg-gray-700/40 transition-colors group rounded-lg" : "flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"}
           >
             <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-300">
               <Plus size={16} className="" />
             </div>
-            <span className="text-sm text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+            <span className="text-sm text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors font-medium">
               Tạo sự kiện
             </span>
           </Link>

@@ -14,7 +14,7 @@ import { useChat } from '../contexts/ChatContext';
  * OnlineFriends - Component hiển thị danh sách bạn bè online
  * Giống sidebar phải của Facebook Messenger
  */
-export default function OnlineFriends({ user }) {
+export default function OnlineFriends({ user, minimal = false }) {
   const { addChatPopup } = useChat();
 
   // Sử dụng React Query cho online friends
@@ -143,7 +143,7 @@ export default function OnlineFriends({ user }) {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className={minimal ? "p-2" : "bg-white rounded-lg shadow-sm border border-gray-200 p-4"}>
         <div className="flex items-center gap-2 mb-4">
           <Users size={18} className="text-gray-600" />
           <h3 className="font-semibold text-gray-900">Bạn bè online</h3>
@@ -164,7 +164,7 @@ export default function OnlineFriends({ user }) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <div className={minimal ? "p-2" : "bg-white rounded-lg shadow-sm border border-gray-200 p-4"}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Users size={18} className="text-gray-600" />
@@ -195,7 +195,7 @@ export default function OnlineFriends({ user }) {
             <Link
               key={friend._id}
               to={`/user/${friend._id}`}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors group"
+              className={minimal ? "flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50/40 transition-colors group" : "flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors group"}
             >
               <div className="relative">
                 <img

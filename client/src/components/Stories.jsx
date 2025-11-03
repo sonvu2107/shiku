@@ -115,7 +115,7 @@ export default function Stories({ user }) {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex gap-3 overflow-x-auto scrollbar-hide">
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="flex-shrink-0">
@@ -134,7 +134,7 @@ export default function Stories({ user }) {
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
           {/* My Story - Tạo story mới hoặc xem story của mình */}
           {user && (

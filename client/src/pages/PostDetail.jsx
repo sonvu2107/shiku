@@ -1,466 +1,467 @@
-import React, { useRef, useEffect, useState, useMemo } from "react";
-import MenuActions from "../components/MenuActions";
-import { useNavigate, useParams, Link } from "react-router-dom";
-import { api } from "../api";
-import ReactMarkdown from "react-markdown";
-import CommentSection from "../components/CommentSection";
-import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck } from "lucide-react";
-import UserName from "../components/UserName";
-import Poll from "../components/Poll";
+  import React, { useRef, useEffect, useState, useMemo } from "react";
+  import MenuActions from "../components/MenuActions";
+  import { useNavigate, useParams, Link } from "react-router-dom";
+  import { api } from "../api";
+  import ReactMarkdown from "react-markdown";
+  import CommentSection from "../components/CommentSection";
+  import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
+  import UserName from "../components/UserName";
+  import Poll from "../components/Poll";
 
 
-/**
- * PostDetail - Trang chi tiết bài viết
- * Hiển thị nội dung bài viết, media, emotes, comments và các actions
- * Hỗ trợ media modal carousel và emote system
- */
-export default function PostDetail() {
-  // ==================== UTILITY FUNCTIONS ====================
-  
   /**
-   * Format thời gian chi tiết cho tooltip
-   * @param {string} dateString - ISO date string
-   * @returns {string} Formatted date string
+   * PostDetail - Trang chi tiết bài viết
+   * Hiển thị nội dung bài viết, media, emotes, comments và các actions
+   * Hỗ trợ media modal carousel và emote system
    */
-  function formatFullDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleString('vi-VN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
-  
-  /**
-   * Format thời gian dạng relative (x giờ trước, x ngày trước, etc.)
-   * @param {string} dateString - ISO date string
-   * @returns {string} Relative time string
-   */
-  function formatTimeAgo(dateString) {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffMs = now - date;
-    const diffSec = Math.floor(diffMs / 1000);
-    const diffMin = Math.floor(diffSec / 60);
-    const diffHour = Math.floor(diffMin / 60);
-    const diffDay = Math.floor(diffHour / 24);
-    const diffMonth = Math.floor(diffDay / 30);
+  export default function PostDetail() {
+    // ==================== UTILITY FUNCTIONS ====================
     
-    if (diffMonth >= 1) return `${diffMonth} tháng trước`;
-    if (diffDay >= 1) return `${diffDay} ngày trước`;
-    if (diffHour >= 1) return `${diffHour} giờ trước`;
-    if (diffMin >= 1) return `${diffMin} phút trước`;
-    return 'Vừa xong';
-  }
-  const { slug } = useParams();
-  const navigate = useNavigate();
-  const [data, setDataRaw] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const [showEmoteList, setShowEmoteList] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
-
-  const setData = (updater) => {
-    setDataRaw(updater);
-    setLoading(false);
-  };
-
-  const [user, setUser] = useState(null);
-  const [groupCtx, setGroupCtx] = useState(null); // { userRole, settings }
-
-  // Modal media
-  const [showMediaModal, setShowMediaModal] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const emoteMap = {
-    "👍": "like.gif",
-    "❤️": "care.gif",
-    "😂": "haha.gif",
-    "😮": "wow.gif",
-    "😢": "sad.gif",
-    "😡": "angry.gif"
-  };
-  const emotes = Object.keys(emoteMap);
-  const [showEmotePopup, setShowEmotePopup] = React.useState(false);
-  const emotePopupTimeout = React.useRef();
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    if (!data || data.post?.slug !== slug) {
-      load();
+    /**
+     * Format thời gian chi tiết cho tooltip
+     * @param {string} dateString - ISO date string
+     * @returns {string} Formatted date string
+     */
+    function formatFullDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString('vi-VN', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     }
-  }, [slug]);
+    
+    /**
+     * Format thời gian dạng relative (x giờ trước, x ngày trước, etc.)
+     * @param {string} dateString - ISO date string
+     * @returns {string} Relative time string
+     */
+    function formatTimeAgo(dateString) {
+      const now = new Date();
+      const date = new Date(dateString);
+      const diffMs = now - date;
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHour = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHour / 24);
+      const diffMonth = Math.floor(diffDay / 30);
+      
+      if (diffMonth >= 1) return `${diffMonth} tháng trước`;
+      if (diffDay >= 1) return `${diffDay} ngày trước`;
+      if (diffHour >= 1) return `${diffHour} giờ trước`;
+      if (diffMin >= 1) return `${diffMin} phút trước`;
+      return 'Vừa xong';
+    }
+    const { slug } = useParams();
+    const navigate = useNavigate();
+    const [data, setDataRaw] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-  // Tải người dùng từ bộ nhớ đệm
-  useEffect(() => {
-    (async () => {
-      try {
-        const { loadUser } = await import("../utils/userCache");
-        const cachedUser = await loadUser();
-        setUser(cachedUser);
-      } catch (_) {
-        setUser(null);
+    const [showEmoteList, setShowEmoteList] = useState(false);
+    const [activeTab, setActiveTab] = useState("all");
+
+    const setData = (updater) => {
+      setDataRaw(updater);
+      setLoading(false);
+    };
+
+    const [user, setUser] = useState(null);
+    const [groupCtx, setGroupCtx] = useState(null); // { userRole, settings }
+
+    // Modal media
+    const [showMediaModal, setShowMediaModal] = useState(false);
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    const emoteMap = {
+      "👍": "like.gif",
+      "❤️": "care.gif",
+      "😂": "haha.gif",
+      "😮": "wow.gif",
+      "😢": "sad.gif",
+      "😡": "angry.gif"
+    };
+    const emotes = Object.keys(emoteMap);
+    const [showEmotePopup, setShowEmotePopup] = React.useState(false);
+    const emotePopupTimeout = React.useRef();
+    const [saved, setSaved] = useState(false);
+
+    useEffect(() => {
+      if (!data || data.post?.slug !== slug) {
+        load();
       }
-    })();
-  }, []);
+    }, [slug]);
 
-  // Lấy ngữ cảnh nhóm nếu bài viết thuộc về nhóm
-  useEffect(() => {
-    const fetchGroupCtx = async () => {
-      try {
-        const groupId = data?.post?.group?._id || data?.post?.group?.id;
-        if (!groupId) { setGroupCtx(null); return; }
-        const res = await api(`/api/groups/${groupId}?t=${Date.now()}`);
-        if (res?.success && res?.data) {
-          setGroupCtx({ userRole: res.data.userRole || null, settings: res.data.settings || {} });
-        } else {
+    // Tải người dùng từ bộ nhớ đệm
+    useEffect(() => {
+      (async () => {
+        try {
+          const { loadUser } = await import("../utils/userCache");
+          const cachedUser = await loadUser();
+          setUser(cachedUser);
+        } catch (_) {
+          setUser(null);
+        }
+      })();
+    }, []);
+
+    // Lấy ngữ cảnh nhóm nếu bài viết thuộc về nhóm
+    useEffect(() => {
+      const fetchGroupCtx = async () => {
+        try {
+          const groupId = data?.post?.group?._id || data?.post?.group?.id;
+          if (!groupId) { setGroupCtx(null); return; }
+          const res = await api(`/api/groups/${groupId}?t=${Date.now()}`);
+          if (res?.success && res?.data) {
+            setGroupCtx({ userRole: res.data.userRole || null, settings: res.data.settings || {} });
+          } else {
+            setGroupCtx(null);
+          }
+        } catch (_) {
+          // Nếu lỗi, đặt ngữ cảnh nhóm là null
           setGroupCtx(null);
         }
-      } catch (_) {
-        // Nếu lỗi, đặt ngữ cảnh nhóm là null
-        setGroupCtx(null);
+      };
+      fetchGroupCtx();
+    }, [data?.post?.group?._id, data?.post?.group?.id]);
+
+    const commentTree = useMemo(() => {
+      return data?.comments || [];
+    }, [data?.comments]);
+
+    async function load() {
+      try {
+        const res = await api(`/api/posts/slug/${slug}`);
+        setData(res);
+      } catch (e) { }
+    }
+
+    async function deletePost() {
+      if (!window.confirm("Bạn có chắc muốn xóa bài này?")) return;
+      try {
+        await api(`/api/posts/${data.post._id}`, { method: "DELETE" });
+        alert("Đã xóa bài viết.");
+        navigate("/");
+      } catch (e) {
+        alert(e.message);
       }
-    };
-    fetchGroupCtx();
-  }, [data?.post?.group?._id, data?.post?.group?.id]);
-
-  const commentTree = useMemo(() => {
-    return data?.comments || [];
-  }, [data?.comments]);
-
-  async function load() {
-    try {
-      const res = await api(`/api/posts/slug/${slug}`);
-      setData(res);
-    } catch (e) { }
-  }
-
-  async function deletePost() {
-    if (!window.confirm("Bạn có chắc muốn xóa bài này?")) return;
-    try {
-      await api(`/api/posts/${data.post._id}`, { method: "DELETE" });
-      alert("Đã xóa bài viết.");
-      navigate("/");
-    } catch (e) {
-      alert(e.message);
     }
-  }
 
-  async function emote(emote) {
-    try {
-      await api(`/api/posts/${data.post._id}/emote`, {
-        method: "POST",
-        body: { emote }
-      });
-      await load();
-    } catch (e) {
-      alert(e.message);
+    async function emote(emote) {
+      try {
+        await api(`/api/posts/${data.post._id}/emote`, {
+          method: "POST",
+          body: { emote }
+        });
+        await load();
+      } catch (e) {
+        alert(e.message);
+      }
     }
-  }
 
-  async function toggleSave() {
-    try {
-      const res = await api(`/api/posts/${data.post._id}/save`, { method: "POST" });
-      setSaved(!!res.saved);
-    } catch (e) {
-      alert(e.message || "Không thể lưu bài viết");
+    async function toggleSave() {
+      try {
+        const res = await api(`/api/posts/${data.post._id}/save`, { method: "POST" });
+        setSaved(!!res.saved);
+      } catch (e) {
+        alert(e.message || "Không thể lưu bài viết");
+      }
     }
-  }
 
-  async function togglePostStatus() {
-    const currentStatus = data.post.status;
-    const newStatus = currentStatus === "private" ? "published" : "private";
-    const confirmMessage =
-      newStatus === "private"
-        ? "Bạn có chắc muốn chuyển bài viết này thành riêng tư?"
-        : "Bạn có chắc muốn công khai bài viết này?";
-    if (!window.confirm(confirmMessage)) return;
-
-    try {
-      await api(`/api/posts/${data.post._id}`, {
-        method: "PUT",
-        body: { status: newStatus }
-      });
-
-      setData((prev) => ({
-        ...prev,
-        post: { ...prev.post, status: newStatus }
-      }));
-
-      alert(
+    async function togglePostStatus() {
+      const currentStatus = data.post.status;
+      const newStatus = currentStatus === "private" ? "published" : "private";
+      const confirmMessage =
         newStatus === "private"
-          ? "Đã chuyển trạng thái thành riêng tư"
-          : "Đã chuyển thành trạng thái công khai"
-      );
-    } catch (e) {
-      alert(e.message);
+          ? "Bạn có chắc muốn chuyển bài viết này thành riêng tư?"
+          : "Bạn có chắc muốn công khai bài viết này?";
+      if (!window.confirm(confirmMessage)) return;
+
+      try {
+        await api(`/api/posts/${data.post._id}`, {
+          method: "PUT",
+          body: { status: newStatus }
+        });
+
+        setData((prev) => ({
+          ...prev,
+          post: { ...prev.post, status: newStatus }
+        }));
+
+        alert(
+          newStatus === "private"
+            ? "Đã chuyển trạng thái thành riêng tư"
+            : "Đã chuyển thành trạng thái công khai"
+        );
+      } catch (e) {
+        alert(e.message);
+      }
     }
-  }
 
-  function countEmotes() {
-    const counts = {};
-    if (!data?.post?.emotes) return counts;
-    for (const emo of emotes) counts[emo] = 0;
-    for (const e of data.post.emotes) {
-      if (counts[e.type] !== undefined) counts[e.type]++;
+    function countEmotes() {
+      const counts = {};
+      if (!data?.post?.emotes) return counts;
+      for (const emo of emotes) counts[emo] = 0;
+      for (const e of data.post.emotes) {
+        if (counts[e.type] !== undefined) counts[e.type]++;
+      }
+      return counts;
     }
-    return counts;
-  }
 
-  if (loading || !data) return <div className="card">Đang tải...</div>;
-  const p = data.post;
-  const counts = countEmotes();
+    if (loading || !data) return <div className="card">Đang tải...</div>;
+    const p = data.post;
+    const counts = countEmotes();
 
-  // Tất cả phương tiện = bìa + tệp
-  const allMedia = [
-    ...(p.coverUrl
-      ? (() => {
-          const found = Array.isArray(p.files)
-            ? p.files.find(f => f.url === p.coverUrl)
-            : null;
-          if (found) return [{ url: p.coverUrl, type: found.type }];
-          return [{ url: p.coverUrl, type: "image" }];
-        })()
-      : []),
-    ...(Array.isArray(p.files) ? p.files.filter(f => f.url !== p.coverUrl) : [])
-  ];
+    // Tất cả phương tiện = bìa + tệp
+    const allMedia = [
+      ...(p.coverUrl
+        ? (() => {
+            const found = Array.isArray(p.files)
+              ? p.files.find(f => f.url === p.coverUrl)
+              : null;
+            if (found) return [{ url: p.coverUrl, type: found.type }];
+            return [{ url: p.coverUrl, type: "image" }];
+          })()
+        : []),
+      ...(Array.isArray(p.files) ? p.files.filter(f => f.url !== p.coverUrl) : [])
+    ];
 
-  return (
-    <div className="w-full px-6 py-6 space-y-4 pt-20">
-  <div className="card max-w-4xl mx-auto relative">
-        {/* Header: avatar + tên user */}
-        <div className="flex items-center gap-2 mb-0">
-        {/* Menu 3 chấm góc phải */}
-        {user && (user._id === p.author?._id || user.role === "admin") && (
-          <div className="absolute top-4 right-4 z-10">
-            <MenuActions
-              onToggleStatus={togglePostStatus}
-              onEdit={() => navigate(`/edit/${p._id}`)}
-              onDelete={deletePost}
-              isPrivate={p.status === "private"}
-            />
+    return (
+      <div className="w-full px-6 py-6 space-y-4 pt-20">
+    <div className="max-w-3xl mx-auto bg-white dark:bg-[#18191A] border border-gray-200 dark:border-[#3A3B3C] rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-visible relative">
+          {/* HEADER */}
+          <div className="flex items-center justify-between p-4 pb-0">
+            <div className="flex items-center gap-3">
+              <Link to={`/user/${p.author?._id}`}>
+                <img
+                  src={
+                    p.author?.avatarUrl ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      p.author?.name || ""
+                    )}&background=cccccc&color=222222&size=64`
+                  }
+                  alt="avatar"
+                  className="w-10 h-10 rounded-full object-cover border border-gray-300 dark:border-gray-700"
+                />
+              </Link>
+              <div>
+                <div className="flex items-center gap-1 font-semibold text-gray-900 dark:text-gray-100">
+                  <UserName user={p.author} maxLength={20} />
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <span title={formatFullDate(p.createdAt)}>{formatTimeAgo(p.createdAt)}</span>
+                  {p.status === "private" ? (
+                    <Lock size={14} className="text-gray-400" />
+                  ) : (
+                    <Globe size={14} className="text-green-500" />
+                  )}
+                </div>
+              </div>
+            </div>
+            {user && (user._id === p.author?._id || user.role === "admin") && (
+              <div className="relative">
+                <MenuActions
+                  onToggleStatus={togglePostStatus}
+                  onEdit={() => navigate(`/edit/${p._id}`)}
+                  onDelete={deletePost}
+                  isPrivate={p.status === "private"}
+                />
+              </div>
+            )}
           </div>
-        )}
-          <Link to={`/user/${p.author?._id}`}>
-            <img
-              src={
-                p.author?.avatarUrl ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  p.author?.name || ""
-                )}&background=cccccc&color=222222&size=64`
-              }
-              alt="avatar"
-              className="w-8 h-8 rounded-full object-cover border border-gray-300 bg-gray-100"
-            />
-          </Link>
-          <span className="font-semibold text-gray-900 text-base mr-2"><UserName user={p.author} /></span>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3 ml-10">
-          <span
-            title={formatFullDate(p.createdAt)}
-            className="cursor-pointer"
-          >
-            {formatTimeAgo(p.createdAt)}
-          </span>
-          {p.status === "private" ? (
-            <Lock size={16} className="text-gray-500" />
-          ) : (
-            <Globe size={16} className="text-green-500" />
+
+          {/* CAPTION */}
+          <div className="px-4 pt-2 pb-2 text-gray-800 dark:text-gray-300">
+            <h1 className="text-lg font-semibold leading-snug mb-1">{p.title}</h1>
+            {p.caption && (
+              <p className="text-[15px] text-gray-700 dark:text-gray-400 leading-relaxed">{p.caption}</p>
+            )}
+          </div>
+
+          {/* CONTENT */}
+          {p.content && (
+            <div className="prose dark:prose-invert max-w-none px-4 py-4 border-b border-gray-200 dark:border-[#3A3B3C]">
+              <ReactMarkdown>{p.content}</ReactMarkdown>
+            </div>
           )}
-        </div>
-        {/* Tiêu đề */}
-        <h1 className="text-xl font-bold mb-2">{p.title}</h1>
 
-        {/* Content */}
-        {p.content && (
-          <div className="prose max-w-none">
-            <ReactMarkdown>{p.content}</ReactMarkdown>
-          </div>
-        )}
-
-        {/* Poll Component - integrated with post content */}
-        {p.hasPoll && (
-          <div className="mt-4">
-            <Poll post={p} user={user} />
-          </div>
-        )}
-
-        {/* Hiển thị preview media trong bài */}
-        {allMedia.length === 1 && (
-          <div className="mt-4">
-            <div
-              className="w-full rounded-xl overflow-hidden cursor-pointer"
-              onClick={() => {
-                setCurrentIndex(0);
-                setShowMediaModal(true);
-              }}
-            >
-              {allMedia[0].type === "video" ? (
-                <video
-                  src={allMedia[0].url}
-                  className="w-full object-contain max-h-[70vh]"
-                  controls
-                />
-              ) : (
-                <img
-                  src={allMedia[0].url}
-                  className="w-full object-contain max-h-[70vh]"
-                  alt="media"
-                />
-              )}
+          {/* Poll Component */}
+          {p.hasPoll && (
+            <div className="px-4 py-4 border-b border-gray-200 dark:border-[#3A3B3C]">
+              <Poll post={p} user={user} />
             </div>
-          </div>
-        )}
-        {allMedia.length > 1 && (
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <div
-              className="col-span-2 row-span-2 h-64 rounded-xl overflow-hidden cursor-pointer"
-              onClick={() => {
-                setCurrentIndex(0);
-                setShowMediaModal(true);
-              }}
-            >
-              {allMedia[0].type === "video" ? (
-                <video
-                  src={allMedia[0].url}
-                  className="w-full h-full object-cover"
-                  controls
-                />
-              ) : (
-                <img
-                  src={allMedia[0].url}
-                  className="w-full h-full object-cover"
-                  alt="media"
-                />
-              )}
-            </div>
-            {allMedia.slice(1, 3).map((m, idx) => (
+          )}
+
+          {/* Hiển thị preview media trong bài */}
+          {allMedia.length === 1 && (
+            <div className="w-full mt-1">
               <div
-                key={idx + 1}
-                className="h-36 rounded-xl overflow-hidden relative cursor-pointer"
+                className="relative rounded-xl overflow-hidden cursor-pointer hover:brightness-95 transition"
                 onClick={() => {
-                  setCurrentIndex(idx + 1);
+                  setCurrentIndex(0);
                   setShowMediaModal(true);
                 }}
               >
-                {m.type === "video" ? (
+                {allMedia[0].type === "video" ? (
                   <video
-                    src={m.url}
+                    src={allMedia[0].url}
+                    className="w-full max-h-[70vh] object-contain bg-black"
+                    controls
+                  />
+                ) : (
+                  <img
+                    src={allMedia[0].url}
+                    className="w-full object-contain max-h-[70vh]"
+                    alt="media"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+          {allMedia.length > 1 && (
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <div
+                className="col-span-2 row-span-2 h-64 rounded-xl overflow-hidden cursor-pointer"
+                onClick={() => {
+                  setCurrentIndex(0);
+                  setShowMediaModal(true);
+                }}
+              >
+                {allMedia[0].type === "video" ? (
+                  <video
+                    src={allMedia[0].url}
                     className="w-full h-full object-cover"
                     controls
                   />
                 ) : (
                   <img
-                    src={m.url}
+                    src={allMedia[0].url}
                     className="w-full h-full object-cover"
                     alt="media"
                   />
                 )}
-                {/* Nếu là ảnh cuối và còn nhiều hơn 3 ảnh, overlay số lượng */}
-                {idx === 1 && allMedia.length > 3 && (
-                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded text-white text-2xl font-bold">
-                    +{allMedia.length - 3} ảnh
-                  </div>
-                )}
               </div>
-            ))}
-          </div>
-        )}
-
-
-        {/* Emotes + Actions */}
-        <div className="mt-4 flex flex-col gap-2 flex-wrap">
-          {/* Like count */}
-          <div className="flex items-center gap-1 mb-2">
-            {Object.entries(counts)
-              .filter(([_, count]) => count > 0)
-              .slice(0, 2)
-              .map(([emo]) => (
-                <img
-                  key={emo}
-                  src={`/assets/${emoteMap[emo]}`}
-                  alt={emo}
-                  className="emote"
-                />
+              {allMedia.slice(1, 3).map((m, idx) => (
+                <div
+                  key={idx + 1}
+                  className="h-36 rounded-xl overflow-hidden relative cursor-pointer"
+                  onClick={() => {
+                    setCurrentIndex(idx + 1);
+                    setShowMediaModal(true);
+                  }}
+                >
+                  {m.type === "video" ? (
+                    <video
+                      src={m.url}
+                      className="w-full h-full object-cover"
+                      controls
+                    />
+                  ) : (
+                    <img
+                      src={m.url}
+                      className="w-full h-full object-cover"
+                      alt="media"
+                    />
+                  )}
+                  {/* Nếu là ảnh cuối và còn nhiều hơn 3 ảnh, overlay số lượng */}
+                  {idx === 1 && allMedia.length > 3 && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded text-white text-2xl font-bold">
+                      +{allMedia.length - 3} ảnh
+                    </div>
+                  )}
+                </div>
               ))}
-            {Object.values(counts).reduce((a, b) => a + b, 0) > 0 && (
-              <span
-                className="ml-1 font-semibold cursor-pointer"
-                onClick={() => setShowEmoteList(true)}
-              >
-                {Object.values(counts).reduce((a, b) => a + b, 0)}
-              </span>
-            )}
-            {/* Popup danh sách người đã thả emote */}
-            {showEmoteList && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={() => setShowEmoteList(false)}>
-                <div className="bg-white text-gray-900 rounded-xl shadow-2xl p-0 min-w-[350px] max-w-[95vw] relative" onClick={e => e.stopPropagation()}>
-                  {/* Header tabs */}
-                  <div className="flex items-center border-b px-6 pt-5 pb-2 gap-2">
-                    <button
-                      className={`font-semibold px-2 py-1 rounded ${activeTab === 'all' ? 'bg-white-200' : ''}`}
-                      onClick={() => setActiveTab('all')}
-                    >
-                      Tất cả
+            </div>
+          )}
+
+
+          {/* REACTIONS */}
+          <div className="flex justify-between items-center px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-[#3A3B3C]">
+            <div className="flex items-center gap-1">
+              {Object.entries(counts)
+                .filter(([_, count]) => count > 0)
+                .slice(0, 3)
+                .map(([emo]) => (
+                  <img key={emo} src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-6 h-6 sm:w-7 sm:h-7" />
+                ))}
+              {Object.values(counts).reduce((a, b) => a + b, 0) > 0 && (
+                <span className="ml-1 font-bold text-[15px] sm:text-[16px]" onClick={() => setShowEmoteList(true)}>
+                  {Object.values(counts).reduce((a, b) => a + b, 0)}
+                </span>
+              )}
+              {/* Popup danh sách người đã thả emote */}
+              {showEmoteList && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={() => setShowEmoteList(false)}>
+                  <div className="bg-white text-gray-900 rounded-xl shadow-2xl p-0 min-w-[350px] max-w-[95vw] relative" onClick={e => e.stopPropagation()}>
+                    {/* Header tabs */}
+                    <div className="flex items-center border-b px-6 pt-5 pb-2 gap-2">
+                      <button
+                        className={`font-semibold px-2 py-1 rounded ${activeTab === 'all' ? 'bg-white-200' : ''}`}
+                        onClick={() => setActiveTab('all')}
+                      >
+                        Tất cả
+                      </button>
+                      {Object.entries(counts)
+                        .filter(([_, count]) => count > 0)
+                        .map(([emo]) => (
+                          <button
+                            key={emo}
+                            className={`flex items-center gap-1 px-2 py-1 rounded ${activeTab === emo ? 'bg-white-200' : ''}`}
+                            onClick={() => setActiveTab(emo)}
+                          >
+                            <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="emote" />
+                            <span>{counts[emo]}</span>
+                          </button>
+                        ))}
+                    </div>
+
+                    {/* Close button */}
+                    <button className="absolute top-3 right-4 text-2xl text-gray-400 hover:text-black" onClick={() => setShowEmoteList(false)}>
+                      &#10005;
                     </button>
-                    {Object.entries(counts)
-                      .filter(([_, count]) => count > 0)
-                      .map(([emo]) => (
-                        <button
-                          key={emo}
-                          className={`flex items-center gap-1 px-2 py-1 rounded ${activeTab === emo ? 'bg-white-200' : ''}`}
-                          onClick={() => setActiveTab(emo)}
-                        >
-                          <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="emote" />
-                          <span>{counts[emo]}</span>
-                        </button>
-                      ))}
-                  </div>
 
-                  {/* Close button */}
-                  <button className="absolute top-3 right-4 text-2xl text-gray-400 hover:text-black" onClick={() => setShowEmoteList(false)}>
-                    &#10005;
-                  </button>
-
-                  {/* User list */}
-                  <div className="px-6 py-3 max-h-[60vh] overflow-y-auto">
-                    {(() => {
-                      let emoteUsers;
-                      if (activeTab === "all") {
-                        emoteUsers = p.emotes;
-                      } else {
-                        emoteUsers = p.emotes.filter(e => e.type === activeTab);
-                      }
-                      if (emoteUsers.length === 0) return <div className="text-gray-400">Chưa có ai thả cảm xúc này.</div>;
-                      return emoteUsers.map((e, idx) => {
-                        const user = e.user || {};
-                        const avatar = user.avatarUrl
-                          ? user.avatarUrl
-                          : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "?")}&length=2&background=cccccc&color=222222&size=40`;
-                        return (
-                          <div key={idx} className="flex gap-3 py-2 border-b items-center">
-                            <img src={avatar} alt={user.name || "Người dùng"} className="w-10 h-10 rounded-full object-cover" />
-                            <UserName user={user} className="font-semibold text-sm text-gray-900" />
-                            <div className="flex-1"></div>
-                            <img src={`/assets/${emoteMap[e.type]}`} alt={e.type} className="w-5 h-5 ml-2" />
-                          </div>
-                        );
-                      });
-                    })()}
+                    {/* User list */}
+                    <div className="px-6 py-3 max-h-[60vh] overflow-y-auto">
+                      {(() => {
+                        let emoteUsers;
+                        if (activeTab === "all") {
+                          emoteUsers = p.emotes;
+                        } else {
+                          emoteUsers = p.emotes.filter(e => e.type === activeTab);
+                        }
+                        if (emoteUsers.length === 0) return <div className="text-gray-400">Chưa có ai thả cảm xúc này.</div>;
+                        return emoteUsers.map((e, idx) => {
+                          const user = e.user || {};
+                          const avatar = user.avatarUrl
+                            ? user.avatarUrl
+                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "?")}&length=2&background=cccccc&color=222222&size=40`;
+                          return (
+                            <div key={idx} className="flex gap-3 py-2 border-b items-center">
+                              <img src={avatar} alt={user.name || "Người dùng"} className="w-10 h-10 rounded-full object-cover" />
+                              <UserName user={user} className="font-semibold text-sm text-gray-900" />
+                              <div className="flex-1"></div>
+                              <img src={`/assets/${emoteMap[e.type]}`} alt={e.type} className="w-5 h-5 ml-2" />
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <Eye size={16} />
+              <span>{(p.views || 0).toLocaleString()} lượt xem</span>
+            </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Like/Emote */}
+          {/* ACTION BAR */}
+          <div className="flex justify-around py-2 border-b border-gray-200 dark:border-[#3A3B3C]">
             <div
-              className="relative inline-block"
+              className="relative w-full flex justify-center"
               onMouseEnter={() => {
                 if (emotePopupTimeout.current)
                   clearTimeout(emotePopupTimeout.current);
@@ -473,16 +474,13 @@ export default function PostDetail() {
                 );
               }}
             >
-              <button
-                className="btn-outline flex items-center gap-2"
-                type="button"
-                onClick={() => setShowEmotePopup(true)}
-              >
-                <ThumbsUp size={18} /> Thích
+              <button type="button" onClick={() => setShowEmotePopup(true)} className="flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300">
+                <ThumbsUp size={20} />
+                <span>Thích</span>
               </button>
               {showEmotePopup && (
                 <div
-                  className="absolute bottom-full left-0 mb-2 emote-picker bg-white rounded-xl shadow z-10 border"
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 emote-picker bg-white rounded-xl shadow z-10 border"
                   style={{ justifyContent: "center" }}
                   onMouseEnter={() => {
                     if (emotePopupTimeout.current)
@@ -511,132 +509,137 @@ export default function PostDetail() {
                 </div>
               )}
             </div>
-
-            {/* Save */}
             <button
-              className="btn-outline flex items-center gap-2"
+              className="flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300"
+              type="button"
+              onClick={() => {
+                const cmtEl = document.getElementById("comments-section");
+                if (cmtEl) cmtEl.scrollIntoView({ behavior: "smooth" });
+              }}
+            >
+              <MessageCircle size={20} />
+              <span>Bình luận</span>
+            </button>
+            <button
+              className="flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300"
               type="button"
               onClick={toggleSave}
               title={saved ? "Bỏ lưu" : "Lưu bài"}
             >
-              {saved ? <BookmarkCheck size={18} className="text-blue-600" /> : <Bookmark size={18} />}
+              {saved ? <BookmarkCheck size={20} className="text-blue-500" /> : <Bookmark size={20} />}
               <span>{saved ? "Đã lưu" : "Lưu"}</span>
             </button>
-
-            {/* Toggle / Edit / Delete */}
-            {/* Đã gộp vào menu 3 chấm */}
           </div>
+          </div>
+
+
+        {/* Comments */}
+        <div id="comments-section" className="card max-w-3xl mx-auto">
+          <h2 className="text-xl font-semibold mb-4">Bình luận</h2>
+          {(() => {
+            // Xác định quyền bình luận nếu bài đăng thuộc về một nhóm
+            const groupInfo = p.group || null;
+            if (!groupInfo) {
+              return (
+                <CommentSection
+                  postId={p._id}
+                  initialComments={data.comments || []}
+                  user={user}
+                />
+              );
+            }
+
+            // Ưu tiên ngữ cảnh nhóm được tìm nạp; nếu không có sẵn, hãy cho phép bình luận để tránh chặn UX
+            const setting = groupCtx?.settings?.commentPermissions || 'all_members';
+            const role = groupCtx?.userRole || null;
+            const userIsAdmin = role === 'owner' || role === 'admin';
+            const userIsMember = !!role;
+
+            let canComment = true;
+            if (setting === 'admins_only') canComment = userIsAdmin;
+            else if (setting === 'members_only') canComment = userIsMember;
+            else canComment = userIsMember || true; // 'all_members'
+
+            if (canComment) {
+              return (
+                <CommentSection
+                  postId={p._id}
+                  initialComments={data.comments || []}
+                  user={user}
+                />
+              );
+            }
+            return (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
+                Chỉ quản trị viên được phép bình luận trong nhóm này.
+              </div>
+            );
+          })()}
         </div>
-      </div>
 
-
-      {/* Comments */}
-      <div className="card max-w-4xl mx-auto">
-        <h2 className="text-xl font-semibold mb-4">Bình luận</h2>
-        {(() => {
-          // Xác định quyền bình luận nếu bài đăng thuộc về một nhóm
-          const groupInfo = p.group || null;
-          if (!groupInfo) {
-            return (
-              <CommentSection
-                postId={p._id}
-                initialComments={data.comments || []}
-                user={user}
-              />
-            );
-          }
-
-          // Ưu tiên ngữ cảnh nhóm được tìm nạp; nếu không có sẵn, hãy cho phép bình luận để tránh chặn UX
-          const setting = groupCtx?.settings?.commentPermissions || 'all_members';
-          const role = groupCtx?.userRole || null;
-          const userIsAdmin = role === 'owner' || role === 'admin';
-          const userIsMember = !!role;
-
-          let canComment = true;
-          if (setting === 'admins_only') canComment = userIsAdmin;
-          else if (setting === 'members_only') canComment = userIsMember;
-          else canComment = userIsMember || true; // 'all_members'
-
-          if (canComment) {
-            return (
-              <CommentSection
-                postId={p._id}
-                initialComments={data.comments || []}
-                user={user}
-              />
-            );
-          }
-          return (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
-              Chỉ quản trị viên được phép bình luận trong nhóm này.
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* Media modal carousel */}
-      {showMediaModal && allMedia.length > 0 && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
-          onClick={() => setShowMediaModal(false)}
-        >
-          <div className="relative max-w-full max-h-full flex items-center">
-            {/* Close */}
-            <button
-              onClick={() => setShowMediaModal(false)}
-              className="absolute top-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded-full"
-            >
-              <X size={20} />
-            </button>
-
-            {/* Prev */}
-            {currentIndex > 0 && (
+        {/* Media modal carousel */}
+        {showMediaModal && allMedia.length > 0 && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowMediaModal(false)}
+          >
+            <div className="relative max-w-full max-h-full flex items-center">
+              {/* Close */}
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentIndex((i) => i - 1);
-                }}
-                className="absolute left-4 bg-black bg-opacity-50 text-white p-3 rounded-full"
+                onClick={() => setShowMediaModal(false)}
+                className="absolute top-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded-full"
               >
-                ‹
+                <X size={20} />
               </button>
-            )}
 
-            {/* Content */}
-            <div className="max-w-full max-h-full">
-              {allMedia[currentIndex].type === "video" ? (
-                <video
-                  src={allMedia[currentIndex].url}
-                  controls
-                  autoPlay
-                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              ) : (
-                <img
-                  src={allMedia[currentIndex].url}
-                  alt={`media-${currentIndex}`}
-                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
-                  onClick={(e) => e.stopPropagation()}
-                />
+              {/* Prev */}
+              {currentIndex > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentIndex((i) => i - 1);
+                  }}
+                  className="absolute left-4 bg-black bg-opacity-50 text-white p-3 rounded-full"
+                >
+                  ‹
+                </button>
+              )}
+
+              {/* Content */}
+              <div className="max-w-full max-h-full">
+                {allMedia[currentIndex].type === "video" ? (
+                  <video
+                    src={allMedia[currentIndex].url}
+                    controls
+                    autoPlay
+                    className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <img
+                    src={allMedia[currentIndex].url}
+                    alt={`media-${currentIndex}`}
+                    className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
+              </div>
+
+              {/* Next */}
+              {currentIndex < allMedia.length - 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentIndex((i) => i + 1);
+                  }}
+                  className="absolute right-4 bg-black bg-opacity-50 text-white p-3 rounded-full"
+                >
+                  ›
+                </button>
               )}
             </div>
-
-            {/* Next */}
-            {currentIndex < allMedia.length - 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentIndex((i) => i + 1);
-                }}
-                className="absolute right-4 bg-black bg-opacity-50 text-white p-3 rounded-full"
-              >
-                ›
-              </button>
-            )}
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
+        )}
+      </div>
+    );
+  }

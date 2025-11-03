@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { loadRoles } from "../utils/roleCache";
 
 /**
@@ -40,6 +41,9 @@ const defaultRoleTooltips = {
 export default function VerifiedBadge({ role, isVerified, roleData, availableRoles = [] }) {
   const [dynamicRoles, setDynamicRoles] = useState({});
   const [loading, setLoading] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const badgeRef = useRef(null);
 
   // Load dynamic roles từ cache/API khi không có availableRoles props
   const loadDynamicRoles = async () => {
@@ -70,6 +74,22 @@ export default function VerifiedBadge({ role, isVerified, roleData, availableRol
 
   // Không hiển thị gì nếu không có role
   if (!role) return null;
+
+  // Handle mouse events for tooltip positioning
+  const handleMouseEnter = (e) => {
+    if (!badgeRef.current) return;
+    
+    const rect = badgeRef.current.getBoundingClientRect();
+    const tooltipX = rect.left + rect.width / 2;
+    const tooltipY = rect.top - 8; // 8px above the badge
+    
+    setTooltipPosition({ x: tooltipX, y: tooltipY });
+    setShowTooltip(true);
+  };
+
+  const handleMouseLeave = () => {
+    setShowTooltip(false);
+  };
 
   // Lấy thông tin role với priority order:
   // 1. roleData props (nếu có)
@@ -109,20 +129,36 @@ export default function VerifiedBadge({ role, isVerified, roleData, availableRol
   if (!icon) return null;
 
   return (
-    <div className="relative group inline-block">
-      {/* Icon huy hiệu */}
-      <img 
-        src={icon} 
-        alt="Verified" 
-        className="w-5 h-5 rounded-full align-middle flex-shrink-0 object-cover border-2 border-gray-300" 
-        loading="lazy"
-      />
-      {/* Tooltip hiển thị khi hover */}
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1
-                      hidden group-hover:block bg-black text-white text-xs
-                      px-2 py-1 rounded shadow-lg whitespace-nowrap z-10">
-        {tooltip}
+    <>
+      <div 
+        ref={badgeRef}
+        className="relative inline-block"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Icon huy hiệu */}
+        <img 
+          src={icon} 
+          alt="Verified" 
+          className="w-5 h-5 rounded-full align-middle flex-shrink-0 object-cover border-2 border-gray-300" 
+          loading="lazy"
+        />
       </div>
-    </div>
+      
+      {/* Portal tooltip */}
+      {showTooltip && tooltip && createPortal(
+        <div 
+          className="fixed bg-black text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-[9999]"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            transform: 'translateX(-50%)'
+          }}
+        >
+          {tooltip}
+        </div>,
+        document.body
+      )}
+    </>
   );
 }

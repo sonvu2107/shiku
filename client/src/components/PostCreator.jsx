@@ -251,7 +251,7 @@ export default function PostCreator({ user, groupId = null }) {
   return (
     <>
       {/* Facebook-style post creator */}
-      <div className="card max-w-2xl mx-auto mb-6">
+      <div className="card">
         <div className="flex items-center gap-3">
           <img
             src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=cccccc&color=222222&size=40`}

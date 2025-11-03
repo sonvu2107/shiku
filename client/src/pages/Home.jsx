@@ -325,17 +325,15 @@ export default function Home({ user }) {
       </div>
 
       {/* Main Layout - 3 Columns */}
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4">
-        <div className="flex flex-col lg:flex-row gap-6">
+      <div className="w-full px-2 sm:px-3 lg:px-4 py-4">
+        <div className="flex flex-col lg:grid lg:grid-cols-[320px_minmax(0,1fr)_320px] xl:grid-cols-[360px_minmax(0,1fr)_320px] items-start gap-4 xl:gap-8">
           {/* Left Sidebar - Shortcuts (ẩn trên mobile) */}
-          <div className="hidden lg:block w-64 flex-shrink-0">
-            <div className="sticky top-24">
-              <Shortcuts user={user} />
-            </div>
+          <div className="hidden lg:block w-[320px] xl:w-[360px] shrink-0 sticky top-20 self-start">
+            <Shortcuts user={user} minimal={true} />
           </div>
 
           {/* Center Column - Main Feed (luôn hiển thị) */}
-          <div className="flex-1 w-full lg:max-w-2xl lg:mx-0 space-y-4">
+          <div className="flex-1 w-full max-w-[700px] xl:max-w-[740px] justify-self-center space-y-4">
             {/* Stories Section */}
             <Stories user={user} />
 
@@ -461,10 +459,10 @@ export default function Home({ user }) {
             )}
           </div>
 
-          {/* Right Sidebar - Online Friends (ẩn trên mobile, hiện từ lg trở lên) */}
-          <div className="hidden lg:block w-72 flex-shrink-0">
-            <div className="sticky top-24 space-y-6">
-              <OnlineFriends user={user} />
+          {/* Right Sidebar - Online Friends (ẩn trên mobile, hiện từ xl trở lên) */}
+          <div className="hidden xl:block w-[320px] shrink-0 sticky top-20 self-start">
+            <div className="space-y-6">
+              <OnlineFriends user={user} minimal={true} />
             </div>
           </div>
         </div>

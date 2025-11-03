@@ -206,113 +206,101 @@ export default function PostCard({
 
   return (
     <ComponentErrorBoundary>
-      <div className="card relative flex flex-col gap-2 post-card-mobile">
-      {/* Save icon button (top-right) */}
-      <button
-        className="group absolute z-10 top-2 right-2 sm:top-3 sm:right-3 w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-white/90 hover:bg-white border border-gray-200 shadow active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-300 touch-manipulation dark:bg-gray-800/80 dark:hover:bg-gray-800 dark:border-gray-700"
-        type="button"
-        onClick={toggleSave}
-        title={saved ? "Bỏ lưu" : "Lưu bài"}
-        aria-label={saved ? "Bỏ lưu" : "Lưu bài"}
-        aria-pressed={saved}
-      >
-        {saved ? (
-          <BookmarkCheck size={20} className="text-blue-600 dark:text-blue-400 transition-colors group-hover:text-blue-700 dark:group-hover:text-blue-300" />
-        ) : (
-          <Bookmark size={20} className="text-gray-700 dark:text-gray-200 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-300" />
+      <div className="bg-white dark:bg-[#18191A] border border-gray-200 dark:border-[#3A3B3C] rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-visible">
+      {/* HEADER */}
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link to={`/user/${post.author?._id}`} className="flex-shrink-0">
+            <img
+              src={post.author?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author?.name || '')}&length=2&background=cccccc&color=222222&size=40`}
+              alt={post.author?.name}
+              className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+            />
+          </Link>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1 font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+              <UserName user={post.author} maxLength={20} />
+              <VerifiedBadge user={post.author} />
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1">
+              <span>{new Date(post.createdAt).toLocaleDateString('vi-VN')}</span>
+              {post.status === 'private' ? (
+                <Lock size={12} className="text-gray-400" />
+              ) : (
+                !hidePublicIcon && <Globe size={12} className="text-green-500" />
+              )}
+            </div>
+          </div>
+        </div>
+        <button
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
+          onClick={() => setShowActionsMenu(!showActionsMenu)}
+          title="Tùy chọn"
+        >
+          <MoreHorizontal size={18} />
+        </button>
+      </div>
+      {/* CAPTION */}
+      <div className="px-4 pb-1 text-gray-800 dark:text-gray-300">
+        <Link to={`/post/${post.slug}`} className="hover:underline">
+          <p className="text-[15px] leading-snug font-medium mb-1">
+            {post.title}
+          </p>
+        </Link>
+        {post.caption && (
+          <p className="text-[14px] text-gray-700 dark:text-gray-400 leading-relaxed line-clamp-4">
+            {post.caption}
+          </p>
         )}
-      </button>
+      </div>
+
       {displayMedia && (
-        <div className="w-full aspect-[16/10] sm:aspect-[16/10] aspect-ratio overflow-hidden rounded-xl">
+        <div className="w-full relative rounded-xl overflow-hidden">
           {displayMedia.type === "video" ? (
-            <video 
-              src={displayMedia.url} 
-              className="w-full h-full object-cover"
+            <video
+              src={displayMedia.url}
               controls
+              className="w-full max-h-[600px] object-cover"
               onError={(e) => {
                 e.target.style.display = 'none';
-                // Hiển thị placeholder khi video lỗi
                 const placeholder = document.createElement('div');
-                placeholder.className = 'w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center';
+                placeholder.className = 'w-full h-64 bg-gray-200 dark:bg-gray-700 flex items-center justify-center';
                 placeholder.innerHTML = '<div class="text-gray-500 dark:text-gray-400 text-sm">Video không thể tải</div>';
                 e.target.parentNode.appendChild(placeholder);
               }}
             />
           ) : (
-            <img 
-              src={displayMedia.url} 
-              alt="" 
-              className="w-full h-full hover:scale-105 transition-transform duration-300 object-cover"
-              loading="lazy"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                // Hiển thị placeholder khi ảnh lỗi
-                const placeholder = document.createElement('div');
-                placeholder.className = 'w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center';
-                placeholder.innerHTML = '<div class="text-gray-500 dark:text-gray-400 text-sm">Ảnh không thể tải</div>';
-                e.target.parentNode.appendChild(placeholder);
-              }}
+            <LazyImage
+              src={displayMedia.url}
+              alt={post.title}
+              className="w-full max-h-[600px] object-cover"
             />
           )}
         </div>
       )}
-      <div className="flex flex-col gap-1">
-        <Link to={`/post/${post.slug}`} className="text-xl font-semibold hover:underline flex items-center gap-2 pr-14 sm:pr-16 leading-snug">
-          {post.title}
-          {post.status === 'private' ? (
-            <Lock size={16} className="text-gray-500" title="Bài viết riêng tư - chỉ bạn xem được" />
-          ) : !hidePublicIcon && (
-            <Globe size={16} className="text-green-500" title="Bài viết công khai" />
-          )}
-        </Link>
-        <div className="post-meta-mobile flex flex-nowrap items-center gap-x-4 text-sm text-gray-600 px-3 py-2 rounded-md">
-        <Link 
-          to={`/user/${post.author?._id}`}
-          className="flex items-center gap-2 hover:text-blue-600 transition-colors min-w-0"
-        >
-          <User size={18} />
-          <UserName user={post.author} className="truncate" />
-        </Link>
-        {post.group && (
-          <Link 
-            to={`/groups/${post.group._id}`}
-            className="flex items-center gap-2 hover:text-blue-600 transition-colors min-w-0"
-          >
-            <Users size={18} />
-            <span className="truncate">{post.group.name}</span>
-          </Link>
-        )}
-        <span className="flex items-center gap-2 flex-shrink-0">
-          <Calendar size={18} />
-          {new Date(post.createdAt).toLocaleDateString()}
-        </span>
-        </div>
-      </div>
 
       {/* Emote bar */}
-      <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex justify-between items-center px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-[#3A3B3C]">
         <div className="flex items-center gap-1">
           {Object.entries(counts)
             .filter(([_, count]) => count > 0)
-            .slice(0, 2)
+            .slice(0, 3)
               .map(([emo]) => (
               <img 
                 key={emo} 
                 src={`/assets/${emoteMap[emo]}`} 
                 alt={emo} 
-                className="emote inline-block align-middle"
+                className="w-6 h-6 sm:w-7 sm:h-7 inline-block"
                 onError={(e) => {
                   e.target.style.display = 'none';
                 }}
               />
             ))}
           {totalEmotes > 0 && (
-            <span className="ml-1 font-semibold text-gray-800 dark:text-gray-200">{totalEmotes.toLocaleString()}</span>
+            <span className="ml-1 font-bold text-[15px] sm:text-[16px]">{totalEmotes.toLocaleString()}</span>
           )}
         </div>
-        
-        {/* View count */}
-        <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-1">
           <Eye size={16} />
           <span>{(post.views || 0).toLocaleString()} lượt xem</span>
         </div>
@@ -325,10 +313,10 @@ export default function PostCard({
         </div>
       )}
 
-      {/* Action bar */}
-      <div className="flex items-center justify-between py-2">
+      {/* ACTION BAR */}
+      <div className="flex justify-around py-2 border-t border-gray-200 dark:border-[#3A3B3C]">
         <div
-          className="relative inline-block"
+          className="relative w-full flex justify-center"
           onMouseEnter={() => {
             if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
             setShowEmotePopup(true);
@@ -337,13 +325,17 @@ export default function PostCard({
             emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1500);
           }}
         >
-          <button className="btn-outline flex items-center gap-2" type="button" onClick={() => setShowEmotePopup(true)}> 
-            <ThumbsUp size={18} />
+          <button
+            type="button"
+            onClick={() => setShowEmotePopup(true)}
+            className="flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300"
+          >
+            <ThumbsUp size={20} />
             <span>Thích</span>
           </button>
           {showEmotePopup && (
             <div
-              className="absolute bottom-full left-0 mb-2 emote-picker bg-white rounded-xl shadow z-10 border border-gray-200"
+              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 emote-picker bg-white rounded-xl shadow z-10 border border-gray-200"
               style={{ justifyContent: "center" }}
               onMouseEnter={() => {
                 if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
@@ -368,16 +360,26 @@ export default function PostCard({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            className="btn-outline flex items-center gap-2"
-            type="button"
-            onClick={() => navigate(`/post/${post.slug}`)}
-          >
-            <MessageCircle size={18} />
-            <span>Bình luận</span>
-          </button>
-        </div>
+        <button
+          className="flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300"
+          type="button"
+          onClick={() => navigate(`/post/${post.slug}`)}
+        >
+          <MessageCircle size={20} />
+          <span>Bình luận</span>
+        </button>
+        <button
+          className="flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300"
+          type="button"
+          onClick={toggleSave}
+        >
+          {saved ? (
+            <BookmarkCheck size={20} className="text-blue-500" />
+          ) : (
+            <Bookmark size={20} />
+          )}
+          <span>{saved ? "Đã lưu" : "Lưu"}</span>
+        </button>
       </div>
 
       {/* Actions menu for post owner and admin */}
