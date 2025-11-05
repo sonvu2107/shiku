@@ -6,7 +6,7 @@ import { api } from "../api";
 import { getUserInfo } from "../utils/auth";
 import socketService from "../socket";
 import callManager from "../utils/callManager";
-import { X, Phone, Video, ChevronDown, MessageCircle, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, Image } from "lucide-react";
+import { X, Phone, Video, ChevronDown, MessageCircle, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, Image, MoreHorizontal, Edit2, Trash2 } from "lucide-react";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 
 // Custom CSS for enhanced shadows
@@ -111,6 +111,12 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   const [input, setInput] = useState(""); // Nội dung tin nhắn đang nhập
   const [showEmotePicker, setShowEmotePicker] = useState(false); // Hiện emoji picker
   
+  // Edit/Delete states
+  const [editingMessageId, setEditingMessageId] = useState(null); // ID của tin nhắn đang edit
+  const [editContent, setEditContent] = useState(""); // Nội dung edit
+  const [showOptionsMenu, setShowOptionsMenu] = useState(null); // ID của tin nhắn đang hiển thị menu
+  const [hoveredMessageId, setHoveredMessageId] = useState(null); // ID của tin nhắn đang hover
+  
   // Refs
   const messagesEndRef = useRef(null); // Ref để scroll xuống cuối tin nhắn
   
@@ -174,6 +180,74 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
     
     setShowEmotePicker(false);
   };
+
+  const handleEditMessage = (message) => {
+    setEditingMessageId(message._id);
+    setEditContent(message.content);
+    setShowOptionsMenu(null);
+  };
+
+  const handleSaveEdit = async (messageId) => {
+    if (!editContent.trim()) return;
+    
+    try {
+      await api(`/api/messages/conversations/${conversation._id}/messages/${messageId}`, {
+        method: 'PUT',
+        body: { content: editContent }
+      });
+      
+      // Update message locally
+      setMessages(prev => prev.map(m => 
+        m._id === messageId 
+          ? { ...m, content: editContent, isEdited: true }
+          : m
+      ));
+      
+      setEditingMessageId(null);
+      setEditContent("");
+    } catch (error) {
+      alert('Không thể sửa tin nhắn');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditContent("");
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!confirm('Bạn có chắc muốn thu hồi tin nhắn này?')) return;
+    
+    try {
+      await api(`/api/messages/conversations/${conversation._id}/messages/${messageId}`, {
+        method: 'DELETE'
+      });
+      
+      // Update message locally
+      setMessages(prev => prev.map(m => 
+        m._id === messageId 
+          ? { ...m, isDeleted: true, content: 'Tin nhắn đã được thu hồi' }
+          : m
+      ));
+      
+      setShowOptionsMenu(null);
+    } catch (error) {
+      alert('Không thể thu hồi tin nhắn');
+    }
+  };
+
+  // Close options menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showOptionsMenu && !e.target.closest('.message-options-menu')) {
+        setShowOptionsMenu(null);
+        setHoveredMessageId(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showOptionsMenu]);
 
   const isGroup = conversation.conversationType === "group";
   const name = isGroup
@@ -318,9 +392,104 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
                 if (senderId === me) {
                   return (
-                    <div key={msg._id || idx} className="mb-2 flex justify-end">
-                      <div className="flex flex-col items-end max-w-[75%]">
-                        {msg.messageType === "image" ? (
+                    <div 
+                      key={msg._id || idx} 
+                      className="mb-2 flex justify-end"
+                      onMouseEnter={() => setHoveredMessageId(msg._id)}
+                      onMouseLeave={() => {
+                        if (showOptionsMenu !== msg._id) {
+                          setHoveredMessageId(null);
+                        }
+                      }}
+                    >
+                      <div className="flex flex-col items-end max-w-[75%] relative">
+                        {/* Message options menu */}
+                        {!msg.isDeleted && msg.messageType !== 'system' && (hoveredMessageId === msg._id || showOptionsMenu === msg._id) && (
+                          <div className="absolute top-1 -left-8 z-10 message-options-menu">
+                            <div className="relative">
+                              <button
+                                onClick={() => setShowOptionsMenu(showOptionsMenu === msg._id ? null : msg._id)}
+                                onMouseEnter={() => setHoveredMessageId(msg._id)}
+                                className="p-1.5 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 shadow-sm"
+                                title="Tùy chọn"
+                              >
+                                <MoreHorizontal size={14} className="text-gray-600 dark:text-gray-300" />
+                              </button>
+                              
+                              {/* Dropdown menu */}
+                              {showOptionsMenu === msg._id && (
+                                <div 
+                                  className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px] z-50 message-options-menu"
+                                  onMouseEnter={() => setHoveredMessageId(msg._id)}
+                                >
+                                  {msg.messageType !== 'image' && msg.messageType !== 'emote' && (
+                                    <button
+                                      onClick={() => handleEditMessage(msg)}
+                                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-200"
+                                    >
+                                      <Edit2 size={12} />
+                                      Sửa tin nhắn
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleDeleteMessage(msg._id)}
+                                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
+                                  >
+                                    <Trash2 size={12} />
+                                    Thu hồi
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {editingMessageId === msg._id ? (
+                          // Edit mode
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-2 min-w-[200px] mb-1">
+                            <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
+                              <span>Chỉnh sửa tin nhắn</span>
+                              <button
+                                onClick={handleCancelEdit}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                            <div className="flex items-end gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
+                              <input
+                                type="text"
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                className="flex-1 bg-transparent text-sm text-gray-900 dark:text-gray-100 focus:outline-none"
+                                placeholder="Nhập tin nhắn..."
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSaveEdit(msg._id);
+                                  } else if (e.key === 'Escape') {
+                                    handleCancelEdit();
+                                  }
+                                }}
+                              />
+                              <button
+                                onClick={() => handleSaveEdit(msg._id)}
+                                disabled={!editContent.trim()}
+                                className="text-blue-500 hover:text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed p-1"
+                                title="Gửi"
+                              >
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        ) : msg.isDeleted ? (
+                          <div className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 italic break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
+                            {msg.content}
+                          </div>
+                        ) : msg.messageType === "image" ? (
                           <img 
                             src={msg.imageUrl} 
                             alt="Ảnh" 
@@ -336,46 +505,56 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             {msg.content}
                           </div>
                         )}
+                        
+                        {/* Edited indicator */}
+                        {msg.isEdited && !msg.isDeleted && editingMessageId !== msg._id && (
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic text-right">
+                            Đã chỉnh sửa
+                          </p>
+                        )}
+                        
                         {/* Reactions row */}
-                        <div className="mt-1 flex items-center gap-1">
-                          <div className="relative group">
-                            <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-100" title="Thả cảm xúc" tabIndex={0}>
-                              <Smile size={16} />
-                            </button>
-                            <div className="absolute hidden group-hover:flex group-focus-within:flex top-0 -translate-y-full right-0 bg-white border border-gray-200 rounded-full shadow px-2 py-1 gap-1 z-50">
-                              {[
-                                { type: 'like', Icon: ThumbsUp, color: 'text-blue-500' },
-                                { type: 'love', Icon: Heart, color: 'text-red-500' },
-                                { type: 'laugh', Icon: Laugh, color: 'text-yellow-500' },
-                                { type: 'angry', Icon: Angry, color: 'text-orange-500' },
-                                { type: 'sad', Icon: Frown, color: 'text-gray-500' }
-                              ].map(({ type, Icon, color }) => (
-                                <button key={type} onClick={async () => {
-                                  try {
-                                    await api(`/api/messages/conversations/${conversation._id}/messages/${msg._id}/react`, {
-      method: "POST",
-      body: { type }
-    });
-                                  } catch (e) {}
-                                }} className={`p-1 ${color}`} title={type}>
-                                  <Icon size={16} />
-                                </button>
-                              ))}
+                        {!msg.isDeleted && editingMessageId !== msg._id && (
+                          <div className="mt-1 flex items-center gap-1">
+                            <div className="relative group">
+                              <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-100" title="Thả cảm xúc" tabIndex={0}>
+                                <Smile size={16} />
+                              </button>
+                              <div className="absolute hidden group-hover:flex group-focus-within:flex top-0 -translate-y-full right-0 bg-white border border-gray-200 rounded-full shadow px-2 py-1 gap-1 z-50">
+                                {[
+                                  { type: 'like', Icon: ThumbsUp, color: 'text-blue-500' },
+                                  { type: 'love', Icon: Heart, color: 'text-red-500' },
+                                  { type: 'laugh', Icon: Laugh, color: 'text-yellow-500' },
+                                  { type: 'angry', Icon: Angry, color: 'text-orange-500' },
+                                  { type: 'sad', Icon: Frown, color: 'text-gray-500' }
+                                ].map(({ type, Icon, color }) => (
+                                  <button key={type} onClick={async () => {
+                                    try {
+                                      await api(`/api/messages/conversations/${conversation._id}/messages/${msg._id}/react`, {
+        method: "POST",
+        body: { type }
+      });
+                                    } catch (e) {}
+                                  }} className={`p-1 ${color}`} title={type}>
+                                    <Icon size={16} />
+                                  </button>
+                                ))}
+                              </div>
                             </div>
+                            {!!msg.reactions?.length && (
+                              <div className="flex flex-wrap gap-1">
+                                {['like','love','laugh','angry','sad'].map((type) => {
+                                  const map = { like: ThumbsUp, love: Heart, laugh: Laugh, angry: Angry, sad: Frown };
+                                  const color = { like: 'text-blue-500', love: 'text-red-500', laugh: 'text-yellow-500', angry: 'text-orange-500', sad: 'text-gray-500' };
+                                  const count = (msg.reactions || []).filter(r => r.type === type).length;
+                                  if (!count) return null;
+                                  const Ico = map[type];
+                                  return <span key={type} className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full ${color[type]}`}><Ico size={12} /> {count}</span>;
+                                })}
+                              </div>
+                            )}
                           </div>
-                          {!!msg.reactions?.length && (
-                            <div className="flex flex-wrap gap-1">
-                              {['like','love','laugh','angry','sad'].map((type) => {
-                                const map = { like: ThumbsUp, love: Heart, laugh: Laugh, angry: Angry, sad: Frown };
-                                const color = { like: 'text-blue-500', love: 'text-red-500', laugh: 'text-yellow-500', angry: 'text-orange-500', sad: 'text-gray-500' };
-                                const count = (msg.reactions || []).filter(r => r.type === type).length;
-                                if (!count) return null;
-                                const Ico = map[type];
-                                return <span key={type} className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full ${color[type]}`}><Ico size={12} /> {count}</span>;
-                              })}
-                            </div>
-                          )}
-                        </div>
+                        )}
                         <div className="text-xs text-gray-400 mt-1">
                           {msg.createdAt
                             ? new Date(msg.createdAt).toLocaleTimeString() +

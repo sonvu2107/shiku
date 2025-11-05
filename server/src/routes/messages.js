@@ -294,6 +294,125 @@ router.post("/conversations/:conversationId/messages/:messageId/react", authRequ
   }
 });
 
+// Edit message
+router.put("/conversations/:conversationId/messages/:messageId", authRequired, async (req, res) => {
+  try {
+    const { conversationId, messageId } = req.params;
+    const { content } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ message: 'Nội dung tin nhắn không được để trống' });
+    }
+
+    // Check access to conversation
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      ...checkConversationAccess(req.user._id)
+    }).select('_id');
+    
+    if (!conversation) {
+      return res.status(403).json({ message: 'Không có quyền truy cập cuộc trò chuyện này' });
+    }
+
+    // Find message and check ownership
+    const message = await Message.findOne({ 
+      _id: messageId, 
+      conversation: conversationId, 
+      sender: req.user._id,
+      isDeleted: false 
+    });
+    
+    if (!message) {
+      return res.status(404).json({ message: 'Không tìm thấy tin nhắn hoặc bạn không có quyền sửa' });
+    }
+
+    // Update message
+    message.content = content.trim();
+    message.isEdited = true;
+    message.editedAt = new Date();
+    await message.save();
+
+    // Emit realtime update
+    const io = req.app.get('io');
+    io.to(`conversation-${conversationId}`).emit('message-edited', {
+      messageId,
+      conversationId,
+      content: message.content,
+      isEdited: true,
+      editedAt: message.editedAt
+    });
+
+    res.json({ 
+      message: 'Đã sửa tin nhắn',
+      data: {
+        _id: message._id,
+        content: message.content,
+        isEdited: message.isEdited,
+        editedAt: message.editedAt
+      }
+    });
+  } catch (error) {
+    console.error('Error editing message:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
+// Delete message (recall)
+router.delete("/conversations/:conversationId/messages/:messageId", authRequired, async (req, res) => {
+  try {
+    const { conversationId, messageId } = req.params;
+
+    // Check access to conversation
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      ...checkConversationAccess(req.user._id)
+    }).select('_id');
+    
+    if (!conversation) {
+      return res.status(403).json({ message: 'Không có quyền truy cập cuộc trò chuyện này' });
+    }
+
+    // Find message and check ownership
+    const message = await Message.findOne({ 
+      _id: messageId, 
+      conversation: conversationId, 
+      sender: req.user._id,
+      isDeleted: false 
+    });
+    
+    if (!message) {
+      return res.status(404).json({ message: 'Không tìm thấy tin nhắn hoặc bạn không có quyền thu hồi' });
+    }
+
+    // Soft delete - mark as deleted
+    message.isDeleted = true;
+    message.content = 'Tin nhắn đã được thu hồi';
+    message.deletedAt = new Date();
+    await message.save();
+
+    // Emit realtime update
+    const io = req.app.get('io');
+    io.to(`conversation-${conversationId}`).emit('message-deleted', {
+      messageId,
+      conversationId,
+      isDeleted: true,
+      content: message.content
+    });
+
+    res.json({ 
+      message: 'Đã thu hồi tin nhắn',
+      data: {
+        _id: message._id,
+        isDeleted: message.isDeleted,
+        content: message.content
+      }
+    });
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
 // Upload image message
 router.post("/conversations/:conversationId/messages/image", authRequired, async (req, res) => {
   try {

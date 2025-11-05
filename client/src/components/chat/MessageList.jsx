@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { User, Users, ChevronUp, ThumbsUp, Heart, Laugh, Angry, Frown, Smile } from "lucide-react";
+import { User, Users, ChevronUp, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Edit2, Trash2, X } from "lucide-react";
 import { api } from "../../api";
 import ImageViewer from "../ImageViewer";
 
@@ -21,12 +21,18 @@ export default function MessageList({
   loading, 
   hasMore, 
   onLoadMore, 
-  conversation
+  conversation,
+  onEditMessage,
+  onDeleteMessage
 }) {
   // ==================== STATE MANAGEMENT ====================
   
   const [showScrollButton, setShowScrollButton] = useState(false); // Hiển thị nút scroll to bottom
   const [imageViewer, setImageViewer] = useState({ isOpen: false, imageUrl: null, alt: "" }); // Image viewer state
+  const [editingMessageId, setEditingMessageId] = useState(null); // ID của tin nhắn đang edit
+  const [editContent, setEditContent] = useState(""); // Nội dung edit
+  const [showOptionsMenu, setShowOptionsMenu] = useState(null); // ID của tin nhắn đang hiển thị menu
+  const [hoveredMessageId, setHoveredMessageId] = useState(null); // ID của tin nhắn đang hover
   
   // ==================== REFS ====================
   
@@ -75,6 +81,19 @@ export default function MessageList({
     container.scrollTop = container.scrollHeight;
   }, [messages[messages.length - 1]?._id]);
 
+  // Close options menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showOptionsMenu && !e.target.closest('.message-options-menu')) {
+        setShowOptionsMenu(null);
+        setHoveredMessageId(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showOptionsMenu]);
+
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
@@ -113,6 +132,71 @@ export default function MessageList({
         messages[idx].reactions = reactions;
       }
     } catch (_) {}
+  };
+
+  const handleEditMessage = (message) => {
+    setEditingMessageId(message._id);
+    setEditContent(message.content);
+    setShowOptionsMenu(null);
+  };
+
+  const handleSaveEdit = async (messageId) => {
+    if (!editContent.trim()) return;
+    
+    try {
+      const convId = conversation._id;
+      await api(`/api/messages/conversations/${convId}/messages/${messageId}`, {
+        method: 'PUT',
+        body: { content: editContent }
+      });
+      
+      // Update message locally
+      const idx = messages.findIndex(m => m._id === messageId);
+      if (idx !== -1) {
+        messages[idx].content = editContent;
+        messages[idx].isEdited = true;
+      }
+      
+      setEditingMessageId(null);
+      setEditContent("");
+      
+      if (onEditMessage) {
+        onEditMessage(messageId, editContent);
+      }
+    } catch (error) {
+      alert('Không thể sửa tin nhắn');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditContent("");
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!confirm('Bạn có chắc muốn thu hồi tin nhắn này?')) return;
+    
+    try {
+      const convId = conversation._id;
+      await api(`/api/messages/conversations/${convId}/messages/${messageId}`, {
+        method: 'DELETE'
+      });
+      
+      // Update message locally
+      const idx = messages.findIndex(m => m._id === messageId);
+      if (idx !== -1) {
+        messages[idx].isDeleted = true;
+        messages[idx].content = 'Tin nhắn đã được thu hồi';
+      }
+      
+      setShowOptionsMenu(null);
+      
+      if (onDeleteMessage) {
+        onDeleteMessage(messageId);
+      }
+    } catch (error) {
+      alert('Không thể thu hồi tin nhắn');
+    }
   };
 
   const formatMessageTime = (dateString) => {
@@ -200,11 +284,61 @@ export default function MessageList({
         {!isOwn && showAvatar && !showSenderInfo && <div className="w-10"></div>}
 
         {/* Message content container */}
-        <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${isOwn ? 'ml-12' : 'mr-12'} min-w-0`}>
+        <div 
+          className={`max-w-xs lg:max-w-md xl:max-lg relative ${isOwn ? 'ml-12' : 'mr-12'} min-w-0`}
+          onMouseEnter={() => setHoveredMessageId(message._id)}
+          onMouseLeave={() => {
+            // Chỉ ẩn nếu menu không đang mở
+            if (showOptionsMenu !== message._id) {
+              setHoveredMessageId(null);
+            }
+          }}
+        >
           {/* Sender name for group chats */}
           {showSenderInfo && !isOwn && conversation.conversationType === 'group' && (
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 ml-2">
               {getMessageSenderName(message)}
+            </div>
+          )}
+          
+          {/* Message options menu - chỉ hiện khi hover và là tin nhắn của mình */}
+          {isOwn && !message.isDeleted && message.messageType !== 'system' && (hoveredMessageId === message._id || showOptionsMenu === message._id) && (
+            <div className="absolute top-1 -left-8 z-10 message-options-menu">
+              <div className="relative">
+                <button
+                  onClick={() => setShowOptionsMenu(showOptionsMenu === message._id ? null : message._id)}
+                  onMouseEnter={() => setHoveredMessageId(message._id)}
+                  className="p-1.5 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 shadow-sm"
+                  title="Tùy chọn"
+                >
+                  <MoreHorizontal size={16} className="text-gray-600 dark:text-gray-300" />
+                </button>
+                
+                {/* Dropdown menu */}
+                {showOptionsMenu === message._id && (
+                  <div 
+                    className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px] z-50 message-options-menu"
+                    onMouseEnter={() => setHoveredMessageId(message._id)}
+                  >
+                    {message.messageType !== 'image' && (
+                      <button
+                        onClick={() => handleEditMessage(message)}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-200"
+                      >
+                        <Edit2 size={14} />
+                        Sửa tin nhắn
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteMessage(message._id)}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
+                    >
+                      <Trash2 size={14} />
+                      Thu hồi
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           
@@ -221,7 +355,60 @@ export default function MessageList({
             }}
           >
             {/* Message content */}
-            {message.messageType === 'image' ? (
+            {editingMessageId === message._id ? (
+              // Edit mode - giống input chat
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 min-w-[250px]">
+                <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
+                  <span>Chỉnh sửa tin nhắn</span>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="flex items-end gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
+                  <input
+                    type="text"
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-gray-900 dark:text-gray-100 focus:outline-none"
+                    placeholder="Nhập tin nhắn..."
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSaveEdit(message._id);
+                      } else if (e.key === 'Escape') {
+                        handleCancelEdit();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={handleCancelEdit}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                    title="Hủy"
+                  >
+                    <Smile size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleSaveEdit(message._id)}
+                    disabled={!editContent.trim()}
+                    className="text-blue-500 hover:text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed p-1"
+                    title="Gửi"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ) : message.isDeleted ? (
+              // Deleted message - tăng contrast
+              <p className="text-sm leading-relaxed italic text-gray-600 dark:text-gray-300">
+                {message.content}
+              </p>
+            ) : message.messageType === 'image' ? (
               <div>
                 <img
                   src={message.imageUrl}
@@ -249,37 +436,48 @@ export default function MessageList({
             )}
           </div>
           
+          {/* Edited indicator - bên ngoài bubble */}
+          {message.isEdited && !message.isDeleted && editingMessageId !== message._id && (
+            <p className={`text-xs text-gray-400 dark:text-gray-500 mt-1 italic px-2 ${
+              isOwn ? 'text-right' : 'text-left'
+            }`}>
+              Đã chỉnh sửa
+            </p>
+          )}
+          
           {/* Reactions */}
-          <div className="mt-1 px-2 flex items-center gap-1">
-            {/* Reaction picker */}
-            <div className="relative group">
-              <button className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600" title="Thả cảm xúc" tabIndex={0}>
-                <Smile size={16} />
-              </button>
-              <div className={`absolute hidden group-hover:flex group-focus-within:flex top-0 -translate-y-full ${isOwn ? 'right-0' : 'left-0'} bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full shadow px-2 py-1 gap-1 z-50` }>
-                {Object.entries(reactionConfig).map(([type, cfg]) => (
-                  <button key={type} onClick={() => toggleReaction(message._id, type)} className={`p-1 ${cfg.color}`} title={type}>
-                    <cfg.Icon size={16} />
-                  </button>
-                ))}
+          {!message.isDeleted && !editingMessageId && (
+            <div className="mt-1 px-2 flex items-center gap-1">
+              {/* Reaction picker */}
+              <div className="relative group">
+                <button className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600" title="Thả cảm xúc" tabIndex={0}>
+                  <Smile size={16} />
+                </button>
+                <div className={`absolute hidden group-hover:flex group-focus-within:flex top-0 -translate-y-full ${isOwn ? 'right-0' : 'left-0'} bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full shadow px-2 py-1 gap-1 z-50` }>
+                  {Object.entries(reactionConfig).map(([type, cfg]) => (
+                    <button key={type} onClick={() => toggleReaction(message._id, type)} className={`p-1 ${cfg.color}`} title={type}>
+                      <cfg.Icon size={16} />
+                    </button>
+                  ))}
+                </div>
               </div>
+              {/* Reaction counters */}
+              {!!message.reactions?.length && (
+                <div className="flex flex-wrap gap-1">
+                  {Object.entries(reactionConfig).map(([type, cfg]) => {
+                    const count = (message.reactions || []).filter(r => r.type === type).length;
+                    if (!count) return null;
+                    const ActiveIcon = cfg.Icon;
+                    return (
+                      <span key={type} className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
+                        <ActiveIcon size={12} /> {count}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            {/* Reaction counters */}
-            {!!message.reactions?.length && (
-              <div className="flex flex-wrap gap-1">
-                {Object.entries(reactionConfig).map(([type, cfg]) => {
-                  const count = (message.reactions || []).filter(r => r.type === type).length;
-                  if (!count) return null;
-                  const ActiveIcon = cfg.Icon;
-                  return (
-                    <span key={type} className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
-                      <ActiveIcon size={12} /> {count}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Message time - shown on hover or for latest message */}
           <div className={`text-xs text-gray-400 dark:text-gray-500 mt-1 px-2 ${
