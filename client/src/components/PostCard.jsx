@@ -328,10 +328,26 @@ export default function PostCard({
           <button
             type="button"
             onClick={() => setShowEmotePopup(true)}
-            className="flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300"
+            className={`flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300 ${emotesState.some(e => (e.user === user?._id || e.user?._id === user?._id)) ? 'font-semibold text-blue-600' : ''}`}
           >
-            <ThumbsUp size={20} />
-            <span>Thích</span>
+            {/* Show user's emote if exists */}
+            {(() => {
+              const myEmote = emotesState.find(e => (e.user === user?._id || e.user?._id === user?._id));
+              if (myEmote) {
+                return <>
+                  <img src={`/assets/${emoteMap[myEmote.type]}`} alt={myEmote.type} className="w-6 h-6 inline-block align-middle" style={{marginRight: 4}} />
+                  <span>
+                    {myEmote.type === '👍' && 'Đã thích'}
+                    {myEmote.type === '❤️' && 'Yêu thích'}
+                    {myEmote.type === '😂' && 'Haha'}
+                    {myEmote.type === '😮' && 'Wow'}
+                    {myEmote.type === '😢' && 'Buồn'}
+                    {myEmote.type === '😡' && 'Phẫn nộ'}
+                  </span>
+                </>;
+              }
+              return <><ThumbsUp size={20} /><span>Thích</span></>;
+            })()}
           </button>
           {showEmotePopup && (
             <div

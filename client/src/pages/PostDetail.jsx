@@ -282,7 +282,7 @@
 
           {/* CONTENT */}
           {p.content && (
-            <div className="prose dark:prose-invert max-w-none px-4 py-4 border-b border-gray-200 dark:border-[#3A3B3C]">
+            <div className="prose dark:prose-invert max-w-none px-4 py-4">
               <ReactMarkdown>{p.content}</ReactMarkdown>
             </div>
           )}
@@ -291,6 +291,23 @@
           {p.hasPoll && (
             <div className="px-4 py-4 border-b border-gray-200 dark:border-[#3A3B3C]">
               <Poll post={p} user={user} />
+            </div>
+          )}
+
+          {/* Tags */}
+          {p.tags && p.tags.length > 0 && (
+            <div className="px-4 py-3">
+              <div className="flex flex-wrap gap-2">
+                {p.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/explore?q=${encodeURIComponent(tag)}`)}
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 

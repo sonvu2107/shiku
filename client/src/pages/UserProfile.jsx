@@ -335,11 +335,15 @@ export default function UserProfile() {
                 <div className="flex-1 min-w-0 w-full">
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div className="flex-1 min-w-0">
+
                       <div className="flex items-center gap-2 mb-1">
                         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 break-words">
                           <UserName user={user} />
                         </h1>
                       </div>
+                      {user.bio && (
+                        <p className="text-gray-600 mb-3 text-sm md:text-base break-words" style={{ whiteSpace: 'pre-line' }}>{user.bio}</p>
+                      )}
 
                       {/* Contact Info */}
                       <div className="mt-3">
@@ -486,7 +490,13 @@ export default function UserProfile() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-16">Chưa có bài đăng</div>
+                  <div className="text-center py-16">
+                    <div className="w-20 h-20 mx-auto mb-6 bg-blue-50 rounded-full flex items-center justify-center">
+                      <FileText className="w-10 h-10 text-blue-500" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Chưa có bài đăng</h3>
+                    <p className="text-gray-500 text-base">Người dùng này chưa có bài đăng nào</p>
+                  </div>
                 )}
               </div>
             )}

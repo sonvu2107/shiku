@@ -520,10 +520,8 @@ export default function Profile() {
                       <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                         <UserName user={form} />
                       </h1>
-                      {form.bio ? (
-                        <p className="text-gray-600 dark:text-gray-300 mb-3 text-sm md:text-base">{form.bio}</p>
-                      ) : (
-                        <p className="text-gray-400 mb-3 italic text-sm md:text-base">Chưa có tiểu sử</p>
+                      {form.bio && (
+                        <p className="text-gray-600 dark:text-gray-300 mb-3 text-sm md:text-base" style={{ whiteSpace: 'pre-line' }}>{form.bio}</p>
                       )}
 
                       {/* Contact Info */}

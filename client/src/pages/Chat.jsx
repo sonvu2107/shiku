@@ -54,6 +54,9 @@ export default function Chat() {
   // User & Loading
   const [currentUser, setCurrentUser] = useState(null); // User hiện tại
   const [isLoading, setIsLoading] = useState(true); // Loading conversations
+  
+  // Mobile view state
+  const [showChatWindow, setShowChatWindow] = useState(false); // Hiển thị chat window trên mobile
 
   useEffect(() => {
     loadCurrentUser();
@@ -636,6 +639,11 @@ export default function Chat() {
 
   const handleSelectConversation = (conversation) => {
     setSelectedConversation(conversation);
+    setShowChatWindow(true); // Hiển thị chat window trên mobile
+  };
+  
+  const handleBackToList = () => {
+    setShowChatWindow(false); // Quay lại danh sách trên mobile
   };
 
   // ==================== CALL HANDLERS ====================
@@ -795,8 +803,8 @@ export default function Chat() {
   return (
   <div className="h-full bg-white dark:bg-gray-900 pt-16 sm:pt-20">
       <div className="h-full flex flex-col sm:flex-row chat-mobile">
-        {/* Sidebar */}
-        <div className="w-full sm:w-72 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800 chat-sidebar-mobile">
+        {/* Sidebar - Ẩn khi showChatWindow = true trên mobile */}
+        <div className={`w-full sm:w-72 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800 chat-sidebar-mobile ${showChatWindow ? 'hidden sm:flex' : 'flex'}`}>
           {/* Header */}
           <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between">
@@ -811,7 +819,7 @@ export default function Chat() {
             </div>
           </div>
           {/* Conversation List */}
-          <div className="flex-1 overflow-y-auto max-h-48 sm:max-h-none">
+          <div className="flex-1 overflow-y-auto">
             <ConversationList
               conversations={conversations.map(conv => mergeOnlineStatusToConversation(conv))}
               selectedConversation={selectedConversation ? mergeOnlineStatusToConversation(selectedConversation) : null}
@@ -821,8 +829,8 @@ export default function Chat() {
             />
           </div>
         </div>
-        {/* Chat Window */}
-        <div className="flex-1 bg-gray-50 dark:bg-gray-900 flex flex-col chat-window-mobile min-h-0">
+        {/* Chat Window - Hiển thị khi showChatWindow = true trên mobile hoặc luôn luôn trên desktop */}
+        <div className={`flex-1 bg-gray-50 dark:bg-gray-900 flex flex-col chat-window-mobile min-h-0 ${!showChatWindow ? 'hidden sm:flex' : 'flex'}`}>
           {selectedConversation ? (
             <ChatWindow
               conversation={mergeOnlineStatusToConversation(selectedConversation)}
@@ -838,6 +846,7 @@ export default function Chat() {
               onAddMembers={handleAddMembers}
               onVideoCall={handleVideoCall}
               onVoiceCall={handleVoiceCall}
+              onBack={handleBackToList}
             />
           ) : (
             <div className="h-full flex items-center justify-center p-4">

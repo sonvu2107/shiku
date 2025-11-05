@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreVertical, Users, Settings, UserPlus, Edit3, LogOut, Trash2, Phone, Video, User } from "lucide-react";
+import { MoreVertical, Users, Settings, UserPlus, Edit3, LogOut, Trash2, Phone, Video, User, ArrowLeft } from "lucide-react";
 import GroupSettingsModal from "./GroupSettingsModal";
 import NicknameModal from "./NicknameModal";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../../utils/avatarUtils";
@@ -16,6 +16,7 @@ import { getUserAvatarUrl, AVATAR_SIZES } from "../../utils/avatarUtils";
  * @param {Function} props.onAddMembers - Callback thêm thành viên
  * @param {Function} props.onVideoCall - Callback gọi video
  * @param {Function} props.onVoiceCall - Callback gọi thoại
+ * @param {Function} props.onBack - Callback quay lại danh sách (mobile)
  * @returns {JSX.Element} Component chat header
  */
 export default function ChatHeader({ 
@@ -26,7 +27,8 @@ export default function ChatHeader({
   onDeleteConversation,
   onAddMembers,
   onVideoCall,
-  onVoiceCall 
+  onVoiceCall,
+  onBack
 }) {
   // ==================== STATE MANAGEMENT ====================
   
@@ -146,8 +148,19 @@ const getAvatarUrl = () => {
 
   return (
     <div className="relative w-full bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between h-14 px-4">
-      {/* Left side - Avatar and info */}
+      {/* Left side - Back button (mobile) + Avatar and info */}
       <div className="flex items-center space-x-3">
+        {/* Back button - chỉ hiển thị trên mobile */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="sm:hidden p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+            title="Quay lại"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        )}
+        
         <div className="relative">
           {isGroup ? (
             conversation.groupAvatar ? (

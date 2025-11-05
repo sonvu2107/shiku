@@ -21,6 +21,7 @@ import ComponentErrorBoundary from "../ComponentErrorBoundary";
  * @param {Function} onAddMembers - Callback thêm thành viên
  * @param {Function} onVideoCall - Callback gọi video
  * @param {Function} onVoiceCall - Callback gọi thoại
+ * @param {Function} onBack - Callback quay lại danh sách (mobile)
  */
 export default function ChatWindow({ 
   conversation, 
@@ -35,7 +36,8 @@ export default function ChatWindow({
   onDeleteConversation,
   onAddMembers,
   onVideoCall,
-  onVoiceCall
+  onVoiceCall,
+  onBack
 }) {
   // ==================== REFS ====================
   const messagesEndRef = useRef(null); // Ref để scroll xuống cuối tin nhắn
@@ -70,6 +72,7 @@ export default function ChatWindow({
               onAddMembers={onAddMembers}
               onVideoCall={onVideoCall}
               onVoiceCall={onVoiceCall}
+              onBack={onBack}
             />
           </div>
 

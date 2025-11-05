@@ -178,3 +178,14 @@ label { @apply text-sm font-medium text-gray-700; }
     gap: 4px;
   }
 }
+
+/* Word wrap utilities for long text in messages */
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+  word-wrap: anywhere;
+}
+
+.break-words {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}

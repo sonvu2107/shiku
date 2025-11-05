@@ -7,6 +7,7 @@ import PostCreator from "../components/PostCreator";
 import Stories from "../components/Stories";
 import Shortcuts from "../components/Shortcuts";
 import OnlineFriends from "../components/OnlineFriends";
+import TrendingTags from "../components/TrendingTags";
 import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2 } from "lucide-react";
 
 /**
@@ -376,7 +377,7 @@ export default function Home({ user }) {
                         post={post}
                         user={user}
                         onUpdate={loadInitial}
-                        hidePublicIcon={true}
+                        hidePublicIcon={false}
                         hideActionsMenu={true}
                         isSaved={savedMap[post._id]}
                         onSavedChange={updateSavedState}
@@ -463,6 +464,7 @@ export default function Home({ user }) {
           <div className="hidden xl:block w-[320px] shrink-0 sticky top-20 self-start">
             <div className="space-y-6">
               <OnlineFriends user={user} minimal={true} />
+              <TrendingTags limit={3} />
             </div>
           </div>
         </div>

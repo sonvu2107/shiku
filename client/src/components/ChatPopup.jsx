@@ -196,11 +196,25 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
     <div 
       className={`bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col chat-popup-mobile transition-all duration-300 ${
         minimized 
-          ? `w-12 h-12 rounded-full hover:scale-110 hover:shadow-3xl cursor-pointer minimized` 
-          : 'w-72 sm:w-80 rounded-xl'
+          ? `w-12 h-12 rounded-full hover:scale-110 hover:shadow-3xl cursor-pointer minimized relative group` 
+          : 'w-72 sm:w-80 rounded-xl h-[450px]'
       }`} 
       onClick={minimized ? () => setMinimized(false) : undefined}
     >
+      {/* Close button cho minimized state - chỉ hiển thị khi hover */}
+      {minimized && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // Ngăn không mở popup
+            onClose();
+          }}
+          className="absolute -top-1 -right-1 w-5 h-5 bg-gray-700 dark:bg-gray-600 hover:bg-gray-900 dark:hover:bg-gray-800 text-white rounded-full flex items-center justify-center z-10 transition-all shadow-md opacity-0 group-hover:opacity-100"
+          title="Đóng"
+        >
+          <X size={12} />
+        </button>
+      )}
+      
       {/* Header */}
       <div className={`flex items-center gap-1 sm:gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 ${
         minimized ? 'border-b-0 rounded-full h-full w-full justify-center p-0' : 'px-2 sm:px-4 py-2 rounded-t-xl'
@@ -260,7 +274,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
             
             {/* Hiển thị số tin nhắn chưa đọc nếu có */}
             {conversation.unreadCount > 0 && (
-              <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              <div className="absolute -top-1 left-8 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
               </div>
             )}
@@ -271,15 +285,15 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       {/* Nội dung chat */}
       {!minimized && (
         <>
-          <div className="flex-1 overflow-y-auto px-4 py-2 bg-white dark:bg-gray-900" style={{ maxHeight: 320 }}>
+          <div className="flex-1 overflow-y-auto px-4 py-2 bg-white dark:bg-gray-900">
             {messages.length === 0 ? (
-              <div className="text-gray-400 text-sm">Chưa có tin nhắn</div>
+              <div className="text-gray-400 dark:text-gray-500 text-sm">Chưa có tin nhắn</div>
             ) : (
               messages.map((msg, idx) => {
                 if (msg.messageType === "system") {
                   return (
                     <div key={msg._id || idx} className="mb-2 flex justify-center">
-                      <div className="px-4 py-2 rounded-2xl bg-gray-100 text-gray-700 text-sm text-center max-w-[80%]">
+                      <div className="px-4 py-2 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm text-center max-w-[80%] break-words">
                         {msg.content}
                       </div>
                     </div>
@@ -305,12 +319,12 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                 if (senderId === me) {
                   return (
                     <div key={msg._id || idx} className="mb-2 flex justify-end">
-                      <div className="flex flex-col items-end">
+                      <div className="flex flex-col items-end max-w-[75%]">
                         {msg.messageType === "image" ? (
                           <img 
                             src={msg.imageUrl} 
                             alt="Ảnh" 
-                            className="max-w-[60%] rounded-xl cursor-pointer hover:opacity-90 transition-opacity" 
+                            className="max-w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity" 
                             onClick={() => setImageViewer({ isOpen: true, imageUrl: msg.imageUrl, alt: "Ảnh" })}
                           />
                         ) : msg.messageType === "emote" ? (
@@ -318,7 +332,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             <span className="text-2xl">{msg.emote}</span>
                           </div>
                         ) : (
-                          <div className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white">
+                          <div className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
                             {msg.content}
                           </div>
                         )}
@@ -375,13 +389,13 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                 }
                 return (
                   <div key={msg._id || idx} className="mb-2 flex justify-start">
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-2 max-w-[75%]">
                       <img
                         src={senderAvatar}
                         alt={senderName}
-                        className="w-7 h-7 rounded-full object-cover mt-1"
+                        className="w-7 h-7 rounded-full object-cover mt-1 flex-shrink-0"
                       />
-                      <div className="flex flex-col items-start">
+                      <div className="flex flex-col items-start min-w-0 flex-1">
                         <div className="text-xs text-gray-700 dark:text-gray-300 font-semibold mb-1">
                           {senderName}
                         </div>
@@ -389,7 +403,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           <img 
                             src={msg.imageUrl} 
                             alt="Ảnh" 
-                            className="max-w-[60%] rounded-xl cursor-pointer hover:opacity-90 transition-opacity" 
+                            className="max-w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity" 
                             onClick={() => setImageViewer({ isOpen: true, imageUrl: msg.imageUrl, alt: "Ảnh" })}
                           />
                         ) : msg.messageType === "emote" ? (
@@ -397,7 +411,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             <span className="text-2xl">{msg.emote}</span>
                           </div>
                         ) : (
-                          <div className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                          <div className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
                             {msg.content}
                           </div>
                         )}

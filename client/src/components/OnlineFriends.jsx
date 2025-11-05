@@ -190,7 +190,7 @@ export default function OnlineFriends({ user, minimal = false }) {
           <p className="text-gray-500 text-sm">Không có ai online</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
           {onlineFriends.map((friend) => (
             <Link
               key={friend._id}

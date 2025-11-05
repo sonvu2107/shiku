@@ -27,6 +27,7 @@ import {
   X,            // Icon đóng
   Users,        // Icon bạn bè
   MessageCircle, // Icon tin nhắn/support
+  Bell,         // Icon thông báo
   UserCheck,    // Icon groups
   Home,         // Icon trang chủ
   Compass,      // Icon khám phá
@@ -361,12 +362,14 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
   return (
     // Main navbar container - compact & modern
     <div className="fixed top-0 left-0 w-full z-50 bg-white dark:bg-[#242526] border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors">
+
       <div className="flex items-center justify-between px-6 h-[64px]">
         {/* LEFT ZONE: Logo + Search */}
-        <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center gap-2 flex-1 translate-y-[1px]">
+
           <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
             <span onClick={() => { navigate('/'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-              <Logo size="small" />
+              <Logo size="small" className="translate-y-[1px]" />
             </span>
           </Link>
 
@@ -537,11 +540,11 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         </div>
 
         {/* RIGHT ZONE: Actions - Compact spacing */}
-        <div className="flex items-center justify-end flex-1 gap-2">
+  <div className="flex items-center justify-end flex-1 gap-2">
           {/* Dark mode toggle - Compact design */}
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="p-2 rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
+            className="hidden md:inline-flex p-2 rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
             aria-label={darkMode ? "Tắt dark mode" : "Bật dark mode"}
             title={darkMode ? "Tắt dark mode" : "Bật dark mode"}
           >
@@ -562,17 +565,56 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
             )}
           </div>
           
-          {/* Mobile search button - Compact */}
-          <button
-            onClick={() => setShowMobileSearch(!showMobileSearch)}
-            className="md:hidden p-2 rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
-            title="Tìm kiếm"
-          >
-            <Search size={18} />
-          </button>
+          {/* MOBILE ACTIONS (only mobile) — order: search, darkmode, chat, bell, menu, right-aligned */}
 
-          {/* Mobile Menu */}
-          <MobileMenu user={user} setUser={setUser} />
+          <div className="flex md:hidden items-center gap-[7px] ml-1 [&>button]:w-9 [&>button]:h-9 [&>button]:flex [&>button]:items-center [&>button]:justify-center">
+            {/* Darkmode (mobile) */}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
+              aria-label={darkMode ? "Tắt dark mode" : "Bật dark mode"}
+              title={darkMode ? "Tắt dark mode" : "Bật dark mode"}
+            >
+              {darkMode ? <Moon size={21} /> : <Sun size={21} />}
+            </button>
+
+            {/* Search (mobile) */}
+            <button
+              onClick={() => setShowMobileSearch(!showMobileSearch)}
+              className="p-2 rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
+              title="Tìm kiếm"
+              aria-label="Tìm kiếm"
+            >
+              <Search size={18} />
+            </button>
+
+            {/* Chat */}
+            {user && (
+              <button
+                onClick={() => navigate('/chat')}
+                className="rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
+                title="Chat"
+                aria-label="Chat"
+              >
+                <MessageCircle size={19} />
+              </button>
+            )}
+
+            {/* Thông báo */}
+            {user && (
+              <button
+                onClick={() => navigate('/notifications')}
+                className="rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
+                title="Thông báo"
+                aria-label="Thông báo"
+              >
+                <Bell size={20} />
+              </button>
+            )}
+
+            {/* Menu */}
+            <MobileMenu user={user} setUser={setUser} />
+          </div>
 
           {/* Desktop Navigation - Hidden on mobile */}
           <div className="hidden md:flex items-center gap-2">

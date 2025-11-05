@@ -200,7 +200,7 @@ export default function MessageList({
         {!isOwn && showAvatar && !showSenderInfo && <div className="w-10"></div>}
 
         {/* Message content container */}
-        <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${isOwn ? 'ml-12' : 'mr-12'}`}>
+        <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${isOwn ? 'ml-12' : 'mr-12'} min-w-0`}>
           {/* Sender name for group chats */}
           {showSenderInfo && !isOwn && conversation.conversationType === 'group' && (
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 ml-2">
@@ -214,7 +214,7 @@ export default function MessageList({
               isOwn
                 ? 'bg-blue-500 dark:bg-blue-600 text-white ml-auto'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 mr-auto'
-            }`}
+            } break-words overflow-wrap-anywhere`}
             style={{
               borderTopRightRadius: isOwn && isLastInGroup ? '8px' : '24px',
               borderTopLeftRadius: !isOwn && isLastInGroup ? '8px' : '24px',
@@ -239,11 +239,11 @@ export default function MessageList({
                 <span className="text-2xl">{message.emote}</span>
               </div>
             ) : message.messageType === 'system' ? (
-              <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400 italic text-center">
+              <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400 italic text-center break-words overflow-wrap-anywhere">
                 {message.content}
               </p>
             ) : (
-              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
                 {message.content}
               </p>
             )}

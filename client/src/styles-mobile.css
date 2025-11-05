@@ -21,17 +21,17 @@
     @apply block;
   }
   
-  /* Chat layout mobile */
+  /* Chat layout mobile - Full screen switching */
   .chat-mobile {
     @apply flex-col;
   }
   
   .chat-sidebar-mobile {
-    @apply w-full h-48 border-b border-r-0;
+    @apply w-full h-full border-b-0 border-r-0;
   }
   
   .chat-window-mobile {
-    @apply flex-1;
+    @apply flex-1 h-full;
   }
   
   /* Post cards mobile */

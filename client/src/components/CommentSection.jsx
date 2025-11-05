@@ -4,6 +4,7 @@ import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp,
 import MediaViewer from "./MediaViewer";
 import BanNotification from "./BanNotification";
 import UserName from "./UserName";
+import { Link } from "react-router-dom";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
 import CommentImageUpload from "./CommentImageUpload";
 
@@ -422,20 +423,24 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       <div key={comment._id} className={`${level > 0 ? "ml-2 sm:ml-4 md:ml-6 lg:ml-8" : ""}`}>
         {/* Main Comment */}
         <div className="flex gap-1.5 sm:gap-3 py-1 sm:py-2">
-          <img
-            src={
-              comment.author?.avatarUrl ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                comment.author?.name || "User"
-              )}&background=3b82f6&color=ffffff&size=40`
-            }
-            alt={comment.author?.name}
-            className="w-7 h-7 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
-          />
+          <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="focus:outline-none">
+            <img
+              src={
+                comment.author?.avatarUrl ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  comment.author?.name || "User"
+                )}&background=3b82f6&color=ffffff&size=40`
+              }
+              alt={comment.author?.name}
+              className="w-7 h-7 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0 hover:opacity-90 transition-opacity"
+            />
+          </Link>
           <div className="flex-1 min-w-0">
             <div className="bg-gray-100 rounded-xl sm:rounded-2xl px-2.5 sm:px-4 py-1.5 sm:py-2">
               <div className="font-semibold text-xs sm:text-sm text-gray-900 flex items-center gap-1">
+                <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="hover:underline focus:outline-none">
                   <UserName user={comment.author} maxLength={20} />
+                </Link>
               </div>
               {editingComment === comment._id ? (
                 <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">

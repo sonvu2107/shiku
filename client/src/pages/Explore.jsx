@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { Search, Users, Calendar, Image, MessageCircle, Heart, MessageSquare } from "lucide-react";
+import { Search, Users, Calendar, Image, MessageCircle, Heart, MessageSquare, Hash } from "lucide-react";
 import UserName from "../components/UserName";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 
@@ -10,16 +10,55 @@ import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
  * Hiển thị các bài viết, người dùng, nhóm được đề xuất
  */
 export default function Explore({ user }) {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("posts");
   const [posts, setPosts] = useState([]);
   const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [trendingTags, setTrendingTags] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    loadExploreData();
-  }, []);
+    // Lấy query từ URL nếu có
+    const queryFromUrl = searchParams.get('q');
+    if (queryFromUrl) {
+      setSearchQuery(queryFromUrl);
+      performSearch(queryFromUrl);
+    } else {
+      loadExploreData();
+    }
+  }, [searchParams]);
+
+  const performSearch = async (query) => {
+    if (!query.trim()) {
+      loadExploreData();
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Search posts
+      const postsRes = await api(`/api/posts?q=${encodeURIComponent(query)}&limit=50`);
+      setPosts(postsRes.items || []);
+
+      // Search users
+      const usersRes = await api(`/api/users/search?q=${encodeURIComponent(query)}`);
+      setUsers(usersRes.users || []);
+
+      // Search groups
+      const groupsRes = await api(`/api/groups?search=${encodeURIComponent(query)}&limit=20`);
+      setGroups(groupsRes.data?.groups || []);
+    } catch (error) {
+      // Fallback to empty arrays if search fails
+      setPosts([]);
+      setUsers([]);
+      setGroups([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadExploreData = async () => {
     setLoading(true);
@@ -35,50 +74,57 @@ export default function Explore({ user }) {
       // Load groups - sử dụng API groups thực
       const groupsRes = await api("/api/groups?limit=20");
       setGroups(groupsRes.data?.groups || []);
+
+      // Load trending tags
+      loadTrendingTags(postsRes.items || []);
     } catch (error) {
       // Fallback to empty arrays if API fails
       setPosts([]);
       setUsers([]);
       setGroups([]);
+      setTrendingTags([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const loadTrendingTags = (postsData) => {
+    try {
+      // Đếm tần suất xuất hiện của mỗi tag
+      const tagCount = {};
+      postsData?.forEach(post => {
+        if (post.tags && Array.isArray(post.tags)) {
+          post.tags.forEach(tag => {
+            if (tag && tag.trim()) {
+              const normalizedTag = tag.trim().toLowerCase();
+              tagCount[normalizedTag] = (tagCount[normalizedTag] || 0) + 1;
+            }
+          });
+        }
+      });
+
+      // Chuyển thành array và sắp xếp theo tần suất
+      const sortedTags = Object.entries(tagCount)
+        .map(([tag, count]) => ({ tag, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20); // Top 20 tags
+
+      setTrendingTags(sortedTags);
+    } catch (error) {
+      setTrendingTags([]);
+    }
+  };
+
   const handleSearch = async (e) => {
     e.preventDefault();
-    if (!searchQuery.trim()) {
-      loadExploreData();
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Search posts
-      const postsRes = await api(`/api/posts?q=${encodeURIComponent(searchQuery)}&limit=50`);
-      setPosts(postsRes.items || []);
-
-      // Search users
-      const usersRes = await api(`/api/users/search?q=${encodeURIComponent(searchQuery)}`);
-      setUsers(usersRes.users || []);
-
-      // Search groups
-      const groupsRes = await api(`/api/groups?search=${encodeURIComponent(searchQuery)}&limit=20`);
-      setGroups(groupsRes.data?.groups || []);
-    } catch (error) {
-      // Fallback to empty arrays if search fails
-      setPosts([]);
-      setUsers([]);
-      setGroups([]);
-    } finally {
-      setLoading(false);
-    }
+    performSearch(searchQuery);
   };
 
   const tabs = [
     { id: "posts", label: "Bài viết", icon: MessageSquare },
     { id: "users", label: "Người dùng", icon: Users },
     { id: "groups", label: "Nhóm", icon: Users },
+    { id: "tags", label: "Tag xu hướng", icon: Hash },
   ];
 
   return (
@@ -248,6 +294,50 @@ export default function Explore({ user }) {
                       </div>
                     </div>
                   ))
+                )}
+              </div>
+            )}
+
+            {/* Tags Tab */}
+            {activeTab === "tags" && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                {trendingTags.length === 0 ? (
+                  <div className="text-center py-8 sm:py-12 text-gray-500 dark:text-gray-400">
+                    <Hash size={40} className="mx-auto mb-3 sm:mb-4 text-gray-300 dark:text-gray-600" />
+                    <p className="text-sm sm:text-base">Chưa có tag nào</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {trendingTags.map(({ tag, count }, index) => (
+                      <div
+                        key={tag}
+                        onClick={() => navigate(`/explore?q=${encodeURIComponent(tag)}`)}
+                        className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 hover:shadow-md cursor-pointer transition-all group bg-white dark:bg-gray-800"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{index + 1}</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <Hash size={16} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                              <span className="font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+                                {tag}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                              {count} bài viết
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
