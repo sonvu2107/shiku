@@ -8,7 +8,7 @@ import Stories from "../components/Stories";
 import Shortcuts from "../components/Shortcuts";
 import OnlineFriends from "../components/OnlineFriends";
 import TrendingTags from "../components/TrendingTags";
-import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2 } from "lucide-react";
+import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2, Sparkles } from "lucide-react";
 
 /**
  * Home - Trang chủ mạng xã hội với bố cục 3 cột
@@ -35,7 +35,7 @@ export default function Home({ user }) {
   // Tìm kiếm và sắp xếp
   const [searchParams] = useSearchParams();
   const q = searchParams.get('q') || '';
-  const [sortBy, setSortBy] = useState('newest');
+  const [sortBy, setSortBy] = useState('recommended'); // Default to recommended
   const [showSortDropdown, setShowSortDropdown] = useState(false);
 
   // Infinite scroll
@@ -104,27 +104,40 @@ export default function Home({ user }) {
     loadingRef.current = true;
 
     try {
-      const limit = 100; // Giới hạn bài viết 
-      const publishedData = await api(`/api/posts?page=1&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
-      let allItems = publishedData.items;
+      // Use smart feed for "recommended" sort
+      if (sortBy === 'recommended') {
+        // Smart feed loads all at once (no pagination support yet)
+        // Request more posts upfront
+        const smartFeedData = await api(`/api/posts/feed/smart?limit=50`);
+        setItems(smartFeedData.items || []);
+        // No pagination for smart feed - all posts loaded
+        setHasMore(false); 
+        setPage(1);
+        setTotalPages(1);
+      } else {
+        // Use regular feed for other sort options
+        const limit = 100;
+        const publishedData = await api(`/api/posts?page=1&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
+        let allItems = publishedData.items;
 
-      // Tải bài viết riêng tư nếu người dùng đã đăng nhập
-      if (user) {
-        try {
-          const privateData = await api(`/api/posts?page=1&limit=${limit}&status=private&author=${user._id}`);
-          allItems = [...privateData.items, ...allItems];
-        } catch (privateError) {
-          // Silent handling for private posts loading error
+        // Tải bài viết riêng tư nếu người dùng đã đăng nhập
+        if (user) {
+          try {
+            const privateData = await api(`/api/posts?page=1&limit=${limit}&status=private&author=${user._id}`);
+            allItems = [...privateData.items, ...allItems];
+          } catch (privateError) {
+            // Silent handling for private posts loading error
+          }
         }
+
+        // Áp dụng sắp xếp
+        allItems = sortPosts(allItems, sortBy);
+
+        setItems(allItems);
+        setTotalPages(publishedData.pages);
+        setHasMore(publishedData.pages > 1);
+        setPage(2);
       }
-
-      // Áp dụng sắp xếp
-      allItems = sortPosts(allItems, sortBy);
-
-      setItems(allItems);
-      setTotalPages(publishedData.pages);
-      setHasMore(publishedData.pages > 1);
-      setPage(2);
     } catch (error) {
       setError('Không thể tải bài viết. Vui lòng thử lại.');
       setItems([]);
@@ -137,12 +150,16 @@ export default function Home({ user }) {
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !hasMore || loadingMore) return;
+    
+    // Skip load more for recommended (smart feed loads all at once)
+    if (sortBy === 'recommended') return;
 
     setLoadingMore(true);
     setError(null);
     loadingRef.current = true;
 
     try {
+      // Use regular feed for other sort options
       const limit = 15;
       const publishedData = await api(`/api/posts?page=${page}&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
       const newItems = sortPosts(publishedData.items, sortBy);
@@ -198,6 +215,9 @@ export default function Home({ user }) {
     const sortedPosts = [...posts];
 
     switch (sortType) {
+      case 'recommended':
+        // Smart feed handles sorting on backend
+        return sortedPosts;
       case 'newest':
         return sortedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       case 'oldest':
@@ -213,6 +233,7 @@ export default function Home({ user }) {
 
   const getSortIcon = useCallback((type) => {
     switch (type) {
+      case 'recommended': return <Sparkles size={16} />;
       case 'newest': return <Clock size={16} />;
       case 'oldest': return <Clock size={16} className="rotate-180" />;
       case 'mostViewed': return <Eye size={16} />;
@@ -223,6 +244,7 @@ export default function Home({ user }) {
 
   const getSortLabel = useCallback((type) => {
     const labels = {
+      recommended: 'Đề xuất',
       newest: 'Mới nhất',
       oldest: 'Cũ nhất',
       mostViewed: 'Xem nhiều nhất',
@@ -300,6 +322,7 @@ export default function Home({ user }) {
               {showSortDropdown && (
                 <div className="absolute right-0 top-full mt-2 w-48 sm:w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 py-1 transition-colors duration-200">
                   {[
+                    { key: 'recommended', label: 'Đề xuất', icon: <Sparkles size={14} />, badge: 'AI' },
                     { key: 'newest', label: 'Mới nhất', icon: <Clock size={14} /> },
                     { key: 'oldest', label: 'Cũ nhất', icon: <Clock size={14} className="rotate-180" /> },
                     { key: 'mostViewed', label: 'Xem nhiều nhất', icon: <Eye size={14} /> },
@@ -311,11 +334,18 @@ export default function Home({ user }) {
                         setSortBy(option.key);
                         setShowSortDropdown(false);
                       }}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 sm:gap-3 transition-colors touch-manipulation ${sortBy === option.key ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-2 border-blue-500' : 'text-gray-700 dark:text-gray-300'
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between gap-2 sm:gap-3 transition-colors touch-manipulation ${sortBy === option.key ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-2 border-blue-500' : 'text-gray-700 dark:text-gray-300'
                         }`}
                     >
-                      {option.icon}
-                      <span className="text-xs sm:text-sm font-medium">{option.label}</span>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        {option.icon}
+                        <span className="text-xs sm:text-sm font-medium">{option.label}</span>
+                      </div>
+                      {option.badge && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded font-bold">
+                          {option.badge}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>

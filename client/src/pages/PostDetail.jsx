@@ -87,6 +87,14 @@
     const [showEmotePopup, setShowEmotePopup] = React.useState(false);
     const emotePopupTimeout = React.useRef();
     const [saved, setSaved] = useState(false);
+    const [emotesState, setEmotesState] = useState([]); // Local emote state
+
+    // Sync emotesState with data.post.emotes
+    useEffect(() => {
+      if (data?.post?.emotes) {
+        setEmotesState(data.post.emotes);
+      }
+    }, [data?.post?.emotes]);
 
     useEffect(() => {
       if (!data || data.post?.slug !== slug) {
@@ -151,10 +159,14 @@
 
     async function emote(emote) {
       try {
-        await api(`/api/posts/${data.post._id}/emote`, {
+        const res = await api(`/api/posts/${data.post._id}/emote`, {
           method: "POST",
           body: { emote }
         });
+        // Update local state immediately
+        if (res && res.emotes) {
+          setEmotesState(res.emotes);
+        }
         await load();
       } catch (e) {
         alert(e.message);
@@ -202,9 +214,9 @@
 
     function countEmotes() {
       const counts = {};
-      if (!data?.post?.emotes) return counts;
+      if (!emotesState || emotesState.length === 0) return counts;
       for (const emo of emotes) counts[emo] = 0;
-      for (const e of data.post.emotes) {
+      for (const e of emotesState) {
         if (counts[e.type] !== undefined) counts[e.type]++;
       }
       return counts;
@@ -313,9 +325,9 @@
 
           {/* Hiển thị preview media trong bài */}
           {allMedia.length === 1 && (
-            <div className="w-full mt-1">
+            <div className="px-4 pb-2 mt-1">
               <div
-                className="relative rounded-xl overflow-hidden cursor-pointer hover:brightness-95 transition"
+                className="relative rounded-lg overflow-hidden cursor-pointer hover:brightness-95 transition"
                 onClick={() => {
                   setCurrentIndex(0);
                   setShowMediaModal(true);
@@ -338,7 +350,8 @@
             </div>
           )}
           {allMedia.length > 1 && (
-            <div className="grid grid-cols-2 gap-2 mt-4">
+            <div className="px-4 pb-2">
+              <div className="grid grid-cols-2 gap-2 mt-4">
               <div
                 className="col-span-2 row-span-2 h-64 rounded-xl overflow-hidden cursor-pointer"
                 onClick={() => {
@@ -390,6 +403,7 @@
                   )}
                 </div>
               ))}
+            </div>
             </div>
           )}
 
@@ -444,9 +458,9 @@
                       {(() => {
                         let emoteUsers;
                         if (activeTab === "all") {
-                          emoteUsers = p.emotes;
+                          emoteUsers = emotesState;
                         } else {
-                          emoteUsers = p.emotes.filter(e => e.type === activeTab);
+                          emoteUsers = emotesState.filter(e => e.type === activeTab);
                         }
                         if (emoteUsers.length === 0) return <div className="text-gray-400">Chưa có ai thả cảm xúc này.</div>;
                         return emoteUsers.map((e, idx) => {
@@ -491,9 +505,39 @@
                 );
               }}
             >
-              <button type="button" onClick={() => setShowEmotePopup(true)} className="flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300">
-                <ThumbsUp size={20} />
-                <span>Thích</span>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowEmotePopup(true);
+                }} 
+                className={`flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300 ${emotesState.some(e => {
+                  const emoteUserId = e.user?._id || e.user;
+                  const currentUserId = user?.id || user?._id;
+                  return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
+                }) ? 'font-semibold text-blue-600' : ''}`}
+              >
+                {/* Show user's emote if exists */}
+                {(() => {
+                  const myEmote = emotesState.find(e => {
+                    const emoteUserId = e.user?._id || e.user;
+                    const currentUserId = user?.id || user?._id;
+                    return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
+                  });
+                  if (myEmote) {
+                    return <>
+                      <img src={`/assets/${emoteMap[myEmote.type]}`} alt={myEmote.type} className="w-6 h-6 inline-block align-middle" style={{marginRight: 4}} />
+                      <span>
+                        {myEmote.type === '👍' && 'Đã thích'}
+                        {myEmote.type === '❤️' && 'Yêu thích'}
+                        {myEmote.type === '😂' && 'Haha'}
+                        {myEmote.type === '😮' && 'Wow'}
+                        {myEmote.type === '😢' && 'Buồn'}
+                        {myEmote.type === '😡' && 'Phẫn nộ'}
+                      </span>
+                    </>;
+                  }
+                  return <><ThumbsUp size={20} /><span>Thích</span></>;
+                })()}
               </button>
               {showEmotePopup && (
                 <div

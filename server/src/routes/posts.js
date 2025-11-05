@@ -8,6 +8,7 @@ import { authRequired, authOptional } from "../middleware/auth.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
 import { paginate } from "../utils/paginate.js";
 import { withCache, postCache, invalidateCache } from "../utils/cache.js";
+import { generateSmartFeed } from "../utils/smartFeed.js";
 import mongoose from "mongoose";
 
 const PLAIN_SANITIZE_OPTIONS = { allowedTags: [], allowedAttributes: {} };
@@ -293,6 +294,76 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
       }
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Smart Feed Endpoint - AI-powered personalized feed
+ * Uses engagement scoring, friend posts, trending, personalized, and fresh content
+ * Algorithm: 40% friends + 30% trending + 20% personalized + 10% fresh
+ */
+router.get("/feed/smart", authOptional, async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const userId = req.user?._id?.toString() || null;
+    const pg = Number(page) || 1;
+    const lim = Math.min(Number(limit) || 20, 50); // Max 50 per request
+
+    // Generate smart feed
+    const smartFeedPosts = await generateSmartFeed(userId, lim);
+
+    // Get comment counts for all posts
+    const postIds = smartFeedPosts.map(p => p._id);
+    let commentCounts = [];
+    
+    if (postIds.length > 0) {
+      commentCounts = await Comment.aggregate([
+        { $match: { post: { $in: postIds } } },
+        { $group: { _id: "$post", count: { $sum: 1 } } }
+      ]);
+    }
+
+    const commentCountMap = new Map(
+      commentCounts.map(c => [c._id.toString(), c.count])
+    );
+
+    // Add comment counts to posts
+    const itemsWithCommentCount = smartFeedPosts.map(post => ({
+      ...post,
+      commentCount: commentCountMap.get(post._id.toString()) || 0
+    }));
+
+    // Filter blocked users if logged in
+    let filteredItems = itemsWithCommentCount;
+    if (req.user?._id) {
+      const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
+      filteredItems = itemsWithCommentCount.filter(post => {
+        const author = post.author;
+        if (!author) return false;
+        const iBlockedThem = (currentUser.blockedUsers || [])
+          .map(id => id.toString())
+          .includes(author._id.toString());
+        const theyBlockedMe = (author.blockedUsers || [])
+          .map(id => id.toString())
+          .includes(req.user._id.toString());
+        return !iBlockedThem && !theyBlockedMe;
+      });
+    }
+
+    res.json({
+      items: filteredItems,
+      total: filteredItems.length,
+      page: pg,
+      algorithm: "smart-feed-v1",
+      mix: {
+        description: "40% friends, 30% trending, 20% personalized, 10% fresh",
+        isPersonalized: !!userId
+      }
+    });
+  } catch (error) {
+    console.error("Smart feed error:", error);
+    // Fallback to regular feed if smart feed fails
     next(error);
   }
 });

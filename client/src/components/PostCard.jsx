@@ -55,6 +55,45 @@ export default function PostCard({
   // ==================== HELPER FUNCTIONS ====================
   
   /**
+   * Format thời gian chi tiết cho tooltip
+   * @param {string} dateString - ISO date string
+   * @returns {string} Formatted date string
+   */
+  function formatFullDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+  
+  /**
+   * Format thời gian dạng relative (x giờ trước, x ngày trước, etc.)
+   * @param {string} dateString - ISO date string
+   * @returns {string} Relative time string
+   */
+  function formatTimeAgo(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    const diffMonth = Math.floor(diffDay / 30);
+    
+    if (diffMonth >= 1) return `${diffMonth} tháng trước`;
+    if (diffDay >= 1) return `${diffDay} ngày trước`;
+    if (diffHour >= 1) return `${diffHour} giờ trước`;
+    if (diffMin >= 1) return `${diffMin} phút trước`;
+    return 'Vừa xong';
+  }
+  
+  /**
    * Lấy media để hiển thị (ưu tiên coverUrl → file đầu tiên)
    * @returns {Object|null} Media object với url và type
    */
@@ -222,12 +261,12 @@ export default function PostCard({
               <UserName user={post.author} maxLength={20} />
               <VerifiedBadge user={post.author} />
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1">
-              <span>{new Date(post.createdAt).toLocaleDateString('vi-VN')}</span>
+            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
+              <span title={formatFullDate(post.createdAt)}>{formatTimeAgo(post.createdAt)}</span>
               {post.status === 'private' ? (
-                <Lock size={12} className="text-gray-400" />
+                <Lock size={14} className="text-gray-400" />
               ) : (
-                !hidePublicIcon && <Globe size={12} className="text-green-500" />
+                !hidePublicIcon && <Globe size={14} className="text-green-500" />
               )}
             </div>
           </div>
@@ -255,10 +294,11 @@ export default function PostCard({
       </div>
 
       {displayMedia && (
-        <div className="w-full relative rounded-xl overflow-hidden">
-          {displayMedia.type === "video" ? (
-            <video
-              src={displayMedia.url}
+        <div className="px-4 pb-2">
+          <div className="w-full relative rounded-lg overflow-hidden">
+            {displayMedia.type === "video" ? (
+              <video
+                src={displayMedia.url}
               controls
               className="w-full max-h-[600px] object-cover"
               onError={(e) => {
@@ -276,6 +316,7 @@ export default function PostCard({
               className="w-full max-h-[600px] object-cover"
             />
           )}
+          </div>
         </div>
       )}
 
@@ -328,11 +369,19 @@ export default function PostCard({
           <button
             type="button"
             onClick={() => setShowEmotePopup(true)}
-            className={`flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300 ${emotesState.some(e => (e.user === user?._id || e.user?._id === user?._id)) ? 'font-semibold text-blue-600' : ''}`}
+            className={`flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300 ${emotesState.some(e => {
+              const emoteUserId = e.user?._id || e.user;
+              const currentUserId = user?.id || user?._id;
+              return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
+            }) ? 'font-semibold text-blue-600' : ''}`}
           >
             {/* Show user's emote if exists */}
             {(() => {
-              const myEmote = emotesState.find(e => (e.user === user?._id || e.user?._id === user?._id));
+              const myEmote = emotesState.find(e => {
+                const emoteUserId = e.user?._id || e.user;
+                const currentUserId = user?.id || user?._id;
+                return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
+              });
               if (myEmote) {
                 return <>
                   <img src={`/assets/${emoteMap[myEmote.type]}`} alt={myEmote.type} className="w-6 h-6 inline-block align-middle" style={{marginRight: 4}} />
