@@ -136,44 +136,55 @@ export default function Explore({ user }) {
           
           {/* Search */}
           <form onSubmit={handleSearch} className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 z-10" size={18} />
             <input
               type="text"
               placeholder="Tìm kiếm bài viết, người dùng, nhóm..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent outline-none text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
+              className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                        focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent 
+                        outline-none text-sm sm:text-base bg-white dark:bg-gray-800 
+                        text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 
+                        shadow-sm dark:shadow-gray-900/50 transition-all duration-200
+                        hover:border-gray-400 dark:hover:border-gray-500"
             />
           </form>
         </div>
 
         {/* Tabs */}
         <div className="mb-4 sm:mb-6">
-          <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg overflow-x-auto scrollbar-hide transition-colors duration-200">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-md transition-all duration-200 whitespace-nowrap flex-shrink-0 touch-target ${
-                    activeTab === tab.id
-                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700"
-                  }`}
-                >
-                  <Icon size={16} />
-                  <span className="text-sm sm:text-base">{tab.label}</span>
-                </button>
-              );
-            })}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="grid grid-cols-4 bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 transition-colors duration-200">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 px-1.5 sm:px-2 md:px-4 py-2 sm:py-2.5 md:py-3 transition-all duration-200 whitespace-nowrap relative touch-target font-medium text-[10px] sm:text-xs md:text-sm lg:text-base ${
+                      activeTab === tab.id
+                        ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                    }`}
+                  >
+                    <Icon size={14} className="sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" />
+                    <span className="truncate">{tab.label}</span>
+                    {activeTab === tab.id && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
         {/* Content */}
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-600 dark:border-blue-400 border-t-transparent"></div>
+            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Đang tải...</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -181,43 +192,45 @@ export default function Explore({ user }) {
             {activeTab === "posts" && (
               <div className="space-y-3 sm:space-y-4">
                 {posts.length === 0 ? (
-                  <div className="text-center py-8 sm:py-12 text-gray-500">
-                    <MessageSquare size={40} className="mx-auto mb-3 sm:mb-4 text-gray-300" />
-                    <p className="text-sm sm:text-base">Không có bài viết nào để hiển thị</p>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 text-center py-12 sm:py-16">
+                    <MessageSquare size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600 opacity-60" />
+                    <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">Không có bài viết nào để hiển thị</p>
                   </div>
                 ) : (
                   posts.map((post) => (
-                    <div key={post._id} className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+                    <div key={post._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 hover:shadow-md dark:hover:shadow-gray-900/50 transition-all duration-200">
                       <div className="flex items-start gap-3 sm:gap-4">
-                        <img
-                          src={getUserAvatarUrl(post.author, AVATAR_SIZES.MEDIUM)}
-                          alt={post.author?.name}
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0"
-                        />
+                        <Link to={`/user/${post.author?._id}`} className="flex-shrink-0">
+                          <img
+                            src={getUserAvatarUrl(post.author, AVATAR_SIZES.MEDIUM)}
+                            alt={post.author?.name}
+                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700 hover:opacity-80 transition-opacity cursor-pointer"
+                          />
+                        </Link>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
-                            <span className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                            <Link to={`/user/${post.author?._id}`} className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base truncate hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                               <UserName user={post.author} maxLength={20} />
-                            </span>
-                            <span className="text-gray-500 text-xs sm:text-sm hidden sm:inline">•</span>
-                            <span className="text-gray-500 text-xs sm:text-sm">
-                              {new Date(post.createdAt).toLocaleDateString()}
+                            </Link>
+                            <span className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm hidden sm:inline">•</span>
+                            <span className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
+                              {new Date(post.createdAt).toLocaleDateString('vi-VN')}
                             </span>
                           </div>
-                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                            <Link to={`/post/${post.slug || post._id}`} className="hover:text-blue-600">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2">
+                            <Link to={`/post/${post.slug || post._id}`} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                               {post.title}
                             </Link>
                           </h3>
-                          <p className="text-gray-600 mb-3 sm:mb-4 line-clamp-3 text-sm sm:text-base">{post.content}</p>
-                          <div className="flex items-center gap-3 sm:gap-4 text-gray-500">
-                            <button className="flex items-center gap-1 hover:text-red-500 touch-target">
-                              <Heart size={14} />
-                              <span className="text-xs sm:text-sm">{post.emotes?.length || 0}</span>
+                          <p className="text-gray-600 dark:text-gray-300 mb-3 sm:mb-4 line-clamp-3 text-sm sm:text-base">{post.content}</p>
+                          <div className="flex items-center gap-4 sm:gap-6 text-gray-500 dark:text-gray-400">
+                            <button className="flex items-center gap-1.5 hover:text-red-500 dark:hover:text-red-400 touch-target transition-colors">
+                              <Heart size={16} className="sm:w-4 sm:h-4" />
+                              <span className="text-xs sm:text-sm font-medium">{post.emotes?.length || 0}</span>
                             </button>
-                            <button className="flex items-center gap-1 hover:text-blue-500 touch-target">
-                              <MessageCircle size={14} />
-                              <span className="text-xs sm:text-sm">{post.commentCount || 0}</span>
+                            <button className="flex items-center gap-1.5 hover:text-blue-500 dark:hover:text-blue-400 touch-target transition-colors">
+                              <MessageCircle size={16} className="sm:w-4 sm:h-4" />
+                              <span className="text-xs sm:text-sm font-medium">{post.commentCount || 0}</span>
                             </button>
                           </div>
                         </div>
@@ -232,28 +245,32 @@ export default function Explore({ user }) {
             {activeTab === "users" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {users.length === 0 ? (
-                  <div className="col-span-full text-center py-8 sm:py-12 text-gray-500">
-                    <Users size={40} className="mx-auto mb-3 sm:mb-4 text-gray-300" />
-                    <p className="text-sm sm:text-base">Không có người dùng nào để hiển thị</p>
+                  <div className="col-span-full bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 text-center py-12 sm:py-16">
+                    <Users size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600 opacity-60" />
+                    <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">Không có người dùng nào để hiển thị</p>
                   </div>
                 ) : (
                   users.map((user) => (
-                    <div key={user._id} className="bg-white rounded-lg shadow-sm border p-3 sm:p-4">
+                    <div key={user._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 hover:shadow-md dark:hover:shadow-gray-900/50 transition-all duration-200">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={getUserAvatarUrl(user, AVATAR_SIZES.MEDIUM)}
-                          alt={user.name}
-                          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex-shrink-0"
-                        />
+                        <Link to={`/user/${user._id}`} className="flex-shrink-0">
+                          <img
+                            src={getUserAvatarUrl(user, AVATAR_SIZES.MEDIUM)}
+                            alt={user.name}
+                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700 hover:opacity-80 transition-opacity cursor-pointer"
+                          />
+                        </Link>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
-                            <UserName user={user} maxLength={20} />
-                          </h3>
-                          <p className="text-gray-500 text-xs sm:text-sm truncate">{user.email}</p>
+                          <Link to={`/user/${user._id}`}>
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base truncate hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                              <UserName user={user} maxLength={20} />
+                            </h3>
+                          </Link>
+                          <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm truncate">{user.email}</p>
                         </div>
                         <Link
                           to={`/user/${user._id}`}
-                          className="btn-outline text-xs sm:text-sm px-2 sm:px-3 py-1 whitespace-nowrap touch-target"
+                          className="btn-outline text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap touch-target border-gray-800 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                           Xem
                         </Link>
@@ -268,26 +285,30 @@ export default function Explore({ user }) {
             {activeTab === "groups" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {groups.length === 0 ? (
-                  <div className="col-span-full text-center py-8 sm:py-12 text-gray-500">
-                    <Users size={40} className="mx-auto mb-3 sm:mb-4 text-gray-300" />
-                    <p className="text-sm sm:text-base">Không có nhóm nào để hiển thị</p>
+                  <div className="col-span-full bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 text-center py-12 sm:py-16">
+                    <Users size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600 opacity-60" />
+                    <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">Không có nhóm nào để hiển thị</p>
                   </div>
                 ) : (
                   groups.map((group) => (
-                    <div key={group._id} className="bg-white rounded-lg shadow-sm border p-3 sm:p-4">
+                    <div key={group._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 hover:shadow-md dark:hover:shadow-gray-900/50 transition-all duration-200">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={group.avatar || group.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name)}&length=2&background=cccccc&color=222222`}
-                          alt={group.name}
-                          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex-shrink-0"
-                        />
+                        <Link to={`/groups/${group._id}`} className="flex-shrink-0">
+                          <img
+                            src={group.avatar || group.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name)}&length=2&background=cccccc&color=222222`}
+                            alt={group.name}
+                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700 hover:opacity-80 transition-opacity cursor-pointer"
+                          />
+                        </Link>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{group.name}</h3>
-                          <p className="text-gray-500 text-xs sm:text-sm">{group.members?.length || 0} thành viên</p>
+                          <Link to={`/groups/${group._id}`}>
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base truncate hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{group.name}</h3>
+                          </Link>
+                          <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">{group.members?.length || 0} thành viên</p>
                         </div>
                         <Link
                           to={`/groups/${group._id}`}
-                          className="btn-outline text-xs sm:text-sm px-2 sm:px-3 py-1 whitespace-nowrap touch-target"
+                          className="btn-outline text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap touch-target border-gray-800 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                           Xem
                         </Link>

@@ -69,6 +69,23 @@ router.get("/conversations", authRequired, async (req, res) => {
 
     // Format conversations with unread count
     const formattedConversations = conversations.map((conv) => {
+      // Với chatbot conversation, không có otherParticipants
+      if (conv.conversationType === 'chatbot') {
+        return {
+          _id: conv._id,
+          conversationType: conv.conversationType,
+          title: conv.title || 'Trợ lý AI',
+          groupName: conv.groupName,
+          groupAvatar: conv.groupAvatar,
+          participants: conv.participants,
+          otherParticipants: [], // Chatbot không có other participants
+          lastMessage: conv.lastMessage,
+          lastActivity: conv.lastActivity,
+          unreadCount: 0, // Chatbot messages không có unread count
+          createdAt: conv.createdAt
+        };
+      }
+
       const otherParticipants = conv.participants.filter(
         p => p.user._id.toString() !== req.user._id.toString() && !p.leftAt
       );
@@ -112,6 +129,12 @@ router.get("/conversations/:conversationId/messages", authRequired, async (req, 
 
     if (!conversation) {
       return res.status(403).json({ message: "Không có quyền truy cập cuộc trò chuyện này" });
+    }
+
+    // Với chatbot conversation, không cần check block
+    // Với các conversation khác, check block như bình thường
+    if (conversation.conversationType === 'chatbot') {
+      // Skip block check for chatbot
     }
 
     // Build query

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { Globe, Lock, Image, Users, BarChart3, Plus, X } from "lucide-react";
@@ -10,8 +10,9 @@ import BanNotification from "./BanNotification";
  * Hỗ trợ upload media, privacy settings, tags, groups
  * @param {Object} user - Thông tin user hiện tại
  * @param {string} groupId - ID của nhóm (nếu đang tạo bài trong nhóm)
+ * @param {React.Ref} triggerRef - Ref để trigger modal từ bên ngoài
  */
-export default function PostCreator({ user, groupId = null }) {
+const PostCreator = forwardRef(function PostCreator({ user, groupId = null }, ref) {
   // ==================== STATE MANAGEMENT ====================
   
   // Modal và form states
@@ -248,35 +249,31 @@ export default function PostCreator({ user, groupId = null }) {
     resetForm();
   };
 
+  // Expose method to open modal via ref
+  useImperativeHandle(ref, () => ({
+    openModal: () => setShowModal(true)
+  }));
+
   return (
     <>
-      {/* Facebook-style post creator */}
-      <div className="card">
-        <div className="flex items-center gap-3">
-          <img
-            src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=cccccc&color=222222&size=40`}
-            alt={userDisplayName}
-            className="w-10 h-10 rounded-full object-cover"
-          />
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 rounded-full px-4 py-3 text-left text-gray-500 transition-colors"
-          >
-            {userDisplayName} ơi, bạn đang nghĩ gì thế?
-          </button>
-        </div>
-      </div>
-
-      {/* Modal */}
+      {/* Hidden trigger button for external access */}
+      <button
+        data-post-creator-trigger
+        onClick={() => setShowModal(true)}
+        className="hidden"
+        aria-hidden="true"
+      />
+      
+      {/* Modal - updated for black & white theme */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto modal-mobile">
-            <div className="p-4 border-b">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-neutral-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-300 dark:border-neutral-600">
+            <div className="p-6 border-b border-gray-300 dark:border-neutral-600">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">Tạo bài viết</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Tạo bài viết</h2>
                 <button
                   onClick={handleClose}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
                 >
                   ×
                 </button>
@@ -289,7 +286,10 @@ export default function PostCreator({ user, groupId = null }) {
                 <img
                   src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=cccccc&color=222222&size=40`}
                   alt={userDisplayName}
+                  width={40}
+                  height={40}
                   className="w-10 h-10 rounded-full object-cover"
+                  loading="lazy"
                 />
                 <div>
                   <div className="font-medium">{userDisplayName}</div>
@@ -451,7 +451,7 @@ export default function PostCreator({ user, groupId = null }) {
                     {files.map((f, idx) => (
                       <div key={idx} className="relative">
                         {f.type === "image" ? (
-                          <img src={f.url} alt="preview" className="w-16 h-16 object-cover rounded-lg" />
+                          <img src={f.url} alt="preview" width={64} height={64} className="w-16 h-16 object-cover rounded-lg" loading="lazy" />
                         ) : (
                           <video src={f.url} controls className="w-16 h-16 object-cover rounded-lg" />
                         )}
@@ -480,26 +480,26 @@ export default function PostCreator({ user, groupId = null }) {
               </div>
 
               {/* Poll Toggle Button */}
-              <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+              <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-neutral-600">
                 <button
                   type="button"
                   onClick={() => setHasPoll(!hasPoll)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                     hasPoll
-                      ? "bg-blue-100 text-blue-600"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-700"
+                      : "bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600 text-gray-700 dark:text-gray-300 border border-transparent"
                   }`}
                 >
-                  <BarChart3 size={18} />
+                  <BarChart3 size={18} className={hasPoll ? "text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"} />
                   <span>{hasPoll ? "Đã tạo bình chọn" : "Tạo bình chọn"}</span>
                 </button>
               </div>
 
               {/* Poll Configuration */}
               {hasPoll && (
-                <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="space-y-3 p-4 bg-gray-50 dark:bg-neutral-700/50 rounded-lg border border-gray-200 dark:border-neutral-600">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-gray-900">Tạo bình chọn</h4>
+                    <h4 className="font-medium text-gray-900 dark:text-white">Tạo bình chọn</h4>
                     <button
                       type="button"
                       onClick={() => {
@@ -508,7 +508,7 @@ export default function PostCreator({ user, groupId = null }) {
                         setPollOptions(["", ""]);
                         setPollExpiresIn("");
                       }}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                       title="Đóng"
                     >
                       <X size={20} />
@@ -522,14 +522,14 @@ export default function PostCreator({ user, groupId = null }) {
                       placeholder="Câu hỏi bình chọn..."
                       value={pollQuestion}
                       onChange={(e) => setPollQuestion(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors"
                       maxLength={500}
                     />
                   </div>
 
                   {/* Poll Options */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Các lựa chọn:
                     </label>
                     {pollOptions.map((option, index) => (
@@ -544,12 +544,12 @@ export default function PostCreator({ user, groupId = null }) {
                               newOptions[index] = e.target.value;
                               setPollOptions(newOptions);
                             }}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            className="w-full border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
                             maxLength={200}
                           />
                           {option.trim() && (
                             <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full"></div>
                             </div>
                           )}
                         </div>
@@ -560,7 +560,7 @@ export default function PostCreator({ user, groupId = null }) {
                               const newOptions = pollOptions.filter((_, i) => i !== index);
                               setPollOptions(newOptions);
                             }}
-                            className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-600 transition-opacity p-1 rounded"
+                            className="opacity-0 group-hover:opacity-100 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-opacity p-1 rounded"
                             title="Xóa lựa chọn này"
                           >
                             <X size={18} />
@@ -574,19 +574,19 @@ export default function PostCreator({ user, groupId = null }) {
                       <button
                         type="button"
                         onClick={() => setPollOptions([...pollOptions, ""])}
-                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-dashed border-blue-300 hover:border-blue-400"
+                        className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-2 rounded-lg transition-colors border border-dashed border-blue-300 dark:border-blue-600 hover:border-blue-400 dark:hover:border-blue-500"
                       >
-                        <Plus size={16} />
+                        <Plus size={18} className="text-blue-600 dark:text-blue-400" />
                         <span>Thêm lựa chọn</span>
                       </button>
                     )}
                   </div>
 
                   {/* Poll Settings */}
-                  <div className="space-y-3 pt-3 border-t border-gray-300">
+                  <div className="space-y-3 pt-3 border-t border-gray-300 dark:border-neutral-600">
                     {/* Expiry Time */}
                     <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Hết hạn sau:
                       </label>
                       <div className="flex items-center gap-2">
@@ -597,15 +597,15 @@ export default function PostCreator({ user, groupId = null }) {
                           onChange={(e) => setPollExpiresIn(e.target.value)}
                           min="1"
                           max="365"
-                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="flex-1 border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors"
                         />
-                        <span className="text-sm text-gray-500 whitespace-nowrap">ngày</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">ngày</span>
                       </div>
                     </div>
 
                     {/* Checkboxes */}
                     <div className="space-y-3">
-                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:text-gray-900 group">
+                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:text-gray-900 dark:hover:text-white group text-gray-700 dark:text-gray-300">
                         <div className="relative">
                           <input
                             type="checkbox"
@@ -615,8 +615,8 @@ export default function PostCreator({ user, groupId = null }) {
                           />
                           <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${
                             pollAllowMultiple 
-                              ? 'bg-blue-600 border-blue-600 text-white' 
-                              : 'border-gray-300 bg-white group-hover:border-blue-400'
+                              ? 'bg-blue-600 dark:bg-blue-500 border-blue-600 dark:border-blue-500 text-white' 
+                              : 'border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 group-hover:border-blue-400 dark:group-hover:border-blue-500'
                           }`}>
                             {pollAllowMultiple && (
                               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -628,7 +628,7 @@ export default function PostCreator({ user, groupId = null }) {
                         <span className="leading-tight flex-1">Cho phép chọn nhiều lựa chọn</span>
                       </label>
 
-                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:text-gray-900 group">
+                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:text-gray-900 dark:hover:text-white group text-gray-700 dark:text-gray-300">
                         <div className="relative">
                           <input
                             type="checkbox"
@@ -638,8 +638,8 @@ export default function PostCreator({ user, groupId = null }) {
                           />
                           <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${
                             pollIsPublic 
-                              ? 'bg-blue-600 border-blue-600 text-white' 
-                              : 'border-gray-300 bg-white group-hover:border-blue-400'
+                              ? 'bg-blue-600 dark:bg-blue-500 border-blue-600 dark:border-blue-500 text-white' 
+                              : 'border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 group-hover:border-blue-400 dark:group-hover:border-blue-500'
                           }`}>
                             {pollIsPublic && (
                               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -692,4 +692,6 @@ export default function PostCreator({ user, groupId = null }) {
       )}
     </>
   );
-}
+});
+
+export default PostCreator;

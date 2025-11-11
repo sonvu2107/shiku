@@ -111,7 +111,7 @@ tempRouter.post("/register-token", async (req, res, next) => {
   const startTime = Date.now();
   try {
     
-    const { name, email, password } = req.body;
+    const { name, email, password, dateOfBirth } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ error: "Vui lòng điền đầy đủ thông tin!" });
     }
@@ -122,13 +122,20 @@ tempRouter.post("/register-token", async (req, res, next) => {
     }
     
     const hash = await bcrypt.hash(password, 10);
-    const user = await User.create({ 
+    const userData = { 
       name, 
       email: email.toLowerCase(), 
       password: hash,
       isOnline: true,
       lastSeen: new Date()
-    });
+    };
+    
+    // Thêm ngày sinh nếu có
+    if (dateOfBirth) {
+      userData.birthday = dateOfBirth;
+    }
+    
+    const user = await User.create(userData);
     
     // ⚠️ DEPRECATED: This endpoint is for backward compatibility only
     // Clear old 'token' cookie if exists (from previous auth system)

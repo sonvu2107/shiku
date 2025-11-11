@@ -38,10 +38,12 @@ export default function UserProfile() {
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
   const { savedMap, updateSavedState } = useSavedPosts(posts);
 
   useEffect(() => {
     loadProfile();
+    loadCurrentUser();
   }, [userId]);
 
   useEffect(() => {
@@ -49,6 +51,18 @@ export default function UserProfile() {
       loadPosts();
     }
   }, [profile, activeTab]);
+
+  /**
+   * Load thông tin user hiện tại (để hiển thị cảm xúc đã thả)
+   */
+  async function loadCurrentUser() {
+    try {
+      const res = await api("/api/auth/me");
+      setCurrentUser(res.user);
+    } catch (error) {
+      // Silent fail - user có thể không đăng nhập
+    }
+  }
 
   async function loadProfile() {
     try {
@@ -436,10 +450,10 @@ export default function UserProfile() {
 
       {/* Tabs */}
       <div className="max-w-4xl mx-auto px-4 md:px-6 -mt-4">
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* Navigation */}
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-1 md:space-x-8 px-2 md:px-6 overflow-x-auto">
+          <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
+            <nav className="grid grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700">
               {[
                 ...(user.showPosts === false ? [] : [{ id: "posts", label: "Bài đăng", icon: FileText, count: posts.length }]),
                 { id: "friends", label: "Bạn bè", icon: Users, count: user.friends?.length || 0 },
@@ -447,17 +461,25 @@ export default function UserProfile() {
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`${activeTab === id
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    } whitespace-nowrap py-4 px-3 md:px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+                  className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 font-medium transition-all duration-200 whitespace-nowrap relative touch-target text-xs sm:text-sm md:text-base ${
+                    activeTab === id
+                      ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                  }`}
                 >
-                  <Icon className="w-5 h-5" />
-                  <span className="text-sm">{label}</span>
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span>{label}</span>
                   {count > 0 && (
-                    <span className="ml-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
-                      {count}
+                    <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold min-w-[18px] sm:min-w-[20px] text-center leading-none ${
+                      activeTab === id
+                        ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50'
+                        : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
+                    }`}>
+                      {count > 99 ? '99+' : count}
                     </span>
+                  )}
+                  {activeTab === id && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
                   )}
                 </button>
               ))}
@@ -482,7 +504,9 @@ export default function UserProfile() {
                       <PostCard
                         key={post._id}
                         post={post}
+                        user={currentUser}
                         hidePublicIcon={true}
+                        hideActionsMenu={true}
                         isSaved={savedMap[post._id]}
                         onSavedChange={updateSavedState}
                         skipSavedStatusFetch={true}

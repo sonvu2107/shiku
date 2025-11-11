@@ -14,11 +14,20 @@ export const ChatProvider = ({ children }) => {
   const [openPopups, setOpenPopups] = useState([]);
 
   const addChatPopup = (conversation) => {
+    if (!conversation) return;
+    const conversationId = conversation._id || conversation.id || conversation.conversationKey || `conversation-${Date.now()}`;
+    const normalizedConversation = {
+      ...conversation,
+      _id: conversationId,
+      conversationType: conversation.conversationType || (conversation.otherParticipants?.length > 1 ? 'group' : 'private')
+    };
     // Kiểm tra xem conversation đã mở chưa
-    const isAlreadyOpen = openPopups.some(conv => conv._id === conversation._id);
-    
-    if (!isAlreadyOpen) {
-      setOpenPopups(prev => [...prev, conversation]);
+    const isAlreadyOpen = openPopups.some(conv => conv._id === normalizedConversation._id);
+
+    if (isAlreadyOpen) {
+      setOpenPopups(prev => prev.map(conv => conv._id === normalizedConversation._id ? { ...conv, ...normalizedConversation } : conv));
+    } else {
+      setOpenPopups(prev => [...prev, normalizedConversation]);
     }
   };
 

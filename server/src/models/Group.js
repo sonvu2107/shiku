@@ -294,15 +294,22 @@ groupSchema.methods.hasPermission = function(userId, action) {
     case 'change_settings':
     case 'promote_to_admin':
     case 'demote_admin':
+    case 'promote_to_moderator':  // Chỉ admin mới có thể thăng/hạ cấp moderator
+    case 'demote_moderator':
       return role === 'admin';
     
     // Owner, admin và moderator có thể
     case 'remove_member':
     case 'ban_member':
+    case 'unban_member':
     case 'approve_join_request':
-    case 'promote_to_moderator':
-    case 'demote_moderator':
+    case 'reject_join_request':
     case 'moderate_posts':
+    case 'edit_post':  // Chỉnh sửa bài viết của người khác
+    case 'delete_post':  // Xóa bài viết của người khác
+    case 'pin_post':  // Ghim bài viết
+    case 'unpin_post':  // Bỏ ghim bài viết
+    case 'view_analytics':  // Xem thống kê nhóm
       return role === 'admin' || role === 'moderator';
     
     // Tất cả thành viên có thể (tùy thuộc vào cài đặt nhóm)
@@ -320,6 +327,13 @@ groupSchema.methods.hasPermission = function(userId, action) {
     
     case 'invite':
       return this.settings.allowMemberInvites || role === 'admin' || role === 'moderator';
+    
+    // Quyền cho chính bài viết/bình luận của mình (không cần kiểm tra role)
+    case 'edit_own_post':
+    case 'delete_own_post':
+    case 'edit_own_comment':
+    case 'delete_own_comment':
+      return true;  // Tất cả thành viên đều có thể chỉnh sửa/xóa bài viết/bình luận của chính mình
     
     default:
       return false;

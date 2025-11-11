@@ -10,7 +10,9 @@ import {
   UserX,
   Search,
   Clock,
-  Circle
+  Circle,
+  Send,
+  UserMinus
 } from 'lucide-react';
 
 /**
@@ -29,6 +31,7 @@ export default function Friends() {
   // Data states
   const [friends, setFriends] = useState([]); // Danh sách bạn bè
   const [requests, setRequests] = useState([]); // Lời mời kết bạn
+  const [sentRequests, setSentRequests] = useState([]); // Lời mời đã gửi
   const [suggestions, setSuggestions] = useState([]); // Gợi ý kết bạn
   const [searchResults, setSearchResults] = useState([]); // Kết quả tìm kiếm
   
@@ -52,6 +55,7 @@ export default function Friends() {
 
     loadFriends();
     loadRequests();
+    loadSentRequests();
     if (sourceParam === 'fof') {
       loadFriendsOfFriendsSuggestions();
     } else {
@@ -60,11 +64,17 @@ export default function Friends() {
   }, []);
 
   /**
-   * Refresh danh sách bạn bè khi chuyển sang tab friends
+   * Refresh danh sách khi chuyển tab
    */
   useEffect(() => {
     if (activeTab === 'friends') {
       loadFriends();
+    } else if (activeTab === 'requests') {
+      loadRequests();
+    } else if (activeTab === 'sent') {
+      loadSentRequests();
+    } else if (activeTab === 'suggestions') {
+      loadSuggestions();
     }
   }, [activeTab]);
 
@@ -102,6 +112,18 @@ export default function Friends() {
       setRequests(data.requests);
     } catch (error) {
       // Silent handling for requests loading error
+    }
+  };
+
+  /**
+   * Load danh sách lời mời đã gửi
+   */
+  const loadSentRequests = async () => {
+    try {
+      const data = await api('/api/friends/sent-requests');
+      setSentRequests(data.requests);
+    } catch (error) {
+      // Silent handling for sent requests loading error
     }
   };
 
@@ -152,6 +174,7 @@ export default function Friends() {
       });
       alert('Đã gửi lời mời kết bạn!');
       loadSuggestions(); // Cập nhật lại gợi ý
+      loadSentRequests(); // Cập nhật lại lời mời đã gửi
     } catch (error) {
       alert(error.message || 'Có lỗi xảy ra');
     }
@@ -164,6 +187,8 @@ export default function Friends() {
       });
       loadRequests();
       loadFriends();
+      loadSentRequests(); // Refresh sent requests in case of any changes
+      loadSuggestions(); // Refresh suggestions
       alert('Đã chấp nhận lời mời kết bạn!');
     } catch (error) {
       alert(error.message || 'Có lỗi xảy ra');
@@ -176,9 +201,25 @@ export default function Friends() {
         method: 'POST'
       });
       loadRequests();
+      loadSuggestions(); // Refresh suggestions
       alert('Đã từ chối lời mời kết bạn!');
     } catch (error) {
       alert(error.message || 'Có lỗi xảy ra');
+    }
+  };
+
+  const cancelSentRequest = async (userId) => {
+    if (confirm('Bạn có chắc muốn hủy lời mời kết bạn này?')) {
+      try {
+        await api(`/api/friends/cancel-request/${userId}`, {
+          method: 'DELETE'
+        });
+        loadSentRequests();
+        loadSuggestions(); // Cập nhật lại gợi ý để có thể gửi lại
+        alert('Đã hủy lời mời kết bạn!');
+      } catch (error) {
+        alert(error.message || 'Có lỗi xảy ra');
+      }
     }
   };
 
@@ -274,8 +315,12 @@ export default function Friends() {
               <button
                 onClick={() => sendFriendRequest(user._id)}
                 className="btn-outline flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 touch-target 
-                          border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 
-                          hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                          border-gray-800 dark:border-gray-600 text-gray-900 dark:text-gray-100 
+                          bg-transparent dark:bg-transparent
+                          hover:bg-gray-100 dark:hover:bg-gray-700 
+                          hover:border-gray-900 dark:hover:border-gray-500
+                          active:bg-gray-200 dark:active:bg-gray-600
+                          transition-all duration-200 font-medium"
               >
                 <UserPlus size={14} className="sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Kết bạn</span>
@@ -334,50 +379,138 @@ export default function Friends() {
         )}
 
         {/* Tabs */}
-        <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-          <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 mb-4 scrollbar-hide">
+        <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm dark:shadow-gray-900/20 rounded-lg">
+          <div className="grid grid-cols-4 border-b border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
             <button
-              className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg ${activeTab === 'friends' ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              className={`px-2 sm:px-4 py-2.5 sm:py-3 font-medium sm:font-semibold text-xs sm:text-sm touch-target transition-all duration-300 relative group flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 min-h-[64px] sm:min-h-0 ${
+                activeTab === 'friends' 
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/40 shadow-inner' 
+                  : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50/80 dark:hover:bg-gray-700/40 active:bg-gray-100 dark:active:bg-gray-700/60'
+              }`}
               onClick={() => setActiveTab('friends')}
             >
-              Bạn bè ({friends.length})
+              <div className="relative flex-shrink-0">
+                <Users size={18} className="sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+                {activeTab === 'friends' && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse ring-2 ring-white dark:ring-gray-800"></span>
+                )}
+              </div>
+              <span className="truncate max-w-full font-medium">Bạn bè</span>
+              {friends.length > 0 && (
+                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold min-w-[20px] text-center leading-tight ${
+                  activeTab === 'friends' 
+                    ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50' 
+                    : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
+                }`}>
+                  {friends.length > 99 ? '99+' : friends.length}
+                </span>
+              )}
+              {activeTab === 'friends' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 shadow-lg shadow-blue-600/50 dark:shadow-blue-400/30"></span>
+              )}
             </button>
             <button
-              className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg ${activeTab === 'requests' ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              className={`px-2 sm:px-4 py-2.5 sm:py-3 font-medium sm:font-semibold text-xs sm:text-sm touch-target transition-all duration-300 relative group flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 min-h-[64px] sm:min-h-0 ${
+                activeTab === 'requests' 
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/40 shadow-inner' 
+                  : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50/80 dark:hover:bg-gray-700/40 active:bg-gray-100 dark:active:bg-gray-700/60'
+              }`}
               onClick={() => setActiveTab('requests')}
             >
-              Lời mời ({requests.length})
+              <div className="relative flex-shrink-0">
+                <UserPlus size={18} className="sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+                {activeTab === 'requests' && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse ring-2 ring-white dark:ring-gray-800"></span>
+                )}
+              </div>
+              <span className="truncate max-w-full font-medium">Lời mời</span>
+              {requests.length > 0 && (
+                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold min-w-[20px] text-center leading-tight ${
+                  activeTab === 'requests' 
+                    ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50' 
+                    : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
+                }`}>
+                  {requests.length > 99 ? '99+' : requests.length}
+                </span>
+              )}
+              {activeTab === 'requests' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 shadow-lg shadow-blue-600/50 dark:shadow-blue-400/30"></span>
+              )}
             </button>
             <button
-              className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap text-sm sm:text-base touch-target transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg ${activeTab === 'suggestions' ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              className={`px-2 sm:px-4 py-2.5 sm:py-3 font-medium sm:font-semibold text-xs sm:text-sm touch-target transition-all duration-300 relative group flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 min-h-[64px] sm:min-h-0 ${
+                activeTab === 'sent' 
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/40 shadow-inner' 
+                  : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50/80 dark:hover:bg-gray-700/40 active:bg-gray-100 dark:active:bg-gray-700/60'
+              }`}
+              onClick={() => setActiveTab('sent')}
+            >
+              <div className="relative flex-shrink-0">
+                <Send size={18} className="sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+                {activeTab === 'sent' && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse ring-2 ring-white dark:ring-gray-800"></span>
+                )}
+              </div>
+              <span className="truncate max-w-full font-medium">Đã gửi</span>
+              {sentRequests.length > 0 && (
+                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold min-w-[20px] text-center leading-tight ${
+                  activeTab === 'sent' 
+                    ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50' 
+                    : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
+                }`}>
+                  {sentRequests.length > 99 ? '99+' : sentRequests.length}
+                </span>
+              )}
+              {activeTab === 'sent' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 shadow-lg shadow-blue-600/50 dark:shadow-blue-400/30"></span>
+              )}
+            </button>
+            <button
+              className={`px-2 sm:px-4 py-2.5 sm:py-3 font-medium sm:font-semibold text-xs sm:text-sm touch-target transition-all duration-300 relative group flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 min-h-[64px] sm:min-h-0 ${
+                activeTab === 'suggestions' 
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/40 shadow-inner' 
+                  : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50/80 dark:hover:bg-gray-700/40 active:bg-gray-100 dark:active:bg-gray-700/60'
+              }`}
               onClick={() => setActiveTab('suggestions')}
             >
-              Gợi ý
+              <div className="relative flex-shrink-0">
+                <UserCheck size={18} className="sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+                {activeTab === 'suggestions' && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse ring-2 ring-white dark:ring-gray-800"></span>
+                )}
+              </div>
+              <span className="truncate max-w-full font-medium">Gợi ý</span>
+              {activeTab === 'suggestions' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 shadow-lg shadow-blue-600/50 dark:shadow-blue-400/30"></span>
+              )}
             </button>
           </div>
 
           {/* Tab Content */}
           {activeTab === 'friends' && (
-            <div className="grid gap-4 md:grid-cols-2">
-              {friends.length > 0 ? (
-                friends.map(friend => (
-                  <FriendCard
-                    key={friend._id}
-                    friend={friend}
-                    onRemoveFriend={removeFriend}
-                    showOnlineStatus={true}
-                  />
-                ))
-              ) : (
-                <div className="col-span-2 flex items-center justify-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400 text-center">Chưa có bạn bè nào</p>
-                </div>
-              )}
+            <div className="p-3 sm:p-4 bg-white dark:bg-gray-800 min-h-[400px]">
+              <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+                {friends.length > 0 ? (
+                  friends.map(friend => (
+                    <FriendCard
+                      key={friend._id}
+                      friend={friend}
+                      onRemoveFriend={removeFriend}
+                      showOnlineStatus={true}
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-2 flex flex-col items-center justify-center py-12">
+                    <Users size={48} className="text-gray-300 dark:text-gray-600 mb-4 opacity-60" />
+                    <p className="text-gray-500 dark:text-gray-400 text-center text-sm sm:text-base">Chưa có bạn bè nào</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           {activeTab === 'requests' && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 bg-white dark:bg-gray-800 min-h-[400px]">
               {requests.length > 0 ? (
                 requests.map(request => (
                   <FriendRequestCard
@@ -388,22 +521,79 @@ export default function Friends() {
                   />
                 ))
               ) : (
-                <div className="flex items-center justify-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400 text-center">Không có lời mời nào</p>
+                <div className="flex flex-col items-center justify-center py-12">
+                  <UserPlus size={48} className="text-gray-300 dark:text-gray-600 mb-4 opacity-60" />
+                  <p className="text-gray-500 dark:text-gray-400 text-center text-sm sm:text-base">Không có lời mời nào</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'sent' && (
+            <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 bg-white dark:bg-gray-800 min-h-[400px]">
+              {sentRequests.length > 0 ? (
+                sentRequests.map(request => (
+                  <div key={request._id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:shadow-md dark:hover:shadow-gray-900/50 transition-all duration-200">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="relative flex-shrink-0">
+                        <img
+                          src={request.to.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(request.to.name)}&length=2&background=cccccc&color=222222&size=64`}
+                          alt={request.to.name}
+                          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => navigate(`/user/${request.to._id}`)}
+                        />
+                        {request.to.isOnline && (
+                          <Circle size={10} className="absolute -bottom-1 -right-1 fill-green-500 text-green-500 sm:w-3 sm:h-3" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <h3
+                          className="font-semibold cursor-pointer text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm sm:text-base truncate"
+                          onClick={() => navigate(`/user/${request.to._id}`)}
+                          title={request.to.name}
+                        >
+                          {request.to.name}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{request.to.email}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                          <Clock size={10} className="sm:w-3 sm:h-3" />
+                          <span className="truncate">Gửi {new Date(request.createdAt).toLocaleDateString('vi-VN')}</span>
+                        </p>
+                      </div>
+
+                      <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => cancelSentRequest(request.to._id)}
+                          className="btn-outline text-red-600 dark:text-red-400 border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 sm:p-2 touch-target transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3"
+                          title="Hủy lời mời"
+                        >
+                          <UserMinus size={14} className="sm:w-4 sm:h-4" />
+                          <span className="hidden sm:inline">Hủy</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Send size={48} className="text-gray-300 dark:text-gray-600 mb-4 opacity-60" />
+                  <p className="text-gray-500 dark:text-gray-400 text-center text-sm sm:text-base">Chưa có lời mời nào đã gửi</p>
                 </div>
               )}
             </div>
           )}
 
           {activeTab === 'suggestions' && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 bg-white dark:bg-gray-800 min-h-[400px]">
               {suggestions.length > 0 ? (
                 suggestions.map(user => (
                   <UserCard key={user._id} user={user} showActions={true} showEmail={false} />
                 ))
               ) : (
-                <div className="flex items-center justify-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400 text-center">Không có gợi ý nào</p>
+                <div className="flex flex-col items-center justify-center py-12">
+                  <UserCheck size={48} className="text-gray-300 dark:text-gray-600 mb-4 opacity-60" />
+                  <p className="text-gray-500 dark:text-gray-400 text-center text-sm sm:text-base">Không có gợi ý nào</p>
                 </div>
               )}
             </div>

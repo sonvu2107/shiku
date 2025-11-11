@@ -108,15 +108,13 @@ const Groups = () => {
     });
 
       if (response.success) {
-        // Cập nhật UI
-        setGroups(prev => prev.map(group =>
-          group._id === groupId
-            ? { ...group, userRole: 'member' }
-            : group
-        ));
-
+        // Reload groups từ server để lấy userRole chính xác
+        if (activeTab === 'discover') {
+          await loadGroups(currentPage, true);
+        }
+        
         // Reload my groups
-        loadMyGroups();
+        await loadMyGroups();
       }
     } catch (error) {
       alert(error.response?.data?.message || 'Không thể tham gia nhóm');
@@ -136,14 +134,13 @@ const Groups = () => {
     });
 
       if (response.success) {
-        // Cập nhật UI
-        setGroups(prev => prev.map(group =>
-          group._id === groupId
-            ? { ...group, userRole: null }
-            : group
-        ));
-
-        setMyGroups(prev => prev.filter(group => group._id !== groupId));
+        // Reload groups từ server để lấy userRole chính xác
+        if (activeTab === 'discover') {
+          await loadGroups(currentPage, true);
+        }
+        
+        // Reload my groups
+        await loadMyGroups();
       }
     } catch (error) {
       alert(error.response?.data?.message || 'Không thể rời khỏi nhóm');
@@ -210,10 +207,10 @@ const Groups = () => {
 
   // Render group list item
   const renderGroupListItem = (group) => (
-    <div key={group._id} className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
+    <div key={group._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-900/20 p-4 hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-700">
       <div className="flex items-center gap-4">
         {/* Avatar */}
-        <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+        <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
           {group.avatar ? (
             <img
               src={group.avatar}
@@ -221,8 +218,8 @@ const Groups = () => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-              <Users className="w-8 h-8 text-gray-500" />
+            <div className="w-full h-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+              <Users className="w-8 h-8 text-gray-500 dark:text-gray-400" />
             </div>
           )}
         </div>
@@ -233,18 +230,18 @@ const Groups = () => {
             to={`/groups/${group._id}`}
             className="block"
           >
-            <h3 className="font-semibold text-lg text-gray-900 hover:text-black transition-colors line-clamp-1">
+            <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-1">
               {group.name}
             </h3>
           </Link>
 
           {group.description && (
-            <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1 line-clamp-2">
               {group.description}
             </p>
           )}
 
-          <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+          <div className="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
             <div className="flex items-center gap-1">
               <Users className="w-4 h-4" />
               <span>{group.stats?.memberCount || 0} thành viên</span>
@@ -264,17 +261,19 @@ const Groups = () => {
           {group.userRole ? (
             <Link
               to={`/groups/${group._id}`}
-              className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+              className="bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 dark:hover:bg-green-600 transition-colors flex items-center gap-2"
             >
-              Xem nhóm
+              <Users className="w-4 h-4" />
+              <span>Đã tham gia</span>
             </Link>
           ) : (
             <button
               onClick={() => handleJoinGroup(group._id)}
               disabled={isJoining[group._id]}
-              className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+              className="bg-gray-900 dark:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
-              {isJoining[group._id] ? 'Đang tham gia...' : 'Tham gia'}
+              <Users className="w-4 h-4" />
+              {isJoining[group._id] ? 'Đang tham gia...' : 'Tham gia nhóm'}
             </button>
           )}
         </div>
@@ -283,20 +282,20 @@ const Groups = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold text-gray-900">Nhóm</h1>
-              <p className="text-sm text-gray-600 hidden sm:block">Khám phá và tham gia các nhóm cộng đồng</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Nhóm</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400 hidden sm:block">Khám phá và tham gia các nhóm cộng đồng</p>
             </div>
 
             <div className="flex-shrink-0 ml-4">
               <Link
                 to="/groups/create"
-                className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap"
+                className="bg-gray-900 dark:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Tạo nhóm</span>
@@ -312,7 +311,7 @@ const Groups = () => {
         <div className="mb-6 flex justify-end">
           <Link
             to="/groups/create"
-            className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-lg"
+            className="bg-gray-900 dark:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 shadow-lg"
           >
             <Plus className="w-5 h-5" />
             Tạo nhóm mới
@@ -321,8 +320,8 @@ const Groups = () => {
 
         {/* Tabs */}
         <div className="mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="grid grid-cols-3 border-b border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
               {[
                 { id: 'discover', label: 'Khám phá', count: totalGroups },
                 { id: 'my-groups', label: 'Nhóm của tôi', count: myGroups.length },
@@ -331,20 +330,28 @@ const Groups = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
-                      ? 'border-black text-black'
-                      : 'border-transparent text-gray-500 hover:text-black hover:border-gray-400'
-                    }`}
+                  className={`flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 px-2 sm:px-3 md:px-6 py-2.5 sm:py-3 md:py-4 font-medium transition-all duration-200 whitespace-nowrap relative touch-target text-xs sm:text-sm md:text-base ${
+                    activeTab === tab.id
+                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30'
+                  }`}
                 >
-                  {tab.label}
+                  <span className="truncate">{tab.label}</span>
                   {tab.count > 0 && (
-                    <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
-                      {tab.count}
+                    <span className={`px-1 sm:px-1.5 md:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] md:text-xs font-bold min-w-[16px] sm:min-w-[18px] md:min-w-[20px] text-center leading-none flex-shrink-0 ${
+                      activeTab === tab.id
+                        ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50'
+                        : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
+                    }`}>
+                      {tab.count > 99 ? '99+' : tab.count}
                     </span>
+                  )}
+                  {activeTab === tab.id && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
                   )}
                 </button>
               ))}
-            </nav>
+            </div>
           </div>
         </div>
 
@@ -354,14 +361,14 @@ const Groups = () => {
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Tìm kiếm nhóm..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
                 />
               </div>
             </div>
@@ -369,23 +376,23 @@ const Groups = () => {
             {/* Filter Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 hover:border-black transition-colors flex items-center gap-2"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-colors flex items-center gap-2"
             >
               <Filter className="w-4 h-4" />
               Lọc
             </button>
 
             {/* View Mode */}
-            <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+            <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-700">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 transition-colors ${viewMode === 'grid' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                className={`p-2 transition-colors ${viewMode === 'grid' ? 'bg-gray-900 dark:bg-gray-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
               >
                 <Grid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 transition-colors ${viewMode === 'list' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                className={`p-2 transition-colors ${viewMode === 'list' ? 'bg-gray-900 dark:bg-gray-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
               >
                 <List className="w-4 h-4" />
               </button>
@@ -394,17 +401,17 @@ const Groups = () => {
 
           {/* Filters Panel */}
           {showFilters && (
-            <div className="mt-4 p-4 bg-white rounded-lg shadow-sm border">
+            <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Group Type */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Loại nhóm
                   </label>
                   <select
                     value={groupType}
                     onChange={(e) => setGroupType(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
                   >
                     <option value="all">Tất cả</option>
                     <option value="public">Công khai</option>
@@ -415,13 +422,13 @@ const Groups = () => {
 
                 {/* Sort By */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Sắp xếp theo
                   </label>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
                   >
                     <option value="createdAt">Ngày tạo</option>
                     <option value="name">Tên</option>
@@ -432,13 +439,13 @@ const Groups = () => {
 
                 {/* Sort Order */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Thứ tự
                   </label>
                   <select
                     value={sortOrder}
                     onChange={(e) => setSortOrder(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
                   >
                     <option value="desc">Giảm dần</option>
                     <option value="asc">Tăng dần</option>
@@ -449,13 +456,13 @@ const Groups = () => {
               <div className="flex justify-end gap-2 mt-4">
                 <button
                   onClick={resetFilters}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 hover:border-black transition-colors"
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors bg-white dark:bg-gray-700"
                 >
                   Đặt lại
                 </button>
                 <button
                   onClick={handleSearch}
-                  className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
+                  className="px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors"
                 >
                   Áp dụng
                 </button>
@@ -467,14 +474,14 @@ const Groups = () => {
         {/* Content */}
         {loading && groups.length === 0 ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
           </div>
         ) : error ? (
           <div className="text-center py-12">
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-600 dark:text-red-400">{error}</p>
             <button
               onClick={() => loadGroups(1, true)}
-              className="mt-4 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
+              className="mt-4 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors"
             >
               Thử lại
             </button>
@@ -504,8 +511,8 @@ const Groups = () => {
 
             {activeTab === 'trending' && (
               <div className="text-center py-12">
-                <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Tính năng xu hướng đang được phát triển</p>
+                <TrendingUp className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400">Tính năng xu hướng đang được phát triển</p>
               </div>
             )}
 
@@ -515,7 +522,7 @@ const Groups = () => {
                 <button
                   onClick={loadMore}
                   disabled={loading}
-                  className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+                  className="px-6 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
                 >
                   {loading ? 'Đang tải...' : 'Tải thêm'}
                 </button>
@@ -525,29 +532,33 @@ const Groups = () => {
             {/* Empty State */}
             {groups.length === 0 && !loading && activeTab === 'discover' && (
               <div className="text-center py-12">
-                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy nhóm nào</h3>
-                <p className="text-gray-600 mb-4">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
-                <button
-                  onClick={resetFilters}
-                  className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
-                >
-                  Đặt lại bộ lọc
-                </button>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+                  <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Không tìm thấy nhóm nào</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
+                  <button
+                    onClick={resetFilters}
+                    className="px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Đặt lại bộ lọc
+                  </button>
+                </div>
               </div>
             )}
 
             {myGroups.length === 0 && !loading && activeTab === 'my-groups' && (
               <div className="text-center py-12">
-                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Bạn chưa tham gia nhóm nào</h3>
-                <p className="text-gray-600 mb-4">Khám phá và tham gia các nhóm thú vị</p>
-                <button
-                  onClick={() => setActiveTab('discover')}
-                  className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
-                >
-                  Khám phá nhóm
-                </button>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+                  <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Bạn chưa tham gia nhóm nào</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Khám phá và tham gia các nhóm thú vị</p>
+                  <button
+                    onClick={() => setActiveTab('discover')}
+                    className="px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Khám phá nhóm
+                  </button>
+                </div>
               </div>
             )}
           </>

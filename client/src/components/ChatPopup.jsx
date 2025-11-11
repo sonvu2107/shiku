@@ -2,11 +2,12 @@ import { useEffect, useState, useRef } from "react";
 import CallModal from "./CallModal";
 import CallIncomingModal from "./CallIncomingModal";
 import ImageViewer from "./ImageViewer";
+import Chatbot from "./Chatbot";
 import { api } from "../api";
 import { getUserInfo } from "../utils/auth";
 import socketService from "../socket";
 import callManager from "../utils/callManager";
-import { X, Phone, Video, ChevronDown, MessageCircle, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, Image, MoreHorizontal, Edit2, Trash2 } from "lucide-react";
+import { X, Phone, Video, ChevronDown, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Edit2, Trash2, Bot } from "lucide-react";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 
 // Custom CSS for enhanced shadows
@@ -56,21 +57,22 @@ const EMOTES = [
  * @returns {JSX.Element} Component chat popup
  */
 export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVideoCall, index = 0 }) {
+  const isChatbot = conversation?.conversationType === "chatbot";
   // ==================== EFFECTS ====================
   
   // Join conversation khi có conversationId
   useEffect(() => {
     const joinConversation = async () => {
-      if (conversation?._id) {
+      if (conversation?._id && !isChatbot) {
         await socketService.joinConversation(conversation._id);
       }
     };
     joinConversation();
-  }, [conversation?._id]);
+  }, [conversation?._id, isChatbot]);
 
   // Listen for real-time messages
   useEffect(() => {
-    if (!conversation?._id || !socketService.socket) return;
+    if (!conversation?._id || !socketService.socket || isChatbot) return;
     
     const handleNewMessage = (message) => {
       // Check if message belongs to current conversation
@@ -125,6 +127,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
   // tải tin nhắn
   useEffect(() => {
+    if (isChatbot) return;
     async function fetchMessages() {
       try {
         const res = await api(`/api/messages/conversations/${conversation._id}/messages?limit=50`);
@@ -134,14 +137,14 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       }
     }
     fetchMessages();
-  }, [conversation._id]);
+  }, [conversation._id, isChatbot]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (isChatbot || !input.trim()) return;
     
     const messageContent = input;
     setInput(""); // Clear input immediately for better UX
@@ -163,32 +166,30 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   };
 
   const handleEmoteSelect = async (emote) => {
-    // Send emote as a separate message
+    if (isChatbot) return;
     try {
       const response = await api(`/api/messages/conversations/${conversation._id}/messages`, {
         method: "POST",
         body: { content: "", messageType: "emote", emote: emote },
       });
-      
-      // Add the sent message to the list immediately (optimistic update)
       if (response.message) {
         setMessages(prev => [...prev, response.message]);
       }
     } catch (error) {
       alert("Không thể gửi emote: " + error.message);
     }
-    
     setShowEmotePicker(false);
   };
 
   const handleEditMessage = (message) => {
+    if (isChatbot) return;
     setEditingMessageId(message._id);
     setEditContent(message.content);
     setShowOptionsMenu(null);
   };
 
   const handleSaveEdit = async (messageId) => {
-    if (!editContent.trim()) return;
+    if (isChatbot || !editContent.trim()) return;
     
     try {
       await api(`/api/messages/conversations/${conversation._id}/messages/${messageId}`, {
@@ -216,6 +217,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   };
 
   const handleDeleteMessage = async (messageId) => {
+    if (isChatbot) return;
     if (!confirm('Bạn có chắc muốn thu hồi tin nhắn này?')) return;
     
     try {
@@ -238,6 +240,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
   // Close options menu when clicking outside
   useEffect(() => {
+    if (isChatbot) return;
     const handleClickOutside = (e) => {
       if (showOptionsMenu && !e.target.closest('.message-options-menu')) {
         setShowOptionsMenu(null);
@@ -249,17 +252,21 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showOptionsMenu]);
 
-  const isGroup = conversation.conversationType === "group";
-  const name = isGroup
-    ? conversation.groupName || "Nhóm"
-    : conversation.otherParticipants?.[0]?.nickname || conversation.otherParticipants?.[0]?.user?.name || "Không tên";
+  const isGroup = conversation?.conversationType === "group";
+  const name = isChatbot
+    ? conversation?.title || "Trợ lý AI"
+    : isGroup
+      ? conversation.groupName || "Nhóm"
+      : conversation?.otherParticipants?.[0]?.nickname || conversation?.otherParticipants?.[0]?.user?.name || "Không tên";
 
-  const avatar = isGroup
-    ? conversation.groupAvatar || getUserAvatarUrl({ name: conversation.groupName || 'Group' }, AVATAR_SIZES.MEDIUM)
-    : getUserAvatarUrl(conversation.otherParticipants?.[0]?.user, AVATAR_SIZES.MEDIUM);
+  const avatar = isChatbot
+    ? null
+    : isGroup
+      ? conversation.groupAvatar || getUserAvatarUrl({ name: conversation.groupName || 'Group' }, AVATAR_SIZES.MEDIUM)
+      : getUserAvatarUrl(conversation?.otherParticipants?.[0]?.user, AVATAR_SIZES.MEDIUM);
 
   const getOtherUserOnlineStatus = () => {
-    if (isGroup) return false;
+    if (isGroup || isChatbot) return isChatbot ? true : false;
     
     const otherParticipant = conversation.otherParticipants?.[0];
     const user = otherParticipant?.user || otherParticipant;
@@ -294,39 +301,49 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
         minimized ? 'border-b-0 rounded-full h-full w-full justify-center p-0' : 'px-2 sm:px-4 py-2 rounded-t-xl'
       }`}>
         <div className="relative flex-shrink-0">
-          <img src={avatar} alt={name} className={`rounded-full object-cover ${
-            minimized ? 'w-12 h-12' : 'w-7 h-7 sm:w-9 sm:h-9'
-          }`} />
+          {isChatbot ? (
+            <div className={`rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center ${
+              minimized ? 'w-12 h-12' : 'w-7 h-7 sm:w-9 sm:h-9'
+            }`}>
+              <Bot size={minimized ? 22 : 16} />
+            </div>
+          ) : (
+            <img src={avatar} alt={name} className={`rounded-full object-cover ${
+              minimized ? 'w-12 h-12' : 'w-7 h-7 sm:w-9 sm:h-9'
+            }`} />
+          )}
           {/* Online status indicator for private conversations */}
-          {!isGroup && getOtherUserOnlineStatus() && !minimized && (
+          {!isGroup && !isChatbot && getOtherUserOnlineStatus() && !minimized && (
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
           )}
         </div>
         {!minimized && (
           <>
             <div className="flex-1 font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base truncate min-w-0">{name}</div>
-            <div className="flex gap-0.5 sm:gap-1">
-              <button
-                className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
-                onClick={() => {
-                  setCallOpen && setCallOpen(true);
-                  setIsVideoCall && setIsVideoCall(false);
-                }}
-                title="Gọi thoại"
-              >
-                <Phone size={14} className="sm:w-4 sm:h-4" />
-              </button>
-              <button
-                className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
-                onClick={() => {
-                  setCallOpen && setCallOpen(true);
-                  setIsVideoCall && setIsVideoCall(true);
-                }}
-                title="Gọi video"
-              >
-                <Video size={14} className="sm:w-4 sm:h-4" />
-              </button>
-            </div>
+            {!isChatbot && (
+              <div className="flex gap-0.5 sm:gap-1">
+                <button
+                  className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
+                  onClick={() => {
+                    setCallOpen && setCallOpen(true);
+                    setIsVideoCall && setIsVideoCall(false);
+                  }}
+                  title="Gọi thoại"
+                >
+                  <Phone size={14} className="sm:w-4 sm:h-4" />
+                </button>
+                <button
+                  className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
+                  onClick={() => {
+                    setCallOpen && setCallOpen(true);
+                    setIsVideoCall && setIsVideoCall(true);
+                  }}
+                  title="Gọi video"
+                >
+                  <Video size={14} className="sm:w-4 sm:h-4" />
+                </button>
+              </div>
+            )}
             <button
               className="p-1 hover:bg-gray-200 rounded-full touch-target"
               onClick={() => setMinimized(!minimized)}
@@ -342,12 +359,12 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
         {minimized && (
           <>
             {/* Online status indicator cho private conversations */}
-            {!isGroup && getOtherUserOnlineStatus() && (
+            {!isGroup && !isChatbot && getOtherUserOnlineStatus() && (
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
             )}
             
             {/* Hiển thị số tin nhắn chưa đọc nếu có */}
-            {conversation.unreadCount > 0 && (
+            {!isChatbot && conversation.unreadCount > 0 && (
               <div className="absolute -top-1 left-8 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
               </div>
@@ -359,8 +376,18 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       {/* Nội dung chat */}
       {!minimized && (
         <>
-          <div className="flex-1 overflow-y-auto px-4 py-2 bg-white dark:bg-gray-900">
-            {messages.length === 0 ? (
+          <div className={`flex-1 ${isChatbot ? 'overflow-hidden px-0 py-0 flex flex-col' : 'overflow-y-auto px-4 py-2'} bg-white dark:bg-gray-900`}>
+            {isChatbot ? (
+              <div className="flex-1 flex flex-col min-h-0 h-full">
+                <Chatbot
+                  key="chatbot-popup"
+                  variant="popup"
+                  onClose={onClose}
+                  allowMinimize={false}
+                  showHeader={false}
+                />
+              </div>
+            ) : messages.length === 0 ? (
               <div className="text-gray-400 dark:text-gray-500 text-sm">Chưa có tin nhắn</div>
             ) : (
               messages.map((msg, idx) => {
@@ -651,115 +678,124 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
           </div>
 
           {/* Ô nhập */}
-          <div className="flex items-center gap-2 px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-xl relative">
-            <label className="cursor-pointer">
-              <svg
-                width="24"
-                height="24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-image text-gray-500"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="2.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploading}
-                onChange={async (e) => {
-                  const file = e.target.files[0];
-                  if (!file) return;
-                  setUploading(true);
-                  const reader = new FileReader();
-                  reader.onload = async () => {
-                    try {
-                      const response = await api(`/api/messages/conversations/${conversation._id}/messages/image`, {
-                        method: "POST",
-                        body: { image: reader.result },
-                      });
-                      
-                      // Add the sent image message to the list immediately (optimistic update)
-                      if (response.message) {
-                        setMessages(prev => [...prev, response.message]);
+          {!minimized && !isChatbot && (
+            <div className="flex items-center gap-2 px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-xl relative">
+              <label className="cursor-pointer">
+                <svg
+                  width="24"
+                  height="24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-image text-gray-500"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="2.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    setUploading(true);
+                    const reader = new FileReader();
+                    reader.onload = async () => {
+                      try {
+                        const response = await api(`/api/messages/conversations/${conversation._id}/messages/image`, {
+                          method: "POST",
+                          body: { image: reader.result },
+                        });
+                        
+                        // Add the sent image message to the list immediately (optimistic update)
+                        if (response.message) {
+                          setMessages(prev => [...prev, response.message]);
+                        }
+                      } catch (error) {
+                        // Handle error silently
                       }
-                    } catch (error) {
-                      // Handle error silently
-                    }
-                    setUploading(false);
-                  };
-                  reader.readAsDataURL(file);
-                }}
-              />
-            </label>
-            
-            {/* Emote picker */}
-            {showEmotePicker && (
-              <div className="absolute bottom-full left-2 right-2 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-4 max-h-48 overflow-y-auto z-10">
-                <div className="grid grid-cols-6 gap-2">
-                  {EMOTES.map((emote, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleEmoteSelect(emote)}
-                      className="p-2 text-xl hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-target"
-                    >
-                      {emote}
-                    </button>
-                  ))}
+                      setUploading(false);
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </label>
+              
+              {/* Emote picker */}
+              {showEmotePicker && (
+                <div className="absolute bottom-full left-2 right-2 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-4 max-h-48 overflow-y-auto z-10">
+                  <div className="grid grid-cols-6 gap-2">
+                    {EMOTES.map((emote, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleEmoteSelect(emote)}
+                        className="p-2 text-xl hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-target"
+                      >
+                        {emote}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-            
-            <button
-              type="button"
-              onClick={() => setShowEmotePicker(!showEmotePicker)}
-              className={`p-2 rounded-full transition-colors touch-target ${
-                showEmotePicker 
-                  ? 'text-blue-600 bg-blue-50' 
-                  : 'text-blue-500 hover:bg-blue-50 active:bg-blue-100'
-              }`}
-              title="Chọn emote"
-            >
-              <Smile size={20} />
-            </button>
-            
-            <input
-              className="flex-1 px-3 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Aa"
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              disabled={uploading}
-            />
-            <button
-              className="px-3 py-2 bg-blue-600 text-white rounded-full"
-              onClick={handleSend}
-              disabled={uploading}
-            >
-              Gửi
-            </button>
-          </div>
+              )}
+              
+              <button
+                type="button"
+                onClick={() => setShowEmotePicker(!showEmotePicker)}
+                className={`p-2 rounded-full transition-colors touch-target ${
+                  showEmotePicker 
+                    ? 'text-blue-600 bg-blue-50' 
+                    : 'text-blue-500 hover:bg-blue-50 active:bg-blue-100'
+                }`}
+                title="Chọn emote"
+              >
+                <Smile size={20} />
+              </button>
+              
+              <input
+                className="flex-1 px-3 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Aa"
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                disabled={uploading}
+              />
+              <button
+                className="px-3 py-2 bg-blue-600 text-white rounded-full"
+                onClick={handleSend}
+                disabled={uploading}
+              >
+                Gửi
+              </button>
+            </div>
+          )}
         </>
       )}
 
       {/* Image Viewer */}
-      <ImageViewer
-        isOpen={imageViewer.isOpen}
-        imageUrl={imageViewer.imageUrl}
-        alt={imageViewer.alt}
-        onClose={() => setImageViewer({ isOpen: false, imageUrl: null, alt: "" })}
-      />
+      {!isChatbot && (
+        <ImageViewer
+          isOpen={imageViewer.isOpen}
+          imageUrl={imageViewer.imageUrl}
+          alt={imageViewer.alt}
+          onClose={() => setImageViewer({ isOpen: false, imageUrl: null, alt: "" })}
+        />
+      )}
     </div>
   );
 }
 
 // Wrapper để quản lý CallModal + CallIncomingModal
 export function ChatPopupWithCallModal(props) {
+  const isChatbot = props.conversation?.conversationType === "chatbot";
+  if (isChatbot) {
+    return <ChatPopup {...props} />;
+  }
+
   const [callOpen, setCallOpen] = useState(false);
   const [isVideoCall, setIsVideoCall] = useState(true);
   const [incomingCall, setIncomingCall] = useState(null);

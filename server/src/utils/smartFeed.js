@@ -6,8 +6,11 @@ import mongoose from "mongoose";
 /**
  * Calculate engagement score for a post
  * Higher score = more engaging content
+ * @param {Object} post - Post object
+ * @param {number} commentsCount - Number of comments
+ * @param {Set} interestedPostIds - Set of post IDs user is interested in (optional)
  */
-export function calculateEngagementScore(post, commentsCount = 0) {
+export function calculateEngagementScore(post, commentsCount = 0, interestedPostIds = null) {
   const emotesCount = post.emotes?.length || 0;
   const views = post.views || 0;
   
@@ -21,11 +24,19 @@ export function calculateEngagementScore(post, commentsCount = 0) {
   
   // Weighted engagement score
   // Comments are worth more than emotes, views have minimal weight
-  const engagementScore = (
+  let engagementScore = (
     emotesCount * 1 +      // Each emote = 1 point
     commentsCount * 3 +    // Each comment = 3 points (more valuable)
     views * 0.01           // Views have minimal impact (0.01 point each)
   );
+  
+  // Boost score if user is interested in this post (multiply by 2.5)
+  if (interestedPostIds && post._id) {
+    const postIdStr = post._id.toString();
+    if (interestedPostIds.has(postIdStr)) {
+      engagementScore *= 2.5; // Significant boost for interested posts
+    }
+  }
   
   // Final score with time decay
   // Prevent division by zero or very small numbers
@@ -36,8 +47,10 @@ export function calculateEngagementScore(post, commentsCount = 0) {
  * Get posts from user's friends with engagement scoring
  * @param {string} userId - Current user ID
  * @param {number} limit - Number of posts to return
+ * @param {Set} notInterestedPostIds - Set of post IDs user is not interested in (optional)
+ * @param {Set} interestedPostIds - Set of post IDs user is interested in (optional)
  */
-export async function getFriendsPosts(userId, limit = 10) {
+export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds = null, interestedPostIds = null) {
   if (!userId) return [];
   
   // Validate userId is valid ObjectId
@@ -53,22 +66,95 @@ export async function getFriendsPosts(userId, limit = 10) {
     
     const friendIds = user.friends.map(f => f.toString());
     
-    // Get posts from friends
-    const posts = await Post.find({
+    // Build query to exclude not interested posts
+    const query = {
       author: { $in: friendIds },
       status: "published",
       $or: [
         { group: { $exists: false } },
         { group: null }
       ]
-    })
+    };
+    
+    // Exclude posts user is not interested in
+    if (notInterestedPostIds && notInterestedPostIds.size > 0) {
+      query._id = { $nin: Array.from(notInterestedPostIds).map(id => new mongoose.Types.ObjectId(id)) };
+    }
+    
+    // Get posts from friends
+    const posts = await Post.find(query)
       .populate("author", "name nickname avatarUrl role")
+      .populate({
+        path: "emotes.user",
+        select: "name nickname avatarUrl role"
+      })
       .sort({ createdAt: -1 })
       .limit(limit * 3) // Get more to score and filter
       .lean();
     
+    // Populate emotes.user sau khi query (vì .lean() có thể không populate nested paths đúng cách)
+    const postIds = posts.map(p => p._id).filter(Boolean);
+    if (postIds.length > 0 && posts.some(post => post.emotes && post.emotes.length > 0)) {
+      const allEmoteUserIds = new Set();
+      posts.forEach(post => {
+        if (post.emotes && Array.isArray(post.emotes)) {
+          post.emotes.forEach(emote => {
+            if (emote && emote.user) {
+              const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
+              if (!isPopulated) {
+                if (typeof emote.user === 'object' && emote.user._id) {
+                  allEmoteUserIds.add(emote.user._id.toString());
+                } else if (typeof emote.user === 'string') {
+                  allEmoteUserIds.add(emote.user);
+                } else if (emote.user && emote.user.toString) {
+                  allEmoteUserIds.add(emote.user.toString());
+                }
+              }
+            }
+          });
+        }
+      });
+
+      if (allEmoteUserIds.size > 0) {
+        const uniqueUserIds = Array.from(allEmoteUserIds);
+        const users = await User.find({ _id: { $in: uniqueUserIds } })
+          .select("name nickname avatarUrl role")
+          .lean();
+        
+        const userMap = new Map();
+        users.forEach(u => userMap.set(u._id.toString(), u));
+
+        // Populate emotes.user trong posts
+        posts.forEach(post => {
+          if (post.emotes && Array.isArray(post.emotes)) {
+            post.emotes = post.emotes.map(emote => {
+              if (emote && emote.user) {
+                const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
+                if (!isPopulated) {
+                  let userId;
+                  if (typeof emote.user === 'object' && emote.user._id) {
+                    userId = emote.user._id.toString();
+                  } else if (typeof emote.user === 'string') {
+                    userId = emote.user;
+                  } else if (emote.user && emote.user.toString) {
+                    userId = emote.user.toString();
+                  }
+                  if (userId) {
+                    const populatedUser = userMap.get(userId);
+                    if (populatedUser) {
+                      emote.user = populatedUser;
+                    }
+                  }
+                }
+              }
+              return emote;
+            });
+          }
+        });
+      }
+    }
+    
     // Get comment counts for scoring
-    const postIds = posts.map(p => p._id);
     let commentCounts = [];
     
     if (postIds.length > 0) {
@@ -85,12 +171,22 @@ export async function getFriendsPosts(userId, limit = 10) {
     // Calculate scores and sort
     const scoredPosts = posts.map(post => ({
       ...post,
-      _score: calculateEngagementScore(post, commentCountMap.get(post._id.toString()) || 0)
+      _score: calculateEngagementScore(post, commentCountMap.get(post._id.toString()) || 0, interestedPostIds)
     }));
     
-    return scoredPosts
-      .sort((a, b) => b._score - a._score)
-      .slice(0, limit);
+    // Sort: interested posts first, then by score
+    const sortedPosts = scoredPosts.sort((a, b) => {
+      const aId = a._id.toString();
+      const bId = b._id.toString();
+      const aInterested = interestedPostIds && interestedPostIds.has(aId);
+      const bInterested = interestedPostIds && interestedPostIds.has(bId);
+      
+      if (aInterested && !bInterested) return -1;
+      if (!aInterested && bInterested) return 1;
+      return b._score - a._score;
+    });
+    
+    return sortedPosts.slice(0, limit);
       
   } catch (error) {
     console.error("Error getting friends posts:", error);
@@ -101,24 +197,98 @@ export async function getFriendsPosts(userId, limit = 10) {
 /**
  * Get trending posts from last 24 hours
  * @param {number} limit - Number of posts to return
+ * @param {Set} notInterestedPostIds - Set of post IDs user is not interested in (optional)
+ * @param {Set} interestedPostIds - Set of post IDs user is interested in (optional)
  */
-export async function getTrendingPosts(limit = 10) {
+export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, interestedPostIds = null) {
   try {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
-    const posts = await Post.find({
+    const query = {
       status: "published",
       createdAt: { $gte: oneDayAgo },
       $or: [
         { group: { $exists: false } },
         { group: null }
       ]
-    })
+    };
+    
+    // Exclude posts user is not interested in
+    if (notInterestedPostIds && notInterestedPostIds.size > 0) {
+      query._id = { $nin: Array.from(notInterestedPostIds).map(id => new mongoose.Types.ObjectId(id)) };
+    }
+    
+    const posts = await Post.find(query)
       .populate("author", "name nickname avatarUrl role")
+      .populate({
+        path: "emotes.user",
+        select: "name nickname avatarUrl role"
+      })
       .lean();
     
+    // Populate emotes.user sau khi query (vì .lean() có thể không populate nested paths đúng cách)
+    const postIds = posts.map(p => p._id).filter(Boolean);
+    if (postIds.length > 0 && posts.some(post => post.emotes && post.emotes.length > 0)) {
+      const allEmoteUserIds = new Set();
+      posts.forEach(post => {
+        if (post.emotes && Array.isArray(post.emotes)) {
+          post.emotes.forEach(emote => {
+            if (emote && emote.user) {
+              const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
+              if (!isPopulated) {
+                if (typeof emote.user === 'object' && emote.user._id) {
+                  allEmoteUserIds.add(emote.user._id.toString());
+                } else if (typeof emote.user === 'string') {
+                  allEmoteUserIds.add(emote.user);
+                } else if (emote.user && emote.user.toString) {
+                  allEmoteUserIds.add(emote.user.toString());
+                }
+              }
+            }
+          });
+        }
+      });
+
+      if (allEmoteUserIds.size > 0) {
+        const uniqueUserIds = Array.from(allEmoteUserIds);
+        const users = await User.find({ _id: { $in: uniqueUserIds } })
+          .select("name nickname avatarUrl role")
+          .lean();
+        
+        const userMap = new Map();
+        users.forEach(u => userMap.set(u._id.toString(), u));
+
+        // Populate emotes.user trong posts
+        posts.forEach(post => {
+          if (post.emotes && Array.isArray(post.emotes)) {
+            post.emotes = post.emotes.map(emote => {
+              if (emote && emote.user) {
+                const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
+                if (!isPopulated) {
+                  let userId;
+                  if (typeof emote.user === 'object' && emote.user._id) {
+                    userId = emote.user._id.toString();
+                  } else if (typeof emote.user === 'string') {
+                    userId = emote.user;
+                  } else if (emote.user && emote.user.toString) {
+                    userId = emote.user.toString();
+                  }
+                  if (userId) {
+                    const populatedUser = userMap.get(userId);
+                    if (populatedUser) {
+                      emote.user = populatedUser;
+                    }
+                  }
+                }
+              }
+              return emote;
+            });
+          }
+        });
+      }
+    }
+    
     // Get comment counts
-    const postIds = posts.map(p => p._id);
     let commentCounts = [];
     
     if (postIds.length > 0) {
@@ -135,12 +305,22 @@ export async function getTrendingPosts(limit = 10) {
     // Calculate scores
     const scoredPosts = posts.map(post => ({
       ...post,
-      _score: calculateEngagementScore(post, commentCountMap.get(post._id.toString()) || 0)
+      _score: calculateEngagementScore(post, commentCountMap.get(post._id.toString()) || 0, interestedPostIds)
     }));
     
-    return scoredPosts
-      .sort((a, b) => b._score - a._score)
-      .slice(0, limit);
+    // Sort: interested posts first, then by score
+    const sortedPosts = scoredPosts.sort((a, b) => {
+      const aId = a._id.toString();
+      const bId = b._id.toString();
+      const aInterested = interestedPostIds && interestedPostIds.has(aId);
+      const bInterested = interestedPostIds && interestedPostIds.has(bId);
+      
+      if (aInterested && !bInterested) return -1;
+      if (!aInterested && bInterested) return 1;
+      return b._score - a._score;
+    });
+    
+    return sortedPosts.slice(0, limit);
       
   } catch (error) {
     console.error("Error getting trending posts:", error);
@@ -150,11 +330,13 @@ export async function getTrendingPosts(limit = 10) {
 
 /**
  * Get personalized posts based on user's interests
- * Uses tags from posts user has interacted with
+ * Uses tags from posts user has interacted with and interested posts
  * @param {string} userId - Current user ID
  * @param {number} limit - Number of posts to return
+ * @param {Set} notInterestedPostIds - Set of post IDs user is not interested in (optional)
+ * @param {Set} interestedPostIds - Set of post IDs user is interested in (optional)
  */
-export async function getPersonalizedPosts(userId, limit = 10) {
+export async function getPersonalizedPosts(userId, limit = 10, notInterestedPostIds = null, interestedPostIds = null) {
   if (!userId) return [];
   
   // Validate userId is valid ObjectId
@@ -164,6 +346,18 @@ export async function getPersonalizedPosts(userId, limit = 10) {
   }
   
   try {
+    // Get user's interested posts to learn from their preferences
+    let interestedPostsTags = [];
+    if (interestedPostIds && interestedPostIds.size > 0) {
+      const interestedPosts = await Post.find({
+        _id: { $in: Array.from(interestedPostIds).map(id => new mongoose.Types.ObjectId(id)) }
+      })
+        .select("tags")
+        .limit(50)
+        .lean();
+      interestedPostsTags = interestedPosts.flatMap(p => p.tags || []);
+    }
+    
     // Find posts user has emoted or commented on
     const userInteractedPosts = await Post.find({
       $or: [
@@ -187,8 +381,10 @@ export async function getPersonalizedPosts(userId, limit = 10) {
       .select("tags")
       .lean();
     
-    // Combine all tags
+    // Combine all tags (prioritize interested posts tags with higher weight)
     const allTags = [
+      ...interestedPostsTags, // Add twice for higher weight
+      ...interestedPostsTags,
       ...userInteractedPosts.flatMap(p => p.tags || []),
       ...commentedPosts.flatMap(p => p.tags || [])
     ];
@@ -207,8 +403,8 @@ export async function getPersonalizedPosts(userId, limit = 10) {
     
     if (topTags.length === 0) return [];
     
-    // Find posts with these tags that user hasn't interacted with
-    const personalizedPosts = await Post.find({
+    // Build query for personalized posts
+    const personalizedQuery = {
       tags: { $in: topTags },
       status: "published",
       author: { $ne: userId }, // Not by current user
@@ -218,14 +414,90 @@ export async function getPersonalizedPosts(userId, limit = 10) {
         { group: { $exists: false } },
         { group: null }
       ]
-    })
+    };
+    
+    // Exclude posts user is not interested in
+    if (notInterestedPostIds && notInterestedPostIds.size > 0) {
+      const notInterestedArray = Array.from(notInterestedPostIds).map(id => new mongoose.Types.ObjectId(id));
+      personalizedQuery._id = { 
+        $nin: [...notInterestedArray, ...commentedPostIds.map(id => new mongoose.Types.ObjectId(id))]
+      };
+    }
+    
+    // Find posts with these tags that user hasn't interacted with
+    const personalizedPosts = await Post.find(personalizedQuery)
       .populate("author", "name nickname avatarUrl role")
+      .populate({
+        path: "emotes.user",
+        select: "name nickname avatarUrl role"
+      })
       .sort({ createdAt: -1 })
       .limit(limit * 2)
       .lean();
     
+    // Populate emotes.user sau khi query (vì .lean() có thể không populate nested paths đúng cách)
+    const postIds = personalizedPosts.map(p => p._id).filter(Boolean);
+    if (postIds.length > 0 && personalizedPosts.some(post => post.emotes && post.emotes.length > 0)) {
+      const allEmoteUserIds = new Set();
+      personalizedPosts.forEach(post => {
+        if (post.emotes && Array.isArray(post.emotes)) {
+          post.emotes.forEach(emote => {
+            if (emote && emote.user) {
+              const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
+              if (!isPopulated) {
+                if (typeof emote.user === 'object' && emote.user._id) {
+                  allEmoteUserIds.add(emote.user._id.toString());
+                } else if (typeof emote.user === 'string') {
+                  allEmoteUserIds.add(emote.user);
+                } else if (emote.user && emote.user.toString) {
+                  allEmoteUserIds.add(emote.user.toString());
+                }
+              }
+            }
+          });
+        }
+      });
+
+      if (allEmoteUserIds.size > 0) {
+        const uniqueUserIds = Array.from(allEmoteUserIds);
+        const users = await User.find({ _id: { $in: uniqueUserIds } })
+          .select("name nickname avatarUrl role")
+          .lean();
+        
+        const userMap = new Map();
+        users.forEach(u => userMap.set(u._id.toString(), u));
+
+        // Populate emotes.user trong posts
+        personalizedPosts.forEach(post => {
+          if (post.emotes && Array.isArray(post.emotes)) {
+            post.emotes = post.emotes.map(emote => {
+              if (emote && emote.user) {
+                const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
+                if (!isPopulated) {
+                  let userId;
+                  if (typeof emote.user === 'object' && emote.user._id) {
+                    userId = emote.user._id.toString();
+                  } else if (typeof emote.user === 'string') {
+                    userId = emote.user;
+                  } else if (emote.user && emote.user.toString) {
+                    userId = emote.user.toString();
+                  }
+                  if (userId) {
+                    const populatedUser = userMap.get(userId);
+                    if (populatedUser) {
+                      emote.user = populatedUser;
+                    }
+                  }
+                }
+              }
+              return emote;
+            });
+          }
+        });
+      }
+    }
+    
     // Get comment counts
-    const postIds = personalizedPosts.map(p => p._id);
     let commentCounts = [];
     
     if (postIds.length > 0) {
@@ -242,12 +514,22 @@ export async function getPersonalizedPosts(userId, limit = 10) {
     // Calculate scores
     const scoredPosts = personalizedPosts.map(post => ({
       ...post,
-      _score: calculateEngagementScore(post, commentCountMap.get(post._id.toString()) || 0)
+      _score: calculateEngagementScore(post, commentCountMap.get(post._id.toString()) || 0, interestedPostIds)
     }));
     
-    return scoredPosts
-      .sort((a, b) => b._score - a._score)
-      .slice(0, limit);
+    // Sort: interested posts first, then by score
+    const sortedPosts = scoredPosts.sort((a, b) => {
+      const aId = a._id.toString();
+      const bId = b._id.toString();
+      const aInterested = interestedPostIds && interestedPostIds.has(aId);
+      const bInterested = interestedPostIds && interestedPostIds.has(bId);
+      
+      if (aInterested && !bInterested) return -1;
+      if (!aInterested && bInterested) return 1;
+      return b._score - a._score;
+    });
+    
+    return sortedPosts.slice(0, limit);
       
   } catch (error) {
     console.error("Error getting personalized posts:", error);
@@ -258,23 +540,97 @@ export async function getPersonalizedPosts(userId, limit = 10) {
 /**
  * Get fresh/new content (posted in last 2 hours)
  * @param {number} limit - Number of posts to return
+ * @param {Set} notInterestedPostIds - Set of post IDs user is not interested in (optional)
  */
-export async function getFreshPosts(limit = 5) {
+export async function getFreshPosts(limit = 5, notInterestedPostIds = null) {
   try {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
     
-    const posts = await Post.find({
+    const query = {
       status: "published",
       createdAt: { $gte: twoHoursAgo },
       $or: [
         { group: { $exists: false } },
         { group: null }
       ]
-    })
+    };
+    
+    // Exclude posts user is not interested in
+    if (notInterestedPostIds && notInterestedPostIds.size > 0) {
+      query._id = { $nin: Array.from(notInterestedPostIds).map(id => new mongoose.Types.ObjectId(id)) };
+    }
+    
+    const posts = await Post.find(query)
       .populate("author", "name nickname avatarUrl role")
+      .populate({
+        path: "emotes.user",
+        select: "name nickname avatarUrl role"
+      })
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
+    
+    // Populate emotes.user sau khi query (vì .lean() có thể không populate nested paths đúng cách)
+    const postIds = posts.map(p => p._id).filter(Boolean);
+    if (postIds.length > 0 && posts.some(post => post.emotes && post.emotes.length > 0)) {
+      const allEmoteUserIds = new Set();
+      posts.forEach(post => {
+        if (post.emotes && Array.isArray(post.emotes)) {
+          post.emotes.forEach(emote => {
+            if (emote && emote.user) {
+              const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
+              if (!isPopulated) {
+                if (typeof emote.user === 'object' && emote.user._id) {
+                  allEmoteUserIds.add(emote.user._id.toString());
+                } else if (typeof emote.user === 'string') {
+                  allEmoteUserIds.add(emote.user);
+                } else if (emote.user && emote.user.toString) {
+                  allEmoteUserIds.add(emote.user.toString());
+                }
+              }
+            }
+          });
+        }
+      });
+
+      if (allEmoteUserIds.size > 0) {
+        const uniqueUserIds = Array.from(allEmoteUserIds);
+        const users = await User.find({ _id: { $in: uniqueUserIds } })
+          .select("name nickname avatarUrl role")
+          .lean();
+        
+        const userMap = new Map();
+        users.forEach(u => userMap.set(u._id.toString(), u));
+
+        // Populate emotes.user trong posts
+        posts.forEach(post => {
+          if (post.emotes && Array.isArray(post.emotes)) {
+            post.emotes = post.emotes.map(emote => {
+              if (emote && emote.user) {
+                const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
+                if (!isPopulated) {
+                  let userId;
+                  if (typeof emote.user === 'object' && emote.user._id) {
+                    userId = emote.user._id.toString();
+                  } else if (typeof emote.user === 'string') {
+                    userId = emote.user;
+                  } else if (emote.user && emote.user.toString) {
+                    userId = emote.user.toString();
+                  }
+                  if (userId) {
+                    const populatedUser = userMap.get(userId);
+                    if (populatedUser) {
+                      emote.user = populatedUser;
+                    }
+                  }
+                }
+              }
+              return emote;
+            });
+          }
+        });
+      }
+    }
     
     return posts;
     
@@ -353,6 +709,22 @@ export async function generateSmartFeed(userId, totalLimit = 20) {
     // Validate and sanitize totalLimit
     const sanitizedLimit = Math.min(Math.max(parseInt(totalLimit) || 20, 1), 100);
     
+    // Get user's interest preferences
+    let notInterestedPostIds = new Set();
+    let interestedPostIds = new Set();
+    
+    if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+      const user = await User.findById(userId).select('interestedPosts notInterestedPosts').lean();
+      if (user) {
+        if (user.notInterestedPosts && Array.isArray(user.notInterestedPosts)) {
+          notInterestedPostIds = new Set(user.notInterestedPosts.map(id => id.toString()));
+        }
+        if (user.interestedPosts && Array.isArray(user.interestedPosts)) {
+          interestedPostIds = new Set(user.interestedPosts.map(id => id.toString()));
+        }
+      }
+    }
+    
     // Calculate limits for each source (percentages)
     const friendsLimit = Math.ceil(sanitizedLimit * 0.4);  // 40%
     const trendingLimit = Math.ceil(sanitizedLimit * 0.3); // 30%
@@ -361,10 +733,10 @@ export async function generateSmartFeed(userId, totalLimit = 20) {
     
     // Fetch all sources in parallel for better performance
     const [friendsPosts, trendingPosts, personalizedPosts, freshPosts] = await Promise.all([
-      getFriendsPosts(userId, friendsLimit),
-      getTrendingPosts(trendingLimit),
-      getPersonalizedPosts(userId, personalizedLimit),
-      getFreshPosts(freshLimit)
+      getFriendsPosts(userId, friendsLimit, notInterestedPostIds, interestedPostIds),
+      getTrendingPosts(trendingLimit, notInterestedPostIds, interestedPostIds),
+      getPersonalizedPosts(userId, personalizedLimit, notInterestedPostIds, interestedPostIds),
+      getFreshPosts(freshLimit, notInterestedPostIds)
     ]);
     
     // Mix and deduplicate
@@ -379,18 +751,90 @@ export async function generateSmartFeed(userId, totalLimit = 20) {
     if (mixedFeed.length < totalLimit) {
       const seenIds = new Set(mixedFeed.map(p => p._id.toString()));
       
+      // Build exclusion list: seen posts + not interested posts
+      const excludedIds = Array.from(seenIds).map(id => new mongoose.Types.ObjectId(id));
+      if (notInterestedPostIds && notInterestedPostIds.size > 0) {
+        excludedIds.push(...Array.from(notInterestedPostIds).map(id => new mongoose.Types.ObjectId(id)));
+      }
+      
       const fillerPosts = await Post.find({
         status: "published",
-        _id: { $nin: Array.from(seenIds).map(id => new mongoose.Types.ObjectId(id)) },
+        _id: { $nin: excludedIds },
         $or: [
           { group: { $exists: false } },
           { group: null }
         ]
       })
         .populate("author", "name nickname avatarUrl role")
+        .populate({
+          path: "emotes.user",
+          select: "name nickname avatarUrl role"
+        })
         .sort({ createdAt: -1 })
         .limit(sanitizedLimit - mixedFeed.length)
         .lean();
+      
+      // Populate emotes.user cho fillerPosts
+      const fillerPostIds = fillerPosts.map(p => p._id).filter(Boolean);
+      if (fillerPostIds.length > 0 && fillerPosts.some(post => post.emotes && post.emotes.length > 0)) {
+        const allEmoteUserIds = new Set();
+        fillerPosts.forEach(post => {
+          if (post.emotes && Array.isArray(post.emotes)) {
+            post.emotes.forEach(emote => {
+              if (emote && emote.user) {
+                const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
+                if (!isPopulated) {
+                  if (typeof emote.user === 'object' && emote.user._id) {
+                    allEmoteUserIds.add(emote.user._id.toString());
+                  } else if (typeof emote.user === 'string') {
+                    allEmoteUserIds.add(emote.user);
+                  } else if (emote.user && emote.user.toString) {
+                    allEmoteUserIds.add(emote.user.toString());
+                  }
+                }
+              }
+            });
+          }
+        });
+
+        if (allEmoteUserIds.size > 0) {
+          const uniqueUserIds = Array.from(allEmoteUserIds);
+          const users = await User.find({ _id: { $in: uniqueUserIds } })
+            .select("name nickname avatarUrl role")
+            .lean();
+          
+          const userMap = new Map();
+          users.forEach(u => userMap.set(u._id.toString(), u));
+
+          // Populate emotes.user trong fillerPosts
+          fillerPosts.forEach(post => {
+            if (post.emotes && Array.isArray(post.emotes)) {
+              post.emotes = post.emotes.map(emote => {
+                if (emote && emote.user) {
+                  const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
+                  if (!isPopulated) {
+                    let userId;
+                    if (typeof emote.user === 'object' && emote.user._id) {
+                      userId = emote.user._id.toString();
+                    } else if (typeof emote.user === 'string') {
+                      userId = emote.user;
+                    } else if (emote.user && emote.user.toString) {
+                      userId = emote.user.toString();
+                    }
+                    if (userId) {
+                      const populatedUser = userMap.get(userId);
+                      if (populatedUser) {
+                        emote.user = populatedUser;
+                      }
+                    }
+                  }
+                }
+                return emote;
+              });
+            }
+          });
+        }
+      }
       
       mixedFeed.push(...fillerPosts);
     }

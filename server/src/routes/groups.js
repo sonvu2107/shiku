@@ -56,9 +56,9 @@ const uploadToCloudinary = (buffer, folder = 'groups') => {
 /**
  * @route   GET /api/groups
  * @desc    Lấy danh sách nhóm với phân trang và tìm kiếm
- * @access  Public (chỉ hiển thị public groups)
+ * @access  Public (chỉ hiển thị public groups) - nhưng cần authOptional để tính userRole
  */
-router.get('/', async (req, res) => {
+router.get('/', authOptional, async (req, res) => {
   try {
     const {
       page = 1,
@@ -107,13 +107,22 @@ router.get('/', async (req, res) => {
     // Thêm userRole cho mỗi group
     groups.forEach(group => {
       if (req.user) {
-        const member = group.members?.find(m => m.user._id?.toString() === req.user._id.toString());
-        if (member) {
-          group.userRole = member.role;
-        } else if (group.owner._id?.toString() === req.user._id.toString()) {
+        const userId = req.user._id.toString();
+        // Kiểm tra xem user có phải owner không
+        const ownerId = group.owner?._id?.toString() || group.owner?.toString();
+        if (ownerId === userId) {
           group.userRole = 'owner';
         } else {
-          group.userRole = null;
+          // Tìm member - xử lý cả trường hợp user đã populate và chưa populate
+          const member = group.members?.find(m => {
+            const memberUserId = m.user?._id?.toString() || m.user?.toString();
+            return memberUserId === userId;
+          });
+          if (member) {
+            group.userRole = member.role;
+          } else {
+            group.userRole = null;
+          }
         }
       } else {
         group.userRole = null;
@@ -181,11 +190,22 @@ router.get('/my-groups', authRequired, async (req, res) => {
       .lean();
 
     // Thêm thông tin vai trò của user trong mỗi nhóm
+    const userIdStr = userId.toString();
     const groupsWithRole = groups.map(group => {
-      const member = group.members.find(m => m.user._id.toString() === userId);
+      const ownerId = group.owner?._id?.toString() || group.owner?.toString();
+      if (ownerId === userIdStr) {
+        return { ...group, userRole: 'owner' };
+      }
+      
+      // Tìm member - xử lý cả trường hợp user đã populate và chưa populate
+      const member = group.members.find(m => {
+        const memberUserId = m.user?._id?.toString() || m.user?.toString();
+        return memberUserId === userIdStr;
+      });
+      
       return {
         ...group,
-        userRole: group.owner._id.toString() === userId ? 'owner' : (member ? member.role : null)
+        userRole: member ? member.role : null
       };
     });
 
@@ -286,10 +306,15 @@ router.get('/:id', authOptional, async (req, res) => {
     // Chuyển sang plain object để gán userRole
     let groupObj = group.toObject();
     if (req.user) {
+      const userIdStr = req.user._id.toString();
       if (isOwner) {
         groupObj.userRole = 'owner';
       } else if (isMember) {
-        const member = group.members?.find(m => m.user._id?.toString() === req.user._id.toString());
+        // Tìm member - xử lý cả trường hợp user đã populate và chưa populate
+        const member = groupObj.members?.find(m => {
+          const memberUserId = m.user?._id?.toString() || m.user?.toString();
+          return memberUserId === userIdStr;
+        });
         groupObj.userRole = member ? member.role : null;
       } else {
         groupObj.userRole = null;
@@ -447,14 +472,52 @@ router.put('/:id', authRequired, upload.fields([
     } = req.body;
 
     // Cập nhật thông tin cơ bản
-    if (name) group.name = name;
-    if (description !== undefined) group.description = description;
-    if (tags) group.tags = Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim());
-    if (location) group.location = JSON.parse(location);
+    if (name !== undefined && name.trim()) {
+      group.name = name.trim();
+    }
+    if (description !== undefined) {
+      group.description = description || '';
+    }
+    
+    // Xử lý tags
+    if (tags !== undefined) {
+      if (Array.isArray(tags)) {
+        group.tags = tags.filter(tag => tag && tag.trim()).map(tag => tag.trim());
+      } else if (typeof tags === 'string') {
+        const tagsArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+        group.tags = tagsArray;
+      }
+    }
+    
+    // Xử lý location
+    if (location !== undefined) {
+      try {
+        if (typeof location === 'string') {
+          const parsedLocation = JSON.parse(location);
+          group.location = parsedLocation;
+        } else if (typeof location === 'object') {
+          group.location = location;
+        }
+      } catch (error) {
+        // Nếu parse lỗi, xử lý như string đơn giản
+        if (typeof location === 'string' && location.trim()) {
+          group.location = { name: location.trim() };
+        }
+      }
+    }
 
     // Cập nhật cài đặt (chỉ owner mới có thể thay đổi)
     if (settings && isOwner) {
-      group.settings = { ...group.settings, ...JSON.parse(settings) };
+      try {
+        const parsedSettings = typeof settings === 'string' ? JSON.parse(settings) : settings;
+        group.settings = { ...group.settings, ...parsedSettings };
+      } catch (error) {
+        console.error('Error parsing settings:', error);
+        return res.status(400).json({
+          success: false,
+          message: 'Cài đặt không hợp lệ'
+        });
+      }
     }
 
     // Xử lý ảnh upload
@@ -993,6 +1056,154 @@ router.put('/:id/members/:userId/role', authRequired, async (req, res) => {
   }
 });
 
+/**
+ * @route   GET /api/groups/:id/analytics
+ * @desc    Lấy thống kê chi tiết của nhóm (chỉ admin và moderator)
+ * @access  Private
+ */
+router.get('/:id/analytics', authRequired, async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy nhóm'
+      });
+    }
+
+    // Kiểm tra quyền xem analytics
+    if (!group.hasPermission(req.user._id, 'view_analytics')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền xem thống kê nhóm này'
+      });
+    }
+
+    const { period = '30d' } = req.query;
+    
+    // Calculate date range based on period
+    let startDate = new Date();
+    switch (period) {
+      case '7d':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case '30d':
+        startDate.setDate(startDate.getDate() - 30);
+        break;
+      case '90d':
+        startDate.setDate(startDate.getDate() - 90);
+        break;
+      case '1y':
+        startDate.setDate(startDate.getDate() - 365);
+        break;
+      default:
+        startDate.setDate(startDate.getDate() - 30);
+    }
+
+    // Import Post model
+    const Post = (await import('../models/Post.js')).default;
+    const Comment = (await import('../models/Comment.js')).default;
+
+    // Get all group posts
+    const allPosts = await Post.find({ group: group._id })
+      .select('title slug views createdAt status author')
+      .populate('author', 'name avatarUrl')
+      .sort({ createdAt: -1 });
+
+    // Get posts from the specified period
+    const recentPosts = allPosts.filter(post => 
+      new Date(post.createdAt) >= startDate
+    );
+
+    // Calculate total views
+    const totalViews = allPosts.reduce((sum, post) => sum + (post.views || 0), 0);
+
+    // Get top posts (by views)
+    const topPosts = allPosts
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 10)
+      .map(post => ({
+        _id: post._id,
+        title: post.title,
+        slug: post.slug,
+        views: post.views || 0,
+        createdAt: post.createdAt,
+        status: post.status,
+        author: post.author
+      }));
+
+    // Get comments count
+    const totalComments = await Comment.countDocuments({ 
+      post: { $in: allPosts.map(p => p._id) } 
+    });
+
+    // Get recent comments count
+    const recentComments = await Comment.countDocuments({ 
+      post: { $in: recentPosts.map(p => p._id) },
+      createdAt: { $gte: startDate }
+    });
+
+    // Calculate member growth
+    const totalMembers = group.members?.length || 0;
+    const recentMembers = group.members?.filter(m => 
+      new Date(m.joinedAt) >= startDate
+    ).length || 0;
+
+    // Calculate growth metrics
+    const totalPosts = allPosts.length;
+    const publishedPosts = allPosts.filter(p => p.status === 'published').length;
+    const avgViewsPerPost = totalPosts > 0 ? Math.round(totalViews / totalPosts) : 0;
+
+    // Calculate posts by day for the period
+    const postsByDay = {};
+    const currentDate = new Date();
+    for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
+      const dateKey = d.toISOString().split('T')[0];
+      postsByDay[dateKey] = 0;
+    }
+    
+    recentPosts.forEach(post => {
+      const dateKey = new Date(post.createdAt).toISOString().split('T')[0];
+      if (postsByDay[dateKey] !== undefined) {
+        postsByDay[dateKey]++;
+      }
+    });
+
+    res.json({
+      success: true,
+      analytics: {
+        totalViews,
+        totalPosts,
+        totalComments,
+        totalMembers,
+        publishedPosts,
+        avgViewsPerPost,
+        recentPosts: recentPosts.length,
+        recentComments,
+        recentMembers,
+        topPosts,
+        recentPostsList: recentPosts.slice(0, 10).map(post => ({
+          _id: post._id,
+          title: post.title,
+          slug: post.slug,
+          views: post.views || 0,
+          createdAt: post.createdAt,
+          status: post.status,
+          author: post.author
+        })),
+        postsByDay,
+        period
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching group analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy thống kê nhóm'
+    });
+  }
+});
 
 export default router;
 

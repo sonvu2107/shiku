@@ -8,6 +8,25 @@
 export default {
   darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,jsx}"], // Files để quét classes
-  theme: { extend: {} }, // Theme customization
-  plugins: [], // Tailwind plugins
+  theme: { 
+    extend: {
+      // Custom utilities for scrollbar
+    }
+  }, // Theme customization
+  plugins: [
+    function({ addUtilities }) {
+      addUtilities({
+        '.scrollbar-hide': {
+          /* IE and Edge */
+          '-ms-overflow-style': 'none',
+          /* Firefox */
+          'scrollbar-width': 'none',
+          /* Safari and Chrome */
+          '&::-webkit-scrollbar': {
+            display: 'none'
+          }
+        }
+      })
+    }
+  ], // Tailwind plugins
 };

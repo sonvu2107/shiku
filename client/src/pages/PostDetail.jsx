@@ -4,7 +4,7 @@
   import { api } from "../api";
   import ReactMarkdown from "react-markdown";
   import CommentSection from "../components/CommentSection";
-  import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
+  import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck, MessageCircle, Share2 } from "lucide-react";
   import UserName from "../components/UserName";
   import Poll from "../components/Poll";
 
@@ -278,7 +278,9 @@
                   onToggleStatus={togglePostStatus}
                   onEdit={() => navigate(`/edit/${p._id}`)}
                   onDelete={deletePost}
+                  onSave={toggleSave}
                   isPrivate={p.status === "private"}
+                  saved={saved}
                 />
               </div>
             )}
@@ -584,11 +586,18 @@
             <button
               className="flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300"
               type="button"
-              onClick={toggleSave}
-              title={saved ? "Bỏ lưu" : "Lưu bài"}
+              onClick={() => {
+                const url = window.location.href;
+                navigator.clipboard.writeText(url).then(() => {
+                  alert("Đã sao chép liên kết!");
+                }).catch(() => {
+                  alert("Không thể sao chép liên kết");
+                });
+              }}
+              title="Chia sẻ"
             >
-              {saved ? <BookmarkCheck size={20} className="text-blue-500" /> : <Bookmark size={20} />}
-              <span>{saved ? "Đã lưu" : "Lưu"}</span>
+              <Share2 size={20} />
+              <span>Chia sẻ</span>
             </button>
           </div>
           </div>

@@ -491,7 +491,11 @@ router.post("/:id/save", authRequired, async (req, res, next) => {
     }
 
     await user.save();
-    res.json({ saved: !alreadySaved });
+    
+    // Tính số lượng users đã save post này
+    const savedCount = await User.countDocuments({ savedPosts: postId });
+    
+    res.json({ saved: !alreadySaved, savedCount });
   } catch (error) { next(error); }
 });
 
@@ -508,6 +512,63 @@ router.get("/:id/is-saved", authRequired, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+// Toggle interest/not interested for a post
+router.post("/:id/interest", authRequired, async (req, res, next) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user._id;
+    const { interested } = req.body; // true = quan tâm, false = không quan tâm
+
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ error: "Post ID không hợp lệ" });
+    }
+
+    if (typeof interested !== 'boolean') {
+      return res.status(400).json({ error: "Giá trị 'interested' phải là boolean" });
+    }
+
+    const post = await Post.findById(postId).select("_id status author");
+    if (!post) {
+      return res.status(404).json({ error: "Không tìm thấy bài viết" });
+    }
+
+    if (post.status === "private" && post.author.toString() !== userId.toString()) {
+      return res.status(403).json({ error: "Không thể đánh dấu bài viết riêng tư của người khác" });
+    }
+
+    const user = await User.findById(userId).select("interestedPosts notInterestedPosts");
+    
+    // Remove from both lists first (toggle behavior)
+    user.interestedPosts = (user.interestedPosts || []).filter(id => id.toString() !== postId);
+    user.notInterestedPosts = (user.notInterestedPosts || []).filter(id => id.toString() !== postId);
+
+    // Add to appropriate list based on interested value
+    if (interested) {
+      user.interestedPosts = user.interestedPosts || [];
+      if (!user.interestedPosts.some(id => id.toString() === postId)) {
+        user.interestedPosts.unshift(postId);
+      }
+    } else {
+      user.notInterestedPosts = user.notInterestedPosts || [];
+      if (!user.notInterestedPosts.some(id => id.toString() === postId)) {
+        user.notInterestedPosts.unshift(postId);
+      }
+    }
+
+    await user.save();
+    
+    res.json({ 
+      success: true, 
+      interested,
+      message: interested 
+        ? "Đã đánh dấu quan tâm bài viết này" 
+        : "Đã đánh dấu không quan tâm bài viết này"
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Get saved posts list
 router.get("/saved/list", authRequired, async (req, res, next) => {
   try {
@@ -522,10 +583,147 @@ router.get("/saved/list", authRequired, async (req, res, next) => {
     const posts = await Post.find({ _id: { $in: pageIds } })
       .populate("author", "name avatarUrl")
       .populate("group", "name")
+      .populate({
+        path: "emotes.user",
+        select: "name nickname avatarUrl role"
+      })
       .sort({ createdAt: -1 });
 
+    // Đảm bảo emotes.user được populate đúng cách
+    // Lưu ý: populate nested paths như emotes.user có thể không hoạt động đúng với .toObject()
+    // Nên chúng ta cần populate lại thủ công
+    const postsWithPopulatedEmotes = posts.map(post => {
+      const postObj = post.toObject();
+      
+      // Đảm bảo emotes.user được populate - kiểm tra và populate lại nếu cần
+      if (postObj.emotes && Array.isArray(postObj.emotes) && postObj.emotes.length > 0) {
+        // Lấy tất cả user IDs từ emotes chưa được populate
+        const emoteUserIds = [];
+        postObj.emotes.forEach(emote => {
+          if (emote && emote.user) {
+            // Nếu đã được populate (có _id và name), không cần populate lại
+            if (typeof emote.user === 'object' && emote.user._id && emote.user.name) {
+              // Đã được populate - skip
+              return;
+            }
+            // Nếu chưa được populate, lấy ID
+            let userId = null;
+            if (typeof emote.user === 'object' && emote.user._id) {
+              userId = emote.user._id.toString();
+            } else if (typeof emote.user === 'string') {
+              userId = emote.user;
+            } else if (emote.user && emote.user.toString) {
+              userId = emote.user.toString();
+            }
+            if (userId) {
+              emoteUserIds.push(userId);
+            }
+          }
+        });
+        
+        // Populate users nếu có (sẽ được xử lý bên ngoài để tối ưu batch query)
+        // Tạm thời giữ nguyên structure, sẽ populate sau
+      }
+      
+      return postObj;
+    });
+    
+    // Batch populate tất cả users từ tất cả posts
+    const allEmoteUserIds = new Set();
+    postsWithPopulatedEmotes.forEach(post => {
+      if (post.emotes && Array.isArray(post.emotes)) {
+        post.emotes.forEach(emote => {
+          if (emote && emote.user) {
+            // Nếu đã được populate, skip
+            if (typeof emote.user === 'object' && emote.user._id && emote.user.name) {
+              return;
+            }
+            // Lấy ID để populate
+            let userId = null;
+            if (typeof emote.user === 'object' && emote.user._id) {
+              userId = emote.user._id.toString();
+            } else if (typeof emote.user === 'string') {
+              userId = emote.user;
+            } else if (emote.user && emote.user.toString) {
+              userId = emote.user.toString();
+            }
+            if (userId) {
+              allEmoteUserIds.add(userId);
+            }
+          }
+        });
+      }
+    });
+    
+    // Populate users nếu có
+    let userMap = new Map();
+    if (allEmoteUserIds.size > 0) {
+      const uniqueUserIds = Array.from(allEmoteUserIds);
+      const users = await User.find({ _id: { $in: uniqueUserIds } })
+        .select("name nickname avatarUrl role")
+        .lean();
+      
+      users.forEach(u => userMap.set(u._id.toString(), u));
+    }
+    
+    // Populate lại emotes.user trong posts
+    const finalPosts = postsWithPopulatedEmotes.map(post => {
+      if (post.emotes && Array.isArray(post.emotes) && userMap.size > 0) {
+        post.emotes = post.emotes.map(emote => {
+          if (emote && emote.user) {
+            // Nếu đã được populate, giữ nguyên
+            if (typeof emote.user === 'object' && emote.user._id && emote.user.name) {
+              return emote;
+            }
+            
+            // Nếu chưa được populate, populate lại
+            let userId = null;
+            if (typeof emote.user === 'object' && emote.user._id) {
+              userId = emote.user._id.toString();
+            } else if (typeof emote.user === 'string') {
+              userId = emote.user;
+            } else if (emote.user && emote.user.toString) {
+              userId = emote.user.toString();
+            }
+            
+            if (userId) {
+              const populatedUser = userMap.get(userId);
+              if (populatedUser) {
+                return { ...emote, user: populatedUser };
+              }
+            }
+          }
+          return emote;
+        });
+      }
+      return post;
+    });
+
+    // Tính số lượng saved cho mỗi bài - batch query
+    const savedPostIds = finalPosts.map(p => p._id);
+    let savedCounts = [];
+    if (savedPostIds.length > 0) {
+      savedCounts = await User.aggregate([
+        { $match: { savedPosts: { $in: savedPostIds } } },
+        { $unwind: "$savedPosts" },
+        { $match: { savedPosts: { $in: savedPostIds } } },
+        { $group: { _id: "$savedPosts", count: { $sum: 1 } } }
+      ]);
+    }
+    
+    const savedCountMap = new Map();
+    savedCounts.forEach(item => {
+      savedCountMap.set(item._id.toString(), item.count);
+    });
+
+    // Thêm savedCount vào mỗi post
+    const postsWithSavedCount = finalPosts.map(post => ({
+      ...post,
+      savedCount: savedCountMap.get(post._id.toString()) || 0
+    }));
+
     res.json({
-      posts,
+      posts: postsWithSavedCount,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),

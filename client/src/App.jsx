@@ -277,8 +277,8 @@ export default function App() {
         
         {/* Mobile CSRF Debug Component */}
         
-        {/* Hiển thị navbar cho tất cả trang trừ login/register và chat */}
-        {!shouldHideNavbar && location.pathname !== "/chat" && (
+        {/* Hiển thị navbar cho tất cả trang trừ login/register, chat và home (home có layout riêng) */}
+        {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && (
           <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
         )}
 
@@ -315,10 +315,10 @@ export default function App() {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Trang chủ - redirect đến login nếu chưa đăng nhập */}
-              <Route path="/" element={user ? <Home user={user} /> : <Navigate to="/login" />} />
+              <Route path="/" element={user ? <Home user={user} setUser={setUser} /> : <Navigate to="/login" />} />
               
               {/* Các trang được bảo vệ (cần đăng nhập) */}
-              <Route path="/home" element={<ProtectedRoute user={user}><Home user={user} /></ProtectedRoute>} />
+              <Route path="/home" element={<ProtectedRoute user={user}><Home user={user} setUser={setUser} /></ProtectedRoute>} />
               <Route path="/post/:slug" element={<PostDetail />} />
               <Route path="/new" element={<ProtectedRoute user={user}><NewPost /></ProtectedRoute>} />
               <Route path="/edit/:id" element={<ProtectedRoute user={user}><EditPost /></ProtectedRoute>} />
@@ -351,6 +351,7 @@ export default function App() {
           </Suspense>
         </div>
       )}
+      
       
         </div>
       </ChatProvider>

@@ -45,6 +45,7 @@ import storyRoutes from "./routes/stories.js"; // Stories routes
 import pollRoutes from "./routes/polls.js"; // Polls routes
 import healthRoutes from "./routes/health.js"; // Health check routes
 import roleRoutes from "./routes/roles.js"; // Roles routes
+import chatbotRoutes from "./routes/chatbot.js"; // Chatbot AI routes
 
 // Environment variables are loaded via `import 'dotenv/config'` at the top
 
@@ -646,6 +647,7 @@ app.use("/api/stories", apiLimiter, storyRoutes); // Stories with rate limiting
 app.use("/api/polls", apiLimiter, pollRoutes); // Polls/Surveys with rate limiting
 app.use("/api/health", healthRoutes); // Health check endpoint
 app.use("/api/admin/roles", roleRoutes); // Roles routes
+app.use("/api/chatbot", apiLimiter, chatbotRoutes); // AI Chatbot with rate limiting
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);

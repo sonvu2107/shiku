@@ -77,6 +77,10 @@ const UserSchema = new mongoose.Schema({
   // ==================== SAVED POSTS ====================
   savedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }], // Bài viết đã lưu
   
+  // ==================== POST INTEREST PREFERENCES ====================
+  interestedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }], // Bài viết user quan tâm (sẽ thấy nhiều hơn)
+  notInterestedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }], // Bài viết user không quan tâm (sẽ thấy ít hơn)
+  
   // ==================== TRẠNG THÁI ONLINE ====================
   isOnline: { type: Boolean, default: false }, // Có online không
   isVerified: { type: Boolean, default: false }, // Tài khoản đã verify

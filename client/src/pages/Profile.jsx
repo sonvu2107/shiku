@@ -6,6 +6,7 @@ import { useSavedPosts } from "../hooks/useSavedPosts";
 import { generateAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import PostCreator from "../components/PostCreator";
 import ProfileCustomization from "../components/ProfileCustomization";
+import AvatarCropper from "../components/AvatarCropper";
 import {
   Settings,
   Edit3,
@@ -119,6 +120,8 @@ export default function Profile() {
     phone: "" // Số điện thoại
   });
   const [avatarUploading, setAvatarUploading] = useState(false); // Tải lại khi upload avatar
+  const [showAvatarCropper, setShowAvatarCropper] = useState(false); // Hiển thị avatar cropper
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState(null); // File ảnh được chọn để crop
 
   // Trạng thái tùy chỉnh
   const [showCustomization, setShowCustomization] = useState(false); // Hiển thị modal tùy chỉnh
@@ -495,19 +498,27 @@ export default function Profile() {
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={async e => {
+                        onChange={e => {
                           const file = e.target.files?.[0];
                           if (!file) return;
-                          setAvatarUploading(true);
-                          try {
-                            const { url } = await uploadImage(file);
-                            setForm(f => ({ ...f, avatarUrl: url }));
-                          } catch (err) {
-                            alert("Tải lên thất bại: " + err.message);
-                          } finally {
-                            setAvatarUploading(false);
+                          
+                          // Validate file type
+                          if (!file.type.startsWith('image/')) {
+                            alert('Vui lòng chọn file ảnh');
+                            return;
                           }
+                          
+                          // Validate file size (5MB max)
+                          if (file.size > 5 * 1024 * 1024) {
+                            alert('Kích thước file không được vượt quá 5MB');
+                            return;
+                          }
+                          
+                          // Show cropper
+                          setSelectedAvatarFile(file);
+                          setShowAvatarCropper(true);
                         }}
+                        disabled={avatarUploading}
                       />
                     </label>
                   )}
@@ -729,57 +740,57 @@ export default function Profile() {
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tên</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tên</label>
                       <input
                         value={form.name}
                         onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Biệt danh</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Biệt danh</label>
                       <input
                         value={form.nickname}
                         onChange={e => setForm(f => ({ ...f, nickname: e.target.value }))}
                         placeholder="Nhập biệt danh của bạn..."
                         maxLength={30}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
                       <input
                         type="email"
                         value={form.email}
                         onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu mới</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mật khẩu mới</label>
                       <input
                         type="password"
                         value={form.password}
                         onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                         placeholder="Để trống nếu không đổi"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ngày sinh</label>
                       <input
                         type="date"
                         value={form.birthday}
                         onChange={e => setForm(f => ({ ...f, birthday: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Giới tính</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Giới tính</label>
                       <select
                         value={form.gender}
                         onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
                       >
                         <option value="">Chọn</option>
                         <option value="male">Nam</option>
@@ -788,60 +799,46 @@ export default function Profile() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Sở thích</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sở thích</label>
                       <input
                         value={form.hobbies}
                         onChange={e => setForm(f => ({ ...f, hobbies: e.target.value }))}
                         placeholder="VD: Đọc sách, Du lịch..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Địa chỉ</label>
                       <input
                         value={form.location || ""}
                         onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                         placeholder="Thành phố, Quốc gia"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Website</label>
                       <input
                         value={form.website || ""}
                         onChange={e => setForm(f => ({ ...f, website: e.target.value }))}
                         placeholder="https://example.com"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Số điện thoại</label>
                       <input
                         value={form.phone || ""}
                         onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                         placeholder="+84 123 456 789"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
                       />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tiểu sử</label>
-                      <textarea
-                        value={form.bio || ""}
-                        onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
-                        placeholder="Hãy kể về bản thân..."
-                        rows={3}
-                        maxLength={500}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                      />
-                      <div className="text-right text-sm text-gray-500 mt-1">
-                        {(form.bio || "").length}/500
-                      </div>
                     </div>
                   </div>
                   <div className="flex gap-3 pt-4">
                     <button
                       type="submit"
-                      className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                      className="px-6 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors font-medium"
                     >
                       Lưu thay đổi
                     </button>
@@ -851,7 +848,7 @@ export default function Profile() {
                         setEditing(false);
                         load();
                       }}
-                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
                     >
                       Hủy
                     </button>
@@ -873,11 +870,11 @@ export default function Profile() {
       </div>
 
       {/* Content Tabs */}
-      <div className="max-w-4xl mx-auto px-6">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* Tab Navigation */}
-          <div className="border-b border-gray-200 dark:border-gray-700">
-            <nav className="flex space-x-1 md:space-x-8 px-2 md:px-6 overflow-x-auto scrollbar-hide">
+          <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
+            <nav className="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700">
               {[
                 ...(user.showPosts === false ? [] : [{ id: "posts", label: "Bài đăng", icon: CustomIcons.FileText, count: posts.filter(post => post.status === 'published').length }]),
                 { id: "friends", label: "Bạn bè", icon: CustomIcons.Users, count: friends.length },
@@ -886,17 +883,25 @@ export default function Profile() {
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`${activeTab === id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    } whitespace-nowrap py-3 md:py-4 px-3 md:px-1 border-b-2 font-medium text-sm flex items-center gap-1 md:gap-2 transition-colors min-w-fit flex-shrink-0`}
+                  className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 font-medium transition-all duration-200 whitespace-nowrap relative touch-target text-xs sm:text-sm md:text-base ${
+                    activeTab === id
+                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30'
+                  }`}
                 >
-                  <Icon className="w-4 h-4 md:w-5 md:h-5" />
-                  <span className="text-xs md:text-sm">{label}</span>
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span>{label}</span>
                   {count > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
-                      {count}
+                    <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold min-w-[18px] sm:min-w-[20px] text-center leading-none ${
+                      activeTab === id
+                        ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50'
+                        : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
+                    }`}>
+                      {count > 99 ? '99+' : count}
                     </span>
+                  )}
+                  {activeTab === id && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
                   )}
                 </button>
               ))}
@@ -1335,6 +1340,40 @@ export default function Profile() {
             setShowCustomization(false);
           }}
           onClose={() => setShowCustomization(false)}
+        />
+      )}
+
+      {/* Avatar Cropper Modal */}
+      {showAvatarCropper && selectedAvatarFile && (
+        <AvatarCropper
+          imageFile={selectedAvatarFile}
+          onCropComplete={async (croppedBlob) => {
+            try {
+              setAvatarUploading(true);
+              setShowAvatarCropper(false);
+              
+              // Convert blob to File
+              const croppedFile = new File([croppedBlob], selectedAvatarFile.name, {
+                type: 'image/png',
+                lastModified: Date.now()
+              });
+              
+              // Upload cropped image
+              const { url } = await uploadImage(croppedFile);
+              setForm(f => ({ ...f, avatarUrl: url }));
+              
+              // Reset state
+              setSelectedAvatarFile(null);
+            } catch (err) {
+              alert("Tải lên thất bại: " + err.message);
+            } finally {
+              setAvatarUploading(false);
+            }
+          }}
+          onCancel={() => {
+            setShowAvatarCropper(false);
+            setSelectedAvatarFile(null);
+          }}
         />
       )}
     </div>

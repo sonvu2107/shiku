@@ -99,25 +99,37 @@ export default function Settings() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          <button
-            className={`flex-1 px-3 sm:px-4 py-2 sm:py-2 rounded-lg font-semibold border transition-colors text-sm sm:text-base ${activeTab === "blocked"
-              ? "bg-black dark:bg-blue-600 text-white border-black dark:border-blue-600"
-              : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700"
-            }`}
-            onClick={() => setActiveTab("blocked")}
-          >
-             Danh sách chặn
-          </button>
-          <button
-            className={`flex-1 px-3 sm:px-4 py-2 sm:py-2 rounded-lg font-semibold border transition-colors text-sm sm:text-base ${activeTab === "privacy"
-              ? "bg-black dark:bg-blue-600 text-white border-black dark:border-blue-600"
-              : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700"
-            }`}
-            onClick={() => setActiveTab("privacy")}
-          >
-             Bảo mật tài khoản
-          </button>
+        <div className="mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="grid grid-cols-2 border-b border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
+              <button
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 font-medium transition-all duration-200 whitespace-nowrap relative touch-target text-xs sm:text-sm md:text-base ${
+                  activeTab === "blocked"
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                }`}
+                onClick={() => setActiveTab("blocked")}
+              >
+                <span>Danh sách chặn</span>
+                {activeTab === "blocked" && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
+                )}
+              </button>
+              <button
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 font-medium transition-all duration-200 whitespace-nowrap relative touch-target text-xs sm:text-sm md:text-base ${
+                  activeTab === "privacy"
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                }`}
+                onClick={() => setActiveTab("privacy")}
+              >
+                <span>Bảo mật tài khoản</span>
+                {activeTab === "privacy" && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Blocked Users */}

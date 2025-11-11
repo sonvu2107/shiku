@@ -1,15 +1,31 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import PostCard from "../components/PostCard";
+import { useSavedPosts } from "../hooks/useSavedPosts";
 
 export default function Saved() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
+  const { savedMap, updateSavedState } = useSavedPosts(posts);
 
   useEffect(() => {
     load();
+    loadCurrentUser();
   }, []);
+
+  /**
+   * Load thông tin user hiện tại (để hiển thị cảm xúc đã thả)
+   */
+  async function loadCurrentUser() {
+    try {
+      const res = await api("/api/auth/me");
+      setUser(res.user);
+    } catch (error) {
+      // Silent fail - user có thể không đăng nhập
+    }
+  }
 
   async function load(page = 1) {
     try {
@@ -52,7 +68,16 @@ export default function Saved() {
             <div className="card text-gray-500 dark:text-gray-400">Chưa có bài viết nào.</div>
           ) : (
             posts.map(p => (
-              <PostCard key={p._id} post={p} isSaved={true} skipSavedStatusFetch={true} />
+              <PostCard
+                key={p._id}
+                post={p}
+                user={user}
+                hidePublicIcon={false}
+                hideActionsMenu={true}
+                isSaved={savedMap[p._id] ?? true}
+                onSavedChange={updateSavedState}
+                skipSavedStatusFetch={true}
+              />
             ))
           )}
         </div>

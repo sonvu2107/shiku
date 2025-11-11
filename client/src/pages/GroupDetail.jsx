@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getUserAvatarUrl, AVATAR_SIZES } from '../utils/avatarUtils';
 import {
@@ -22,7 +22,12 @@ import {
   UserX,
   Camera,
   Upload,
-  MoreHorizontal
+  MoreHorizontal,
+  BarChart3,
+  TrendingUp,
+  Eye,
+  FileText,
+  Plus
 } from 'lucide-react';
 import { api } from '../api';
 import { useSavedPosts } from '../hooks/useSavedPosts';
@@ -57,6 +62,7 @@ const GroupDetail = () => {
   const [isJoining, setIsJoining] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [showPostCreator, setShowPostCreator] = useState(false);
+  const postCreatorRef = useRef(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsData, setSettingsData] = useState({});
   const [groupStats, setGroupStats] = useState({ memberCount: 0, postCount: 0, pendingCount: 0 });
@@ -67,6 +73,12 @@ const GroupDetail = () => {
   const pendingKey = `groupJoinPending:${id}`;
   const [pendingRequests, setPendingRequests] = useState([]);
   const [pendingLoading, setPendingLoading] = useState(false);
+  
+  // Analytics states
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState('');
+  const [analyticsPeriod, setAnalyticsPeriod] = useState('30d');
 
   // Load group details
   const loadGroup = async () => {
@@ -230,9 +242,45 @@ const GroupDetail = () => {
     try {
       setSettingsLoading(true);
 
+      // Validation
+      if (!settingsData.name || !settingsData.name.trim()) {
+        alert('Vui lòng nhập tên nhóm');
+        setSettingsLoading(false);
+        return;
+      }
+
+      if (settingsData.name.trim().length > 100) {
+        alert('Tên nhóm không được quá 100 ký tự');
+        setSettingsLoading(false);
+        return;
+      }
+
+      if (settingsData.description && settingsData.description.length > 500) {
+        alert('Mô tả nhóm không được quá 500 ký tự');
+        setSettingsLoading(false);
+        return;
+      }
+
+      // Validate tags
+      if (settingsData.tags) {
+        const tagsArray = settingsData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+        if (tagsArray.length > 10) {
+          alert('Tối đa 10 tags');
+          setSettingsLoading(false);
+          return;
+        }
+        for (const tag of tagsArray) {
+          if (tag.length > 20) {
+            alert(`Tag "${tag}" không được quá 20 ký tự`);
+            setSettingsLoading(false);
+            return;
+          }
+        }
+      }
+
       const updateData = new FormData();
-      updateData.append('name', settingsData.name);
-      updateData.append('description', settingsData.description);
+      updateData.append('name', settingsData.name.trim());
+      updateData.append('description', settingsData.description || '');
       updateData.append('settings', JSON.stringify({
         type: settingsData.type,
         joinApproval: settingsData.joinApproval,
@@ -242,8 +290,8 @@ const GroupDetail = () => {
         showMemberList: settingsData.showMemberList,
         searchable: settingsData.searchable
       }));
-      updateData.append('tags', settingsData.tags);
-      updateData.append('location', JSON.stringify({ name: settingsData.location }));
+      updateData.append('tags', settingsData.tags || '');
+      updateData.append('location', JSON.stringify({ name: settingsData.location || '' }));
 
       const response = await api(`/api/groups/${id}`, {
         method: 'PUT',
@@ -449,6 +497,33 @@ const GroupDetail = () => {
     }
   }, [id, user]);
 
+  // Load analytics data
+  const loadAnalytics = async () => {
+    if (!group) return;
+
+    setAnalyticsLoading(true);
+    setAnalyticsError('');
+
+    try {
+      const response = await api(`/api/groups/${id}/analytics?period=${analyticsPeriod}`);
+      if (response.success) {
+        setAnalytics(response.analytics);
+      }
+    } catch (err) {
+      setAnalyticsError('Không thể tải dữ liệu phân tích: ' + err.message);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  // Load analytics when switching to analytics tab
+  useEffect(() => {
+    if (activeTab === 'analytics' && group && hasPermission('view_analytics')) {
+      loadAnalytics();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, group, analyticsPeriod]);
+
   // Reset flag when changing groups
   useEffect(() => {
     setHasLoadedWithUser(false);
@@ -549,18 +624,31 @@ const GroupDetail = () => {
   const hasPermission = (action) => {
     const role = group?.userRole;
 
+    // Owner có tất cả quyền
+    if (role === 'owner') return true;
+
     switch (action) {
       // Chỉ owner và admin
       case 'change_settings':
       case 'promote_to_admin':
-        return role === 'owner' || role === 'admin';
+      case 'delete_group':
+        return role === 'admin';
 
       // Owner, admin và moderator
       case 'remove_member':
       case 'ban_member':
+      case 'unban_member':
       case 'promote_to_moderator':
+      case 'demote_moderator':
       case 'approve_join_request':
-        return role === 'owner' || role === 'admin' || role === 'moderator';
+      case 'reject_join_request':
+      case 'moderate_posts':
+      case 'edit_post':
+      case 'delete_post':
+      case 'pin_post':
+      case 'unpin_post':
+      case 'view_analytics':
+        return role === 'admin' || role === 'moderator';
 
       default:
         return false;
@@ -569,20 +657,20 @@ const GroupDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
+          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
           <button
             onClick={() => navigate('/groups')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
           >
             Quay lại danh sách nhóm
           </button>
@@ -593,12 +681,12 @@ const GroupDetail = () => {
 
   if (!group) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">Không tìm thấy nhóm</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">Không tìm thấy nhóm</p>
           <button
             onClick={() => navigate('/groups')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
           >
             Quay lại danh sách nhóm
           </button>
@@ -611,26 +699,26 @@ const GroupDetail = () => {
   const requiresApproval = group?.settings?.joinApproval && group.settings.joinApproval !== 'anyone';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-30">
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between h-16 min-h-[64px]">
+            <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
               <button
                 onClick={() => navigate('/groups')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300 flex-shrink-0 touch-target"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <div>
-                <h1 className="text-lg sm:text-xl font-semibold text-gray-900 line-clamp-1 max-w-[70vw] sm:max-w-none">{group.name}</h1>
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 line-clamp-1 truncate">{group.name}</h1>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                   <span className={groupTypeInfo.color}>
                     {groupTypeInfo.icon} {groupTypeInfo.text}
                   </span>
-                  <span>•</span>
-                  <span>{group.stats?.memberCount || 0} thành viên</span>
+                  <span className="hidden sm:inline">•</span>
+                  <span className="truncate">{group.stats?.memberCount || 0} thành viên</span>
                 </div>
               </div>
             </div>
@@ -641,7 +729,7 @@ const GroupDetail = () => {
                   {hasPermission('change_settings') && (
                     <button
                       onClick={() => setActiveTab('settings')}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
                       title="Cài đặt nhóm"
                     >
                       <Settings className="w-5 h-5" />
@@ -650,7 +738,7 @@ const GroupDetail = () => {
                   <button
                     onClick={handleLeave}
                     disabled={isLeaving || group.userRole === 'owner'}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {isLeaving ? 'Đang rời...' : 'Rời nhóm'}
                   </button>
@@ -659,7 +747,7 @@ const GroupDetail = () => {
                 requiresApproval && isPendingJoin ? (
                   <button
                     onClick={() => setActiveTab('posts')}
-                    className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg border border-yellow-300"
+                    className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-lg border border-yellow-300 dark:border-yellow-700 transition-colors"
                   >
                     Đang chờ duyệt...
                   </button>
@@ -667,9 +755,9 @@ const GroupDetail = () => {
                   <button
                     onClick={handleJoin}
                     disabled={isJoining}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
                   >
-                    {isJoining ? 'Đang gửi yêu cầu...' : (requiresApproval ? 'Yêu cầu tham gia' : 'Tham gia')}
+                    {isJoining ? 'Đang gửi yêu cầu...' : (requiresApproval ? 'Yêu cầu tham gia' : 'Tham gia nhóm')}
                   </button>
                 )
               )}
@@ -678,14 +766,14 @@ const GroupDetail = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20 md:pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2">
             {/* Group Info Card */}
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
               {/* Cover Image with Avatar */}
-              <div className="w-full h-48 rounded-lg overflow-hidden mb-4 relative group-cover">
+              <div className="w-full h-40 sm:h-48 rounded-lg overflow-hidden mb-4 relative group-cover">
                 {group.coverImage ? (
                   <img
                     src={group.coverImage}
@@ -726,8 +814,8 @@ const GroupDetail = () => {
                 )}
 
                 {/* Group Avatar positioned at bottom left */}
-                <div className="absolute bottom-4 left-4">
-                  <div className="w-20 h-20 rounded-full overflow-hidden bg-white border-4 border-white shadow-lg relative">
+                <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-white dark:bg-gray-800 border-4 border-white dark:border-gray-800 shadow-lg relative">
                     {group.avatar ? (
                       <img
                         src={group.avatar}
@@ -767,23 +855,23 @@ const GroupDetail = () => {
 
               {/* Group Description */}
               {group.description && (
-                <p className="text-gray-700 mb-4">{group.description}</p>
+                <p className="text-gray-700 dark:text-gray-300 mb-4">{group.description}</p>
               )}
 
               {/* Group Stats */}
-              <div className="flex items-center gap-6 text-sm text-gray-600">
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-gray-600 dark:text-gray-400">
                 <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
+                  <Users className="w-4 h-4 flex-shrink-0" />
                   <span>{groupStats.memberCount} thành viên</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <MessageSquare className="w-4 h-4" />
+                  <MessageSquare className="w-4 h-4 flex-shrink-0" />
                   <span>{groupStats.postCount} bài viết</span>
                 </div>
                 {group.location?.name && (
                   <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>{group.location.name}</span>
+                    <MapPin className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{group.location.name}</span>
                   </div>
                 )}
               </div>
@@ -795,7 +883,7 @@ const GroupDetail = () => {
                     {group.tags.map((tag, index) => (
                       <span
                         key={index}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full"
+                        className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full font-medium"
                       >
                         #{tag}
                       </span>
@@ -806,26 +894,32 @@ const GroupDetail = () => {
             </div>
 
             {/* Tabs */}
-            <div className="bg-white rounded-lg shadow-sm">
-              <div className="border-b border-gray-200 sticky top-16 z-20 bg-white">
+            <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 ${activeTab === 'members' ? 'overflow-visible' : 'overflow-hidden'}`}>
+              <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                 <nav className="flex px-3 sm:px-6 space-x-4 sm:space-x-8 overflow-x-auto no-scrollbar">
                   {[
                     { id: 'posts', label: 'Bài viết', count: group.stats?.postCount || 0 },
                     { id: 'members', label: 'Thành viên', count: groupStats.memberCount },
                     ...(hasPermission('approve_join_request') ? [{ id: 'pending', label: 'Chờ duyệt', count: (activeTab === 'pending' ? pendingRequests.length : groupStats.pendingCount) }] : []),
+                    ...(hasPermission('view_analytics') ? [{ id: 'analytics', label: 'Thống kê', count: 0 }] : []),
                     ...(hasPermission('change_settings') ? [{ id: 'settings', label: 'Cài đặt', count: 0 }] : [])
                   ].map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap touch-target ${activeTab === tab.id
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        }`}
+                      className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap touch-target transition-colors relative ${
+                        activeTab === tab.id
+                          ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
                     >
                       {tab.label}
                       {tab.count > 0 && (
-                        <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
+                        <span className={`ml-2 py-0.5 px-2 rounded-full text-xs font-bold ${
+                          activeTab === tab.id
+                            ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                        }`}>
                           {tab.count}
                         </span>
                       )}
@@ -834,13 +928,13 @@ const GroupDetail = () => {
                 </nav>
               </div>
 
-              <div className="p-6">
+              <div className={`p-6 ${activeTab === 'members' ? 'overflow-visible' : ''}`}>
                 {/* Posts Tab */}
                 {activeTab === 'posts' && (
                   <div>
                     {/* Pending banner for users awaiting approval */}
                     {requiresApproval && !group.userRole && (group.hasPendingJoinRequest || isPendingJoin) && (
-                      <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 flex items-center justify-between gap-3">
+                      <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg text-yellow-800 dark:text-yellow-300 flex items-center justify-between gap-3">
                         <div className="text-sm">
                           Yêu cầu tham gia của bạn đang chờ duyệt bởi quản trị viên.
                         </div>
@@ -852,7 +946,7 @@ const GroupDetail = () => {
                             try { localStorage.removeItem(pendingKey); } catch { }
                             await loadGroup();
                           }}
-                          className="px-3 py-1.5 bg-white text-yellow-700 border border-yellow-300 rounded-lg text-sm hover:bg-yellow-100"
+                          className="px-3 py-1.5 bg-white dark:bg-gray-700 text-yellow-700 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-600 rounded-lg text-sm hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors"
                         >
                           Hủy yêu cầu
                         </button>
@@ -861,6 +955,7 @@ const GroupDetail = () => {
                     {canPost() && (
                       <div className="mb-6">
                         <PostCreator
+                          ref={postCreatorRef}
                           user={user}
                           groupId={id}
                         />
@@ -874,6 +969,7 @@ const GroupDetail = () => {
                             key={post._id}
                             post={post}
                             user={user}
+                            hidePublicIcon={false}
                             hideActionsMenu={true}
                             isSaved={savedMap[post._id]}
                             onSavedChange={updateSavedState}
@@ -886,7 +982,7 @@ const GroupDetail = () => {
                             <button
                               onClick={loadMorePosts}
                               disabled={postsLoading}
-                              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
+                              className="px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 w-full sm:w-auto transition-colors"
                             >
                               {postsLoading ? 'Đang tải...' : 'Tải thêm'}
                             </button>
@@ -895,14 +991,16 @@ const GroupDetail = () => {
                       </div>
                     ) : (
                       <div className="text-center py-12">
-                        <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có bài viết nào</h3>
-                        <p className="text-gray-600">
-                          {canPost()
-                            ? 'Hãy là người đầu tiên đăng bài trong nhóm này'
-                            : 'Chưa có bài viết nào trong nhóm này'
-                          }
-                        </p>
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+                          <MessageSquare className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Chưa có bài viết nào</h3>
+                          <p className="text-gray-600 dark:text-gray-400">
+                            {canPost()
+                              ? 'Hãy là người đầu tiên đăng bài trong nhóm này'
+                              : 'Chưa có bài viết nào trong nhóm này'
+                            }
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -912,10 +1010,10 @@ const GroupDetail = () => {
                 {activeTab === 'members' && (isAdmin() || group.settings?.showMemberList) && (
                   <div>
                     {group.members && group.members.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-visible">
                         {group.members.map((member) => (
-                          <div key={member.user._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
+                          <div key={member.user._id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors overflow-visible relative">
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
                               <img
                                 src={getUserAvatarUrl(member.user, AVATAR_SIZES.MEDIUM)}
                                 alt={member.user.name || member.user.fullName || member.user.username || 'User'}
@@ -924,18 +1022,18 @@ const GroupDetail = () => {
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900 truncate">
+                              <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
                                 {member.user.name || member.user.fullName || member.user.username || member.user.displayName || 'Unknown'}
                               </p>
                               <div className="flex items-center gap-2">
                                 {member.role === 'owner' && (
-                                  <Crown className="w-4 h-4 text-yellow-500" />
+                                  <Crown className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
                                 )}
                                 {member.role === 'admin' && (
-                                  <Shield className="w-4 h-4 text-blue-500" />
+                                  <Shield className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                                 )}
                                 {member.role === 'moderator' && (
-                                  <UserCheck className="w-4 h-4 text-green-500" />
+                                  <UserCheck className="w-4 h-4 text-green-500 dark:text-green-400" />
                                 )}
                                 <span className="text-sm text-gray-600 dark:text-gray-300 capitalize">
                                   {member.role === 'owner' ? 'Chủ sở hữu' :
@@ -949,13 +1047,13 @@ const GroupDetail = () => {
                               <div className="relative member-menu">
                                 <button
                                   onClick={() => setShowMemberMenu(showMemberMenu === member.user._id ? null : member.user._id)}
-                                  className="p-1 hover:bg-gray-200 rounded"
+                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-600 dark:text-gray-400 transition-colors"
                                 >
                                   <MoreVertical className="w-4 h-4" />
                                 </button>
 
                                 {showMemberMenu === member.user._id && (
-                                  <div className="absolute right-0 top-8 bg-white rounded-lg shadow-lg py-1 z-10 min-w-[180px] border">
+                                  <div className="absolute right-0 top-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900/50 py-1 z-50 min-w-[180px] border border-gray-200 dark:border-gray-700">
                                     {/* Role Management - Phân quyền chi tiết */}
 
                                     {/* Chỉ Owner mới có thể thăng Admin */}
@@ -965,9 +1063,9 @@ const GroupDetail = () => {
                                           handleMemberRoleChange(member.user._id, 'admin');
                                           setShowMemberMenu(null);
                                         }}
-                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
                                       >
-                                        <Shield className="w-4 h-4 text-blue-500" />
+                                        <Shield className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                                         Thăng Quản trị viên
                                       </button>
                                     )}
@@ -1061,9 +1159,11 @@ const GroupDetail = () => {
                       </div>
                     ) : (
                       <div className="text-center py-12">
-                        <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có thành viên</h3>
-                        <p className="text-gray-600">Nhóm này chưa có thành viên nào</p>
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+                          <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Chưa có thành viên</h3>
+                          <p className="text-gray-600 dark:text-gray-400">Nhóm này chưa có thành viên nào</p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1073,18 +1173,18 @@ const GroupDetail = () => {
                 {activeTab === 'pending' && hasPermission('approve_join_request') && (
                   <div>
                     {pendingLoading ? (
-                      <div className="py-8 text-center text-gray-500">Đang tải danh sách...</div>
+                      <div className="py-8 text-center text-gray-500 dark:text-gray-400">Đang tải danh sách...</div>
                     ) : pendingRequests && pendingRequests.length > 0 ? (
                       <div className="space-y-3">
                         {pendingRequests.map((req) => (
-                          <div key={req._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
+                          <div key={req._id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
                               <img src={getUserAvatarUrl(req.user, AVATAR_SIZES.MEDIUM)} alt={req.user?.name || 'User'} className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900 truncate">{req.user?.name || 'Người dùng'}</p>
-                              <p className="text-xs text-gray-600 truncate">{new Date(req.requestedAt).toLocaleString('vi-VN')}</p>
-                              {req.message && <p className="text-sm text-gray-700 mt-1">{req.message}</p>}
+                              <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{req.user?.name || 'Người dùng'}</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{new Date(req.requestedAt).toLocaleString('vi-VN')}</p>
+                              {req.message && <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{req.message}</p>}
                             </div>
                             <div className="flex gap-2">
                               <button
@@ -1381,6 +1481,239 @@ const GroupDetail = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Analytics Tab */}
+                {activeTab === 'analytics' && hasPermission('view_analytics') && (
+                  <div className="space-y-8">
+                    {/* Analytics Header */}
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                            <BarChart3 className="w-6 h-6" />
+                            Thống kê nhóm
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Phân tích hoạt động và hiệu suất của nhóm
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <select
+                            value={analyticsPeriod}
+                            onChange={(e) => setAnalyticsPeriod(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                          >
+                            <option value="7d">7 ngày qua</option>
+                            <option value="30d">30 ngày qua</option>
+                            <option value="90d">90 ngày qua</option>
+                            <option value="1y">1 năm qua</option>
+                          </select>
+                          <button
+                            onClick={loadAnalytics}
+                            className="px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors text-sm"
+                          >
+                            Làm mới
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Analytics Content */}
+                    {analyticsLoading ? (
+                      <div className="space-y-6">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                            <div className="animate-pulse">
+                              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
+                              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : analyticsError ? (
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                          <span className="text-red-400 text-2xl">⚠️</span>
+                        </div>
+                        <h3 className="text-lg font-medium text-red-900 dark:text-red-100 mb-2">Có lỗi xảy ra</h3>
+                        <p className="text-red-600 dark:text-red-400 mb-4">{analyticsError}</p>
+                        <button
+                          onClick={loadAnalytics}
+                          className="px-4 py-2 bg-red-600 dark:bg-red-700 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-800 transition-colors"
+                        >
+                          Thử lại
+                        </button>
+                      </div>
+                    ) : analytics ? (
+                      <div className="space-y-6">
+                        {/* Overview Stats */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-blue-100 text-sm">Tổng lượt xem</p>
+                                <p className="text-2xl font-bold">{analytics.totalViews.toLocaleString()}</p>
+                              </div>
+                              <Eye className="w-8 h-8 text-blue-200" />
+                            </div>
+                          </div>
+                          
+                          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-green-100 text-sm">Tổng bài viết</p>
+                                <p className="text-2xl font-bold">{analytics.totalPosts}</p>
+                              </div>
+                              <FileText className="w-8 h-8 text-green-200" />
+                            </div>
+                          </div>
+                          
+                          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-purple-100 text-sm">Tổng bình luận</p>
+                                <p className="text-2xl font-bold">{analytics.totalComments.toLocaleString()}</p>
+                              </div>
+                              <MessageSquare className="w-8 h-8 text-purple-200" />
+                            </div>
+                          </div>
+                          
+                          <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-6 text-white">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-orange-100 text-sm">Tổng thành viên</p>
+                                <p className="text-2xl font-bold">{analytics.totalMembers}</p>
+                              </div>
+                              <Users className="w-8 h-8 text-orange-200" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Recent Activity Stats */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                                <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Bài viết mới</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{analytics.recentPosts}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {analytics.period === '7d' ? '7 ngày' : analytics.period === '30d' ? '30 ngày' : analytics.period === '90d' ? '90 ngày' : '1 năm'} qua
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                                <MessageSquare className="w-6 h-6 text-green-600 dark:text-green-400" />
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Bình luận mới</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{analytics.recentComments}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {analytics.period === '7d' ? '7 ngày' : analytics.period === '30d' ? '30 ngày' : analytics.period === '90d' ? '90 ngày' : '1 năm'} qua
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                                <UserPlus className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Thành viên mới</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{analytics.recentMembers}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {analytics.period === '7d' ? '7 ngày' : analytics.period === '30d' ? '30 ngày' : analytics.period === '90d' ? '90 ngày' : '1 năm'} qua
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Top Posts */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                            <BarChart3 className="w-5 h-5" />
+                            Top bài viết có lượt xem cao nhất
+                          </h4>
+                          {analytics.topPosts && analytics.topPosts.length > 0 ? (
+                            <div className="space-y-3">
+                              {analytics.topPosts.map((post, index) => (
+                                <div key={post._id} className="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-semibold text-sm flex-shrink-0">
+                                      {index + 1}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h5 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                                        {post.title}
+                                      </h5>
+                                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {post.author?.name || 'Người dùng'} • {new Date(post.createdAt).toLocaleDateString('vi-VN')}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 flex-shrink-0 ml-3">
+                                    <Eye className="w-4 h-4" />
+                                    <span className="font-semibold">{post.views.toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                              <BarChart3 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                              <p>Chưa có dữ liệu phân tích</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Recent Posts */}
+                        {analytics.recentPostsList && analytics.recentPostsList.length > 0 && (
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                              <Calendar className="w-5 h-5" />
+                              Bài viết gần đây ({analytics.period === '7d' ? '7 ngày' : analytics.period === '30d' ? '30 ngày' : analytics.period === '90d' ? '90 ngày' : '1 năm'})
+                            </h4>
+                            <div className="space-y-3">
+                              {analytics.recentPostsList.map((post) => (
+                                <div key={post._id} className="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                  <div className="flex-1 min-w-0">
+                                    <h5 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                                      {post.title}
+                                    </h5>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                      {post.author?.name || 'Người dùng'} • {new Date(post.createdAt).toLocaleDateString('vi-VN')}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 flex-shrink-0 ml-3">
+                                    <Eye className="w-4 h-4" />
+                                    <span className="font-semibold">{post.views.toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                          <BarChart3 className="w-8 h-8 text-blue-400" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Chưa có dữ liệu phân tích</h3>
+                        <p className="text-gray-500 dark:text-gray-400 mb-6">Nhóm sẽ có dữ liệu thống kê khi có hoạt động!</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1443,7 +1776,10 @@ const GroupDetail = () => {
                 <div className="flex flex-col gap-3">
                   {canPost() && (
                     <button
-                      onClick={() => setActiveTab('posts') || setShowPostCreator(true)}
+                      onClick={() => {
+                        setActiveTab('posts');
+                        postCreatorRef.current?.openModal();
+                      }}
                       className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
                     >
                       Viết bài mới
@@ -1472,14 +1808,35 @@ const GroupDetail = () => {
         </div>
       </div>
       {/* Mobile action bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-2">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-900/50 safe-area-bottom">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-2">
           {group.userRole ? (
             <>
+              {canPost() && (
+                <button
+                  onClick={() => {
+                    setActiveTab('posts');
+                    postCreatorRef.current?.openModal();
+                  }}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300 touch-target"
+                  title="Viết bài mới"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              )}
+              {hasPermission('change_settings') && (
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300 touch-target"
+                  title="Cài đặt nhóm"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
+              )}
               <button
                 onClick={handleLeave}
                 disabled={isLeaving || group.userRole === 'owner'}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full touch-target disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg touch-target disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
               >
                 {isLeaving ? 'Đang rời...' : 'Rời nhóm'}
               </button>
@@ -1488,7 +1845,7 @@ const GroupDetail = () => {
             requiresApproval && isPendingJoin ? (
               <button
                 onClick={() => setActiveTab('posts')}
-                className="flex-1 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full touch-target border border-yellow-300"
+                className="flex-1 px-4 py-2.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-lg touch-target border border-yellow-300 dark:border-yellow-700 font-medium transition-colors"
               >
                 Đang chờ duyệt...
               </button>
@@ -1496,7 +1853,7 @@ const GroupDetail = () => {
               <button
                 onClick={handleJoin}
                 disabled={isJoining}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-full touch-target disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg touch-target disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
               >
                 {isJoining ? 'Đang gửi...' : (requiresApproval ? 'Yêu cầu tham gia' : 'Tham gia nhóm')}
               </button>

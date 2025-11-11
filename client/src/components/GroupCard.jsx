@@ -12,7 +12,8 @@ import {
   Eye,
   EyeOff,
   Lock,
-  Unlock
+  Unlock,
+  UserCheck
 } from 'lucide-react';
 import UserName from './UserName';
 
@@ -103,17 +104,21 @@ const GroupCard = ({
     }
   };
 
-  // Kiểm tra xem có thể join không
-  const canJoin = !userRole && group.settings?.type === 'public' && group.settings?.joinApproval === 'anyone';
+  // Kiểm tra trạng thái tham gia
+  const isMember = !!userRole; // Đã tham gia nhóm (có userRole)
+  const isOwner = userRole === 'owner';
   
-  // Kiểm tra xem có thể leave không
+  // Kiểm tra xem có thể join không (chưa tham gia)
+  const canJoin = !userRole;
+  
+  // Kiểm tra xem có thể leave không (đã tham gia nhưng không phải owner)
   const canLeave = userRole && userRole !== 'owner';
   
   // Kiểm tra xem có thể edit không
   const canEdit = userRole === 'owner' || userRole === 'admin';
 
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-900/20 hover:shadow-lg transition-shadow duration-200 overflow-hidden border border-gray-200 dark:border-gray-700">
       {/* Cover Image */}
       <div className="relative h-32 sm:h-40 md:h-48 lg:h-56 bg-gradient-to-r from-blue-500 to-purple-600">
         {group.coverImage ? (
@@ -129,14 +134,14 @@ const GroupCard = ({
         )}
         
         {/* Group Type Badge */}
-        <div className="absolute top-2 left-2 flex items-center gap-1 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs">
+        <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/60 dark:bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium">
           {getGroupTypeIcon()}
           <span>{getGroupTypeText()}</span>
         </div>
 
         {/* Avatar */}
         <div className="absolute -bottom-8 left-4">
-          <div className="w-16 h-16 rounded-full border-4 border-white overflow-hidden bg-gray-200">
+          <div className="w-16 h-16 rounded-full border-4 border-white dark:border-gray-800 overflow-hidden bg-gray-200 dark:bg-gray-700 shadow-lg">
             {group.avatar ? (
               <img 
                 src={group.avatar} 
@@ -144,8 +149,8 @@ const GroupCard = ({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                <Users className="w-8 h-8 text-gray-500" />
+              <div className="w-full h-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                <Users className="w-8 h-8 text-gray-500 dark:text-gray-400" />
               </div>
             )}
           </div>
@@ -157,17 +162,17 @@ const GroupCard = ({
             <div className="relative">
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="p-2 rounded-full bg-black bg-opacity-50 text-white hover:bg-opacity-70 transition-colors"
+                className="p-2 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-sm text-white hover:bg-opacity-80 transition-colors"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
               
               {showMenu && (
-                <div className="absolute right-0 top-10 bg-white rounded-lg shadow-lg py-1 z-10 min-w-[120px]">
+                <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900/50 py-1 z-10 min-w-[120px] border border-gray-200 dark:border-gray-700">
                   {canEdit && (
                     <button
                       onClick={handleEdit}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
                     >
                       <Settings className="w-4 h-4" />
                       Chỉnh sửa
@@ -177,7 +182,7 @@ const GroupCard = ({
                     <button
                       onClick={handleLeave}
                       disabled={isLeaving}
-                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 disabled:opacity-50 transition-colors"
                     >
                       <UserMinus className="w-4 h-4" />
                       {isLeaving ? 'Đang rời...' : 'Rời nhóm'}
@@ -197,20 +202,20 @@ const GroupCard = ({
           to={`/groups/${group._id}`}
           className="block"
         >
-          <h3 className="font-semibold text-lg text-gray-900 hover:text-blue-600 transition-colors line-clamp-1">
+          <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-1">
             {group.name}
           </h3>
         </Link>
 
         {/* Description */}
         {group.description && (
-          <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+          <p className="text-gray-600 dark:text-gray-400 text-sm mt-1 line-clamp-2">
             {group.description}
           </p>
         )}
 
         {/* Stats */}
-        <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
+        <div className="flex items-center gap-4 mt-3 text-sm text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-1">
             <Users className="w-4 h-4" />
             <span>{group.stats?.memberCount || 0} thành viên</span>
@@ -226,7 +231,7 @@ const GroupCard = ({
 
         {/* Location */}
         {group.location?.name && (
-          <div className="flex items-center gap-1 mt-2 text-sm text-gray-500">
+          <div className="flex items-center gap-1 mt-2 text-sm text-gray-500 dark:text-gray-400">
             <MapPin className="w-4 h-4" />
             <span className="line-clamp-1">{group.location.name}</span>
           </div>
@@ -238,13 +243,13 @@ const GroupCard = ({
             {group.tags.slice(0, 3).map((tag, index) => (
               <span
                 key={index}
-                className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full"
+                className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium"
               >
                 #{tag}
               </span>
             ))}
             {group.tags.length > 3 && (
-              <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+              <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full">
                 +{group.tags.length - 3}
               </span>
             )}
@@ -252,10 +257,10 @@ const GroupCard = ({
         )}
 
         {/* Owner Info */}
-        <div className="mt-3 pt-3 border-t border-gray-100">
+        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200">
+              <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
                 {group.owner?.avatarUrl ? (
                   <img 
                     src={group.owner.avatarUrl} 
@@ -263,16 +268,16 @@ const GroupCard = ({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                    <span className="text-xs text-gray-500">
+                  <div className="w-full h-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       {(group.owner?.name || group.owner?.fullName || group.owner?.username || 'U').charAt(0).toUpperCase()}
                     </span>
                   </div>
                 )}
               </div>
               <div>
-                <p className="text-xs text-gray-500">Tạo bởi</p>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Tạo bởi</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   <UserName user={group.owner} />
                 </p>
               </div>
@@ -282,9 +287,9 @@ const GroupCard = ({
             {userRole && (
               <div className="flex items-center gap-1">
                 {userRole === 'owner' && (
-                  <Shield className="w-4 h-4 text-yellow-500" />
+                  <Shield className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
                 )}
-                <span className="text-xs font-medium text-gray-600 capitalize">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400 capitalize">
                   {userRole === 'owner' ? 'Chủ sở hữu' : 
                    userRole === 'admin' ? 'Quản trị viên' : 
                    userRole === 'moderator' ? 'Điều hành viên' : 'Thành viên'}
@@ -301,29 +306,41 @@ const GroupCard = ({
               <button
                 onClick={handleJoin}
                 disabled={isJoining}
-                className="flex-1 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 bg-gray-900 dark:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <UserPlus className="w-4 h-4" />
-                {isJoining ? 'Đang tham gia...' : 'Tham gia'}
+                {isJoining ? 'Đang tham gia...' : 'Tham gia nhóm'}
               </button>
             )}
             
-            {canLeave && (
-              <button
-                onClick={handleLeave}
-                disabled={isLeaving}
-                className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <UserMinus className="w-4 h-4" />
-                {isLeaving ? 'Đang rời...' : 'Rời nhóm'}
-              </button>
+            {isMember && !isOwner && (
+              <div className="flex gap-2 flex-1">
+                <Link
+                  to={`/groups/${group._id}`}
+                  className="flex-1 bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 dark:hover:bg-green-600 transition-colors text-center flex items-center justify-center gap-2"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  Đã tham gia
+                </Link>
+                {canLeave && (
+                  <button
+                    onClick={handleLeave}
+                    disabled={isLeaving}
+                    className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    title="Rời nhóm"
+                  >
+                    <UserMinus className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             )}
 
-            {userRole && !canLeave && (
+            {isOwner && (
               <Link
                 to={`/groups/${group._id}`}
-                className="flex-1 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors text-center"
+                className="flex-1 bg-gray-900 dark:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors text-center flex items-center justify-center gap-2"
               >
+                <Shield className="w-4 h-4" />
                 Xem nhóm
               </Link>
             )}

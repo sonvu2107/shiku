@@ -27,7 +27,7 @@ const conversationSchema = new mongoose.Schema({
   }],
   conversationType: {
     type: String,
-    enum: ['private', 'group'],
+    enum: ['private', 'group', 'chatbot'],
     required: true
   },
   groupName: {
@@ -37,6 +37,10 @@ const conversationSchema = new mongoose.Schema({
   groupAvatar: {
     type: String,
     default: null
+  },
+  title: {
+    type: String,
+    default: null // Cho chatbot conversation title
   },
   allowMemberManagement: {
     type: Boolean,

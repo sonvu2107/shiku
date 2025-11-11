@@ -1,12 +1,9 @@
-import { FileText } from "lucide-react";
-
 /**
  * Logo - Component hiển thị logo của ứng dụng
- * Có fallback icon nếu không load được logo SVG
  * @param {string} size - Kích thước logo ('small', 'medium', 'large')
- * @param {boolean} showText - Hiển thị text "Shiku" bên cạnh logo
+ * @param {boolean} invert - Invert màu logo (dùng cho dark background)
  */
-export default function Logo({ size = "small", showText = false }) {
+export default function Logo({ size = "small", invert = false }) {
   // Mapping sizes cho logo image
   const logoSizes = {
     small: "h-10",     // 40px height
@@ -14,39 +11,25 @@ export default function Logo({ size = "small", showText = false }) {
     large: "h-20"      // 80px height
   };
 
-  // Mapping sizes cho text
-  const textSizes = {
-    small: "text-xl",
-    medium: "text-3xl",
-    large: "text-5xl"
+  // Width mapping based on height
+  const logoWidths = {
+    small: 40,   // ~40px width for 40px height
+    medium: 64,  // ~64px width for 64px height
+    large: 80    // ~80px width for 80px height
   };
 
   return (
-    <div className="flex items-center gap-3">
-      {/* Primary logo - SVG file */}
+    <div className="flex items-center">
+      {/* Primary logo - SVG file with explicit dimensions to prevent CLS */}
       <img 
         src="/assets/shiku-logo.svg" 
         alt="Shiku Logo" 
-        className={`${logoSizes[size]} w-auto invert-0 dark:invert`}
-        onError={(e) => {
-          // Fallback: ẩn image và hiện icon backup
-          e.target.style.display = 'none';
-          e.target.nextSibling.style.display = 'flex';
-        }}
+        width={logoWidths[size]}
+        height={size === 'small' ? 40 : size === 'medium' ? 64 : 80}
+        className={`${logoSizes[size]} w-auto ${invert ? '' : 'dark:invert'}`}
+        loading="eager"
+        fetchpriority="high"
       />
-      
-      {/* Fallback logo - Lucide icon (ẩn mặc định) */}
-      <div style={{display: 'none'}} className="flex items-center gap-3">
-        <FileText 
-          size={size === 'large' ? 48 : size === 'medium' ? 36 : 24} 
-          className="text-gray-800 dark:text-gray-100" 
-        />
-        {showText && (
-          <span className={`font-bold text-gray-800 dark:text-gray-100 ${textSizes[size]}`}>
-            Shiku
-          </span>
-        )}
-      </div>
     </div>
   );
 }

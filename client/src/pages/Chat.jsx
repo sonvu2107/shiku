@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import ConversationList from "../components/chat/ConversationList";
 import ChatWindow from "../components/chat/ChatWindow";
+import Chatbot from "../components/Chatbot";
 import NewConversationModal from "../components/chat/NewConversationModal";
 import AddMembersModal from "../components/chat/AddMembersModal";
 import CallModal from "../components/CallModal";
@@ -12,6 +13,7 @@ import { api } from "../api";
 import socketService from "../socket";
 import callManager from "../utils/callManager";
 import { getUserInfo } from "../utils/auth";
+import { chatbotAPI } from "../services/chatbotAPI";
 
 /**
  * Chat - Trang chat chính với real-time messaging
@@ -253,14 +255,18 @@ export default function Chat() {
       if (currentConversationId) {
         const savedConversation = conversations.find(conv => conv._id === currentConversationId);
         if (savedConversation) {
+          console.log('Restoring saved conversation:', savedConversation._id);
           setSelectedConversation(savedConversation);
+          return savedConversation;
         } else {
           // Clear saved conversation if it's no longer in the list
           await chatAPI.setCurrentConversation(null);
         }
       }
+      return null;
     } catch (error) {
-      // Handle error silently
+      console.error('Error loading current conversation:', error);
+      return null;
     }
   };
 
@@ -334,22 +340,39 @@ export default function Chat() {
     const handleConversationChange = async () => {
       if (selectedConversation) {
         try {
-          loadMessages(selectedConversation._id);
-          // Join conversation room for real-time updates
-          await socketService.joinConversation(selectedConversation._id);
+          console.log('Loading conversation:', selectedConversation._id, selectedConversation.conversationType);
+          
+          // Với chatbot conversation, Chatbot component tự quản lý messages
+          // Không cần load messages ở đây vì Chatbot component sẽ tự load từ chatbotAPI.getHistory()
+          if (selectedConversation.conversationType === 'chatbot') {
+            // Chatbot component tự quản lý messages, không cần load ở đây
+            console.log('Chatbot conversation selected - Chatbot component will handle messages');
+          } else {
+            // Với conversation bình thường, load messages và join socket room
+            await loadMessages(selectedConversation._id);
+            if (selectedConversation._id) {
+              await socketService.joinConversation(selectedConversation._id);
+            }
+          }
         } catch (error) {
-          // Silent handling for conversation change error
+          console.error('Error in handleConversationChange:', error);
         }
+      } else {
+        // Clear messages khi không có conversation được chọn
+        setMessages([]);
+        setHasMoreMessages(false);
       }
     };
 
     handleConversationChange();
     
     return () => {
-      // Leave conversation when component unmounts or conversation changes
-      socketService.leaveConversation();
+      // Leave conversation khi conversation thay đổi (trừ chatbot)
+      if (selectedConversation && selectedConversation.conversationType !== 'chatbot') {
+        socketService.leaveConversation();
+      }
     };
-  }, [selectedConversation]);
+  }, [selectedConversation?._id]); // Chỉ trigger khi conversation ID thay đổi
 
   // Cleanup: Only leave conversation when unmounting Chat, don't disconnect socket
   useEffect(() => {
@@ -362,15 +385,19 @@ export default function Chat() {
     try {
       setIsLoading(true);
       const data = await chatAPI.getConversations();
-      setConversations(data.conversations || []);
+      // Loại bỏ chatbot conversation khỏi danh sách vì nó được hiển thị riêng
+      let conversationsList = (data.conversations || []).filter(
+        conv => conv.conversationType !== 'chatbot'
+      );
+
+      setConversations(conversationsList);
 
       // Join vào TẤT CẢ conversation rooms để nhận incoming calls
       // Điều này đảm bảo user nhận được cuộc gọi từ bất kỳ conversation nào
-      const conversations = data.conversations || [];
-      if (conversations.length > 0 && socketService.socket?.connected) {
-        // Join tất cả conversations (không cần await vì đã simplify)
-        conversations.forEach(conversation => {
-          if (conversation._id) {
+      if (conversationsList.length > 0 && socketService.socket?.connected) {
+        // Join tất cả conversations (trừ chatbot vì không cần socket)
+        conversationsList.forEach(conversation => {
+          if (conversation._id && conversation.conversationType !== 'chatbot') {
             socketService.joinConversation(conversation._id);
           }
         });
@@ -382,6 +409,13 @@ export default function Chat() {
   };
 
   const loadMessages = async (conversationId, page = 1) => {
+    if (!conversationId) {
+      console.error('loadMessages: conversationId is required');
+      setMessages([]);
+      setIsLoadingMessages(false);
+      return [];
+    }
+    
     try {
       setIsLoadingMessages(true);
       const data = await chatAPI.getMessages(conversationId, page);
@@ -400,7 +434,8 @@ export default function Chat() {
       setHasMoreMessages(hasMore);
       return data.messages || [];
     } catch (error) {
-      // Handle error silently
+      console.error('Error loading messages:', error);
+      setMessages([]);
       return [];
     } finally {
       setIsLoadingMessages(false);
@@ -412,6 +447,23 @@ export default function Chat() {
       return;
     }
 
+    // Với chatbot conversation, sử dụng chatbot API
+    if (selectedConversation.conversationType === 'chatbot') {
+      try {
+        const response = await chatbotAPI.sendMessage(content);
+        if (response && response.message) {
+          // Messages đã được lưu trong database, reload messages
+          await loadMessages(selectedConversation._id);
+          // Reload conversations để cập nhật lastMessage
+          await loadConversations();
+        }
+      } catch (error) {
+        alert('Có lỗi xảy ra khi gửi tin nhắn đến chatbot');
+      }
+      return;
+    }
+
+    // Với conversation bình thường
     try {
       // Ensure user is in conversation room before sending message
       await socketService.joinConversation(selectedConversation._id);
@@ -638,12 +690,45 @@ export default function Chat() {
   };
 
   const handleSelectConversation = (conversation) => {
+    if (!conversation) {
+      console.error('handleSelectConversation: conversation is null or undefined');
+      return;
+    }
+    if (!conversation._id) {
+      console.error('handleSelectConversation: conversation._id is missing', conversation);
+      return;
+    }
+    console.log('Selecting conversation:', conversation._id, conversation.conversationType);
     setSelectedConversation(conversation);
     setShowChatWindow(true); // Hiển thị chat window trên mobile
+    // Save current conversation
+    saveCurrentConversation(conversation._id);
   };
-  
+ 
   const handleBackToList = () => {
     setShowChatWindow(false); // Quay lại danh sách trên mobile
+    setSelectedConversation(null);
+  };
+
+  const handleOpenChatbotPanel = async () => {
+    try {
+      console.log('Opening chatbot panel...');
+      // Load chatbot conversation từ API
+      const response = await chatbotAPI.getConversation();
+      if (response.success && response.data) {
+        const chatbotConv = response.data;
+        console.log('Chatbot conversation loaded:', chatbotConv._id);
+        // Chọn chatbot conversation (không thêm vào danh sách vì đã có nút riêng)
+        setSelectedConversation(chatbotConv);
+        setShowChatWindow(true);
+        // Save current conversation
+        saveCurrentConversation(chatbotConv._id);
+      } else {
+        console.error('Failed to load chatbot conversation:', response);
+      }
+    } catch (error) {
+      console.error('Error loading chatbot conversation:', error);
+    }
   };
 
   // ==================== CALL HANDLERS ====================
@@ -826,12 +911,23 @@ export default function Chat() {
               onSelectConversation={handleSelectConversation}
               loading={isLoading}
               currentUser={currentUser}
+            onOpenChatbot={handleOpenChatbotPanel}
+            isChatbotActive={selectedConversation?.conversationType === 'chatbot'}
             />
           </div>
         </div>
-        {/* Chat Window - Hiển thị khi showChatWindow = true trên mobile hoặc luôn luôn trên desktop */}
-        <div className={`flex-1 bg-gray-50 dark:bg-gray-900 flex flex-col chat-window-mobile min-h-0 ${!showChatWindow ? 'hidden sm:flex' : 'flex'}`}>
-          {selectedConversation ? (
+        {/* Chat Window - Hiển thị khi showChatWindow = true trên mobile hoặc luôn luôn trên desktop khi có selectedConversation */}
+        <div className={`flex-1 bg-gray-50 dark:bg-gray-900 flex flex-col chat-window-mobile min-h-0 ${selectedConversation ? (showChatWindow ? 'flex' : 'hidden sm:flex') : 'hidden sm:flex'}`}>
+        {selectedConversation && selectedConversation.conversationType === 'chatbot' ? (
+          <div className="flex-1 flex flex-col min-h-0 h-full w-full">
+            <Chatbot 
+              key={`chatbot-${selectedConversation._id}`}
+              variant="embedded" 
+              onClose={handleBackToList}
+              showHeader={true}
+            />
+          </div>
+        ) : selectedConversation ? (
             <ChatWindow
               conversation={mergeOnlineStatusToConversation(selectedConversation)}
               currentUser={currentUser}

@@ -124,10 +124,20 @@ label { @apply text-sm font-medium text-gray-700; }
   align-items: center; 
   justify-content: center; 
   transition: transform 0.15s ease; 
+  position: relative;
 }
 .emote-btn:hover { 
   transform: scale(1.08); 
   background-color: #f3f4f6;
+}
+.emote-btn.active {
+  background-color: #dbeafe;
+}
+.dark .emote-btn.active {
+  background-color: #1e3a8a;
+}
+.emote-btn.active .emote {
+  transform: scale(1.1);
 }
 
 /* Comment emote picker (for comments) */
@@ -188,4 +198,125 @@ label { @apply text-sm font-medium text-gray-700; }
 .break-words {
   word-break: break-word;
   overflow-wrap: break-word;
+}
+
+/* Login page background optimization for mobile */
+.login-background {
+  background-attachment: scroll;
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+}
+
+@media (min-width: 768px) {
+  .login-background {
+    background-attachment: fixed;
+  }
+}
+
+/* Mobile touch optimization */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent zoom on input focus on iOS */
+@media screen and (max-width: 768px) {
+  input[type="email"],
+  input[type="password"],
+  input[type="text"],
+  textarea,
+  select {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+  
+  /* Tắt flip card animation trên mobile - dùng show/hide đơn giản */
+  .register-flip-container {
+    perspective: none !important;
+    height: auto !important;
+  }
+  
+  .register-flip-card {
+    transform: none !important;
+    transform-style: flat !important;
+    height: auto !important;
+    position: static !important;
+  }
+  
+  /* Trên mobile: ẩn step không active, hiển thị step active */
+  .register-step-1,
+  .register-step-2 {
+    position: static !important;
+    transform: none !important;
+    backface-visibility: visible !important;
+    -webkit-backface-visibility: visible !important;
+  }
+  
+  .register-step-1[data-step-active="false"],
+  .register-step-2[data-step-active="false"] {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+  }
+  
+  .register-step-1[data-step-active="true"],
+  .register-step-2[data-step-active="true"] {
+    display: block !important;
+    opacity: 1 !important;
+    position: static !important;
+    transform: none !important;
+    backface-visibility: visible !important;
+    -webkit-backface-visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: auto !important;
+    visibility: visible !important;
+    animation: registerFadeIn 0.3s ease-in-out;
+  }
+  
+  @keyframes registerFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Desktop: giữ flip animation */
+@media (min-width: 768px) {
+  .register-flip-container {
+    perspective: 1000px !important;
+    height: auto !important;
+  }
+  
+  .register-flip-card {
+    transform-style: preserve-3d !important;
+    position: relative !important;
+  }
+  
+  .register-step-1,
+  .register-step-2 {
+    position: absolute !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+  }
+  
+  .register-step-1[data-step-active="false"],
+  .register-step-2[data-step-active="false"] {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+  
+  .register-step-1[data-step-active="true"],
+  .register-step-2[data-step-active="true"] {
+    display: block !important;
+    opacity: 1 !important;
+    position: absolute !important;
+    visibility: visible !important;
+    animation: none !important;
+  }
 }

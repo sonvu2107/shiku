@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { api } from "../api";
 import { useNavigate, Link } from "react-router-dom";
 import { saveTokens } from "../utils/tokenManager";
 import { getCSRFToken, clearCSRFToken } from "../utils/csrfToken";
 import Logo from "../components/Logo";
-import { UserPlus, Mail, Lock, User } from "lucide-react";
+import { UserPlus, Mail, Lock, User, Eye, EyeOff, ChevronLeft, ChevronRight, Calendar, ArrowLeft } from "lucide-react";
 
 /**
  * Register - Trang đăng ký tài khoản mới
@@ -15,13 +15,50 @@ export default function Register({ setUser }) {
   // ==================== STATE MANAGEMENT ====================
   
   // Form states
+  const [currentStep, setCurrentStep] = useState(1); // Step hiện tại (1 hoặc 2)
   const [name, setName] = useState(""); // Họ và tên
+  const [dateOfBirth, setDateOfBirth] = useState(""); // Ngày tháng năm sinh
   const [email, setEmail] = useState(""); // Email
   const [password, setPassword] = useState(""); // Mật khẩu
+  const [showPassword, setShowPassword] = useState(false); // Toggle password visibility
   const [passwordStrength, setPasswordStrength] = useState(0); // Độ mạnh mật khẩu (0-5)
   const [err, setErr] = useState(""); // Error message
   const [loading, setLoading] = useState(false); // Loading state
   const navigate = useNavigate();
+  
+  // Refs để đo chiều cao của các step
+  const step1Ref = useRef(null);
+  const step2Ref = useRef(null);
+  const [containerHeight, setContainerHeight] = useState('auto');
+
+  // Đo và đồng bộ chiều cao của cả 2 step
+  useEffect(() => {
+    const updateHeight = () => {
+      if (step1Ref.current && step2Ref.current) {
+        // Tạm thời hiển thị cả 2 step để đo chiều cao chính xác
+        const step1Height = step1Ref.current.scrollHeight;
+        const step2Height = step2Ref.current.scrollHeight;
+        const maxHeight = Math.max(step1Height, step2Height);
+        if (maxHeight > 0) {
+          setContainerHeight(`${maxHeight}px`);
+        }
+      }
+    };
+
+    // Delay nhỏ để đảm bảo DOM đã render xong
+    const timeoutId = setTimeout(updateHeight, 10);
+    
+    // Cập nhật chiều cao khi window resize
+    const handleResize = () => {
+      setTimeout(updateHeight, 10);
+    };
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [currentStep, name, dateOfBirth, email, password, err]);
 
   // ==================== EVENT HANDLERS ====================
   
@@ -32,13 +69,15 @@ export default function Register({ setUser }) {
   async function submit(e) {
     e.preventDefault();
     setErr(""); // Clear error cũ
+    
+    // Validate step 2 trước khi submit
+    if (!validateStep2()) {
+      return;
+    }
+    
     setLoading(true);
     
     try {
-      // Kiểm tra mật khẩu có đủ mạnh không
-      if (passwordStrength < 3) {
-        throw new Error("Mật khẩu chưa đủ mạnh. Vui lòng chọn mật khẩu có độ bảo mật từ 'Trung bình' trở lên.");
-      }
       
       // Lấy CSRF token trước khi đăng ký
       const csrfToken = await getCSRFToken();
@@ -47,9 +86,14 @@ export default function Register({ setUser }) {
       }
       
       // Gọi API đăng ký với CSRF token
+      const requestBody = { name, email, password };
+      if (dateOfBirth && dateOfBirth.trim()) {
+        requestBody.dateOfBirth = dateOfBirth.trim();
+      }
+      
       const data = await api("/api/auth-token/register-token", { 
         method: "POST", 
-        body: { name, email, password },
+        body: requestBody,
         headers: {
           'X-CSRF-Token': csrfToken
         }
@@ -194,82 +238,338 @@ export default function Register({ setUser }) {
     return true;
   };
 
+  // ==================== STEP NAVIGATION ====================
+  
+  /**
+   * Validate step 1 (Họ tên và ngày sinh)
+   */
+  const validateStep1 = () => {
+    if (!name.trim()) {
+      setErr("Vui lòng nhập họ và tên");
+      return false;
+    }
+    if (!dateOfBirth) {
+      setErr("Vui lòng chọn ngày tháng năm sinh");
+      return false;
+    }
+    // Kiểm tra tuổi (ít nhất 13 tuổi)
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
+    
+    if (actualAge < 13) {
+      setErr("Bạn phải ít nhất 13 tuổi để đăng ký");
+      return false;
+    }
+    return true;
+  };
+
+  /**
+   * Validate step 2 (Email và mật khẩu)
+   */
+  const validateStep2 = () => {
+    if (!email.trim()) {
+      setErr("Vui lòng nhập email");
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErr("Email không hợp lệ");
+      return false;
+    }
+    if (!password) {
+      setErr("Vui lòng nhập mật khẩu");
+      return false;
+    }
+    if (passwordStrength < 3) {
+      setErr("Mật khẩu chưa đủ mạnh. Vui lòng chọn mật khẩu có độ bảo mật từ 'Trung bình' trở lên.");
+      return false;
+    }
+    return true;
+  };
+
+  /**
+   * Chuyển sang step tiếp theo
+   */
+  const handleNext = () => {
+    setErr("");
+    if (currentStep === 1) {
+      if (validateStep1()) {
+        setCurrentStep(2);
+      }
+    }
+  };
+
+  /**
+   * Quay lại step trước
+   */
+  const handleBack = () => {
+    setErr("");
+    setCurrentStep(1);
+  };
+
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-slate-100 dark:from-gray-900 dark:to-gray-900 flex items-center justify-center">
-      <div className="w-full max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-8 items-center">
-        
-        {/* Left Side - Branding */}
-        <div className="text-center lg:text-left space-y-6 px-4">
-          <div className="flex items-center justify-center lg:justify-start">
+    <div 
+      className="min-h-screen flex items-center justify-center p-2 sm:p-4 relative login-background"
+      style={{
+        backgroundImage: 'url(/assets/Home.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Overlay nhẹ cho background */}
+      <div className="absolute inset-0 bg-black/20"></div>
+      
+      <div 
+        className="w-full max-w-5xl bg-white dark:bg-neutral-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl grid grid-cols-1 md:grid-cols-2 relative z-10 my-4 sm:my-0"
+        style={{
+          filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.15))'
+        }}
+      >
+        {/* Cột trái: Giới thiệu với gradient - Ẩn trên mobile nhỏ, hiện từ md trở lên */}
+        <div 
+          className="hidden md:flex relative flex-col justify-between p-8 lg:p-10 text-white min-h-[500px]"
+          style={{
+            backgroundImage: 'url(/assets/gradient.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        >
+          {/* Overlay để đảm bảo text dễ đọc */}
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-800/70 via-neutral-900/70 to-black/70"></div>
+          
+          {/* Logo/Top */}
+          <div className="relative z-10">
+            <div className="mb-6 lg:mb-8 [&_span]:text-white [&_svg]:text-white [&_img]:!invert-0 [&_img]:!dark:invert">
             <Logo size="large" showText={true} />
+            </div>
           </div>
-          <p className="text-xl text-gray-700 dark:text-gray-300 leading-relaxed">
-            Tham gia cộng đồng và bắt đầu hành trình chia sẻ câu chuyện của bạn.
-          </p>
-          <div className="hidden lg:block space-y-4">
-            <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-              <span>Tạo trang cá nhân miễn phí</span>
+
+          {/* Content giới thiệu */}
+          <div className="relative z-10 space-y-4 lg:space-y-6">
+            <div>
+              <p className="text-sm opacity-80 mb-2 lg:mb-3">Tham gia cộng đồng</p>
+              <h2 className="text-xl lg:text-2xl xl:text-3xl font-bold leading-snug">
+                Bắt đầu hành trình chia sẻ <br className="hidden lg:block" />
+                câu chuyện của bạn ngay hôm nay.
+              </h2>
             </div>
-            <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-              <span>Kết nối với mọi người</span>
+            <div className="space-y-2 lg:space-y-3 opacity-90">
+              <div className="flex items-center gap-2 lg:gap-3">
+                <div className="w-1.5 h-1.5 bg-white rounded-full flex-shrink-0"></div>
+                <span className="text-xs lg:text-sm">Tạo trang cá nhân miễn phí</span>
+              </div>
+              <div className="flex items-center gap-2 lg:gap-3">
+                <div className="w-1.5 h-1.5 bg-white rounded-full flex-shrink-0"></div>
+                <span className="text-xs lg:text-sm">Kết nối với mọi người trong cộng đồng</span>
+              </div>
+              <div className="flex items-center gap-2 lg:gap-3">
+                <div className="w-1.5 h-1.5 bg-white rounded-full flex-shrink-0"></div>
+                <span className="text-xs lg:text-sm">Công cụ viết bài hiện đại và dễ dàng</span>
             </div>
-            <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-              <span>Công cụ viết bài hiện đại</span>
             </div>
           </div>
         </div>
 
-        {/* Right Side - Register Form */}
-        <div className="w-full max-w-md mx-auto px-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Tạo tài khoản</h2>
-              <p className="text-gray-600 dark:text-gray-300">Bắt đầu hành trình chia sẻ các câu chuyện của bạn</p>
+        {/* Mobile Logo - Hiện trên mobile */}
+        <div className="md:hidden pt-6 px-6 pb-4 bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700">
+          <div className="flex justify-center [&_span]:text-black [&_svg]:text-black [&_img]:!invert-0 dark:[&_span]:text-white dark:[&_svg]:text-white dark:[&_img]:!dark:invert">
+            <Logo size="medium" showText={true} />
+          </div>
+        </div>
+
+        {/* Cột phải: Form đăng ký với flip card */}
+        <div className="p-4 sm:p-6 md:p-8 lg:p-10 flex flex-col justify-center bg-white dark:bg-neutral-800 relative">
+          {/* Header */}
+          <div className="mb-6 md:mb-8">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-semibold text-black dark:text-white">Tạo tài khoản</h1>
+              </div>
+              <Link
+                to="/login"
+                className="flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors text-xs sm:text-sm font-medium touch-manipulation min-h-[44px]"
+                aria-label="Đăng nhập"
+              >
+                <ArrowLeft size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <span>Đăng nhập</span>
+              </Link>
+            </div>
+            <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
+              Bước {currentStep} / 2
+            </p>
             </div>
 
-            <form onSubmit={submit} className="space-y-4">
+          {/* Flip Card Container */}
+          <div className="relative register-flip-container" style={{ perspective: '1000px', height: containerHeight }}>
+            <div 
+              className="relative w-full transition-all duration-500 ease-in-out register-flip-card"
+              style={{
+                transformStyle: 'preserve-3d',
+                transform: currentStep === 2 ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                height: containerHeight
+              }}
+            >
+              {/* Step 1: Họ tên và Ngày sinh (Mặt trước) */}
+              <div 
+                ref={step1Ref}
+                className="absolute inset-0 w-full register-step-1"
+                data-step-active={currentStep === 1 ? "true" : "false"}
+                style={{
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  transform: 'rotateY(0deg)',
+                  pointerEvents: currentStep === 1 ? 'auto' : 'none'
+                }}
+              >
+                <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className="space-y-4 sm:space-y-5">
               {/* Name Input */}
-              <div className="relative">
-                <User size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+                      Họ và tên
+                    </label>
                 <input
+                      id="name"
                   type="text"
-                  placeholder="Họ và tên"
                   value={name}
-                  onChange={e => setName(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        setErr("");
+                      }}
+                      placeholder="Nhập họ và tên của bạn"
+                      className="w-full border border-gray-300 dark:border-neutral-600 rounded-xl px-4 py-3 sm:py-3.5 text-base focus:ring-2 focus:ring-black dark:focus:ring-white focus:outline-none transition-all duration-300 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-neutral-500 bg-white dark:bg-neutral-700 touch-manipulation"
                   required
+                  autoComplete="name"
                 />
               </div>
 
+                  {/* Date of Birth Input */}
+                  <div>
+                    <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+                      Ngày tháng năm sinh
+                    </label>
+                    <div className="relative">
+                      <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
+                      <input
+                        id="dateOfBirth"
+                        type="date"
+                        value={dateOfBirth}
+                        onChange={(e) => {
+                          setDateOfBirth(e.target.value);
+                          setErr("");
+                        }}
+                        max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
+                        className="w-full border border-gray-300 dark:border-neutral-600 rounded-xl px-4 py-3 sm:py-3.5 pl-12 text-base focus:ring-2 focus:ring-black dark:focus:ring-white focus:outline-none transition-all duration-300 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-neutral-500 bg-white dark:bg-neutral-700 touch-manipulation"
+                        required
+                        autoComplete="bday"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Bạn phải ít nhất 13 tuổi để đăng ký</p>
+                  </div>
+
+                  {/* Error Message */}
+                  {err && (
+                    <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm break-words">
+                      {err}
+                    </div>
+                  )}
+
+                  {/* Next Button */}
+                  <button
+                    type="submit"
+                    className="w-full bg-black dark:bg-white text-white dark:text-black py-3.5 sm:py-4 rounded-xl font-semibold text-base hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 touch-manipulation min-h-[48px] active:scale-[0.98]"
+                  >
+                    <span>Tiếp theo</span>
+                    <ChevronRight size={18} />
+                  </button>
+
+                  {/* Divider */}
+                  <div className="flex items-center my-5 sm:my-6">
+                    <div className="flex-1 h-px bg-gray-300 dark:bg-neutral-600"></div>
+                    <span className="px-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">hoặc tiếp tục với</span>
+                    <div className="flex-1 h-px bg-gray-300 dark:bg-neutral-600"></div>
+                  </div>
+
+                  {/* Footer - Login Link */}
+                  <p className="text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                    Đã có tài khoản?{" "}
+                    <Link 
+                      to="/login" 
+                      className="text-black dark:text-white font-semibold hover:underline transition-colors touch-manipulation inline-block min-h-[44px] leading-[44px]"
+                    >
+                      Đăng nhập
+                    </Link>
+                  </p>
+                </form>
+              </div>
+
+              {/* Step 2: Email và Mật khẩu (Mặt sau) */}
+              <div 
+                ref={step2Ref}
+                className="absolute inset-0 w-full register-step-2"
+                data-step-active={currentStep === 2 ? "true" : "false"}
+                style={{
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  transform: 'rotateY(180deg)',
+                  pointerEvents: currentStep === 2 ? 'auto' : 'none'
+                }}
+              >
+                <form onSubmit={submit} className="space-y-4 sm:space-y-5">
               {/* Email Input */}
-              <div className="relative">
-                <Mail size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+                      Email của bạn
+                    </label>
                 <input
+                      id="email"
                   type="email"
-                  placeholder="Email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setErr("");
+                      }}
+                      placeholder="username@gmail.com"
+                      className="w-full border border-gray-300 dark:border-neutral-600 rounded-xl px-4 py-3 sm:py-3.5 text-base focus:ring-2 focus:ring-black dark:focus:ring-white focus:outline-none transition-all duration-300 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-neutral-500 bg-white dark:bg-neutral-700 touch-manipulation"
                   required
+                  autoComplete="email"
                 />
               </div>
 
               {/* Password Input */}
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+                      Mật khẩu
+                    </label>
               <div className="relative">
-                <Lock size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
-                  type="password"
-                  placeholder="Mật khẩu (tối thiểu 8 ký tự)"
+                        id="password"
+                        type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={e => {
+                        onChange={(e) => {
                     const newValue = e.target.value;
                     setPassword(newValue);
                     validateInput("password", newValue);
+                          setErr("");
                   }}
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                        placeholder="Tối thiểu 8 ký tự"
+                        className="w-full border border-gray-300 dark:border-neutral-600 rounded-xl px-4 py-3 sm:py-3.5 pr-12 text-base focus:ring-2 focus:ring-black dark:focus:ring-white focus:outline-none transition-all duration-300 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-neutral-500 bg-white dark:bg-neutral-700 touch-manipulation"
                   required
                   minLength="8"
+                  autoComplete="new-password"
                 />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors touch-manipulation p-2 -mr-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                        aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                      >
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+                    </div>
               </div>
 
               {/* Password Strength Meter */}
@@ -281,78 +581,76 @@ export default function Register({ setUser }) {
                       {getPasswordStrengthInfo(passwordStrength).text}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-neutral-600 rounded-full h-2">
                     <div 
                       className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthInfo(passwordStrength).bgColor}`}
                       style={{ width: `${getPasswordStrengthInfo(passwordStrength).percentage}%` }}
                     ></div>
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                    <div>Yêu cầu mật khẩu:</div>
-                    <div className="grid grid-cols-2 gap-1 text-xs">
-                      <div className={password.length >= 8 ? "text-green-600 dark:text-green-400" : ""}>
-                        • Ít nhất 8 ký tự
-                      </div>
-                      <div className={/[a-z]/.test(password) ? "text-green-600 dark:text-green-400" : ""}>
-                        • Chữ thường (a-z)
-                      </div>
-                      <div className={/[A-Z]/.test(password) ? "text-green-600 dark:text-green-400" : ""}>
-                        • Chữ hoa (A-Z)
-                      </div>
-                      <div className={/\d/.test(password) ? "text-green-600 dark:text-green-400" : ""}>
-                        • Số (0-9)
-                      </div>
-                      <div className={/[@$!%*?&]/.test(password) ? "text-green-600 dark:text-green-400" : ""}>
-                        • Ký tự đặc biệt
-                      </div>
-                      <div className={password.length >= 12 ? "text-green-600 dark:text-green-400" : "text-gray-400"}>
-                        • 12+ ký tự (bonus)
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
 
               {/* Error Message */}
               {err && (
-                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm break-words">
                   {err}
                 </div>
               )}
 
-              {/* Register Button */}
+                  {/* Navigation Buttons */}
+                  <div className="flex gap-2 sm:gap-3">
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      className="flex-1 bg-gray-200 dark:bg-neutral-700 text-gray-800 dark:text-gray-200 py-3.5 sm:py-4 rounded-xl font-semibold text-base hover:bg-gray-300 dark:hover:bg-neutral-600 transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 touch-manipulation min-h-[48px] active:scale-[0.98]"
+                    >
+                      <ChevronLeft size={18} />
+                      <span>Quay lại</span>
+                    </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gray-800 hover:bg-gray-900 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+                      className="flex-1 bg-black dark:bg-white text-white dark:text-black py-3.5 sm:py-4 rounded-xl font-semibold text-base hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-300 shadow-md hover:shadow-lg disabled:bg-gray-400 dark:disabled:bg-neutral-600 disabled:cursor-not-allowed touch-manipulation min-h-[48px] active:scale-[0.98]"
               >
                 {loading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span className="flex items-center justify-center gap-2">
+                          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                          <span>Đang tạo...</span>
+                        </span>
                 ) : (
-                  <UserPlus size={20} />
+                        <>
+                          <span className="hidden sm:inline">Tạo tài khoản</span>
+                          <span className="sm:hidden">Tạo</span>
+                        </>
                 )}
-                {loading ? "Đang tạo tài khoản..." : "Đăng ký"}
               </button>
+                  </div>
+                </form>
+              </div>
+                </div>
+                </div>
 
-              {/* Divider */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-300">Đã có tài khoản?</span>
-                </div>
+          {/* Divider - Chỉ hiển thị ở step 2 */}
+          {currentStep === 2 && (
+            <>
+              <div className="flex items-center my-5 sm:my-6">
+                <div className="flex-1 h-px bg-gray-300 dark:bg-neutral-600"></div>
+                <span className="px-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">hoặc tiếp tục với</span>
+                <div className="flex-1 h-px bg-gray-300 dark:bg-neutral-600"></div>
               </div>
 
-              {/* Login Link */}
+              {/* Footer - Login Link */}
+              <p className="text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                Đã có tài khoản?{" "}
               <Link
                 to="/login"
-                className="w-full bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-center"
+                  className="text-black dark:text-white font-semibold hover:underline transition-colors touch-manipulation inline-block min-h-[44px] leading-[44px]"
               >
                 Đăng nhập
               </Link>
-            </form>
-          </div>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

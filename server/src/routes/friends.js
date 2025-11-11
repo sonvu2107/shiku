@@ -188,6 +188,27 @@ router.get('/requests', authRequired, async (req, res) => {
 });
 
 /**
+ * GET /sent-requests - Lấy danh sách lời mời đã gửi
+ * Lấy tất cả friend requests pending mà user hiện tại đã gửi
+ * @returns {Array} Danh sách friend requests đã gửi
+ */
+router.get('/sent-requests', authRequired, async (req, res) => {
+  try {
+    const userId = req.user._id.toString(); // Convert to string
+
+    const sentRequests = await FriendRequest.find({
+      from: userId,
+      status: 'pending'
+    }).populate('to', 'name nickname email avatarUrl isOnline lastSeen')
+      .sort({ createdAt: -1 });
+
+    res.json({ requests: sentRequests });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+/**
  * GET /list - Lấy danh sách bạn bè
  * Lấy tất cả friends của user hiện tại với thông tin online status
  * @returns {Array} Danh sách bạn bè

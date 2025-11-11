@@ -1,4 +1,4 @@
-import { Users, User } from "lucide-react";
+import { Users, User, Bot } from "lucide-react";
 
 /**
  * ConversationList - Component danh sách cuộc trò chuyện
@@ -6,6 +6,8 @@ import { Users, User } from "lucide-react";
  * @param {Array} conversations - Danh sách cuộc trò chuyện
  * @param {Object} selectedConversation - Cuộc trò chuyện đang chọn
  * @param {Function} onSelectConversation - Callback khi chọn cuộc trò chuyện
+ * @param {Function} onOpenChatbot - Callback mở chatbot
+ * @param {boolean} isChatbotActive - Trạng thái đang hiển thị chatbot
  * @param {boolean} loading - Loading state
  * @param {Object} currentUser - User hiện tại
  */
@@ -14,10 +16,14 @@ export default function ConversationList({
   selectedConversation, 
   onSelectConversation, 
   loading, 
-  currentUser 
+  currentUser,
+  onOpenChatbot,
+  isChatbotActive = false
 }) {
   const getConversationName = (conversation) => {
-    if (conversation.conversationType === 'group') {
+    if (conversation.conversationType === 'chatbot') {
+      return conversation.title || 'Trợ lý AI';
+    } else if (conversation.conversationType === 'group') {
       return conversation.groupName || 'Nhóm không tên';
     } else {
       const otherParticipant = conversation.otherParticipants?.[0];
@@ -26,7 +32,9 @@ export default function ConversationList({
   };
 
   const getConversationAvatar = (conversation) => {
-    if (conversation.conversationType === 'group') {
+    if (conversation.conversationType === 'chatbot') {
+      return null; // Chatbot không có avatar, sẽ hiển thị icon
+    } else if (conversation.conversationType === 'group') {
       return conversation.groupAvatar || null;
     } else {
       const otherParticipant = conversation.otherParticipants?.[0];
@@ -108,9 +116,40 @@ export default function ConversationList({
     );
   }
 
+  const handleOpenChatbot = () => {
+    onOpenChatbot?.();
+  };
+
   return (
     <div className="space-y-1 p-2">
-      {conversations.map((conversation) => {
+      <div
+        onClick={handleOpenChatbot}
+        className={`p-3 rounded-lg cursor-pointer transition-all flex items-center gap-3 border ${
+          isChatbotActive
+            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 shadow-md'
+            : 'bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-purple-500/10 border-blue-100 dark:border-blue-900/40 hover:border-blue-400 dark:hover:border-blue-500/60 hover:shadow-md'
+        }`}
+      >
+        <div className="relative flex-shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-lg">
+            <Bot size={22} />
+          </div>
+          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold text-blue-700 dark:text-blue-300 truncate">Trợ lý AI</h3>
+            <span className="text-xs font-medium text-green-600 dark:text-green-400">Online</span>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
+            Nhấn để mở chatbot và nhận hỗ trợ tức thì
+          </p>
+        </div>
+      </div>
+
+      {conversations
+        .filter(conv => conv.conversationType !== 'chatbot') // Loại bỏ chatbot conversation khỏi danh sách
+        .map((conversation) => {
         const isSelected = selectedConversation?._id === conversation._id;
         const avatar = getConversationAvatar(conversation);
         const name = getConversationName(conversation);
