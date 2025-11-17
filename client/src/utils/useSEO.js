@@ -54,13 +54,14 @@ export function useSEO({ title, description, robots = 'index, follow', canonical
       document.head.appendChild(metaRobots);
     }
     
-    const originalContent = metaRobots.getAttribute('content') || 'index, follow';
     // Luôn set robots value (mặc định là 'index, follow' nếu không truyền)
-    metaRobots.setAttribute('content', robots || 'index, follow');
+    const robotsValue = robots || 'index, follow';
+    metaRobots.setAttribute('content', robotsValue);
     
     return () => {
-      // Restore original content khi component unmount
-      metaRobots.setAttribute('content', originalContent);
+      // Khi component unmount, restore về giá trị mặc định 'index, follow'
+      // để tránh giữ lại 'noindex' từ trang trước
+      metaRobots.setAttribute('content', 'index, follow');
     };
   }, [robots]);
 

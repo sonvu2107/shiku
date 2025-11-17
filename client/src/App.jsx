@@ -81,6 +81,26 @@ export default function App() {
   // Toast notifications
   const { toasts, removeToast } = useToast();
 
+  // Effect để đảm bảo robots meta tag luôn được set đúng khi route thay đổi
+  // Đặt mặc định 'index, follow' cho các trang công khai
+  useEffect(() => {
+    // Danh sách các trang private (cần noindex)
+    const privatePages = ["/login", "/register", "/reset-password", "/settings", "/notifications", "/chat", "/admin"];
+    const isPrivatePage = privatePages.some(page => location.pathname.startsWith(page));
+    
+    // Chỉ set robots nếu không phải trang private (các trang private sẽ tự set qua useSEO)
+    if (!isPrivatePage) {
+      let metaRobots = document.querySelector('meta[name="robots"]');
+      if (!metaRobots) {
+        metaRobots = document.createElement('meta');
+        metaRobots.setAttribute('name', 'robots');
+        document.head.appendChild(metaRobots);
+      }
+      // Đảm bảo các trang công khai luôn có 'index, follow'
+      metaRobots.setAttribute('content', 'index, follow');
+    }
+  }, [location.pathname]);
+
   // Danh sách các trang không hiển thị navbar
   const hideNavbarPages = ["/login", "/register", "/reset-password"];
   const shouldHideNavbar = hideNavbarPages.includes(location.pathname);
