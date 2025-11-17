@@ -1440,8 +1440,34 @@ router.get("/saved/list", authRequired, async (req, res, next) => {
       })
       .sort({ createdAt: -1 });
 
+    // Tính số lượng saved cho mỗi bài - batch query
+    const postIds = posts.map(p => p._id);
+    let savedCounts = [];
+    if (postIds.length > 0) {
+      savedCounts = await User.aggregate([
+        { $match: { savedPosts: { $in: postIds } } },
+        { $unwind: "$savedPosts" },
+        { $match: { savedPosts: { $in: postIds } } },
+        { $group: { _id: "$savedPosts", count: { $sum: 1 } } }
+      ]);
+    }
+    
+    const savedCountMap = new Map();
+    savedCounts.forEach(item => {
+      savedCountMap.set(item._id.toString(), item.count);
+    });
+
+    // Thêm savedCount vào mỗi post
+    const postsWithSavedCount = posts.map(post => {
+      const postObj = post.toObject ? post.toObject() : post;
+      return {
+        ...postObj,
+        savedCount: savedCountMap.get(post._id.toString()) || 0
+      };
+    });
+
     res.json({
-      posts,
+      posts: postsWithSavedCount,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),

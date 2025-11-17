@@ -380,110 +380,93 @@ export default function Friends() {
 
         {/* Tabs */}
         <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm dark:shadow-gray-900/20 rounded-lg">
-          <div className="grid grid-cols-4 border-b border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
-            <button
-              className={`px-2 sm:px-4 py-2.5 sm:py-3 font-medium sm:font-semibold text-xs sm:text-sm touch-target transition-all duration-300 relative group flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 min-h-[64px] sm:min-h-0 ${
-                activeTab === 'friends' 
-                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/40 shadow-inner' 
-                  : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50/80 dark:hover:bg-gray-700/40 active:bg-gray-100 dark:active:bg-gray-700/60'
-              }`}
-              onClick={() => setActiveTab('friends')}
-            >
-              <div className="relative flex-shrink-0">
-                <Users size={18} className="sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+          {/* Navigation */}
+          <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
+            <nav className="grid grid-cols-4 divide-x divide-gray-200 dark:divide-gray-700">
+              <button
+                onClick={() => setActiveTab('friends')}
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 font-medium transition-all duration-200 whitespace-nowrap relative touch-target text-xs sm:text-sm md:text-base ${
+                  activeTab === 'friends'
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                }`}
+              >
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <span>Bạn bè</span>
+                {friends.length > 0 && (
+                  <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold min-w-[18px] sm:min-w-[20px] text-center leading-none ${
+                    activeTab === 'friends'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50'
+                      : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
+                  }`}>
+                    {friends.length > 99 ? '99+' : friends.length}
+                  </span>
+                )}
                 {activeTab === 'friends' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse ring-2 ring-white dark:ring-gray-800"></span>
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
                 )}
-              </div>
-              <span className="truncate max-w-full font-medium">Bạn bè</span>
-              {friends.length > 0 && (
-                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold min-w-[20px] text-center leading-tight ${
-                  activeTab === 'friends' 
-                    ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50' 
-                    : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
-                }`}>
-                  {friends.length > 99 ? '99+' : friends.length}
-                </span>
-              )}
-              {activeTab === 'friends' && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 shadow-lg shadow-blue-600/50 dark:shadow-blue-400/30"></span>
-              )}
-            </button>
-            <button
-              className={`px-2 sm:px-4 py-2.5 sm:py-3 font-medium sm:font-semibold text-xs sm:text-sm touch-target transition-all duration-300 relative group flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 min-h-[64px] sm:min-h-0 ${
-                activeTab === 'requests' 
-                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/40 shadow-inner' 
-                  : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50/80 dark:hover:bg-gray-700/40 active:bg-gray-100 dark:active:bg-gray-700/60'
-              }`}
-              onClick={() => setActiveTab('requests')}
-            >
-              <div className="relative flex-shrink-0">
-                <UserPlus size={18} className="sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+              </button>
+              <button
+                onClick={() => setActiveTab('requests')}
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 font-medium transition-all duration-200 whitespace-nowrap relative touch-target text-xs sm:text-sm md:text-base ${
+                  activeTab === 'requests'
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                }`}
+              >
+                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <span>Lời mời</span>
+                {requests.length > 0 && (
+                  <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold min-w-[18px] sm:min-w-[20px] text-center leading-none ${
+                    activeTab === 'requests'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50'
+                      : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
+                  }`}>
+                    {requests.length > 99 ? '99+' : requests.length}
+                  </span>
+                )}
                 {activeTab === 'requests' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse ring-2 ring-white dark:ring-gray-800"></span>
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
                 )}
-              </div>
-              <span className="truncate max-w-full font-medium">Lời mời</span>
-              {requests.length > 0 && (
-                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold min-w-[20px] text-center leading-tight ${
-                  activeTab === 'requests' 
-                    ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50' 
-                    : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
-                }`}>
-                  {requests.length > 99 ? '99+' : requests.length}
-                </span>
-              )}
-              {activeTab === 'requests' && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 shadow-lg shadow-blue-600/50 dark:shadow-blue-400/30"></span>
-              )}
-            </button>
-            <button
-              className={`px-2 sm:px-4 py-2.5 sm:py-3 font-medium sm:font-semibold text-xs sm:text-sm touch-target transition-all duration-300 relative group flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 min-h-[64px] sm:min-h-0 ${
-                activeTab === 'sent' 
-                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/40 shadow-inner' 
-                  : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50/80 dark:hover:bg-gray-700/40 active:bg-gray-100 dark:active:bg-gray-700/60'
-              }`}
-              onClick={() => setActiveTab('sent')}
-            >
-              <div className="relative flex-shrink-0">
-                <Send size={18} className="sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+              </button>
+              <button
+                onClick={() => setActiveTab('sent')}
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 font-medium transition-all duration-200 whitespace-nowrap relative touch-target text-xs sm:text-sm md:text-base ${
+                  activeTab === 'sent'
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                }`}
+              >
+                <Send className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <span>Đã gửi</span>
+                {sentRequests.length > 0 && (
+                  <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold min-w-[18px] sm:min-w-[20px] text-center leading-none ${
+                    activeTab === 'sent'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50'
+                      : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
+                  }`}>
+                    {sentRequests.length > 99 ? '99+' : sentRequests.length}
+                  </span>
+                )}
                 {activeTab === 'sent' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse ring-2 ring-white dark:ring-gray-800"></span>
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
                 )}
-              </div>
-              <span className="truncate max-w-full font-medium">Đã gửi</span>
-              {sentRequests.length > 0 && (
-                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold min-w-[20px] text-center leading-tight ${
-                  activeTab === 'sent' 
-                    ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50' 
-                    : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
-                }`}>
-                  {sentRequests.length > 99 ? '99+' : sentRequests.length}
-                </span>
-              )}
-              {activeTab === 'sent' && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 shadow-lg shadow-blue-600/50 dark:shadow-blue-400/30"></span>
-              )}
-            </button>
-            <button
-              className={`px-2 sm:px-4 py-2.5 sm:py-3 font-medium sm:font-semibold text-xs sm:text-sm touch-target transition-all duration-300 relative group flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 min-h-[64px] sm:min-h-0 ${
-                activeTab === 'suggestions' 
-                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/40 shadow-inner' 
-                  : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50/80 dark:hover:bg-gray-700/40 active:bg-gray-100 dark:active:bg-gray-700/60'
-              }`}
-              onClick={() => setActiveTab('suggestions')}
-            >
-              <div className="relative flex-shrink-0">
-                <UserCheck size={18} className="sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+              </button>
+              <button
+                onClick={() => setActiveTab('suggestions')}
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 font-medium transition-all duration-200 whitespace-nowrap relative touch-target text-xs sm:text-sm md:text-base ${
+                  activeTab === 'suggestions'
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                }`}
+              >
+                <UserCheck className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <span>Gợi ý</span>
                 {activeTab === 'suggestions' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse ring-2 ring-white dark:ring-gray-800"></span>
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
                 )}
-              </div>
-              <span className="truncate max-w-full font-medium">Gợi ý</span>
-              {activeTab === 'suggestions' && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 shadow-lg shadow-blue-600/50 dark:shadow-blue-400/30"></span>
-              )}
-            </button>
+              </button>
+            </nav>
           </div>
 
           {/* Tab Content */}

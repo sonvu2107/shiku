@@ -48,6 +48,7 @@ export default function PostCard({
   hideActionsMenu = false,
   isSaved: isSavedProp,
   onSavedChange,
+  onPostUpdate,
   skipSavedStatusFetch = false
 }) {
   const { showSuccess, showError } = useToast();
@@ -226,10 +227,11 @@ export default function PostCard({
     if (typeof post.savedCount === 'number') {
       setSavedCount(post.savedCount);
     } else if (post.savedCount === undefined || post.savedCount === null) {
-      // Nếu không có savedCount từ server, giữ nguyên giá trị hiện tại hoặc set về 0
-      // Không reset về 0 để tránh flicker
+      // Nếu không có savedCount từ server, chỉ set về 0 khi post mới được load (post._id thay đổi)
+      // Giữ nguyên giá trị hiện tại khi toggle để tránh flicker
+      setSavedCount(prev => prev === undefined ? 0 : prev);
     }
-  }, [post.savedCount]);
+  }, [post.savedCount, post._id]); // Thêm post._id để sync khi post object thay đổi
 
   // Lấy cảm xúc user đã thả
   const getUserEmote = React.useMemo(() => {
@@ -360,9 +362,18 @@ export default function PostCard({
       // Update số lượng saved từ API response
       if (typeof res.savedCount === 'number') {
         setSavedCount(res.savedCount);
+        // Cập nhật savedCount trong post object từ parent nếu có callback
+        if (typeof onPostUpdate === "function") {
+          onPostUpdate(post._id, { savedCount: res.savedCount });
+        }
       } else {
         // Fallback: update local state nếu API không trả về savedCount
-        setSavedCount(prev => nextState ? prev + 1 : Math.max(0, prev - 1));
+        const newCount = nextState ? savedCount + 1 : Math.max(0, savedCount - 1);
+        setSavedCount(newCount);
+        // Cập nhật savedCount trong post object từ parent nếu có callback
+        if (typeof onPostUpdate === "function") {
+          onPostUpdate(post._id, { savedCount: newCount });
+        }
       }
       
       if (typeof onSavedChange === "function") {
@@ -523,6 +534,28 @@ export default function PostCard({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showActionsMenu]);
+
+  // Close emote popup when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Chỉ áp dụng trên mobile
+      if (window.innerWidth < 768 && showEmotePopup) {
+        // Kiểm tra nếu click bên ngoài cả button và popup
+        const isClickInsideButton = event.target.closest('[role="button"][aria-label="Thả cảm xúc"]');
+        const isClickInsidePopup = event.target.closest('.emote-picker');
+        if (!isClickInsideButton && !isClickInsidePopup) {
+          setShowEmotePopup(false);
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [showEmotePopup]);
 
   /**
    * Handle "Quan tâm" / "Không quan tâm" functionality
@@ -783,20 +816,26 @@ export default function PostCard({
       )}
 
       {/* METRICS ROW */}
-      <div className="relative px-4 py-3 border-b border-gray-200 dark:border-[#3A3B3C]">
-        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+      <div className="relative px-3 md:px-4 py-2.5 md:py-3 border-b border-gray-200 dark:border-[#3A3B3C]">
+        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 gap-2 md:gap-0">
           <div
-            className={`relative flex items-center gap-1.5 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors ${uiUserEmote ? 'font-semibold text-blue-600 dark:text-blue-400' : ''}`}
+            className={`relative flex items-center gap-1 md:gap-1.5 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors ${uiUserEmote ? 'font-semibold text-blue-600 dark:text-blue-400' : ''}`}
             role="button"
             tabIndex={0}
             aria-label="Thả cảm xúc"
             title={uiUserEmote ? "Bỏ cảm xúc" : "Thả cảm xúc"}
             onMouseEnter={() => {
-              if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
-              setShowEmotePopup(true);
+              // Chỉ chạy trên desktop (hover)
+              if (window.innerWidth >= 768) {
+                if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
+                setShowEmotePopup(true);
+              }
             }}
             onMouseLeave={() => {
-              emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1500);
+              // Chỉ chạy trên desktop (hover)
+              if (window.innerWidth >= 768) {
+                emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1200);
+              }
             }}
             onClick={(e) => {
               // Ngăn chặn bubble hoặc điều hướng của parent wrappers/links
@@ -809,6 +848,13 @@ export default function PostCard({
                 return;
               }
               
+              // MOBILE: toggle popup
+              if (window.innerWidth < 768) {
+                setShowEmotePopup(prev => !prev);
+                return;
+              }
+
+              // DESKTOP: logic thả emoji như cũ
               if (uiUserEmote) {
                 // Nếu đã có cảm xúc, click sẽ bỏ cảm xúc đó (toggle off)
                 setLocalUserEmote(null);
@@ -840,13 +886,13 @@ export default function PostCard({
                   alt={uiUserEmote} 
                   width={16}
                   height={16}
-                  className="w-4 h-4"
+                  className="w-5 h-5 md:w-4 md:h-4"
                   loading="lazy"
                   onError={(e) => {
                     e.target.style.display = 'none';
                   }}
                 />
-                <span>
+                <span className="hidden md:inline">
                   {uiUserEmote === '👍' && 'Đã thích'}
                   {uiUserEmote === '❤️' && 'Yêu thích'}
                   {uiUserEmote === '😂' && 'Haha'}
@@ -857,14 +903,15 @@ export default function PostCard({
                 {/* Hiển thị số lượng reactions nếu có */}
                 {totalEmotes > 0 && (
                   <span className="ml-1 text-gray-500 dark:text-gray-400">
-                    ({totalEmotes.toLocaleString()})
+                    {totalEmotes.toLocaleString()}
                   </span>
                 )}
               </>
             ) : (
               <>
-                <ThumbsUp size={16} className="stroke-2" />
-                <span>{totalEmotes > 0 ? totalEmotes.toLocaleString() : '0'} Thích</span>
+                <ThumbsUp size={20} className="md:w-4 md:h-4 w-5 h-5 stroke-2" />
+                <span className="text-gray-500 dark:text-gray-400">{totalEmotes > 0 ? totalEmotes.toLocaleString() : '0'}</span>
+                <span className="hidden md:inline ml-1">Thích</span>
               </>
             )}
             {/* Emote popup - shown when hovering over Likes */}
@@ -872,11 +919,16 @@ export default function PostCard({
               <div
                 className="absolute bottom-full left-0 mb-2 emote-picker bg-white dark:bg-gray-800 rounded-xl shadow-lg z-20 border border-gray-200 dark:border-gray-700"
                 onMouseEnter={() => {
-                  if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
-                  setShowEmotePopup(true);
+                  // Chỉ chạy trên desktop (hover)
+                  if (window.innerWidth >= 768) {
+                    if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
+                  }
                 }}
                 onMouseLeave={() => {
-                  emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1500);
+                  // Chỉ chạy trên desktop (hover)
+                  if (window.innerWidth >= 768) {
+                    emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1200);
+                  }
                 }}
                 onClick={(e) => e.stopPropagation()} // Ngăn click event bubble lên parent
               >
@@ -892,6 +944,10 @@ export default function PostCard({
                         // Gọi emote - API sẽ tự động toggle (nếu đã có sẽ xóa, chưa có sẽ thêm)
                         setLocalUserEmote(prev => prev === e ? null : e);
                         emote(e);
+                        // Đóng popup sau khi chọn trên mobile
+                        if (window.innerWidth < 768) {
+                          setTimeout(() => setShowEmotePopup(false), 100);
+                        }
                       }}
                       onMouseDown={(e) => e.preventDefault()} // Ngăn blur event
                       title={isActive ? `Bỏ cảm xúc ${e}` : `Thả cảm xúc ${e}`}
@@ -914,15 +970,16 @@ export default function PostCard({
             )}
           </div>
           <div
-            className="flex items-center gap-1.5 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+            className="flex items-center gap-1 md:gap-1.5 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
             onClick={() => navigate(`/post/${post.slug}`)}
           >
-            <MessageCircle size={16} className="stroke-2" />
-            <span>{(post.commentCount || 0).toLocaleString()} Bình luận</span>
+            <MessageCircle size={20} className="md:w-4 md:h-4 w-5 h-5 stroke-2" />
+            <span className="text-gray-500 dark:text-gray-400">{(post.commentCount || 0).toLocaleString()}</span>
+            <span className="hidden md:inline ml-1">Bình luận</span>
           </div>
           <button
             type="button"
-            className="flex items-center gap-1.5 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors relative z-10"
+            className="flex items-center gap-1 md:gap-1.5 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors relative z-10"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -935,19 +992,20 @@ export default function PostCard({
             }}
             title="Chia sẻ"
           >
-            <Share2 size={16} className="stroke-2" />
-            <span>Chia sẻ</span>
+            <Share2 size={20} className="md:w-4 md:h-4 w-5 h-5 stroke-2" />
+            <span className="hidden md:inline">Chia sẻ</span>
           </button>
           <div 
-            className={`flex items-center gap-1.5 transition-colors ${user ? 'cursor-pointer hover:text-gray-800 dark:hover:text-gray-200' : ''}`}
+            className={`flex items-center gap-1 md:gap-1.5 transition-colors ${user ? 'cursor-pointer hover:text-gray-800 dark:hover:text-gray-200' : ''}`}
             onClick={user ? toggleSave : undefined}
           >
             {saved ? (
-              <BookmarkCheck size={16} className="text-blue-500 fill-current" />
+              <BookmarkCheck size={20} className="md:w-4 md:h-4 w-5 h-5 text-blue-500 fill-current" />
             ) : (
-              <Bookmark size={16} className="stroke-2" />
+              <Bookmark size={20} className="md:w-4 md:h-4 w-5 h-5 stroke-2" />
             )}
-             <span>{savedCount > 0 ? savedCount.toLocaleString() : '0'}  Đã lưu</span>
+            <span className="text-gray-500 dark:text-gray-400">{savedCount > 0 ? savedCount.toLocaleString() : '0'}</span>
+            <span className="hidden md:inline ml-1">Đã lưu</span>
           </div>
         </div>
       </div>

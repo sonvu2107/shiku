@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { api } from "../api";
 import { 
@@ -255,27 +255,27 @@ export default function EventDetail() {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{event.title}</h1>
               <div className="flex items-center gap-2 mb-4">
                 {event.userRole === 'creator' && (
-                  <span className="bg-blue-100 text-blue-600 text-sm px-3 py-1 rounded-full">
+                  <span key="creator" className="bg-blue-100 text-blue-600 text-sm px-3 py-1 rounded-full">
                     Người tạo
                   </span>
                 )}
                 {event.userRole === 'attendee' && (
-                  <span className="bg-green-100 text-green-600 text-sm px-3 py-1 rounded-full">
+                  <span key="attendee" className="bg-green-100 text-green-600 text-sm px-3 py-1 rounded-full">
                     Đã tham gia
                   </span>
                 )}
                 {upcoming && (
-                  <span className="bg-green-100 text-green-600 text-sm px-3 py-1 rounded-full">
+                  <span key="upcoming" className="bg-green-100 text-green-600 text-sm px-3 py-1 rounded-full">
                     Sắp diễn ra
                   </span>
                 )}
                 {past && (
-                  <span className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">
+                  <span key="past" className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">
                     Đã kết thúc
                   </span>
                 )}
                 {isFull() && (
-                  <span className="bg-red-100 text-red-600 text-sm px-3 py-1 rounded-full">
+                  <span key="full" className="bg-red-100 text-red-600 text-sm px-3 py-1 rounded-full">
                     Đã đầy
                   </span>
                 )}
@@ -285,7 +285,7 @@ export default function EventDetail() {
             {/* Action Buttons */}
             <div className="flex gap-2 ml-4">
               {(canEdit() || event.userRole === 'creator') && (
-                <>
+                <React.Fragment key="edit-actions">
                   <button
                     onClick={() => navigate(`/events/${id}/edit`)}
                     className="p-2 text-gray-400 hover:text-gray-600"
@@ -301,7 +301,7 @@ export default function EventDetail() {
                   >
                     <Trash2 size={20} />
                   </button>
-                </>
+                </React.Fragment>
               )}
               <button
                 onClick={() => navigator.share?.({ 

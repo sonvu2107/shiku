@@ -29,6 +29,13 @@ export default function UserProfile() {
   const { userId } = useParams();
   const navigate = useNavigate();
 
+  // Helper function để validate ObjectId format (MongoDB ObjectId có 24 ký tự hex)
+  const isValidObjectId = (id) => {
+    if (!id || typeof id !== 'string') return false;
+    // MongoDB ObjectId format: 24 ký tự hexadecimal
+    return /^[0-9a-fA-F]{24}$/.test(id);
+  };
+
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -65,6 +72,18 @@ export default function UserProfile() {
   }
 
   async function loadProfile() {
+    // Validate userId - kiểm tra không phải undefined, null, hoặc string "undefined"
+    if (!userId || 
+        typeof userId !== 'string' || 
+        userId === "undefined" || 
+        userId === "null" || 
+        userId.trim() === "" || 
+        !isValidObjectId(userId)) {
+      setError("User ID không hợp lệ");
+      setLoading(false);
+      navigate("/"); // Redirect về trang chủ nếu userId không hợp lệ
+      return;
+    }
     try {
       setLoading(true);
       const data = await api(`/api/users/${userId}`);
@@ -107,11 +126,12 @@ export default function UserProfile() {
   }
 
   async function sendFriendRequest() {
+    if (!profile?.user?._id) return;
     try {
       setActionLoading(true);
       await api("/api/friends/send-request", {
         method: "POST",
-        body: { to: userId },
+        body: { to: profile.user._id },
       });
       await loadProfile();
       setError("");
@@ -123,9 +143,10 @@ export default function UserProfile() {
   }
 
   async function acceptFriendRequest() {
+    if (!profile?.user?._id) return;
     try {
       setActionLoading(true);
-      await api(`/api/friends/accept/${userId}`, { method: "POST" });
+      await api(`/api/friends/accept/${profile.user._id}`, { method: "POST" });
       await loadProfile();
       setError("");
     } catch (error) {
@@ -136,9 +157,10 @@ export default function UserProfile() {
   }
 
   async function declineFriendRequest() {
+    if (!profile?.user?._id) return;
     try {
       setActionLoading(true);
-      await api(`/api/friends/decline/${userId}`, { method: "POST" });
+      await api(`/api/friends/decline/${profile.user._id}`, { method: "POST" });
       await loadProfile();
       setError("");
     } catch (error) {
@@ -149,9 +171,10 @@ export default function UserProfile() {
   }
 
   async function removeFriend() {
+    if (!profile?.user?._id) return;
     try {
       setActionLoading(true);
-      await api(`/api/friends/remove/${userId}`, { method: "DELETE" });
+      await api(`/api/friends/remove/${profile.user._id}`, { method: "DELETE" });
       await loadProfile();
       setError("");
     } catch (error) {
@@ -162,9 +185,10 @@ export default function UserProfile() {
   }
 
   async function blockUser() {
+    if (!profile?.user?._id) return;
     try {
       setActionLoading(true);
-      await api(`/api/users/block/${userId}`, { method: "POST" });
+      await api(`/api/users/block/${profile.user._id}`, { method: "POST" });
       await loadProfile();
       setError("");
     } catch (error) {
@@ -175,9 +199,10 @@ export default function UserProfile() {
   }
 
   async function unblockUser() {
+    if (!profile?.user?._id) return;
     try {
       setActionLoading(true);
-      await api(`/api/users/unblock/${userId}`, { method: "POST" });
+      await api(`/api/users/unblock/${profile.user._id}`, { method: "POST" });
       await loadProfile();
       setError("");
     } catch (error) {

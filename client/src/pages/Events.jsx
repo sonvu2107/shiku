@@ -97,13 +97,13 @@ export default function Events() {
           </form>
 
           {/* Filters */}
-          <div className="overflow-x-auto scrollbar-hide">
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit min-w-full">
+          <div className="bg-gray-100 p-1 rounded-lg">
+            <div className="grid grid-cols-4 gap-1">
               {filters.map((filterItem) => (
                 <button
                   key={filterItem.id}
                   onClick={() => setFilter(filterItem.id)}
-                  className={`px-2 sm:px-3 py-2.5 sm:py-2 rounded-md transition-colors text-xs sm:text-sm whitespace-nowrap touch-manipulation flex-shrink-0 min-h-[44px] ${
+                  className={`px-1.5 sm:px-3 py-2.5 sm:py-2 rounded-md transition-colors text-[10px] sm:text-sm whitespace-nowrap touch-manipulation min-h-[44px] ${
                     filter === filterItem.id
                       ? "bg-white text-blue-600 shadow-sm font-medium"
                       : "text-gray-600 hover:text-gray-900"

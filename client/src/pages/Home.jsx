@@ -884,13 +884,36 @@ export default function Home({ user, setUser }) {
         {/* Feed Bar - Trải dài toàn bộ chiều rộng - Sticky trên mobile (dưới navbar), static trên desktop, sát navbar trên desktop */}
         <div className="sticky md:static top-[64px] md:top-0 z-30 px-3 sm:px-4 md:px-6 lg:px-8 py-2 md:py-2.5 border-b border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 backdrop-blur-sm bg-opacity-95 dark:bg-opacity-100 md:bg-opacity-100 md:dark:bg-opacity-100 md:backdrop-blur-none transition-colors duration-100">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-white whitespace-nowrap">Bảng tin</h2>
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 overflow-hidden">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-white whitespace-nowrap flex-shrink-0">Bảng tin</h2>
               {items.length > 0 && (
-                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 bg-neutral-100 dark:bg-neutral-700 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full font-medium whitespace-nowrap flex-shrink-0">
+                <span className="hidden sm:inline text-xs sm:text-sm text-gray-600 dark:text-gray-300 bg-neutral-100 dark:bg-neutral-700 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full font-medium whitespace-nowrap flex-shrink-0">
                   {items.length} bài viết
                 </span>
               )}
+            </div>
+
+            {/* Mobile: Nút đăng bài mới - chỉ hiển thị trên mobile */}
+            <div className="md:hidden flex-shrink-0">
+              <button
+                onClick={() => {
+                  // Trigger PostCreator modal via ref
+                  if (postCreatorRef.current && typeof postCreatorRef.current.openModal === 'function') {
+                    postCreatorRef.current.openModal();
+                  } else {
+                    // Fallback: click hidden trigger button
+                    const triggerBtn = document.querySelector('[data-post-creator-trigger]');
+                    if (triggerBtn) {
+                      triggerBtn.click();
+                    }
+                  }
+                }}
+                className="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-1.5 text-xs whitespace-nowrap active:scale-[0.98] touch-manipulation min-h-[36px]"
+                title="Đăng bài mới"
+              >
+                <Plus size={16} strokeWidth={2.5} className="text-white dark:text-black" />
+                <span>Đăng bài</span>
+              </button>
             </div>
 
             <div className="relative sort-dropdown flex-shrink-0">
@@ -900,8 +923,7 @@ export default function Home({ user, setUser }) {
                 aria-label={`Sắp xếp: ${getSortLabel(sortBy)}`}
               >
                 <span className="flex-shrink-0">{getSortIcon(sortBy)}</span>
-                <span className="hidden sm:inline whitespace-nowrap">{getSortLabel(sortBy)}</span>
-                <span className="sm:hidden truncate max-w-[60px]">{getSortLabel(sortBy).split(' ')[0]}</span>
+                <span className="whitespace-nowrap">{getSortLabel(sortBy)}</span>
                 <ArrowUpDown size={12} className="sm:w-[14px] sm:h-[14px] opacity-60 dark:opacity-70 flex-shrink-0 text-gray-600 dark:text-gray-300" />
               </button>
 
