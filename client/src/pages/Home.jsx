@@ -103,9 +103,11 @@ export default function Home({ user, setUser }) {
   const navigate = useNavigate();
 
   // ==================== SEO ====================
+  // QUAN TRỌNG: Phải set robots="index, follow" để đảm bảo Google index trang chủ
   useSEO({
     title: "Shiku – Mạng xã hội chia sẻ khoảnh khắc",
     description: "Nơi chia sẻ câu chuyện hàng ngày, khám phá cộng đồng xung quanh bạn.",
+    robots: "index, follow", // Explicitly set để tránh bị override bởi trang khác
     canonical: "https://shiku.click"
   });
 

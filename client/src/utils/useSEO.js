@@ -45,24 +45,23 @@ export function useSEO({ title, description, robots = 'index, follow', canonical
 
   useEffect(() => {
     // Update robots meta
-    if (robots) {
-      let metaRobots = document.querySelector('meta[name="robots"]');
-      
-      if (!metaRobots) {
-        metaRobots = document.createElement('meta');
-        metaRobots.setAttribute('name', 'robots');
-        document.head.appendChild(metaRobots);
-      }
-      
-      const originalContent = metaRobots.getAttribute('content');
-      metaRobots.setAttribute('content', robots);
-      
-      return () => {
-        if (originalContent) {
-          metaRobots.setAttribute('content', originalContent);
-        }
-      };
+    // QUAN TRỌNG: Luôn update robots meta để đảm bảo không bị noindex từ trang trước
+    let metaRobots = document.querySelector('meta[name="robots"]');
+    
+    if (!metaRobots) {
+      metaRobots = document.createElement('meta');
+      metaRobots.setAttribute('name', 'robots');
+      document.head.appendChild(metaRobots);
     }
+    
+    const originalContent = metaRobots.getAttribute('content') || 'index, follow';
+    // Luôn set robots value (mặc định là 'index, follow' nếu không truyền)
+    metaRobots.setAttribute('content', robots || 'index, follow');
+    
+    return () => {
+      // Restore original content khi component unmount
+      metaRobots.setAttribute('content', originalContent);
+    };
   }, [robots]);
 
   useEffect(() => {
