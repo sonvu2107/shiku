@@ -221,6 +221,21 @@ label { @apply text-sm font-medium text-gray-700; }
 
 /* Prevent zoom on input focus on iOS */
 @media screen and (max-width: 768px) {
+  /* Ensure minimum font-size for readability on mobile */
+  body {
+    font-size: 15px !important;
+  }
+  
+  /* Ensure text elements have minimum readable size */
+  p, span, div, a, button, label {
+    font-size: clamp(14px, 4vw, 16px) !important;
+  }
+  
+  /* Small text should still be readable */
+  .text-xs {
+    font-size: 14px !important;
+  }
+  
   input[type="email"],
   input[type="password"],
   input[type="text"],

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { api } from "../api";
 import { useSavedPosts } from "../hooks/useSavedPosts";
+import { useSEO } from "../utils/useSEO";
 import PostCard from "../components/PostCard";
 import PostCreator from "../components/PostCreator";
 import Stories from "../components/Stories";
@@ -100,6 +101,13 @@ export default function Home({ user, setUser }) {
   const observer = useRef();
   const loadingRef = useRef(false);
   const navigate = useNavigate();
+
+  // ==================== SEO ====================
+  useSEO({
+    title: "Shiku – Mạng xã hội chia sẻ khoảnh khắc",
+    description: "Nơi chia sẻ câu chuyện hàng ngày, khám phá cộng đồng xung quanh bạn.",
+    canonical: "https://shiku.click"
+  });
 
   // ==================== API CALLS ====================
 
@@ -624,21 +632,23 @@ export default function Home({ user, setUser }) {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 transition-colors duration-100">
       {/* Accessible, SEO-friendly heading without affecting layout */}
-      <h1 className="sr-only">Shiku - Mạng xã hội hiện đại kết nối bạn bè</h1>
-      <p className="sr-only">Shiku là nơi bạn có thể chia sẻ khoảnh khắc, kết nối bạn bè, tham gia nhóm và sự kiện.</p>
+      <h1 className="sr-only">Shiku – Mạng xã hội chia sẻ khoảnh khắc</h1>
+      <p className="sr-only">Nơi chia sẻ câu chuyện hàng ngày, khám phá cộng đồng xung quanh bạn.</p>
 
       {/* Mobile Navbar - chỉ hiện trên mobile, fixed top */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50">
+      <nav className="md:hidden fixed top-0 left-0 right-0 z-50" role="navigation" aria-label="Điều hướng chính">
         <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
-      </div>
+      </nav>
 
       {/* Left Sidebar - ẩn trên mobile */}
-      <LeftSidebar user={user} setUser={setUser} />
+      <aside role="complementary" aria-label="Menu điều hướng">
+        <LeftSidebar user={user} setUser={setUser} />
+      </aside>
 
       {/* Main Content Area với margin-left cho left sidebar */}
-      <div className="pt-[64px] md:pt-16 lg:ml-64 min-h-screen">
+      <main className="pt-[64px] md:pt-16 lg:ml-64 min-h-screen" role="main">
         {/* Top Navigation Bar - ẩn trên mobile, hiện từ md trở lên - luôn fixed và visible */}
-        <div className="hidden md:flex fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white dark:bg-neutral-800 border-b border-gray-300 dark:border-neutral-600 shadow-sm z-40">
+        <nav className="hidden md:flex fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white dark:bg-neutral-800 border-b border-gray-300 dark:border-neutral-600 shadow-sm z-40" role="navigation" aria-label="Thanh tìm kiếm và điều hướng">
           <div className="w-full flex items-center h-full px-4 md:px-6 lg:px-8">
             {/* Search Input with Dropdown - Left side, takes available space */}
             <form onSubmit={handleTopSearch} className="flex-1 max-w-2xl mr-4">
@@ -811,7 +821,7 @@ export default function Home({ user, setUser }) {
               </div>
             </form>
 
-            {/* Add New Post Button - Giữ nguyên vị trí */}
+              {/* Add New Post Button - Giữ nguyên vị trí */}
             <button
               onClick={() => {
                 // Trigger PostCreator modal via ref
@@ -826,6 +836,7 @@ export default function Home({ user, setUser }) {
                 }
               }}
               className="px-4 md:px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 text-sm whitespace-nowrap flex-shrink-0 active:scale-[0.98]"
+              aria-label="Đăng bài mới"
             >
               <Plus size={18} strokeWidth={2.5} className="text-white dark:text-black" />
               <span>Đăng bài mới</span>
@@ -845,7 +856,7 @@ export default function Home({ user, setUser }) {
                   }}
                   className="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-75"
                   title={darkMode ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
-                  aria-label="Toggle dark mode"
+                  aria-label={darkMode ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
                 >
                   {darkMode ? (
                     <Sun size={20} className="text-gray-600 dark:text-gray-300" />
@@ -859,7 +870,8 @@ export default function Home({ user, setUser }) {
                 <Link
                   to="/settings"
                   className="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
-                  title="Settings"
+                  title="Cài đặt"
+                  aria-label="Cài đặt"
                 >
                   <Settings size={20} className="text-gray-600 dark:text-gray-300" />
                 </Link>
@@ -879,7 +891,7 @@ export default function Home({ user, setUser }) {
                 </div>
               )}
           </div>
-        </div>
+        </nav>
 
         {/* Feed Bar - Trải dài toàn bộ chiều rộng - Sticky trên mobile (dưới navbar), static trên desktop, sát navbar trên desktop */}
         <div className="sticky md:static top-[64px] md:top-0 z-30 px-3 sm:px-4 md:px-6 lg:px-8 py-2 md:py-2.5 border-b border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 backdrop-blur-sm bg-opacity-95 dark:bg-opacity-100 md:bg-opacity-100 md:dark:bg-opacity-100 md:backdrop-blur-none transition-colors duration-100">
@@ -910,6 +922,7 @@ export default function Home({ user, setUser }) {
                 }}
                 className="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-1.5 text-xs whitespace-nowrap active:scale-[0.98] touch-manipulation min-h-[36px]"
                 title="Đăng bài mới"
+                aria-label="Đăng bài mới"
               >
                 <Plus size={16} strokeWidth={2.5} className="text-white dark:text-black" />
                 <span>Đăng bài</span>
@@ -919,8 +932,10 @@ export default function Home({ user, setUser }) {
             <div className="relative sort-dropdown flex-shrink-0">
               <button
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap touch-manipulation min-h-[36px] sm:min-h-[40px]"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-neutral-600 rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap touch-manipulation min-h-[36px] sm:min-h-[40px]"
                 aria-label={`Sắp xếp: ${getSortLabel(sortBy)}`}
+                aria-expanded={showSortDropdown}
+                aria-haspopup="true"
               >
                 <span className="flex-shrink-0">{getSortIcon(sortBy)}</span>
                 <span className="whitespace-nowrap">{getSortLabel(sortBy)}</span>
@@ -942,8 +957,9 @@ export default function Home({ user, setUser }) {
                         setSortBy(option.key);
                         setShowSortDropdown(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 active:bg-neutral-200 dark:active:bg-neutral-600 flex items-center justify-between gap-3 transition-colors ${sortBy === option.key ? 'bg-neutral-100 dark:bg-neutral-700 text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300'
+                      className={`w-full px-4 py-2.5 text-left hover:bg-neutral-200 dark:hover:bg-neutral-600 active:bg-neutral-300 dark:active:bg-neutral-500 flex items-center justify-between gap-3 transition-colors ${sortBy === option.key ? 'bg-neutral-100 dark:bg-neutral-700 text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300'
                         }`}
+                      aria-label={`Sắp xếp theo ${option.label}`}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <span className="flex-shrink-0">{option.icon}</span>
@@ -963,8 +979,8 @@ export default function Home({ user, setUser }) {
         </div>
 
           {/* Content Area - 2 Columns */}
-          <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-3 sm:gap-4 md:gap-6">
+          <div className="px-3 sm:px-4 md:px-6 py-4 sm:py-5 md:py-6">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 sm:gap-5 md:gap-6">
               {/* Center Column - Main Feed */}
               <div className="space-y-3 sm:space-y-4 min-w-0">
                 {/* Stories Section */}
@@ -992,6 +1008,7 @@ export default function Home({ user, setUser }) {
                     <button
                       onClick={loadInitial}
                       className="px-4 sm:px-6 py-2 sm:py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-sm sm:text-base hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 touch-manipulation shadow-md hover:shadow-lg min-h-[44px]"
+                      aria-label="Thử tải lại bài viết"
                     >
                       Thử lại
                     </button>
@@ -1037,6 +1054,7 @@ export default function Home({ user, setUser }) {
                         <button
                           onClick={loadMore}
                           className="px-4 sm:px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-sm sm:text-base hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 touch-manipulation shadow-md hover:shadow-lg min-h-[44px]"
+                          aria-label="Tải thêm 15 bài viết"
                         >
                           Tải thêm 15 bài viết
                         </button>
@@ -1044,6 +1062,7 @@ export default function Home({ user, setUser }) {
                           <button
                             onClick={loadAllRemaining}
                             className="px-4 sm:px-6 py-2.5 bg-neutral-700 dark:bg-neutral-600 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-neutral-800 dark:hover:bg-neutral-500 transition-all duration-200 touch-manipulation shadow-md min-h-[44px]"
+                            aria-label="Tải tất cả bài viết còn lại"
                           >
                             <span className="hidden sm:inline">Tải tất cả ({totalPages - page + 1} trang còn lại)</span>
                             <span className="sm:hidden">Tải tất cả ({totalPages - page + 1})</span>
@@ -1058,6 +1077,7 @@ export default function Home({ user, setUser }) {
                         <button
                           onClick={loadAllRemaining}
                           className="px-4 sm:px-6 py-2.5 bg-neutral-700 dark:bg-neutral-600 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-neutral-800 dark:hover:bg-neutral-500 transition-all duration-200 touch-manipulation shadow-md min-h-[44px]"
+                          aria-label={`Tải tất cả bài viết (${totalPages} trang)`}
                         >
                           <span className="hidden sm:inline">Tải tất cả bài viết ({totalPages} trang)</span>
                           <span className="sm:hidden">Tải tất cả ({totalPages})</span>
@@ -1097,14 +1117,14 @@ export default function Home({ user, setUser }) {
               </div>
 
               {/* Right Sidebar - Friend Suggestions, Profile Activity, Upcoming Events */}
-              <div className="hidden xl:block">
+              <aside className="hidden xl:block" role="complementary" aria-label="Gợi ý bạn bè và hoạt động">
                 <div className="sticky top-20">
                   <RightSidebar user={user} />
                 </div>
-              </div>
+              </aside>
             </div>
           </div>
-      </div>
+      </main>
 
       {/* Chat Popup Manager */}
       <ChatPopupManager

@@ -3,6 +3,7 @@ import { api } from "../api";
 import { useNavigate, Link } from "react-router-dom";
 import { saveTokens } from "../utils/tokenManager";
 import { getCSRFToken, clearCSRFToken } from "../utils/csrfToken";
+import { useSEO } from "../utils/useSEO";
 import Logo from "../components/Logo";
 import { LogIn, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
@@ -29,6 +30,14 @@ export default function Login({ setUser }) {
   const [forgotSuccess, setForgotSuccess] = useState(false); // Success state
   
   const navigate = useNavigate();
+
+  // ==================== SEO ====================
+  // Trang login không cần SEO → thêm noindex
+  useSEO({
+    title: "Đăng nhập - Shiku",
+    description: "Đăng nhập vào Shiku để khám phá những câu chuyện thú vị",
+    robots: "noindex, nofollow"
+  });
 
   // ==================== EVENT HANDLERS ====================
   

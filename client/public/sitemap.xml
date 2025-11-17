@@ -2,74 +2,50 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://shiku.click/</loc>
-    <lastmod>2025-09-28</lastmod>
     <priority>1.0</priority>
     <changefreq>daily</changefreq>
   </url>
-  <url>
-    <loc>https://shiku.click/login</loc>
-    <lastmod>2025-09-28</lastmod>
-    <priority>0.6</priority>
-    <changefreq>monthly</changefreq>
-  </url>
-  <url>
-    <loc>https://shiku.click/register</loc>
-    <lastmod>2025-09-28</lastmod>
-    <priority>0.6</priority>
-    <changefreq>monthly</changefreq>
-  </url>
-  <url>
-    <loc>https://shiku.click/reset-password</loc>
-    <lastmod>2025-09-28</lastmod>
-    <priority>0.4</priority>
-    <changefreq>monthly</changefreq>
-  </url>
+
   <url>
     <loc>https://shiku.click/explore</loc>
-    <lastmod>2025-09-28</lastmod>
     <priority>0.8</priority>
     <changefreq>daily</changefreq>
   </url>
+
   <url>
     <loc>https://shiku.click/groups</loc>
-    <lastmod>2025-09-28</lastmod>
     <priority>0.7</priority>
     <changefreq>daily</changefreq>
   </url>
+
   <url>
     <loc>https://shiku.click/groups/create</loc>
-    <lastmod>2025-09-28</lastmod>
     <priority>0.5</priority>
     <changefreq>monthly</changefreq>
   </url>
+
   <url>
     <loc>https://shiku.click/events</loc>
-    <lastmod>2025-09-28</lastmod>
     <priority>0.7</priority>
     <changefreq>daily</changefreq>
   </url>
+
   <url>
     <loc>https://shiku.click/events/create</loc>
-    <lastmod>2025-09-28</lastmod>
     <priority>0.5</priority>
     <changefreq>monthly</changefreq>
   </url>
+
   <url>
     <loc>https://shiku.click/media</loc>
-    <lastmod>2025-09-28</lastmod>
     <priority>0.6</priority>
     <changefreq>daily</changefreq>
   </url>
+
   <url>
     <loc>https://shiku.click/friends</loc>
-    <lastmod>2025-09-28</lastmod>
     <priority>0.6</priority>
     <changefreq>daily</changefreq>
   </url>
-  <url>
-    <loc>https://shiku.click/support</loc>
-    <lastmod>2025-09-28</lastmod>
-    <priority>0.5</priority>
-    <changefreq>monthly</changefreq>
-  </url>
+
 </urlset>

@@ -1,28 +1,16 @@
 User-agent: *
+# Allow all public pages
 Allow: /
 
-# Disallow admin and private pages
-Disallow: /admin/
-Disallow: /api/
-Disallow: /chat
+# Block private/auth pages
+Disallow: /login
+Disallow: /register
+Disallow: /reset-password
 Disallow: /settings
 Disallow: /notifications
-Disallow: /reset-password
+Disallow: /chat
+Disallow: /admin/
+Disallow: /api/
 
-# Allow public pages
-Allow: /
-Allow: /login
-Allow: /register
-Allow: /post/
-Allow: /user/
-Allow: /groups/
-Allow: /events/
-Allow: /explore
-Allow: /media
-Allow: /support
-
-# Sitemap location
+# Sitemap
 Sitemap: https://shiku.click/sitemap.xml
-
-# Crawl delay (optional - be nice to server)
-Crawl-delay: 1
