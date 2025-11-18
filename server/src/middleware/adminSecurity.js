@@ -3,11 +3,9 @@
 import rateLimit from 'express-rate-limit';
 import slowDown from 'express-slow-down';
 
-
 /**
  * Giới hạn tốc độ cho các endpoint admin để chống spam/abuse
  */
-
 
 // Giới hạn chung cho admin: mỗi IP chỉ được 100 request mỗi 15 phút
 export const adminRateLimit = rateLimit({
@@ -25,13 +23,12 @@ export const adminRateLimit = rateLimit({
   }
 });
 
-
 // Giới hạn nghiêm ngặt cho các thao tác admin nhạy cảm (ban, unban, xóa...)
 export const strictAdminRateLimit = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 phút
   max: 10, // Tối đa 10 request mỗi IP trong 5 phút
   message: {
-    error: "Quá nhiều hành động admin nhạy cảm, vui lòng thử lại sau 5 phút",
+    error: "Quá nhiều hành động nhạy cảm, vui lòng thử lại sau 5 phút",
     code: "STRICT_ADMIN_RATE_LIMIT_EXCEEDED"
   },
   standardHeaders: true,
@@ -41,7 +38,6 @@ export const strictAdminRateLimit = rateLimit({
     return process.env.NODE_ENV === 'development' && req.ip === '127.0.0.1';
   }
 });
-
 
 // Làm chậm gửi thông báo: sau 5 request sẽ bị delay dần (chống spam gửi noti)
 export const notificationSlowDown = slowDown({
@@ -56,12 +52,9 @@ export const notificationSlowDown = slowDown({
   }
 });
 
-
 /**
  * Các middleware set header cache cho từng loại dữ liệu (tăng hiệu năng)
  */
-
-
 // Cache kiểu stale-while-revalidate cho dữ liệu thống kê (5 phút, stale 10 phút)
 export function statsCache(req, res, next) {
   if (req.method === 'GET') {
@@ -72,7 +65,6 @@ export function statsCache(req, res, next) {
   }
   next();
 }
-
 
 // Cache ngắn cho dữ liệu user (2 phút, stale 5 phút)
 export function userCache(req, res, next) {
@@ -85,7 +77,6 @@ export function userCache(req, res, next) {
   next();
 }
 
-
 // Không cache cho dữ liệu realtime (user online, thông báo...)
 export function noCache(req, res, next) {
   res.set({
@@ -95,7 +86,6 @@ export function noCache(req, res, next) {
   });
   next();
 }
-
 
 // Cache lâu cho dữ liệu role (30 phút, stale 1 tiếng)
 export function roleCache(req, res, next) {

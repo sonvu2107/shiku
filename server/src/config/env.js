@@ -47,7 +47,7 @@ export const validateEnvVars = () => {
     }
   });
 
-  // ❌ Bỏ kiểm tra độ dài JWT_SECRET và JWT_REFRESH_SECRET
+  // Bỏ kiểm tra độ dài JWT_SECRET và JWT_REFRESH_SECRET
   // Giữ lại kiểm tra các biến còn lại
   if (process.env.MONGODB_URI && !process.env.MONGODB_URI.startsWith('mongodb')) {
     invalidVars.push('MONGODB_URI phải là một MongoDB connection string hợp lệ');
@@ -59,7 +59,7 @@ export const validateEnvVars = () => {
 
   // Báo lỗi nếu có biến thiếu hoặc không hợp lệ
   if (missingVars.length > 0 || invalidVars.length > 0) {
-    console.error('❌ Environment Variables Error:');
+    console.error('[ENVIRONMENT]Environment Variables Error:');
     
     if (missingVars.length > 0) {
       console.error('Missing required variables:', missingVars.join(', '));
@@ -75,7 +75,7 @@ export const validateEnvVars = () => {
     process.exit(1);
   }
 
-  console.log('✅ All required environment variables are set');
+  console.log('[ENVIRONMENT] All required environment variables are set');
 };
 
 /**

@@ -34,6 +34,14 @@ const CommentSchema = new mongoose.Schema({
   emoteCount: { type: Number, default: 0 }, // Tổng số emotes
 }, { timestamps: true });
 
+// ==================== DATABASE INDEXES ====================
+// Indexes for common queries
+CommentSchema.index({ post: 1, createdAt: -1 }); // Get comments by post, sorted by date
+CommentSchema.index({ author: 1, createdAt: -1 }); // Get comments by author
+CommentSchema.index({ parent: 1 }); // Get replies to a comment
+CommentSchema.index({ 'emotes.user': 1 }); // Find comments by emote user
+CommentSchema.index({ 'likes': 1 }); // Find comments by likes
+
 // Pre-save middleware để cập nhật counts và validation
 CommentSchema.pre('save', function(next) {
   this.likeCount = this.likes.length;

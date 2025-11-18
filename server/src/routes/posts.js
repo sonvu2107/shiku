@@ -467,19 +467,54 @@ router.get("/feed/smart", authOptional, async (req, res, next) => {
     }));
 
     // Filter blocked users if logged in
+    // Filter blocked users (mutual blocking with batch fetch)
     let filteredItems = itemsWithCommentCount;
-    if (req.user?._id) {
+    if (req.user?._id && itemsWithCommentCount.length > 0) {
       const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
+      const currentUserId = req.user._id.toString();
+      const blockedSet = new Set((currentUser.blockedUsers || []).map(id => id.toString()));
+      
+      // Batch fetch all authors' blocked lists
+      const authorIds = [...new Set(
+        itemsWithCommentCount
+          .map(post => post.author?._id?.toString())
+          .filter(Boolean)
+      )];
+      
+      const authorsWithBlocked = await User.find({
+        _id: { $in: authorIds }
+      })
+        .select("_id blockedUsers")
+        .lean();
+      
+      // Create a Map for O(1) lookup
+      const authorsBlockedMap = new Map();
+      authorsWithBlocked.forEach(author => {
+        const authorId = author._id.toString();
+        authorsBlockedMap.set(
+          authorId,
+          new Set((author.blockedUsers || []).map(id => id.toString()))
+        );
+      });
+      
+      // Filter posts: remove if either user blocked the other
       filteredItems = itemsWithCommentCount.filter(post => {
         const author = post.author;
         if (!author) return false;
-        const iBlockedThem = (currentUser.blockedUsers || [])
-          .map(id => id.toString())
-          .includes(author._id.toString());
-        const theyBlockedMe = (author.blockedUsers || [])
-          .map(id => id.toString())
-          .includes(req.user._id.toString());
-        return !iBlockedThem && !theyBlockedMe;
+        const authorId = author._id.toString();
+        
+        // Check if current user blocked this author
+        if (blockedSet.has(authorId)) {
+          return false;
+        }
+        
+        // Check if author blocked current user (mutual blocking)
+        const authorBlockedSet = authorsBlockedMap.get(authorId);
+        if (authorBlockedSet && authorBlockedSet.has(currentUserId)) {
+          return false;
+        }
+        
+        return true;
       });
     }
 
@@ -592,15 +627,53 @@ router.get("/feed", authOptional, async (req, res, next) => {
     let allPosts = [...privatePosts, ...publishedPosts];
     allPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // Filter blocked users if logged in
-    if (req.user?._id) {
-      const currentUser = await User.findById(req.user._id).select("blockedUsers").lean(); // PHASE 4: Add .lean()
+    // Filter blocked users if logged in (mutual blocking with batch fetch)
+    if (req.user?._id && allPosts.length > 0) {
+      const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
+      const currentUserId = req.user._id.toString();
+      const blockedSet = new Set((currentUser.blockedUsers || []).map(id => id.toString()));
+      
+      // Batch fetch all authors' blocked lists
+      const authorIds = [...new Set(
+        allPosts
+          .map(post => post.author?._id?.toString())
+          .filter(Boolean)
+      )];
+      
+      const authorsWithBlocked = await User.find({
+        _id: { $in: authorIds }
+      })
+        .select("_id blockedUsers")
+        .lean();
+      
+      // Create a Map for O(1) lookup
+      const authorsBlockedMap = new Map();
+      authorsWithBlocked.forEach(author => {
+        const authorId = author._id.toString();
+        authorsBlockedMap.set(
+          authorId,
+          new Set((author.blockedUsers || []).map(id => id.toString()))
+        );
+      });
+      
+      // Filter posts: remove if either user blocked the other
       allPosts = allPosts.filter(post => {
         const author = post.author;
         if (!author) return false;
-        const iBlockedThem = (currentUser.blockedUsers || []).map(id => id.toString()).includes(author._id.toString());
-        const theyBlockedMe = (author.blockedUsers || []).map(id => id.toString()).includes(req.user._id.toString());
-        return !iBlockedThem && !theyBlockedMe;
+        const authorId = author._id.toString();
+        
+        // Check if current user blocked this author
+        if (blockedSet.has(authorId)) {
+          return false;
+        }
+        
+        // Check if author blocked current user (mutual blocking)
+        const authorBlockedSet = authorsBlockedMap.get(authorId);
+        if (authorBlockedSet && authorBlockedSet.has(currentUserId)) {
+          return false;
+        }
+        
+        return true;
       });
     }
 
@@ -871,16 +944,53 @@ router.get("/", authOptional, async (req, res, next) => {
 
     let items = await paginate(query, { page: Number(page), limit: Number(limit) }).exec();
 
-    // Lọc bài viết của user đã block mình hoặc bị mình block
-    if (req.user?._id) {
+    // Lọc bài viết của user đã block mình hoặc bị mình block (mutual blocking)
+    if (req.user?._id && items.length > 0) {
       const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
-      // We removed author's blockedUsers from populate; if mutual block logic is essential, fetch authors' blocked lists in one batch.
-      // For now, only apply filter for users current user blocked (fast path). Optional enhancement: batch fetch authors' block lists.
+      const currentUserId = req.user._id.toString();
       const blockedSet = new Set((currentUser.blockedUsers || []).map(id => id.toString()));
+      
+      // Batch fetch all authors' blocked lists
+      const authorIds = [...new Set(
+        items
+          .map(post => post.author?._id?.toString())
+          .filter(Boolean)
+      )];
+      
+      const authorsWithBlocked = await User.find({
+        _id: { $in: authorIds }
+      })
+        .select("_id blockedUsers")
+        .lean();
+      
+      // Create a Map for O(1) lookup: authorId -> Set of blocked user IDs
+      const authorsBlockedMap = new Map();
+      authorsWithBlocked.forEach(author => {
+        const authorId = author._id.toString();
+        authorsBlockedMap.set(
+          authorId,
+          new Set((author.blockedUsers || []).map(id => id.toString()))
+        );
+      });
+      
+      // Filter posts: remove if either user blocked the other
       items = items.filter(post => {
         const author = post.author;
         if (!author) return false;
-        return !blockedSet.has(author._id.toString());
+        const authorId = author._id.toString();
+        
+        // Check if current user blocked this author
+        if (blockedSet.has(authorId)) {
+          return false;
+        }
+        
+        // Check if author blocked current user (mutual blocking)
+        const authorBlockedSet = authorsBlockedMap.get(authorId);
+        if (authorBlockedSet && authorBlockedSet.has(currentUserId)) {
+          return false;
+        }
+        
+        return true;
       });
     }
 

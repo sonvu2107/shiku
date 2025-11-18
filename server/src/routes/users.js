@@ -176,9 +176,29 @@ router.get('/:id', authRequired, async (req, res) => {
     });
 
     // Kiểm tra trạng thái block hai chiều
-    const currentUser = await User.findById(currentUserId).select('blockedUsers');
-    const iBlockedThem = currentUser.blockedUsers?.map(id => id.toString()).includes(user._id.toString());
-    const theyBlockedMe = user.blockedUsers?.map(id => id.toString()).includes(currentUserId);
+    const currentUser = await User.findById(currentUserId).select('blockedUsers').lean();
+    const iBlockedThem = (currentUser.blockedUsers || []).map(id => id.toString()).includes(user._id.toString());
+    const theyBlockedMe = (user.blockedUsers || []).map(id => id.toString()).includes(currentUserId);
+    
+    // Nếu người này đã chặn mình, trả về thông báo đặc biệt
+    if (theyBlockedMe) {
+      return res.json({
+        user: {
+          _id: user._id,
+          name: user.name,
+          avatarUrl: user.avatarUrl,
+          // Chỉ trả về thông tin cơ bản khi bị chặn
+        },
+        isFriend: false,
+        hasPendingRequest: false,
+        pendingRequestDirection: null,
+        iBlockedThem,
+        theyBlockedMe: true,
+        isBlocked: true, // Flag để frontend hiển thị popup
+        blockedMessage: "Người dùng này đã chặn bạn. Bạn không thể xem nội dung của họ."
+      });
+    }
+    
     res.json({
       user: {
         ...user.toObject(),
@@ -187,7 +207,8 @@ router.get('/:id', authRequired, async (req, res) => {
         pendingRequestDirection: pendingRequest ? 
           (pendingRequest.from.toString() === currentUserId ? 'sent' : 'received') : null,
         iBlockedThem,
-        theyBlockedMe
+        theyBlockedMe: false,
+        isBlocked: false
       }
     });
 

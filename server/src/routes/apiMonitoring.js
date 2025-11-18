@@ -74,134 +74,254 @@ const getVietnamTime = () => {
   }
 };
 
-// Middleware to track API calls with database persistence
-export const trackAPICall = async (req, res, next) => {
-  if (!monitoringEnabled) {
-    return next();
-  }
-  try {
-    // Normalize endpoint to safe MongoDB Map key
-    let endpoint = req.path.replace(/\./g, '_').replace(/\//g, '_').replace(/:/g, '_');
-    
-    // Additional safety: ensure endpoint is not empty and doesn't contain problematic characters
-    if (!endpoint || endpoint.length === 0) {
-      endpoint = 'unknown_endpoint';
-    }
-    
-    // Remove any remaining problematic characters
-    endpoint = endpoint.replace(/[^a-zA-Z0-9_]/g, '_');
-    
-    // Debug logging
-    console.log(`[INFO][API-MONITORING] Endpoint: ${req.path} -> ${endpoint}`);
-    
-    const ip = req.ip;
-    // Get hour in Vietnam timezone (GMT+7)
-    const vietnamTime = getVietnamTime();
-    const hour = vietnamTime.getHours();
-    const method = req.method;
-    const clientAgent = getClientAgent(req) || "Unknown";
+// OPTIMIZATION: Batch write system for API monitoring
+// Collect stats in memory and write to DB in batches
+const statsBuffer = {
+  totalRequests: 0,
+  rateLimitHits: 0,
+  endpointCounts: new Map(),
+  ipCounts: new Map(),
+  hourCounts: new Map(),
+  dailyEndpointCounts: new Map(),
+  dailyIPCounts: new Map(),
+  rateLimitByEndpoint: new Map(),
+  realtimeUpdates: []
+};
 
-    // Use atomic operations to avoid version conflicts
-    const encodedIP = ip.replace(/\./g, '_').replace(/:/g, '_');
+let batchWriteInterval = null;
+const BATCH_WRITE_INTERVAL = 10000; // 10 seconds
+const MAX_REALTIME_UPDATES = 100;
+
+// Function to flush stats buffer to database
+const flushStatsBuffer = async () => {
+  if (statsBuffer.totalRequests === 0) return; // Nothing to flush
+  
+  try {
     const updateOps = {
       $inc: {
-        totalRequests: 1,
-        'dailyReset.dailyTotalRequests': 1,
-        [`currentPeriod.requestsByEndpoint.${endpoint}`]: 1,
-        [`currentPeriod.requestsByIP.${encodedIP}`]: 1,
-        [`currentPeriod.requestsByHour.${hour}`]: 1,
-        [`dailyTopStats.topEndpoints.${endpoint}`]: 1,
-        [`dailyTopStats.topIPs.${encodedIP}`]: 1
-      },
-      $push: {
-        realtimeUpdates: {
-          $each: [{
-            endpoint,
-            method,
-            ip,
-            statusCode: res.statusCode,
-            clientAgent: clientAgent.substring(0, 100),
-            timestamp: new Date()
-          }],
-          $position: 0,
-          $slice: 100
-        }
+        totalRequests: statsBuffer.totalRequests,
+        'dailyReset.dailyTotalRequests': statsBuffer.totalRequests
       },
       $set: {
         updatedAt: new Date()
       }
     };
 
-    // Add rate limit hit if applicable
-    if (res.statusCode === 429) {
-      updateOps.$inc.rateLimitHits = 1;
-      updateOps.$inc[`currentPeriod.rateLimitHitsByEndpoint.${endpoint}`] = 1;
+    // Add endpoint counts
+    for (const [endpoint, count] of statsBuffer.endpointCounts.entries()) {
+      updateOps.$inc[`currentPeriod.requestsByEndpoint.${endpoint}`] = count;
+      updateOps.$inc[`dailyTopStats.topEndpoints.${endpoint}`] = count;
+    }
+
+    // Add IP counts
+    for (const [ip, count] of statsBuffer.ipCounts.entries()) {
+      updateOps.$inc[`currentPeriod.requestsByIP.${ip}`] = count;
+      updateOps.$inc[`dailyTopStats.topIPs.${ip}`] = count;
+    }
+
+    // Add hour counts
+    for (const [hour, count] of statsBuffer.hourCounts.entries()) {
+      updateOps.$inc[`currentPeriod.requestsByHour.${hour}`] = count;
+    }
+
+    // Add rate limit hits
+    if (statsBuffer.rateLimitHits > 0) {
+      updateOps.$inc.rateLimitHits = statsBuffer.rateLimitHits;
+      for (const [endpoint, count] of statsBuffer.rateLimitByEndpoint.entries()) {
+        updateOps.$inc[`currentPeriod.rateLimitHitsByEndpoint.${endpoint}`] = count;
+      }
+    }
+
+    // Add realtime updates (only if we have some)
+    if (statsBuffer.realtimeUpdates.length > 0) {
+      updateOps.$push = {
+        realtimeUpdates: {
+          $each: statsBuffer.realtimeUpdates.slice(0, MAX_REALTIME_UPDATES),
+          $position: 0,
+          $slice: MAX_REALTIME_UPDATES
+        }
+      };
     }
 
     // Perform atomic update
-    await ApiStats.findOneAndUpdate(
-      {},
-      updateOps,
-      { upsert: true, new: true }
-    );
+    await ApiStats.findOneAndUpdate({}, updateOps, { upsert: true });
 
-    // Get updated stats for websocket emission
-    const stats = await ApiStats.findOne({});
+    // Reset buffer
+    statsBuffer.totalRequests = 0;
+    statsBuffer.rateLimitHits = 0;
+    statsBuffer.endpointCounts.clear();
+    statsBuffer.ipCounts.clear();
+    statsBuffer.hourCounts.clear();
+    statsBuffer.dailyEndpointCounts.clear();
+    statsBuffer.dailyIPCounts.clear();
+    statsBuffer.rateLimitByEndpoint.clear();
+    statsBuffer.realtimeUpdates = [];
+  } catch (error) {
+    console.error('[ERROR][API-MONITORING] Error flushing stats buffer:', error);
+  }
+};
 
-    // Emit real-time update via WebSocket (non-blocking)
-    const io = req.app.get('io');
-    if (io && stats) {
-      // Calculate daily requests per minute for realtime update (Vietnam timezone)
-      const vietnamNow = getVietnamTime();
-      let timeSinceMidnight = 0;
+// Start batch write interval if monitoring is enabled
+if (monitoringEnabled && !batchWriteInterval) {
+  batchWriteInterval = setInterval(flushStatsBuffer, BATCH_WRITE_INTERVAL);
+  console.log(`[INFO][API-MONITORING] Batch write system started (interval: ${BATCH_WRITE_INTERVAL}ms)`);
+  
+  // Flush on process exit
+  process.on('SIGTERM', async () => {
+    await flushStatsBuffer();
+    if (batchWriteInterval) clearInterval(batchWriteInterval);
+  });
+  process.on('SIGINT', async () => {
+    await flushStatsBuffer();
+    if (batchWriteInterval) clearInterval(batchWriteInterval);
+  });
+}
 
-      if (isNaN(vietnamNow.getTime())) {
-        // Fallback to current time
-        const fallbackTime = new Date();
-        const vietnamMidnight = new Date(fallbackTime);
-        vietnamMidnight.setHours(0, 0, 0, 0);
-        timeSinceMidnight = (fallbackTime - vietnamMidnight) / 1000 / 60;
-      } else {
-        const vietnamMidnight = new Date(vietnamNow);
-        vietnamMidnight.setHours(0, 0, 0, 0);
-        timeSinceMidnight = (vietnamNow - vietnamMidnight) / 1000 / 60;
+// Middleware to track API calls with batched database persistence
+export const trackAPICall = async (req, res, next) => {
+  if (!monitoringEnabled) {
+    return next();
+  }
+  
+  // Call next() immediately to not block request
+  next();
+
+  // Track response after it finishes (non-blocking)
+  res.on('finish', () => {
+    try {
+      // Normalize endpoint to safe MongoDB Map key
+      let endpoint = req.path.replace(/\./g, '_').replace(/\//g, '_').replace(/:/g, '_');
+      
+      if (!endpoint || endpoint.length === 0) {
+        endpoint = 'unknown_endpoint';
+      }
+      
+      endpoint = endpoint.replace(/[^a-zA-Z0-9_]/g, '_');
+      
+      const ip = req.ip;
+      const vietnamTime = getVietnamTime();
+      const hour = vietnamTime.getHours();
+      const method = req.method;
+      const clientAgent = getClientAgent(req) || "Unknown";
+      const encodedIP = ip.replace(/\./g, '_').replace(/:/g, '_');
+
+      // Add to buffer (non-blocking)
+      statsBuffer.totalRequests++;
+      
+      // Increment counters in buffer
+      statsBuffer.endpointCounts.set(
+        endpoint,
+        (statsBuffer.endpointCounts.get(endpoint) || 0) + 1
+      );
+      statsBuffer.ipCounts.set(
+        encodedIP,
+        (statsBuffer.ipCounts.get(encodedIP) || 0) + 1
+      );
+      statsBuffer.hourCounts.set(
+        hour.toString(),
+        (statsBuffer.hourCounts.get(hour.toString()) || 0) + 1
+      );
+
+      // Add to realtime updates (keep last 100)
+      statsBuffer.realtimeUpdates.unshift({
+        endpoint,
+        method,
+        ip,
+        statusCode: res.statusCode,
+        clientAgent: clientAgent.substring(0, 100),
+        timestamp: new Date()
+      });
+      if (statsBuffer.realtimeUpdates.length > MAX_REALTIME_UPDATES) {
+        statsBuffer.realtimeUpdates = statsBuffer.realtimeUpdates.slice(0, MAX_REALTIME_UPDATES);
       }
 
-      const requestsPerMinute = timeSinceMidnight > 0
-        ? ((stats.dailyReset?.dailyTotalRequests || 0) / timeSinceMidnight).toFixed(2)
-        : 0;
-      const dailyRequestsPerMinute = timeSinceMidnight > 0
-        ? (stats.totalRequests / timeSinceMidnight).toFixed(2)
-        : 0;
-
-      const realTimeUpdate = {
-        type: 'api_call',
-        data: {
+      // Track rate limit hits
+      if (res.statusCode === 429) {
+        statsBuffer.rateLimitHits++;
+        statsBuffer.rateLimitByEndpoint.set(
           endpoint,
-          method,
-          ip,
-          statusCode: res.statusCode,
-          timestamp: new Date().toISOString(),
-          clientAgent: clientAgent.substring(0, 100),
-          totalRequests: stats.totalRequests,
-          rateLimitHits: stats.rateLimitHits,
-          requestsPerMinute: parseFloat(requestsPerMinute),
-          dailyRequestsPerMinute: parseFloat(dailyRequestsPerMinute),
-          requestsByEndpoint: stats.currentPeriod?.requestsByEndpoint ? Object.fromEntries(stats.currentPeriod.requestsByEndpoint) : {},
-          requestsByIP: stats.currentPeriod?.requestsByIP?.size || 0,
-          hourlyDistribution: stats.currentPeriod?.requestsByHour ? Object.fromEntries(stats.currentPeriod.requestsByHour) : {}
+          (statsBuffer.rateLimitByEndpoint.get(endpoint) || 0) + 1
+        );
+      }
+
+      // Get stats for websocket emission (non-blocking, async)
+      ApiStats.findOne({}).lean().then(stats => {
+        if (!stats) return;
+
+        // Emit real-time update via WebSocket (non-blocking)
+        const io = req.app.get('io');
+        if (!io) return;
+
+        // Calculate daily requests per minute for realtime update (Vietnam timezone)
+        const vietnamNow = getVietnamTime();
+        let timeSinceMidnight = 0;
+
+        if (isNaN(vietnamNow.getTime())) {
+          // Fallback to current time
+          const fallbackTime = new Date();
+          const vietnamMidnight = new Date(fallbackTime);
+          vietnamMidnight.setHours(0, 0, 0, 0);
+          timeSinceMidnight = (fallbackTime - vietnamMidnight) / 1000 / 60;
+        } else {
+          const vietnamMidnight = new Date(vietnamNow);
+          vietnamMidnight.setHours(0, 0, 0, 0);
+          timeSinceMidnight = (vietnamNow - vietnamMidnight) / 1000 / 60;
         }
-      };
 
-      // Emit to all admin users
-      io.to('api-monitoring').emit('api_monitoring_update', realTimeUpdate);
+        const requestsPerMinute = timeSinceMidnight > 0
+          ? ((stats.dailyReset?.dailyTotalRequests || 0) / timeSinceMidnight).toFixed(2)
+          : 0;
+        const dailyRequestsPerMinute = timeSinceMidnight > 0
+          ? (stats.totalRequests / timeSinceMidnight).toFixed(2)
+          : 0;
+
+        // Helper function to convert Map or object to plain object
+        const mapToObject = (mapOrObj) => {
+          if (!mapOrObj) return {};
+          if (mapOrObj instanceof Map) {
+            return Object.fromEntries(mapOrObj);
+          }
+          if (typeof mapOrObj === 'object' && mapOrObj !== null) {
+            // Already an object (from .lean())
+            return mapOrObj;
+          }
+          return {};
+        };
+
+        const realTimeUpdate = {
+          type: 'api_call',
+          data: {
+            endpoint,
+            method,
+            ip,
+            statusCode: res.statusCode,
+            timestamp: new Date().toISOString(),
+            clientAgent: clientAgent.substring(0, 100),
+            totalRequests: stats.totalRequests,
+            rateLimitHits: stats.rateLimitHits,
+            requestsPerMinute: parseFloat(requestsPerMinute),
+            dailyRequestsPerMinute: parseFloat(dailyRequestsPerMinute),
+            requestsByEndpoint: mapToObject(stats.currentPeriod?.requestsByEndpoint),
+            requestsByIP: stats.currentPeriod?.requestsByIP 
+              ? (stats.currentPeriod.requestsByIP instanceof Map 
+                  ? stats.currentPeriod.requestsByIP.size 
+                  : Object.keys(stats.currentPeriod.requestsByIP).length)
+              : 0,
+            hourlyDistribution: mapToObject(stats.currentPeriod?.requestsByHour)
+          }
+        };
+
+        // Emit to all admin users
+        io.to('api-monitoring').emit('api_monitoring_update', realTimeUpdate);
+      }).catch(err => {
+        // Silent error handling for websocket emission
+        console.error('[ERROR][API-MONITORING] Error emitting websocket update:', err);
+      });
+    } catch (error) {
+      console.error('[ERROR][API-MONITORING] Error tracking API call:', error);
+      // Continue even if tracking fails
     }
-
-    next();
-  } catch (error) {
-    console.error('[ERROR][API-MONITORING] Error tracking API call:', error);
-    next(); // Continue even if tracking fails
-  }
+  });
 };
 
 if (monitoringEnabled) {

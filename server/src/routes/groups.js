@@ -95,6 +95,7 @@ router.get('/', authOptional, async (req, res) => {
     const sortOptions = {};
     sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
+    // OPTIMIZATION: Use lean() for better performance
     // Thực hiện query với phân trang
     const groups = await Group.find(query)
       .populate('owner', 'name avatarUrl')

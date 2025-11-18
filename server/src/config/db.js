@@ -33,24 +33,24 @@ export async function connectDB(uri) {
   try {
     // Kết nối đến MongoDB với improved options
     await mongoose.connect(uri, options);
-    console.log("✅ MongoDB connected with optimized settings");
+    console.log("[DATABASE] MongoDB connected with optimized settings");
     
     // Handle connection events
     mongoose.connection.on('error', (err) => {
-      console.error('❌ MongoDB connection error:', err);
+      console.error('[DATABASE] MongoDB connection error:', err);
     });
     
     mongoose.connection.on('disconnected', () => {
-      console.warn('⚠️ MongoDB disconnected');
+      console.warn('[DATABASE] MongoDB disconnected');
     });
     
     mongoose.connection.on('reconnected', () => {
-      console.log('✅ MongoDB reconnected');
+      console.log('[DATABASE] MongoDB reconnected');
     });
     
   } catch (err) {
     // Log lỗi và thoát process nếu không kết nối được
-    console.error("❌ MongoDB connection error:", err.message);
+    console.error("[DATABASE] MongoDB connection error:", err.message);
     process.exit(1);
   }
 }

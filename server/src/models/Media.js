@@ -57,7 +57,10 @@ mediaSchema.index({ uploadedBy: 1 });
 mediaSchema.index({ type: 1 });
 mediaSchema.index({ isActive: 1 });
 mediaSchema.index({ title: 'text', description: 'text', originalName: 'text' });
-mediaSchema.index({ uploadedAt: -1 });
+mediaSchema.index({ createdAt: -1 }); // For sorting by uploadedAt (virtual field maps to createdAt)
+// Compound indexes for common query patterns
+mediaSchema.index({ uploadedBy: 1, isActive: 1, createdAt: -1 }); // User's active media sorted by date
+mediaSchema.index({ uploadedBy: 1, type: 1, isActive: 1 }); // User's media by type
 
 // Virtual for formatted size
 mediaSchema.virtual('formattedSize').get(function() {

@@ -96,32 +96,68 @@ async function validateFiles(req, res, next) {
  */
 router.get("/post/:postId", authOptional, async (req, res, next) => {
   try {
+    // OPTIMIZATION: Use lean() and optimize populate calls
+    // Remove blockedUsers from populate to reduce payload size
     let items = await Comment.find({ post: req.params.postId })
-      .populate("author", "name nickname avatarUrl role blockedUsers")
-      .populate("parent")
-      .populate("likes", "name")
+      .populate("author", "name nickname avatarUrl role") // Removed blockedUsers
+      .populate("parent", "content author createdAt") // Only get essential fields
+      .populate("likes", "name avatarUrl") // Optimized
       .populate("emotes.user", "name avatarUrl")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean(); // Use lean() for better performance
 
     // Lọc comment nếu user đã đăng nhập
-    if (req.user) {
-      const currentUser = await User.findById(req.user._id).select("blockedUsers");
-
+    if (req.user && items.length > 0) {
+      // OPTIMIZATION: Fetch current user's blocked list once
+      const currentUser = await User.findById(req.user._id)
+        .select("blockedUsers")
+        .lean();
+      
+      const currentUserId = req.user._id.toString();
+      const blockedSet = new Set(
+        (currentUser?.blockedUsers || []).map(id => id.toString())
+      );
+      
+      // OPTIMIZATION: Batch fetch all authors' blocked lists in one query
+      const authorIds = [...new Set(
+        items
+          .map(c => c.author?._id?.toString())
+          .filter(Boolean)
+      )];
+      
+      const authorsWithBlocked = await User.find({
+        _id: { $in: authorIds }
+      })
+        .select("_id blockedUsers")
+        .lean();
+      
+      // Create a Map for O(1) lookup: authorId -> Set of blocked user IDs
+      const authorsBlockedMap = new Map();
+      authorsWithBlocked.forEach(author => {
+        const authorId = author._id.toString();
+        authorsBlockedMap.set(
+          authorId,
+          new Set((author.blockedUsers || []).map(id => id.toString()))
+        );
+      });
+      
+      // Filter comments: remove if either user blocked the other
       items = items.filter(c => {
-        if (!c.author) return false; // bỏ comment không có tác giả
+        if (!c.author) return false;
         const authorId = c.author._id.toString();
-
-        // mình block họ
-        const iBlockedThem = (currentUser.blockedUsers || [])
-          .map(id => id.toString())
-          .includes(authorId);
-
-        // họ block mình
-        const theyBlockedMe = (c.author.blockedUsers || [])
-          .map(id => id.toString())
-          .includes(req.user._id.toString());
-
-        return !iBlockedThem && !theyBlockedMe;
+        
+        // Check if current user blocked this author
+        if (blockedSet.has(authorId)) {
+          return false;
+        }
+        
+        // Check if author blocked current user (mutual blocking)
+        const authorBlockedSet = authorsBlockedMap.get(authorId);
+        if (authorBlockedSet && authorBlockedSet.has(currentUserId)) {
+          return false;
+        }
+        
+        return true;
       });
     }
 

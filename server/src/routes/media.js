@@ -1,8 +1,34 @@
 import express from 'express';
 import Media from '../models/Media.js';
 import { authRequired } from '../middleware/auth.js';
+// Cache utilities imported but using custom cache for media
 
 const router = express.Router();
+
+// Create media cache instance
+const mediaCache = {
+  cache: new Map(),
+  ttl: 5 * 60 * 1000, // 5 minutes
+  set(key, value, customTtl = null) {
+    const ttl = customTtl || this.ttl;
+    this.cache.set(key, {
+      value,
+      expires: Date.now() + ttl
+    });
+  },
+  get(key) {
+    const item = this.cache.get(key);
+    if (!item) return null;
+    if (Date.now() > item.expires) {
+      this.cache.delete(key);
+      return null;
+    }
+    return item.value;
+  },
+  delete(key) {
+    this.cache.delete(key);
+  }
+};
 
 /**
  * Media Routes - API routes cho chức năng quản lý media
@@ -25,6 +51,15 @@ router.get('/', authRequired, async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
+    const userId = req.user._id.toString();
+    const cacheKey = `media:list:${userId}:${page}:${limit}:${type}:${search}:${sortBy}:${sortOrder}`;
+
+    // Try cache first
+    const cached = mediaCache.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     // Xây dựng query
     let query = { 
       uploadedBy: req.user._id,
@@ -46,22 +81,44 @@ router.get('/', authRequired, async (req, res) => {
       ];
     }
 
-    // Xây dựng sort
+    // Xây dựng sort - map uploadedAt to createdAt for sorting
     const sortOptions = {};
-    sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    const sortField = sortBy === 'uploadedAt' ? 'createdAt' : sortBy;
+    sortOptions[sortField] = sortOrder === 'desc' ? -1 : 1;
 
-    // Thực hiện query với phân trang
-    const media = await Media.find(query)
-      .populate('uploadedBy', 'name avatarUrl')
-      .sort(sortOptions)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .lean();
+    // OPTIMIZATION: Use aggregation to get both data and count in one query
+    const skip = (page - 1) * limit;
+    
+    const [result] = await Media.aggregate([
+      { $match: query },
+      {
+        $facet: {
+          media: [
+            { $sort: sortOptions },
+            { $skip: skip },
+            { $limit: parseInt(limit) },
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'uploadedBy',
+                foreignField: '_id',
+                as: 'uploadedBy',
+                pipeline: [
+                  { $project: { name: 1, avatarUrl: 1 } }
+                ]
+              }
+            },
+            { $unwind: { path: '$uploadedBy', preserveNullAndEmptyArrays: true } }
+          ],
+          total: [{ $count: 'count' }]
+        }
+      }
+    ]);
 
-    // Đếm tổng số media
-    const total = await Media.countDocuments(query);
+    const media = result.media || [];
+    const total = result.total[0]?.count || 0;
 
-    res.json({
+    const response = {
       success: true,
       media,
       pagination: {
@@ -69,7 +126,12 @@ router.get('/', authRequired, async (req, res) => {
         pages: Math.ceil(total / limit),
         total
       }
-    });
+    };
+
+    // Cache the result
+    mediaCache.set(cacheKey, response);
+
+    res.json(response);
   } catch (error) {
     console.error('Error fetching media:', error);
     res.status(500).json({
@@ -86,11 +148,21 @@ router.get('/', authRequired, async (req, res) => {
  */
 router.get('/:id', authRequired, async (req, res) => {
   try {
+    const cacheKey = `media:detail:${req.params.id}:${req.user._id}`;
+    
+    // Try cache first
+    const cached = mediaCache.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const media = await Media.findOne({
       _id: req.params.id,
       uploadedBy: req.user._id,
       isActive: true
-    }).populate('uploadedBy', 'name avatarUrl');
+    })
+      .populate('uploadedBy', 'name avatarUrl')
+      .lean(); // Use lean() for better performance
 
     if (!media) {
       return res.status(404).json({
@@ -99,10 +171,15 @@ router.get('/:id', authRequired, async (req, res) => {
       });
     }
 
-    res.json({
+    const response = {
       success: true,
       media
-    });
+    };
+
+    // Cache for 2 minutes (detail pages change less frequently)
+    mediaCache.set(cacheKey, response, 2 * 60 * 1000);
+
+    res.json(response);
   } catch (error) {
     console.error('Error fetching media:', error);
     res.status(500).json({
@@ -150,6 +227,13 @@ router.post('/', authRequired, async (req, res) => {
     await media.save();
     await media.populate('uploadedBy', 'name avatarUrl');
 
+    // Invalidate cache for user's media list
+    for (const key of mediaCache.cache.keys()) {
+      if (key.startsWith(`media:list:${req.user._id}:`)) {
+        mediaCache.delete(key);
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Tạo media thành công',
@@ -193,6 +277,14 @@ router.put('/:id', authRequired, async (req, res) => {
     await media.save();
     await media.populate('uploadedBy', 'name avatarUrl');
 
+    // Invalidate cache
+    mediaCache.delete(`media:detail:${req.params.id}:${req.user._id}`);
+    for (const key of mediaCache.cache.keys()) {
+      if (key.startsWith(`media:list:${req.user._id}:`)) {
+        mediaCache.delete(key);
+      }
+    }
+
     res.json({
       success: true,
       message: 'Cập nhật media thành công',
@@ -231,6 +323,14 @@ router.delete('/:id', authRequired, async (req, res) => {
     media.isActive = false;
     await media.save();
 
+    // Invalidate cache
+    mediaCache.delete(`media:detail:${req.params.id}:${req.user._id}`);
+    for (const key of mediaCache.cache.keys()) {
+      if (key.startsWith(`media:list:${req.user._id}:`)) {
+        mediaCache.delete(key);
+      }
+    }
+
     res.json({
       success: true,
       message: 'Xóa media thành công'
@@ -251,6 +351,7 @@ router.delete('/:id', authRequired, async (req, res) => {
  */
 router.post('/:id/view', authRequired, async (req, res) => {
   try {
+    // Use findOneAndUpdate with lean for better performance
     const media = await Media.findOneAndUpdate(
       {
         _id: req.params.id,
@@ -258,7 +359,7 @@ router.post('/:id/view', authRequired, async (req, res) => {
         isActive: true
       },
       { $inc: { views: 1 } },
-      { new: true }
+      { new: true, lean: true, select: 'views' } // Only return views field
     );
 
     if (!media) {
@@ -267,6 +368,9 @@ router.post('/:id/view', authRequired, async (req, res) => {
         message: 'Không tìm thấy media'
       });
     }
+
+    // Invalidate detail cache (views changed)
+    mediaCache.delete(`media:detail:${req.params.id}:${req.user._id}`);
 
     res.json({
       success: true,

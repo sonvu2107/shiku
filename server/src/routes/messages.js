@@ -29,6 +29,7 @@ router.get("/conversations", authRequired, async (req, res) => {
   res.set('Expires', '0');
   
   try {
+    // OPTIMIZATION: Use lean() for better performance
     const conversations = await Conversation.find({
       participants: {
         $elemMatch: {
@@ -40,7 +41,8 @@ router.get("/conversations", authRequired, async (req, res) => {
     })
     .populate('participants.user', 'name avatarUrl isOnline lastSeen')
     .populate('lastMessage')
-    .sort({ lastActivity: -1 });
+    .sort({ lastActivity: -1 })
+    .lean();
 
 
     // Optimize unread count calculation with batch query
@@ -117,6 +119,7 @@ router.get("/conversations/:conversationId/messages", authRequired, async (req, 
     const { page = 1, limit = 50, before } = req.query;
 
     // Check if user is participant
+    // OPTIMIZATION: Use lean() for better performance
     const conversation = await Conversation.findOne({
       _id: conversationId,
       participants: {
@@ -125,7 +128,7 @@ router.get("/conversations/:conversationId/messages", authRequired, async (req, 
           leftAt: null
         }
       }
-    });
+    }).lean();
 
     if (!conversation) {
       return res.status(403).json({ message: "Không có quyền truy cập cuộc trò chuyện này" });
@@ -137,7 +140,7 @@ router.get("/conversations/:conversationId/messages", authRequired, async (req, 
       // Skip block check for chatbot
     }
 
-    // Build query
+    // Build query - mongoose will auto-convert string to ObjectId
     let query = {
       conversation: conversationId,
       isDeleted: false
@@ -148,17 +151,17 @@ router.get("/conversations/:conversationId/messages", authRequired, async (req, 
       query.createdAt = { $lt: new Date(before) };
     }
 
+    // OPTIMIZATION: Use find with lean() for better performance
+    // This ensures all message fields are preserved correctly
     const messages = await Message.find(query)
       .populate('sender', 'name avatarUrl')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .lean();
 
-    // Get total count for pagination info
-    const totalMessages = await Message.countDocuments({
-      conversation: conversationId,
-      isDeleted: false
-    });
+    // Get total count for pagination
+    const totalMessages = await Message.countDocuments(query);
 
     // Mark messages as read for current user
     await Message.updateMany(
@@ -199,6 +202,7 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
     const { content, messageType = 'text', emote } = req.body;
 
     // Check if user is participant
+    // OPTIMIZATION: Use lean() and batch fetch blockedUsers separately
     const conversation = await Conversation.findOne({
       _id: conversationId,
       participants: {
@@ -207,20 +211,46 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
           leftAt: null
         }
       }
-    }).populate('participants.user', 'blockedUsers');
+    })
+    .populate('participants.user', 'name avatarUrl')
+    .lean();
 
     if (!conversation) {
       return res.status(403).json({ message: "Không có quyền truy cập cuộc trò chuyện này" });
     }
 
     // Kiểm tra block giữa các thành viên (chỉ cho phép gửi nếu không ai block nhau)
-    const currentUser = await User.findById(req.user._id).select('blockedUsers');
+    // OPTIMIZATION: Batch fetch blockedUsers
+    const currentUser = await User.findById(req.user._id).select('blockedUsers').lean();
     const otherParticipants = conversation.participants.filter(p => p.user._id.toString() !== req.user._id.toString());
-    for (const p of otherParticipants) {
-      const iBlockedThem = currentUser.blockedUsers?.map(id => id.toString()).includes(p.user._id.toString());
-      const theyBlockedMe = p.user.blockedUsers?.map(id => id.toString()).includes(req.user._id.toString());
-      if (iBlockedThem || theyBlockedMe) {
-        return res.status(403).json({ message: "Bạn hoặc người này đã chặn nhau, không thể gửi tin nhắn." });
+    
+    if (otherParticipants.length > 0) {
+      const otherUserIds = otherParticipants.map(p => p.user._id);
+      const otherUsers = await User.find({ _id: { $in: otherUserIds } })
+        .select('_id blockedUsers')
+        .lean();
+      
+      const currentUserId = req.user._id.toString();
+      const currentUserBlockedSet = new Set(
+        (currentUser?.blockedUsers || []).map(id => id.toString())
+      );
+      
+      const otherUsersBlockedMap = new Map();
+      otherUsers.forEach(user => {
+        otherUsersBlockedMap.set(
+          user._id.toString(),
+          new Set((user.blockedUsers || []).map(id => id.toString()))
+        );
+      });
+      
+      for (const p of otherParticipants) {
+        const otherUserId = p.user._id.toString();
+        const iBlockedThem = currentUserBlockedSet.has(otherUserId);
+        const theyBlockedMe = otherUsersBlockedMap.get(otherUserId)?.has(currentUserId);
+        
+        if (iBlockedThem || theyBlockedMe) {
+          return res.status(403).json({ message: "Bạn hoặc người này đã chặn nhau, không thể gửi tin nhắn." });
+        }
       }
     }
 
