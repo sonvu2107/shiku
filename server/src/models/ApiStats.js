@@ -299,7 +299,7 @@ apiStatsSchema.statics.cleanOldData = async function() {
     createdAt: { $lt: sevenDaysAgo }
   });
   
-  console.log('Cleaned old API stats data');
+  console.log('[INFO][API-STATS] Cleaned old API stats data');
 };
 
 // Pre-save middleware to update updatedAt

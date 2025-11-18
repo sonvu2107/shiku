@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
 import { Calendar, MapPin, Clock, Users, Plus, Search } from "lucide-react";
+import { useSEO } from "../utils/useSEO";
 
 /**
  * Events - Trang quản lý sự kiện
@@ -12,6 +13,15 @@ export default function Events() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all"); // Tất cả, sắp diễn ra, đã kết thúc, của tôi
+
+  // ==================== SEO ====================
+  // Trang danh sách sự kiện là public → index, follow
+  useSEO({
+    title: "Sự kiện - Shiku",
+    description: "Khám phá và tham gia các sự kiện thú vị trên Shiku",
+    robots: "index, follow",
+    canonical: "https://shiku.click/events"
+  });
 
   useEffect(() => {
     loadEvents();

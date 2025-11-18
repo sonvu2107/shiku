@@ -6,7 +6,7 @@ import { getClientAgent } from "../utils/clientAgent.js";
 // TEMP: Cleanup invalid env keys - SIMPLIFIED
 (async () => {
   try {
-    console.log('[Cleanup] Starting cleanup...');
+    console.log('[INFO][API-MONITORING] Starting cleanup...');
     
     // Remove invalid 'env' keys (simplified - no $* syntax)
     const result = await ApiStats.updateMany({}, {
@@ -17,7 +17,7 @@ import { getClientAgent } from "../utils/clientAgent.js";
     });
     
     if (result.modifiedCount) {
-      console.log(`[Cleanup] Removed invalid 'env' keys: ${result.modifiedCount} docs updated`);
+      console.log(`[INFO][API-MONITORING] Removed invalid 'env' keys: ${result.modifiedCount} docs updated`);
     }
     
     // Check if any problematic docs still exist
@@ -29,21 +29,21 @@ import { getClientAgent } from "../utils/clientAgent.js";
     });
     
     if (problematicDocs.length > 0) {
-      console.log(`[Cleanup] Found ${problematicDocs.length} problematic docs, deleting all...`);
+      console.log(`[INFO][API-MONITORING] Found ${problematicDocs.length} problematic docs, deleting all...`);
       await ApiStats.deleteMany({});
-      console.log('[Cleanup] All ApiStats documents deleted - will recreate on first API call');
+      console.log('[INFO][API-MONITORING] All ApiStats documents deleted - will recreate on first API call');
     } else {
-      console.log('[Cleanup] No problematic documents found');
+      console.log('[INFO][API-MONITORING] No problematic documents found');
     }
     
   } catch (err) {
-    console.error("[Cleanup] Failed:", err.message);
+    console.error("[ERROR][API-MONITORING] Cleanup failed:", err.message);
     // If cleanup fails, delete everything as last resort
     try {
       await ApiStats.deleteMany({});
-      console.log('[Cleanup] Emergency: Deleted all ApiStats documents');
+      console.log('[INFO][API-MONITORING] Emergency: Deleted all ApiStats documents');
     } catch (deleteErr) {
-      console.error('[Cleanup] Emergency delete failed:', deleteErr.message);
+      console.error('[ERROR][API-MONITORING] Emergency delete failed:', deleteErr.message);
     }
   }
 })();
@@ -61,14 +61,14 @@ const getVietnamTime = () => {
     
     // If the conversion failed, fallback to simple UTC+7
     if (isNaN(vietnamTime.getTime())) {
-      console.log('Vietnam time conversion failed, using UTC+7 fallback');
+      console.log('[INFO][API-MONITORING] Vietnam time conversion failed, using UTC+7 fallback');
       return new Date(now.getTime() + (7 * 60 * 60 * 1000));
     }
     
-    console.log('Vietnam time conversion successful:', vietnamTime.toISOString());
+    console.log('[INFO][API-MONITORING] Vietnam time conversion successful:', vietnamTime.toISOString());
     return vietnamTime;
   } catch (error) {
-    console.error('Error getting Vietnam time:', error);
+    console.error('[ERROR][API-MONITORING] Error getting Vietnam time:', error);
     // Fallback to simple UTC+7
     return new Date(now.getTime() + (7 * 60 * 60 * 1000));
   }
@@ -92,7 +92,7 @@ export const trackAPICall = async (req, res, next) => {
     endpoint = endpoint.replace(/[^a-zA-Z0-9_]/g, '_');
     
     // Debug logging
-    console.log(`[API Tracking] Endpoint: ${req.path} -> ${endpoint}`);
+    console.log(`[INFO][API-MONITORING] Endpoint: ${req.path} -> ${endpoint}`);
     
     const ip = req.ip;
     // Get hour in Vietnam timezone (GMT+7)
@@ -199,7 +199,7 @@ export const trackAPICall = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Error tracking API call:', error);
+    console.error('[ERROR][API-MONITORING] Error tracking API call:', error);
     next(); // Continue even if tracking fails
   }
 };
@@ -211,9 +211,9 @@ if (monitoringEnabled) {
       const stats = await ApiStats.getOrCreateStats();
       stats.resetCurrentPeriod();
       await stats.save();
-      console.log(`API Current Period Stats reset at ${new Date().toISOString()}`);
+      console.log(`[INFO][API-MONITORING] API Current Period Stats reset at ${new Date().toISOString()}`);
     } catch (error) {
-      console.error('Error resetting API current period stats:', error);
+      console.error('[ERROR][API-MONITORING] Error resetting API current period stats:', error);
     }
   }, 60 * 60 * 1000); // Reset every hour
 
@@ -223,9 +223,9 @@ if (monitoringEnabled) {
       const stats = await ApiStats.getOrCreateStats();
       stats.resetHourlyStats();
       await stats.save();
-      console.log(`API Hourly Stats reset at ${new Date().toISOString()} (Daily reset)`);
+      console.log(`[INFO][API-MONITORING] API Hourly Stats reset at ${new Date().toISOString()} (Daily reset)`);
     } catch (error) {
-      console.error('Error resetting API hourly stats:', error);
+      console.error('[ERROR][API-MONITORING] Error resetting API hourly stats:', error);
     }
   }, 24 * 60 * 60 * 1000); // Reset every 24 hours
 
@@ -244,18 +244,18 @@ if (monitoringEnabled) {
         const stats = await ApiStats.getOrCreateStats();
         stats.resetHourlyStats();
         await stats.save();
-        console.log(`API Hourly Stats reset at ${new Date().toISOString()} (Scheduled midnight reset)`);
+        console.log(`[INFO][API-MONITORING] API Hourly Stats reset at ${new Date().toISOString()} (Scheduled midnight reset)`);
         
         // Schedule next reset
         scheduleDailyReset();
       } catch (error) {
-        console.error('Error in scheduled hourly stats reset:', error);
+        console.error('[ERROR][API-MONITORING] Error in scheduled hourly stats reset:', error);
         // Schedule next reset even if this one failed
         scheduleDailyReset();
       }
     }, timeUntilMidnight);
     
-    console.log(`Next hourly stats reset scheduled for Vietnam time: ${tomorrow.toISOString()}`);
+    console.log(`[INFO][API-MONITORING] Next hourly stats reset scheduled for Vietnam time: ${tomorrow.toISOString()}`);
   };
 
   // Start the daily reset scheduler
@@ -266,11 +266,11 @@ if (monitoringEnabled) {
     try {
       await ApiStats.cleanOldData();
     } catch (error) {
-      console.error('Error cleaning old API stats data:', error);
+      console.error('[ERROR][API-MONITORING] Error cleaning old API stats data:', error);
     }
   }, 24 * 60 * 60 * 1000); // Clean every 24 hours
 } else {
-  console.log("[API Monitoring] Disabled via DISABLE_API_MONITORING flag");
+  console.log("[INFO][API-MONITORING] Disabled via DISABLE_API_MONITORING flag");
 }
 
 /**

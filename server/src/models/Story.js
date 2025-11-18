@@ -246,8 +246,8 @@ StorySchema.statics.getActiveStoriesForUser = async function(userId) {
  */
 StorySchema.statics.getStoriesFeed = async function(userId, friendIds) {
   try {
-    console.log(`🔍 getStoriesFeed called for user: ${userId}`);
-    console.log(`👥 Friend IDs: ${JSON.stringify(friendIds)}`);
+    console.log(`[INFO][STORY] getStoriesFeed called for user: ${userId}`);
+    console.log(`[INFO][STORY] Friend IDs: ${JSON.stringify(friendIds)}`);
     
     // Group stories theo author
     const stories = await this.aggregate([
@@ -283,7 +283,7 @@ StorySchema.statics.getStoriesFeed = async function(userId, friendIds) {
       }
     ]);
     
-    console.log(`📖 Found ${stories.length} story groups from aggregate`);
+    console.log(`[INFO][STORY] Found ${stories.length} story groups from aggregate`);
     
     // Populate author info - Fix: populate _id field with User model
     await mongoose.model("User").populate(stories, {
@@ -291,7 +291,7 @@ StorySchema.statics.getStoriesFeed = async function(userId, friendIds) {
       select: 'name avatarUrl isVerified'
     });
     
-    console.log(`👤 After populate: ${stories.length} story groups`);
+    console.log(`[INFO][STORY] After populate: ${stories.length} story groups`);
     
     // Filter stories based on visibility
     const filteredStories = [];
@@ -300,8 +300,8 @@ StorySchema.statics.getStoriesFeed = async function(userId, friendIds) {
         const authorId = storyGroup._id._id || storyGroup._id;
         const userFriends = friendIds || [];
         
-        console.log(`🔍 Processing story group for author: ${authorId}`);
-        console.log(`📚 Stories in group: ${storyGroup.storyCount}`);
+        console.log(`[INFO][STORY] Processing story group for author: ${authorId}`);
+        console.log(`[INFO][STORY] Stories in group: ${storyGroup.storyCount}`);
         
         // Filter stories within this group based on visibility
         const visibleStories = storyGroup.stories.filter(story => {
@@ -328,7 +328,7 @@ StorySchema.statics.getStoriesFeed = async function(userId, friendIds) {
           return false;
         });
         
-        console.log(`👀 Visible stories: ${visibleStories.length}/${storyGroup.storyCount}`);
+        console.log(`[INFO][STORY] Visible stories: ${visibleStories.length}/${storyGroup.storyCount}`);
         
         if (visibleStories.length > 0) {
           filteredStories.push({
@@ -339,16 +339,16 @@ StorySchema.statics.getStoriesFeed = async function(userId, friendIds) {
           });
         }
       } catch (groupError) {
-        console.error(`❌ Error processing story group:`, groupError);
+        console.error(`[ERROR][STORY] Error processing story group:`, groupError);
         // Continue with other groups
       }
     }
     
-    console.log(`✅ Final filtered stories: ${filteredStories.length} groups`);
+    console.log(`[INFO][STORY] Final filtered stories: ${filteredStories.length} groups`);
     return filteredStories;
     
   } catch (error) {
-    console.error(`❌ Error in getStoriesFeed:`, error);
+    console.error(`[ERROR][STORY] Error in getStoriesFeed:`, error);
     throw error;
   }
 };

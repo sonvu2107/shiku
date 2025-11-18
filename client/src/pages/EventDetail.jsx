@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { api } from "../api";
+import { useSEO } from "../utils/useSEO";
 import { 
   Calendar, 
   MapPin, 
@@ -28,6 +29,17 @@ export default function EventDetail() {
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // ==================== SEO ====================
+  // Trang chi tiết sự kiện là public → index, follow
+  useSEO({
+    title: event ? `${event.title} - Shiku` : "Sự kiện - Shiku",
+    description: event?.description 
+      ? `${event.description.substring(0, 160)}...`
+      : `Xem sự kiện ${event?.title || ''} trên Shiku`,
+    robots: "index, follow",
+    canonical: event?._id ? `https://shiku.click/events/${event._id}` : undefined
+  });
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
 

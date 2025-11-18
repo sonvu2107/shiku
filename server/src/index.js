@@ -458,15 +458,15 @@ app.post("/api/test-token-generation", async (req, res) => {
       });
     }
     
-    console.log("[test-token] User found:", user.name);
-    console.log("[test-token] Attempting to generate token pair...");
+    console.log("[INFO][TEST-TOKEN] User found:", user.name);
+    console.log("[INFO][TEST-TOKEN] Attempting to generate token pair...");
     
     // Test token generation
     const tokens = await generateTokenPair(user);
     
-    console.log("[test-token] Token generation successful");
-    console.log("[test-token] Access token length:", tokens.accessToken?.length);
-    console.log("[test-token] Refresh token length:", tokens.refreshToken?.length);
+    console.log("[INFO][TEST-TOKEN] Token generation successful");
+    console.log("[INFO][TEST-TOKEN] Access token length:", tokens.accessToken?.length);
+    console.log("[INFO][TEST-TOKEN] Refresh token length:", tokens.refreshToken?.length);
     
     res.json({
       success: true,
@@ -486,7 +486,7 @@ app.post("/api/test-token-generation", async (req, res) => {
     });
     
   } catch (error) {
-    console.error("[test-token] Token generation error:", error);
+    console.error("[ERROR][TEST-TOKEN] Token generation error:", error);
     res.status(500).json({
       error: "Token generation failed",
       code: "TOKEN_GENERATION_ERROR",
@@ -556,7 +556,7 @@ app.post("/api/test-login", async (req, res) => {
     });
     
   } catch (error) {
-    console.error("Test login error:", error);
+    console.error("[ERROR][TEST-LOGIN] Test login error:", error);
     res.status(500).json({
       error: "Internal server error",
       code: "INTERNAL_ERROR",
@@ -984,7 +984,7 @@ setInterval(() => {
 
   // Critical warning if memory usage is very high
   if (heapUsedMB > 800) { // 800MB threshold
-    console.error(`🚨 Critical memory usage: ${heapUsedMB}MB heap used - consider restarting`);
+    console.error(`[ERROR][SERVER] Critical memory usage: ${heapUsedMB}MB heap used - consider restarting`);
   }
 }, 5 * 60 * 1000); // Every 5 minutes
 
@@ -992,7 +992,7 @@ setInterval(() => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('[ERROR][SERVER] Unhandled Rejection at:', promise, 'reason:', reason);
   // Don't exit process in production, just log the error
   if (process.env.NODE_ENV !== 'production') {
     process.exit(1);
@@ -1001,66 +1001,66 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
+  console.error('[ERROR][SERVER] Uncaught Exception:', error);
   // Graceful shutdown
-  console.log('Attempting graceful shutdown...');
+  console.log('[INFO][SERVER] Attempting graceful shutdown...');
   server.close(() => {
-    console.log('Server closed');
+    console.log('[INFO][SERVER] Server closed');
     process.exit(1);
   });
 
   // Force exit if graceful shutdown takes too long
   setTimeout(() => {
-    console.error('Forced shutdown');
+    console.error('[ERROR][SERVER] Forced shutdown');
     process.exit(1);
   }, 10000);
 });
 
 // Handle SIGTERM (e.g., from process managers)
 process.on('SIGTERM', () => {
-  console.log('📡 SIGTERM received, shutting down gracefully');
+  console.log('[INFO][SERVER] SIGTERM received, shutting down gracefully');
   server.close(() => {
-    console.log('Process terminated');
+    console.log('[INFO][SERVER] Process terminated');
   });
 });
 
 // Handle SIGINT (Ctrl+C)
 process.on('SIGINT', () => {
-  console.log('📡 SIGINT received, shutting down gracefully');
+  console.log('[INFO][SERVER] SIGINT received, shutting down gracefully');
   server.close(() => {
-    console.log('Process terminated');
+    console.log('[INFO][SERVER] Process terminated');
   });
 });
 
 export { app, server };
 // ==================== SERVER STARTUP ====================
 if (process.env.DISABLE_SERVER_START === "true") {
-  console.log("[TEST] Server start skipped");
+  console.log("[INFO][TEST] Server start skipped");
 } else {
   // Check production environment before starting
   const envCheck = checkProductionEnvironment();
   if (!envCheck.isValid) {
-    console.error("❌ Server startup aborted due to environment issues");
+    console.error("[ERROR][SERVER] Server startup aborted due to environment issues");
     process.exit(1);
   }
 
   connectDB(process.env.MONGODB_URI).then(async () => {
 
     server.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server listening on http://localhost:${PORT}`);
-      console.log(`Network access: http://YOUR_IP:${PORT}`);
-      console.log('✅ Socket.IO ready');
+      console.log(`[INFO][SERVER] Server listening on http://localhost:${PORT}`);
+      console.log(`[INFO][SERVER] Network access: http://YOUR_IP:${PORT}`);
+      console.log('[INFO][SERVER] Socket.IO ready');
       
       // Log environment info
       if (process.env.NODE_ENV === "production") {
-        console.log("🚀 Production server started");
-        console.log(`Environment: ${envCheck.environment.nodeEnv}`);
-        console.log(`Cookie Domain: ${envCheck.environment.cookieDomain}`);
-        console.log(`CORS Origin: ${envCheck.environment.corsOrigin}`);
+        console.log("[INFO][SERVER] Production server started");
+        console.log(`[INFO][SERVER] Environment: ${envCheck.environment.nodeEnv}`);
+        console.log(`[INFO][SERVER] Cookie Domain: ${envCheck.environment.cookieDomain}`);
+        console.log(`[INFO][SERVER] CORS Origin: ${envCheck.environment.corsOrigin}`);
       }
     });
   }).catch((error) => {
-    console.error('Failed to start server:', error);
+    console.error('[ERROR][SERVER] Failed to start server:', error);
     process.exit(1);
   });
 }

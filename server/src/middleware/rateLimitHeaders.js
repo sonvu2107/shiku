@@ -44,7 +44,7 @@ export const logRateLimitStatus = (req, res, next) => {
     
     // Log warning khi gần hết limit
     if (remaining <= 5) {
-      console.log(`⚠️ Rate limit warning for ${req.ip}:`, {
+      console.log(`[WARN][RATE-LIMIT] Rate limit warning for ${req.ip}:`, {
         endpoint: req.path,
         limit,
         remaining,
@@ -56,7 +56,7 @@ export const logRateLimitStatus = (req, res, next) => {
     
     // Log khi hết limit
     if (remaining === 0) {
-      console.log(`🚫 Rate limit exceeded for ${req.ip}:`, {
+      console.log(`[ERROR][RATE-LIMIT] Rate limit exceeded for ${req.ip}:`, {
         endpoint: req.path,
         limit,
         remaining,

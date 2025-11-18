@@ -135,7 +135,7 @@ auditLogSchema.statics.logAction = async function(adminId, action, options = {})
     await logEntry.save();
     return logEntry;
   } catch (error) {
-    console.error('Failed to log audit action:', error);
+    console.error('[ERROR][AUDIT-LOG] Failed to log audit action:', error);
     // Không throw error để không ảnh hưởng đến main operation
     return null;
   }

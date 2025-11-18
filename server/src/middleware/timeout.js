@@ -9,8 +9,8 @@ export const requestTimeout = (timeout = 30000) => {
     const timeoutId = setTimeout(() => {
       if (!res.headersSent) {
         const duration = Date.now() - startTime;
-        console.error(`⏰ Request timeout for ${req.method} ${req.path} after ${duration}ms`);
-        console.error(`⏰ Request details:`, {
+        console.error(`[ERROR][TIMEOUT] Request timeout for ${req.method} ${req.path} after ${duration}ms`);
+        console.error(`[ERROR][TIMEOUT] Request details:`, {
           method: req.method,
           path: req.path,
           ip: req.ip,
@@ -30,7 +30,7 @@ export const requestTimeout = (timeout = 30000) => {
       clearTimeout(timeoutId);
       const duration = Date.now() - startTime;
       if (duration > 10000) { // Log slow requests (>10s)
-        console.warn(`🐌 Slow request: ${req.method} ${req.path} took ${duration}ms`);
+        console.warn(`[WARN][TIMEOUT] Slow request: ${req.method} ${req.path} took ${duration}ms`);
       }
     });
 

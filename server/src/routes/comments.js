@@ -47,7 +47,7 @@ const handleCommentUpload = (req, res, next) => {
       }
     }).array('files', 5)(req, res, (err) => {
       if (err) {
-        console.error('Multer error:', err);
+        console.error('[ERROR][COMMENTS] Multer error:', err);
         return res.status(400).json({ error: err.message });
       }
       
@@ -83,7 +83,7 @@ async function validateFiles(req, res, next) {
     
     next();
   } catch (validationError) {
-    console.error('File validation error:', validationError);
+    console.error('[ERROR][COMMENTS] File validation error:', validationError);
     return res.status(400).json({ error: 'Lỗi khi validate file' });
   }
 }
@@ -103,7 +103,7 @@ router.get("/post/:postId", authOptional, async (req, res, next) => {
       .populate("emotes.user", "name avatarUrl")
       .sort({ createdAt: -1 });
 
-    // 🔒 Lọc comment nếu user đã đăng nhập
+    // Lọc comment nếu user đã đăng nhập
     if (req.user) {
       const currentUser = await User.findById(req.user._id).select("blockedUsers");
 
@@ -192,7 +192,7 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
           uploadToCloudinary(file, 'blog/comments', 'image')
         );
         const uploadResults = await Promise.all(uploadPromises);
-        console.log("[DEBUG] uploadResults:", uploadResults);
+        console.log("[DEBUG][COMMENTS] uploadResults:", uploadResults);
         // Chỉ nhận các ảnh có đủ url và publicId
         images = uploadResults
           .filter(result => result.url && result.public_id)
@@ -204,11 +204,11 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
             alt: ""
           }));
         if (images.length !== uploadResults.length) {
-          console.error("[DEBUG] Một hoặc nhiều ảnh upload bị thiếu url hoặc publicId", uploadResults);
+          console.error("[ERROR][COMMENTS] Một hoặc nhiều ảnh upload bị thiếu url hoặc publicId", uploadResults);
           return res.status(400).json({ error: "Một hoặc nhiều ảnh upload bị thiếu url hoặc publicId", uploadResults });
         }
       } catch (uploadError) {
-        console.error("Error uploading images:", uploadError);
+        console.error("[ERROR][COMMENTS] Error uploading images:", uploadError);
         return res.status(500).json({ error: "Lỗi khi upload ảnh" });
       }
     }
@@ -232,7 +232,7 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
       { path: "parent" },
     ]);
 
-    // 📢 Gửi thông báo
+    // Gửi thông báo
     try {
       if (parent) {
         await NotificationService.createReplyNotification(c, parent, post, req.user);
@@ -240,7 +240,7 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
         await NotificationService.createCommentNotification(c, post, req.user);
       }
     } catch (notifError) {
-      console.error("Error creating notification:", notifError);
+      console.error("[ERROR][COMMENTS] Error creating notification:", notifError);
     }
 
     res.json({ comment: c });
@@ -290,7 +290,7 @@ router.put("/:id", authRequired, handleCommentUpload, async (req, res, next) => 
         // Thay thế ảnh cũ bằng ảnh mới
         c.images = newImages;
       } catch (uploadError) {
-        console.error("Error uploading images:", uploadError);
+        console.error("[ERROR][COMMENTS] Error uploading images:", uploadError);
         return res.status(500).json({ error: "Lỗi khi upload ảnh" });
       }
     }

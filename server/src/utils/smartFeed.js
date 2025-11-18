@@ -55,7 +55,7 @@ export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds =
   
   // Validate userId is valid ObjectId
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    console.warn('Invalid userId for friends posts:', userId);
+    console.warn('[WARN][SMART-FEED] Invalid userId for friends posts:', userId);
     return [];
   }
   
@@ -189,7 +189,7 @@ export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds =
     return sortedPosts.slice(0, limit);
       
   } catch (error) {
-    console.error("Error getting friends posts:", error);
+    console.error("[ERROR][SMART-FEED] Error getting friends posts:", error);
     return [];
   }
 }
@@ -323,7 +323,7 @@ export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, 
     return sortedPosts.slice(0, limit);
       
   } catch (error) {
-    console.error("Error getting trending posts:", error);
+    console.error("[ERROR][SMART-FEED] Error getting trending posts:", error);
     return [];
   }
 }
@@ -341,7 +341,7 @@ export async function getPersonalizedPosts(userId, limit = 10, notInterestedPost
   
   // Validate userId is valid ObjectId
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    console.warn('Invalid userId for personalized posts:', userId);
+    console.warn('[WARN][SMART-FEED] Invalid userId for personalized posts:', userId);
     return [];
   }
   
@@ -532,7 +532,7 @@ export async function getPersonalizedPosts(userId, limit = 10, notInterestedPost
     return sortedPosts.slice(0, limit);
       
   } catch (error) {
-    console.error("Error getting personalized posts:", error);
+    console.error("[ERROR][SMART-FEED] Error getting personalized posts:", error);
     return [];
   }
 }
@@ -635,7 +635,7 @@ export async function getFreshPosts(limit = 5, notInterestedPostIds = null) {
     return posts;
     
   } catch (error) {
-    console.error("Error getting fresh posts:", error);
+    console.error("[ERROR][SMART-FEED] Error getting fresh posts:", error);
     return [];
   }
 }
@@ -843,7 +843,7 @@ export async function generateSmartFeed(userId, totalLimit = 20) {
     return mixedFeed.slice(0, sanitizedLimit);
     
   } catch (error) {
-    console.error("Error generating smart feed:", error);
+    console.error("[ERROR][SMART-FEED] Error generating smart feed:", error);
     throw error;
   }
 }

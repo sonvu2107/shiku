@@ -89,7 +89,7 @@ router.get('/', authOptional, async (req, res) => {
       ];
     }
 
-    console.log('Groups query:', JSON.stringify(query, null, 2));
+    console.log('[INFO][GROUPS] Groups query:', JSON.stringify(query, null, 2));
 
     // Xây dựng sort
     const sortOptions = {};
@@ -146,7 +146,7 @@ router.get('/', authOptional, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching groups:', error);
+    console.error('[ERROR][GROUPS] Error fetching groups:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi tải danh sách nhóm'
@@ -223,7 +223,7 @@ router.get('/my-groups', authRequired, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching user groups:', error);
+    console.error('[ERROR][GROUPS] Error fetching user groups:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi tải nhóm của bạn'
@@ -238,7 +238,7 @@ router.get('/my-groups', authRequired, async (req, res) => {
  */
 router.get('/:id', authOptional, async (req, res) => {
   try {
-    console.log('Group ID:', req.params.id);
+    console.log('[INFO][GROUPS] Group ID:', req.params.id);
     
     const group = await Group.findById(req.params.id)
       .populate('owner', 'name avatarUrl')
@@ -334,7 +334,7 @@ router.get('/:id', authOptional, async (req, res) => {
       data: { ...groupObj, hasPendingJoinRequest }
     });
   } catch (error) {
-    console.error('Error fetching group:', error);
+    console.error('[ERROR][GROUPS] Error fetching group:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi tải thông tin nhóm'
@@ -391,7 +391,7 @@ router.post('/', authRequired, upload.fields([
         const avatarResult = await uploadToCloudinary(req.files.avatar[0].buffer, 'groups/avatars');
         group.avatar = avatarResult.secure_url;
       } catch (error) {
-        console.error('Error uploading avatar:', error);
+        console.error('[ERROR][GROUPS] Error uploading avatar:', error);
       }
     }
     if (req.files.coverImage && req.files.coverImage[0]) {
@@ -399,7 +399,7 @@ router.post('/', authRequired, upload.fields([
         const coverResult = await uploadToCloudinary(req.files.coverImage[0].buffer, 'groups/covers');
         group.coverImage = coverResult.secure_url;
       } catch (error) {
-        console.error('Error uploading cover image:', error);
+        console.error('[ERROR][GROUPS] Error uploading cover image:', error);
       }
     }
 
@@ -412,7 +412,7 @@ router.post('/', authRequired, upload.fields([
     });
 
     await group.save();
-    console.log('Group saved with ID:', group._id);
+    console.log('[INFO][GROUPS] Group saved with ID:', group._id);
 
     // Populate thông tin để trả về
     await group.populate('owner', 'name avatarUrl');
@@ -425,7 +425,7 @@ router.post('/', authRequired, upload.fields([
       data: group
     });
   } catch (error) {
-    console.error('Error creating group:', error);
+    console.error('[ERROR][GROUPS] Error creating group:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi tạo nhóm'
@@ -512,7 +512,7 @@ router.put('/:id', authRequired, upload.fields([
         const parsedSettings = typeof settings === 'string' ? JSON.parse(settings) : settings;
         group.settings = { ...group.settings, ...parsedSettings };
       } catch (error) {
-        console.error('Error parsing settings:', error);
+        console.error('[ERROR][GROUPS] Error parsing settings:', error);
         return res.status(400).json({
           success: false,
           message: 'Cài đặt không hợp lệ'
@@ -526,7 +526,7 @@ router.put('/:id', authRequired, upload.fields([
         const avatarResult = await uploadToCloudinary(req.files.avatar[0].buffer, 'groups/avatars');
         group.avatar = avatarResult.secure_url;
       } catch (error) {
-        console.error('Error uploading avatar:', error);
+        console.error('[ERROR][GROUPS] Error uploading avatar:', error);
       }
     }
     if (req.files.coverImage && req.files.coverImage[0]) {
@@ -534,7 +534,7 @@ router.put('/:id', authRequired, upload.fields([
         const coverResult = await uploadToCloudinary(req.files.coverImage[0].buffer, 'groups/covers');
         group.coverImage = coverResult.secure_url;
       } catch (error) {
-        console.error('Error uploading cover image:', error);
+        console.error('[ERROR][GROUPS] Error uploading cover image:', error);
       }
     }
 
@@ -546,7 +546,7 @@ router.put('/:id', authRequired, upload.fields([
       data: group
     });
   } catch (error) {
-    console.error('Error updating group:', error);
+    console.error('[ERROR][GROUPS] Error updating group:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi cập nhật nhóm'
@@ -587,7 +587,7 @@ router.delete('/:id', authRequired, async (req, res) => {
       message: 'Xóa nhóm thành công'
     });
   } catch (error) {
-    console.error('Error deleting group:', error);
+    console.error('[ERROR][GROUPS] Error deleting group:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi xóa nhóm'
@@ -651,7 +651,7 @@ router.post('/:id/join', authRequired, async (req, res) => {
       return res.json({ success: true, message: 'Đã gửi yêu cầu tham gia nhóm', pending: true, joined: false });
     }
   } catch (error) {
-    console.error('Error joining group:', error);
+    console.error('[ERROR][GROUPS] Error joining group:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi tham gia nhóm'
@@ -677,7 +677,7 @@ router.post('/:id/join-requests/cancel', authRequired, async (req, res) => {
     await group.save();
     return res.json({ success: true, removed: before - after });
   } catch (error) {
-    console.error('Error cancel join request:', error);
+    console.error('[ERROR][GROUPS] Error cancel join request:', error);
     res.status(500).json({ success: false, message: 'Lỗi khi hủy yêu cầu tham gia' });
   }
 });
@@ -723,7 +723,7 @@ router.post('/:id/leave', authRequired, async (req, res) => {
       message: 'Rời khỏi nhóm thành công'
     });
   } catch (error) {
-    console.error('Error leaving group:', error);
+    console.error('[ERROR][GROUPS] Error leaving group:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi rời khỏi nhóm'
@@ -760,7 +760,7 @@ router.get('/:id/join-requests', authRequired, async (req, res) => {
     const pending = (group.joinRequests || []).filter(r => r.status === 'pending');
     res.json({ success: true, data: pending });
   } catch (error) {
-    console.error('Error fetching join requests:', error);
+    console.error('[ERROR][GROUPS] Error fetching join requests:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi tải yêu cầu tham gia'
@@ -799,7 +799,7 @@ router.post('/:id/join-requests/:requestId/approve', authRequired, async (req, r
       message: 'Duyệt yêu cầu tham gia thành công'
     });
   } catch (error) {
-    console.error('Error approving join request:', error);
+    console.error('[ERROR][GROUPS] Error approving join request:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi duyệt yêu cầu tham gia'
@@ -838,7 +838,7 @@ router.post('/:id/join-requests/:requestId/reject', authRequired, async (req, re
       message: 'Từ chối yêu cầu tham gia thành công'
     });
   } catch (error) {
-    console.error('Error rejecting join request:', error);
+    console.error('[ERROR][GROUPS] Error rejecting join request:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi từ chối yêu cầu tham gia'
@@ -879,7 +879,7 @@ router.post('/:id/ban', authRequired, async (req, res) => {
       message: 'Cấm thành viên thành công'
     });
   } catch (error) {
-    console.error('Error banning user:', error);
+    console.error('[ERROR][GROUPS] Error banning user:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi cấm thành viên'
@@ -920,7 +920,7 @@ router.post('/:id/unban', authRequired, async (req, res) => {
       message: 'Bỏ cấm thành viên thành công'
     });
   } catch (error) {
-    console.error('Error unbanning user:', error);
+    console.error('[ERROR][GROUPS] Error unbanning user:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi bỏ cấm thành viên'
@@ -967,7 +967,7 @@ router.delete('/:id/members/:userId', authRequired, async (req, res) => {
       message: 'Xóa thành viên thành công'
     });
   } catch (error) {
-    console.error('Error removing member:', error);
+    console.error('[ERROR][GROUPS] Error removing member:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi xóa thành viên'
@@ -1048,7 +1048,7 @@ router.put('/:id/members/:userId/role', authRequired, async (req, res) => {
       message: 'Cập nhật vai trò thành viên thành công'
     });
   } catch (error) {
-    console.error('Error updating member role:', error);
+    console.error('[ERROR][GROUPS] Error updating member role:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi cập nhật vai trò thành viên'
@@ -1197,7 +1197,7 @@ router.get('/:id/analytics', authRequired, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching group analytics:', error);
+    console.error('[ERROR][GROUPS] Error fetching group analytics:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi lấy thống kê nhóm'

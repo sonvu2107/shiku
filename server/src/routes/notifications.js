@@ -93,7 +93,7 @@ router.post("/system", authRequired, async (req, res, next) => {
 router.post("/broadcast", authRequired, async (req, res, next) => {
   try {
     if (req.user.role !== "admin") {
-      return res.status(403).json({ error: "Chỉ admin mới có quyền gửi thông báo broadcast" });
+      return res.status(403).json({ error: "Chỉ admin mới có quyền gửi thông báo" });
     }
 
     const { title, message } = req.body;

@@ -77,7 +77,7 @@ const io = new Server(server, {
       if (!origin || securityConfig.cors.origins.includes(origin)) {
         callback(null, true);
       } else {
-        console.warn("❌ Blocked Socket.IO CORS:", origin);
+        console.warn("[BLOCKED] Blocked Socket.IO CORS:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
@@ -106,13 +106,13 @@ app.use(cookieParser());
 // CORS configuration cho HTTP requests
 app.use(cors({
   origin: (origin, callback) => {
-    console.log("🌐 HTTP Request Origin:", origin);
-    console.log("✅ Allowed Origins:", securityConfig.cors.origins);
+    console.log("[HTTP] Request Origin:", origin);
+    console.log("[HTTP] Allowed Origins:", securityConfig.cors.origins);
     // Kiểm tra origin có trong danh sách allowed không
     if (!origin || securityConfig.cors.origins.includes(origin)) {
       callback(null, true);
     } else {
-      console.warn("❌ Blocked HTTP CORS:", origin);
+      console.warn("[BLOCKED] Blocked HTTP CORS:", origin);
       callback(new Error("Not allowed by CORS"));
     }
   },
@@ -291,10 +291,10 @@ io.on("connection", (socket) => {
       await user.save();
       
       socket.emit("authenticated", { user: { id: user._id, name: user.name, role: user.role } });
-      console.log(`✅ User ${user.name} authenticated via socket`);
+      console.log(`[AUTH] User ${user.name} authenticated via socket`);
       
     } catch (error) {
-      console.error("Socket authentication error:", error);
+      console.error("[AUTH] Socket authentication error:", error);
       socket.emit("auth_error", { message: "Authentication failed" });
     }
   });
@@ -307,18 +307,18 @@ io.on("connection", (socket) => {
     }
     
     socket.join(`conversation-${conversationId}`);
-    console.log(`📱 User ${socket.userId} joined conversation ${conversationId}`);
+    console.log(`[CONVERSATION] User ${socket.userId} joined conversation ${conversationId}`);
   });
 
   // Handle leaving conversation rooms
   socket.on("leave_conversation", (conversationId) => {
     socket.leave(`conversation-${conversationId}`);
-    console.log(`📱 User ${socket.userId} left conversation ${conversationId}`);
+      console.log(`[CONVERSATION] User ${socket.userId} left conversation ${conversationId}`);
   });
 
   // Handle disconnection
   socket.on("disconnect", async () => {
-    console.log("🔌 Socket disconnected:", socket.id);
+    console.log("[SOCKET] Socket disconnected:", socket.id);
     
     if (socket.userId) {
       // Update user offline status
@@ -340,40 +340,40 @@ io.on("connection", (socket) => {
 
 // Connect to database
 connectDB(securityConfig.database.uri, securityConfig.database.options).then(() => {
-  console.log("✅ Connected to MongoDB");
+  console.log("[DATABASE] Connected to MongoDB");
   
   // Start server
   server.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🔒 Security features enabled:`);
-    console.log(`   - Helmet security headers`);
-    console.log(`   - CORS protection`);
-    console.log(`   - Rate limiting`);
-    console.log(`   - Input validation`);
-    console.log(`   - File upload security`);
-    console.log(`   - JWT security with refresh tokens`);
-    console.log(`   - Security logging`);
-    console.log(`   - NoSQL injection protection`);
-    console.log(`   - XSS protection`);
+    console.log(`[SERVER] Server running on port ${PORT}`);
+    console.log(`[SERVER] Security features enabled:`);
+    console.log(`[SERVER] Helmet security headers`);
+    console.log(`[SERVER] CORS protection`);
+    console.log(`[SERVER] Rate limiting`);
+    console.log(`[SERVER] Input validation`);
+    console.log(`[SERVER] File upload security`);
+    console.log(`[SERVER] JWT security with refresh tokens`);
+    console.log(`[SERVER] Security logging`);
+    console.log(`[SERVER] NoSQL injection protection`);
+    console.log(`[SERVER] XSS protection`);
   });
 }).catch((error) => {
-  console.error("❌ Database connection failed:", error);
+  console.error("[DATABASE] Database connection failed:", error);
   process.exit(1);
 });
 
 // Graceful shutdown
 process.on("SIGTERM", () => {
-  console.log("🛑 SIGTERM received, shutting down gracefully");
+  console.log("[SERVER] SIGTERM received, shutting down gracefully");
   server.close(() => {
-    console.log("✅ Process terminated");
+    console.log("[SERVER] Process terminated");
     process.exit(0);
   });
 });
 
 process.on("SIGINT", () => {
-  console.log("🛑 SIGINT received, shutting down gracefully");
+  console.log("[SERVER] SIGINT received, shutting down gracefully");
   server.close(() => {
-    console.log("✅ Process terminated");
+    console.log("[SERVER] Process terminated");
     process.exit(0);
   });
 });

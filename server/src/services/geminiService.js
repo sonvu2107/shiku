@@ -8,7 +8,7 @@ class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
     if (!this.apiKey) {
-      console.warn('⚠️ GEMINI_API_KEY is not set in environment variables');
+      console.warn('[WARN][GEMINI] GEMINI_API_KEY is not set in environment variables');
     }
     this.genAI = this.apiKey ? new GoogleGenerativeAI(this.apiKey) : null;
     this.model = null;
@@ -87,7 +87,7 @@ class GeminiService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error('Error sending message to Gemini:', error);
+      console.error('[ERROR][GEMINI] Error sending message to Gemini:', error);
       throw new Error('Failed to get response from AI: ' + error.message);
     }
   }
@@ -129,7 +129,7 @@ class GeminiService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error('Error sending simple message to Gemini:', error);
+      console.error('[ERROR][GEMINI] Error sending simple message to Gemini:', error);
       throw new Error('Failed to get response from AI: ' + error.message);
     }
   }
@@ -160,7 +160,7 @@ class GeminiService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error('Error generating content with Gemini:', error);
+      console.error('[ERROR][GEMINI] Error generating content with Gemini:', error);
       throw new Error('Failed to generate content: ' + error.message);
     }
   }

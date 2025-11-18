@@ -156,7 +156,7 @@ router.get("/:groupId/posts", authRequired, async (req, res, next) => {
       pages: Math.ceil(total / Number(limit))
     });
   } catch (e) {
-    console.error('Error loading group posts:', e);
+    console.error('[ERROR][GROUP-POSTS] Error loading group posts:', e);
     next(e);
   }
 });

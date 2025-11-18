@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
+import { useSEO } from "../utils/useSEO";
 
 /**
  * ResetPassword - Trang đặt lại mật khẩu
@@ -24,6 +25,14 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false); // Success state
   const [showPassword, setShowPassword] = useState(false); // Hiển thị mật khẩu
   const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Hiển thị xác nhận mật khẩu
+
+  // ==================== SEO ====================
+  // Trang đặt lại mật khẩu không cần SEO → thêm noindex
+  useSEO({
+    title: "Đặt lại mật khẩu - Shiku",
+    description: "Đặt lại mật khẩu tài khoản Shiku",
+    robots: "noindex, nofollow"
+  });
 
   // ==================== VALIDATION ====================
   

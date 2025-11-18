@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import GroupCard from '../components/GroupCard';
 import { api } from '../api';
+import { useSEO } from '../utils/useSEO';
 /**
  * Groups Page - Trang quản lý và khám phá nhóm/communities
  * Bao gồm tìm kiếm, lọc, hiển thị danh sách nhóm và các chức năng quản lý
@@ -44,6 +45,15 @@ const Groups = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [isJoining, setIsJoining] = useState({});
   const [isLeaving, setIsLeaving] = useState({});
+
+  // ==================== SEO ====================
+  // Trang danh sách nhóm là public → index, follow
+  useSEO({
+    title: "Nhóm - Shiku",
+    description: "Khám phá và tham gia các nhóm cộng đồng thú vị trên Shiku",
+    robots: "index, follow",
+    canonical: "https://shiku.click/groups"
+  });
 
   // Load danh sách nhóm
   const loadGroups = async (page = 1, reset = false) => {

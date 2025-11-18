@@ -7,6 +7,7 @@
   import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck, MessageCircle, Share2 } from "lucide-react";
   import UserName from "../components/UserName";
   import Poll from "../components/Poll";
+  import { useSEO } from "../utils/useSEO";
 
 
   /**
@@ -59,6 +60,17 @@
     const navigate = useNavigate();
     const [data, setDataRaw] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    // ==================== SEO ====================
+    // Trang chi tiết bài viết là public → index, follow
+    useSEO({
+      title: data?.post ? `${data.post.title} - Shiku` : "Bài viết - Shiku",
+      description: data?.post?.content 
+        ? `${data.post.content.substring(0, 160).replace(/\n/g, ' ')}...`
+        : "Xem bài viết trên Shiku",
+      robots: "index, follow",
+      canonical: data?.post?.slug ? `https://shiku.click/post/${data.post.slug}` : undefined
+    });
 
     const [showEmoteList, setShowEmoteList] = useState(false);
     const [activeTab, setActiveTab] = useState("all");

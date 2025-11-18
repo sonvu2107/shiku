@@ -54,7 +54,7 @@ const adminRequired = async (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error('Admin middleware error:', error);
+    console.error('[ERROR][ADMIN] Admin middleware error:', error);
     res.status(500).json({ error: "Lỗi server" });
   }
 };
@@ -170,7 +170,7 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, asyn
     try {
       await NotificationService.createBanNotification(user, req.user, reason, banExpiresAt);
     } catch (notifError) {
-      console.error("Error creating ban notification:", notifError);
+      console.error("[ERROR][ADMIN] Error creating ban notification:", notifError);
     }
 
     res.json({ 
@@ -231,7 +231,7 @@ router.post("/unban-user", authRequired, adminRequired, async (req, res, next) =
     try {
       await NotificationService.createUnbanNotification(user, req.user);
     } catch (notifError) {
-      console.error("Error creating unban notification:", notifError);
+      console.error("[ERROR][ADMIN] Error creating unban notification:", notifError);
     }
 
     res.json({ 
@@ -1061,7 +1061,7 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
       return res.status(404).json({ error: "Không có bài viết nào để like" });
     }
 
-    console.log(`Found ${posts.length} posts for auto-like`);
+    console.log(`[INFO][ADMIN] Found ${posts.length} posts for auto-like`);
 
     let totalLikes = 0;
     let totalViews = 0;
@@ -1070,17 +1070,17 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
     // Process each user
     for (const user of usersToProcess) {
       try {
-        console.log(`\n=== Processing user: ${user.email} (ID: ${user._id}) ===`);
+        console.log(`[INFO][ADMIN] === Processing user: ${user.email} (ID: ${user._id}) ===`);
         
         // Get posts excluding user's own posts (if any)
         const availablePosts = posts.filter(post => 
           post.author.toString() !== user._id.toString()
         );
         
-        console.log(`User ${user.email}: Total posts: ${posts.length}, Available posts (excluding own): ${availablePosts.length}, requesting ${maxPostsPerUser} likes${enableAutoView ? `, ${maxViewsPerUser} views` : ''}`);
+        console.log(`[INFO][ADMIN] User ${user.email}: Total posts: ${posts.length}, Available posts (excluding own): ${availablePosts.length}, requesting ${maxPostsPerUser} likes${enableAutoView ? `, ${maxViewsPerUser} views` : ''}`);
         
         if (availablePosts.length === 0) {
-          console.log(`⚠️ User ${user.email}: No available posts to like (may be author of all posts)`);
+          console.log(`[WARN][ADMIN] User ${user.email}: No available posts to like (may be author of all posts)`);
           results.push({
             user: user.email,
             error: "No available posts to like",
@@ -1095,14 +1095,14 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
         const shuffledPosts = availablePosts.sort(() => 0.5 - Math.random());
         const postsToLike = shuffledPosts.slice(0, Math.min(maxPostsPerUser, availablePosts.length));
 
-        console.log(`User ${user.email}: will process ${postsToLike.length} posts`);
+        console.log(`[INFO][ADMIN] User ${user.email}: will process ${postsToLike.length} posts`);
 
         let userLikes = 0;
         let userViews = 0;
 
         // Process likes
         for (const post of postsToLike) {
-          console.log(`  Checking post ${post._id} (${post.title}) for user ${user.email}`);
+          console.log(`[INFO][ADMIN] Checking post ${post._id} (${post.title}) for user ${user.email}`);
           
           // Check if user already has an emote on this post
           const existingPost = await Post.findById(post._id).select('emotes').lean();
@@ -1115,7 +1115,7 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
             const randomEmote = emoteTypes[Math.floor(Math.random() * emoteTypes.length)];
             
             if (hasExistingEmote && forceOverride) {
-              console.log(`  🔄 Force override: Replacing existing emote for ${user.email} on post ${post._id}`);
+              console.log(`[INFO][ADMIN] Force override: Replacing existing emote for ${user.email} on post ${post._id}`);
               
               // Remove existing emote first, then add new one
               await Post.findByIdAndUpdate(
@@ -1126,7 +1126,7 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
               );
             }
             
-            console.log(`  ✅ Adding ${randomEmote} from ${user.email} to post ${post._id}`);
+            console.log(`[INFO][ADMIN] Adding ${randomEmote} from ${user.email} to post ${post._id}`);
             
             // Add emote to post (only if user hasn't reacted yet or force override)
             const updateResult = await Post.findByIdAndUpdate(
@@ -1146,19 +1146,19 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
             if (updateResult) {
               userLikes++;
               totalLikes++;
-              console.log(`  ✅ Successfully added emote. User likes: ${userLikes}, Total likes: ${totalLikes}`);
+              console.log(`[INFO][ADMIN] Successfully added emote. User likes: ${userLikes}, Total likes: ${totalLikes}`);
             } else {
-              console.log(`  ❌ Failed to update post ${post._id}`);
+              console.log(`[ERROR][ADMIN] Failed to update post ${post._id}`);
             }
           } else {
-            console.log(`  ⚠️ ${user.email} already reacted to post ${post._id}, skipping (use Force Override to replace)`);
+            console.log(`[WARN][ADMIN] ${user.email} already reacted to post ${post._id}, skipping (use Force Override to replace)`);
           }
 
           // Small delay between likes
           await new Promise(resolve => setTimeout(resolve, 100));
         }
         
-        console.log(`User ${user.email} completed: ${userLikes} likes given out of ${postsToLike.length} posts processed`);
+        console.log(`[INFO][ADMIN] User ${user.email} completed: ${userLikes} likes given out of ${postsToLike.length} posts processed`);
 
         // Process views if enabled
         if (enableAutoView) {
@@ -1187,10 +1187,10 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
           availablePosts: availablePosts.length
         });
 
-        console.log(`✅ User ${user.email} final result: ${userLikes} likes, ${userViews} views, ${postsToLike.length} posts processed\n`);
+        console.log(`[INFO][ADMIN] User ${user.email} final result: ${userLikes} likes, ${userViews} views, ${postsToLike.length} posts processed\n`);
 
       } catch (userError) {
-        console.error(`❌ Error processing user ${user.email}:`, userError);
+        console.error(`[ERROR][ADMIN] Error processing user ${user.email}:`, userError);
         results.push({
           user: user.email,
           error: userError.message,
@@ -1292,7 +1292,7 @@ router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimi
       return res.status(404).json({ error: "Không có bài viết nào để view" });
     }
 
-    console.log(`Found ${posts.length} posts for auto-view`);
+    console.log(`[INFO][ADMIN] Found ${posts.length} posts for auto-view`);
 
     let totalViews = 0;
     const results = [];
@@ -1305,13 +1305,13 @@ router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimi
           post.author.toString() !== user._id.toString()
         );
         
-        console.log(`User ${user.email}: ${availablePosts.length} available posts, requesting ${maxViewsPerUser} views`);
+        console.log(`[INFO][ADMIN] User ${user.email}: ${availablePosts.length} available posts, requesting ${maxViewsPerUser} views`);
         
         // Get random posts for this user
         const shuffledPosts = availablePosts.sort(() => 0.5 - Math.random());
         const postsToView = shuffledPosts.slice(0, Math.min(maxViewsPerUser, availablePosts.length));
 
-        console.log(`User ${user.email}: will view ${postsToView.length} posts`);
+        console.log(`[INFO][ADMIN] User ${user.email}: will view ${postsToView.length} posts`);
 
         let userViews = 0;
 
@@ -1337,7 +1337,7 @@ router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimi
         });
 
       } catch (userError) {
-        console.error(`Error processing user ${user.email}:`, userError);
+        console.error(`[ERROR][ADMIN] Error processing user ${user.email}:`, userError);
         results.push({
           user: user.email,
           error: userError.message,

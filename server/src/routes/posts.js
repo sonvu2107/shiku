@@ -494,7 +494,7 @@ router.get("/feed/smart", authOptional, async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error("Smart feed error:", error);
+    console.error("[ERROR][POSTS] Smart feed error:", error);
     // Fallback to regular feed if smart feed fails
     next(error);
   }

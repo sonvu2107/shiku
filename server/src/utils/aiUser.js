@@ -27,7 +27,7 @@ export async function getOrCreateAIUser() {
     await aiUser.save();
     return aiUser;
   } catch (error) {
-    console.error('Error getting or creating AI user:', error);
+    console.error('[ERROR][AI-USER] Error getting or creating AI user:', error);
     throw error;
   }
 }

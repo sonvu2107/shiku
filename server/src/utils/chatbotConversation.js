@@ -41,7 +41,7 @@ export async function getOrCreateChatbotConversation(userId) {
 
     return conversation;
   } catch (error) {
-    console.error('Error getting or creating chatbot conversation:', error);
+    console.error('[ERROR][CHATBOT-CONV] Error getting or creating chatbot conversation:', error);
     throw error;
   }
 }

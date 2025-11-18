@@ -40,7 +40,7 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
     if (!csrf) {
       throw new Error("CSRF token not available. Please refresh the page and try again.");
     }
-    headers["X-CSRF-Token"] = csrf; // ✅ Chỉ dùng 1 header
+    headers["X-CSRF-Token"] = csrf; 
   }
   
 // Chuẩn bị request options

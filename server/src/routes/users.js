@@ -26,7 +26,7 @@ router.post('/batch', authRequired, async (req, res) => {
 
     res.json({ users });
   } catch (error) {
-    console.error('Error fetching batch users:', error);
+    console.error('[ERROR][USERS] Error fetching batch users:', error);
     res.status(500).json({ message: 'Lỗi server' });
   }
 });
@@ -224,7 +224,7 @@ router.post('/block/:id', authRequired, async (req, res) => {
       ]
     });
     
-    console.log('Block user result:', {
+    console.log('[INFO][USERS] Block user result:', {
       userId: req.user._id,
       targetId,
       blockedUsers: result.blockedUsers,
@@ -233,7 +233,7 @@ router.post('/block/:id', authRequired, async (req, res) => {
     
     res.json({ message: 'Đã chặn người dùng.' });
   } catch (error) {
-    console.error('Error blocking user:', error);
+    console.error('[ERROR][USERS] Error blocking user:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -247,7 +247,7 @@ router.post('/unblock/:id', authRequired, async (req, res) => {
       $pull: { blockedUsers: targetId }
     }, { new: true });
     
-    console.log('Unblock user result:', {
+    console.log('[INFO][USERS] Unblock user result:', {
       userId: req.user._id,
       targetId,
       blockedUsers: result.blockedUsers,
@@ -256,7 +256,7 @@ router.post('/unblock/:id', authRequired, async (req, res) => {
     
     res.json({ message: 'Đã bỏ chặn người dùng.' });
   } catch (error) {
-    console.error('Error unblocking user:', error);
+    console.error('[ERROR][USERS] Error unblocking user:', error);
     res.status(500).json({ message: error.message });
   }
 });

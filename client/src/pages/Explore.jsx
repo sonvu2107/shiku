@@ -4,6 +4,7 @@ import { api } from "../api";
 import { Search, Users, Calendar, Image, MessageCircle, Heart, MessageSquare, Hash } from "lucide-react";
 import UserName from "../components/UserName";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
+import { useSEO } from "../utils/useSEO";
 
 /**
  * Explore - Trang khám phá nội dung
@@ -19,6 +20,15 @@ export default function Explore({ user }) {
   const [trendingTags, setTrendingTags] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // ==================== SEO ====================
+  // Trang khám phá là public → index, follow
+  useSEO({
+    title: searchQuery ? `Tìm kiếm "${searchQuery}" - Shiku` : "Khám phá - Shiku",
+    description: "Khám phá bài viết, người dùng, nhóm và sự kiện thú vị trên Shiku",
+    robots: "index, follow",
+    canonical: "https://shiku.click/explore"
+  });
 
   useEffect(() => {
     // Lấy query từ URL nếu có

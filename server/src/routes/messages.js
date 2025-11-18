@@ -375,7 +375,7 @@ router.put("/conversations/:conversationId/messages/:messageId", authRequired, a
       }
     });
   } catch (error) {
-    console.error('Error editing message:', error);
+    console.error('[ERROR][MESSAGES] Error editing message:', error);
     res.status(500).json({ message: 'Lỗi server' });
   }
 });
@@ -431,7 +431,7 @@ router.delete("/conversations/:conversationId/messages/:messageId", authRequired
       }
     });
   } catch (error) {
-    console.error('Error deleting message:', error);
+    console.error('[ERROR][MESSAGES] Error deleting message:', error);
     res.status(500).json({ message: 'Lỗi server' });
   }
 });

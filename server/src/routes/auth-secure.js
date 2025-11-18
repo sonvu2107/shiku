@@ -445,7 +445,7 @@ router.post("/forgot-password",
             timeout: 25000 // 25 seconds timeout
           });
         } catch (emailError) {
-          console.error("[forgot-password] Email sending failed:", emailError.message);
+          console.error("[ERROR][AUTH-SECURE] Email sending failed:", emailError.message);
           // Không crash app nếu email fail
         }
       });
@@ -587,7 +587,7 @@ router.post("/heartbeat",
         }, req);
       } catch (logError) {
         // Don't fail heartbeat if logging fails
-        console.warn("Heartbeat logging failed:", logError.message);
+        console.warn("[WARN][AUTH-SECURE] Heartbeat logging failed:", logError.message);
       }
 
       res.json({
@@ -597,7 +597,7 @@ router.post("/heartbeat",
         isOnline: true
       });
     } catch (error) {
-      console.error("Heartbeat error:", error);
+      console.error("[ERROR][AUTH-SECURE] Heartbeat error:", error);
       res.status(500).json({ 
         error: "Heartbeat failed",
         code: "HEARTBEAT_ERROR",

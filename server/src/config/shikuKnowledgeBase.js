@@ -371,11 +371,11 @@ export function getInitialChatHistory() {
         text: `Xin chào! Tôi là trợ lý AI của Shiku - mạng xã hội kết nối bạn bè. 
 
 Tôi có thể giúp bạn:
-✅ Trả lời các câu hỏi về Shiku và các tính năng
-✅ Hướng dẫn sử dụng các tính năng như đăng bài, nhắn tin, tạo nhóm, sự kiện
-✅ Tư vấn về cách sử dụng mạng xã hội hiệu quả
-✅ Gợi ý nội dung bài viết
-✅ Giải đáp thắc mắc về Shiku
+ Trả lời các câu hỏi về Shiku và các tính năng
+ Hướng dẫn sử dụng các tính năng như đăng bài, nhắn tin, tạo nhóm, sự kiện
+ Tư vấn về cách sử dụng mạng xã hội hiệu quả
+ Gợi ý nội dung bài viết
+ Giải đáp thắc mắc về Shiku
 
 Bạn muốn tôi giúp gì hôm nay? 😊`
       }],

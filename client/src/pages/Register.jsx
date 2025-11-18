@@ -5,6 +5,7 @@ import { saveTokens } from "../utils/tokenManager";
 import { getCSRFToken, clearCSRFToken } from "../utils/csrfToken";
 import Logo from "../components/Logo";
 import { UserPlus, Mail, Lock, User, Eye, EyeOff, ChevronLeft, ChevronRight, Calendar, ArrowLeft } from "lucide-react";
+import { useSEO } from "../utils/useSEO";
 
 /**
  * Register - Trang đăng ký tài khoản mới
@@ -25,6 +26,14 @@ export default function Register({ setUser }) {
   const [err, setErr] = useState(""); // Error message
   const [loading, setLoading] = useState(false); // Loading state
   const navigate = useNavigate();
+
+  // ==================== SEO ====================
+  // Trang đăng ký không cần SEO → thêm noindex
+  useSEO({
+    title: "Đăng ký - Shiku",
+    description: "Tạo tài khoản mới trên Shiku",
+    robots: "noindex, nofollow"
+  });
   
   // Refs để đo chiều cao của các step
   const step1Ref = useRef(null);

@@ -16,7 +16,7 @@ export const rateLimitLogger = (req, res, next) => {
     
     // Log khi gần hết limit
     if (remaining <= 5) {
-      console.log(`⚠️ Rate limit warning for ${req.ip}:`, {
+      console.log(`[WARN][RATE-LIMIT] Rate limit warning for ${req.ip}:`, {
         limit,
         remaining,
         resetTime: new Date(resetTime).toISOString(),
@@ -29,7 +29,7 @@ export const rateLimitLogger = (req, res, next) => {
     
     // Log khi đã hết limit
     if (remaining === 0) {
-      console.log(`🚫 Rate limit exceeded for ${req.ip}:`, {
+      console.log(`[ERROR][RATE-LIMIT] Rate limit exceeded for ${req.ip}:`, {
         limit,
         remaining,
         resetTime: new Date(resetTime).toISOString(),
@@ -51,7 +51,7 @@ export const createRateLimitLogger = (endpointName) => (req, res, next) => {
   if (req.rateLimit) {
     const { limit, remaining, resetTime, current } = req.rateLimit;
     
-    console.log(`📊 ${endpointName} Rate Limit Status:`, {
+    console.log(`[INFO][RATE-LIMIT] ${endpointName} Rate Limit Status:`, {
       endpoint: endpointName,
       ip: req.ip,
       limit,

@@ -18,15 +18,15 @@ router.get("/feed", authRequired, async (req, res, next) => {
       return res.status(404).json({ error: "User không tồn tại" });
     }
 
-    console.log(`📖 Loading stories feed for user: ${user.name} (${req.user._id})`);
-    console.log(`👥 User friends: ${user.friends?.length || 0} friends`);
+    console.log(`[INFO][STORIES] Loading stories feed for user: ${user.name} (${req.user._id})`);
+    console.log(`[INFO][STORIES] User friends: ${user.friends?.length || 0} friends`);
     
     // Lấy stories feed
     const storiesFeed = await Story.getStoriesFeed(req.user._id, user.friends);
     
-    console.log(`📚 Found ${storiesFeed.length} story groups`);
+    console.log(`[INFO][STORIES] Found ${storiesFeed.length} story groups`);
     storiesFeed.forEach(group => {
-      console.log(`  - ${group._id?.name}: ${group.storyCount} stories`);
+      console.log(`[INFO][STORIES] - ${group._id?.name}: ${group.storyCount} stories`);
     });
     
     res.json({ 
@@ -34,7 +34,7 @@ router.get("/feed", authRequired, async (req, res, next) => {
       storiesGroups: storiesFeed 
     });
   } catch (error) {
-    console.error('❌ Error loading stories feed:', error);
+    console.error('[ERROR][STORIES] Error loading stories feed:', error);
     next(error);
   }
 });
@@ -247,7 +247,7 @@ router.post("/:storyId/react", authRequired, async (req, res, next) => {
         });
       } catch (notifError) {
         // Silent fail cho notification
-        console.error('Notification error:', notifError);
+        console.error('[ERROR][STORIES] Notification error:', notifError);
       }
     }
     
@@ -477,7 +477,7 @@ router.get("/:storyId/analytics", authRequired, async (req, res, next) => {
       analytics
     });
   } catch (error) {
-    console.error('Analytics error:', error);
+    console.error('[ERROR][STORIES] Analytics error:', error);
     next(error);
   }
 });

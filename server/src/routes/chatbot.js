@@ -72,7 +72,7 @@ router.post('/message', authRequired, async (req, res) => {
       // Tạo session mới với history từ conversation
       geminiService.getChatSession(userId, dbHistory);
     } catch (error) {
-      console.error('Error loading chat history from conversation:', error);
+      console.error('[ERROR][CHATBOT] Error loading chat history from conversation:', error);
       // Tiếp tục với initial history nếu có lỗi
     }
 
@@ -113,11 +113,11 @@ router.post('/message', authRequired, async (req, res) => {
         await chatHistory.addMessage('user', message);
         await chatHistory.addMessage('assistant', response.text);
       } catch (error) {
-        console.error('Error saving to ChatHistory (backward compatibility):', error);
+        console.error('[ERROR][CHATBOT] Error saving to ChatHistory (backward compatibility):', error);
       }
 
     } catch (error) {
-      console.error('Error saving messages to database:', error);
+      console.error('[ERROR][CHATBOT] Error saving messages to database:', error);
       // Không throw error để không ảnh hưởng đến response
     }
 
@@ -129,7 +129,7 @@ router.post('/message', authRequired, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Chatbot message error:', error);
+    console.error('[ERROR][CHATBOT] Chatbot message error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to process chatbot message',
@@ -167,7 +167,7 @@ router.post('/reset', authRequired, async (req, res) => {
       conversation.lastActivity = new Date();
       await conversation.save();
     } catch (error) {
-      console.error('Error clearing conversation messages:', error);
+      console.error('[ERROR][CHATBOT] Error clearing conversation messages:', error);
     }
     
     // Giữ backward compatibility: Xóa ChatHistory
@@ -175,7 +175,7 @@ router.post('/reset', authRequired, async (req, res) => {
       const chatHistory = await ChatHistory.findOrCreate(userId);
       await chatHistory.clearMessages();
     } catch (error) {
-      console.error('Error clearing chat history:', error);
+      console.error('[ERROR][CHATBOT] Error clearing chat history:', error);
     }
     
     res.json({
@@ -183,7 +183,7 @@ router.post('/reset', authRequired, async (req, res) => {
       message: 'Chat session cleared successfully',
     });
   } catch (error) {
-    console.error('Chatbot reset error:', error);
+    console.error('[ERROR][CHATBOT] Chatbot reset error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to reset chat session',
@@ -217,7 +217,7 @@ router.post('/generate', authRequired, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Chatbot generate error:', error);
+    console.error('[ERROR][CHATBOT] Chatbot generate error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to generate content',
@@ -268,7 +268,7 @@ router.get('/history', authRequired, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Chatbot history error:', error);
+    console.error('[ERROR][CHATBOT] Chatbot history error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get chat history',
@@ -296,7 +296,7 @@ router.get('/conversation', authRequired, async (req, res) => {
       data: formattedConversation,
     });
   } catch (error) {
-    console.error('Chatbot conversation error:', error);
+    console.error('[ERROR][CHATBOT] Chatbot conversation error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get chatbot conversation',
@@ -323,7 +323,7 @@ router.get('/status', authRequired, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Chatbot status error:', error);
+    console.error('[ERROR][CHATBOT] Chatbot status error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get chatbot status',

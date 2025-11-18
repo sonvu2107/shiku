@@ -56,7 +56,7 @@ tempRouter.post("/login-token", async (req, res, next) => {
     }
     
     
-    // ⚠️ DEPRECATED: This endpoint is for backward compatibility only
+    // DEPRECATED: This endpoint is for backward compatibility only
     // Clear old 'token' cookie if exists (from previous auth system)
     res.clearCookie("token", buildCookieOptions(0));
 
@@ -94,7 +94,7 @@ tempRouter.post("/login-token", async (req, res, next) => {
     res.json(response);
   } catch (e) { 
     const duration = Date.now() - startTime;
-    console.error("[auth-token] Login error:", e, `(${duration}ms)`);
+    console.error("[ERROR][AUTH-TOKEN] Login error:", e, `(${duration}ms)`);
     next(e); 
   }
 });
@@ -137,7 +137,7 @@ tempRouter.post("/register-token", async (req, res, next) => {
     
     const user = await User.create(userData);
     
-    // ⚠️ DEPRECATED: This endpoint is for backward compatibility only
+    // DEPRECATED: This endpoint is for backward compatibility only
     // Clear old 'token' cookie if exists (from previous auth system)
     res.clearCookie("token", buildCookieOptions(0));
 
@@ -175,7 +175,7 @@ tempRouter.post("/register-token", async (req, res, next) => {
     res.status(201).json(response);
   } catch (e) { 
     const duration = Date.now() - startTime;
-    console.error("[auth-token] Registration error:", e, `(${duration}ms)`);
+    console.error("[ERROR][AUTH-TOKEN] Registration error:", e, `(${duration}ms)`);
     next(e); 
   }
 });

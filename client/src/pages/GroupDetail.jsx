@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getUserAvatarUrl, AVATAR_SIZES } from '../utils/avatarUtils';
+import { useSEO } from '../utils/useSEO';
 import {
   ArrowLeft,
   Settings,
@@ -48,6 +49,17 @@ const GroupDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
+
+  // ==================== SEO ====================
+  // Trang chi tiết nhóm là public → index, follow
+  useSEO({
+    title: group ? `${group.name} - Shiku` : "Nhóm - Shiku",
+    description: group?.description 
+      ? `${group.description.substring(0, 160)}...`
+      : `Xem nhóm ${group?.name || ''} trên Shiku`,
+    robots: "index, follow",
+    canonical: group?._id ? `https://shiku.click/groups/${group._id}` : undefined
+  });
 
   // State cho bài viết
   const [posts, setPosts] = useState([]);

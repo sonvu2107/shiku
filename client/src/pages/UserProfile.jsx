@@ -20,6 +20,7 @@ import MessageButton from "../components/MessageButton";
 import UserName from "../components/UserName";
 import PostCard from "../components/PostCard";
 import { useSavedPosts } from "../hooks/useSavedPosts";
+import { useSEO } from "../utils/useSEO";
 
 /**
  * UserProfile - Trang profile của user khác
@@ -47,6 +48,17 @@ export default function UserProfile() {
   const [postsError, setPostsError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const { savedMap, updateSavedState } = useSavedPosts(posts);
+
+  // ==================== SEO ====================
+  // Trang profile user là public → index, follow
+  useSEO({
+    title: profile ? `${profile.name} - Shiku` : "Hồ sơ người dùng - Shiku",
+    description: profile?.bio 
+      ? `${profile.bio.substring(0, 160)}...`
+      : `Xem hồ sơ của ${profile?.name || 'người dùng'} trên Shiku`,
+    robots: "index, follow",
+    canonical: profile?._id ? `https://shiku.click/user/${profile._id}` : undefined
+  });
 
   useEffect(() => {
     loadProfile();
