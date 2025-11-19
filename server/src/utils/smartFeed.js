@@ -49,8 +49,10 @@ export function calculateEngagementScore(post, commentsCount = 0, interestedPost
  * @param {number} limit - Number of posts to return
  * @param {Set} notInterestedPostIds - Set of post IDs user is not interested in (optional)
  * @param {Set} interestedPostIds - Set of post IDs user is interested in (optional)
+ * @param {Array} blockedUserIds - List of blocked user IDs (optional)
+ * @param {number} skip - Number of posts to skip (for pagination)
  */
-export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds = null, interestedPostIds = null) {
+export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds = null, interestedPostIds = null, blockedUserIds = [], skip = 0) {
   if (!userId) return [];
   
   // Validate userId is valid ObjectId
@@ -70,6 +72,7 @@ export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds =
     const query = {
       author: { $in: friendIds },
       status: "published",
+      ...(blockedUserIds.length > 0 && { author: { $in: friendIds, $nin: blockedUserIds } }),
       $or: [
         { group: { $exists: false } },
         { group: null }
@@ -89,89 +92,14 @@ export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds =
         select: "name nickname avatarUrl role"
       })
       .sort({ createdAt: -1 })
+      .skip(skip) // Skip posts for pagination
       .limit(limit * 3) // Get more to score and filter
       .lean();
     
-    // Populate emotes.user sau khi query (vì .lean() có thể không populate nested paths đúng cách)
-    const postIds = posts.map(p => p._id).filter(Boolean);
-    if (postIds.length > 0 && posts.some(post => post.emotes && post.emotes.length > 0)) {
-      const allEmoteUserIds = new Set();
-      posts.forEach(post => {
-        if (post.emotes && Array.isArray(post.emotes)) {
-          post.emotes.forEach(emote => {
-            if (emote && emote.user) {
-              const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-              if (!isPopulated) {
-                if (typeof emote.user === 'object' && emote.user._id) {
-                  allEmoteUserIds.add(emote.user._id.toString());
-                } else if (typeof emote.user === 'string') {
-                  allEmoteUserIds.add(emote.user);
-                } else if (emote.user && emote.user.toString) {
-                  allEmoteUserIds.add(emote.user.toString());
-                }
-              }
-            }
-          });
-        }
-      });
-
-      if (allEmoteUserIds.size > 0) {
-        const uniqueUserIds = Array.from(allEmoteUserIds);
-        const users = await User.find({ _id: { $in: uniqueUserIds } })
-          .select("name nickname avatarUrl role")
-          .lean();
-        
-        const userMap = new Map();
-        users.forEach(u => userMap.set(u._id.toString(), u));
-
-        // Populate emotes.user trong posts
-        posts.forEach(post => {
-          if (post.emotes && Array.isArray(post.emotes)) {
-            post.emotes = post.emotes.map(emote => {
-              if (emote && emote.user) {
-                const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-                if (!isPopulated) {
-                  let userId;
-                  if (typeof emote.user === 'object' && emote.user._id) {
-                    userId = emote.user._id.toString();
-                  } else if (typeof emote.user === 'string') {
-                    userId = emote.user;
-                  } else if (emote.user && emote.user.toString) {
-                    userId = emote.user.toString();
-                  }
-                  if (userId) {
-                    const populatedUser = userMap.get(userId);
-                    if (populatedUser) {
-                      emote.user = populatedUser;
-                    }
-                  }
-                }
-              }
-              return emote;
-            });
-          }
-        });
-      }
-    }
-    
-    // Get comment counts for scoring
-    let commentCounts = [];
-    
-    if (postIds.length > 0) {
-      commentCounts = await Comment.aggregate([
-        { $match: { post: { $in: postIds } } },
-        { $group: { _id: "$post", count: { $sum: 1 } } }
-      ]);
-    }
-    
-    const commentCountMap = new Map(
-      commentCounts.map(c => [c._id.toString(), c.count])
-    );
-    
-    // Calculate scores and sort
+    // Use denormalized commentCount for scoring
     const scoredPosts = posts.map(post => ({
       ...post,
-      _score: calculateEngagementScore(post, commentCountMap.get(post._id.toString()) || 0, interestedPostIds)
+      _score: calculateEngagementScore(post, post.commentCount || 0, interestedPostIds)
     }));
     
     // Sort: interested posts first, then by score
@@ -199,14 +127,17 @@ export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds =
  * @param {number} limit - Number of posts to return
  * @param {Set} notInterestedPostIds - Set of post IDs user is not interested in (optional)
  * @param {Set} interestedPostIds - Set of post IDs user is interested in (optional)
+ * @param {Array} blockedUserIds - List of blocked user IDs (optional)
+ * @param {number} skip - Number of posts to skip (for pagination)
  */
-export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, interestedPostIds = null) {
+export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, interestedPostIds = null, blockedUserIds = [], skip = 0) {
   try {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     const query = {
       status: "published",
       createdAt: { $gte: oneDayAgo },
+      ...(blockedUserIds.length > 0 && { author: { $nin: blockedUserIds } }),
       $or: [
         { group: { $exists: false } },
         { group: null }
@@ -224,88 +155,14 @@ export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, 
         path: "emotes.user",
         select: "name nickname avatarUrl role"
       })
+      .sort({ createdAt: -1 })
+      .skip(skip) // Skip posts for pagination
       .lean();
     
-    // Populate emotes.user sau khi query (vì .lean() có thể không populate nested paths đúng cách)
-    const postIds = posts.map(p => p._id).filter(Boolean);
-    if (postIds.length > 0 && posts.some(post => post.emotes && post.emotes.length > 0)) {
-      const allEmoteUserIds = new Set();
-      posts.forEach(post => {
-        if (post.emotes && Array.isArray(post.emotes)) {
-          post.emotes.forEach(emote => {
-            if (emote && emote.user) {
-              const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-              if (!isPopulated) {
-                if (typeof emote.user === 'object' && emote.user._id) {
-                  allEmoteUserIds.add(emote.user._id.toString());
-                } else if (typeof emote.user === 'string') {
-                  allEmoteUserIds.add(emote.user);
-                } else if (emote.user && emote.user.toString) {
-                  allEmoteUserIds.add(emote.user.toString());
-                }
-              }
-            }
-          });
-        }
-      });
-
-      if (allEmoteUserIds.size > 0) {
-        const uniqueUserIds = Array.from(allEmoteUserIds);
-        const users = await User.find({ _id: { $in: uniqueUserIds } })
-          .select("name nickname avatarUrl role")
-          .lean();
-        
-        const userMap = new Map();
-        users.forEach(u => userMap.set(u._id.toString(), u));
-
-        // Populate emotes.user trong posts
-        posts.forEach(post => {
-          if (post.emotes && Array.isArray(post.emotes)) {
-            post.emotes = post.emotes.map(emote => {
-              if (emote && emote.user) {
-                const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-                if (!isPopulated) {
-                  let userId;
-                  if (typeof emote.user === 'object' && emote.user._id) {
-                    userId = emote.user._id.toString();
-                  } else if (typeof emote.user === 'string') {
-                    userId = emote.user;
-                  } else if (emote.user && emote.user.toString) {
-                    userId = emote.user.toString();
-                  }
-                  if (userId) {
-                    const populatedUser = userMap.get(userId);
-                    if (populatedUser) {
-                      emote.user = populatedUser;
-                    }
-                  }
-                }
-              }
-              return emote;
-            });
-          }
-        });
-      }
-    }
-    
-    // Get comment counts
-    let commentCounts = [];
-    
-    if (postIds.length > 0) {
-      commentCounts = await Comment.aggregate([
-        { $match: { post: { $in: postIds } } },
-        { $group: { _id: "$post", count: { $sum: 1 } } }
-      ]);
-    }
-    
-    const commentCountMap = new Map(
-      commentCounts.map(c => [c._id.toString(), c.count])
-    );
-    
-    // Calculate scores
+    // Use denormalized commentCount for scoring
     const scoredPosts = posts.map(post => ({
       ...post,
-      _score: calculateEngagementScore(post, commentCountMap.get(post._id.toString()) || 0, interestedPostIds)
+      _score: calculateEngagementScore(post, post.commentCount || 0, interestedPostIds)
     }));
     
     // Sort: interested posts first, then by score
@@ -335,8 +192,10 @@ export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, 
  * @param {number} limit - Number of posts to return
  * @param {Set} notInterestedPostIds - Set of post IDs user is not interested in (optional)
  * @param {Set} interestedPostIds - Set of post IDs user is interested in (optional)
+ * @param {Array} blockedUserIds - List of blocked user IDs (optional)
+ * @param {number} skip - Number of posts to skip (for pagination)
  */
-export async function getPersonalizedPosts(userId, limit = 10, notInterestedPostIds = null, interestedPostIds = null) {
+export async function getPersonalizedPosts(userId, limit = 10, notInterestedPostIds = null, interestedPostIds = null, blockedUserIds = [], skip = 0) {
   if (!userId) return [];
   
   // Validate userId is valid ObjectId
@@ -407,7 +266,7 @@ export async function getPersonalizedPosts(userId, limit = 10, notInterestedPost
     const personalizedQuery = {
       tags: { $in: topTags },
       status: "published",
-      author: { $ne: userId }, // Not by current user
+      author: { $nin: [userId, ...blockedUserIds] }, // Not by current user and not by blocked users
       "emotes.user": { $ne: userId }, // User hasn't emoted
       _id: { $nin: commentedPostIds }, // User hasn't commented
       $or: [
@@ -432,89 +291,14 @@ export async function getPersonalizedPosts(userId, limit = 10, notInterestedPost
         select: "name nickname avatarUrl role"
       })
       .sort({ createdAt: -1 })
+      .skip(skip) // Skip posts for pagination
       .limit(limit * 2)
       .lean();
     
-    // Populate emotes.user sau khi query (vì .lean() có thể không populate nested paths đúng cách)
-    const postIds = personalizedPosts.map(p => p._id).filter(Boolean);
-    if (postIds.length > 0 && personalizedPosts.some(post => post.emotes && post.emotes.length > 0)) {
-      const allEmoteUserIds = new Set();
-      personalizedPosts.forEach(post => {
-        if (post.emotes && Array.isArray(post.emotes)) {
-          post.emotes.forEach(emote => {
-            if (emote && emote.user) {
-              const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-              if (!isPopulated) {
-                if (typeof emote.user === 'object' && emote.user._id) {
-                  allEmoteUserIds.add(emote.user._id.toString());
-                } else if (typeof emote.user === 'string') {
-                  allEmoteUserIds.add(emote.user);
-                } else if (emote.user && emote.user.toString) {
-                  allEmoteUserIds.add(emote.user.toString());
-                }
-              }
-            }
-          });
-        }
-      });
-
-      if (allEmoteUserIds.size > 0) {
-        const uniqueUserIds = Array.from(allEmoteUserIds);
-        const users = await User.find({ _id: { $in: uniqueUserIds } })
-          .select("name nickname avatarUrl role")
-          .lean();
-        
-        const userMap = new Map();
-        users.forEach(u => userMap.set(u._id.toString(), u));
-
-        // Populate emotes.user trong posts
-        personalizedPosts.forEach(post => {
-          if (post.emotes && Array.isArray(post.emotes)) {
-            post.emotes = post.emotes.map(emote => {
-              if (emote && emote.user) {
-                const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-                if (!isPopulated) {
-                  let userId;
-                  if (typeof emote.user === 'object' && emote.user._id) {
-                    userId = emote.user._id.toString();
-                  } else if (typeof emote.user === 'string') {
-                    userId = emote.user;
-                  } else if (emote.user && emote.user.toString) {
-                    userId = emote.user.toString();
-                  }
-                  if (userId) {
-                    const populatedUser = userMap.get(userId);
-                    if (populatedUser) {
-                      emote.user = populatedUser;
-                    }
-                  }
-                }
-              }
-              return emote;
-            });
-          }
-        });
-      }
-    }
-    
-    // Get comment counts
-    let commentCounts = [];
-    
-    if (postIds.length > 0) {
-      commentCounts = await Comment.aggregate([
-        { $match: { post: { $in: postIds } } },
-        { $group: { _id: "$post", count: { $sum: 1 } } }
-      ]);
-    }
-    
-    const commentCountMap = new Map(
-      commentCounts.map(c => [c._id.toString(), c.count])
-    );
-    
-    // Calculate scores
+    // Use denormalized commentCount for scoring
     const scoredPosts = personalizedPosts.map(post => ({
       ...post,
-      _score: calculateEngagementScore(post, commentCountMap.get(post._id.toString()) || 0, interestedPostIds)
+      _score: calculateEngagementScore(post, post.commentCount || 0, interestedPostIds)
     }));
     
     // Sort: interested posts first, then by score
@@ -541,14 +325,17 @@ export async function getPersonalizedPosts(userId, limit = 10, notInterestedPost
  * Get fresh/new content (posted in last 2 hours)
  * @param {number} limit - Number of posts to return
  * @param {Set} notInterestedPostIds - Set of post IDs user is not interested in (optional)
+ * @param {Array} blockedUserIds - List of blocked user IDs (optional)
+ * @param {number} skip - Number of posts to skip (for pagination)
  */
-export async function getFreshPosts(limit = 5, notInterestedPostIds = null) {
+export async function getFreshPosts(limit = 5, notInterestedPostIds = null, blockedUserIds = [], skip = 0) {
   try {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
     
     const query = {
       status: "published",
       createdAt: { $gte: twoHoursAgo },
+      ...(blockedUserIds.length > 0 && { author: { $nin: blockedUserIds } }),
       $or: [
         { group: { $exists: false } },
         { group: null }
@@ -567,70 +354,9 @@ export async function getFreshPosts(limit = 5, notInterestedPostIds = null) {
         select: "name nickname avatarUrl role"
       })
       .sort({ createdAt: -1 })
+      .skip(skip) // Skip posts for pagination
       .limit(limit)
       .lean();
-    
-    // Populate emotes.user sau khi query (vì .lean() có thể không populate nested paths đúng cách)
-    const postIds = posts.map(p => p._id).filter(Boolean);
-    if (postIds.length > 0 && posts.some(post => post.emotes && post.emotes.length > 0)) {
-      const allEmoteUserIds = new Set();
-      posts.forEach(post => {
-        if (post.emotes && Array.isArray(post.emotes)) {
-          post.emotes.forEach(emote => {
-            if (emote && emote.user) {
-              const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-              if (!isPopulated) {
-                if (typeof emote.user === 'object' && emote.user._id) {
-                  allEmoteUserIds.add(emote.user._id.toString());
-                } else if (typeof emote.user === 'string') {
-                  allEmoteUserIds.add(emote.user);
-                } else if (emote.user && emote.user.toString) {
-                  allEmoteUserIds.add(emote.user.toString());
-                }
-              }
-            }
-          });
-        }
-      });
-
-      if (allEmoteUserIds.size > 0) {
-        const uniqueUserIds = Array.from(allEmoteUserIds);
-        const users = await User.find({ _id: { $in: uniqueUserIds } })
-          .select("name nickname avatarUrl role")
-          .lean();
-        
-        const userMap = new Map();
-        users.forEach(u => userMap.set(u._id.toString(), u));
-
-        // Populate emotes.user trong posts
-        posts.forEach(post => {
-          if (post.emotes && Array.isArray(post.emotes)) {
-            post.emotes = post.emotes.map(emote => {
-              if (emote && emote.user) {
-                const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-                if (!isPopulated) {
-                  let userId;
-                  if (typeof emote.user === 'object' && emote.user._id) {
-                    userId = emote.user._id.toString();
-                  } else if (typeof emote.user === 'string') {
-                    userId = emote.user;
-                  } else if (emote.user && emote.user.toString) {
-                    userId = emote.user.toString();
-                  }
-                  if (userId) {
-                    const populatedUser = userMap.get(userId);
-                    if (populatedUser) {
-                      emote.user = populatedUser;
-                    }
-                  }
-                }
-              }
-              return emote;
-            });
-          }
-        });
-      }
-    }
     
     return posts;
     
@@ -703,24 +429,33 @@ export function mixAndDeduplicatePosts(friendsPosts, trendingPosts, personalized
  * Main function that orchestrates all feed sources
  * @param {string} userId - Current user ID
  * @param {number} totalLimit - Total number of posts to return
+ * @param {number} page - Page number (for pagination)
  */
-export async function generateSmartFeed(userId, totalLimit = 20) {
+export async function generateSmartFeed(userId, totalLimit = 20, page = 1) {
   try {
-    // Validate and sanitize totalLimit
+    // Validate and sanitize totalLimit and page
     const sanitizedLimit = Math.min(Math.max(parseInt(totalLimit) || 20, 1), 100);
+    const sanitizedPage = Math.max(parseInt(page) || 1, 1);
+    
+    // Calculate total skip (total posts to skip across all sources)
+    const totalSkip = (sanitizedPage - 1) * sanitizedLimit;
     
     // Get user's interest preferences
     let notInterestedPostIds = new Set();
     let interestedPostIds = new Set();
-    
+    let blockedUserIds = [];
+
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-      const user = await User.findById(userId).select('interestedPosts notInterestedPosts').lean();
+      const user = await User.findById(userId).select('interestedPosts notInterestedPosts blockedUsers').lean();
       if (user) {
         if (user.notInterestedPosts && Array.isArray(user.notInterestedPosts)) {
           notInterestedPostIds = new Set(user.notInterestedPosts.map(id => id.toString()));
         }
         if (user.interestedPosts && Array.isArray(user.interestedPosts)) {
           interestedPostIds = new Set(user.interestedPosts.map(id => id.toString()));
+        }
+        if (user.blockedUsers && Array.isArray(user.blockedUsers)) {
+          blockedUserIds = user.blockedUsers.map(id => id.toString());
         }
       }
     }
@@ -731,12 +466,19 @@ export async function generateSmartFeed(userId, totalLimit = 20) {
     const personalizedLimit = Math.ceil(sanitizedLimit * 0.2); // 20%
     const freshLimit = Math.ceil(sanitizedLimit * 0.1);    // 10%
     
+    // Calculate skip for each source (proportional to their limits)
+    // This ensures each source skips proportionally based on its contribution
+    const friendsSkip = Math.floor(totalSkip * 0.4);
+    const trendingSkip = Math.floor(totalSkip * 0.3);
+    const personalizedSkip = Math.floor(totalSkip * 0.2);
+    const freshSkip = Math.floor(totalSkip * 0.1);
+    
     // Fetch all sources in parallel for better performance
     const [friendsPosts, trendingPosts, personalizedPosts, freshPosts] = await Promise.all([
-      getFriendsPosts(userId, friendsLimit, notInterestedPostIds, interestedPostIds),
-      getTrendingPosts(trendingLimit, notInterestedPostIds, interestedPostIds),
-      getPersonalizedPosts(userId, personalizedLimit, notInterestedPostIds, interestedPostIds),
-      getFreshPosts(freshLimit, notInterestedPostIds)
+      getFriendsPosts(userId, friendsLimit, notInterestedPostIds, interestedPostIds, blockedUserIds, friendsSkip),
+      getTrendingPosts(trendingLimit, notInterestedPostIds, interestedPostIds, blockedUserIds, trendingSkip),
+      getPersonalizedPosts(userId, personalizedLimit, notInterestedPostIds, interestedPostIds, blockedUserIds, personalizedSkip),
+      getFreshPosts(freshLimit, notInterestedPostIds, blockedUserIds, freshSkip)
     ]);
     
     // Mix and deduplicate
@@ -748,7 +490,7 @@ export async function generateSmartFeed(userId, totalLimit = 20) {
     );
     
     // If we don't have enough posts, fill with recent posts
-    if (mixedFeed.length < totalLimit) {
+    if (mixedFeed.length < sanitizedLimit) {
       const seenIds = new Set(mixedFeed.map(p => p._id.toString()));
       
       // Build exclusion list: seen posts + not interested posts
@@ -757,9 +499,13 @@ export async function generateSmartFeed(userId, totalLimit = 20) {
         excludedIds.push(...Array.from(notInterestedPostIds).map(id => new mongoose.Types.ObjectId(id)));
       }
       
+      // Calculate skip for filler posts (skip remaining amount after mixed feed)
+      const fillerSkip = Math.max(totalSkip - mixedFeed.length, 0);
+      
       const fillerPosts = await Post.find({
         status: "published",
         _id: { $nin: excludedIds },
+        ...(blockedUserIds.length > 0 && { author: { $nin: blockedUserIds } }),
         $or: [
           { group: { $exists: false } },
           { group: null }
@@ -771,70 +517,9 @@ export async function generateSmartFeed(userId, totalLimit = 20) {
           select: "name nickname avatarUrl role"
         })
         .sort({ createdAt: -1 })
+        .skip(fillerSkip) // Skip filler posts for pagination
         .limit(sanitizedLimit - mixedFeed.length)
         .lean();
-      
-      // Populate emotes.user cho fillerPosts
-      const fillerPostIds = fillerPosts.map(p => p._id).filter(Boolean);
-      if (fillerPostIds.length > 0 && fillerPosts.some(post => post.emotes && post.emotes.length > 0)) {
-        const allEmoteUserIds = new Set();
-        fillerPosts.forEach(post => {
-          if (post.emotes && Array.isArray(post.emotes)) {
-            post.emotes.forEach(emote => {
-              if (emote && emote.user) {
-                const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-                if (!isPopulated) {
-                  if (typeof emote.user === 'object' && emote.user._id) {
-                    allEmoteUserIds.add(emote.user._id.toString());
-                  } else if (typeof emote.user === 'string') {
-                    allEmoteUserIds.add(emote.user);
-                  } else if (emote.user && emote.user.toString) {
-                    allEmoteUserIds.add(emote.user.toString());
-                  }
-                }
-              }
-            });
-          }
-        });
-
-        if (allEmoteUserIds.size > 0) {
-          const uniqueUserIds = Array.from(allEmoteUserIds);
-          const users = await User.find({ _id: { $in: uniqueUserIds } })
-            .select("name nickname avatarUrl role")
-            .lean();
-          
-          const userMap = new Map();
-          users.forEach(u => userMap.set(u._id.toString(), u));
-
-          // Populate emotes.user trong fillerPosts
-          fillerPosts.forEach(post => {
-            if (post.emotes && Array.isArray(post.emotes)) {
-              post.emotes = post.emotes.map(emote => {
-                if (emote && emote.user) {
-                  const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-                  if (!isPopulated) {
-                    let userId;
-                    if (typeof emote.user === 'object' && emote.user._id) {
-                      userId = emote.user._id.toString();
-                    } else if (typeof emote.user === 'string') {
-                      userId = emote.user;
-                    } else if (emote.user && emote.user.toString) {
-                      userId = emote.user.toString();
-                    }
-                    if (userId) {
-                      const populatedUser = userMap.get(userId);
-                      if (populatedUser) {
-                        emote.user = populatedUser;
-                      }
-                    }
-                  }
-                }
-                return emote;
-              });
-            }
-          });
-        }
-      }
       
       mixedFeed.push(...fillerPosts);
     }

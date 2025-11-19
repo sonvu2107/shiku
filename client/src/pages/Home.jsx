@@ -161,17 +161,17 @@ export default function Home({ user, setUser }) {
     try {
       // Use smart feed for "recommended" sort
       if (sortBy === 'recommended') {
-        // Smart feed loads all at once (no pagination support yet)
-        // Request more posts upfront
-        const smartFeedData = await api(`/api/posts/feed/smart?limit=50`);
+        // Smart feed with pagination support
+        const limit = 20;
+        const smartFeedData = await api(`/api/posts/feed/smart?page=1&limit=${limit}`);
         setItems(smartFeedData.items || []);
-        // No pagination for smart feed - all posts loaded
-        setHasMore(false);
-        setPage(1);
-        setTotalPages(1);
+        // Enable pagination: if we got 20 items, assume there are more
+        setHasMore((smartFeedData.items || []).length >= limit);
+        setPage(2); // Prepare for next page
+        setTotalPages(100); // Smart feed doesn't provide exact total, use large number as assumption
       } else {
         // Use regular feed for other sort options
-        const limit = 100;
+        const limit = 20;
         const publishedData = await api(`/api/posts?page=1&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
         let allItems = publishedData.items;
 
@@ -206,22 +206,41 @@ export default function Home({ user, setUser }) {
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !hasMore || loadingMore) return;
 
-    // Bỏ qua tải thêm để được đề xuất (tải nguồn cấp dữ liệu thông minh cùng lúc)
-    if (sortBy === 'recommended') return;
-
     setLoadingMore(true);
     setError(null);
     loadingRef.current = true;
 
     try {
-      // Sử dụng nguồn cấp dữ liệu thông thường cho các tùy chọn sắp xếp khác
-      const limit = 15;
-      const publishedData = await api(`/api/posts?page=${page}&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
-      const newItems = sortPosts(publishedData.items, sortBy);
+      let newItems = [];
+      const limit = 20; // Unified limit for all feed types
 
-      setItems(prev => [...prev, ...newItems]);
-      setHasMore(page < publishedData.pages);
-      setPage(prev => prev + 1);
+      if (sortBy === 'recommended') {
+        // Smart feed pagination
+        const smartFeedData = await api(`/api/posts/feed/smart?page=${page}&limit=${limit}`);
+        newItems = smartFeedData.items || [];
+      } else {
+        // Regular feed for other sort options
+        const publishedData = await api(`/api/posts?page=${page}&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
+        newItems = sortPosts(publishedData.items, sortBy);
+      }
+
+      // Deduplicate posts by _id to prevent duplicates when new posts are added
+      setItems(prev => {
+        const uniquePosts = new Map();
+        // Add existing posts to Map
+        prev.forEach(p => uniquePosts.set(p._id, p));
+        // Add new posts to Map (will overwrite if duplicate, keeping newer version)
+        newItems.forEach(p => uniquePosts.set(p._id, p));
+        // Convert back to array
+        return Array.from(uniquePosts.values());
+      });
+      
+      // Update hasMore based on returned items count (if less than limit, no more items)
+      if (newItems.length < limit) {
+        setHasMore(false);
+      } else {
+        setPage(prev => prev + 1);
+      }
     } catch (error) {
       setError('Không thể tải thêm bài viết. Vui lòng thử lại.');
     } finally {
@@ -240,22 +259,45 @@ export default function Home({ user, setUser }) {
     try {
       const allRemainingPosts = [];
       let currentPage = page;
+      const limit = 20; // Unified limit
 
-      // Nếu chưa có hasMore, bắt đầu từ trang 2
-      if (!hasMore && totalPages > 1) {
-        currentPage = 2;
+      if (sortBy === 'recommended') {
+        // Smart feed: load until no more items
+        while (true) {
+          const smartFeedData = await api(`/api/posts/feed/smart?page=${currentPage}&limit=${limit}`);
+          const newItems = smartFeedData.items || [];
+          if (newItems.length === 0) break; // No more items
+          allRemainingPosts.push(...newItems);
+          if (newItems.length < limit) break; // Last page
+          currentPage++;
+        }
+      } else {
+        // Regular feed: use totalPages
+        // Nếu chưa có hasMore, bắt đầu từ trang 2
+        if (!hasMore && totalPages > 1) {
+          currentPage = 2;
+        }
+
+        while (currentPage <= totalPages) {
+          const publishedData = await api(`/api/posts?page=${currentPage}&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
+          const newItems = sortPosts(publishedData.items, sortBy);
+          allRemainingPosts.push(...newItems);
+          currentPage++;
+        }
       }
 
-      while (currentPage <= totalPages) {
-        const publishedData = await api(`/api/posts?page=${currentPage}&limit=15&q=${encodeURIComponent(q)}&status=published`);
-        const newItems = sortPosts(publishedData.items, sortBy);
-        allRemainingPosts.push(...newItems);
-        currentPage++;
-      }
-
-      setItems(prev => [...prev, ...allRemainingPosts]);
+      // Deduplicate posts by _id to prevent duplicates when new posts are added
+      setItems(prev => {
+        const uniquePosts = new Map();
+        // Add existing posts to Map
+        prev.forEach(p => uniquePosts.set(p._id, p));
+        // Add new posts to Map (will overwrite if duplicate, keeping newer version)
+        allRemainingPosts.forEach(p => uniquePosts.set(p._id, p));
+        // Convert back to array
+        return Array.from(uniquePosts.values());
+      });
       setHasMore(false);
-      setPage(totalPages + 1);
+      setPage(currentPage);
     } catch (error) {
       setError('Không thể tải tất cả bài viết. Vui lòng thử lại.');
     } finally {
@@ -1050,20 +1092,19 @@ export default function Home({ user, setUser }) {
                       </div>
                     )}
 
-                    {/* Load more buttons */}
-                    {!loadingMore && !loadingAll && hasMore && (
-                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center py-3 sm:py-4">
-                        <button
-                          onClick={loadMore}
-                          className="px-4 sm:px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-sm sm:text-base hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 touch-manipulation shadow-md hover:shadow-lg min-h-[44px]"
-                          aria-label="Tải thêm 15 bài viết"
-                        >
-                          Tải thêm 15 bài viết
-                        </button>
+                    {/* Load All Button - Chỉ hiển thị nút Tải Tất Cả, bỏ nút Tải Thêm thủ công vì đã có Infinite Scroll */}
+                    {/* Thay đổi: Không ẩn nút này khi loadingMore để tránh giật giao diện, chỉ disable */}
+                    {!loadingAll && hasMore && totalPages - page + 1 > 0 && (
+                      <div className="flex justify-center py-3 sm:py-4">
                         {totalPages - page + 1 > 1 && (
                           <button
                             onClick={loadAllRemaining}
-                            className="px-4 sm:px-6 py-2.5 bg-neutral-700 dark:bg-neutral-600 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-neutral-800 dark:hover:bg-neutral-500 transition-all duration-200 touch-manipulation shadow-md min-h-[44px]"
+                            disabled={loadingMore} // Disable khi đang tự động tải
+                            className={`px-4 sm:px-6 py-2.5 bg-neutral-700 dark:bg-neutral-600 text-white rounded-xl font-semibold text-sm sm:text-base transition-all duration-200 touch-manipulation shadow-md min-h-[44px] ${
+                              loadingMore 
+                                ? 'opacity-50 cursor-not-allowed' 
+                                : 'hover:bg-neutral-800 dark:hover:bg-neutral-500'
+                            }`}
                             aria-label="Tải tất cả bài viết còn lại"
                           >
                             <span className="hidden sm:inline">Tải tất cả ({totalPages - page + 1} trang còn lại)</span>
@@ -1073,8 +1114,8 @@ export default function Home({ user, setUser }) {
                       </div>
                     )}
 
-                    {/* Load all button - hiển thị ngay từ đầu nếu có nhiều bài viết */}
-                    {!loadingMore && !loadingAll && !hasMore && totalPages > 1 && (
+                    {/* Load all button - hiển thị khi không còn hasMore nhưng vẫn còn nhiều trang */}
+                    {!loadingAll && !hasMore && totalPages > 1 && (
                       <div className="flex justify-center py-3 sm:py-4">
                         <button
                           onClick={loadAllRemaining}

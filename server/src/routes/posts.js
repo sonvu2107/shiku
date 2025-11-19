@@ -90,11 +90,12 @@ const router = express.Router();
 // Get current user's posts only (both published and private) - Optimized with caching
 router.get("/my-posts", authRequired, async (req, res, next) => {
   try {
-    const { page = 1, limit = 100, status } = req.query;
+    const { page = 1, limit = 20, status } = req.query;
+    const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
     const userId = req.user._id.toString();
     const statusFilter = status || "all";
     
-    const cacheKey = `my-posts:${userId}:${page}:${limit}:${statusFilter}`;
+    const cacheKey = `my-posts:${userId}:${page}:${sanitizedLimit}:${statusFilter}`;
     
     const result = await withCache(postCache, cacheKey, async () => {
       const filter = { 
@@ -115,8 +116,8 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
         Post.aggregate([
           { $match: filter },
           { $sort: { createdAt: -1 } },
-          { $skip: (page - 1) * limit },
-          { $limit: parseInt(limit) },
+          { $skip: (page - 1) * sanitizedLimit },
+          { $limit: sanitizedLimit },
           {
             $lookup: {
               from: "users",
@@ -197,9 +198,9 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
         posts,
         pagination: {
           page: parseInt(page),
-          limit: parseInt(limit),
+          limit: sanitizedLimit,
           total,
-          pages: Math.ceil(total / limit)
+          pages: Math.ceil(total / sanitizedLimit)
         }
       };
     }, 5 * 60 * 1000); // 5 minutes cache
@@ -213,7 +214,8 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
 // Get current user's published posts only
 router.get("/my-published", authRequired, async (req, res, next) => {
   try {
-    const { page = 1, limit = 100 } = req.query;
+    const { page = 1, limit = 20 } = req.query;
+    const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
     const filter = { 
       author: req.user._id,
       status: "published"
@@ -233,8 +235,8 @@ router.get("/my-published", authRequired, async (req, res, next) => {
       .populate("author", "name nickname avatarUrl")
       .populate("group", "name")
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .limit(sanitizedLimit)
+      .skip((page - 1) * sanitizedLimit);
     
     const total = await Post.countDocuments(filter);
     
@@ -242,9 +244,9 @@ router.get("/my-published", authRequired, async (req, res, next) => {
       posts,
       pagination: {
         page: parseInt(page),
-        limit: parseInt(limit),
+        limit: sanitizedLimit,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / sanitizedLimit)
       }
     });
   } catch (error) {
@@ -255,7 +257,8 @@ router.get("/my-published", authRequired, async (req, res, next) => {
 // Get current user's private posts only
 router.get("/my-private", authRequired, async (req, res, next) => {
   try {
-    const { page = 1, limit = 100 } = req.query;
+    const { page = 1, limit = 20 } = req.query;
+    const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
     const filter = { 
       author: req.user._id,
       status: "private"
@@ -275,8 +278,8 @@ router.get("/my-private", authRequired, async (req, res, next) => {
       .populate("author", "name nickname avatarUrl")
       .populate("group", "name")
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .limit(sanitizedLimit)
+      .skip((page - 1) * sanitizedLimit);
     
     const total = await Post.countDocuments(filter);
     
@@ -284,9 +287,9 @@ router.get("/my-private", authRequired, async (req, res, next) => {
       posts,
       pagination: {
         page: parseInt(page),
-        limit: parseInt(limit),
+        limit: sanitizedLimit,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / sanitizedLimit)
       }
     });
   } catch (error) {
@@ -297,7 +300,8 @@ router.get("/my-private", authRequired, async (req, res, next) => {
 // Get posts by specific user ID (public posts only)
 router.get("/user-posts", authOptional, async (req, res, next) => {
   try {
-    const { userId, page = 1, limit = 100 } = req.query;
+    const { userId, page = 1, limit = 20 } = req.query;
+    const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
     
     if (!userId || userId === "undefined") {
       return res.status(400).json({ error: "User ID is required" });
@@ -306,6 +310,25 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
     // Validate MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ error: "User ID không hợp lệ" });
+    }
+    
+    // Check if user is blocked
+    if (req.user) {
+      const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
+      const blockedIds = (currentUser.blockedUsers || []).map(id => id.toString());
+      
+      // If current user blocked this user, return empty result
+      if (blockedIds.includes(userId)) {
+        return res.json({ 
+          posts: [], 
+          pagination: { 
+            page: parseInt(page), 
+            limit: parseInt(limit), 
+            total: 0, 
+            pages: 0 
+          } 
+        });
+      }
     }
     
     const filter = { 
@@ -331,81 +354,19 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
         select: "name nickname avatarUrl role"
       })
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-    
-    // Đảm bảo emotes.user được populate đúng cách
-    const postsArray = posts.map(post => post.toObject());
-    
-    // Lấy tất cả user IDs từ emotes chưa được populate
-    const allEmoteUserIds = new Set();
-    postsArray.forEach(post => {
-      if (post.emotes && Array.isArray(post.emotes)) {
-        post.emotes.forEach(emote => {
-          if (emote && emote.user) {
-            const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-            if (!isPopulated) {
-              if (typeof emote.user === 'object' && emote.user._id) {
-                allEmoteUserIds.add(emote.user._id.toString());
-              } else if (typeof emote.user === 'string') {
-                allEmoteUserIds.add(emote.user);
-              } else if (emote.user && emote.user.toString) {
-                allEmoteUserIds.add(emote.user.toString());
-              }
-            }
-          }
-        });
-      }
-    });
-    
-    // Populate users nếu có
-    if (allEmoteUserIds.size > 0) {
-      const uniqueUserIds = Array.from(allEmoteUserIds);
-      const users = await User.find({ _id: { $in: uniqueUserIds } })
-        .select("name nickname avatarUrl role")
-        .lean();
-      
-      const userMap = new Map();
-      users.forEach(u => userMap.set(u._id.toString(), u));
-      
-      // Populate lại emotes.user trong posts
-      postsArray.forEach(post => {
-        if (post.emotes && Array.isArray(post.emotes)) {
-          post.emotes = post.emotes.map(emote => {
-            if (emote && emote.user) {
-              const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-              if (!isPopulated) {
-                let userId;
-                if (typeof emote.user === 'object' && emote.user._id) {
-                  userId = emote.user._id.toString();
-                } else if (typeof emote.user === 'string') {
-                  userId = emote.user;
-                } else if (emote.user && emote.user.toString) {
-                  userId = emote.user.toString();
-                }
-                if (userId) {
-                  const populatedUser = userMap.get(userId);
-                  if (populatedUser) {
-                    return { ...emote, user: populatedUser };
-                  }
-                }
-              }
-            }
-            return emote;
-          });
-        }
-      });
-    }
+      .limit(sanitizedLimit)
+      .skip((page - 1) * sanitizedLimit)
+      .lean(); // Use lean() for better performance
     
     const total = await Post.countDocuments(filter);
     
     res.json({
-      posts: postsArray,
+      posts: posts,
       pagination: {
         page: parseInt(page),
-        limit: parseInt(limit),
+        limit: sanitizedLimit,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / sanitizedLimit)
       }
     });
   } catch (error) {
@@ -421,49 +382,18 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
 router.get("/feed/smart", authOptional, async (req, res, next) => {
   try {
     const { page = 1, limit = 20 } = req.query;
+    const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
     const userId = req.user?._id?.toString() || null;
     const pg = Number(page) || 1;
-    const lim = Math.min(Number(limit) || 20, 50); // Max 50 per request
 
-    // Generate smart feed
-    const smartFeedPosts = await generateSmartFeed(userId, lim);
+    // Generate smart feed with pagination support
+    const smartFeedPosts = await generateSmartFeed(userId, sanitizedLimit, pg);
 
-    // Get comment counts for all posts
-    const postIds = smartFeedPosts.map(p => p._id);
-    let commentCounts = [];
-    
-    if (postIds.length > 0) {
-      commentCounts = await Comment.aggregate([
-        { $match: { post: { $in: postIds } } },
-        { $group: { _id: "$post", count: { $sum: 1 } } }
-      ]);
-    }
-
-    const commentCountMap = new Map(
-      commentCounts.map(c => [c._id.toString(), c.count])
-    );
-
-    // Tính số lượng saved cho mỗi bài - batch query
-    let savedCounts = [];
-    if (postIds.length > 0) {
-      savedCounts = await User.aggregate([
-        { $match: { savedPosts: { $in: postIds } } },
-        { $unwind: "$savedPosts" },
-        { $match: { savedPosts: { $in: postIds } } },
-        { $group: { _id: "$savedPosts", count: { $sum: 1 } } }
-      ]);
-    }
-    
-    const savedCountMap = new Map();
-    savedCounts.forEach(item => {
-      savedCountMap.set(item._id.toString(), item.count);
-    });
-
-    // Add comment counts and saved counts to posts
+    // Use denormalized counts directly
     const itemsWithCommentCount = smartFeedPosts.map(post => ({
       ...post,
-      commentCount: commentCountMap.get(post._id.toString()) || 0,
-      savedCount: savedCountMap.get(post._id.toString()) || 0
+      commentCount: post.commentCount || 0,
+      savedCount: post.savedCount || 0
     }));
 
     // Filter blocked users if logged in
@@ -538,13 +468,22 @@ router.get("/feed/smart", authOptional, async (req, res, next) => {
 // Combined feed endpoint - returns both published posts and user's private posts
 router.get("/feed", authOptional, async (req, res, next) => {
   try {
-    const { page = 1, limit = 100, tag, q } = req.query;
+    const { page = 1, limit = 20, tag, q } = req.query;
     const pg = Number(page) || 1;
-    const lim = Number(limit) || 100;
+    const lim = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
+
+    // Get blocked list first
+    let blockedIds = [];
+    if (req.user) {
+      const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
+      blockedIds = (currentUser.blockedUsers || []).map(id => id.toString());
+    }
 
     // Base filter for published posts
     const publishedFilter = {
       status: "published",
+      // Add blocked users filter
+      ...(blockedIds.length > 0 && { author: { $nin: blockedIds } }),
       $and: [{
         $or: [
           { group: { $exists: false } },
@@ -627,165 +566,11 @@ router.get("/feed", authOptional, async (req, res, next) => {
     let allPosts = [...privatePosts, ...publishedPosts];
     allPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // Filter blocked users if logged in (mutual blocking with batch fetch)
-    if (req.user?._id && allPosts.length > 0) {
-      const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
-      const currentUserId = req.user._id.toString();
-      const blockedSet = new Set((currentUser.blockedUsers || []).map(id => id.toString()));
-      
-      // Batch fetch all authors' blocked lists
-      const authorIds = [...new Set(
-        allPosts
-          .map(post => post.author?._id?.toString())
-          .filter(Boolean)
-      )];
-      
-      const authorsWithBlocked = await User.find({
-        _id: { $in: authorIds }
-      })
-        .select("_id blockedUsers")
-        .lean();
-      
-      // Create a Map for O(1) lookup
-      const authorsBlockedMap = new Map();
-      authorsWithBlocked.forEach(author => {
-        const authorId = author._id.toString();
-        authorsBlockedMap.set(
-          authorId,
-          new Set((author.blockedUsers || []).map(id => id.toString()))
-        );
-      });
-      
-      // Filter posts: remove if either user blocked the other
-      allPosts = allPosts.filter(post => {
-        const author = post.author;
-        if (!author) return false;
-        const authorId = author._id.toString();
-        
-        // Check if current user blocked this author
-        if (blockedSet.has(authorId)) {
-          return false;
-        }
-        
-        // Check if author blocked current user (mutual blocking)
-        const authorBlockedSet = authorsBlockedMap.get(authorId);
-        if (authorBlockedSet && authorBlockedSet.has(currentUserId)) {
-          return false;
-        }
-        
-        return true;
-      });
-    }
-
-    // Populate emotes.user sau khi query (vì .lean() có thể không populate nested paths đúng cách)
-    const postIds = allPosts.map(post => post._id).filter(Boolean);
-    if (postIds.length > 0 && allPosts.some(post => post.emotes && post.emotes.length > 0)) {
-      // Lấy tất cả user IDs từ emotes (cả đã populate và chưa populate)
-      const allEmoteUserIds = new Set();
-      allPosts.forEach(post => {
-        if (post.emotes && Array.isArray(post.emotes)) {
-          post.emotes.forEach(emote => {
-            if (emote && emote.user) {
-              // Kiểm tra xem user đã được populate chưa (có _id và name)
-              const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-              
-              if (!isPopulated) {
-                // Chưa được populate - lấy ID
-                if (typeof emote.user === 'object' && emote.user._id) {
-                  allEmoteUserIds.add(emote.user._id.toString());
-                } else if (typeof emote.user === 'string') {
-                  allEmoteUserIds.add(emote.user);
-                } else if (emote.user && emote.user.toString) {
-                  // Mongoose ObjectId
-                  allEmoteUserIds.add(emote.user.toString());
-                }
-              }
-            }
-          });
-        }
-      });
-
-      // Populate users nếu có user IDs chưa được populate
-      if (allEmoteUserIds.size > 0) {
-        const uniqueUserIds = Array.from(allEmoteUserIds);
-        const users = await User.find({ _id: { $in: uniqueUserIds } })
-          .select("name nickname avatarUrl role")
-          .lean();
-        
-        const userMap = new Map();
-        users.forEach(u => userMap.set(u._id.toString(), u));
-
-        // Populate emotes.user trong allPosts
-        allPosts = allPosts.map(post => {
-          if (post.emotes && Array.isArray(post.emotes)) {
-            post.emotes = post.emotes.map(emote => {
-              if (emote && emote.user) {
-                // Kiểm tra xem đã được populate chưa
-                const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-                
-                if (!isPopulated) {
-                  // Chưa được populate - populate thủ công
-                  let userId;
-                  if (typeof emote.user === 'object' && emote.user._id) {
-                    userId = emote.user._id.toString();
-                  } else if (typeof emote.user === 'string') {
-                    userId = emote.user;
-                  } else if (emote.user && emote.user.toString) {
-                    userId = emote.user.toString();
-                  }
-                  
-                  if (userId) {
-                    const populatedUser = userMap.get(userId);
-                    if (populatedUser) {
-                      return { ...emote, user: populatedUser };
-                    }
-                  }
-                }
-              }
-              return emote;
-            });
-          }
-          return post;
-        });
-      }
-    }
-
-    // Batch fetch comment counts
-    let commentCounts = [];
-    if (postIds.length > 0) {
-      commentCounts = await Comment.aggregate([
-        { $match: { post: { $in: postIds } } },
-        { $group: { _id: "$post", count: { $sum: 1 } } }
-      ]);
-    }
-
-    const commentCountMap = new Map();
-    commentCounts.forEach(item => {
-      commentCountMap.set(item._id.toString(), item.count);
-    });
-
-    // Tính số lượng saved cho mỗi bài - batch query
-    let savedCounts = [];
-    if (postIds.length > 0) {
-      savedCounts = await User.aggregate([
-        { $match: { savedPosts: { $in: postIds } } },
-        { $unwind: "$savedPosts" },
-        { $match: { savedPosts: { $in: postIds } } },
-        { $group: { _id: "$savedPosts", count: { $sum: 1 } } }
-      ]);
-    }
-    
-    // Create a map for quick lookup
-    const savedCountMap = new Map();
-    savedCounts.forEach(item => {
-      savedCountMap.set(item._id.toString(), item.count);
-    });
-
-    // PHASE 4: No need for .toObject() since we used .lean()
+    // Use denormalized counts directly
     const itemsWithCommentCount = allPosts.map(post => ({
       ...post,
-      commentCount: commentCountMap.get(post._id.toString()) || 0,
-      savedCount: savedCountMap.get(post._id.toString()) || 0
+      commentCount: post.commentCount || 0,
+      savedCount: post.savedCount || 0
     }));
 
     const total = await Post.countDocuments(publishedFilter);
@@ -805,7 +590,8 @@ router.get("/feed", authOptional, async (req, res, next) => {
 // Legacy endpoint - keep for backward compatibility
 router.get("/feed-legacy", authOptional, async (req, res, next) => {
   try {
-    const { page = 1, limit = 100, tag, q } = req.query;
+    const { page = 1, limit = 20, tag, q } = req.query;
+    const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
     const filter = { status: "published" };
 
     // Exclude group posts from homepage feed
@@ -817,6 +603,15 @@ router.get("/feed-legacy", authOptional, async (req, res, next) => {
         ]
       }
     ];
+
+    // Add blocked users filter
+    if (req.user) {
+      const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
+      const blockedIds = (currentUser.blockedUsers || []).map(id => id.toString());
+      if (blockedIds.length > 0) {
+        filter.author = { $nin: blockedIds };
+      }
+    }
 
     if (tag) filter.tags = tag;
 
@@ -837,8 +632,8 @@ router.get("/feed-legacy", authOptional, async (req, res, next) => {
       .populate("author", "name nickname avatarUrl")
       .populate("group", "name")
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .limit(sanitizedLimit)
+      .skip((page - 1) * sanitizedLimit);
     
     const total = await Post.countDocuments(filter);
     
@@ -846,9 +641,9 @@ router.get("/feed-legacy", authOptional, async (req, res, next) => {
       posts,
       pagination: {
         page: parseInt(page),
-        limit: parseInt(limit),
+        limit: sanitizedLimit,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / sanitizedLimit)
       }
     });
   } catch (error) {
@@ -859,8 +654,16 @@ router.get("/feed-legacy", authOptional, async (req, res, next) => {
 // List with filters & search
 router.get("/", authOptional, async (req, res, next) => {
   try {
-    const { page = 1, limit = 100, tag, author, q, status = "published" } = req.query;
+    const { page = 1, limit = 20, tag, author, q, status = "published" } = req.query;
+    const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
     const filter = {};
+
+    // Get blocked list first
+    let blockedIds = [];
+    if (req.user) {
+      const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
+      blockedIds = (currentUser.blockedUsers || []).map(id => id.toString());
+    }
 
     if (status === "private") {
       if (!req.user) return res.status(401).json({ error: "Cần đăng nhập để xem bài riêng tư" });
@@ -869,7 +672,7 @@ router.get("/", authOptional, async (req, res, next) => {
       }
       filter.status = "private";
       filter.author = req.user._id;
-      // Cũng loại trừ bài đăng private trong group khỏi trang Home
+      // Also exclude private posts in groups from Home page
       filter.$and = [
         {
           $or: [
@@ -880,7 +683,7 @@ router.get("/", authOptional, async (req, res, next) => {
       ];
     } else {
       filter.status = "published";
-      // Loại trừ bài đăng trong group khỏi trang Home (chỉ hiện bài đăng không thuộc group nào)
+      // Exclude posts in groups from Home page (only show posts that are not in any group)
       filter.$and = [
         {
           $or: [
@@ -893,11 +696,24 @@ router.get("/", authOptional, async (req, res, next) => {
 
     if (tag) filter.tags = tag;
     if (author && author !== "undefined" && status !== "private") {
-      // Validate MongoDB ObjectId
+      // Validate MongoDB ObjectId format
       if (!mongoose.Types.ObjectId.isValid(author)) {
         return res.status(400).json({ error: "ID không hợp lệ" });
       }
+      // If author is blocked, return empty result
+      if (blockedIds.length > 0 && blockedIds.includes(author)) {
+        return res.json({ items: [], total: 0, page: Number(page), pages: 0 });
+      }
       filter.author = author;
+    }
+
+    // Apply blocked users filter (IMPORTANT)
+    if (blockedIds.length > 0 && status !== "private") {
+      // If filtering by specific author, already checked above
+      // Otherwise, exclude blocked authors
+      if (!author || author === "undefined") {
+        filter.author = { $nin: blockedIds };
+      }
     }
 
     if (q) {
@@ -914,7 +730,9 @@ router.get("/", authOptional, async (req, res, next) => {
       }
     }
 
-    // PHASE 4: Add projection to limit fields returned and trim populate (remove blockedUsers heavy array)
+    // Add projection to limit fields returned and trim populate (remove blockedUsers heavy array for performance)
+    // REMOVED content field to reduce payload size by 80-90% for list/feed endpoints
+    // Content will be loaded separately when user clicks to view full post
     const postProjection = {
       title: 1,
       slug: 1,
@@ -924,10 +742,13 @@ router.get("/", authOptional, async (req, res, next) => {
       role: 1,
       status: 1,
       views: 1,
-      coverUrl: 1,      // Ảnh cover/thumbnail cho PostCard
-      files: 1,         // Media files (ảnh/video)
-      content: 1,       // Nội dung (có thể cần cho preview)
-      emotes: 1         // Reactions/likes
+      coverUrl: 1,      // Cover image for PostCard
+      files: 1,         // Media files (images/videos)
+      // content: 1,     // REMOVED: Too heavy for list view, load separately on detail page
+      commentCount: 1,  // Denormalized count
+      savedCount: 1,    // Denormalized count
+      emotes: 1,        // Emotes/reactions
+      hasPoll: 1        // Poll indicator
     };
 
     let query = Post.find(filter, postProjection)
@@ -940,11 +761,13 @@ router.get("/", authOptional, async (req, res, next) => {
         select: "name nickname avatarUrl role"
       })
       .sort({ createdAt: -1 })
-      .lean(); // PHASE 4: Add .lean() for better performance
+      .lean(); 
 
-    let items = await paginate(query, { page: Number(page), limit: Number(limit) }).exec();
+    let items = await paginate(query, { page: Number(page), limit: sanitizedLimit }).exec();
 
-    // Lọc bài viết của user đã block mình hoặc bị mình block (mutual blocking)
+    /*
+    // Filter posts: remove if either user blocked the other (mutual blocking)
+    // REMOVED: Logic moved to Database Query for better performance and pagination
     if (req.user?._id && items.length > 0) {
       const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
       const currentUserId = req.user._id.toString();
@@ -993,115 +816,17 @@ router.get("/", authOptional, async (req, res, next) => {
         return true;
       });
     }
+    */
 
-    // Populate emotes.user sau khi query (vì .lean() có thể không populate nested paths đúng cách)
-    const postIds = items.map(post => post._id).filter(Boolean);
-    if (postIds.length > 0 && items.some(post => post.emotes && post.emotes.length > 0)) {
-      // Lấy tất cả user IDs từ emotes (cả đã populate và chưa populate)
-      const allEmoteUserIds = new Set();
-      items.forEach(post => {
-        if (post.emotes && Array.isArray(post.emotes)) {
-          post.emotes.forEach(emote => {
-            if (emote && emote.user) {
-              // Kiểm tra xem user đã được populate chưa (có _id và name)
-              const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-              
-              if (!isPopulated) {
-                // Chưa được populate - lấy ID
-                if (typeof emote.user === 'object' && emote.user._id) {
-                  allEmoteUserIds.add(emote.user._id.toString());
-                } else if (typeof emote.user === 'string') {
-                  allEmoteUserIds.add(emote.user);
-                } else if (emote.user && emote.user.toString) {
-                  // Mongoose ObjectId
-                  allEmoteUserIds.add(emote.user.toString());
-                }
-              }
-            }
-          });
-        }
-      });
-
-      // Populate users nếu có user IDs chưa được populate
-      if (allEmoteUserIds.size > 0) {
-        const uniqueUserIds = Array.from(allEmoteUserIds);
-        const users = await User.find({ _id: { $in: uniqueUserIds } })
-          .select("name nickname avatarUrl role")
-          .lean();
-        
-        const userMap = new Map();
-        users.forEach(u => userMap.set(u._id.toString(), u));
-
-        // Populate emotes.user trong items
-        items = items.map(post => {
-          if (post.emotes && Array.isArray(post.emotes)) {
-            post.emotes = post.emotes.map(emote => {
-              if (emote && emote.user) {
-                // Kiểm tra xem đã được populate chưa
-                const isPopulated = typeof emote.user === 'object' && emote.user._id && emote.user.name;
-                
-                if (!isPopulated) {
-                  // Chưa được populate - populate thủ công
-                  let userId;
-                  if (typeof emote.user === 'object' && emote.user._id) {
-                    userId = emote.user._id.toString();
-                  } else if (typeof emote.user === 'string') {
-                    userId = emote.user;
-                  } else if (emote.user && emote.user.toString) {
-                    userId = emote.user.toString();
-                  }
-                  
-                  if (userId) {
-                    const populatedUser = userMap.get(userId);
-                    if (populatedUser) {
-                      return { ...emote, user: populatedUser };
-                    }
-                  }
-                }
-              }
-              return emote;
-            });
-          }
-          return post;
-        });
-      }
-    }
-
-    // Thêm số lượng bình luận cho mỗi bài - optimized batch query
-    const commentCounts = await Comment.aggregate([
-      { $match: { post: { $in: postIds } } },
-      { $group: { _id: "$post", count: { $sum: 1 } } }
-    ]);
-    
-    // Create a map for quick lookup
-    const commentCountMap = new Map();
-    commentCounts.forEach(item => {
-      commentCountMap.set(item._id.toString(), item.count);
-    });
-    
-    // Tính số lượng saved cho mỗi bài - batch query
-    const savedCounts = await User.aggregate([
-      { $match: { savedPosts: { $in: postIds } } },
-      { $unwind: "$savedPosts" },
-      { $match: { savedPosts: { $in: postIds } } },
-      { $group: { _id: "$savedPosts", count: { $sum: 1 } } }
-    ]);
-    
-    // Create a map for quick lookup
-    const savedCountMap = new Map();
-    savedCounts.forEach(item => {
-      savedCountMap.set(item._id.toString(), item.count);
-    });
-    
-    // Add comment counts and saved counts to posts
+    // Use denormalized counts directly
     const itemsWithCommentCount = items.map(post => ({
       ...post, // PHASE 4: No need for .toObject() since we used .lean()
-      commentCount: commentCountMap.get(post._id.toString()) || 0,
-      savedCount: savedCountMap.get(post._id.toString()) || 0
+      commentCount: post.commentCount || 0,
+      savedCount: post.savedCount || 0
     }));
 
-    const count = items.length;
-    res.json({ items: itemsWithCommentCount, total: count, page: Number(page), pages: Math.ceil(count / Number(limit)) });
+    const total = await Post.countDocuments(filter);
+    res.json({ items: itemsWithCommentCount, total, page: Number(page), pages: Math.ceil(total / sanitizedLimit) });
   } catch (e) {
     next(e);
   }
@@ -1215,16 +940,16 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
     const sanitized = sanitizePostFields({ title, content, tags, coverUrl });
 
     if (!sanitized.title) {
-      return res.status(400).json({ error: "Vui l�ng nh?p ti�u d?" });
+      return res.status(400).json({ error: "Vui lòng nhập tiêu đề" });
     }
 
     if ((!sanitized.content || sanitized.content.length === 0) && !req.body.hasPoll) {
-      return res.status(400).json({ error: "Vui l�ng nh?p n?i dung ho?c t?o poll" });
+      return res.status(400).json({ error: "Vui lòng nhập nội dung hoặc tạo poll" });
     }
 
     const post = await Post.create({
       author: req.user._id,
-      title: sanitized.title,
+      title: sanitized.title, 
       content: sanitized.content || "",
       tags: sanitized.tags || [],
       coverUrl: sanitized.coverUrl || "",
@@ -1339,7 +1064,6 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
 });
 
 // ==================== ANALYTICS ====================
-
 // Get user analytics data
 router.get("/analytics", authRequired, async (req, res, next) => {
   try {
@@ -1503,15 +1227,18 @@ router.post("/:id/save", authRequired, async (req, res, next) => {
 
     if (alreadySaved) {
       user.savedPosts = user.savedPosts.filter(id => id.toString() !== postId);
+      await Post.findByIdAndUpdate(postId, { $inc: { savedCount: -1 } });
     } else {
       user.savedPosts = user.savedPosts || [];
       user.savedPosts.unshift(postId);
+      await Post.findByIdAndUpdate(postId, { $inc: { savedCount: 1 } });
     }
 
     await user.save();
     
-    // Tính số lượng users đã save post này
-    const savedCount = await User.countDocuments({ savedPosts: postId });
+    // Lấy số lượng saved từ Post model (đã denormalized)
+    const updatedPost = await Post.findById(postId).select("savedCount");
+    const savedCount = updatedPost ? updatedPost.savedCount : 0;
     
     res.json({ saved: !alreadySaved, savedCount });
   } catch (e) { next(e); }
@@ -1550,29 +1277,12 @@ router.get("/saved/list", authRequired, async (req, res, next) => {
       })
       .sort({ createdAt: -1 });
 
-    // Tính số lượng saved cho mỗi bài - batch query
-    const postIds = posts.map(p => p._id);
-    let savedCounts = [];
-    if (postIds.length > 0) {
-      savedCounts = await User.aggregate([
-        { $match: { savedPosts: { $in: postIds } } },
-        { $unwind: "$savedPosts" },
-        { $match: { savedPosts: { $in: postIds } } },
-        { $group: { _id: "$savedPosts", count: { $sum: 1 } } }
-      ]);
-    }
-    
-    const savedCountMap = new Map();
-    savedCounts.forEach(item => {
-      savedCountMap.set(item._id.toString(), item.count);
-    });
-
-    // Thêm savedCount vào mỗi post
+    // Use denormalized savedCount directly
     const postsWithSavedCount = posts.map(post => {
       const postObj = post.toObject ? post.toObject() : post;
       return {
         ...postObj,
-        savedCount: savedCountMap.get(post._id.toString()) || 0
+        savedCount: post.savedCount || 0
       };
     });
 

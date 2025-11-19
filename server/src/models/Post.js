@@ -38,6 +38,8 @@ const PostSchema = new mongoose.Schema({
   // ==================== INTERACTIONS ====================
   emotes: [EmoteSchema], // Danh sách emotes/reactions
   views: { type: Number, default: 0 }, // Số lượt xem
+  commentCount: { type: Number, default: 0 }, // Số lượng bình luận (denormalized)
+  savedCount: { type: Number, default: 0 }, // Số lượng người đã lưu (denormalized)
 
   // ==================== POLL ====================
   hasPoll: { type: Boolean, default: false }, // Có chứa poll không

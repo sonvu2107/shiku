@@ -261,7 +261,10 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
       commentData.images = images;
     }
 
-    const c = await Comment.create(commentData);
+    const [c] = await Promise.all([
+      Comment.create(commentData),
+      Post.findByIdAndUpdate(post._id, { $inc: { commentCount: 1 } })
+    ]);
 
     await c.populate([
       { path: "author", select: "name avatarUrl role" },
@@ -365,7 +368,10 @@ router.delete("/:id", authRequired, async (req, res, next) => {
       return res.status(403).json({ error: "Bạn không có quyền xóa bình luận này" });
     }
 
-    await c.deleteOne();
+    await Promise.all([
+      c.deleteOne(),
+      Post.findByIdAndUpdate(post._id, { $inc: { commentCount: -1 } })
+    ]);
     res.json({ ok: true });
   } catch (e) {
     next(e);
