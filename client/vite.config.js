@@ -107,8 +107,8 @@ export default defineConfig(({ command, mode }) => {
           manualChunks: (id, { getModuleInfo }) => {
             // Node modules - tách riêng các vendor lớn
             if (id.includes('node_modules')) {
-              // React core - GIỮ TRONG ENTRY CHUNK để tránh lỗi thứ tự load
-              // KHÔNG tách React ra chunk riêng vì có thể gây lỗi createContext
+              // React core + TẤT CẢ libs dùng React - GIỮ TRONG ENTRY CHUNK
+              // Để tránh lỗi createContext khi vendor chunks load trước React
               const isReactCore = 
                 id.includes('react/jsx-runtime') || 
                 id.includes('react/jsx-dev-runtime') ||
@@ -117,34 +117,26 @@ export default defineConfig(({ command, mode }) => {
               
               // KHÔNG tách React - return undefined để giữ trong main bundle
               if (isReactCore) {
-                return undefined; // Giữ React trong entry chunk
+                return undefined;
               }
               
-              // React Router - GIỮ cùng với React trong main bundle
-              if (id.includes('react-router')) {
-                return undefined; // Giữ trong entry chunk với React
+              // TẤT CẢ thư viện dùng React - GIỮ trong main bundle
+              if (id.includes('react-router') ||
+                  id.includes('@tanstack/react-query') ||
+                  id.includes('lucide-react') ||
+                  id.includes('react-window') ||
+                  id.includes('react-virtual') ||
+                  id.includes('react-markdown') ||
+                  id.includes('framer-motion')) {
+                return undefined; // GIỮ trong entry chunk với React
               }
-              // React Query
-              if (id.includes('@tanstack/react-query')) {
-                return 'react-query-vendor';
-              }
-              // Socket.io - tách riêng vì lớn
+              
+              // Socket.io - KHÔNG dùng React, có thể tách riêng
               if (id.includes('socket.io-client')) {
                 return 'socket-vendor';
               }
-              // UI libraries
-              if (id.includes('lucide-react')) {
-                return 'ui-vendor';
-              }
-              // Virtual scrolling
-              if (id.includes('react-window') || id.includes('react-virtual')) {
-                return 'virtual-vendor';
-              }
-              // Markdown
-              if (id.includes('react-markdown')) {
-                return 'markdown-vendor';
-              }
-              // Các vendor khác
+              
+              // Các vendor KHÔNG dùng React mới được tách ra
               return 'vendor';
             }
             
