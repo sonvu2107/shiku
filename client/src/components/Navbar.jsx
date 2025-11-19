@@ -501,44 +501,6 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           </form>
         </div>
 
-        {/* CENTER ZONE: Main Menu Icons - Modern compact layout */}
-        <div className="hidden lg:flex items-center justify-center flex-1 gap-10">
-          {user && (
-            <React.Fragment key="user-nav-links">
-              <NavIcon
-                icon={Home}
-                active={location.pathname === "/"}
-                to="/"
-                title="Trang chủ"
-              />
-              <NavIcon
-                icon={Compass}
-                active={location.pathname === "/explore"}
-                to="/explore"
-                title="Khám phá"
-              />
-              <NavIcon
-                icon={UserCheck}
-                active={location.pathname === "/groups"}
-                to="/groups"
-                title="Nhóm"
-              />
-              <NavIcon
-                icon={Calendar}
-                active={location.pathname === "/events"}
-                to="/events"
-                title="Sự kiện"
-              />
-              <NavIcon
-                icon={Image}
-                active={location.pathname === "/media"}
-                to="/media"
-                title="Kho media"
-              />
-            </React.Fragment>
-          )}
-        </div>
-
         {/* RIGHT ZONE: Actions - Compact spacing */}
   <div className="flex items-center justify-end flex-1 gap-2">
           {/* Dark mode toggle - Compact design */}

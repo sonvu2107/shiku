@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { ArrowRight, Shield, Zap, Globe, Heart, Lock, Terminal, ChevronRight } from "lucide-react";
@@ -12,15 +12,25 @@ const NoiseOverlay = () => (
   />
 );
 
-// --- 2. COMPONENT: SPOTLIGHT CARD (Ánh sáng bạc) ---
+// --- 2. COMPONENT: SPOTLIGHT CARD (Ánh sáng bạc) - Tối ưu mobile ---
 const SpotlightCard = ({ children, className = "" }) => {
   const divRef = useRef(null);
   const [isFocused, setIsFocused] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [opacity, setOpacity] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleMouseMove = (e) => {
-    if (!divRef.current) return;
+    if (!divRef.current || isMobile) return;
     const div = divRef.current;
     const rect = div.getBoundingClientRect();
     setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -28,7 +38,7 @@ const SpotlightCard = ({ children, className = "" }) => {
 
   const handleFocus = () => { setIsFocused(true); setOpacity(1); };
   const handleBlur = () => { setIsFocused(false); setOpacity(0); };
-  const handleMouseEnter = () => { setOpacity(1); };
+  const handleMouseEnter = () => { if (!isMobile) setOpacity(1); };
   const handleMouseLeave = () => { setOpacity(0); };
 
   return (
@@ -40,15 +50,15 @@ const SpotlightCard = ({ children, className = "" }) => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       className={cn(
-        "relative overflow-hidden rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-8 shadow-sm transition-all duration-300 hover:shadow-2xl",
+        "relative overflow-hidden rounded-2xl md:rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-6 md:p-8 shadow-sm transition-all duration-300 hover:shadow-xl md:hover:shadow-2xl",
         className
       )}
     >
       <div
         className="pointer-events-none absolute -inset-px opacity-0 transition duration-300"
         style={{
-          opacity,
-          background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, rgba(255,255,255,0.15), transparent 40%)`, // Ánh sáng trắng nhẹ
+          opacity: isMobile ? 0 : opacity,
+          background: `radial-gradient(${isMobile ? '400px' : '600px'} circle at ${position.x}px ${position.y}px, rgba(255,255,255,0.1), transparent 40%)`,
         }}
       />
       <div className="relative z-10">{children}</div>
@@ -56,7 +66,7 @@ const SpotlightCard = ({ children, className = "" }) => {
   );
 };
 
-// --- 4. COMPONENT: METEORS (SAO BĂNG TRẮNG) ---
+// --- 4. COMPONENT: METEORS (SAO BĂNG TRẮNG) - Tối ưu mobile ---
 const Meteors = ({ number = 20 }) => {
   const meteors = new Array(number || 20).fill(true);
   return (
@@ -66,13 +76,15 @@ const Meteors = ({ number = 20 }) => {
           key={"meteor" + idx}
           className={cn(
             "animate-meteor absolute top-1/2 left-1/2 h-0.5 w-0.5 rounded-[9999px] bg-slate-500 dark:bg-white shadow-[0_0_0_1px_#ffffff10] rotate-[215deg]",
-            "before:content-[''] before:absolute before:top-1/2 before:transform before:-translate-y-[50%] before:w-[50px] before:h-[1px] before:bg-gradient-to-r before:from-slate-500 dark:before:from-white before:to-transparent"
+            // Ẩn một nửa meteors trên mobile để tối ưu performance
+            idx >= number / 2 ? "hidden md:block" : "",
+            "before:content-[''] before:absolute before:top-1/2 before:transform before:-translate-y-[50%] before:w-[30px] md:before:w-[50px] before:h-[1px] before:bg-gradient-to-r before:from-slate-500 dark:before:from-white before:to-transparent"
           )}
           style={{
             top: 0,
-            left: Math.floor(Math.random() * (400 - -400) + -400) + "px",
+            left: Math.floor(Math.random() * (300 - -300) + -300) + "px",
             animationDelay: Math.random() * (0.8 - 0.2) + 0.2 + "s",
-            animationDuration: Math.floor(Math.random() * (10 - 2) + 2) + "s",
+            animationDuration: Math.floor(Math.random() * (8 - 2) + 2) + "s",
           }}
         ></span>
       ))}
@@ -90,17 +102,17 @@ const GridPattern = () => {
   );
 };
 
-// --- 5. COMPONENT: TEXT REVEAL (HIỆN CHỮ) ---
+// --- 5. COMPONENT: TEXT REVEAL (HIỆN CHỮ) - Tối ưu mobile ---
 const TextReveal = ({ text, className }) => {
   const words = text.split(" ");
   return (
-    <div className={cn("overflow-visible flex flex-wrap justify-center gap-x-2 md:gap-x-4 gap-y-1 pb-1", className)}>
+    <div className={cn("overflow-visible flex flex-wrap justify-center gap-x-1 sm:gap-x-2 md:gap-x-4 gap-y-1 pb-1", className)}>
       {words.map((word, i) => (
         <motion.span
           key={i}
           initial={{ y: 40, opacity: 0, filter: "blur(10px)" }}
           animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-          transition={{ delay: i * 0.1 + 0.2, duration: 0.8, ease: [0.2, 0.65, 0.3, 0.9] }}
+          transition={{ delay: i * 0.08 + 0.2, duration: 0.6, ease: [0.2, 0.65, 0.3, 0.9] }}
           className="inline-block leading-[0.9] text-black dark:text-white"
         >
           {word}
@@ -115,21 +127,21 @@ const LampContainer = ({ children, className }) => {
   return (
     <div
       className={cn(
-        "relative flex min-h-[80vh] flex-col items-center justify-center overflow-hidden bg-white dark:bg-black w-full rounded-md z-0",
+        "relative flex min-h-[70vh] md:min-h-[80vh] flex-col items-center justify-center overflow-hidden bg-white dark:bg-black w-full rounded-md z-0",
         className
       )}
     >
-      <div className="relative flex w-full flex-1 scale-y-125 items-center justify-center isolate z-0 ">
+      <div className="relative flex w-full flex-1 scale-y-110 md:scale-y-125 items-center justify-center isolate z-0 ">
         {/* Luồng sáng trái */}
         <motion.div
           initial={{ opacity: 0.5, width: "15rem" }}
           whileInView={{ opacity: 1, width: "30rem" }}
           transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
           style={{ backgroundImage: `conic-gradient(var(--conic-position), var(--tw-gradient-stops))` }}
-          className="absolute inset-auto right-1/2 h-56 overflow-visible w-[30rem] bg-gradient-to-br from-neutral-400 via-transparent to-transparent dark:from-neutral-200 text-white [--conic-position:from_70deg_at_center_top]"
+          className="absolute inset-auto right-1/2 h-40 md:h-56 overflow-visible w-[20rem] md:w-[30rem] bg-gradient-to-br from-neutral-400 via-transparent to-transparent dark:from-neutral-200 text-white [--conic-position:from_70deg_at_center_top]"
         >
-          <div className="absolute w-[100%] left-0 bg-white dark:bg-black h-40 bottom-0 z-20 [mask-image:linear-gradient(to_top,white,transparent)]" />
-          <div className="absolute w-40 h-[100%] left-0 bg-white dark:bg-black bottom-0 z-20 [mask-image:linear-gradient(to_right,white,transparent)]" />
+          <div className="absolute w-[100%] left-0 bg-white dark:bg-black h-32 md:h-40 bottom-0 z-20 [mask-image:linear-gradient(to_top,white,transparent)]" />
+          <div className="absolute w-24 md:w-40 h-[100%] left-0 bg-white dark:bg-black bottom-0 z-20 [mask-image:linear-gradient(to_right,white,transparent)]" />
         </motion.div>
         
         {/* Luồng sáng phải */}
@@ -138,26 +150,26 @@ const LampContainer = ({ children, className }) => {
           whileInView={{ opacity: 1, width: "30rem" }}
           transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
           style={{ backgroundImage: `conic-gradient(var(--conic-position), var(--tw-gradient-stops))` }}
-          className="absolute inset-auto left-1/2 h-56 w-[30rem] bg-gradient-to-bl from-neutral-400 via-transparent to-transparent dark:from-neutral-200 text-white [--conic-position:from_290deg_at_center_top]"
+          className="absolute inset-auto left-1/2 h-40 md:h-56 w-[20rem] md:w-[30rem] bg-gradient-to-bl from-neutral-400 via-transparent to-transparent dark:from-neutral-200 text-white [--conic-position:from_290deg_at_center_top]"
         >
-          <div className="absolute w-[100%] right-0 bg-white dark:bg-black h-40 bottom-0 z-20 [mask-image:linear-gradient(to_top,white,transparent)]" />
-          <div className="absolute w-40 h-[100%] right-0 bg-white dark:bg-black bottom-0 z-20 [mask-image:linear-gradient(to_left,white,transparent)]" />
+          <div className="absolute w-[100%] right-0 bg-white dark:bg-black h-32 md:h-40 bottom-0 z-20 [mask-image:linear-gradient(to_top,white,transparent)]" />
+          <div className="absolute w-24 md:w-40 h-[100%] right-0 bg-white dark:bg-black bottom-0 z-20 [mask-image:linear-gradient(to_left,white,transparent)]" />
         </motion.div>
 
-        {/* Glow Effect trung tâm (Trắng/Bạc) */}
-        <div className="absolute top-1/2 h-48 w-full translate-y-12 scale-x-150 bg-neutral-200 dark:bg-neutral-950 blur-2xl"></div>
-        <div className="absolute top-1/2 z-50 h-48 w-full bg-transparent opacity-10 backdrop-blur-md"></div>
-        <div className="absolute inset-auto z-50 h-36 w-[28rem] -translate-y-1/2 rounded-full bg-neutral-300 dark:bg-white opacity-40 blur-3xl"></div>
+        {/* Glow Effect trung tâm (Trắng/Bạc) - Giảm cho mobile */}
+        <div className="absolute top-1/2 h-32 md:h-48 w-full translate-y-12 scale-x-100 md:scale-x-150 bg-neutral-200 dark:bg-neutral-950 blur-xl md:blur-2xl"></div>
+        <div className="absolute top-1/2 z-50 h-32 md:h-48 w-full bg-transparent opacity-5 md:opacity-10 backdrop-blur-sm md:backdrop-blur-md"></div>
+        <div className="absolute inset-auto z-50 h-24 md:h-36 w-[20rem] md:w-[28rem] -translate-y-1/2 rounded-full bg-neutral-300 dark:bg-white opacity-30 md:opacity-40 blur-2xl md:blur-3xl"></div>
         
         <motion.div
-          initial={{ width: "8rem" }}
-          whileInView={{ width: "16rem" }}
+          initial={{ width: "6rem" }}
+          whileInView={{ width: "12rem" }}
           transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
-          className="absolute inset-auto z-30 h-36 w-64 -translate-y-[6rem] rounded-full bg-neutral-300 dark:bg-neutral-200 blur-2xl"
+          className="absolute inset-auto z-30 h-24 md:h-36 w-48 md:w-64 -translate-y-[4rem] md:-translate-y-[6rem] rounded-full bg-neutral-300 dark:bg-neutral-200 blur-xl md:blur-2xl"
         ></motion.div>
       </div>
 
-      <div className="relative z-50 flex -translate-y-8 md:-translate-y-8 flex-col items-center px-5">
+      <div className="relative z-50 flex -translate-y-8 md:-translate-y-8 flex-col items-center px-4 md:px-5">
         {children}
       </div>
     </div>
@@ -202,7 +214,7 @@ export default function Landing() {
       </nav>
 
       {/* HERO SECTION: LAMP EFFECT (Monochrome) */}
-      <LampContainer className="pt-20">
+      <LampContainer className="pt-16 md:pt-20">
         <motion.div
           initial={{ opacity: 0.5, y: 100 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -219,7 +231,7 @@ export default function Landing() {
           </div>
 
           {/* HEADLINE: GRADIENT ĐEN TRẮNG */}
-          <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-6 text-neutral-900 dark:text-white leading-[0.9] pb-2">
+          <h1 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-4 md:mb-6 text-neutral-900 dark:text-white leading-[0.9] pb-2 px-2">
             <div className="mb-0">
               <TextReveal text="KẾT NỐI KHÔNG GIỚI HẠN" />
             </div>
@@ -233,11 +245,11 @@ export default function Landing() {
             </motion.span>
           </h1>
 
-          <p className="text-lg md:text-xl text-neutral-500 dark:text-neutral-400 max-w-2xl mx-auto mb-10 leading-relaxed font-medium">
+          <p className="text-base md:text-lg lg:text-xl text-neutral-500 dark:text-neutral-400 max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed font-medium px-4">
             Shiku mang đến không gian chia sẻ cởi mở, tôn trọng quyền riêng tư và tốc độ phản hồi tức thì.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 px-4">
             {/* Magic Button - Điểm nhấn */}
             <MagicButton to="/register">
               BẮT ĐẦU NGAY <ArrowRight className="ml-2 w-4 h-4" />
@@ -245,63 +257,63 @@ export default function Landing() {
             
             <Link 
               to="/explore" 
-              className="text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white font-medium flex items-center gap-1 transition-colors group px-6 py-3"
+              className="text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white font-medium flex items-center gap-1 transition-colors group px-4 md:px-6 py-2 md:py-3"
             >
               Dạo một vòng <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         </motion.div>
         
-        {/* Sao băng bay nền */}
-        <div className="absolute inset-0 h-full w-full pointer-events-none opacity-20 z-0 top-40">
-           <Meteors number={30} />
+        {/* Sao băng bay nền - Tối ưu mobile: ít meteors hơn */}
+        <div className="absolute inset-0 h-full w-full pointer-events-none opacity-10 md:opacity-20 z-0 top-40">
+           <Meteors number={20} />
         </div>
       </LampContainer>
 
-      {/* --- INFINITE MARQUEE (Monochrome) --- */}
-      <div className="py-12 bg-white dark:bg-black border-y border-neutral-200 dark:border-neutral-800 overflow-hidden relative z-20">
+      {/* --- INFINITE MARQUEE (Monochrome) - Tối ưu mobile --- */}
+      <div className="py-8 md:py-12 bg-white dark:bg-black border-y border-neutral-200 dark:border-neutral-800 overflow-hidden relative z-20">
         <div className="absolute inset-0 bg-gradient-to-r from-white via-transparent to-white dark:from-black dark:to-black z-10 pointer-events-none"></div>
-        <div className="flex gap-20 animate-infinite-scroll whitespace-nowrap items-center opacity-80">
+        <div className="flex gap-12 md:gap-20 animate-infinite-scroll whitespace-nowrap items-center opacity-70 md:opacity-80">
            {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex gap-20 items-center">
-                 <span className="text-3xl font-black tracking-widest text-neutral-900 dark:text-white">SHIKU</span>
-                 <span className="text-3xl font-black tracking-widest stroke-text dark:stroke-text-white">FAST</span>
-                 <span className="text-3xl font-black tracking-widest text-neutral-900 dark:text-white">SECURE</span>
-                 <span className="text-3xl font-black tracking-widest stroke-text dark:stroke-text-white">GLOBAL</span>
+              <div key={i} className="flex gap-12 md:gap-20 items-center">
+                 <span className="text-xl md:text-3xl font-black tracking-widest text-neutral-900 dark:text-white">SHIKU</span>
+                 <span className="text-xl md:text-3xl font-black tracking-widest stroke-text dark:stroke-text-white">FAST</span>
+                 <span className="text-xl md:text-3xl font-black tracking-widest text-neutral-900 dark:text-white">SECURE</span>
+                 <span className="text-xl md:text-3xl font-black tracking-widest stroke-text dark:stroke-text-white">GLOBAL</span>
               </div>
            ))}
         </div>
       </div>
 
       {/* --- FEATURES (Bento Grid - Dark Mode Heavy) --- */}
-      <section className="py-32 bg-neutral-50 dark:bg-black relative z-20">
+      <section className="py-20 md:py-32 bg-neutral-50 dark:bg-black relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-neutral-900 dark:text-white tracking-tight">
+          <div className="text-center mb-12 md:mb-20">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 text-neutral-900 dark:text-white tracking-tight px-4">
               Tính năng vượt trội
             </h2>
-            <p className="text-neutral-500 dark:text-neutral-400 text-lg">
+            <p className="text-neutral-500 dark:text-neutral-400 text-base md:text-lg px-4">
               Tối ưu hóa trải nghiệm của bạn từng chi tiết nhỏ nhất.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             {/* Card 1: Speed */}
             <div className="md:col-span-2">
               <SpotlightCard className="h-full group">
                 <div className="relative z-10 h-full flex flex-col justify-between">
                   <div>
-                    <div className="w-14 h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-black dark:text-white mb-6 border border-neutral-200 dark:border-neutral-800">
-                      <Zap size={28} strokeWidth={1.5} />
+                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-black dark:text-white mb-4 md:mb-6 border border-neutral-200 dark:border-neutral-800">
+                      <Zap className="w-6 h-6 md:w-7 md:h-7" strokeWidth={1.5} />
                     </div>
-                    <h3 className="text-3xl font-bold mb-3 text-neutral-900 dark:text-white">Tốc độ ánh sáng</h3>
-                    <p className="text-neutral-500 dark:text-neutral-400 text-lg leading-relaxed max-w-lg">
+                    <h3 className="text-2xl md:text-3xl font-bold mb-2 md:mb-3 text-neutral-900 dark:text-white">Tốc độ ánh sáng</h3>
+                    <p className="text-neutral-500 dark:text-neutral-400 text-base md:text-lg leading-relaxed max-w-lg">
                       Kiến trúc được tối ưu hóa đến từng mili-giây. Lazy Loading thông minh giúp bạn không bao giờ phải chờ đợi.
                     </p>
                   </div>
                   {/* Thanh loading Monochrome */}
                   <div className="mt-12 w-full h-1 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
-                      <motion.div 
+            <motion.div 
                           initial={{ width: "0%" }}
                           whileInView={{ width: "100%" }}
                           transition={{ duration: 1.5, ease: "circOut", repeat: Infinity, repeatDelay: 2 }}
@@ -314,22 +326,22 @@ export default function Landing() {
 
             {/* Card 2: Privacy */}
             <SpotlightCard>
-              <div className="w-14 h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-black dark:text-white mb-6 border border-neutral-200 dark:border-neutral-800">
-                <Shield size={28} strokeWidth={1.5} />
+              <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-black dark:text-white mb-4 md:mb-6 border border-neutral-200 dark:border-neutral-800">
+                <Shield className="w-6 h-6 md:w-7 md:h-7" strokeWidth={1.5} />
               </div>
-              <h3 className="text-2xl font-bold mb-3 text-neutral-900 dark:text-white">Bảo mật thép</h3>
-              <p className="text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-3 text-neutral-900 dark:text-white">Bảo mật thép</h3>
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm md:text-base leading-relaxed">
                 Mã hóa đầu cuối. Bạn là người duy nhất nắm giữ chìa khóa dữ liệu của mình.
               </p>
             </SpotlightCard>
 
             {/* Card 3: Open Source */}
             <SpotlightCard>
-               <div className="w-14 h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-black dark:text-white mb-6 border border-neutral-200 dark:border-neutral-800">
-                <Terminal size={28} strokeWidth={1.5} />
+               <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-black dark:text-white mb-4 md:mb-6 border border-neutral-200 dark:border-neutral-800">
+                <Terminal className="w-6 h-6 md:w-7 md:h-7" strokeWidth={1.5} />
               </div>
-              <h3 className="text-2xl font-bold mb-3 text-neutral-900 dark:text-white">Mã nguồn mở</h3>
-              <p className="text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-3 text-neutral-900 dark:text-white">Mã nguồn mở</h3>
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm md:text-base leading-relaxed">
                 Minh bạch hoàn toàn. Cộng đồng cùng nhau xây dựng nền tảng tốt hơn mỗi ngày.
               </p>
             </SpotlightCard>
@@ -337,29 +349,29 @@ export default function Landing() {
             {/* Card 4: Interactive */}
             <div className="md:col-span-2">
               <SpotlightCard className="h-full group relative overflow-hidden">
-                <div className="relative z-10">
-                  <div className="w-14 h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-black dark:text-white mb-6 border border-neutral-200 dark:border-neutral-800">
-                    <Heart size={28} strokeWidth={1.5} />
+              <div className="relative z-10">
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-black dark:text-white mb-4 md:mb-6 border border-neutral-200 dark:border-neutral-800">
+                    <Heart className="w-6 h-6 md:w-7 md:h-7" strokeWidth={1.5} />
                   </div>
-                  <h3 className="text-3xl font-bold mb-3 text-neutral-900 dark:text-white">Tương tác thả ga</h3>
-                  <p className="text-neutral-500 dark:text-neutral-400 text-lg leading-relaxed max-w-md">
+                  <h3 className="text-2xl md:text-3xl font-bold mb-2 md:mb-3 text-neutral-900 dark:text-white">Tương tác thả ga</h3>
+                  <p className="text-neutral-500 dark:text-neutral-400 text-base md:text-lg leading-relaxed max-w-md">
                     Thả tim, bình luận, chia sẻ story và nhắn tin thời gian thực. Mọi tương tác đều sinh động.
                   </p>
                 </div>
-                {/* Decor Icon Monochrome */}
-                <div className="absolute right-0 bottom-0 opacity-5 dark:opacity-10 rotate-12 group-hover:rotate-0 group-hover:scale-110 transition-all duration-700">
+                {/* Decor Icon Monochrome - Ẩn trên mobile */}
+                <div className="hidden md:block absolute right-0 bottom-0 opacity-5 dark:opacity-10 rotate-12 group-hover:rotate-0 group-hover:scale-110 transition-all duration-700">
                     <Heart size={200} className="text-black dark:text-white" />
                 </div>
               </SpotlightCard>
-            </div>
+              </div>
           </div>
         </div>
       </section>
 
       {/* CTA & Footer */}
-      <section className="py-32 bg-black text-white dark:bg-white dark:text-black relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-           <div className="w-[800px] h-[800px] border border-current rounded-full animate-ping [animation-duration:3s]"></div>
+      <section className="py-20 md:py-32 bg-black text-white dark:bg-white dark:text-black relative overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center opacity-5 md:opacity-10 pointer-events-none">
+           <div className="w-[400px] md:w-[800px] h-[400px] md:h-[800px] border border-current rounded-full animate-ping [animation-duration:3s]"></div>
         </div>
         
         <motion.div 
@@ -369,17 +381,17 @@ export default function Landing() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-5xl md:text-7xl font-black mb-8 tracking-tight">
+          <h2 className="text-3xl md:text-5xl lg:text-7xl font-black mb-6 md:mb-8 tracking-tight px-2">
             Sẵn sàng chưa?
           </h2>
-          <p className="text-neutral-400 dark:text-neutral-600 text-xl mb-12 max-w-xl mx-auto">
+          <p className="text-neutral-400 dark:text-neutral-600 text-base md:text-lg lg:text-xl mb-8 md:mb-12 max-w-xl mx-auto px-2">
             Tham gia ngay hôm nay để trải nghiệm mạng xã hội của tương lai.
           </p>
           <Link 
             to="/register"
-            className="inline-flex items-center gap-3 px-12 py-5 rounded-full bg-white text-black dark:bg-black dark:text-white font-bold text-xl hover:scale-105 transition-transform"
+            className="inline-flex items-center gap-2 md:gap-3 px-8 md:px-12 py-3 md:py-5 rounded-full bg-white text-black dark:bg-black dark:text-white font-bold text-lg md:text-xl hover:scale-105 transition-transform"
           >
-            Tạo tài khoản <ArrowRight size={24} />
+            Tạo tài khoản <ArrowRight size={20} className="md:w-6 md:h-6" />
           </Link>
         </motion.div>
       </section>

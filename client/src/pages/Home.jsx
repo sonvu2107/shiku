@@ -606,9 +606,16 @@ export default function Home({ user, setUser }) {
       </aside>
 
       {/* Main Content Area với margin-left cho left sidebar */}
-      <main className="pt-[64px] md:pt-16 lg:ml-64 min-h-screen" role="main">
+      <main 
+        className="main-content-with-sidebar pt-[64px] md:pt-16 lg:ml-64 min-h-screen transition-all duration-300 ease-in-out" 
+        role="main"
+      >
         {/* Top Navigation Bar - ẩn trên mobile, hiện từ md trở lên - luôn fixed và visible */}
-        <nav className="hidden md:flex fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-gray-300 dark:border-gray-800 shadow-sm z-40" role="navigation" aria-label="Thanh tìm kiếm và điều hướng">
+        <nav 
+          className="nav-with-sidebar hidden md:flex fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-gray-300 dark:border-gray-800 shadow-sm z-40 transition-all duration-300 ease-in-out" 
+          role="navigation" 
+          aria-label="Thanh tìm kiếm và điều hướng"
+        >
           <div className="w-full flex items-center h-full px-4 md:px-6 lg:px-8">
             {/* Search Input with Dropdown - Left side, takes available space */}
             <form onSubmit={handleTopSearch} className="flex-1 max-w-2xl mr-4">

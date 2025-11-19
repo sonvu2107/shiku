@@ -3,23 +3,23 @@ import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { 
   Home, 
-  Search, 
+  Compass, 
   PlusSquare, 
-  MessageCircle, 
-  User, 
+  Users, 
+  Image, 
   Settings, 
-  Bell 
+  Calendar 
 } from "lucide-react";
 import { cn } from "../utils/cn";
 
 // Cấu hình danh sách items
 const dockItems = [
   { icon: Home, label: "Trang chủ", href: "/" },
-  { icon: Search, label: "Khám phá", href: "/explore" },
-  { icon: MessageCircle, label: "Tin nhắn", href: "/chat" },
+  { icon: Compass, label: "Khám phá", href: "/explore" },
+  { icon: Users, label: "Nhóm", href: "/groups" },
   { icon: PlusSquare, label: "Đăng bài", href: "/new", isPrimary: true }, // Nút nổi bật
-  { icon: Bell, label: "Thông báo", href: "/notifications" },
-  { icon: User, label: "Cá nhân", href: "/profile" },
+  { icon: Calendar, label: "Sự kiện", href: "/events" },
+  { icon: Image, label: "Media", href: "/media" },
   { icon: Settings, label: "Cài đặt", href: "/settings" },
 ];
 
