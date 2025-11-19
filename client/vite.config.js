@@ -89,16 +89,6 @@ export default defineConfig(({ command, mode }) => {
     },
     build: {
       assetsDir: 'assets',
-      // Module preload để đảm bảo React được load trước
-      modulePreload: {
-        polyfill: true,
-        resolveDependencies: (filename, deps, { hostId, hostType }) => {
-          // Đảm bảo react-vendor được load trước tất cả
-          return deps.filter(dep => dep.includes('react-vendor')).concat(
-            deps.filter(dep => !dep.includes('react-vendor'))
-          );
-        }
-      },
       // CommonJS options - đảm bảo React được bundle đúng
       commonjsOptions: {
         include: [/react/, /react-dom/, /node_modules/],
@@ -117,22 +107,22 @@ export default defineConfig(({ command, mode }) => {
           manualChunks: (id, { getModuleInfo }) => {
             // Node modules - tách riêng các vendor lớn
             if (id.includes('node_modules')) {
-              // React core - TẠO MỘT VENDOR CHUNK DUY NHẤT CHO REACT
-              // Để đảm bảo React được load trước tất cả các component
+              // React core - GIỮ TRONG ENTRY CHUNK để tránh lỗi thứ tự load
+              // KHÔNG tách React ra chunk riêng vì có thể gây lỗi createContext
               const isReactCore = 
                 id.includes('react/jsx-runtime') || 
                 id.includes('react/jsx-dev-runtime') ||
                 id.includes('node_modules/react/') || 
                 id.includes('node_modules/react-dom/');
               
-              // Bundle React vào một vendor chunk riêng, load đầu tiên
+              // KHÔNG tách React - return undefined để giữ trong main bundle
               if (isReactCore) {
-                return 'react-vendor'; // Tách React ra vendor chunk riêng
+                return undefined; // Giữ React trong entry chunk
               }
               
-              // React Router - bundle cùng với React
+              // React Router - GIỮ cùng với React trong main bundle
               if (id.includes('react-router')) {
-                return 'react-vendor';
+                return undefined; // Giữ trong entry chunk với React
               }
               // React Query
               if (id.includes('@tanstack/react-query')) {
