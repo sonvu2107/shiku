@@ -1,4 +1,11 @@
-import { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+
+// Đảm bảo createContext được import đúng cách
+// Kiểm tra nếu createContext không có sẵn (shouldn't happen but safety check)
+if (typeof createContext !== 'function') {
+  console.error('[ChatContext] createContext is not available. React version:', React.version);
+  throw new Error('React createContext is not available. Please check your React installation.');
+}
 
 const ChatContext = createContext(undefined);
 

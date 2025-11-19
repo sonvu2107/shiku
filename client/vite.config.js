@@ -18,7 +18,10 @@ export default defineConfig(({ command, mode }) => {
   
   return {
     plugins: [
-      react(), // Plugin hỗ trợ React
+      react({
+        // Đảm bảo React được transform đúng cách
+        jsxRuntime: 'automatic',
+      }), // Plugin hỗ trợ React
       // Compression plugin cho production
       ...(isProduction ? [
         viteCompression({
@@ -34,6 +37,20 @@ export default defineConfig(({ command, mode }) => {
         }),
       ] : []),
     ],
+    
+    // Đảm bảo React được resolve đúng cách
+    resolve: {
+      dedupe: ['react', 'react-dom'],
+    },
+    
+    // Optimize dependencies
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react/jsx-runtime'],
+      esbuildOptions: {
+        // Đảm bảo React được bundle đúng cách
+        target: 'es2020',
+      },
+    },
     
     // Environment variables
     define: {
@@ -67,18 +84,34 @@ export default defineConfig(({ command, mode }) => {
     },
     build: {
       assetsDir: 'assets',
+      // CommonJS options - đảm bảo React được bundle đúng
+      commonjsOptions: {
+        include: [/react/, /react-dom/, /node_modules/],
+        transformMixedEsModules: true,
+      },
       // Đảm bảo các file được build với extension chính xác
-      rollupOptions: {
+        rollupOptions: {
         output: {
           // Cấu hình tên file output với extension chính xác
           entryFileNames: 'assets/[name]-[hash].js',
           chunkFileNames: 'assets/[name]-[hash].js',
           assetFileNames: 'assets/[name]-[hash].[ext]',
+          // Đảm bảo React được externalize đúng cách
+          format: 'es',
           manualChunks: (id) => {
             // Node modules - tách riêng các vendor lớn
             if (id.includes('node_modules')) {
-              // React core
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              // React core - đảm bảo TẤT CẢ React code luôn cùng chunk
+              // Điều này rất quan trọng để tránh lỗi createContext undefined
+              if (
+                id.includes('react/jsx-runtime') || 
+                id.includes('react/jsx-dev-runtime') ||
+                id.includes('/react/') || 
+                id === 'react' ||
+                id.includes('react-dom') || 
+                id === 'react-dom' ||
+                id.includes('react-router')
+              ) {
                 return 'react-vendor';
               }
               // React Query
@@ -106,6 +139,11 @@ export default defineConfig(({ command, mode }) => {
             }
             
             // Source files - tách theo feature
+            // QUAN TRỌNG: Không tách contexts vào chunk riêng - phải ở cùng với main app
+            if (id.includes('/src/contexts/')) {
+              return; // Giữ contexts trong main bundle để đảm bảo React có sẵn
+            }
+            
             if (id.includes('/src/pages/')) {
               if (id.includes('Admin')) return 'admin';
               if (id.includes('Event')) return 'events';
@@ -146,9 +184,21 @@ export default defineConfig(({ command, mode }) => {
         sourcemap: false,
         // Tối ưu treeshaking
         treeshake: {
-          moduleSideEffects: false,
-          propertyReadSideEffects: false,
+          moduleSideEffects: (id) => {
+            // Giữ lại side effects cho React và các context files
+            // Đặc biệt quan trọng với React 19
+            if (
+              id.includes('react') || 
+              id.includes('contexts/') ||
+              id.includes('node_modules/react')
+            ) {
+              return true;
+            }
+            return false;
+          },
+          propertyReadSideEffects: 'always', // Đảm bảo không bỏ sót property access
           tryCatchDeoptimization: false,
+          preset: 'smallest', // Sử dụng preset nhỏ nhất nhưng an toàn
         },
       } : {
         sourcemap: true, // Source maps cho dev
