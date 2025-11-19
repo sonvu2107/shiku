@@ -193,10 +193,12 @@ export default defineConfig(({ command, mode }) => {
             drop_console: true,
             drop_debugger: true,
             pure_funcs: ['console.log', 'console.info', 'console.debug'],
-            passes: 2, // Nhiều lần optimize hơn
+            passes: 2,
           },
           mangle: {
             safari10: true,
+            // Không mangle các tên biến React để tránh lỗi
+            reserved: ['React', 'ReactDOM', 'createContext', 'useState', 'useEffect', 'useRef'],
           },
         },
         // Tối ưu CSS
@@ -204,24 +206,9 @@ export default defineConfig(({ command, mode }) => {
         cssMinify: true,
         // Source maps chỉ cho production (nhỏ hơn)
         sourcemap: false,
-        // Tối ưu treeshaking
-        treeshake: {
-          moduleSideEffects: (id) => {
-            // Giữ lại side effects cho React và các context files
-            // Đặc biệt quan trọng với React 19
-            if (
-              id.includes('react') || 
-              id.includes('contexts/') ||
-              id.includes('node_modules/react')
-            ) {
-              return true;
-            }
-            return false;
-          },
-          propertyReadSideEffects: 'always', // Đảm bảo không bỏ sót property access
-          tryCatchDeoptimization: false,
-          preset: 'smallest', // Sử dụng preset nhỏ nhất nhưng an toàn
-        },
+        // TẮT treeshaking cho an toàn với React 19
+        // Treeshaking quá aggressive có thể làm mất React.createContext
+        treeshake: false,
       } : {
         sourcemap: true, // Source maps cho dev
       })
