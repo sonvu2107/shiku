@@ -307,36 +307,36 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   return (
     <div 
       onClick={() => navigate(`/post/${post.slug || post._id}`)}
-      className="group relative bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6 cursor-pointer
-      shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-      hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
-      transition-all duration-500 hover:-translate-y-1 border border-transparent dark:border-white/5"
+      className="group relative bg-white dark:bg-[#111] rounded-2xl md:rounded-[32px] px-3 md:px-5 pt-3 md:pt-4 pb-4 md:pb-6 mb-4 md:mb-6 cursor-pointer
+      shadow-[0_4px_20px_rgb(0,0,0,0.04)] md:shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.3)] dark:md:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+      hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] md:hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)] dark:md:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
+      transition-all duration-500 md:hover:-translate-y-1 border border-transparent dark:border-white/5"
     >
       {/* 1. Header: User Info */}
-      <div className="flex justify-between items-start mb-3 px-1">
-        <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
-          <Link to={`/user/${post.author?._id}`} className="relative">
+      <div className="flex justify-between items-start mb-2 md:mb-3">
+        <div className="flex items-center gap-2 md:gap-3" onClick={e => e.stopPropagation()}>
+          <Link to={`/user/${post.author?._id}`} className="relative flex-shrink-0">
             <div className="absolute -inset-1 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-500" />
             <img
               src={getOptimizedImageUrl(post.author?.avatarUrl, 100) || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author?.name || 'User')}&length=2&background=cccccc&color=222222`}
               alt={post.author?.name}
-              className="relative w-9 h-9 rounded-full object-cover border-2 border-white dark:border-[#111]"
+              className="relative w-8 h-8 md:w-9 md:h-9 rounded-full object-cover border-2 border-white dark:border-[#111]"
             />
           </Link>
-          <div>
+          <div className="min-w-0 flex-1">
             <Link 
               to={`/user/${post.author?._id}`} 
-              className="font-bold text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5"
+              className="font-bold text-sm md:text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 truncate"
               onClick={e => e.stopPropagation()}
             >
               <UserName user={post.author} maxLength={20} />
               {post.author?.role === 'admin' && <VerifiedBadge user={post.author} />}
             </Link>
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1.5 mt-0.5">
-              {timeAgo && <span>{timeAgo}</span>}
+            <div className="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1 md:gap-1.5 mt-0.5">
+              {timeAgo && <span className="truncate max-w-[120px] md:max-w-none">{timeAgo}</span>}
               {timeAgo && <span>•</span>}
               <span className={cn(
-                "px-2 py-0.5 rounded-full text-[10px] font-semibold",
+                "px-1.5 md:px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-semibold flex-shrink-0",
                 post.status === 'private' 
                   ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" 
                   : "bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
@@ -346,11 +346,11 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             </div>
           </div>
         </div>
-        <div className="relative z-10">
+        <div className="relative z-10 flex-shrink-0">
           <button 
             ref={mainMenuButtonRef}
             type="button"
-            className="p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="p-2 md:p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors focus:outline-none active:scale-95 touch-manipulation"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -362,7 +362,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             aria-haspopup="true"
             tabIndex={0}
           >
-            <MoreHorizontal size={20} />
+            <MoreHorizontal size={18} className="md:w-5 md:h-5" />
           </button>
 
           {/* Dropdown menu */}
@@ -469,21 +469,21 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
 
       {/* 2. Title */}
       {post.title && (
-        <h3 className="px-1 mb-3 text-lg font-bold text-gray-900 dark:text-white leading-tight line-clamp-2">
+        <h3 className="mb-2 md:mb-3 text-base md:text-lg font-bold text-gray-900 dark:text-white leading-tight line-clamp-2">
           {post.title}
         </h3>
       )}
 
       {/* 3. Content */}
       {post.content && (
-        <p className="px-1 mb-4 text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-3">
+        <p className="mb-3 md:mb-4 text-sm md:text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-3">
           {post.content}
         </p>
       )}
 
       {/* 4. Media (Tràn viền bo góc) */}
       {displayMedia && (
-        <div className="rounded-3xl overflow-hidden bg-gray-100 dark:bg-black mb-4 relative group/media">
+        <div className="rounded-xl md:rounded-3xl overflow-hidden bg-gray-100 dark:bg-black mb-3 md:mb-4 relative group/media">
           {displayMedia.type === 'video' ? (
             <video 
               src={displayMedia.url} 
@@ -497,15 +497,15 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               src={getOptimizedImageUrl(displayMedia.url, 800)}
               alt={post.title}
               className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
-              style={{ aspectRatio: '16/9', minHeight: '300px' }}
+              style={{ aspectRatio: '16/9', minHeight: '200px' }}
             />
           )}
         </div>
       )}
 
       {/* 5. Action Bar (Floating Style) */}
-      <div className="flex items-center justify-between px-1" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-0.5 md:gap-1">
           {/* Emote/Like Button với Popup */}
           <div
             className="relative emote-trigger"
@@ -586,7 +586,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
 
             <button
               className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-full transition-all active:scale-90",
+                "flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2 md:py-2.5 rounded-full transition-all active:scale-90 touch-manipulation",
                 uiUserEmote 
                   ? "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-500" 
                   : "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400"
@@ -597,15 +597,15 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                   <img 
                     src={`/assets/${emoteMap[uiUserEmote]}`} 
                     alt={uiUserEmote} 
-                    width={22}
-                    height={22}
-                    className="w-[22px] h-[22px]"
+                    width={20}
+                    height={20}
+                    className="w-5 h-5 md:w-[22px] md:h-[22px]"
                     loading="lazy"
                     onError={(e) => {
                       e.target.style.display = 'none';
                     }}
                   />
-                  <span className="font-bold text-sm">
+                  <span className="font-bold text-xs md:text-sm">
                     {uiUserEmote === '👍' && 'Đã thích'}
                     {uiUserEmote === '❤️' && 'Yêu thích'}
                     {uiUserEmote === '😂' && 'Haha'}
@@ -617,8 +617,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 </>
               ) : (
                 <>
-                  <ThumbsUp size={22} strokeWidth={2} />
-                  <span className="font-bold text-sm">
+                  <ThumbsUp size={20} strokeWidth={2} className="md:w-[22px] md:h-[22px]" />
+                  <span className="font-bold text-xs md:text-sm">
                     {totalEmotes > 0 ? totalEmotes.toLocaleString() : 'Thích'}
                   </span>
                 </>
@@ -628,7 +628,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             {/* Emote Popup */}
             {showEmotePopup && (
               <div
-                className="absolute bottom-full left-0 mb-2 emote-picker bg-white dark:bg-gray-800 rounded-xl shadow-lg z-20 border border-gray-200 dark:border-gray-700 p-2 flex gap-1"
+                className="absolute bottom-full left-0 mb-2 emote-picker bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl shadow-lg md:shadow-xl z-20 border border-gray-200 dark:border-gray-700 p-1.5 md:p-2 flex gap-0.5 md:gap-1"
                 onMouseEnter={() => {
                   if (window.innerWidth >= 768) {
                     if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
@@ -647,7 +647,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                     <button 
                       key={e} 
                       className={cn(
-                        "emote-btn transition-all hover:scale-110 active:scale-95",
+                        "emote-btn transition-all hover:scale-110 active:scale-95 p-1 md:p-0 touch-manipulation",
                         isActive ? 'opacity-100 ring-2 ring-blue-500 rounded-full' : 'opacity-90'
                       )}
                       type="button" 
@@ -665,9 +665,9 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                       <img 
                         src={`/assets/${emoteMap[e]}`} 
                         alt={e} 
-                        width={32}
-                        height={32}
-                        className="w-8 h-8"
+                        width={28}
+                        height={28}
+                        className="w-7 h-7 md:w-8 md:h-8"
                         loading="lazy"
                         onError={(e) => {
                           e.target.style.display = 'none';
@@ -686,10 +686,10 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               e.stopPropagation();
               navigate(`/post/${post.slug || post._id}`);
             }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90"
+            className="flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2 md:py-2.5 rounded-full hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90 touch-manipulation"
           >
-            <MessageCircle size={22} />
-            <span className="font-bold text-sm">{post.commentCount || 0}</span>
+            <MessageCircle size={20} className="md:w-[22px] md:h-[22px]" />
+            <span className="font-bold text-xs md:text-sm">{post.commentCount || 0}</span>
           </button>
 
           {/* Share */}
@@ -704,22 +704,22 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 alert("Không thể sao chép liên kết");
               });
             }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/20 dark:hover:text-green-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90"
+            className="flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2 md:py-2.5 rounded-full hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/20 dark:hover:text-green-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90 touch-manipulation"
           >
-            <Share2 size={22} />
+            <Share2 size={20} className="md:w-[22px] md:h-[22px]" />
           </button>
         </div>
 
         <button 
           onClick={handleSave}
           className={cn(
-            "p-3 rounded-full transition-all active:scale-90",
+            "p-2 md:p-3 rounded-full transition-all active:scale-90 touch-manipulation",
             saved
               ? "bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-500"
               : "hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-500/20 dark:hover:text-yellow-500 text-gray-400"
           )}
         >
-          <Bookmark size={22} className={saved ? "fill-current" : ""} strokeWidth={saved ? 0 : 2} />
+          <Bookmark size={20} className={cn("md:w-[22px] md:h-[22px]", saved ? "fill-current" : "")} strokeWidth={saved ? 0 : 2} />
         </button>
       </div>
     </div>
