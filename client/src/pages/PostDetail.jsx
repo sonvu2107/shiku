@@ -264,35 +264,35 @@
     const statusLabel = p.status === 'private' ? 'Riêng tư' : 'Công khai';
 
     return (
-      <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pt-20 pb-32">
-        <div className="max-w-3xl mx-auto px-4 py-6">
-          <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
+      <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pt-16 sm:pt-20 pb-20 sm:pb-32">
+        <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <div className="bg-white dark:bg-[#111] rounded-2xl sm:rounded-[32px] px-3 sm:px-5 pt-3 sm:pt-4 pb-4 sm:pb-6 mb-4 sm:mb-6
             shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
             border border-transparent dark:border-white/5 relative">
           {/* HEADER */}
-          <div className="flex items-center justify-between mb-4 px-1">
-            <div className="flex items-center gap-3">
-              <Link to={`/user/${p.author?._id}`} className="relative">
+          <div className="flex items-center justify-between mb-3 sm:mb-4 px-0 sm:px-1">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <Link to={`/user/${p.author?._id}`} className="relative flex-shrink-0">
                 <div className="absolute -inset-1 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-500" />
                 <img
                   src={getOptimizedImageUrl(p.author?.avatarUrl, 100) || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.author?.name || 'User')}&length=2&background=cccccc&color=222222`}
                   alt={p.author?.name}
-                  className="relative w-12 h-12 rounded-full object-cover border-2 border-white dark:border-[#111]"
+                  className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-white dark:border-[#111]"
                 />
               </Link>
-              <div>
+              <div className="min-w-0 flex-1">
                 <Link 
                   to={`/user/${p.author?._id}`} 
-                  className="font-bold text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5"
+                  className="font-bold text-sm sm:text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1 sm:gap-1.5"
                 >
                   <UserName user={p.author} maxLength={20} />
                   {p.author?.role === 'admin' && <VerifiedBadge user={p.author} />}
                 </Link>
-                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1.5 mt-0.5">
-                  {timeAgo && <span>{timeAgo}</span>}
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1 sm:gap-1.5 mt-0.5 flex-wrap">
+                  {timeAgo && <span className="whitespace-nowrap">{timeAgo}</span>}
                   {timeAgo && <span>•</span>}
                   <span className={cn(
-                    "px-2 py-0.5 rounded-full text-[10px] font-semibold",
+                    "px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-semibold whitespace-nowrap",
                     p.status === 'private' 
                       ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" 
                       : "bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
@@ -303,7 +303,7 @@
               </div>
             </div>
             {user && (user._id === p.author?._id || user.role === "admin") ? (
-              <div className="relative">
+              <div className="relative flex-shrink-0 ml-2">
                 <MenuActions
                   onToggleStatus={togglePostStatus}
                   onEdit={() => navigate(`/edit/${p._id}`)}
@@ -315,24 +315,25 @@
               </div>
             ) : (
               <button 
-                className="p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+                className="p-2 sm:p-2.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors flex-shrink-0 ml-2 touch-manipulation"
+                aria-label="More options"
               >
-                <MoreHorizontal size={20} />
+                <MoreHorizontal size={18} className="sm:w-5 sm:h-5" />
               </button>
             )}
           </div>
 
           {/* TITLE */}
           {p.title && (
-            <h1 className="px-1 mb-3 text-2xl font-bold text-gray-900 dark:text-white leading-tight">
+            <h1 className="px-0 sm:px-1 mb-2 sm:mb-3 text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight break-words">
               {p.title}
             </h1>
           )}
 
           {/* CONTENT */}
           {p.content && (
-            <div className="px-1 mb-4">
-              <div className="prose dark:prose-invert max-w-none text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">
+            <div className="px-0 sm:px-1 mb-3 sm:mb-4">
+              <div className="prose dark:prose-invert max-w-none text-sm sm:text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed prose-p:mb-3 prose-headings:mb-2 prose-headings:mt-4">
                 <ReactMarkdown>{p.content}</ReactMarkdown>
               </div>
             </div>
@@ -340,19 +341,19 @@
 
           {/* Poll Component */}
           {p.hasPoll && (
-            <div className="px-1 mb-4">
+            <div className="px-0 sm:px-1 mb-3 sm:mb-4">
               <Poll post={p} user={user} />
             </div>
           )}
 
           {/* Tags */}
           {p.tags && p.tags.length > 0 && (
-            <div className="px-1 mb-4">
-              <div className="flex flex-wrap gap-2">
+            <div className="px-0 sm:px-1 mb-3 sm:mb-4">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {p.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
+                    className="inline-flex items-center px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 active:bg-blue-300 dark:active:bg-blue-900/70 transition-colors cursor-pointer touch-manipulation"
                     onClick={() => navigate(`/explore?q=${encodeURIComponent(tag)}`)}
                   >
                     #{tag}
@@ -364,9 +365,9 @@
 
           {/* Hiển thị preview media trong bài */}
           {allMedia.length === 1 && (
-            <div className="mb-5">
+            <div className="mb-4 sm:mb-5 -mx-3 sm:mx-0">
               <div
-                className="relative rounded-3xl overflow-hidden bg-gray-100 dark:bg-black cursor-pointer group/media"
+                className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-100 dark:bg-black cursor-pointer group/media touch-manipulation"
                 onClick={() => {
                   setCurrentIndex(0);
                   setShowMediaModal(true);
@@ -375,24 +376,25 @@
                 {allMedia[0].type === "video" ? (
                   <video
                     src={allMedia[0].url}
-                    className="w-full max-h-[70vh] object-contain bg-black transition-transform duration-700 group-hover/media:scale-105"
+                    className="w-full max-h-[50vh] sm:max-h-[70vh] object-contain bg-black transition-transform duration-700 group-hover/media:scale-105"
                     controls
+                    playsInline
                   />
                 ) : (
                   <LazyImage
                     src={getOptimizedImageUrl(allMedia[0].url, 1200)}
                     alt={p.title}
-                    className="w-full object-contain max-h-[70vh] transition-transform duration-700 group-hover/media:scale-105"
+                    className="w-full object-contain max-h-[50vh] sm:max-h-[70vh] transition-transform duration-700 group-hover/media:scale-105"
                   />
                 )}
               </div>
             </div>
           )}
           {allMedia.length > 1 && (
-            <div className="mb-5">
-              <div className="grid grid-cols-2 gap-2">
+            <div className="mb-4 sm:mb-5 -mx-3 sm:mx-0">
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                 <div
-                  className="col-span-2 row-span-2 h-64 rounded-3xl overflow-hidden cursor-pointer group/media"
+                  className="col-span-2 row-span-2 h-48 sm:h-64 rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer group/media touch-manipulation"
                   onClick={() => {
                     setCurrentIndex(0);
                     setShowMediaModal(true);
@@ -403,6 +405,7 @@
                       src={allMedia[0].url}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
                       controls
+                      playsInline
                     />
                   ) : (
                     <LazyImage
@@ -415,7 +418,7 @@
                 {allMedia.slice(1, 3).map((m, idx) => (
                   <div
                     key={idx + 1}
-                    className="h-36 rounded-3xl overflow-hidden relative cursor-pointer group/media"
+                    className="h-24 sm:h-36 rounded-2xl sm:rounded-3xl overflow-hidden relative cursor-pointer group/media touch-manipulation"
                     onClick={() => {
                       setCurrentIndex(idx + 1);
                       setShowMediaModal(true);
@@ -426,6 +429,7 @@
                         src={m.url}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
                         controls
+                        playsInline
                       />
                     ) : (
                       <LazyImage
@@ -436,7 +440,7 @@
                     )}
                     {/* Nếu là ảnh cuối và còn nhiều hơn 3 ảnh, overlay số lượng */}
                     {idx === 1 && allMedia.length > 3 && (
-                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-3xl text-white text-2xl font-bold">
+                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-2xl sm:rounded-3xl text-white text-lg sm:text-2xl font-bold">
                         +{allMedia.length - 3} ảnh
                       </div>
                     )}
@@ -447,12 +451,12 @@
           )}
 
           {/* REACTIONS - Giống PostCard với View */}
-          <div className="relative px-4 mb-3 pb-0.5 border-b border-gray-200 dark:border-gray-800">
-            <div className="flex items-center justify-between text-base text-gray-600 dark:text-gray-400">
-              <div className="flex items-center gap-1 md:gap-1.5 min-w-0 flex-1">
+          <div className="relative px-2 sm:px-4 mb-2 sm:mb-3 pb-0.5 border-b border-gray-200 dark:border-gray-800">
+            <div className="flex items-center justify-between text-sm sm:text-base text-gray-600 dark:text-gray-400 gap-2">
+              <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1">
                 {Object.values(counts).reduce((a, b) => a + b, 0) > 0 ? (
                   <div
-                    className="relative flex items-center gap-1 md:gap-1.5 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                    className="relative flex items-center gap-1 sm:gap-1.5 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors touch-manipulation active:opacity-70"
                     onClick={() => setShowEmoteList(true)}
                     role="button"
                     tabIndex={0}
@@ -466,27 +470,27 @@
                           key={emo} 
                           src={`/assets/${emoteMap[emo]}`} 
                           alt={emo} 
-                          className="w-7 h-7 md:w-6 md:h-6"
+                          className="w-6 h-6 sm:w-7 sm:h-7 md:w-6 md:h-6 flex-shrink-0"
                           loading="lazy"
                           onError={(e) => {
                             e.target.style.display = 'none';
                           }}
                         />
                       ))}
-                    <span className="ml-1.5 text-gray-500 dark:text-gray-400 font-semibold text-base">
+                    <span className="ml-1 sm:ml-1.5 text-gray-500 dark:text-gray-400 font-semibold text-sm sm:text-base whitespace-nowrap">
                       {Object.values(counts).reduce((a, b) => a + b, 0).toLocaleString()}
                     </span>
                   </div>
                 ) : (
-                  <div className="text-gray-500 dark:text-gray-400 text-sm">
+                  <div className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
                     Chưa có cảm xúc
                   </div>
                 )}
               </div>
               {p.views !== undefined && p.views !== null && (
-                <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 flex-shrink-0">
-                  <Eye size={18} className="text-gray-500 dark:text-gray-400" />
-                  <span className="font-semibold text-base">
+                <div className="flex items-center gap-1 sm:gap-1.5 text-gray-500 dark:text-gray-400 flex-shrink-0">
+                  <Eye size={16} className="sm:w-[18px] sm:h-[18px] text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                  <span className="font-semibold text-xs sm:text-base whitespace-nowrap">
                     {p.views.toLocaleString()} lượt xem
                   </span>
                 </div>
@@ -496,12 +500,12 @@
 
           {/* Popup danh sách người đã thả emote */}
           {showEmoteList && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={() => setShowEmoteList(false)}>
-              <div className="bg-white dark:bg-[#111] text-gray-900 dark:text-white rounded-2xl shadow-2xl p-0 w-[500px] max-w-[95vw] relative" onClick={e => e.stopPropagation()}>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-3 sm:p-4" onClick={() => setShowEmoteList(false)}>
+              <div className="bg-white dark:bg-[#111] text-gray-900 dark:text-white rounded-xl sm:rounded-2xl shadow-2xl p-0 w-full max-w-[95vw] sm:w-[500px] relative max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 {/* Header tabs */}
-                <div className="flex items-center border-b border-gray-200 dark:border-gray-800 px-6 pt-5 pb-2 gap-2 overflow-x-auto scrollbar-hide">
+                <div className="flex items-center border-b border-gray-200 dark:border-gray-800 px-3 sm:px-6 pt-4 sm:pt-5 pb-2 gap-2 overflow-x-auto scrollbar-hide flex-shrink-0">
                   <button
-                    className={cn("font-semibold px-3 py-1.5 rounded whitespace-nowrap flex-shrink-0", activeTab === 'all' ? 'bg-gray-100 dark:bg-gray-800' : '')}
+                    className={cn("font-semibold px-2.5 sm:px-3 py-1.5 rounded whitespace-nowrap flex-shrink-0 text-sm sm:text-base touch-manipulation", activeTab === 'all' ? 'bg-gray-100 dark:bg-gray-800' : '')}
                     onClick={() => setActiveTab('all')}
                   >
                     Tất cả
@@ -511,22 +515,22 @@
                     .map(([emo]) => (
                       <button
                         key={emo}
-                        className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded whitespace-nowrap flex-shrink-0", activeTab === emo ? 'bg-gray-100 dark:bg-gray-800' : '')}
+                        className={cn("flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded whitespace-nowrap flex-shrink-0 text-sm sm:text-base touch-manipulation", activeTab === emo ? 'bg-gray-100 dark:bg-gray-800' : '')}
                         onClick={() => setActiveTab(emo)}
                       >
-                        <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-5 h-5 flex-shrink-0" />
+                        <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                         <span>{counts[emo]}</span>
                       </button>
                     ))}
                 </div>
 
                 {/* Close button */}
-                <button className="absolute top-3 right-4 text-2xl text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white" onClick={() => setShowEmoteList(false)}>
+                <button className="absolute top-2 sm:top-3 right-2 sm:right-4 text-xl sm:text-2xl text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white p-2 touch-manipulation" onClick={() => setShowEmoteList(false)} aria-label="Đóng">
                   &#10005;
                 </button>
 
                 {/* User list */}
-                <div className="px-6 py-3 max-h-[60vh] overflow-y-auto">
+                <div className="px-3 sm:px-6 py-3 max-h-[60vh] overflow-y-auto custom-scrollbar flex-1">
                   {(() => {
                     let emoteUsers;
                     if (activeTab === "all") {
@@ -534,18 +538,19 @@
                     } else {
                       emoteUsers = emotesState.filter(e => e.type === activeTab);
                     }
-                    if (emoteUsers.length === 0) return <div className="text-gray-400 dark:text-gray-500">Chưa có ai thả cảm xúc này.</div>;
+                    if (emoteUsers.length === 0) return <div className="text-gray-400 dark:text-gray-500 text-sm sm:text-base py-4 text-center">Chưa có ai thả cảm xúc này.</div>;
                     return emoteUsers.map((e, idx) => {
                       const user = e.user || {};
                       const avatar = user.avatarUrl
                         ? user.avatarUrl
                         : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "?")}&length=2&background=cccccc&color=222222&size=40`;
                       return (
-                        <div key={idx} className="flex gap-3 py-2 border-b border-gray-200 dark:border-gray-800 items-center">
-                          <img src={avatar} alt={user.name || "Người dùng"} className="w-10 h-10 rounded-full object-cover" />
-                          <UserName user={user} className="font-semibold text-sm text-gray-900 dark:text-white" />
-                          <div className="flex-1"></div>
-                          <img src={`/assets/${emoteMap[e.type]}`} alt={e.type} className="w-5 h-5 ml-2" />
+                        <div key={idx} className="flex gap-2 sm:gap-3 py-2 border-b border-gray-200 dark:border-gray-800 items-center">
+                          <img src={avatar} alt={user.name || "Người dùng"} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
+                          <UserName user={user} className="font-semibold text-xs sm:text-sm text-gray-900 dark:text-white min-w-0 flex-1" />
+                          <div className="flex-shrink-0">
+                            <img src={`/assets/${emoteMap[e.type]}`} alt={e.type} className="w-4 h-4 sm:w-5 sm:h-5 ml-1 sm:ml-2" />
+                          </div>
                         </div>
                       );
                     });
@@ -556,8 +561,8 @@
           )}
 
           {/* ACTION BAR */}
-          <div className="flex items-center justify-between px-1 pt-1">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center justify-between px-0 sm:px-1 pt-1 gap-1 sm:gap-2">
+            <div className="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0">
               {/* Emote/Like Button với Popup */}
               <div
                 className="relative"
@@ -594,7 +599,7 @@
                         }
                       }}
                       className={cn(
-                        "flex items-center gap-2 px-4 py-2.5 rounded-full transition-all active:scale-90",
+                        "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full transition-all active:scale-90 touch-manipulation min-h-[44px]",
                         myEmote 
                           ? "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-500" 
                           : "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400"
@@ -602,8 +607,8 @@
                     >
                       {myEmote ? (
                         <>
-                          <img src={`/assets/${emoteMap[myEmote.type]}`} alt={myEmote.type} className="w-[22px] h-[22px]" />
-                          <span className="font-bold text-sm">
+                          <img src={`/assets/${emoteMap[myEmote.type]}`} alt={myEmote.type} className="w-5 h-5 sm:w-[22px] sm:h-[22px] flex-shrink-0" />
+                          <span className="font-bold text-xs sm:text-sm whitespace-nowrap hidden sm:inline">
                             {myEmote.type === '👍' && 'Đã thích'}
                             {myEmote.type === '❤️' && 'Yêu thích'}
                             {myEmote.type === '😂' && 'Haha'}
@@ -614,8 +619,8 @@
                         </>
                       ) : (
                         <>
-                          <ThumbsUp size={22} strokeWidth={2} />
-                          <span className="font-bold text-sm">Thích</span>
+                          <ThumbsUp size={20} className="sm:w-[22px] sm:h-[22px] flex-shrink-0" strokeWidth={2} />
+                          <span className="font-bold text-xs sm:text-sm whitespace-nowrap hidden sm:inline">Thích</span>
                         </>
                       )}
                     </button>
@@ -623,7 +628,7 @@
                 })()}
                 {showEmotePopup && (
                   <div
-                    className="absolute bottom-full left-0 md:left-1/2 md:-translate-x-1/2 mb-2 emote-picker bg-white dark:bg-gray-800 rounded-xl shadow-lg z-20 border border-gray-200 dark:border-gray-700 p-2 flex gap-1 w-max"
+                    className="absolute bottom-full left-0 md:left-1/2 md:-translate-x-1/2 mb-2 emote-picker bg-white dark:bg-gray-800 rounded-xl shadow-lg z-20 border border-gray-200 dark:border-gray-700 p-2 flex gap-1 w-max max-w-[calc(100vw-2rem)]"
                     onMouseEnter={() => {
                       if (window.innerWidth >= 768) {
                         if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
@@ -647,7 +652,7 @@
                         <button
                           key={e}
                           className={cn(
-                            "transition-all hover:scale-110 active:scale-95",
+                            "transition-all hover:scale-110 active:scale-95 touch-manipulation",
                             isActive ? 'opacity-100 ring-2 ring-blue-500 rounded-full' : 'opacity-90'
                           )}
                           type="button"
@@ -659,7 +664,7 @@
                           }}
                           onMouseDown={(e) => e.preventDefault()}
                         >
-                          <img src={`/assets/${emoteMap[e]}`} alt={e} className="w-8 h-8" />
+                          <img src={`/assets/${emoteMap[e]}`} alt={e} className="w-7 h-7 sm:w-8 sm:h-8" />
                         </button>
                       );
                     })}
@@ -669,20 +674,20 @@
 
               {/* Comment */}
               <button
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90 touch-manipulation min-h-[44px]"
                 type="button"
                 onClick={() => {
                   const cmtEl = document.getElementById("comments-section");
                   if (cmtEl) cmtEl.scrollIntoView({ behavior: "smooth" });
                 }}
               >
-                <MessageCircle size={22} />
-                <span className="font-bold text-sm">{p.commentCount || 0}</span>
+                <MessageCircle size={20} className="sm:w-[22px] sm:h-[22px] flex-shrink-0" />
+                <span className="font-bold text-xs sm:text-sm whitespace-nowrap">{p.commentCount || 0}</span>
               </button>
 
               {/* Share */}
               <button
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/20 dark:hover:text-green-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/20 dark:hover:text-green-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90 touch-manipulation min-h-[44px]"
                 type="button"
                 onClick={() => {
                   const url = window.location.href;
@@ -692,8 +697,9 @@
                     alert("Không thể sao chép liên kết");
                   });
                 }}
+                aria-label="Chia sẻ"
               >
-                <Share2 size={22} />
+                <Share2 size={20} className="sm:w-[22px] sm:h-[22px] flex-shrink-0" />
               </button>
             </div>
 
@@ -701,23 +707,24 @@
             <button
               onClick={toggleSave}
               className={cn(
-                "p-3 rounded-full transition-all active:scale-90",
+                "p-2.5 sm:p-3 rounded-full transition-all active:scale-90 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0",
                 saved
                   ? "bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-500"
                   : "hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-500/20 dark:hover:text-yellow-500 text-gray-400"
               )}
+              aria-label={saved ? "Bỏ lưu" : "Lưu bài viết"}
             >
-              <Bookmark size={22} className={saved ? "fill-current" : ""} strokeWidth={saved ? 0 : 2} />
+              <Bookmark size={20} className={cn("sm:w-[22px] sm:h-[22px]", saved ? "fill-current" : "")} strokeWidth={saved ? 0 : 2} />
             </button>
           </div>
         </div>
 
         {/* Comments */}
-        <div id="comments-section" className="max-w-3xl mx-auto">
-          <div className="bg-white dark:bg-[#111] rounded-[32px] p-5 mb-6
+        <div id="comments-section" className="max-w-3xl mx-auto px-3 sm:px-4">
+          <div className="bg-white dark:bg-[#111] rounded-2xl sm:rounded-[32px] p-4 sm:p-5 mb-4 sm:mb-6
             shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
             border border-transparent dark:border-white/5">
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Bình luận</h2>
+            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-gray-900 dark:text-white">Bình luận</h2>
           {(() => {
             // Xác định quyền bình luận nếu bài đăng thuộc về một nhóm
             const groupInfo = p.group || null;
@@ -763,16 +770,17 @@
         {/* Media modal carousel */}
         {showMediaModal && allMedia.length > 0 && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-2 sm:p-4"
             onClick={() => setShowMediaModal(false)}
           >
-            <div className="relative max-w-full max-h-full flex items-center">
+            <div className="relative max-w-full max-h-full flex items-center w-full h-full">
               {/* Close */}
               <button
                 onClick={() => setShowMediaModal(false)}
-                className="absolute top-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded-full"
+                className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-black bg-opacity-70 hover:bg-opacity-90 text-white p-2.5 sm:p-2 rounded-full z-10 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Đóng"
               >
-                <X size={20} />
+                <X size={20} className="sm:w-5 sm:h-5" />
               </button>
 
               {/* Prev */}
@@ -782,27 +790,29 @@
                     e.stopPropagation();
                     setCurrentIndex((i) => i - 1);
                   }}
-                  className="absolute left-4 bg-black bg-opacity-50 text-white p-3 rounded-full"
+                  className="absolute left-2 sm:left-4 bg-black bg-opacity-70 hover:bg-opacity-90 text-white p-3 sm:p-3 rounded-full z-10 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center text-2xl sm:text-3xl"
+                  aria-label="Ảnh trước"
                 >
                   ‹
                 </button>
               )}
 
               {/* Content */}
-              <div className="max-w-full max-h-full">
+              <div className="max-w-full max-h-full w-full h-full flex items-center justify-center">
                 {allMedia[currentIndex].type === "video" ? (
                   <video
                     src={allMedia[currentIndex].url}
                     controls
                     autoPlay
-                    className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                    playsInline
+                    className="max-w-full max-h-[90vh] sm:max-h-[80vh] object-contain rounded-lg"
                     onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
                   <img
                     src={allMedia[currentIndex].url}
                     alt={`media-${currentIndex}`}
-                    className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                    className="max-w-full max-h-[90vh] sm:max-h-[80vh] object-contain rounded-lg"
                     onClick={(e) => e.stopPropagation()}
                   />
                 )}
@@ -815,10 +825,33 @@
                     e.stopPropagation();
                     setCurrentIndex((i) => i + 1);
                   }}
-                  className="absolute right-4 bg-black bg-opacity-50 text-white p-3 rounded-full"
+                  className="absolute right-2 sm:right-4 bg-black bg-opacity-70 hover:bg-opacity-90 text-white p-3 sm:p-3 rounded-full z-10 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center text-2xl sm:text-3xl"
+                  aria-label="Ảnh sau"
                 >
                   ›
                 </button>
+              )}
+
+              {/* Indicator dots for mobile */}
+              {allMedia.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                  {allMedia.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentIndex(idx);
+                      }}
+                      className={cn(
+                        "w-2 h-2 rounded-full transition-all touch-manipulation",
+                        idx === currentIndex 
+                          ? "bg-white w-6" 
+                          : "bg-white/50 hover:bg-white/75"
+                      )}
+                      aria-label={`Xem ảnh ${idx + 1}`}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           </div>
