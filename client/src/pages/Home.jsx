@@ -248,63 +248,6 @@ export default function Home({ user, setUser }) {
     }
   }, [page, hasMore, loadingMore, q, sortBy, sortPosts]);
 
-  const loadAllRemaining = useCallback(async () => {
-    if (loadingAll) return;
-
-    setLoadingAll(true);
-    setError(null);
-    loadingRef.current = true;
-
-    try {
-      const allRemainingPosts = [];
-      let currentPage = page;
-      const limit = 20; // Unified limit
-
-      if (sortBy === 'recommended') {
-        // Smart feed: load until no more items
-        while (true) {
-          const smartFeedData = await api(`/api/posts/feed/smart?page=${currentPage}&limit=${limit}`);
-          const newItems = smartFeedData.items || [];
-          if (newItems.length === 0) break; // No more items
-          allRemainingPosts.push(...newItems);
-          if (newItems.length < limit) break; // Last page
-          currentPage++;
-        }
-      } else {
-        // Regular feed: use totalPages
-        // Nếu chưa có hasMore, bắt đầu từ trang 2
-        if (!hasMore && totalPages > 1) {
-          currentPage = 2;
-        }
-
-        while (currentPage <= totalPages) {
-          const publishedData = await api(`/api/posts?page=${currentPage}&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
-          const newItems = sortPosts(publishedData.items, sortBy);
-          allRemainingPosts.push(...newItems);
-          currentPage++;
-        }
-      }
-
-      // Deduplicate posts by _id to prevent duplicates when new posts are added
-      setItems(prev => {
-        const uniquePosts = new Map();
-        // Add existing posts to Map
-        prev.forEach(p => uniquePosts.set(p._id, p));
-        // Add new posts to Map (will overwrite if duplicate, keeping newer version)
-        allRemainingPosts.forEach(p => uniquePosts.set(p._id, p));
-        // Convert back to array
-        return Array.from(uniquePosts.values());
-      });
-      setHasMore(false);
-      setPage(currentPage);
-    } catch (error) {
-      setError('Không thể tải tất cả bài viết. Vui lòng thử lại.');
-    } finally {
-      setLoadingAll(false);
-      loadingRef.current = false;
-    }
-  }, [page, hasMore, totalPages, q, sortBy, sortPosts]);
-
   // ==================== INFINITE SCROLL ====================
 
   const lastPostElementRef = useCallback(node => {

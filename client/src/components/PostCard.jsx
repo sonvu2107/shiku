@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck, MoreHorizontal, Edit, Trash2, BarChart3, Eye, Share2, Smile, Send, Paperclip, X, Plus, Minus } from "lucide-react";
 import { api } from "../api";
 import { deduplicatedApi } from "../utils/requestDeduplication.js";
-import { getOptimizedImageUrl } from "../utils/imageOptimization.js";
+import { getOptimizedImageUrl } from "../utils/imageOptimization";
 import UserName from "./UserName";
 import VerifiedBadge from "./VerifiedBadge";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
@@ -800,7 +800,7 @@ function PostCard({
             />
           ) : (
             <LazyImage
-              src={getOptimizedImageUrl(displayMedia.url, { width: 600 })}
+              src={getOptimizedImageUrl(displayMedia.url, 600)}
               alt={post.title}
               className="w-full max-h-[600px] object-cover"
             />
@@ -1207,6 +1207,6 @@ function PostCard({
   );
 }
 
-export default React.memo(PostCard);
+export default memo(PostCard);
 
 
