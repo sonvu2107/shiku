@@ -66,7 +66,6 @@ export default function Home({ user, setUser }) {
   // Tải trạng thái
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [loadingAll, setLoadingAll] = useState(false);
   const [error, setError] = useState(null);
   const { savedMap, updateSavedState } = useSavedPosts(items);
 
@@ -1088,52 +1087,6 @@ export default function Home({ user, setUser }) {
                         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm sm:text-base">
                           <Loader2 size={18} className="sm:w-5 sm:h-5 animate-spin text-gray-600 dark:text-gray-300" />
                           <span className="font-medium">Đang tải thêm bài viết...</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Load All Button - Chỉ hiển thị nút Tải Tất Cả, bỏ nút Tải Thêm thủ công vì đã có Infinite Scroll */}
-                    {/* Thay đổi: Không ẩn nút này khi loadingMore để tránh giật giao diện, chỉ disable */}
-                    {!loadingAll && hasMore && totalPages - page + 1 > 0 && (
-                      <div className="flex justify-center py-3 sm:py-4">
-                        {totalPages - page + 1 > 1 && (
-                          <button
-                            onClick={loadAllRemaining}
-                            disabled={loadingMore} // Disable khi đang tự động tải
-                            className={`px-4 sm:px-6 py-2.5 bg-neutral-700 dark:bg-neutral-600 text-white rounded-xl font-semibold text-sm sm:text-base transition-all duration-200 touch-manipulation shadow-md min-h-[44px] ${
-                              loadingMore 
-                                ? 'opacity-50 cursor-not-allowed' 
-                                : 'hover:bg-neutral-800 dark:hover:bg-neutral-500'
-                            }`}
-                            aria-label="Tải tất cả bài viết còn lại"
-                          >
-                            <span className="hidden sm:inline">Tải tất cả ({totalPages - page + 1} trang còn lại)</span>
-                            <span className="sm:hidden">Tải tất cả ({totalPages - page + 1})</span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Load all button - hiển thị khi không còn hasMore nhưng vẫn còn nhiều trang */}
-                    {!loadingAll && !hasMore && totalPages > 1 && (
-                      <div className="flex justify-center py-3 sm:py-4">
-                        <button
-                          onClick={loadAllRemaining}
-                          className="px-4 sm:px-6 py-2.5 bg-neutral-700 dark:bg-neutral-600 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-neutral-800 dark:hover:bg-neutral-500 transition-all duration-200 touch-manipulation shadow-md min-h-[44px]"
-                          aria-label={`Tải tất cả bài viết (${totalPages} trang)`}
-                        >
-                          <span className="hidden sm:inline">Tải tất cả bài viết ({totalPages} trang)</span>
-                          <span className="sm:hidden">Tải tất cả ({totalPages})</span>
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Loading all indicator */}
-                    {loadingAll && (
-                      <div className="flex justify-center py-6 sm:py-8">
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm sm:text-base">
-                          <Loader2 size={18} className="sm:w-5 sm:h-5 animate-spin text-gray-600 dark:text-gray-300" />
-                          <span className="font-medium">Đang tải tất cả bài viết...</span>
                         </div>
                       </div>
                     )}

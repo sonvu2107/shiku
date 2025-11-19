@@ -96,22 +96,27 @@ async function validateFiles(req, res, next) {
  */
 router.get("/post/:postId", authOptional, async (req, res, next) => {
   try {
-    // OPTIMIZATION: Use lean() and optimize populate calls
-    // Remove blockedUsers from populate to reduce payload size
-    let items = await Comment.find({ post: req.params.postId })
+    // OPTIMIZATION: Run queries in parallel
+    const postQuery = Comment.find({ post: req.params.postId })
       .populate("author", "name nickname avatarUrl role") // Removed blockedUsers
       .populate("parent", "content author createdAt") // Only get essential fields
       .populate("likes", "name avatarUrl") // Optimized
       .populate("emotes.user", "name avatarUrl")
       .sort({ createdAt: -1 })
-      .lean(); // Use lean() for better performance
+      .lean();
+
+    // If user is logged in, fetch blocked list in parallel
+    let currentUserPromise = Promise.resolve(null);
+    if (req.user) {
+      currentUserPromise = User.findById(req.user._id).select("blockedUsers").lean();
+    }
+
+    // Wait for both
+    let [items, currentUser] = await Promise.all([postQuery, currentUserPromise]);
 
     // Lọc comment nếu user đã đăng nhập
     if (req.user && items.length > 0) {
-      // OPTIMIZATION: Fetch current user's blocked list once
-      const currentUser = await User.findById(req.user._id)
-        .select("blockedUsers")
-        .lean();
+      // currentUser fetched in parallel above
       
       const currentUserId = req.user._id.toString();
       const blockedSet = new Set(

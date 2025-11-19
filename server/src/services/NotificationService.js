@@ -145,18 +145,35 @@ class NotificationService {
 
   // Create admin message notification for all users
   static async createAdminBroadcast(adminUser, title, message) {
-    const users = await User.find({}).select("_id");
+    const BATCH_SIZE = 500; // Process 500 users at a time
+    const cursor = User.find({}).select("_id").cursor();
     
-    const notifications = users.map(user => ({
-      recipient: user._id,
-      sender: adminUser._id,
-      type: "admin_message",
-      title,
-      message,
-      data: {}
-    }));
+    let batch = [];
+    for (let doc = await cursor.next(); doc != null; doc = await cursor.next()) {
+      batch.push({
+        recipient: doc._id,
+        sender: adminUser._id,
+        type: "admin_message",
+        title,
+        message,
+        data: {},
+        createdAt: new Date() // Add timestamp manually since insertMany bypasses hooks
+      });
 
-    await Notification.insertMany(notifications);
+      // When batch is full
+      if (batch.length >= BATCH_SIZE) {
+        await Notification.insertMany(batch);
+        batch = []; // Free memory
+        
+        // Give CPU a break for 50ms to avoid blocking
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+    }
+    
+    // Insert remaining
+    if (batch.length > 0) {
+      await Notification.insertMany(batch);
+    }
   }
 
   // Get notifications for a user

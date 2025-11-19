@@ -9,10 +9,10 @@ import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { ToastContainer, useToast } from "./components/Toast.jsx";
 import { PageLoader, LazyErrorBoundary } from "./components/PageLoader.jsx";
 import { ChatProvider } from "./contexts/ChatContext.jsx";
+import Home from "./pages/Home.jsx"; // Eager load Home for better LCP
 
 // LAZY IMPORT CÁC PAGES - Code Splitting
 // Core pages (load ngay)
-const Home = lazy(() => import("./pages/Home.jsx"));
 const Login = lazy(() => import("./pages/Login.jsx"));
 const Register = lazy(() => import("./pages/Register.jsx"));
 

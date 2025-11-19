@@ -46,6 +46,43 @@ export const generateOptimizedImageUrls = (originalUrl, options = {}) => {
 };
 
 /**
+ * Get optimized image URL (supports Cloudinary)
+ * @param {string} url - Original image URL
+ * @param {Object} options - Optimization options { width, height, quality }
+ * @returns {string} Optimized URL
+ */
+export const getOptimizedImageUrl = (url, options = {}) => {
+  if (!url) return '';
+  
+  // Check if it's a Cloudinary URL
+  if (url.includes('cloudinary.com')) {
+    // Check if it's already an optimized URL (has transformations)
+    // Standard pattern: /upload/TRANSFORMATIONS/v...
+    const parts = url.split('/upload/');
+    if (parts.length === 2) {
+      const { width, height, quality = 'auto' } = options;
+      const transformations = [];
+      
+      // Add format and quality
+      transformations.push('f_auto');
+      transformations.push(`q_${quality}`);
+      
+      // Add dimensions
+      if (width) transformations.push(`w_${width}`);
+      if (height) transformations.push(`h_${height}`);
+      
+      // Add crop mode if both dimensions provided
+      if (width && height) transformations.push('c_fill');
+      
+      return `${parts[0]}/upload/${transformations.join(',')}/${parts[1]}`;
+    }
+  }
+  
+  // Return original URL if not Cloudinary or structure unknown
+  return url;
+};
+
+/**
  * Generate blur placeholder from image
  * @param {string} imageUrl - Image URL
  * @param {number} width - Placeholder width
@@ -279,5 +316,6 @@ export default {
   calculateResponsiveSizes,
   preloadImages,
   trackImagePerformance,
-  compressImage
+  compressImage,
+  getOptimizedImageUrl
 };

@@ -1,6 +1,7 @@
 // Import các thư viện cần thiết
 import 'dotenv/config';
 import express from "express";
+import compression from "compression"; // Import compression
 import helmet from "helmet"; // Security middleware
 import cookieParser from "cookie-parser"; // Parse cookies
 import cors from "cors"; // Cross-Origin Resource Sharing
@@ -52,6 +53,12 @@ import chatbotRoutes from "./routes/chatbot.js"; // Chatbot AI routes
 // Tạo Express app và HTTP server
 const app = express();
 const server = createServer(app);
+
+// Compress all HTTP responses
+app.use(compression({
+  level: 6, // Balanced compression
+  threshold: 1024 // Only compress responses > 1KB
+}));
 
 // Trust proxy để rate limiting hoạt động đúng với reverse proxy (Render, Railway, Heroku, etc.)
 app.set("trust proxy", 1);

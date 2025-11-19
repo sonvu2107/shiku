@@ -15,8 +15,8 @@ export async function connectDB(uri) {
   // Configure connection options for better stability and performance
   const options = {
     dbName: process.env.DB_NAME || undefined,
-    maxPoolSize: parseInt(process.env.DB_MAX_POOL_SIZE) || 15, // Increased pool size
-    minPoolSize: parseInt(process.env.DB_MIN_POOL_SIZE) || 2, // Minimum connections
+    maxPoolSize: parseInt(process.env.DB_MAX_POOL_SIZE) || 10, // Optimized for Free Tier
+    minPoolSize: 1, // Keep at least 1 connection to warm up
     maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
     serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
     socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity

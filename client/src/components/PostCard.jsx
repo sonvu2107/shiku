@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck, MoreHorizontal, Edit, Trash2, BarChart3, Eye, Share2, Smile, Send, Paperclip, X, Plus, Minus } from "lucide-react";
 import { api } from "../api";
 import { deduplicatedApi } from "../utils/requestDeduplication.js";
+import { getOptimizedImageUrl } from "../utils/imageOptimization.js";
 import UserName from "./UserName";
 import VerifiedBadge from "./VerifiedBadge";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
@@ -41,7 +42,7 @@ const EMOJIS = [
  * @param {Array} post.files - Media files đính kèm
  * @param {string} post.status - Trạng thái (công khai/riêng tư)
  */
-export default function PostCard({
+function PostCard({
   post,
   user,
   hidePublicIcon = false,
@@ -799,7 +800,7 @@ export default function PostCard({
             />
           ) : (
             <LazyImage
-              src={displayMedia.url}
+              src={getOptimizedImageUrl(displayMedia.url, { width: 600 })}
               alt={post.title}
               className="w-full max-h-[600px] object-cover"
             />
@@ -1205,5 +1206,7 @@ export default function PostCard({
     </ComponentErrorBoundary>
   );
 }
+
+export default React.memo(PostCard);
 
 
