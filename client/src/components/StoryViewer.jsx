@@ -229,7 +229,7 @@ export default function StoryViewer({
 
   return (
     <div 
-      className="fixed inset-0 bg-black z-50 flex items-center justify-center"
+      className="story-viewer fixed inset-0 bg-black z-50 flex items-center justify-center"
       onClick={(e) => {
         // Click outside để đóng
         if (e.target === e.currentTarget) {

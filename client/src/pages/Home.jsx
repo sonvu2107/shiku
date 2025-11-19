@@ -4,6 +4,7 @@ import { api } from "../api";
 import { useSavedPosts } from "../hooks/useSavedPosts";
 import { useSEO } from "../utils/useSEO";
 import PostCard from "../components/PostCard";
+import ModernPostCard from "../components/ModernPostCard";
 import PostCreator from "../components/PostCreator";
 import Stories from "../components/Stories";
 import LeftSidebar from "../components/LeftSidebar";
@@ -14,6 +15,7 @@ import ChatPopupManager from "../components/ChatPopupManager";
 import UserName from "../components/UserName";
 import Navbar from "../components/Navbar";
 import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2, Sparkles, Search, Bell, MessageCircle, Settings, Plus, X, Moon, Sun } from "lucide-react";
+import { motion } from "framer-motion";
 
 /**
  * Home - Trang chủ mạng xã hội với bố cục 3 cột
@@ -551,34 +553,35 @@ export default function Home({ user, setUser }) {
   // ==================== LOADING SKELETON ====================
 
   const LoadingSkeleton = useCallback(() => (
-    <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-md border border-gray-300 dark:border-neutral-600 overflow-hidden transition-colors duration-100">
+    <div className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden transition-colors duration-300">
       <div className="p-5">
         {/* Header skeleton */}
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-10 h-10 bg-gray-200 dark:bg-neutral-700 rounded-full animate-pulse"></div>
+        <div className="flex items-center space-x-3 mb-4 px-1">
+          <div className="w-12 h-12 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
           <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 dark:bg-neutral-700 rounded animate-pulse w-32"></div>
-            <div className="h-3 bg-gray-200 dark:bg-neutral-700 rounded animate-pulse w-20"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-32"></div>
+            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-24"></div>
           </div>
         </div>
 
         {/* Content skeleton */}
-        <div className="space-y-2 mb-4">
-          <div className="h-4 bg-gray-200 dark:bg-neutral-700 rounded animate-pulse"></div>
-          <div className="h-4 bg-gray-200 dark:bg-neutral-700 rounded animate-pulse w-4/5"></div>
-          <div className="h-4 bg-gray-200 dark:bg-neutral-700 rounded animate-pulse w-3/5"></div>
+        <div className="space-y-2 mb-4 px-1">
+          <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-4/5"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-3/5"></div>
         </div>
 
         {/* Image skeleton */}
-        <div className="h-64 bg-gray-200 dark:bg-neutral-700 rounded-xl animate-pulse mb-4"></div>
+        <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-3xl animate-pulse mb-5"></div>
 
         {/* Actions skeleton */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-neutral-600">
-          <div className="flex space-x-6">
-            <div className="h-8 bg-gray-200 dark:bg-neutral-700 rounded animate-pulse w-16"></div>
-            <div className="h-8 bg-gray-200 dark:bg-neutral-700 rounded animate-pulse w-20"></div>
-            <div className="h-8 bg-gray-200 dark:bg-neutral-700 rounded animate-pulse w-18"></div>
+        <div className="flex items-center justify-between px-1">
+          <div className="flex space-x-1">
+            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-20"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-20"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-16"></div>
           </div>
+          <div className="h-10 w-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
         </div>
       </div>
     </div>
@@ -587,7 +590,7 @@ export default function Home({ user, setUser }) {
 
   // ==================== RENDER ====================
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 transition-colors duration-100">
+    <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pb-32">
       {/* Accessible, SEO-friendly heading without affecting layout */}
       <h1 className="sr-only">Shiku – Mạng xã hội chia sẻ khoảnh khắc</h1>
       <p className="sr-only">Nơi chia sẻ câu chuyện hàng ngày, khám phá cộng đồng xung quanh bạn.</p>
@@ -605,7 +608,7 @@ export default function Home({ user, setUser }) {
       {/* Main Content Area với margin-left cho left sidebar */}
       <main className="pt-[64px] md:pt-16 lg:ml-64 min-h-screen" role="main">
         {/* Top Navigation Bar - ẩn trên mobile, hiện từ md trở lên - luôn fixed và visible */}
-        <nav className="hidden md:flex fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white dark:bg-neutral-800 border-b border-gray-300 dark:border-neutral-600 shadow-sm z-40" role="navigation" aria-label="Thanh tìm kiếm và điều hướng">
+        <nav className="hidden md:flex fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-gray-300 dark:border-gray-800 shadow-sm z-40" role="navigation" aria-label="Thanh tìm kiếm và điều hướng">
           <div className="w-full flex items-center h-full px-4 md:px-6 lg:px-8">
             {/* Search Input with Dropdown - Left side, takes available space */}
             <form onSubmit={handleTopSearch} className="flex-1 max-w-2xl mr-4">
@@ -625,16 +628,16 @@ export default function Home({ user, setUser }) {
                       setSearchFocused(false);
                     }
                   }, 200)}
-                  className="w-full pl-12 pr-4 py-2.5 bg-neutral-100 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 rounded-full text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all text-sm"
+                  className="w-full pl-12 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 rounded-full text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all text-sm"
                 />
                 {/* Search Dropdown */}
                 {(searchFocused || topSearchQuery.trim() || historyEditing) && (
                   (searchResults.length > 0 || searchPosts.length > 0 || searchHistory.length > 0) && (
-                    <div className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg dark:shadow-2xl z-50 max-h-80 overflow-y-auto custom-scrollbar">
+                    <div className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-[#111] border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg dark:shadow-2xl z-50 max-h-80 overflow-y-auto custom-scrollbar">
                       {/* Lịch sử tìm kiếm / Gợi ý */}
                       {(!topSearchQuery.trim() || (topSearchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0)) && searchHistory.length > 0 && (
                         <React.Fragment key="search-history">
-                          <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500 dark:text-gray-400 bg-neutral-100 dark:bg-neutral-700">
+                          <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">
                             <span>Gần đây</span>
                             <button
                               type="button"
@@ -662,7 +665,7 @@ export default function Home({ user, setUser }) {
                             .map(item => (
                               <div
                                 key={item.id}
-                                className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer group border-b border-neutral-100 dark:border-neutral-600 last:border-b-0"
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer group border-b border-gray-100 dark:border-gray-800 last:border-b-0"
                                 onMouseDown={() => {
                                   setTopSearchQuery(item.query);
                                   setTimeout(() => {
@@ -670,7 +673,7 @@ export default function Home({ user, setUser }) {
                                   }, 0);
                                 }}
                               >
-                                <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-600 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs">•</div>
+                                <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs">•</div>
                                 <div className="flex-1 min-w-0">
                                   <div className="font-medium text-gray-900 dark:text-white text-sm truncate">{item.query}</div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{new Date(item.lastSearchedAt).toLocaleDateString('vi-VN')}</div>
@@ -703,17 +706,17 @@ export default function Home({ user, setUser }) {
                               </button>
                             </div>
                           )}
-                          <div className="h-px bg-neutral-100 dark:bg-neutral-700" />
+                          <div className="h-px bg-gray-100 dark:bg-gray-800" />
                         </React.Fragment>
                       )}
                       {/* Kết quả user */}
                       {searchResults.length > 0 && (
-                        <React.Fragment key="search-fragment">
-                          <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 bg-neutral-100 dark:bg-neutral-700">Người dùng</div>
+                        <React.Fragment key="search-users">
+                          <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">Người dùng</div>
                           {searchResults.map(user => (
                             <div
                               key={user._id}
-                              className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer border-b border-neutral-100 dark:border-neutral-600 last:border-b-0"
+                              className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-b-0"
                               onClick={() => {
                                 navigate(`/user/${user._id}`);
                                 setSearchFocused(false);
@@ -740,12 +743,12 @@ export default function Home({ user, setUser }) {
                       )}
                       {/* Kết quả bài viết: chỉ hiện nếu không có user nào khớp */}
                       {searchResults.length === 0 && searchPosts.length > 0 && (
-                        <React.Fragment key="search-fragment">
-                          <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 bg-neutral-100 dark:bg-neutral-700">Bài viết</div>
+                        <React.Fragment key="search-posts">
+                          <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">Bài viết</div>
                           {searchPosts.map(post => (
                             <div
                               key={post._id}
-                              className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer border-b border-neutral-100 dark:border-neutral-600 last:border-b-0"
+                              className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-b-0"
                               onClick={() => {
                                 navigate(`/post/${post.slug || post._id}`);
                                 setSearchFocused(false);
@@ -841,7 +844,7 @@ export default function Home({ user, setUser }) {
                     alt={user.name}
                     width={40}
                     height={40}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-neutral-200 dark:border-neutral-600"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-800"
                     loading="lazy"
                   />
                   </Link>
@@ -851,12 +854,12 @@ export default function Home({ user, setUser }) {
         </nav>
 
         {/* Feed Bar - Trải dài toàn bộ chiều rộng - Sticky trên mobile (dưới navbar), static trên desktop, sát navbar trên desktop */}
-        <div className="sticky md:static top-[64px] md:top-0 z-30 px-3 sm:px-4 md:px-6 lg:px-8 py-2 md:py-2.5 border-b border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 backdrop-blur-sm bg-opacity-95 dark:bg-opacity-100 md:bg-opacity-100 md:dark:bg-opacity-100 md:backdrop-blur-none transition-colors duration-100">
+        <div className="sticky md:static top-[64px] md:top-0 z-30 px-4 md:px-6 lg:px-8 py-3 md:py-3 border-b border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-black/70 backdrop-blur-xl transition-colors duration-300">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 overflow-hidden">
-              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-white whitespace-nowrap flex-shrink-0">Bảng tin</h2>
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white whitespace-nowrap flex-shrink-0">Bảng tin</h2>
               {items.length > 0 && (
-                <span className="hidden sm:inline text-xs sm:text-sm text-gray-600 dark:text-gray-300 bg-neutral-100 dark:bg-neutral-700 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full font-medium whitespace-nowrap flex-shrink-0">
+                <span className="hidden sm:inline text-xs sm:text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full font-semibold whitespace-nowrap flex-shrink-0">
                   {items.length} bài viết
                 </span>
               )}
@@ -889,18 +892,18 @@ export default function Home({ user, setUser }) {
             <div className="relative sort-dropdown flex-shrink-0">
               <button
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-neutral-600 rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap touch-manipulation min-h-[36px] sm:min-h-[40px]"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 whitespace-nowrap touch-manipulation"
                 aria-label={`Sắp xếp: ${getSortLabel(sortBy)}`}
                 aria-expanded={showSortDropdown}
                 aria-haspopup="true"
               >
                 <span className="flex-shrink-0">{getSortIcon(sortBy)}</span>
                 <span className="whitespace-nowrap">{getSortLabel(sortBy)}</span>
-                <ArrowUpDown size={12} className="sm:w-[14px] sm:h-[14px] opacity-60 dark:opacity-70 flex-shrink-0 text-gray-600 dark:text-gray-300" />
+                <ArrowUpDown size={14} className="opacity-60 dark:opacity-70 flex-shrink-0 text-gray-600 dark:text-gray-300" />
               </button>
 
               {showSortDropdown && (
-                <div className="absolute right-0 top-full mt-2 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 rounded-xl sm:rounded-2xl shadow-2xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-50 py-2 min-w-[180px] sm:min-w-[220px] w-auto max-w-[90vw]">
+                <div className="absolute right-0 top-full mt-2 bg-white dark:bg-[#111] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-50 py-2 min-w-[200px] w-auto max-w-[90vw]">
                   {[
                     { key: 'recommended', label: 'Đề xuất', icon: <Sparkles size={14} className="text-gray-600 dark:text-gray-300 flex-shrink-0" />, badge: 'AI' },
                     { key: 'newest', label: 'Mới nhất', icon: <Clock size={14} className="text-gray-600 dark:text-gray-300 flex-shrink-0" /> },
@@ -914,7 +917,7 @@ export default function Home({ user, setUser }) {
                         setSortBy(option.key);
                         setShowSortDropdown(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-left hover:bg-neutral-200 dark:hover:bg-neutral-600 active:bg-neutral-300 dark:active:bg-neutral-500 flex items-center justify-between gap-3 transition-colors ${sortBy === option.key ? 'bg-neutral-100 dark:bg-neutral-700 text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300'
+                      className={`w-full px-4 py-2.5 text-left hover:bg-gray-200 dark:hover:bg-gray-800 active:bg-gray-300 dark:active:bg-gray-700 flex items-center justify-between gap-3 transition-colors ${sortBy === option.key ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300'
                         }`}
                       aria-label={`Sắp xếp theo ${option.label}`}
                     >
@@ -936,79 +939,82 @@ export default function Home({ user, setUser }) {
         </div>
 
           {/* Content Area - 2 Columns */}
-          <div className="px-3 sm:px-4 md:px-6 py-4 sm:py-5 md:py-6">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 sm:gap-5 md:gap-6">
+          <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 md:gap-8">
               {/* Center Column - Main Feed */}
-              <div className="space-y-3 sm:space-y-4 min-w-0">
+              <div className="space-y-6 min-w-0">
                 {/* Stories Section */}
                 <Stories user={user} />
 
                 {/* Post Creator - luôn hiển thị input, click để mở modal */}
-                <div ref={postCreatorWrapperRef} className="mb-2 sm:mb-4">
+                <div ref={postCreatorWrapperRef}>
                   <PostCreator user={user} ref={postCreatorRef} />
                 </div>
 
                 {/* Posts Feed */}
                 {loading ? (
-                  <div className="space-y-3 sm:space-y-4">
+                  <div className="space-y-6">
                     {[1, 2, 3].map(i => (
                       <LoadingSkeleton key={i} />
                     ))}
                   </div>
                 ) : error ? (
-                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-center transition-colors duration-100 shadow-md">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-red-100 dark:bg-red-800/50 rounded-full flex items-center justify-center">
-                      <TrendingUp size={20} className="sm:w-6 sm:h-6 text-red-400" />
+                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-2xl p-6 md:p-8 text-center transition-colors duration-300 shadow-md">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-800/50 rounded-full flex items-center justify-center">
+                      <TrendingUp size={24} className="text-red-400" />
                     </div>
-                    <h3 className="text-base sm:text-lg font-semibold text-red-900 dark:text-red-300 mb-2">Có lỗi xảy ra</h3>
-                    <p className="text-sm sm:text-base text-red-600 dark:text-red-400 mb-4 break-words px-2">{error}</p>
+                    <h3 className="text-lg font-bold text-red-900 dark:text-red-300 mb-2">Có lỗi xảy ra</h3>
+                    <p className="text-base text-red-600 dark:text-red-400 mb-6 break-words px-2">{error}</p>
                     <button
                       onClick={loadInitial}
-                      className="px-4 sm:px-6 py-2 sm:py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-sm sm:text-base hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 touch-manipulation shadow-md hover:shadow-lg min-h-[44px]"
+                      className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-base hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-lg"
                       aria-label="Thử tải lại bài viết"
                     >
                       Thử lại
                     </button>
                   </div>
                 ) : items.length > 0 ? (
-                  <div className="space-y-3 sm:space-y-4">
+                  <div className="space-y-6">
                     {items.map((post, index) => {
                       const isLastPost = index === items.length - 1;
 
                       return (
-                        <div
+                        <motion.div
                           key={post._id}
                           ref={isLastPost ? lastPostElementRef : null}
-                          className="hover:shadow-lg transition-all duration-200"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ 
+                            duration: 0.5, 
+                            delay: (index % 5) * 0.1,
+                            ease: [0.25, 0.1, 0.25, 1]
+                          }}
                         >
-                          <PostCard
+                          <ModernPostCard
                             post={post}
                             user={user}
                             onUpdate={loadInitial}
-                            hidePublicIcon={false}
-                            hideActionsMenu={true}
                             isSaved={savedMap[post._id]}
                             onSavedChange={updateSavedState}
-                            skipSavedStatusFetch={true}
                           />
-                        </div>
+                        </motion.div>
                       );
                     })}
 
                     {/* Loading more indicator */}
                     {loadingMore && (
-                      <div className="flex justify-center py-6 sm:py-8">
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm sm:text-base">
-                          <Loader2 size={18} className="sm:w-5 sm:h-5 animate-spin text-gray-600 dark:text-gray-300" />
-                          <span className="font-medium">Đang tải thêm bài viết...</span>
+                      <div className="flex justify-center py-8">
+                        <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300 text-base">
+                          <Loader2 size={20} className="animate-spin text-gray-600 dark:text-gray-300" />
+                          <span className="font-semibold">Đang tải thêm bài viết...</span>
                         </div>
                       </div>
                     )}
 
                     {/* End of feed message */}
                     {!hasMore && items.length > 0 && (
-                      <div className="text-center py-6 sm:py-8">
-                        <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full text-gray-600 dark:text-gray-300 text-xs sm:text-sm font-medium">
+                      <div className="text-center py-8">
+                        <div className="inline-flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 rounded-full text-gray-600 dark:text-gray-300 text-sm font-semibold">
                           <span>✨</span>
                           <span>Bạn đã xem hết tất cả bài viết!</span>
                         </div>
@@ -1016,12 +1022,12 @@ export default function Home({ user, setUser }) {
                     )}
                   </div>
                 ) : (
-                  <div className="bg-white dark:bg-neutral-800 rounded-xl sm:rounded-2xl shadow-md dark:shadow-lg border border-gray-300 dark:border-neutral-600 p-6 sm:p-12 text-center transition-colors duration-100">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gray-100 dark:bg-neutral-700 rounded-full flex items-center justify-center">
-                      <TrendingUp size={20} className="sm:w-6 sm:h-6 text-gray-400 dark:text-gray-400" />
+                  <div className="bg-white dark:bg-[#111] rounded-2xl shadow-md dark:shadow-lg border border-transparent dark:border-white/5 p-12 text-center transition-colors duration-300">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                      <TrendingUp size={24} className="text-gray-400 dark:text-gray-400" />
                     </div>
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-2">Chưa có bài viết nào</h3>
-                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">Hãy là người đầu tiên chia sẻ điều gì đó thú vị!</p>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Chưa có bài viết nào</h3>
+                    <p className="text-base text-gray-600 dark:text-gray-300">Hãy là người đầu tiên chia sẻ điều gì đó thú vị!</p>
                   </div>
                 )}
               </div>

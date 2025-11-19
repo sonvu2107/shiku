@@ -361,7 +361,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
 
   return (
     // Main navbar container - compact & modern
-    <div className="fixed top-0 left-0 w-full z-50 bg-white dark:bg-[#242526] border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors">
+    <div className="fixed top-0 left-0 w-full z-50 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors">
 
       <div className="flex items-center justify-between px-6 h-[64px]">
         {/* LEFT ZONE: Logo + Search */}

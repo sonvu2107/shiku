@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api";
 import { Calendar, MapPin, Clock, Users, Plus, Search } from "lucide-react";
 import { useSEO } from "../utils/useSEO";
+import EventCardSkeleton from "../components/EventCardSkeleton";
 
 /**
  * Events - Trang quản lý sự kiện
@@ -79,12 +80,12 @@ export default function Events() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16 sm:pt-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 sm:pt-20 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sự kiện</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Sự kiện</h1>
             <Link
               to="/events/create"
               className="btn flex items-center justify-center gap-2 w-full sm:w-auto touch-manipulation min-h-[44px] px-4 py-3 sm:py-2"
@@ -96,18 +97,23 @@ export default function Events() {
           
           {/* Search */}
           <form onSubmit={handleSearch} className="relative mb-4 sm:mb-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 z-10" size={16} />
             <input
               type="text"
               placeholder="Tìm kiếm sự kiện..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 sm:pl-10 pr-4 py-3 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base touch-manipulation min-h-[44px]"
+              className="w-full pl-9 sm:pl-10 pr-4 py-3 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                        focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent 
+                        outline-none text-sm sm:text-base bg-white dark:bg-gray-800 
+                        text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 
+                        shadow-sm dark:shadow-gray-900/50 transition-all duration-200
+                        hover:border-gray-400 dark:hover:border-gray-500 touch-manipulation min-h-[44px]"
             />
           </form>
 
           {/* Filters */}
-          <div className="bg-gray-100 p-1 rounded-lg">
+          <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-lg transition-colors duration-200" role="group" aria-label="Lọc sự kiện">
             <div className="grid grid-cols-4 gap-1">
               {filters.map((filterItem) => (
                 <button
@@ -115,9 +121,11 @@ export default function Events() {
                   onClick={() => setFilter(filterItem.id)}
                   className={`px-1.5 sm:px-3 py-2.5 sm:py-2 rounded-md transition-colors text-[10px] sm:text-sm whitespace-nowrap touch-manipulation min-h-[44px] ${
                     filter === filterItem.id
-                      ? "bg-white text-blue-600 shadow-sm font-medium"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm font-medium"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                   }`}
+                  aria-label={`Lọc ${filterItem.label}`}
+                  aria-pressed={filter === filterItem.id}
                 >
                   {filterItem.label}
                 </button>
@@ -128,15 +136,27 @@ export default function Events() {
 
         {/* Events List */}
         {loading ? (
-          <div className="flex justify-center py-8 sm:py-12">
-            <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600"></div>
+          <div className="space-y-3 sm:space-y-4">
+            {[1, 2, 3].map(i => (
+              <EventCardSkeleton key={i} />
+            ))}
           </div>
         ) : (
           <div className="space-y-3 sm:space-y-4">
             {events.length === 0 ? (
-              <div className="text-center py-8 sm:py-12 text-gray-500">
-                <Calendar size={40} className="mx-auto mb-3 sm:mb-4 text-gray-300" />
-                <p className="text-sm sm:text-base">Không có sự kiện nào để hiển thị</p>
+              <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
+              shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+              border border-transparent dark:border-white/5 text-center py-12 sm:py-16">
+                <Calendar size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600 opacity-60" />
+                <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-4">Không có sự kiện nào để hiển thị</p>
+                <Link
+                  to="/events/create"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium"
+                  aria-label="Tạo sự kiện đầu tiên"
+                >
+                  <Plus size={18} />
+                  <span>Tạo sự kiện đầu tiên</span>
+                </Link>
               </div>
             ) : (
               events.map((event) => {
@@ -144,7 +164,10 @@ export default function Events() {
                 const upcoming = isUpcoming(event.date);
                 
                 return (
-                  <div key={event._id} className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                  <div key={event._id} className="bg-white dark:bg-[#111] rounded-[32px] mb-6 overflow-hidden
+                  shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+                  hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
+                  transition-all duration-500 hover:-translate-y-1 border border-transparent dark:border-white/5">
                     {/* Cover Image */}
                     {event.coverImage && (
                       <div className="h-48 sm:h-56 md:h-64 lg:h-72 w-full">
@@ -156,55 +179,55 @@ export default function Events() {
                       </div>
                     )}
                     
-                    <div className="p-4 sm:p-6">
+                    <div className="px-5 pt-4 pb-6">
                       <div className="flex flex-col gap-4">
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900">{event.title}</h3>
+                            <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 dark:text-gray-100">{event.title}</h3>
                             {event.userRole === 'creator' && (
-                              <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full">
+                              <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs px-2 py-1 rounded-full">
                                 Của tôi
                               </span>
                             )}
                             {event.userRole === 'attendee' && (
-                              <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
+                              <span className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs px-2 py-1 rounded-full">
                                 Đã tham gia
                               </span>
                             )}
                             {event.userRole === 'interested' && (
-                              <span className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded-full">
+                              <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs px-2 py-1 rounded-full">
                                 Quan tâm
                               </span>
                             )}
                             {event.userRole === 'declined' && (
-                              <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
+                              <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs px-2 py-1 rounded-full">
                                 Từ chối
                               </span>
                             )}
                             {upcoming && (
-                              <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
+                              <span className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs px-2 py-1 rounded-full">
                                 Sắp diễn ra
                               </span>
                             )}
                           </div>
                           
-                          <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base line-clamp-2">{event.description}</p>
+                          <p className="text-gray-600 dark:text-gray-300 mb-3 sm:mb-4 text-sm sm:text-base line-clamp-2">{event.description}</p>
                           
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-500 text-xs sm:text-sm">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
                             <div className="flex items-center gap-2">
-                              <Calendar size={14} />
+                              <Calendar size={14} className="text-gray-400 dark:text-gray-500" />
                               <span className="truncate">{date}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Clock size={14} />
+                              <Clock size={14} className="text-gray-400 dark:text-gray-500" />
                               <span className="truncate">{time}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <MapPin size={14} />
+                              <MapPin size={14} className="text-gray-400 dark:text-gray-500" />
                               <span className="truncate">{event.location || 'Chưa xác định'}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Users size={14} />
+                              <Users size={14} className="text-gray-400 dark:text-gray-500" />
                               <span className="truncate">
                                 {event.attendees?.length || 0} tham gia
                                 {event.interested?.length > 0 && `, ${event.interested.length} quan tâm`}

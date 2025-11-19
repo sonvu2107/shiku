@@ -263,7 +263,10 @@ export default function Friends() {
   };
 
   const UserCard = ({ user, showActions = false, isRequest = false, requestId = null, showEmail = true }) => (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:shadow-md transition-all duration-200">
+    <div className="bg-white dark:bg-[#111] border border-transparent dark:border-white/5 rounded-[24px] p-4
+    shadow-[0_4px_15px_rgb(0,0,0,0.02)] dark:shadow-[0_4px_15px_rgb(0,0,0,0.3)]
+    hover:shadow-[0_8px_25px_rgb(0,0,0,0.06)] dark:hover:shadow-[0_8px_25px_rgb(0,0,0,0.5)]
+    transition-all duration-300">
       <div className="flex items-center gap-2 sm:gap-3">
         <div className="relative flex-shrink-0">
           <img
@@ -337,7 +340,9 @@ export default function Friends() {
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
 
         {/* Header */}
-        <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-[#111] rounded-[32px] p-5 mb-6
+        shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+        border border-transparent dark:border-white/5">
           <h1 className="text-2xl sm:text-3xl font-bold mb-4 flex items-center gap-2 sm:gap-3 text-gray-900 dark:text-gray-100">
             <Users size={24} className="sm:w-8 sm:h-8" />
             Bạn bè
@@ -362,7 +367,9 @@ export default function Friends() {
 
         {/* Search Results */}
         {searchQuery.trim() && (
-          <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-[#111] rounded-[32px] p-5 mb-6
+          shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+          border border-transparent dark:border-white/5">
             <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Kết quả tìm kiếm</h2>
             {loading ? (
               <p className="text-gray-600 dark:text-gray-400">Đang tìm kiếm...</p>
@@ -379,7 +386,10 @@ export default function Friends() {
         )}
 
         {/* Tabs */}
-        <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm dark:shadow-gray-900/20 rounded-lg">
+        <div className="bg-white dark:bg-[#111] rounded-[32px] mb-6 overflow-hidden
+        shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+        hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
+        transition-all duration-500 border border-transparent dark:border-white/5">
           {/* Navigation */}
           <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
             <nav className="grid grid-cols-4 divide-x divide-gray-200 dark:divide-gray-700">
@@ -516,7 +526,10 @@ export default function Friends() {
             <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 bg-white dark:bg-gray-800 min-h-[400px]">
               {sentRequests.length > 0 ? (
                 sentRequests.map(request => (
-                  <div key={request._id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:shadow-md dark:hover:shadow-gray-900/50 transition-all duration-200">
+                  <div key={request._id} className="bg-white dark:bg-[#111] border border-transparent dark:border-white/5 rounded-[24px] p-4
+                  shadow-[0_4px_15px_rgb(0,0,0,0.02)] dark:shadow-[0_4px_15px_rgb(0,0,0,0.3)]
+                  hover:shadow-[0_8px_25px_rgb(0,0,0,0.06)] dark:hover:shadow-[0_8px_25px_rgb(0,0,0,0.5)]
+                  transition-all duration-300">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div className="relative flex-shrink-0">
                         <img

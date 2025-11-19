@@ -512,6 +512,38 @@ router.get("/:id/is-saved", authRequired, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+// Get interest status for a post
+router.get("/:id/interest-status", authRequired, async (req, res, next) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ error: "Post ID không hợp lệ" });
+    }
+
+    const user = await User.findById(userId).select("interestedPosts notInterestedPosts").lean();
+    if (!user) {
+      return res.status(404).json({ error: "Không tìm thấy người dùng" });
+    }
+
+    const interestedPosts = (user.interestedPosts || []).map(id => id.toString());
+    const notInterestedPosts = (user.notInterestedPosts || []).map(id => id.toString());
+    const postIdStr = postId.toString();
+
+    let interested = null;
+    if (interestedPosts.includes(postIdStr)) {
+      interested = true;
+    } else if (notInterestedPosts.includes(postIdStr)) {
+      interested = false;
+    }
+
+    res.json({ interested });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Toggle interest/not interested for a post
 router.post("/:id/interest", authRequired, async (req, res, next) => {
   try {

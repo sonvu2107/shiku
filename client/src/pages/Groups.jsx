@@ -217,7 +217,10 @@ const Groups = () => {
 
   // Render group list item
   const renderGroupListItem = (group) => (
-    <div key={group._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-900/20 p-4 hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-700">
+    <div key={group._id} className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6
+    shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+    hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
+    transition-all duration-500 hover:-translate-y-1 border border-transparent dark:border-white/5">
       <div className="flex items-center gap-4">
         {/* Avatar */}
         <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
@@ -330,7 +333,10 @@ const Groups = () => {
 
         {/* Tabs */}
         <div className="mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-[#111] rounded-[32px] mb-6 overflow-hidden
+          shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+          hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
+          transition-all duration-500 border border-transparent dark:border-white/5">
             <div className="grid grid-cols-3 border-b border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
               {[
                 { id: 'discover', label: 'Khám phá', count: totalGroups },
@@ -411,7 +417,9 @@ const Groups = () => {
 
           {/* Filters Panel */}
           {showFilters && (
-            <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="mt-4 p-4 bg-white dark:bg-[#111] rounded-[24px]
+            shadow-[0_4px_15px_rgb(0,0,0,0.02)] dark:shadow-[0_4px_15px_rgb(0,0,0,0.3)]
+            border border-transparent dark:border-white/5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Group Type */}
                 <div>
@@ -542,7 +550,9 @@ const Groups = () => {
             {/* Empty State */}
             {groups.length === 0 && !loading && activeTab === 'discover' && (
               <div className="text-center py-12">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+                  <div className="bg-white dark:bg-[#111] rounded-[32px] p-5 mb-6
+                  shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+                  border border-transparent dark:border-white/5 p-8">
                   <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Không tìm thấy nhóm nào</h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-4">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
@@ -558,7 +568,9 @@ const Groups = () => {
 
             {myGroups.length === 0 && !loading && activeTab === 'my-groups' && (
               <div className="text-center py-12">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+                  <div className="bg-white dark:bg-[#111] rounded-[32px] p-5 mb-6
+                  shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+                  border border-transparent dark:border-white/5 p-8">
                   <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Bạn chưa tham gia nhóm nào</h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-4">Khám phá và tham gia các nhóm thú vị</p>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, uploadImage } from "../api";
 import UserName from "../components/UserName";
-import PostCard from "../components/PostCard";
+import ModernPostCard from "../components/ModernPostCard";
 import { useSavedPosts } from "../hooks/useSavedPosts";
 import { generateAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import PostCreator from "../components/PostCreator";
@@ -463,7 +463,10 @@ export default function Profile() {
  {/* Profile Info */}
 <div className="relative -mt-8 md:-mt-20 px-4 md:px-6 pb-6">
   <div className="max-w-4xl mx-auto">
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+    <div className="bg-white dark:bg-[#111] rounded-[32px] 
+    shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+    hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
+    transition-all duration-500 border border-transparent dark:border-white/5 overflow-hidden">
       <div className="pt-16 md:pt-12 p-4 md:p-6 profile-info">
         <div className="flex flex-col md:flex-row items-start md:items-end gap-4 md:gap-6">
                 {/* Avatar */}
@@ -871,7 +874,10 @@ export default function Profile() {
 
       {/* Content Tabs */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-[#111] rounded-[32px] mb-6
+        shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+        hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
+        transition-all duration-500 border border-transparent dark:border-white/5 overflow-hidden">
           {/* Tab Navigation */}
           <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
             <nav className="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700">
@@ -968,16 +974,13 @@ export default function Profile() {
                 ) : posts.length > 0 ? (
                   <div className="space-y-6">
                     {posts.map((post) => (
-                      <PostCard
+                      <ModernPostCard
                         key={post._id}
                         post={post}
                         user={user}
                         onUpdate={loadPosts}
-                        hidePublicIcon={true}
-                        hideActionsMenu={true}
                         isSaved={savedMap[post._id]}
                         onSavedChange={updateSavedState}
-                        skipSavedStatusFetch={true}
                       />
                     ))}
                   </div>
@@ -1045,7 +1048,10 @@ export default function Profile() {
                 ) : friends.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {friends.map((friend, index) => (
-                      <div key={friend._id || index} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200">
+                      <div key={friend._id || index} className="bg-white dark:bg-[#111] border border-transparent dark:border-white/5 rounded-[24px] p-4 
+                      shadow-[0_4px_15px_rgb(0,0,0,0.02)] dark:shadow-[0_4px_15px_rgb(0,0,0,0.3)]
+                      hover:shadow-[0_8px_25px_rgb(0,0,0,0.06)] dark:hover:shadow-[0_8px_25px_rgb(0,0,0,0.5)]
+                      transition-all duration-300">
                         <div className="flex items-center space-x-3">
                           {/* Avatar */}
                           <div className="relative">

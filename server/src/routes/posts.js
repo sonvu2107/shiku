@@ -1254,6 +1254,95 @@ router.get("/:id/is-saved", authRequired, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Get interest status for a post
+router.get("/:id/interest-status", authRequired, async (req, res, next) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ error: "Post ID không hợp lệ" });
+    }
+
+    const user = await User.findById(userId).select("interestedPosts notInterestedPosts").lean();
+    if (!user) {
+      return res.status(404).json({ error: "Không tìm thấy người dùng" });
+    }
+
+    const interestedPosts = (user.interestedPosts || []).map(id => id.toString());
+    const notInterestedPosts = (user.notInterestedPosts || []).map(id => id.toString());
+    const postIdStr = postId.toString();
+
+    let interested = null;
+    if (interestedPosts.includes(postIdStr)) {
+      interested = true;
+    } else if (notInterestedPosts.includes(postIdStr)) {
+      interested = false;
+    }
+
+    res.json({ interested });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Toggle interest/not interested for a post
+router.post("/:id/interest", authRequired, async (req, res, next) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user._id;
+    const { interested } = req.body; // true = quan tâm, false = không quan tâm
+
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ error: "Post ID không hợp lệ" });
+    }
+
+    if (typeof interested !== 'boolean') {
+      return res.status(400).json({ error: "Giá trị 'interested' phải là boolean" });
+    }
+
+    const post = await Post.findById(postId).select("_id status author");
+    if (!post) {
+      return res.status(404).json({ error: "Không tìm thấy bài viết" });
+    }
+
+    if (post.status === "private" && post.author.toString() !== userId.toString()) {
+      return res.status(403).json({ error: "Không thể đánh dấu bài viết riêng tư của người khác" });
+    }
+
+    const user = await User.findById(userId).select("interestedPosts notInterestedPosts");
+    
+    // Remove from both lists first (toggle behavior)
+    user.interestedPosts = (user.interestedPosts || []).filter(id => id.toString() !== postId);
+    user.notInterestedPosts = (user.notInterestedPosts || []).filter(id => id.toString() !== postId);
+
+    // Add to appropriate list based on interested value
+    if (interested) {
+      user.interestedPosts = user.interestedPosts || [];
+      if (!user.interestedPosts.some(id => id.toString() === postId)) {
+        user.interestedPosts.unshift(postId);
+      }
+    } else {
+      user.notInterestedPosts = user.notInterestedPosts || [];
+      if (!user.notInterestedPosts.some(id => id.toString() === postId)) {
+        user.notInterestedPosts.unshift(postId);
+      }
+    }
+
+    await user.save();
+    
+    res.json({ 
+      success: true, 
+      interested,
+      message: interested 
+        ? "Đã đánh dấu quan tâm bài viết này" 
+        : "Đã đánh dấu không quan tâm bài viết này"
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Get saved posts list
 router.get("/saved/list", authRequired, async (req, res, next) => {
   try {

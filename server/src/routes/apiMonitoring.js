@@ -2,6 +2,7 @@ import express from "express";
 import { authRequired } from "../middleware/auth.js";
 import ApiStats from "../models/ApiStats.js";
 import { getClientAgent } from "../utils/clientAgent.js";
+import mongoose from "mongoose";
 
 // TEMP: Cleanup invalid env keys - SIMPLIFIED
 (async () => {
@@ -92,9 +93,29 @@ let batchWriteInterval = null;
 const BATCH_WRITE_INTERVAL = 10000; // 10 seconds
 const MAX_REALTIME_UPDATES = 100;
 
+// Track consecutive errors to reduce log spam
+let consecutiveErrors = 0;
+const MAX_SILENT_ERRORS = 10; // Only log every 10th error after first error
+
+// Function to check if MongoDB is connected
+const isMongoConnected = () => {
+  // readyState: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+  return mongoose.connection.readyState === 1;
+};
+
 // Function to flush stats buffer to database
 const flushStatsBuffer = async () => {
   if (statsBuffer.totalRequests === 0) return; // Nothing to flush
+  
+  // Check if MongoDB is connected before attempting to flush
+  if (!isMongoConnected()) {
+    consecutiveErrors++;
+    // Only log occasionally to reduce spam
+    if (consecutiveErrors === 1 || consecutiveErrors % 50 === 0) {
+      console.warn(`[WARN][API-MONITORING] MongoDB not connected, skipping stats flush (error count: ${consecutiveErrors})`);
+    }
+    return; // Skip flushing when MongoDB is unavailable
+  }
   
   try {
     const updateOps = {
@@ -146,7 +167,7 @@ const flushStatsBuffer = async () => {
     // Perform atomic update
     await ApiStats.findOneAndUpdate({}, updateOps, { upsert: true });
 
-    // Reset buffer
+    // Reset buffer on success
     statsBuffer.totalRequests = 0;
     statsBuffer.rateLimitHits = 0;
     statsBuffer.endpointCounts.clear();
@@ -156,8 +177,24 @@ const flushStatsBuffer = async () => {
     statsBuffer.dailyIPCounts.clear();
     statsBuffer.rateLimitByEndpoint.clear();
     statsBuffer.realtimeUpdates = [];
+    
+    // Reset error counter on successful flush
+    if (consecutiveErrors > 0) {
+      console.log(`[INFO][API-MONITORING] Stats buffer flushed successfully after ${consecutiveErrors} failed attempts`);
+      consecutiveErrors = 0;
+    }
   } catch (error) {
-    console.error('[ERROR][API-MONITORING] Error flushing stats buffer:', error);
+    consecutiveErrors++;
+    // Only log errors occasionally to reduce spam
+    if (consecutiveErrors === 1 || consecutiveErrors % MAX_SILENT_ERRORS === 0) {
+      const errorMessage = error.message || error.toString();
+      // Check if it's a connection error
+      if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('MongoServerSelectionError') || errorMessage.includes('getaddrinfo')) {
+        console.warn(`[WARN][API-MONITORING] MongoDB connection error (attempt ${consecutiveErrors}): ${errorMessage.substring(0, 100)}`);
+      } else {
+        console.error(`[ERROR][API-MONITORING] Error flushing stats buffer (attempt ${consecutiveErrors}):`, errorMessage.substring(0, 200));
+      }
+    }
   }
 };
 

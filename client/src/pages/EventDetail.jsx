@@ -346,33 +346,37 @@ export default function EventDetail() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Description */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Mô tả sự kiện</h2>
-              <p className="text-gray-700 whitespace-pre-wrap">{event.description}</p>
+            <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
+            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+            border border-transparent dark:border-white/5">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Mô tả sự kiện</h2>
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{event.description}</p>
             </div>
 
             {/* Event Info */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Thông tin sự kiện</h2>
+            <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
+            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+            border border-transparent dark:border-white/5">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Thông tin sự kiện</h2>
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Calendar className="text-gray-400" size={20} />
+                  <Calendar className="text-gray-400 dark:text-gray-500" size={20} />
                   <div>
-                    <p className="font-medium text-gray-900">{date}</p>
-                    <p className="text-gray-600">{time}</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{date}</p>
+                    <p className="text-gray-600 dark:text-gray-400">{time}</p>
                   </div>
                 </div>
 
                 {event.location && (
                   <div className="flex items-center gap-3">
-                    <MapPin className="text-gray-400" size={20} />
-                    <p className="text-gray-700">{event.location}</p>
+                    <MapPin className="text-gray-400 dark:text-gray-500" size={20} />
+                    <p className="text-gray-700 dark:text-gray-300">{event.location}</p>
                   </div>
                 )}
 
                 <div className="flex items-center gap-3">
-                  <Users className="text-gray-400" size={20} />
-                  <p className="text-gray-700">
+                  <Users className="text-gray-400 dark:text-gray-500" size={20} />
+                  <p className="text-gray-700 dark:text-gray-300">
                     {event.attendees.length} người tham gia
                     {event.maxAttendees && ` / ${event.maxAttendees} tối đa`}
                   </p>
@@ -380,12 +384,12 @@ export default function EventDetail() {
 
                 {event.tags && event.tags.length > 0 && (
                   <div className="flex items-start gap-3">
-                    <Tag className="text-gray-400 mt-1" size={20} />
+                    <Tag className="text-gray-400 dark:text-gray-500 mt-1" size={20} />
                     <div className="flex flex-wrap gap-2">
                       {event.tags.map((tag, index) => (
                         <span
                           key={index}
-                          className="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full"
+                          className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm px-3 py-1 rounded-full"
                         >
                           {tag}
                         </span>
@@ -397,8 +401,10 @@ export default function EventDetail() {
             </div>
 
             {/* Participants */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
+            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+            border border-transparent dark:border-white/5">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Người tham gia ({event.attendees.length})
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -422,8 +428,10 @@ export default function EventDetail() {
 
             {/* Interested */}
             {event.interested && event.interested.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
+              shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+              border border-transparent dark:border-white/5">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
                   Quan tâm ({event.interested.length})
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -446,8 +454,10 @@ export default function EventDetail() {
 
             {/* Declined */}
             {event.declined && event.declined.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
+              shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+              border border-transparent dark:border-white/5">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
                   Từ chối ({event.declined.length})
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -472,8 +482,10 @@ export default function EventDetail() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Creator Info */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Người tạo</h3>
+            <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
+            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+            border border-transparent dark:border-white/5">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Người tạo</h3>
               <div className="flex items-center gap-3">
                 <img
                   src={event.creator.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(event.creator.name)}&length=2&background=cccccc&color=222222`}
@@ -493,7 +505,9 @@ export default function EventDetail() {
             </div>
 
             {/* Action Buttons */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
+            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+            border border-transparent dark:border-white/5">
               {canJoin() && (
                 <button
                   onClick={handleJoinEvent}

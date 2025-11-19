@@ -4,6 +4,8 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 // Import các components chính (giữ nguyên vì cần thiết cho layout)
 import Navbar from "./components/Navbar.jsx";
+import FloatingDock from "./components/FloatingDock.jsx";
+import PostCreator from "./components/PostCreator.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { ToastContainer, useToast } from "./components/Toast.jsx";
@@ -13,6 +15,7 @@ import Home from "./pages/Home.jsx"; // Eager load Home for better LCP
 
 // LAZY IMPORT CÁC PAGES - Code Splitting
 // Core pages (load ngay)
+const Landing = lazy(() => import("./pages/Landing.jsx"));
 const Login = lazy(() => import("./pages/Login.jsx"));
 const Register = lazy(() => import("./pages/Register.jsx"));
 
@@ -76,6 +79,8 @@ export default function App() {
     if (saved != null) return saved === "1";
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
+  // Kiểm tra xem StoryViewer có đang mở không
+  const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
   // Hook để lấy thông tin location hiện tại
   const location = useLocation();
   // Toast notifications
@@ -102,8 +107,8 @@ export default function App() {
   }, [location.pathname]);
 
   // Danh sách các trang không hiển thị navbar
-  const hideNavbarPages = ["/login", "/register", "/reset-password"];
-  const shouldHideNavbar = hideNavbarPages.includes(location.pathname);
+  const hideNavbarPages = ["/login", "/register", "/reset-password", "/"];
+  const shouldHideNavbar = hideNavbarPages.includes(location.pathname) && !user;
 
   // Effect chạy khi app khởi tạo để kiểm tra authentication
   useEffect(() => {
@@ -256,6 +261,26 @@ export default function App() {
     syncUserData();
   }, [user?._id]); // Chỉ depend vào user._id để tránh infinite loop
 
+  // Effect để kiểm tra xem StoryViewer có đang mở không
+  useEffect(() => {
+    const checkStoryViewer = () => {
+      const storyViewer = document.querySelector('.story-viewer');
+      setIsStoryViewerOpen(!!storyViewer);
+    };
+
+    // Kiểm tra ngay lập tức
+    checkStoryViewer();
+
+    // Sử dụng MutationObserver để theo dõi thay đổi DOM
+    const observer = new MutationObserver(checkStoryViewer);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   // Hiển thị loading screen khi app đang khởi tạo
   if (loading) {
     return (
@@ -297,16 +322,27 @@ export default function App() {
         
         {/* Mobile CSRF Debug Component */}
         
-        {/* Hiển thị navbar cho tất cả trang trừ login/register, chat và home (home có layout riêng) */}
-        {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && (
+        {/* Hiển thị navbar cho tất cả trang trừ login/register/landing (khi chưa đăng nhập), chat và home (home có layout riêng) */}
+        {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && location.pathname !== "/home" && location.pathname !== "/feed" && (
           <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
+        )}
+
+        {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat, và không có story viewer đang mở */}
+        {user && !shouldHideNavbar && location.pathname !== "/chat" && !isStoryViewerOpen && (
+          <FloatingDock />
+        )}
+
+        {/* Global PostCreator - để có thể mở modal từ bất kỳ trang nào (qua FloatingDock) */}
+        {user && !shouldHideNavbar && (
+          <PostCreator user={user} />
         )}
 
       {/* Routing logic dựa trên loại trang */}
       {shouldHideNavbar ? (
-        // Routes cho các trang authentication (không có navbar)
+        // Routes cho các trang authentication và landing (không có navbar)
         <Suspense fallback={<PageLoader />}>
           <Routes>
+            <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login setUser={setUser} />} />
             <Route path="/register" element={<Register setUser={setUser} />} />
             <Route path="/reset-password" element={<ResetPassword />} />
@@ -334,11 +370,12 @@ export default function App() {
         <div className="w-full">
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              {/* Trang chủ - redirect đến login nếu chưa đăng nhập */}
-              <Route path="/" element={user ? <Home user={user} setUser={setUser} /> : <Navigate to="/login" />} />
+              {/* Trang chủ - Landing page nếu chưa đăng nhập, Home nếu đã đăng nhập */}
+              <Route path="/" element={user ? <Home user={user} setUser={setUser} /> : <Landing />} />
               
               {/* Các trang được bảo vệ (cần đăng nhập) */}
               <Route path="/home" element={<ProtectedRoute user={user}><Home user={user} setUser={setUser} /></ProtectedRoute>} />
+              <Route path="/feed" element={<ProtectedRoute user={user}><Home user={user} setUser={setUser} /></ProtectedRoute>} />
               <Route path="/post/:slug" element={<PostDetail />} />
               <Route path="/new" element={<ProtectedRoute user={user}><NewPost /></ProtectedRoute>} />
               <Route path="/edit/:id" element={<ProtectedRoute user={user}><EditPost /></ProtectedRoute>} />

@@ -64,7 +64,7 @@ export default function RightSidebar({ user }) {
       const sortedTags = Object.entries(tagCount)
         .map(([tag, count]) => ({ tag, count }))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 10); // Top 10 tags
+        .slice(0, 3); // Top 3 tags
 
       setTrendingTags(sortedTags);
     } catch (error) {
@@ -131,15 +131,15 @@ export default function RightSidebar({ user }) {
       <div className="space-y-6">
         {/* Loading skeletons */}
         {[1, 2].map(i => (
-          <div key={i} className="bg-white dark:bg-neutral-800 rounded-2xl shadow-md border border-gray-300 dark:border-neutral-600 p-4">
-            <div className="h-4 bg-gray-200 dark:bg-neutral-700 rounded animate-pulse w-24 mb-4"></div>
+          <div key={i} className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 p-5">
+            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-24 mb-4"></div>
             <div className="space-y-3">
               {[1, 2, 3].map(j => (
                 <div key={j} className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-200 dark:bg-neutral-700 rounded-full animate-pulse"></div>
+                  <div className="w-10 h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
                   <div className="flex-1">
-                    <div className="h-4 bg-gray-200 dark:bg-neutral-700 rounded animate-pulse w-32 mb-1"></div>
-                    <div className="h-3 bg-gray-200 dark:bg-neutral-700 rounded animate-pulse w-24"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-32 mb-1"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-24"></div>
                   </div>
                 </div>
               ))}
@@ -153,9 +153,9 @@ export default function RightSidebar({ user }) {
   return (
     <div className="space-y-6 max-h-[calc(100vh-5rem)] overflow-y-auto scrollbar-hide">
       {/* Friend Suggestions */}
-      <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-md border border-gray-300 dark:border-neutral-600 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-neutral-700">
-          <h3 className="font-semibold text-gray-900 dark:text-white">Gợi ý kết bạn</h3>
+      <div className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+          <h3 className="font-bold text-gray-900 dark:text-white">Gợi ý kết bạn</h3>
           <Link
             to="/friends?tab=suggestions"
             className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors"
@@ -164,13 +164,14 @@ export default function RightSidebar({ user }) {
             <ArrowRight size={14} />
           </Link>
         </div>
-        <div className="p-4 space-y-3">
+        <div className="p-5">
           {friendSuggestions.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
               Không có gợi ý bạn bè
             </p>
           ) : (
-            friendSuggestions.map((friend) => {
+            <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+              {friendSuggestions.slice(0, 4).map((friend) => {
               const isSending = sendingRequests.has(friend._id);
               const isSent = sentRequests.has(friend._id);
 
@@ -216,17 +217,18 @@ export default function RightSidebar({ user }) {
                   </button>
                 </div>
               );
-            })
+              })}
+            </div>
           )}
         </div>
       </div>
 
       {/* Trending Tags */}
-      <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-md border border-gray-300 dark:border-neutral-600 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-neutral-700">
+      <div className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-2">
             <TrendingUp size={18} className="text-gray-900 dark:text-white" />
-            <h3 className="font-semibold text-gray-900 dark:text-white">Tags xu hướng</h3>
+            <h3 className="font-bold text-gray-900 dark:text-white">Tags xu hướng</h3>
           </div>
           <Link
             to="/explore"
@@ -236,7 +238,7 @@ export default function RightSidebar({ user }) {
             <ArrowRight size={14} />
           </Link>
         </div>
-        <div className="p-4 space-y-2">
+        <div className="p-5 space-y-2">
           {trendingTags.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
               Chưa có tag xu hướng

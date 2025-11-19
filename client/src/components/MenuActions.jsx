@@ -42,34 +42,36 @@ export default function MenuActions({ onToggleStatus, onEdit, onDelete, onSave, 
         <MoreVertical size={22} />
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-50 flex flex-col py-1">
+        <div className="absolute right-0 mt-2 w-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-50 flex flex-col py-1 overflow-hidden">
           {onSave && (
             <button
-              className="flex items-center gap-2 px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300"
+              className="flex items-center gap-1.5 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap"
               onClick={() => { onSave(); setOpen(false); }}
             >
-              {saved ? <BookmarkCheck size={16} className="text-blue-500" /> : <Bookmark size={16} />}
-              {saved ? "Bỏ lưu" : "Lưu bài"}
+              {saved ? <BookmarkCheck size={16} className="text-blue-500 flex-shrink-0" /> : <Bookmark size={16} className="flex-shrink-0" />}
+              <span>{saved ? "Bỏ lưu" : "Lưu bài"}</span>
             </button>
           )}
           <button
-            className="flex items-center gap-2 px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300"
+            className="flex items-center gap-1.5 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap"
             onClick={() => { onToggleStatus(); setOpen(false); }}
           >
-            {isPrivate ? <Globe size={16} /> : <Lock size={16} />}
-            {isPrivate ? "Công khai" : "Riêng tư"}
+            {isPrivate ? <Globe size={16} className="flex-shrink-0" /> : <Lock size={16} className="flex-shrink-0" />}
+            <span>{isPrivate ? "Công khai" : "Riêng tư"}</span>
           </button>
           <button
-            className="flex items-center gap-2 px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300"
+            className="flex items-center gap-1.5 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap"
             onClick={() => { onEdit(); setOpen(false); }}
           >
-            <Edit size={16} /> Sửa bài
+            <Edit size={16} className="flex-shrink-0" />
+            <span>Sửa bài</span>
           </button>
           <button
-            className="flex items-center gap-2 px-4 py-1.5 hover:bg-red-100 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400"
+            className="flex items-center gap-1.5 px-3 py-2 hover:bg-red-100 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 whitespace-nowrap"
             onClick={() => { onDelete(); setOpen(false); }}
           >
-            <Trash2 size={16} /> Xóa bài
+            <Trash2 size={16} className="flex-shrink-0" />
+            <span>Xóa bài</span>
           </button>
         </div>
       )}

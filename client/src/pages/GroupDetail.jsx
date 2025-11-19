@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { api } from '../api';
 import { useSavedPosts } from '../hooks/useSavedPosts';
-import PostCard from '../components/PostCard';
+import ModernPostCard from '../components/ModernPostCard';
 import PostCreator from '../components/PostCreator';
 import { getAccessToken } from '../utils/tokenManager.js';
 
@@ -977,15 +977,12 @@ const GroupDetail = () => {
                     {posts.length > 0 ? (
                       <div className="space-y-4">
                         {posts.map((post) => (
-                          <PostCard
+                          <ModernPostCard
                             key={post._id}
                             post={post}
                             user={user}
-                            hidePublicIcon={false}
-                            hideActionsMenu={true}
                             isSaved={savedMap[post._id]}
                             onSavedChange={updateSavedState}
-                            skipSavedStatusFetch={true}
                           />
                         ))}
 

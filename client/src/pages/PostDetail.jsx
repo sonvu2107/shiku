@@ -4,10 +4,16 @@
   import { api } from "../api";
   import ReactMarkdown from "react-markdown";
   import CommentSection from "../components/CommentSection";
-  import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck, MessageCircle, Share2 } from "lucide-react";
+  import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
   import UserName from "../components/UserName";
+  import VerifiedBadge from "../components/VerifiedBadge";
   import Poll from "../components/Poll";
   import { useSEO } from "../utils/useSEO";
+  import { getOptimizedImageUrl } from "../utils/imageOptimization";
+  import LazyImage from "../components/LazyImageSimple";
+  import { formatDistanceToNow } from "date-fns";
+  import { vi } from "date-fns/locale";
+  import { cn } from "../utils/cn";
 
 
   /**
@@ -252,39 +258,51 @@
       ...(Array.isArray(p.files) ? p.files.filter(f => f.url !== p.coverUrl) : [])
     ];
 
+    const timeAgo = p.createdAt 
+      ? formatDistanceToNow(new Date(p.createdAt), { addSuffix: true, locale: vi }) 
+      : "";
+    const statusLabel = p.status === 'private' ? 'Riêng tư' : 'Công khai';
+
     return (
-      <div className="w-full px-6 py-6 space-y-4 pt-20">
-    <div className="max-w-3xl mx-auto bg-white dark:bg-[#18191A] border border-gray-200 dark:border-[#3A3B3C] rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-visible relative">
+      <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pt-20 pb-32">
+        <div className="max-w-3xl mx-auto px-4 py-6">
+          <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
+            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+            border border-transparent dark:border-white/5 relative">
           {/* HEADER */}
-          <div className="flex items-center justify-between p-4 pb-0">
+          <div className="flex items-center justify-between mb-4 px-1">
             <div className="flex items-center gap-3">
-              <Link to={`/user/${p.author?._id}`}>
+              <Link to={`/user/${p.author?._id}`} className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-500" />
                 <img
-                  src={
-                    p.author?.avatarUrl ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      p.author?.name || ""
-                    )}&background=cccccc&color=222222&size=64`
-                  }
-                  alt="avatar"
-                  className="w-10 h-10 rounded-full object-cover border border-gray-300 dark:border-gray-700"
+                  src={getOptimizedImageUrl(p.author?.avatarUrl, 100) || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.author?.name || 'User')}&length=2&background=cccccc&color=222222`}
+                  alt={p.author?.name}
+                  className="relative w-12 h-12 rounded-full object-cover border-2 border-white dark:border-[#111]"
                 />
               </Link>
               <div>
-                <div className="flex items-center gap-1 font-semibold text-gray-900 dark:text-gray-100">
+                <Link 
+                  to={`/user/${p.author?._id}`} 
+                  className="font-bold text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5"
+                >
                   <UserName user={p.author} maxLength={20} />
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                  <span title={formatFullDate(p.createdAt)}>{formatTimeAgo(p.createdAt)}</span>
-                  {p.status === "private" ? (
-                    <Lock size={14} className="text-gray-400" />
-                  ) : (
-                    <Globe size={14} className="text-green-500" />
-                  )}
+                  {p.author?.role === 'admin' && <VerifiedBadge user={p.author} />}
+                </Link>
+                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1.5 mt-0.5">
+                  {timeAgo && <span>{timeAgo}</span>}
+                  {timeAgo && <span>•</span>}
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-semibold",
+                    p.status === 'private' 
+                      ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" 
+                      : "bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
+                  )}>
+                    {statusLabel}
+                  </span>
                 </div>
               </div>
             </div>
-            {user && (user._id === p.author?._id || user.role === "admin") && (
+            {user && (user._id === p.author?._id || user.role === "admin") ? (
               <div className="relative">
                 <MenuActions
                   onToggleStatus={togglePostStatus}
@@ -295,34 +313,41 @@
                   saved={saved}
                 />
               </div>
+            ) : (
+              <button 
+                className="p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+              >
+                <MoreHorizontal size={20} />
+              </button>
             )}
           </div>
 
-          {/* CAPTION */}
-          <div className="px-4 pt-2 pb-2 text-gray-800 dark:text-gray-300">
-            <h1 className="text-lg font-semibold leading-snug mb-1">{p.title}</h1>
-            {p.caption && (
-              <p className="text-[15px] text-gray-700 dark:text-gray-400 leading-relaxed">{p.caption}</p>
-            )}
-          </div>
+          {/* TITLE */}
+          {p.title && (
+            <h1 className="px-1 mb-3 text-2xl font-bold text-gray-900 dark:text-white leading-tight">
+              {p.title}
+            </h1>
+          )}
 
           {/* CONTENT */}
           {p.content && (
-            <div className="prose dark:prose-invert max-w-none px-4 py-4">
-              <ReactMarkdown>{p.content}</ReactMarkdown>
+            <div className="px-1 mb-4">
+              <div className="prose dark:prose-invert max-w-none text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">
+                <ReactMarkdown>{p.content}</ReactMarkdown>
+              </div>
             </div>
           )}
 
           {/* Poll Component */}
           {p.hasPoll && (
-            <div className="px-4 py-4 border-b border-gray-200 dark:border-[#3A3B3C]">
+            <div className="px-1 mb-4">
               <Poll post={p} user={user} />
             </div>
           )}
 
           {/* Tags */}
           {p.tags && p.tags.length > 0 && (
-            <div className="px-4 py-3">
+            <div className="px-1 mb-4">
               <div className="flex flex-wrap gap-2">
                 {p.tags.map((tag, index) => (
                   <span
@@ -339,9 +364,9 @@
 
           {/* Hiển thị preview media trong bài */}
           {allMedia.length === 1 && (
-            <div className="px-4 pb-2 mt-1">
+            <div className="mb-5">
               <div
-                className="relative rounded-lg overflow-hidden cursor-pointer hover:brightness-95 transition"
+                className="relative rounded-3xl overflow-hidden bg-gray-100 dark:bg-black cursor-pointer group/media"
                 onClick={() => {
                   setCurrentIndex(0);
                   setShowMediaModal(true);
@@ -350,274 +375,349 @@
                 {allMedia[0].type === "video" ? (
                   <video
                     src={allMedia[0].url}
-                    className="w-full max-h-[70vh] object-contain bg-black"
+                    className="w-full max-h-[70vh] object-contain bg-black transition-transform duration-700 group-hover/media:scale-105"
                     controls
                   />
                 ) : (
-                  <img
-                    src={allMedia[0].url}
-                    className="w-full object-contain max-h-[70vh]"
-                    alt="media"
+                  <LazyImage
+                    src={getOptimizedImageUrl(allMedia[0].url, 1200)}
+                    alt={p.title}
+                    className="w-full object-contain max-h-[70vh] transition-transform duration-700 group-hover/media:scale-105"
                   />
                 )}
               </div>
             </div>
           )}
           {allMedia.length > 1 && (
-            <div className="px-4 pb-2">
-              <div className="grid grid-cols-2 gap-2 mt-4">
-              <div
-                className="col-span-2 row-span-2 h-64 rounded-xl overflow-hidden cursor-pointer"
-                onClick={() => {
-                  setCurrentIndex(0);
-                  setShowMediaModal(true);
-                }}
-              >
-                {allMedia[0].type === "video" ? (
-                  <video
-                    src={allMedia[0].url}
-                    className="w-full h-full object-cover"
-                    controls
-                  />
-                ) : (
-                  <img
-                    src={allMedia[0].url}
-                    className="w-full h-full object-cover"
-                    alt="media"
-                  />
-                )}
-              </div>
-              {allMedia.slice(1, 3).map((m, idx) => (
+            <div className="mb-5">
+              <div className="grid grid-cols-2 gap-2">
                 <div
-                  key={idx + 1}
-                  className="h-36 rounded-xl overflow-hidden relative cursor-pointer"
+                  className="col-span-2 row-span-2 h-64 rounded-3xl overflow-hidden cursor-pointer group/media"
                   onClick={() => {
-                    setCurrentIndex(idx + 1);
+                    setCurrentIndex(0);
                     setShowMediaModal(true);
                   }}
                 >
-                  {m.type === "video" ? (
+                  {allMedia[0].type === "video" ? (
                     <video
-                      src={m.url}
-                      className="w-full h-full object-cover"
+                      src={allMedia[0].url}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
                       controls
                     />
                   ) : (
-                    <img
-                      src={m.url}
-                      className="w-full h-full object-cover"
-                      alt="media"
+                    <LazyImage
+                      src={getOptimizedImageUrl(allMedia[0].url, 800)}
+                      alt={p.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
                     />
                   )}
-                  {/* Nếu là ảnh cuối và còn nhiều hơn 3 ảnh, overlay số lượng */}
-                  {idx === 1 && allMedia.length > 3 && (
-                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded text-white text-2xl font-bold">
-                      +{allMedia.length - 3} ảnh
-                    </div>
-                  )}
                 </div>
-              ))}
-            </div>
+                {allMedia.slice(1, 3).map((m, idx) => (
+                  <div
+                    key={idx + 1}
+                    className="h-36 rounded-3xl overflow-hidden relative cursor-pointer group/media"
+                    onClick={() => {
+                      setCurrentIndex(idx + 1);
+                      setShowMediaModal(true);
+                    }}
+                  >
+                    {m.type === "video" ? (
+                      <video
+                        src={m.url}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
+                        controls
+                      />
+                    ) : (
+                      <LazyImage
+                        src={getOptimizedImageUrl(m.url, 400)}
+                        alt={p.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
+                      />
+                    )}
+                    {/* Nếu là ảnh cuối và còn nhiều hơn 3 ảnh, overlay số lượng */}
+                    {idx === 1 && allMedia.length > 3 && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-3xl text-white text-2xl font-bold">
+                        +{allMedia.length - 3} ảnh
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-
-          {/* REACTIONS */}
-          <div className="flex justify-between items-center px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-[#3A3B3C]">
-            <div className="flex items-center gap-1">
-              {Object.entries(counts)
-                .filter(([_, count]) => count > 0)
-                .slice(0, 3)
-                .map(([emo]) => (
-                  <img key={emo} src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-6 h-6 sm:w-7 sm:h-7" />
-                ))}
-              {Object.values(counts).reduce((a, b) => a + b, 0) > 0 && (
-                <span className="ml-1 font-bold text-[15px] sm:text-[16px]" onClick={() => setShowEmoteList(true)}>
-                  {Object.values(counts).reduce((a, b) => a + b, 0)}
-                </span>
-              )}
-              {/* Popup danh sách người đã thả emote */}
-              {showEmoteList && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={() => setShowEmoteList(false)}>
-                  <div className="bg-white text-gray-900 rounded-xl shadow-2xl p-0 min-w-[350px] max-w-[95vw] relative" onClick={e => e.stopPropagation()}>
-                    {/* Header tabs */}
-                    <div className="flex items-center border-b px-6 pt-5 pb-2 gap-2">
-                      <button
-                        className={`font-semibold px-2 py-1 rounded ${activeTab === 'all' ? 'bg-white-200' : ''}`}
-                        onClick={() => setActiveTab('all')}
-                      >
-                        Tất cả
-                      </button>
-                      {Object.entries(counts)
-                        .filter(([_, count]) => count > 0)
-                        .map(([emo]) => (
-                          <button
-                            key={emo}
-                            className={`flex items-center gap-1 px-2 py-1 rounded ${activeTab === emo ? 'bg-white-200' : ''}`}
-                            onClick={() => setActiveTab(emo)}
-                          >
-                            <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="emote" />
-                            <span>{counts[emo]}</span>
-                          </button>
-                        ))}
-                    </div>
-
-                    {/* Close button */}
-                    <button className="absolute top-3 right-4 text-2xl text-gray-400 hover:text-black" onClick={() => setShowEmoteList(false)}>
-                      &#10005;
-                    </button>
-
-                    {/* User list */}
-                    <div className="px-6 py-3 max-h-[60vh] overflow-y-auto">
-                      {(() => {
-                        let emoteUsers;
-                        if (activeTab === "all") {
-                          emoteUsers = emotesState;
-                        } else {
-                          emoteUsers = emotesState.filter(e => e.type === activeTab);
-                        }
-                        if (emoteUsers.length === 0) return <div className="text-gray-400">Chưa có ai thả cảm xúc này.</div>;
-                        return emoteUsers.map((e, idx) => {
-                          const user = e.user || {};
-                          const avatar = user.avatarUrl
-                            ? user.avatarUrl
-                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "?")}&length=2&background=cccccc&color=222222&size=40`;
-                          return (
-                            <div key={idx} className="flex gap-3 py-2 border-b items-center">
-                              <img src={avatar} alt={user.name || "Người dùng"} className="w-10 h-10 rounded-full object-cover" />
-                              <UserName user={user} className="font-semibold text-sm text-gray-900" />
-                              <div className="flex-1"></div>
-                              <img src={`/assets/${emoteMap[e.type]}`} alt={e.type} className="w-5 h-5 ml-2" />
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
+          {/* REACTIONS - Giống PostCard với View */}
+          <div className="relative px-4 mb-3 pb-0.5 border-b border-gray-200 dark:border-gray-800">
+            <div className="flex items-center justify-between text-base text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-1 md:gap-1.5 min-w-0 flex-1">
+                {Object.values(counts).reduce((a, b) => a + b, 0) > 0 ? (
+                  <div
+                    className="relative flex items-center gap-1 md:gap-1.5 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                    onClick={() => setShowEmoteList(true)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Xem danh sách cảm xúc"
+                  >
+                    {Object.entries(counts)
+                      .filter(([_, count]) => count > 0)
+                      .slice(0, 3)
+                      .map(([emo]) => (
+                        <img 
+                          key={emo} 
+                          src={`/assets/${emoteMap[emo]}`} 
+                          alt={emo} 
+                          className="w-7 h-7 md:w-6 md:h-6"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      ))}
+                    <span className="ml-1.5 text-gray-500 dark:text-gray-400 font-semibold text-base">
+                      {Object.values(counts).reduce((a, b) => a + b, 0).toLocaleString()}
+                    </span>
                   </div>
+                ) : (
+                  <div className="text-gray-500 dark:text-gray-400 text-sm">
+                    Chưa có cảm xúc
+                  </div>
+                )}
+              </div>
+              {p.views !== undefined && p.views !== null && (
+                <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 flex-shrink-0">
+                  <Eye size={18} className="text-gray-500 dark:text-gray-400" />
+                  <span className="font-semibold text-base">
+                    {p.views.toLocaleString()} lượt xem
+                  </span>
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-1">
-              <Eye size={16} />
-              <span>{(p.views || 0).toLocaleString()} lượt xem</span>
-            </div>
           </div>
 
+          {/* Popup danh sách người đã thả emote */}
+          {showEmoteList && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={() => setShowEmoteList(false)}>
+              <div className="bg-white dark:bg-[#111] text-gray-900 dark:text-white rounded-2xl shadow-2xl p-0 w-[500px] max-w-[95vw] relative" onClick={e => e.stopPropagation()}>
+                {/* Header tabs */}
+                <div className="flex items-center border-b border-gray-200 dark:border-gray-800 px-6 pt-5 pb-2 gap-2 overflow-x-auto scrollbar-hide">
+                  <button
+                    className={cn("font-semibold px-3 py-1.5 rounded whitespace-nowrap flex-shrink-0", activeTab === 'all' ? 'bg-gray-100 dark:bg-gray-800' : '')}
+                    onClick={() => setActiveTab('all')}
+                  >
+                    Tất cả
+                  </button>
+                  {Object.entries(counts)
+                    .filter(([_, count]) => count > 0)
+                    .map(([emo]) => (
+                      <button
+                        key={emo}
+                        className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded whitespace-nowrap flex-shrink-0", activeTab === emo ? 'bg-gray-100 dark:bg-gray-800' : '')}
+                        onClick={() => setActiveTab(emo)}
+                      >
+                        <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-5 h-5 flex-shrink-0" />
+                        <span>{counts[emo]}</span>
+                      </button>
+                    ))}
+                </div>
+
+                {/* Close button */}
+                <button className="absolute top-3 right-4 text-2xl text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white" onClick={() => setShowEmoteList(false)}>
+                  &#10005;
+                </button>
+
+                {/* User list */}
+                <div className="px-6 py-3 max-h-[60vh] overflow-y-auto">
+                  {(() => {
+                    let emoteUsers;
+                    if (activeTab === "all") {
+                      emoteUsers = emotesState;
+                    } else {
+                      emoteUsers = emotesState.filter(e => e.type === activeTab);
+                    }
+                    if (emoteUsers.length === 0) return <div className="text-gray-400 dark:text-gray-500">Chưa có ai thả cảm xúc này.</div>;
+                    return emoteUsers.map((e, idx) => {
+                      const user = e.user || {};
+                      const avatar = user.avatarUrl
+                        ? user.avatarUrl
+                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "?")}&length=2&background=cccccc&color=222222&size=40`;
+                      return (
+                        <div key={idx} className="flex gap-3 py-2 border-b border-gray-200 dark:border-gray-800 items-center">
+                          <img src={avatar} alt={user.name || "Người dùng"} className="w-10 h-10 rounded-full object-cover" />
+                          <UserName user={user} className="font-semibold text-sm text-gray-900 dark:text-white" />
+                          <div className="flex-1"></div>
+                          <img src={`/assets/${emoteMap[e.type]}`} alt={e.type} className="w-5 h-5 ml-2" />
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ACTION BAR */}
-          <div className="flex justify-around py-2 border-b border-gray-200 dark:border-[#3A3B3C]">
-            <div
-              className="relative w-full flex justify-center"
-              onMouseEnter={() => {
-                if (emotePopupTimeout.current)
-                  clearTimeout(emotePopupTimeout.current);
-                setShowEmotePopup(true);
-              }}
-              onMouseLeave={() => {
-                emotePopupTimeout.current = setTimeout(
-                  () => setShowEmotePopup(false),
-                  1500
-                );
-              }}
-            >
-              <button 
-                type="button" 
-                onClick={() => {
-                  setShowEmotePopup(true);
-                }} 
-                className={`flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300 ${emotesState.some(e => {
-                  const emoteUserId = e.user?._id || e.user;
-                  const currentUserId = user?.id || user?._id;
-                  return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
-                }) ? 'font-semibold text-blue-600' : ''}`}
+          <div className="flex items-center justify-between px-1 pt-1">
+            <div className="flex items-center gap-1">
+              {/* Emote/Like Button với Popup */}
+              <div
+                className="relative"
+                onMouseEnter={() => {
+                  if (window.innerWidth >= 768) {
+                    if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
+                    setShowEmotePopup(true);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (window.innerWidth >= 768) {
+                    emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1200);
+                  }
+                }}
               >
-                {/* Show user's emote if exists */}
                 {(() => {
                   const myEmote = emotesState.find(e => {
                     const emoteUserId = e.user?._id || e.user;
                     const currentUserId = user?.id || user?._id;
                     return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
                   });
-                  if (myEmote) {
-                    return <>
-                      <img src={`/assets/${emoteMap[myEmote.type]}`} alt={myEmote.type} className="w-6 h-6 inline-block align-middle" style={{marginRight: 4}} />
-                      <span>
-                        {myEmote.type === '👍' && 'Đã thích'}
-                        {myEmote.type === '❤️' && 'Yêu thích'}
-                        {myEmote.type === '😂' && 'Haha'}
-                        {myEmote.type === '😮' && 'Wow'}
-                        {myEmote.type === '😢' && 'Buồn'}
-                        {myEmote.type === '😡' && 'Phẫn nộ'}
-                      </span>
-                    </>;
-                  }
-                  return <><ThumbsUp size={20} /><span>Thích</span></>;
-                })()}
-              </button>
-              {showEmotePopup && (
-                <div
-                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 emote-picker bg-white rounded-xl shadow z-10 border"
-                  style={{ justifyContent: "center" }}
-                  onMouseEnter={() => {
-                    if (emotePopupTimeout.current)
-                      clearTimeout(emotePopupTimeout.current);
-                    setShowEmotePopup(true);
-                  }}
-                  onMouseLeave={() => {
-                    emotePopupTimeout.current = setTimeout(
-                      () => setShowEmotePopup(false),
-                      1500
-                    );
-                  }}
-                >
-                  {emotes.map((e) => (
-                    <button
-                      key={e}
-                      className="emote-btn"
+                  return (
+                    <button 
+                      type="button" 
                       onClick={() => {
-                        emote(e);
-                        setShowEmotePopup(false);
+                        if (window.innerWidth < 768) {
+                          setShowEmotePopup(prev => !prev);
+                          return;
+                        }
+                        if (myEmote) {
+                          emote(myEmote.type);
+                        } else {
+                          emote('👍');
+                        }
                       }}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2.5 rounded-full transition-all active:scale-90",
+                        myEmote 
+                          ? "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-500" 
+                          : "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400"
+                      )}
                     >
-                      <img src={`/assets/${emoteMap[e]}`} alt={e} className="emote" />
+                      {myEmote ? (
+                        <>
+                          <img src={`/assets/${emoteMap[myEmote.type]}`} alt={myEmote.type} className="w-[22px] h-[22px]" />
+                          <span className="font-bold text-sm">
+                            {myEmote.type === '👍' && 'Đã thích'}
+                            {myEmote.type === '❤️' && 'Yêu thích'}
+                            {myEmote.type === '😂' && 'Haha'}
+                            {myEmote.type === '😮' && 'Wow'}
+                            {myEmote.type === '😢' && 'Buồn'}
+                            {myEmote.type === '😡' && 'Phẫn nộ'}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <ThumbsUp size={22} strokeWidth={2} />
+                          <span className="font-bold text-sm">Thích</span>
+                        </>
+                      )}
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <button
-              className="flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300"
-              type="button"
-              onClick={() => {
-                const cmtEl = document.getElementById("comments-section");
-                if (cmtEl) cmtEl.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              <MessageCircle size={20} />
-              <span>Bình luận</span>
-            </button>
-            <button
-              className="flex items-center gap-2 w-full justify-center py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition text-gray-700 dark:text-gray-300"
-              type="button"
-              onClick={() => {
-                const url = window.location.href;
-                navigator.clipboard.writeText(url).then(() => {
-                  alert("Đã sao chép liên kết!");
-                }).catch(() => {
-                  alert("Không thể sao chép liên kết");
-                });
-              }}
-              title="Chia sẻ"
-            >
-              <Share2 size={20} />
-              <span>Chia sẻ</span>
-            </button>
-          </div>
-          </div>
+                  );
+                })()}
+                {showEmotePopup && (
+                  <div
+                    className="absolute bottom-full left-0 md:left-1/2 md:-translate-x-1/2 mb-2 emote-picker bg-white dark:bg-gray-800 rounded-xl shadow-lg z-20 border border-gray-200 dark:border-gray-700 p-2 flex gap-1 w-max"
+                    onMouseEnter={() => {
+                      if (window.innerWidth >= 768) {
+                        if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (window.innerWidth >= 768) {
+                        emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1200);
+                      }
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {emotes.map((e) => {
+                      const myEmote = emotesState.find(em => {
+                        const emoteUserId = em.user?._id || em.user;
+                        const currentUserId = user?.id || user?._id;
+                        return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
+                      });
+                      const isActive = myEmote?.type === e;
+                      return (
+                        <button
+                          key={e}
+                          className={cn(
+                            "transition-all hover:scale-110 active:scale-95",
+                            isActive ? 'opacity-100 ring-2 ring-blue-500 rounded-full' : 'opacity-90'
+                          )}
+                          type="button"
+                          onClick={() => {
+                            emote(e);
+                            if (window.innerWidth < 768) {
+                              setTimeout(() => setShowEmotePopup(false), 100);
+                            }
+                          }}
+                          onMouseDown={(e) => e.preventDefault()}
+                        >
+                          <img src={`/assets/${emoteMap[e]}`} alt={e} className="w-8 h-8" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
+              {/* Comment */}
+              <button
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90"
+                type="button"
+                onClick={() => {
+                  const cmtEl = document.getElementById("comments-section");
+                  if (cmtEl) cmtEl.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                <MessageCircle size={22} />
+                <span className="font-bold text-sm">{p.commentCount || 0}</span>
+              </button>
+
+              {/* Share */}
+              <button
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/20 dark:hover:text-green-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90"
+                type="button"
+                onClick={() => {
+                  const url = window.location.href;
+                  navigator.clipboard.writeText(url).then(() => {
+                    alert("Đã sao chép liên kết!");
+                  }).catch(() => {
+                    alert("Không thể sao chép liên kết");
+                  });
+                }}
+              >
+                <Share2 size={22} />
+              </button>
+            </div>
+
+            {/* Save */}
+            <button
+              onClick={toggleSave}
+              className={cn(
+                "p-3 rounded-full transition-all active:scale-90",
+                saved
+                  ? "bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-500"
+                  : "hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-500/20 dark:hover:text-yellow-500 text-gray-400"
+              )}
+            >
+              <Bookmark size={22} className={saved ? "fill-current" : ""} strokeWidth={saved ? 0 : 2} />
+            </button>
+          </div>
+        </div>
 
         {/* Comments */}
-        <div id="comments-section" className="card max-w-3xl mx-auto">
-          <h2 className="text-xl font-semibold mb-4">Bình luận</h2>
+        <div id="comments-section" className="max-w-3xl mx-auto">
+          <div className="bg-white dark:bg-[#111] rounded-[32px] p-5 mb-6
+            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+            border border-transparent dark:border-white/5">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Bình luận</h2>
           {(() => {
             // Xác định quyền bình luận nếu bài đăng thuộc về một nhóm
             const groupInfo = p.group || null;
@@ -657,6 +757,7 @@
               </div>
             );
           })()}
+          </div>
         </div>
 
         {/* Media modal carousel */}
@@ -722,6 +823,7 @@
             </div>
           </div>
         )}
+        </div>
       </div>
     );
   }

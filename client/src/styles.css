@@ -54,9 +54,9 @@ label { @apply text-sm font-medium text-gray-700; }
 
 /* Mobile Optimizations */
 
-/* Dark mode globals */
-.dark body { @apply bg-gray-900 text-gray-100; }
-.dark .card { @apply bg-gray-800 border border-gray-700; }
+/* Dark mode globals - Đồng bộ với Landing page */
+.dark body { @apply bg-black text-white; }
+.dark .card { @apply bg-[#111] border border-gray-800; }
 .dark .btn-outline { @apply bg-transparent border-gray-600 text-gray-100 hover:bg-gray-800; }
 .dark input, .dark textarea { @apply bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400; }
 .dark label { @apply text-gray-300; }

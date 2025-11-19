@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, memo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Users, Bookmark, BookmarkCheck, MoreHorizontal, Edit, Trash2, BarChart3, Eye, Share2, Smile, Send, Paperclip, X, Plus, Minus } from "lucide-react";
+import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Heart, Users, Bookmark, BookmarkCheck, MoreHorizontal, Edit, Trash2, BarChart3, Eye, Share2, Smile, Send, Paperclip, X, Plus, Minus } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../api";
 import { deduplicatedApi } from "../utils/requestDeduplication.js";
 import { getOptimizedImageUrl } from "../utils/imageOptimization";
@@ -58,10 +59,13 @@ function PostCard({
   // Note: User data should be passed as prop or obtained from context
   // const user = JSON.parse(localStorage.getItem("user") || "null"); // Deprecated
   const [showEmotePopup, setShowEmotePopup] = useState(false); // Hiện popup emotes
-  const [showActionsMenu, setShowActionsMenu] = useState(false); // Hiện menu actions
+  const [showMainMenu, setShowMainMenu] = useState(false); // Hiện menu actions ở header
+  const [showOwnerMenu, setShowOwnerMenu] = useState(false); // Hiện menu actions cho owner/admin
   const emotePopupTimeout = useRef(); // Timeout cho hover emote popup
   const actionsMenuTimeout = useRef(); // Timeout cho actions menu
-  const actionsMenuRef = useRef(null); // Ref cho actions menu dropdown
+  const mainMenuRef = useRef(null); // Ref cho menu dropdown ở header
+  const ownerMenuRef = useRef(null); // Ref cho menu dropdown ở cuối (owner/admin)
+  const mainMenuButtonRef = useRef(null); // Ref cho button mở menu ở header
   const [commentInput, setCommentInput] = useState(""); // Comment input text
   const [commentImages, setCommentImages] = useState([]); // Comment images
   const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Show emoji picker
@@ -301,6 +305,10 @@ function PostCard({
   // Local UI emote to reflect selection immediately even if `user` prop is missing
   const [localUserEmote, setLocalUserEmote] = useState(null);
   const uiUserEmote = localUserEmote !== null ? localUserEmote : userEmote;
+  
+  // Heart animation state
+  const [showHeartAnimation, setShowHeartAnimation] = useState(false);
+  const heartAnimationKey = useRef(0);
 
   // Fallback: fetch saved status only when prop not provided and fetching is allowed
   React.useEffect(() => {
@@ -328,6 +336,14 @@ function PostCard({
    * @param {string} emoteType - Loại emote (emoji: 👍, ❤️, 😂, 😮, 😢, 😡)
    */
   async function emote(emoteType) {
+    // Trigger heart animation if liking (👍) or loving (❤️) and user didn't have this emote before
+    const hadEmote = !!uiUserEmote;
+    if ((emoteType === '👍' || emoteType === '❤️') && !hadEmote) {
+      heartAnimationKey.current += 1;
+      setShowHeartAnimation(true);
+      setTimeout(() => setShowHeartAnimation(false), 1000);
+    }
+    
     try {
       const res = await api(`/api/posts/${post._id}/emote`, {
         method: "POST",
@@ -525,16 +541,32 @@ function PostCard({
   // Close actions menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showActionsMenu && actionsMenuRef.current && !actionsMenuRef.current.contains(event.target)) {
-        if (!event.target.closest('button[title="Tùy chọn"]')) {
-          setShowActionsMenu(false);
+      // Xử lý menu header
+      if (showMainMenu && mainMenuRef.current) {
+        const insideMain = mainMenuRef.current.contains(event.target);
+        const onMainButton = mainMenuButtonRef.current && mainMenuButtonRef.current.contains(event.target);
+        if (!insideMain && !onMainButton) {
+          setShowMainMenu(false);
+        }
+      }
+
+      // Xử lý menu owner/admin
+      if (showOwnerMenu && ownerMenuRef.current) {
+        const insideOwner = ownerMenuRef.current.contains(event.target);
+        const onOwnerButton = event.target.closest('button[aria-label="Tùy chọn bài viết"]');
+        if (!insideOwner && !onOwnerButton) {
+          setShowOwnerMenu(false);
         }
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showActionsMenu]);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [showMainMenu, showOwnerMenu]);
 
   // Close emote popup when clicking outside on mobile
   useEffect(() => {
@@ -558,6 +590,32 @@ function PostCard({
     };
   }, [showEmotePopup]);
 
+  // State for interest status
+  const [interestStatus, setInterestStatus] = useState(null); // null = chưa biết, true = quan tâm, false = không quan tâm
+  const [interestLoading, setInterestLoading] = useState(false);
+
+  // Fetch interest status on mount
+  React.useEffect(() => {
+    if (!user || !user._id || user._id === post.author?._id) {
+      return;
+    }
+
+    let active = true;
+    (async () => {
+      try {
+        const res = await api(`/api/posts/${post._id}/interest-status`);
+        if (active && res !== null && res !== undefined) {
+          setInterestStatus(res.interested);
+        }
+      } catch (_) {
+        // Ignore errors - status is optional
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [post._id, user, post.author?._id]);
+
   /**
    * Handle "Quan tâm" / "Không quan tâm" functionality
    */
@@ -567,6 +625,13 @@ function PostCard({
       return;
     }
 
+    // Không cho phép đánh dấu bài viết của chính mình
+    if (user._id === post.author?._id) {
+      showError('Bạn không thể đánh dấu quan tâm/không quan tâm bài viết của chính mình');
+      return;
+    }
+
+    setInterestLoading(true);
     try {
       const response = await api(`/api/posts/${post._id}/interest`, {
         method: 'POST',
@@ -574,12 +639,15 @@ function PostCard({
       });
 
       if (response.success) {
+        setInterestStatus(interested);
         showSuccess(response.message || (interested ? 'Đã đánh dấu quan tâm bài viết này' : 'Đã đánh dấu không quan tâm bài viết này'));
       }
     } catch (error) {
       console.error('Error updating interest:', error);
       const errorMessage = error.message || 'Có lỗi xảy ra khi cập nhật';
       showError(errorMessage);
+    } finally {
+      setInterestLoading(false);
     }
   };
 
@@ -687,68 +755,109 @@ function PostCard({
             )}
           </div>
         </div>
-        <div className="relative">
+        <div className="relative z-10">
           <button
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
-            onClick={() => setShowActionsMenu(!showActionsMenu)}
+            ref={mainMenuButtonRef}
+            type="button"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 relative z-10"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowMainMenu(prev => !prev);
+            }}
             title="Tùy chọn"
+            aria-label="Tùy chọn"
+            aria-expanded={showMainMenu}
+            aria-haspopup="true"
+            tabIndex={0}
           >
             <MoreHorizontal size={18} />
           </button>
           
           {/* Dropdown menu */}
-          {showActionsMenu && (
+          {showMainMenu && (
             <div
-              ref={actionsMenuRef}
-              className="absolute right-0 top-full mt-2 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg dark:shadow-2xl z-50 min-w-[240px] overflow-hidden"
+              ref={mainMenuRef}
+              className="absolute right-0 top-full mt-2 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg dark:shadow-2xl z-[100] min-w-[240px] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="py-1">
-                {/* Quan tâm */}
-                <button
-                  className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors flex items-start gap-3 group"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowActionsMenu(false);
-                    handleInterested(true);
-                  }}
-                >
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 dark:bg-neutral-700 border border-gray-200 dark:border-neutral-600 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-neutral-600 transition-colors">
-                    <Plus size={16} className="text-gray-700 dark:text-gray-300" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 dark:text-white text-sm mb-0.5">
-                      Quan tâm
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                      Bạn sẽ nhìn thấy nhiều bài viết tương tự hơn.
-                    </div>
-                  </div>
-                </button>
-                
-                {/* Không quan tâm */}
-                <button
-                  className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors flex items-start gap-3 group border-t border-gray-100 dark:border-neutral-700"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowActionsMenu(false);
-                    handleInterested(false);
-                  }}
-                >
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 dark:bg-neutral-700 border border-gray-200 dark:border-neutral-600 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-neutral-600 transition-colors">
-                    <Minus size={16} className="text-gray-700 dark:text-gray-300" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 dark:text-white text-sm mb-0.5">
-                      Không quan tâm
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                      Bạn sẽ nhìn thấy ít bài viết tương tự hơn.
-                    </div>
-                  </div>
-                </button>
+                {/* Chỉ hiển thị nút quan tâm/không quan tâm khi user đã đăng nhập và không phải tác giả */}
+                {user && user._id && user._id !== post.author?._id && (
+                  <>
+                    {/* Quan tâm */}
+                    <button
+                      type="button"
+                      className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors flex items-start gap-3 group ${interestStatus === true ? 'bg-blue-50 dark:bg-blue-900/20' : ''} ${interestLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!interestLoading) {
+                          setShowMainMenu(false);
+                          handleInterested(true);
+                        }
+                      }}
+                      disabled={interestLoading}
+                    >
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${
+                        interestStatus === true 
+                          ? 'bg-blue-100 dark:bg-blue-800 border-blue-300 dark:border-blue-600' 
+                          : 'bg-gray-100 dark:bg-neutral-700 border-gray-200 dark:border-neutral-600 group-hover:bg-gray-200 dark:group-hover:bg-neutral-600'
+                      }`}>
+                        <Plus size={16} className={interestStatus === true ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`font-semibold text-sm mb-0.5 ${
+                          interestStatus === true 
+                            ? 'text-blue-600 dark:text-blue-400' 
+                            : 'text-gray-900 dark:text-white'
+                        }`}>
+                          Quan tâm
+                          {interestStatus === true && <span className="ml-2 text-xs">✓</span>}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                          Bạn sẽ nhìn thấy nhiều bài viết tương tự hơn.
+                        </div>
+                      </div>
+                    </button>
+                    
+                    {/* Không quan tâm */}
+                    <button
+                      type="button"
+                      className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors flex items-start gap-3 group border-t border-gray-100 dark:border-neutral-700 ${interestStatus === false ? 'bg-red-50 dark:bg-red-900/20' : ''} ${interestLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!interestLoading) {
+                          setShowMainMenu(false);
+                          handleInterested(false);
+                        }
+                      }}
+                      disabled={interestLoading}
+                    >
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${
+                        interestStatus === false 
+                          ? 'bg-red-100 dark:bg-red-800 border-red-300 dark:border-red-600' 
+                          : 'bg-gray-100 dark:bg-neutral-700 border-gray-200 dark:border-neutral-600 group-hover:bg-gray-200 dark:group-hover:bg-neutral-600'
+                      }`}>
+                        <Minus size={16} className={interestStatus === false ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`font-semibold text-sm mb-0.5 ${
+                          interestStatus === false 
+                            ? 'text-red-600 dark:text-red-400' 
+                            : 'text-gray-900 dark:text-white'
+                        }`}>
+                          Không quan tâm
+                          {interestStatus === false && <span className="ml-2 text-xs">✓</span>}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                          Bạn sẽ nhìn thấy ít bài viết tương tự hơn.
+                        </div>
+                      </div>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -879,6 +988,33 @@ function PostCard({
               }
             }}
           >
+            {/* Heart Animation */}
+            <AnimatePresence>
+              {showHeartAnimation && (
+                <motion.div
+                  key={heartAnimationKey.current}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ 
+                    scale: [0, 1.3, 1],
+                    opacity: [0, 1, 1, 0],
+                    y: [0, -30, -50],
+                    rotate: [0, -10, 10, 0]
+                  }}
+                  exit={{ opacity: 0, scale: 0 }}
+                  transition={{ 
+                    duration: 0.8,
+                    ease: "easeOut"
+                  }}
+                  className="absolute -top-8 left-1/2 -translate-x-1/2 pointer-events-none z-50"
+                  style={{ originX: 0.5, originY: 0.5 }}
+                >
+                  <Heart 
+                    size={32} 
+                    className="text-red-500 fill-red-500 drop-shadow-lg"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
             {/* Hiển thị cảm xúc user đã thả hoặc icon ThumbsUp mặc định */}
             {uiUserEmote ? (
               <>
@@ -1127,28 +1263,39 @@ function PostCard({
         <div className="mt-2 pt-2 border-t border-gray-200 flex justify-end">
           <div className="relative">
             <button
-              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-              onClick={() => setShowActionsMenu(!showActionsMenu)}
+              type="button"
+              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowOwnerMenu(prev => !prev);
+              }}
               onMouseEnter={() => {
                 if (actionsMenuTimeout.current) clearTimeout(actionsMenuTimeout.current);
-                setShowActionsMenu(true);
+                setShowOwnerMenu(true);
               }}
               onMouseLeave={() => {
-                actionsMenuTimeout.current = setTimeout(() => setShowActionsMenu(false), 200);
+                actionsMenuTimeout.current = setTimeout(() => setShowOwnerMenu(false), 200);
               }}
+              aria-label="Tùy chọn bài viết"
+              aria-expanded={showOwnerMenu}
+              aria-haspopup="true"
+              tabIndex={0}
             >
               <MoreHorizontal size={16} />
             </button>
             
-            {showActionsMenu && (
+            {showOwnerMenu && (
               <div
+                ref={ownerMenuRef}
                 className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[160px]"
+                onClick={(e) => e.stopPropagation()}
                 onMouseEnter={() => {
                   if (actionsMenuTimeout.current) clearTimeout(actionsMenuTimeout.current);
-                  setShowActionsMenu(true);
+                  setShowOwnerMenu(true);
                 }}
                 onMouseLeave={() => {
-                  actionsMenuTimeout.current = setTimeout(() => setShowActionsMenu(false), 200);
+                  actionsMenuTimeout.current = setTimeout(() => setShowOwnerMenu(false), 200);
                 }}
               >
                 <div className="py-1">
@@ -1156,7 +1303,7 @@ function PostCard({
                     className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                     onClick={(e) => {
                       e.preventDefault();
-                      setShowActionsMenu(false);
+                      setShowOwnerMenu(false);
                       navigate(`/edit-post/${post.slug}`);
                     }}
                   >
@@ -1168,7 +1315,7 @@ function PostCard({
                     className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                     onClick={(e) => {
                       e.preventDefault();
-                      setShowActionsMenu(false);
+                      setShowOwnerMenu(false);
                       togglePostStatus();
                     }}
                   >
@@ -1189,7 +1336,7 @@ function PostCard({
                     className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                     onClick={(e) => {
                       e.preventDefault();
-                      setShowActionsMenu(false);
+                      setShowOwnerMenu(false);
                       deletePost();
                     }}
                   >

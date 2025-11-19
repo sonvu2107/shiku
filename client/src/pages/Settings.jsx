@@ -91,7 +91,9 @@ export default function Settings() {
     <div className="min-h-screen pt-20 bg-gray-50">
       <div className="max-w-5xl mx-auto px-4">
         {/* Header */}
-        <div className="card mb-6 rounded-2xl p-6 shadow-sm border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-black dark:text-gray-100">
+        <div className="bg-white dark:bg-[#111] rounded-[32px] p-5 mb-6
+        shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+        border border-transparent dark:border-white/5 text-black dark:text-gray-100">
           <h1 className="text-2xl font-bold">Cài đặt tài khoản</h1>
           <p className="mt-1 text-sm text-gray-500">
             Các tùy chọn riêng tư và bảo mật cho tài khoản của bạn.
@@ -100,7 +102,10 @@ export default function Settings() {
 
         {/* Tabs */}
         <div className="mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-[#111] rounded-[32px] mb-6 overflow-hidden
+          shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+          hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
+          transition-all duration-500 border border-transparent dark:border-white/5">
             <div className="grid grid-cols-2 border-b border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
               <button
                 className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 font-medium transition-all duration-200 whitespace-nowrap relative touch-target text-xs sm:text-sm md:text-base ${
@@ -134,7 +139,9 @@ export default function Settings() {
 
         {/* Blocked Users */}
         {activeTab === "blocked" && (
-          <div className="card rounded-2xl p-6 shadow-sm border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-black dark:text-gray-100">
+          <div className="bg-white dark:bg-[#111] rounded-[32px] p-5 mb-6
+          shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+          border border-transparent dark:border-white/5 text-black dark:text-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Người bạn đã chặn ({blockedUsers.length})</h2>
               <button
@@ -179,7 +186,9 @@ export default function Settings() {
 
         {/* Privacy Settings */}
         {activeTab === "privacy" && (
-          <div className="card rounded-2xl p-6 shadow-sm border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-black dark:text-gray-100">
+          <div className="bg-white dark:bg-[#111] rounded-[32px] p-5 mb-6
+          shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+          border border-transparent dark:border-white/5 text-black dark:text-gray-100">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h2 className="text-lg font-semibold mb-4">Đổi email</h2>

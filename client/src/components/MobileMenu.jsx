@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   Menu, 
@@ -29,6 +30,36 @@ import { api } from "../api.js";
 export default function MobileMenu({ user, setUser }) {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (isOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Restore scroll position
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+    }
+
+    return () => {
+      // Cleanup on unmount
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   const handleLogout = async () => {
     try {
@@ -63,35 +94,36 @@ export default function MobileMenu({ user, setUser }) {
     { icon: Image, label: "Media", path: "/media", show: true },
   ];
 
-  return (
+  // Render menu drawer outside Navbar using Portal to avoid stacking context issues
+  const menuContent = isOpen && typeof document !== 'undefined' ? createPortal(
     <>
-      {/* Menu Button - Compact for mobile */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="md:hidden p-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-        aria-label="Mở menu"
-      >
-        <Menu size={18} />
-      </button>
-
       {/* Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 z-[9999] md:hidden"
+        onClick={() => setIsOpen(false)}
+        style={{ pointerEvents: 'auto' }}
+      />
 
       {/* Slide-out Menu - Dark mode support */}
-      <div className={`fixed top-0 left-0 h-full w-80 bg-white dark:bg-gray-800 shadow-xl z-50 transform transition-transform duration-300 ease-in-out md:hidden flex flex-col ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div 
+        className={`fixed top-0 left-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl z-[10000] transform transition-transform duration-300 ease-in-out md:hidden flex flex-col ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        style={{ 
+          willChange: 'transform',
+          isolation: 'isolate', // Tạo stacking context riêng
+          pointerEvents: isOpen ? 'auto' : 'none', // Chỉ cho phép tương tác khi mở
+          contain: 'layout style paint', // Tối ưu rendering
+          backfaceVisibility: 'hidden', // Tối ưu transform
+          WebkitBackfaceVisibility: 'hidden'
+        }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Menu</h2>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             aria-label="Đóng menu"
           >
             <X size={20} />
@@ -108,8 +140,8 @@ export default function MobileMenu({ user, setUser }) {
                 className="w-12 h-12 rounded-full border border-gray-300 dark:border-gray-600"
               />
               <div>
-                <div className="font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
+                <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{user.name}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
               </div>
             </div>
           </div>
@@ -127,10 +159,10 @@ export default function MobileMenu({ user, setUser }) {
                   key={item.path}
                   to={item.path}
                   onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 transition-colors touch-target ${
+                  className={`flex items-center gap-3 px-4 py-3 transition-colors touch-target font-medium text-sm ${
                     item.isAdmin 
-                      ? 'text-red-600 hover:bg-red-50 border-l-4 border-red-500' 
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-l-4 border-red-500 dark:border-red-400' 
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
                   <Icon size={20} />
@@ -143,10 +175,11 @@ export default function MobileMenu({ user, setUser }) {
 
         {/* Footer Actions */}
         {user && (
-          <div className="p-4 border-t border-gray-200 flex-shrink-0">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 transition-colors touch-target"
+              className="flex items-center gap-3 w-full px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors touch-target font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded-lg"
+              aria-label="Đăng xuất"
             >
               <LogOut size={20} />
               <span>Đăng xuất</span>
@@ -155,24 +188,44 @@ export default function MobileMenu({ user, setUser }) {
         )}
 
         {!user && (
-          <div className="p-4 border-t border-gray-200 space-y-2 flex-shrink-0">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2 flex-shrink-0">
             <Link
               to="/login"
               onClick={() => setIsOpen(false)}
-              className="block w-full btn-outline text-center py-3"
+              className="block w-full btn-outline text-center py-3 font-medium text-sm"
+              aria-label="Đăng nhập"
             >
               Đăng nhập
             </Link>
             <Link
               to="/register"
               onClick={() => setIsOpen(false)}
-              className="block w-full btn text-center py-3"
+              className="block w-full btn text-center py-3 font-medium text-sm"
+              aria-label="Đăng ký"
             >
               Đăng ký
             </Link>
           </div>
         )}
       </div>
+    </>,
+    document.body
+  ) : null;
+
+  return (
+    <>
+      {/* Menu Button - Compact for mobile */}
+      <button
+        onClick={() => setIsOpen(true)}
+        className="md:hidden p-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors relative z-[10000]"
+        aria-label="Mở menu"
+        style={{ touchAction: 'manipulation' }}
+      >
+        <Menu size={18} />
+      </button>
+
+      {/* Render menu via Portal */}
+      {menuContent}
     </>
   );
 }
