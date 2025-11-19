@@ -98,21 +98,28 @@ export default defineConfig(({ command, mode }) => {
           assetFileNames: 'assets/[name]-[hash].[ext]',
           // Đảm bảo React được externalize đúng cách
           format: 'es',
-          manualChunks: (id) => {
+          // Đảm bảo React vendor chunk được preload và load trước
+          manualChunks: (id, { getModuleInfo }) => {
             // Node modules - tách riêng các vendor lớn
             if (id.includes('node_modules')) {
-              // React core - đảm bảo TẤT CẢ React code luôn cùng chunk
-              // Điều này rất quan trọng để tránh lỗi createContext undefined
-              if (
+              // React core - QUAN TRỌNG: Giữ React trong entry chunk để tránh lỗi createContext
+              // Không tách React ra thành chunk riêng vì có thể gây lỗi thứ tự load
+              const isReact = 
                 id.includes('react/jsx-runtime') || 
                 id.includes('react/jsx-dev-runtime') ||
-                id.includes('/react/') || 
+                id.includes('node_modules/react/') || 
+                id.includes('node_modules/react/index') ||
                 id === 'react' ||
-                id.includes('react-dom') || 
+                id.includes('react-dom/client') ||
+                id.includes('react-dom/') ||
                 id === 'react-dom' ||
-                id.includes('react-router')
-              ) {
-                return 'react-vendor';
+                id.includes('react-router') ||
+                id.includes('react-router-dom');
+              
+              // KHÔNG tách React ra - giữ trong entry chunk
+              // return undefined để React được bundle vào entry
+              if (isReact) {
+                return undefined; // Giữ React trong entry chunk
               }
               // React Query
               if (id.includes('@tanstack/react-query')) {
@@ -140,7 +147,19 @@ export default defineConfig(({ command, mode }) => {
             
             // Source files - tách theo feature
             // QUAN TRỌNG: Không tách contexts vào chunk riêng - phải ở cùng với main app
+            // Và đảm bảo contexts không phụ thuộc vào React từ chunk khác
             if (id.includes('/src/contexts/')) {
+              // Kiểm tra xem context có import React không
+              const info = getModuleInfo(id);
+              if (info && info.importers) {
+                // Nếu context được import bởi entry, giữ nó trong main bundle
+                const isImportedByEntry = info.importers.some(importer => 
+                  importer.includes('main.jsx') || importer.includes('App.jsx')
+                );
+                if (isImportedByEntry) {
+                  return; // Giữ trong main bundle
+                }
+              }
               return; // Giữ contexts trong main bundle để đảm bảo React có sẵn
             }
             
