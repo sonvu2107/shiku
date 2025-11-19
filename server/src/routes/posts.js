@@ -465,42 +465,43 @@ router.get("/feed/smart", authOptional, async (req, res, next) => {
   }
 });
 
-// Combined feed endpoint - returns both published posts and user's private posts
+// Combined feed endpoint - Optimized single query for published + private
 router.get("/feed", authOptional, async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, tag, q } = req.query;
-    const pg = Number(page) || 1;
-    const lim = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
+    const { page = 1, limit = 20, tag, q, sort = "newest" } = req.query;
+    const pg = Math.max(1, Number(page) || 1);
+    const lim = Math.min(parseInt(limit) || 20, 50);
 
-    // Get blocked list first
+    // Determine sort option
+    let sortOption = { createdAt: -1 }; // Default newest
+    if (sort === 'oldest') sortOption = { createdAt: 1 };
+    else if (sort === 'mostViewed') sortOption = { views: -1 };
+    else if (sort === 'leastViewed') sortOption = { views: 1 };
+
+    // Build blocked list
     let blockedIds = [];
     if (req.user) {
       const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
       blockedIds = (currentUser.blockedUsers || []).map(id => id.toString());
     }
 
-    // Base filter for published posts
-    const publishedFilter = {
-      status: "published",
-      // Add blocked users filter
-      ...(blockedIds.length > 0 && { author: { $nin: blockedIds } }),
-      $and: [{
+    // Build Query Criteria
+    // Base condition: Posts that are NOT in groups (Home feed usually excludes group posts)
+    const baseConditions = [
+      {
         $or: [
           { group: { $exists: false } },
           { group: null }
         ]
-      }]
-    };
+      }
+    ];
 
-    // Add tag filter if specified
-    if (tag) publishedFilter.tags = tag;
-
-    // Add search filter if specified
+    // Search text
     if (q) {
       const trimmedQuery = q.trim();
       if (trimmedQuery.length > 0 && trimmedQuery.length <= 100) {
         const escapedQuery = trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        publishedFilter.$and.push({
+        baseConditions.push({
           $or: [
             { title: { $regex: escapedQuery, $options: "i" } },
             { content: { $regex: escapedQuery, $options: "i" } },
@@ -510,77 +511,67 @@ router.get("/feed", authOptional, async (req, res, next) => {
       }
     }
 
-    // Fetch published posts and private posts in parallel
-    let publishedPosts, privatePosts = [];
-
-    if (req.user) {
-      // User is logged in - fetch both published and their private posts
-      const privateFilter = {
-        status: "private",
-        author: req.user._id,
-        $and: [{
-          $or: [
-            { group: { $exists: false } },
-            { group: null }
-          ]
-        }]
-      };
-
-      [publishedPosts, privatePosts] = await Promise.all([
-        Post.find(publishedFilter)
-          .populate({ path: "author", select: "name nickname avatarUrl role blockedUsers" })
-          .populate({
-            path: "emotes.user",
-            select: "name nickname avatarUrl role"
-          })
-          .sort({ createdAt: -1 })
-          .limit(lim)
-          .skip((pg - 1) * lim)
-          .lean(),
-        Post.find(privateFilter)
-          .populate({ path: "author", select: "name nickname avatarUrl role blockedUsers" })
-          .populate({
-            path: "emotes.user",
-            select: "name nickname avatarUrl role"
-          })
-          .sort({ createdAt: -1 })
-          .limit(lim)
-          .skip((pg - 1) * lim)
-          .lean()
-      ]);
-    } else {
-      // Not logged in - only fetch published posts
-      publishedPosts = await Post.find(publishedFilter)
-        .populate({ path: "author", select: "name avatarUrl role blockedUsers" })
-        .populate({
-          path: "emotes.user",
-          select: "name nickname avatarUrl role"
-        })
-        .sort({ createdAt: -1 })
-        .limit(lim)
-        .skip((pg - 1) * lim)
-        .lean();
+    // Tags
+    if (tag) {
+      baseConditions.push({ tags: tag });
     }
 
-    // Combine and sort posts
-    let allPosts = [...privatePosts, ...publishedPosts];
-    allPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Visibility Logic (The Core Fix)
+    // 1. Public posts (status='published') AND Author NOT blocked
+    // 2. Private posts (status='private') AND Author IS current user
+    const visibilityCondition = {
+      $or: [
+        {
+          status: "published",
+          author: { $nin: blockedIds }
+        },
+        ...(req.user ? [{
+          status: "private",
+          author: req.user._id
+        }] : [])
+      ]
+    };
 
-    // Use denormalized counts directly
-    const itemsWithCommentCount = allPosts.map(post => ({
+    // Combine all
+    const filter = {
+      $and: [
+        ...baseConditions,
+        visibilityCondition
+      ]
+    };
+
+    // Projection to reduce payload
+    const postProjection = {
+      title: 1, slug: 1, tags: 1, createdAt: 1, author: 1, role: 1,
+      status: 1, views: 1, coverUrl: 1, files: 1,
+      commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1
+    };
+
+    // Execute Query
+    const [items, total] = await Promise.all([
+      Post.find(filter, postProjection)
+        .populate({ path: "author", select: "name nickname avatarUrl role" })
+        .populate({ path: "emotes.user", select: "name nickname avatarUrl role" })
+        .sort(sortOption)
+        .skip((pg - 1) * lim)
+        .limit(lim)
+        .lean(),
+      Post.countDocuments(filter)
+    ]);
+
+    // Format items
+    const itemsWithCounts = items.map(post => ({
       ...post,
       commentCount: post.commentCount || 0,
       savedCount: post.savedCount || 0
     }));
 
-    const total = await Post.countDocuments(publishedFilter);
-
     res.json({
-      items: itemsWithCommentCount,
+      items: itemsWithCounts,
       total,
       page: pg,
       pages: Math.ceil(total / lim),
-      hasPrivatePosts: privatePosts.length > 0
+      hasPrivatePosts: req.user ? true : false // simplified flag
     });
   } catch (e) {
     next(e);
@@ -654,9 +645,15 @@ router.get("/feed-legacy", authOptional, async (req, res, next) => {
 // List with filters & search
 router.get("/", authOptional, async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, tag, author, q, status = "published" } = req.query;
+    const { page = 1, limit = 20, tag, author, q, status = "published", sort = "newest" } = req.query;
     const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
     const filter = {};
+
+    // Determine sort option
+    let sortOption = { createdAt: -1 }; // Default newest
+    if (sort === 'oldest') sortOption = { createdAt: 1 };
+    else if (sort === 'mostViewed') sortOption = { views: -1 };
+    else if (sort === 'leastViewed') sortOption = { views: 1 };
 
     // Get blocked list first
     let blockedIds = [];
@@ -760,7 +757,7 @@ router.get("/", authOptional, async (req, res, next) => {
         path: "emotes.user",
         select: "name nickname avatarUrl role"
       })
-      .sort({ createdAt: -1 })
+      .sort(sortOption)
       .lean(); 
 
     let items = await paginate(query, { page: Number(page), limit: sanitizedLimit }).exec();

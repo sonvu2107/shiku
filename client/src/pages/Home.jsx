@@ -112,23 +112,6 @@ export default function Home({ user, setUser }) {
 
   // ==================== API CALLS ====================
 
-  const sortPosts = useCallback((posts, sortType) => {
-    if (!Array.isArray(posts)) return [];
-    const sorted = [...posts];
-    switch (sortType) {
-      case 'newest':
-        return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      case 'oldest':
-        return sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-      case 'mostViewed':
-        return sorted.sort((a, b) => (b.views || 0) - (a.views || 0));
-      case 'leastViewed':
-        return sorted.sort((a, b) => (a.views || 0) - (b.views || 0));
-      default:
-        return sorted;
-    }
-  }, []);
-
   const getSortIcon = useCallback((type) => {
     const iconClassName = "text-gray-600 dark:text-gray-300";
     switch (type) {
@@ -169,27 +152,15 @@ export default function Home({ user, setUser }) {
         setPage(2); // Prepare for next page
         setTotalPages(100); // Smart feed doesn't provide exact total, use large number as assumption
       } else {
-        // Use regular feed for other sort options
+        // Use unified feed endpoint for other sort options
+        // This handles both published and private posts in a single query with correct sorting
         const limit = 20;
-        const publishedData = await api(`/api/posts?page=1&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
-        let allItems = publishedData.items;
-
-        // Tải bài viết riêng tư nếu người dùng đã đăng nhập
-        if (user) {
-          try {
-            const privateData = await api(`/api/posts?page=1&limit=${limit}&status=private&author=${user._id}`);
-            allItems = [...privateData.items, ...allItems];
-          } catch (privateError) {
-            // Silent handling for private posts loading error
-          }
-        }
-
-        // Áp dụng sắp xếp
-        allItems = sortPosts(allItems, sortBy);
-
-        setItems(allItems);
-        setTotalPages(publishedData.pages);
-        setHasMore(publishedData.pages > 1);
+        const feedData = await api(`/api/posts/feed?page=1&limit=${limit}&q=${encodeURIComponent(q)}&sort=${sortBy}`);
+        
+        // No need to manually fetch private posts or sort - backend does it all
+        setItems(feedData.items || []);
+        setTotalPages(feedData.pages);
+        setHasMore((feedData.items || []).length >= limit && feedData.page < feedData.pages);
         setPage(2);
       }
     } catch (error) {
@@ -200,7 +171,7 @@ export default function Home({ user, setUser }) {
       setLoading(false);
       loadingRef.current = false;
     }
-  }, [q, user, sortBy, sortPosts]);
+  }, [q, user, sortBy]);
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !hasMore || loadingMore) return;
@@ -218,9 +189,9 @@ export default function Home({ user, setUser }) {
         const smartFeedData = await api(`/api/posts/feed/smart?page=${page}&limit=${limit}`);
         newItems = smartFeedData.items || [];
       } else {
-        // Regular feed for other sort options
-        const publishedData = await api(`/api/posts?page=${page}&limit=${limit}&q=${encodeURIComponent(q)}&status=published`);
-        newItems = sortPosts(publishedData.items, sortBy);
+        // Unified feed for other sort options
+        const feedData = await api(`/api/posts/feed?page=${page}&limit=${limit}&q=${encodeURIComponent(q)}&sort=${sortBy}`);
+        newItems = feedData.items || [];
       }
 
       // Deduplicate posts by _id to prevent duplicates when new posts are added
@@ -246,7 +217,7 @@ export default function Home({ user, setUser }) {
       setLoadingMore(false);
       loadingRef.current = false;
     }
-  }, [page, hasMore, loadingMore, q, sortBy, sortPosts]);
+  }, [page, hasMore, loadingMore, q, sortBy]);
 
   // ==================== INFINITE SCROLL ====================
 
