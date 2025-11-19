@@ -19,8 +19,9 @@ export default defineConfig(({ command, mode }) => {
   return {
     plugins: [
       react({
-        // Đảm bảo React được transform đúng cách
+        // Đảm bảo React được transform đúng cách với JSX automatic
         jsxRuntime: 'automatic',
+        jsxImportSource: 'react',
       }), // Plugin hỗ trợ React
       // Compression plugin cho production
       ...(isProduction ? [
@@ -40,7 +41,11 @@ export default defineConfig(({ command, mode }) => {
     
     // Đảm bảo React được resolve đúng cách
     resolve: {
-      dedupe: ['react', 'react-dom'],
+      dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
+      alias: {
+        'react': 'react',
+        'react-dom': 'react-dom'
+      }
     },
     
     // Optimize dependencies
@@ -84,6 +89,16 @@ export default defineConfig(({ command, mode }) => {
     },
     build: {
       assetsDir: 'assets',
+      // Module preload để đảm bảo React được load trước
+      modulePreload: {
+        polyfill: true,
+        resolveDependencies: (filename, deps, { hostId, hostType }) => {
+          // Đảm bảo react-vendor được load trước tất cả
+          return deps.filter(dep => dep.includes('react-vendor')).concat(
+            deps.filter(dep => !dep.includes('react-vendor'))
+          );
+        }
+      },
       // CommonJS options - đảm bảo React được bundle đúng
       commonjsOptions: {
         include: [/react/, /react-dom/, /node_modules/],
@@ -102,24 +117,22 @@ export default defineConfig(({ command, mode }) => {
           manualChunks: (id, { getModuleInfo }) => {
             // Node modules - tách riêng các vendor lớn
             if (id.includes('node_modules')) {
-              // React core - QUAN TRỌNG: Giữ React trong entry chunk để tránh lỗi createContext
-              // Không tách React ra thành chunk riêng vì có thể gây lỗi thứ tự load
-              const isReact = 
+              // React core - TẠO MỘT VENDOR CHUNK DUY NHẤT CHO REACT
+              // Để đảm bảo React được load trước tất cả các component
+              const isReactCore = 
                 id.includes('react/jsx-runtime') || 
                 id.includes('react/jsx-dev-runtime') ||
                 id.includes('node_modules/react/') || 
-                id.includes('node_modules/react/index') ||
-                id === 'react' ||
-                id.includes('react-dom/client') ||
-                id.includes('react-dom/') ||
-                id === 'react-dom' ||
-                id.includes('react-router') ||
-                id.includes('react-router-dom');
+                id.includes('node_modules/react-dom/');
               
-              // KHÔNG tách React ra - giữ trong entry chunk
-              // return undefined để React được bundle vào entry
-              if (isReact) {
-                return undefined; // Giữ React trong entry chunk
+              // Bundle React vào một vendor chunk riêng, load đầu tiên
+              if (isReactCore) {
+                return 'react-vendor'; // Tách React ra vendor chunk riêng
+              }
+              
+              // React Router - bundle cùng với React
+              if (id.includes('react-router')) {
+                return 'react-vendor';
               }
               // React Query
               if (id.includes('@tanstack/react-query')) {

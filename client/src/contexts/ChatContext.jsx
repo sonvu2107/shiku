@@ -1,16 +1,13 @@
 // Sử dụng React.createContext thay vì destructuring để tránh lỗi bundling
-import React from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 // Đảm bảo React đã được load
-if (!React || typeof React.createContext !== 'function') {
+if (!React || typeof createContext !== 'function') {
   console.error('[ChatContext] React is not available or createContext is missing. React:', React);
   throw new Error('React createContext is not available. Please check your React installation.');
 }
 
-const ChatContext = React.createContext(undefined);
-
-// Import hooks riêng để tránh vấn đề với bundling
-const { useContext, useState } = React;
+const ChatContext = createContext(undefined);
 
 export const useChat = () => {
   const context = useContext(ChatContext);
