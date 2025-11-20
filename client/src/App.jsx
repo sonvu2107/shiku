@@ -109,8 +109,11 @@ export default function App() {
   }, [location.pathname]);
 
   // Danh sách các trang không hiển thị navbar
-  const hideNavbarPages = ["/login", "/register", "/forgot-password", "/reset-password", "/", "/tour"];
-  const shouldHideNavbar = hideNavbarPages.includes(location.pathname) && !user;
+  // reset-password và forgot-password luôn ẩn navbar (bất kể đã đăng nhập hay chưa)
+  const alwaysHideNavbarPages = ["/forgot-password", "/reset-password"];
+  const conditionalHideNavbarPages = ["/login", "/register", "/", "/tour"];
+  const shouldHideNavbar = alwaysHideNavbarPages.includes(location.pathname) || 
+    (conditionalHideNavbarPages.includes(location.pathname) && !user);
 
   // Effect chạy khi app khởi tạo để kiểm tra authentication
   useEffect(() => {
@@ -405,6 +408,10 @@ export default function App() {
               {/* Các trang khác */}
               <Route path="/settings" element={<ProtectedRoute user={user}><Settings /></ProtectedRoute>} />
               <Route path="/support" element={<ProtectedRoute user={user}><Support /></ProtectedRoute>} />
+              
+              {/* Auth pages - cần có ở cả 2 nhánh để đảm bảo luôn match (bất kể đã đăng nhập hay chưa) */}
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               
               {/* Catch-all route - redirect về trang chủ */}
               <Route path="*" element={<Navigate to="/" />} />
