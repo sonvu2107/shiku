@@ -106,7 +106,7 @@ export default function MobileMenu({ user, setUser }) {
 
       {/* Slide-out Menu - Dark mode support */}
       <div 
-        className={`fixed top-0 left-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl z-[10000] transform transition-transform duration-300 ease-in-out md:hidden flex flex-col ${
+        className={`fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-800 shadow-2xl z-[10000] transform transition-transform duration-300 ease-in-out md:hidden flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ 
@@ -119,8 +119,8 @@ export default function MobileMenu({ user, setUser }) {
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Menu</h2>
+        <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Menu</h2>
           <button
             onClick={() => setIsOpen(false)}
             className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
@@ -132,16 +132,16 @@ export default function MobileMenu({ user, setUser }) {
 
         {/* User Info */}
         {user && (
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-            <div className="flex items-center gap-3">
+          <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div className="flex items-center gap-2.5">
               <img
                 src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
                 alt={user.name}
-                className="w-12 h-12 rounded-full border border-gray-300 dark:border-gray-600"
+                className="w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600"
               />
-              <div>
-                <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{user.name}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{user.name}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</div>
               </div>
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function MobileMenu({ user, setUser }) {
 
         {/* Menu Items - Scrollable Area */}
         <div className="flex-1 overflow-y-auto min-h-0">
-          <nav className="py-2">
+          <nav className="py-1">
             {menuItems.map((item) => {
               if (!item.show) return null;
               
@@ -159,14 +159,14 @@ export default function MobileMenu({ user, setUser }) {
                   key={item.path}
                   to={item.path}
                   onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 transition-colors touch-target font-medium text-sm ${
+                  className={`flex items-center gap-2.5 px-3 py-2.5 transition-colors touch-target font-medium text-sm ${
                     item.isAdmin 
                       ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-l-4 border-red-500 dark:border-red-400' 
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
-                  <Icon size={20} />
-                  <span className="flex-1">{item.label}</span>
+                  <Icon size={18} />
+                  <span className="flex-1 truncate">{item.label}</span>
                 </Link>
               );
             })}
@@ -175,24 +175,24 @@ export default function MobileMenu({ user, setUser }) {
 
         {/* Footer Actions */}
         {user && (
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="p-3 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors touch-target font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded-lg"
+              className="flex items-center gap-2.5 w-full px-3 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors touch-target font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded-lg"
               aria-label="Đăng xuất"
             >
-              <LogOut size={20} />
+              <LogOut size={18} />
               <span>Đăng xuất</span>
             </button>
           </div>
         )}
 
         {!user && (
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2 flex-shrink-0">
+          <div className="p-3 border-t border-gray-200 dark:border-gray-700 space-y-2 flex-shrink-0">
             <Link
               to="/login"
               onClick={() => setIsOpen(false)}
-              className="block w-full btn-outline text-center py-3 font-medium text-sm"
+              className="block w-full btn-outline text-center py-2.5 font-medium text-sm"
               aria-label="Đăng nhập"
             >
               Đăng nhập
@@ -200,7 +200,7 @@ export default function MobileMenu({ user, setUser }) {
             <Link
               to="/register"
               onClick={() => setIsOpen(false)}
-              className="block w-full btn text-center py-3 font-medium text-sm"
+              className="block w-full btn text-center py-2.5 font-medium text-sm"
               aria-label="Đăng ký"
             >
               Đăng ký

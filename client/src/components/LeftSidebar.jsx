@@ -122,22 +122,51 @@ export default function LeftSidebar({ user, setUser }) {
       if (!user?._id) return;
       
       try {
-        // Try to get stats from user profile
+        // Get user profile with friends populated
         const data = await api(`/api/users/${user._id}`);
         
-        // Get post count
-        const postsRes = await api(`/api/posts?author=${user._id}&limit=1`);
-        const postCount = postsRes.total || 0;
+        // Get post count - check both response structure
+        let postCount = 0;
+        try {
+          const postsRes = await api(`/api/posts?author=${user._id}&limit=1`);
+          // Check different response structures
+          if (postsRes.pagination?.total !== undefined) {
+            postCount = postsRes.pagination.total;
+          } else if (postsRes.total !== undefined) {
+            postCount = postsRes.total;
+          } else if (Array.isArray(postsRes.items)) {
+            // If no total, count from items (fallback)
+            const allPostsRes = await api(`/api/posts?author=${user._id}&limit=1000`);
+            postCount = allPostsRes.items?.length || 0;
+          }
+        } catch (err) {
+          console.warn('Error loading post count:', err);
+        }
         
-        // Get friend count
-        const friendCount = data.user?.friends?.length || 0;
+        // Get friend count - ensure friends array exists
+        const friendCount = Array.isArray(data.user?.friends) ? data.user.friends.length : 0;
         
-        // Try to get likes and views from posts (aggregate)
-        // This is a simplified version - you might want to optimize this
-        const allPostsRes = await api(`/api/posts?author=${user._id}&limit=100`);
-        const allPosts = allPostsRes.items || [];
-        const likeCount = allPosts.reduce((sum, post) => sum + (post.emotes?.length || 0), 0);
-        const viewCount = allPosts.reduce((sum, post) => sum + (post.views || 0), 0);
+        // Get likes and views from posts - use aggregation approach
+        let likeCount = 0;
+        let viewCount = 0;
+        try {
+          // Load posts in batches to get accurate counts
+          const allPostsRes = await api(`/api/posts?author=${user._id}&limit=1000`);
+          const allPosts = allPostsRes.items || [];
+          
+          // Aggregate likes (emotes) and views
+          likeCount = allPosts.reduce((sum, post) => {
+            // emotes is an array, count its length
+            return sum + (Array.isArray(post.emotes) ? post.emotes.length : 0);
+          }, 0);
+          
+          viewCount = allPosts.reduce((sum, post) => {
+            // views is a number
+            return sum + (typeof post.views === 'number' ? post.views : 0);
+          }, 0);
+        } catch (err) {
+          console.warn('Error loading likes/views:', err);
+        }
         
         setStats({
           postCount,

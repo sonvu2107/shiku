@@ -16,6 +16,7 @@ import Home from "./pages/Home.jsx"; // Eager load Home for better LCP
 // LAZY IMPORT CÁC PAGES - Code Splitting
 // Core pages (load ngay)
 const Landing = lazy(() => import("./pages/Landing.jsx"));
+const Tour = lazy(() => import("./pages/Tour.jsx"));
 const Login = lazy(() => import("./pages/Login.jsx"));
 const Register = lazy(() => import("./pages/Register.jsx"));
 
@@ -107,7 +108,7 @@ export default function App() {
   }, [location.pathname]);
 
   // Danh sách các trang không hiển thị navbar
-  const hideNavbarPages = ["/login", "/register", "/reset-password", "/"];
+  const hideNavbarPages = ["/login", "/register", "/reset-password", "/", "/tour"];
   const shouldHideNavbar = hideNavbarPages.includes(location.pathname) && !user;
 
   // Effect chạy khi app khởi tạo để kiểm tra authentication
@@ -343,6 +344,7 @@ export default function App() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/tour" element={<Tour />} />
             <Route path="/login" element={<Login setUser={setUser} />} />
             <Route path="/register" element={<Register setUser={setUser} />} />
             <Route path="/reset-password" element={<ResetPassword />} />

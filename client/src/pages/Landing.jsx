@@ -256,7 +256,7 @@ export default function Landing() {
             </MagicButton>
             
             <Link 
-              to="/explore" 
+              to="/tour" 
               className="text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white font-medium flex items-center gap-1 transition-colors group px-4 md:px-6 py-2 md:py-3"
             >
               Dạo một vòng <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -401,7 +401,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
              <Logo size="small" />
-             <span className="font-bold text-neutral-900 dark:text-white">Shiku © 2024</span>
+             <span className="font-bold text-neutral-900 dark:text-white">Developed by Son  with ❤️</span>
           </div>
           <div className="flex gap-8 text-neutral-500 text-sm font-medium">
             <Link to="/support" className="hover:text-black dark:hover:text-white transition-colors">Hỗ trợ</Link>

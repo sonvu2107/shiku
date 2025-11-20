@@ -843,7 +843,7 @@ export default function Home({ user, setUser }) {
                   <Settings size={20} className="text-gray-600 dark:text-gray-300" />
                 </Link>
                 <Link
-                  to={`/user/${user._id}`}
+                  to="/profile"
                   className="ml-0.5"
                 >
                   <img

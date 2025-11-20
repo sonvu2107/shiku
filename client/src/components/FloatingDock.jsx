@@ -5,7 +5,7 @@ import {
   Home, 
   Compass, 
   PlusSquare, 
-  Users, 
+  UserCheck, 
   Image, 
   Settings, 
   Calendar 
@@ -16,7 +16,7 @@ import { cn } from "../utils/cn";
 const dockItems = [
   { icon: Home, label: "Trang chủ", href: "/" },
   { icon: Compass, label: "Khám phá", href: "/explore" },
-  { icon: Users, label: "Nhóm", href: "/groups" },
+  { icon: UserCheck, label: "Nhóm", href: "/groups" },
   { icon: PlusSquare, label: "Đăng bài", href: "/new", isPrimary: true }, // Nút nổi bật
   { icon: Calendar, label: "Sự kiện", href: "/events" },
   { icon: Image, label: "Media", href: "/media" },
