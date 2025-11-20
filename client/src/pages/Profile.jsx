@@ -47,7 +47,6 @@ export default function Profile() {
   // Use profile data hook để lấy dữ liệu từ API (chỉ khi user đã được load)
   // API trả về user.id (không phải _id), nên cần check cả 2
   const userId = user?.id || user?._id || null;
-  console.log("[Profile] Computed userId for hook:", userId, "from user:", user);
   const profileData = useProfileData(userId);
   const { 
     data: { posts = [], friends = [], analytics = null, recentImages = [] },
@@ -58,16 +57,6 @@ export default function Profile() {
     refreshAll,
   } = profileData;
   
-  // Debug logs
-  useEffect(() => {
-    const currentUserId = user?.id || user?._id;
-    console.log("[Profile] user.id:", user?.id, "user._id:", user?._id, "computed:", currentUserId);
-    console.log("[Profile] profileData:", profileData);
-    console.log("[Profile] posts:", posts);
-    console.log("[Profile] friends:", friends);
-    console.log("[Profile] analytics:", analytics);
-    console.log("[Profile] recentImages:", recentImages);
-  }, [user?.id, user?._id, posts, friends, analytics, recentImages, profileData]);
   
   const { savedMap, updateSavedState } = useSavedPosts(posts);
 
@@ -84,9 +73,6 @@ export default function Profile() {
   async function load() {
       try {
     const res = await api("/api/auth/me");
-        console.log("[Profile] API /api/auth/me response:", res);
-        console.log("[Profile] res.user:", res.user);
-        console.log("[Profile] res.user._id:", res.user?._id);
         if (isMounted && !abortControllerRef.current?.signal.aborted) {
     // Đảm bảo user object có cả id và _id để tương thích
     const userData = {
@@ -101,11 +87,9 @@ export default function Profile() {
             postsCount: userData.postsCount || 0,
             friendsCount: userData.friendsCount || 0,
           });
-          console.log("[Profile] User state updated, user.id:", userData.id, "user._id:", userData._id);
         }
     } catch (error) {
         if (isMounted && !abortControllerRef.current?.signal.aborted) {
-          console.error("Failed to load user:", error);
         }
       }
     }
@@ -370,7 +354,6 @@ export default function Profile() {
                 await refreshAll(analyticsPeriod);
               }
             } catch (err) {
-              console.error("Failed to reload user data:", err);
             }
             setShowCustomization(false);
           }}
