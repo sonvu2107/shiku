@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { Search, Users, Calendar, Image, MessageCircle, Heart, MessageSquare, Hash } from "lucide-react";
+import { Search, Users, MessageSquare, Hash, TrendingUp, ArrowRight } from "lucide-react";
 import UserName from "../components/UserName";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { useSEO } from "../utils/useSEO";
 import ModernPostCard from "../components/ModernPostCard";
+import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
+import { motion } from "framer-motion";
+import { cn } from "../utils/cn";
 
 /**
- * Explore - Trang khám phá nội dung
- * Hiển thị các bài viết, người dùng, nhóm được đề xuất
+ * Explore - Trang khám phá nội dung (Redesigned)
+ * Style: Monochrome Luxury
  */
 export default function Explore({ user }) {
   const [searchParams] = useSearchParams();
@@ -22,8 +25,7 @@ export default function Explore({ user }) {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // ==================== SEO ====================
-  // Trang khám phá là public → index, follow
+  // SEO
   useSEO({
     title: searchQuery ? `Tìm kiếm "${searchQuery}" - Shiku` : "Khám phá - Shiku",
     description: "Khám phá bài viết, người dùng, nhóm và sự kiện thú vị trên Shiku",
@@ -32,7 +34,6 @@ export default function Explore({ user }) {
   });
 
   useEffect(() => {
-    // Lấy query từ URL nếu có
     const queryFromUrl = searchParams.get('q');
     if (queryFromUrl) {
       setSearchQuery(queryFromUrl);
@@ -47,25 +48,18 @@ export default function Explore({ user }) {
       loadExploreData();
       return;
     }
-
     setLoading(true);
     try {
-      // Search posts
-      const postsRes = await api(`/api/posts?q=${encodeURIComponent(query)}&limit=50`);
+      const [postsRes, usersRes, groupsRes] = await Promise.all([
+         api(`/api/posts?q=${encodeURIComponent(query)}&limit=50`),
+         api(`/api/users/search?q=${encodeURIComponent(query)}`),
+         api(`/api/groups?search=${encodeURIComponent(query)}&limit=20`)
+      ]);
       setPosts(postsRes.items || []);
-
-      // Search users
-      const usersRes = await api(`/api/users/search?q=${encodeURIComponent(query)}`);
       setUsers(usersRes.users || []);
-
-      // Search groups
-      const groupsRes = await api(`/api/groups?search=${encodeURIComponent(query)}&limit=20`);
       setGroups(groupsRes.data?.groups || []);
     } catch (error) {
-      // Fallback to empty arrays if search fails
-      setPosts([]);
-      setUsers([]);
-      setGroups([]);
+      setPosts([]); setUsers([]); setGroups([]);
     } finally {
       setLoading(false);
     }
@@ -74,26 +68,18 @@ export default function Explore({ user }) {
   const loadExploreData = async () => {
     setLoading(true);
     try {
-      // Load posts - sử dụng API thực
-      const postsRes = await api("/api/posts?limit=50");
+      const [postsRes, usersRes, groupsRes] = await Promise.all([
+         api("/api/posts?limit=50"),
+         api("/api/users/search?q="),
+         api("/api/groups?limit=20")
+      ]);
+      
       setPosts(postsRes.items || []);
-
-      // Load users - sử dụng API search với query rỗng để lấy tất cả
-      const usersRes = await api("/api/users/search?q=");
       setUsers(usersRes.users || []);
-
-      // Load groups - sử dụng API groups thực
-      const groupsRes = await api("/api/groups?limit=20");
       setGroups(groupsRes.data?.groups || []);
-
-      // Load trending tags
       loadTrendingTags(postsRes.items || []);
     } catch (error) {
-      // Fallback to empty arrays if API fails
-      setPosts([]);
-      setUsers([]);
-      setGroups([]);
-      setTrendingTags([]);
+      setPosts([]); setUsers([]); setGroups([]); setTrendingTags([]);
     } finally {
       setLoading(false);
     }
@@ -101,7 +87,6 @@ export default function Explore({ user }) {
 
   const loadTrendingTags = (postsData) => {
     try {
-      // Đếm tần suất xuất hiện của mỗi tag
       const tagCount = {};
       postsData?.forEach(post => {
         if (post.tags && Array.isArray(post.tags)) {
@@ -113,13 +98,10 @@ export default function Explore({ user }) {
           });
         }
       });
-
-      // Chuyển thành array và sắp xếp theo tần suất
       const sortedTags = Object.entries(tagCount)
         .map(([tag, count]) => ({ tag, count }))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 20); // Top 20 tags
-
+        .slice(0, 20);
       setTrendingTags(sortedTags);
     } catch (error) {
       setTrendingTags([]);
@@ -134,242 +116,178 @@ export default function Explore({ user }) {
   const tabs = [
     { id: "posts", label: "Bài viết", icon: MessageSquare },
     { id: "users", label: "Người dùng", icon: Users },
-    { id: "groups", label: "Nhóm", icon: Users },
-    { id: "tags", label: "Tag xu hướng", icon: Hash },
+    { id: "groups", label: "Nhóm", icon: Users }, // Icon group tạm dùng Users
+    { id: "tags", label: "Xu hướng", icon: Hash },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 sm:pt-20 transition-colors duration-300">
-      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">Khám phá</h1>
-          
-          {/* Search */}
-          <form onSubmit={handleSearch} className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 z-10" size={18} />
-            <input
-              type="text"
-              placeholder="Tìm kiếm bài viết, người dùng, nhóm..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
-                        focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent 
-                        outline-none text-sm sm:text-base bg-white dark:bg-gray-800 
-                        text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 
-                        shadow-sm dark:shadow-gray-900/50 transition-all duration-200
-                        hover:border-gray-400 dark:hover:border-gray-500"
-            />
-          </form>
-        </div>
+    <PageLayout>
+      {/* Header */}
+      <PageHeader 
+         title="Khám phá" 
+         subtitle="Tìm kiếm những điều thú vị đang diễn ra" 
+      />
 
-        {/* Tabs */}
-        <div className="mb-4 sm:mb-6">
-          <div className="bg-white dark:bg-[#111] rounded-[32px] mb-6
-          shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-          hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
-          transition-all duration-500 border border-transparent dark:border-white/5 overflow-hidden">
-            <div className="grid grid-cols-4 bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 transition-colors duration-200">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
+      {/* Search Bar (Sticky Glass) */}
+      <div className="sticky top-24 z-30 mb-8">
+         <div className="flex flex-col md:flex-row gap-4 bg-white/80 dark:bg-black/80 backdrop-blur-xl p-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm transition-all">
+            {/* Search Input */}
+            <form onSubmit={handleSearch} className="relative flex-1 group">
+               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" size={18} />
+               <input
+                  type="text"
+                  placeholder="Tìm kiếm bài viết, người dùng, nhóm..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-4 py-2.5 bg-transparent border-none outline-none text-neutral-900 dark:text-white placeholder-neutral-400 font-medium"
+               />
+            </form>
+
+            {/* Tab Navigation */}
+            <div className="flex gap-1 overflow-x-auto no-scrollbar p-1 border-t md:border-t-0 md:border-l border-neutral-200 dark:border-neutral-800 pt-2 md:pt-0 md:pl-2">
+               {tabs.map((tab) => (
                   <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 px-1.5 sm:px-2 md:px-4 py-2 sm:py-2.5 md:py-3 transition-all duration-200 whitespace-nowrap relative touch-target font-medium text-[10px] sm:text-xs md:text-sm lg:text-base ${
-                      activeTab === tab.id
-                        ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30"
-                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/50"
-                    }`}
+                     key={tab.id}
+                     onClick={() => setActiveTab(tab.id)}
+                     className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
+                        activeTab === tab.id 
+                          ? "bg-black dark:bg-white text-white dark:text-black shadow-md" 
+                          : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-white/5"
+                     )}
                   >
-                    <Icon size={14} className="sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" />
-                    <span className="truncate">{tab.label}</span>
-                    {activeTab === tab.id && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
-                    )}
+                     <tab.icon size={16} /> {tab.label}
                   </button>
-                );
-              })}
+               ))}
             </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-600 dark:border-blue-400 border-t-transparent"></div>
-            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Đang tải...</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Posts Tab */}
-            {activeTab === "posts" && (
-              <div className="space-y-6">
-                {posts.length === 0 ? (
-                  <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
-                  shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-                  border border-transparent dark:border-white/5 text-center py-12 sm:py-16">
-                    <MessageSquare size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600 opacity-60" />
-                    <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-4">Không có bài viết nào để hiển thị</p>
-                    <Link
-                      to="/"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium"
-                      aria-label="Khám phá trang chủ"
-                    >
-                      <Search size={18} />
-                      <span>Khám phá trang chủ</span>
-                    </Link>
-                  </div>
-                ) : (
-                  posts.map((post) => (
-                    <ModernPostCard
-                      key={post._id}
-                      post={post}
-                      user={user}
-                    />
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* Users Tab */}
-            {activeTab === "users" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {users.length === 0 ? (
-                  <div className="col-span-full bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
-                  shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-                  border border-transparent dark:border-white/5 text-center py-12 sm:py-16">
-                    <Users size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600 opacity-60" />
-                    <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">Không có người dùng nào để hiển thị</p>
-                  </div>
-                ) : (
-                  users.map((user) => (
-                    <div key={user._id} className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6
-                    shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-                    hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
-                    transition-all duration-500 hover:-translate-y-1 border border-transparent dark:border-white/5">
-                      <div className="flex items-center gap-3">
-                        <Link to={`/user/${user._id}`} className="flex-shrink-0">
-                          <img
-                            src={getUserAvatarUrl(user, AVATAR_SIZES.MEDIUM)}
-                            alt={user.name}
-                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700 hover:opacity-80 transition-opacity cursor-pointer"
-                          />
-                        </Link>
-                        <div className="flex-1 min-w-0">
-                          <Link to={`/user/${user._id}`}>
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base truncate hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                              <UserName user={user} maxLength={20} />
-                            </h3>
-                          </Link>
-                          <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm truncate">{user.email}</p>
-                        </div>
-                        <Link
-                          to={`/user/${user._id}`}
-                          className="btn-outline text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap touch-target border-gray-800 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          Xem
-                        </Link>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* Groups Tab */}
-            {activeTab === "groups" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {groups.length === 0 ? (
-                  <div className="col-span-full bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
-                  shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-                  border border-transparent dark:border-white/5 text-center py-12 sm:py-16">
-                    <Users size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600 opacity-60" />
-                    <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">Không có nhóm nào để hiển thị</p>
-                  </div>
-                ) : (
-                  groups.map((group) => (
-                    <div key={group._id} className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6
-                    shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-                    hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
-                    transition-all duration-500 hover:-translate-y-1 border border-transparent dark:border-white/5">
-                      <div className="flex items-center gap-3">
-                        <Link to={`/groups/${group._id}`} className="flex-shrink-0">
-                          <img
-                            src={group.avatar || group.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name)}&length=2&background=cccccc&color=222222`}
-                            alt={group.name}
-                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700 hover:opacity-80 transition-opacity cursor-pointer"
-                          />
-                        </Link>
-                        <div className="flex-1 min-w-0">
-                          <Link to={`/groups/${group._id}`}>
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base truncate hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{group.name}</h3>
-                          </Link>
-                          <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">{group.members?.length || 0} thành viên</p>
-                        </div>
-                        <Link
-                          to={`/groups/${group._id}`}
-                          className="btn-outline text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap touch-target border-gray-800 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          Xem
-                        </Link>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* Tags Tab */}
-            {activeTab === "tags" && (
-              <div className="bg-white dark:bg-[#111] rounded-[32px] p-5 mb-6
-              shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-              border border-transparent dark:border-white/5">
-                {trendingTags.length === 0 ? (
-                  <div className="text-center py-8 sm:py-12 text-gray-500 dark:text-gray-400">
-                    <Hash size={40} className="mx-auto mb-3 sm:mb-4 text-gray-300 dark:text-gray-600" />
-                    <p className="text-sm sm:text-base">Chưa có tag nào</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {trendingTags.map(({ tag, count }, index) => (
-                      <div
-                        key={tag}
-                        onClick={() => navigate(`/explore?q=${encodeURIComponent(tag)}`)}
-                        className="flex items-center justify-between p-4 rounded-[20px] border border-transparent dark:border-white/5 
-                        hover:shadow-[0_4px_15px_rgb(0,0,0,0.06)] dark:hover:shadow-[0_4px_15px_rgb(0,0,0,0.5)]
-                        cursor-pointer transition-all duration-300 group bg-white dark:bg-[#111]"
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{index + 1}</span>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <Hash size={16} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                              <span className="font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
-                                {tag}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                              {count} bài viết
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0 text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+         </div>
       </div>
-    </div>
+
+      {/* Content Area */}
+      <div className="min-h-[500px] pb-20">
+         {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+               <div className="animate-spin rounded-full h-10 w-10 border-2 border-black dark:border-white border-t-transparent"></div>
+               <p className="mt-4 text-sm text-neutral-500 font-medium">Đang tải nội dung...</p>
+            </div>
+         ) : (
+            <div className="space-y-8">
+               
+               {/* POSTS TAB */}
+               {activeTab === "posts" && (
+                  <div className="max-w-2xl mx-auto space-y-6">
+                     {posts.length === 0 ? (
+                        <div className="text-center py-20 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-[32px]">
+                           <MessageSquare size={40} className="mx-auto text-neutral-400 mb-4" />
+                           <p className="text-neutral-500 font-medium">Không tìm thấy bài viết nào.</p>
+                        </div>
+                     ) : (
+                        posts.map((post, index) => (
+                           <motion.div
+                              key={post._id}
+                              initial={{ opacity: 0, y: 20 }}
+                              whileInView={{ opacity: 1, y: 0 }}
+                              viewport={{ once: true }}
+                              transition={{ delay: index * 0.05 }}
+                           >
+                              <ModernPostCard post={post} user={user} hideActionsMenu={true} />
+                           </motion.div>
+                        ))
+                     )}
+                  </div>
+               )}
+
+               {/* USERS TAB */}
+               {activeTab === "users" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                     {users.length === 0 ? (
+                        <div className="col-span-full text-center py-20 text-neutral-500">Không tìm thấy người dùng nào.</div>
+                     ) : (
+                        users.map((user) => (
+                           <SpotlightCard key={user._id} className="flex flex-col items-center p-6 text-center hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors group" onClick={() => navigate(`/user/${user._id}`)}>
+                              <div className="relative mb-4">
+                                 <img
+                                    src={getUserAvatarUrl(user, AVATAR_SIZES.MEDIUM)}
+                                    alt={user.name}
+                                    className="w-20 h-20 rounded-full object-cover border-4 border-neutral-100 dark:border-neutral-800 group-hover:border-white dark:group-hover:border-neutral-600 transition-colors"
+                                 />
+                                 {/* Online dot (optional) */}
+                              </div>
+                              <h3 className="font-bold text-lg text-neutral-900 dark:text-white truncate w-full mb-1">
+                                 <UserName user={user} />
+                              </h3>
+                              <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate w-full mb-4">{user.email}</p>
+                              <button className="px-6 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-full text-sm font-bold hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all w-full">
+                                 Xem hồ sơ
+                              </button>
+                           </SpotlightCard>
+                        ))
+                     )}
+                  </div>
+               )}
+
+               {/* GROUPS TAB */}
+               {activeTab === "groups" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                     {groups.length === 0 ? (
+                        <div className="col-span-full text-center py-20 text-neutral-500">Không tìm thấy nhóm nào.</div>
+                     ) : (
+                        groups.map((group) => (
+                           <SpotlightCard key={group._id} className="p-0 flex flex-col overflow-hidden border-0 h-full group" onClick={() => navigate(`/groups/${group._id}`)}>
+                              <div className="h-32 bg-neutral-200 dark:bg-neutral-800 relative">
+                                 {group.avatar && (
+                                    <img src={group.avatar} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="" />
+                                 )}
+                                 <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                                    <h3 className="text-white font-bold text-lg truncate">{group.name}</h3>
+                                 </div>
+                              </div>
+                              <div className="p-5 flex-1 flex flex-col">
+                                 <p className="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-2 mb-4 flex-1">
+                                    {group.description || "Không có mô tả"}
+                                 </p>
+                                 <div className="flex justify-between items-center pt-4 border-t border-neutral-100 dark:border-neutral-800">
+                                    <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">{group.members?.length || 0} thành viên</span>
+                                    <ArrowRight size={16} className="text-neutral-400 group-hover:text-black dark:group-hover:text-white transition-colors" />
+                                 </div>
+                              </div>
+                           </SpotlightCard>
+                        ))
+                     )}
+                  </div>
+               )}
+
+               {/* TAGS TAB */}
+               {activeTab === "tags" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                     {trendingTags.length === 0 ? (
+                        <div className="col-span-full text-center py-20 text-neutral-500">Chưa có xu hướng nào.</div>
+                     ) : (
+                        trendingTags.map(({ tag, count }, index) => (
+                           <SpotlightCard 
+                              key={tag} 
+                              className="p-5 flex items-center justify-between hover:border-blue-500/30 dark:hover:border-blue-500/30 cursor-pointer transition-colors group"
+                              onClick={() => { setSearchQuery(tag); performSearch(tag); setActiveTab('posts'); }}
+                           >
+                              <div className="flex items-center gap-4">
+                                 <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center font-black text-neutral-400 group-hover:text-blue-500 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                                    {index + 1}
+                                 </div>
+                                 <div>
+                                    <h4 className="font-bold text-neutral-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">#{tag}</h4>
+                                    <p className="text-xs text-neutral-500 font-medium">{count} bài viết</p>
+                                 </div>
+                              </div>
+                              <TrendingUp size={16} className="text-neutral-300 group-hover:text-blue-500 transition-colors" />
+                           </SpotlightCard>
+                        ))
+                     )}
+                  </div>
+               )}
+
+            </div>
+         )}
+      </div>
+    </PageLayout>
   );
 }

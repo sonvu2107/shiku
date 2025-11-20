@@ -150,17 +150,17 @@ export default function Shortcuts({ user, minimal = false }) {
             </span>
             {shortcut.type === 'group' && (
               <div className="ml-auto">
-                <Users size={12} className="text-gray-400" />
+                <Users size={12} className="text-gray-400 dark:text-gray-500" />
               </div>
             )}
             {shortcut.type === 'groups' && (
               <div className="ml-auto">
-                <Users size={12} className="text-gray-400" />
+                <Users size={12} className="text-gray-400 dark:text-gray-500" />
               </div>
             )}
             {shortcut.type === 'event' && (
               <div className="ml-auto">
-                <Calendar size={12} className="text-gray-400" />
+                <Calendar size={12} className="text-gray-400 dark:text-gray-500" />
               </div>
             )}
           </Link>

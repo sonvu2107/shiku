@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { Calendar, MapPin, Users, Tag, ArrowLeft, Save, Image, X } from "lucide-react";
+import { Calendar, MapPin, Users, Tag, ArrowLeft, Save, Image, X, Globe, Lock } from "lucide-react";
 import { useToast } from "../components/Toast";
 import ImageUpload from "../components/ImageUpload";
+import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
+import { motion } from "framer-motion";
 
 /**
- * EditEvent - Trang chỉnh sửa sự kiện
+ * EditEvent - Trang chỉnh sửa sự kiện (Monochrome Luxury Style)
  * Cho phép người tạo chỉnh sửa thông tin sự kiện
  */
 export default function EditEvent() {
@@ -70,7 +72,6 @@ export default function EditEvent() {
         navigate("/events");
       }
     } catch (error) {
-      // Silent handling for event loading error
       showError("Có lỗi xảy ra khi tải sự kiện");
       navigate("/events");
     } finally {
@@ -176,7 +177,6 @@ export default function EditEvent() {
         throw new Error(response.message || "Có lỗi xảy ra khi cập nhật sự kiện");
       }
     } catch (error) {
-      // Silent handling for event update error
       showError(error.message || "Có lỗi xảy ra khi cập nhật sự kiện");
     } finally {
       setSaving(false);
@@ -185,252 +185,271 @@ export default function EditEvent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-[#F5F7FA] dark:bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-black dark:border-white"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate(`/events/${id}`)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Quay lại
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">Chỉnh sửa sự kiện</h1>
-          <p className="text-gray-600 mt-2">Cập nhật thông tin sự kiện của bạn</p>
+    <PageLayout>
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(`/events/${id}`)}
+        className="group flex items-center gap-2 text-neutral-500 hover:text-black dark:hover:text-white mb-6 transition-colors"
+      >
+        <div className="p-2 rounded-full bg-neutral-100 dark:bg-neutral-900 group-hover:bg-neutral-200 dark:group-hover:bg-neutral-800 transition-colors">
+          <ArrowLeft size={20} />
+        </div>
+        <span className="font-medium">Quay lại</span>
+      </button>
+
+      {/* Header */}
+      <PageHeader 
+        title="Chỉnh sửa sự kiện" 
+        subtitle="Cập nhật thông tin sự kiện của bạn"
+      />
+
+      {/* Form */}
+      <motion.form 
+        onSubmit={handleSubmit} 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-3xl mx-auto space-y-6"
+      >
+        {/* Title */}
+        <SpotlightCard>
+          <label htmlFor="title" className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
+            Tiêu đề sự kiện *
+          </label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            value={formData.title}
+            onChange={handleChange}
+            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${
+              errors.title ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
+            } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
+            placeholder="Nhập tiêu đề sự kiện"
+          />
+          {errors.title && (
+            <p className="mt-2 text-sm text-red-500">{errors.title}</p>
+          )}
+        </SpotlightCard>
+
+        {/* Description */}
+        <SpotlightCard>
+          <label htmlFor="description" className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
+            Mô tả sự kiện *
+          </label>
+          <textarea
+            id="description"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            rows={6}
+            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all resize-none ${
+              errors.description ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
+            } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
+            placeholder="Mô tả chi tiết về sự kiện..."
+          />
+          {errors.description && (
+            <p className="mt-2 text-sm text-red-500">{errors.description}</p>
+          )}
+        </SpotlightCard>
+
+        {/* Cover Image */}
+        <SpotlightCard>
+          <label className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
+            <Image className="inline w-4 h-4 mr-2" />
+            Ảnh bìa sự kiện
+          </label>
+          {formData.coverImage ? (
+            <div className="relative rounded-3xl overflow-hidden">
+              <img
+                src={formData.coverImage}
+                alt="Cover preview"
+                className="w-full h-64 object-cover"
+              />
+              <button
+                type="button"
+                onClick={handleRemoveCoverImage}
+                className="absolute top-4 right-4 p-2 bg-black/80 dark:bg-white/80 backdrop-blur-md text-white dark:text-black rounded-full hover:bg-black dark:hover:bg-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          ) : (
+            <ImageUpload
+              onUpload={handleCoverImageUpload}
+              accept="image/*"
+              className="w-full h-48 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-3xl flex items-center justify-center hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors cursor-pointer"
+            >
+              <div className="text-center">
+                <Image className="mx-auto h-12 w-12 text-neutral-400 dark:text-neutral-600" />
+                <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400 font-medium">Tải lên ảnh bìa</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-500">PNG, JPG, GIF (tối đa 10MB)</p>
+              </div>
+            </ImageUpload>
+          )}
+        </SpotlightCard>
+
+        {/* Date and Time */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <SpotlightCard>
+            <label htmlFor="date" className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
+              <Calendar className="inline w-4 h-4 mr-2" />
+              Ngày diễn ra *
+            </label>
+            <input
+              type="date"
+              id="date"
+              name="date"
+              value={formData.date}
+              onChange={handleChange}
+              min={new Date().toISOString().split('T')[0]}
+              className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${
+                errors.date ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
+              } text-neutral-900 dark:text-white`}
+            />
+            {errors.date && (
+              <p className="mt-2 text-sm text-red-500">{errors.date}</p>
+            )}
+          </SpotlightCard>
+
+          <SpotlightCard>
+            <label htmlFor="time" className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
+              <Calendar className="inline w-4 h-4 mr-2" />
+              Giờ diễn ra
+            </label>
+            <input
+              type="time"
+              id="time"
+              name="time"
+              value={formData.time}
+              onChange={handleChange}
+              className="w-full px-4 py-3 bg-transparent border border-neutral-200 dark:border-neutral-800 rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all text-neutral-900 dark:text-white"
+            />
+          </SpotlightCard>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              Tiêu đề sự kiện *
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                errors.title ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="Nhập tiêu đề sự kiện"
-            />
-            {errors.title && (
-              <p className="mt-1 text-sm text-red-600">{errors.title}</p>
-            )}
-          </div>
+        {/* Location */}
+        <SpotlightCard>
+          <label htmlFor="location" className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
+            <MapPin className="inline w-4 h-4 mr-2" />
+            Địa điểm
+          </label>
+          <input
+            type="text"
+            id="location"
+            name="location"
+            value={formData.location}
+            onChange={handleChange}
+            className="w-full px-4 py-3 bg-transparent border border-neutral-200 dark:border-neutral-800 rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500"
+            placeholder="Nhập địa điểm tổ chức sự kiện"
+          />
+        </SpotlightCard>
 
-          {/* Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-              Mô tả sự kiện *
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={4}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                errors.description ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="Mô tả chi tiết về sự kiện..."
-            />
-            {errors.description && (
-              <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-            )}
-          </div>
-
-          {/* Cover Image */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Image className="inline w-4 h-4 mr-1" />
-              Ảnh bìa sự kiện
-            </label>
-            {formData.coverImage ? (
-              <div className="relative">
-                <img
-                  src={formData.coverImage}
-                  alt="Cover preview"
-                  className="w-full h-48 object-cover rounded-lg border"
-                />
-                <button
-                  type="button"
-                  onClick={handleRemoveCoverImage}
-                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            ) : (
-              <ImageUpload
-                onUpload={handleCoverImageUpload}
-                accept="image/*"
-                className="w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center hover:border-gray-400 transition-colors"
-              >
-                <div className="text-center">
-                  <Image className="mx-auto h-12 w-12 text-gray-400" />
-                  <p className="mt-2 text-sm text-gray-600">Tải lên ảnh bìa</p>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF tối đa 10MB</p>
-                </div>
-              </ImageUpload>
-            )}
-          </div>
-
-          {/* Date and Time */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="inline w-4 h-4 mr-1" />
-                Ngày diễn ra *
-              </label>
-              <input
-                type="date"
-                id="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                min={new Date().toISOString().split('T')[0]}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                  errors.date ? "border-red-500" : "border-gray-300"
-                }`}
-              />
-              {errors.date && (
-                <p className="mt-1 text-sm text-red-600">{errors.date}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="time" className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="inline w-4 h-4 mr-1" />
-                Giờ diễn ra
-              </label>
-              <input
-                type="time"
-                id="time"
-                name="time"
-                value={formData.time}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Location */}
-          <div>
-            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="inline w-4 h-4 mr-1" />
-              Địa điểm
-            </label>
-            <input
-              type="text"
-              id="location"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="Nhập địa điểm tổ chức sự kiện"
-            />
-          </div>
-
-          {/* Max Attendees */}
-          <div>
-            <label htmlFor="maxAttendees" className="block text-sm font-medium text-gray-700 mb-2">
-              <Users className="inline w-4 h-4 mr-1" />
-              Số người tham gia tối đa
-            </label>
-            <input
-              type="number"
-              id="maxAttendees"
-              name="maxAttendees"
-              value={formData.maxAttendees}
-              onChange={handleChange}
-              min="1"
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                errors.maxAttendees ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="Để trống nếu không giới hạn"
-            />
-            {errors.maxAttendees && (
-              <p className="mt-1 text-sm text-red-600">{errors.maxAttendees}</p>
-            )}
-          </div>
-
-          {/* Tags */}
-          <div>
-            <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
-              <Tag className="inline w-4 h-4 mr-1" />
-              Tags (cách nhau bởi dấu phẩy)
-            </label>
-            <input
-              type="text"
-              id="tags"
-              name="tags"
-              value={formData.tags}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="Ví dụ: hội thảo, công nghệ, networking"
-            />
-          </div>
-
-          {/* Public/Private */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="isPublic"
-              name="isPublic"
-              checked={formData.isPublic}
-              onChange={handleChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="isPublic" className="ml-2 block text-sm text-gray-700">
-              Sự kiện công khai (mọi người có thể tìm thấy và tham gia)
-            </label>
-          </div>
-
-          {/* Submit Error */}
-          {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm text-red-600">{errors.submit}</p>
-            </div>
+        {/* Max Attendees */}
+        <SpotlightCard>
+          <label htmlFor="maxAttendees" className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
+            <Users className="inline w-4 h-4 mr-2" />
+            Số người tham gia tối đa
+          </label>
+          <input
+            type="number"
+            id="maxAttendees"
+            name="maxAttendees"
+            value={formData.maxAttendees}
+            onChange={handleChange}
+            min="1"
+            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${
+              errors.maxAttendees ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
+            } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
+            placeholder="Để trống nếu không giới hạn"
+          />
+          {errors.maxAttendees && (
+            <p className="mt-2 text-sm text-red-500">{errors.maxAttendees}</p>
           )}
+        </SpotlightCard>
 
-          {/* Submit Button */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button
-              type="button"
-              onClick={() => navigate(`/events/${id}`)}
-              className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 btn flex items-center justify-center gap-2"
-            >
-              {saving ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              ) : (
-                <>
-                  <Save size={20} />
-                  Cập nhật sự kiện
-                </>
-              )}
-            </button>
+        {/* Tags */}
+        <SpotlightCard>
+          <label htmlFor="tags" className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
+            <Tag className="inline w-4 h-4 mr-2" />
+            Tags
+          </label>
+          <input
+            type="text"
+            id="tags"
+            name="tags"
+            value={formData.tags}
+            onChange={handleChange}
+            className="w-full px-4 py-3 bg-transparent border border-neutral-200 dark:border-neutral-800 rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500"
+            placeholder="Ví dụ: hội thảo, công nghệ, networking"
+          />
+        </SpotlightCard>
+
+        {/* Public/Private */}
+        <SpotlightCard>
+          <div className="flex items-start gap-4">
+            <div className="flex items-center h-5">
+              <input
+                type="checkbox"
+                id="isPublic"
+                name="isPublic"
+                checked={formData.isPublic}
+                onChange={handleChange}
+                className="w-5 h-5 rounded border-neutral-300 dark:border-neutral-700 text-black dark:text-white focus:ring-2 focus:ring-black dark:focus:ring-white"
+              />
+            </div>
+            <div className="flex-1">
+              <label htmlFor="isPublic" className="flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-white cursor-pointer">
+                {formData.isPublic ? <Globe size={18} /> : <Lock size={18} />}
+                <span>Sự kiện {formData.isPublic ? 'công khai' : 'riêng tư'}</span>
+              </label>
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                {formData.isPublic 
+                  ? "Mọi người có thể tìm thấy và tham gia sự kiện này"
+                  : "Chỉ những người được mời mới có thể tham gia"}
+              </p>
+            </div>
           </div>
-        </form>
-      </div>
-    </div>
+        </SpotlightCard>
+
+        {/* Submit Error */}
+        {errors.submit && (
+          <SpotlightCard className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10">
+            <p className="text-sm text-red-600 dark:text-red-400">{errors.submit}</p>
+          </SpotlightCard>
+        )}
+
+        {/* Submit Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+          <button
+            type="button"
+            onClick={() => navigate(`/events/${id}`)}
+            className="flex-1 px-6 py-3 border border-neutral-200 dark:border-neutral-800 rounded-full text-neutral-700 dark:text-neutral-300 font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="flex-1 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white dark:border-black"></div>
+            ) : (
+              <>
+                <Save size={20} />
+                Cập nhật sự kiện
+              </>
+            )}
+          </button>
+        </div>
+      </motion.form>
+    </PageLayout>
   );
 }

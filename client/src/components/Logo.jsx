@@ -28,7 +28,7 @@ export default function Logo({ size = "small", invert = false }) {
         height={size === 'small' ? 40 : size === 'medium' ? 64 : 80}
         className={`${logoSizes[size]} w-auto ${invert ? '' : 'dark:invert'}`}
         loading="eager"
-        fetchpriority="high"
+        fetchPriority="high"
       />
     </div>
   );

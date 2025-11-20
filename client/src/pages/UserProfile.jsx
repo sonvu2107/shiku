@@ -1,654 +1,690 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
-import {
-  UserPlus,
-  UserMinus,
-  UserCheck,
-  Heart,
-  Users,
-  FileText,
-  MessageCircle,
-  Calendar,
-  MapPin,
-  Globe,
-  Phone,
-  Mail,
-} from "lucide-react";
-import MessageButton from "../components/MessageButton";
-import UserName from "../components/UserName";
+import { motion } from "framer-motion";
 import ModernPostCard from "../components/ModernPostCard";
 import { useSavedPosts } from "../hooks/useSavedPosts";
-import { useSEO } from "../utils/useSEO";
+import { generateAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
+import { cn } from "../utils/cn";
+import {
+  MapPin, Link as LinkIcon, Calendar as CalendarIcon, Heart, Users, FileText,
+  MessageCircle, UserPlus, UserMinus, UserCheck, MoreHorizontal, Phone, Ban, Shield
+} from "lucide-react";
 
-/**
- * UserProfile - Trang profile của user khác
- * Hiển thị thông tin cá nhân, trạng thái bạn bè và các actions
- */
+// --- UI COMPONENTS (Đồng bộ với Profile) ---
+
+const GridPattern = () => (
+  <div className="absolute inset-0 -z-10 h-full w-full bg-white dark:bg-black bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]">
+    <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-neutral-200 dark:bg-neutral-900 opacity-20 blur-[100px]"></div>
+  </div>
+);
+
+const NoiseOverlay = () => (
+  <div className="fixed inset-0 z-50 pointer-events-none opacity-[0.03] mix-blend-overlay"
+    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
+  />
+);
+
+const SpotlightCard = ({ children, className = "", onClick }) => {
+  const divRef = useRef(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [opacity, setOpacity] = useState(0);
+
+  const handleMouseMove = (e) => {
+    if (!divRef.current) return;
+    const div = divRef.current;
+    const rect = div.getBoundingClientRect();
+    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  return (
+    <div
+      ref={divRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setOpacity(1)}
+      onMouseLeave={() => setOpacity(0)}
+      onClick={onClick}
+      className={cn(
+        "relative overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 p-6 transition-all duration-300 hover:shadow-lg cursor-default",
+        className
+      )}
+    >
+      <div
+        className="pointer-events-none absolute -inset-px opacity-0 transition duration-300"
+        style={{
+          opacity,
+          background: `radial-gradient(400px circle at ${position.x}px ${position.y}px, rgba(150,150,150,0.1), transparent 40%)`,
+        }}
+      />
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
+};
+
 export default function UserProfile() {
   const { userId } = useParams();
   const navigate = useNavigate();
 
-  // Helper function để validate ObjectId format (MongoDB ObjectId có 24 ký tự hex)
-  const isValidObjectId = (id) => {
-    if (!id || typeof id !== 'string') return false;
-    // MongoDB ObjectId format: 24 ký tự hexadecimal
-    return /^[0-9a-fA-F]{24}$/.test(id);
-  };
-
-  const [profile, setProfile] = useState(null);
+  // ==================== STATE ====================
+  const [user, setUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [activeTab, setActiveTab] = useState("posts");
+  // Friend Status - sử dụng cấu trúc từ API /api/users/:id
+  const [friendStatus, setFriendStatus] = useState('none'); // none, friend, pending_sent, pending_received
+  const [loadingAction, setLoadingAction] = useState(false);
+  
+  // Block status
+  const [isBlocked, setIsBlocked] = useState(false); // Trạng thái đã chặn user này chưa
+  const [showMenu, setShowMenu] = useState(false); // Hiển thị dropdown menu
+  const [loadingBlock, setLoadingBlock] = useState(false); // Loading khi block/unblock
+  const menuRef = useRef(null);
+
+  // Data
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
-  const [postsError, setPostsError] = useState("");
-  const [currentUser, setCurrentUser] = useState(null);
+  const [friends, setFriends] = useState([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [currentUserFriends, setCurrentUserFriends] = useState([]); // Danh sách bạn bè của currentUser để check friend status
+  
+  const [activeTab, setActiveTab] = useState('posts');
   const { savedMap, updateSavedState } = useSavedPosts(posts);
 
-  // ==================== SEO ====================
-  // Trang profile user là public → index, follow
-  useSEO({
-    title: profile ? `${profile.name} - Shiku` : "Hồ sơ người dùng - Shiku",
-    description: profile?.bio 
-      ? `${profile.bio.substring(0, 160)}...`
-      : `Xem hồ sơ của ${profile?.name || 'người dùng'} trên Shiku`,
-    robots: "index, follow",
-    canonical: profile?._id ? `https://shiku.click/user/${profile._id}` : undefined
-  });
-
+  // ==================== EFFECTS ====================
   useEffect(() => {
     loadProfile();
-    loadCurrentUser();
   }, [userId]);
 
   useEffect(() => {
-    if (profile && activeTab === "posts") {
+    if (user) {
       loadPosts();
+      if (activeTab === 'friends') loadFriends();
     }
-  }, [profile, activeTab]);
+  }, [user, activeTab]);
 
-  /**
-   * Load thông tin user hiện tại (để hiển thị cảm xúc đã thả)
-   */
-  async function loadCurrentUser() {
-    try {
-      const res = await api("/api/auth/me");
-      setCurrentUser(res.user);
-    } catch (error) {
-      // Silent fail - user có thể không đăng nhập
-    }
-  }
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
+  // ==================== API CALLS ====================
   async function loadProfile() {
-    // Validate userId - kiểm tra không phải undefined, null, hoặc string "undefined"
-    if (!userId || 
-        typeof userId !== 'string' || 
-        userId === "undefined" || 
-        userId === "null" || 
-        userId.trim() === "" || 
-        !isValidObjectId(userId)) {
-      setError("User ID không hợp lệ");
-      setLoading(false);
-      navigate("/"); // Redirect về trang chủ nếu userId không hợp lệ
+    setLoading(true);
+    setError("");
+    try {
+      // Lấy thông tin user cần xem
+      const res = await api(`/api/users/${userId}`);
+      
+      // Kiểm tra nếu bị chặn
+      if (res.user.theyBlockedMe) {
+        setError("Người dùng này đã chặn bạn");
+        setLoading(false);
+        return;
+      }
+      
+      setUser(res.user);
+      
+      // Lấy thông tin user hiện tại để check trạng thái bạn bè
+      try {
+        const meRes = await api("/api/auth/me");
+        setCurrentUser(meRes.user);
+        
+        // Redirect về Profile nếu xem chính mình
+        if (meRes.user._id === res.user._id || meRes.user.id === res.user._id) {
+          navigate('/profile');
       return;
     }
-    try {
-      setLoading(true);
-      const data = await api(`/api/users/${userId}`);
-
-      let friendshipStatus = "none";
-      if (data.user.isFriend) {
-        friendshipStatus = "friends";
-      } else if (data.user.hasPendingRequest) {
-        friendshipStatus =
-          data.user.pendingRequestDirection === "sent"
-            ? "request_sent"
-            : "request_received";
+        
+        // Load danh sách bạn bè của currentUser để check friend status trong Friends tab
+        try {
+          const friendsRes = await api("/api/friends/list");
+          setCurrentUserFriends(friendsRes.friends || []);
+        } catch (e) {
+          // Không load được friends, không sao
+        }
+      } catch (e) {
+        // User chưa đăng nhập, không sao
       }
-
-      setProfile({
-        ...data,
-        friendshipStatus,
-      });
-    } catch (error) {
-      setError(error.message);
+      
+      // Set friend status từ API response
+      if (res.user.isFriend) {
+        setFriendStatus('friend');
+      } else if (res.user.hasPendingRequest) {
+        if (res.user.pendingRequestDirection === 'sent') {
+          setFriendStatus('pending_sent');
+        } else {
+          setFriendStatus('pending_received');
+        }
+      } else {
+        setFriendStatus('none');
+      }
+      
+      // Set block status từ API response
+      setIsBlocked(res.user.iBlockedThem || false);
+      
+      // Set friends từ user object (đã được populate)
+      if (res.user.friends) {
+        setFriends(res.user.friends);
+      }
+    } catch (err) {
+      setError("Không tìm thấy người dùng");
     } finally {
       setLoading(false);
     }
   }
 
   async function loadPosts() {
-    if (!profile?.user?._id) return;
-
     setPostsLoading(true);
-    setPostsError("");
-
     try {
-      const response = await api(`/api/posts?author=${profile.user._id}&limit=50`);
-      setPosts(response.items || []);
-    } catch (err) {
-      setPostsError("Không thể tải bài đăng: " + err.message);
+      // Chỉ load bài public của người khác
+      const res = await api(`/api/posts?author=${userId}&status=published&limit=20`);
+      setPosts(res.items || []);
+    } catch (error) {
+      console.error(error);
     } finally {
       setPostsLoading(false);
     }
   }
 
-  async function sendFriendRequest() {
-    if (!profile?.user?._id) return;
+  async function loadFriends() {
+    if(friends.length > 0) return;
+    setFriendsLoading(true);
     try {
-      setActionLoading(true);
-      await api("/api/friends/send-request", {
-        method: "POST",
-        body: { to: profile.user._id },
-      });
-      await loadProfile();
-      setError("");
+      // Friends đã được populate trong loadProfile, nhưng reload để đảm bảo data mới nhất
+      const res = await api(`/api/users/${userId}`);
+      if (res.user && res.user.friends) {
+        setFriends(res.user.friends);
+      }
     } catch (error) {
-      setError(error.message || "Có lỗi xảy ra khi gửi lời mời kết bạn");
+      console.error(error);
     } finally {
-      setActionLoading(false);
+      setFriendsLoading(false);
     }
   }
 
-  async function acceptFriendRequest() {
-    if (!profile?.user?._id) return;
+  // ==================== ACTIONS ====================
+  const handleFriendAction = async () => {
+    setLoadingAction(true);
     try {
-      setActionLoading(true);
-      await api(`/api/friends/accept/${profile.user._id}`, { method: "POST" });
-      await loadProfile();
-      setError("");
-    } catch (error) {
-      setError(error.message || "Có lỗi xảy ra khi chấp nhận lời mời kết bạn");
+      if (friendStatus === 'none') {
+        // Gửi lời mời
+        await api("/api/friends/send-request", { method: "POST", body: { to: user._id } });
+        setFriendStatus('pending_sent');
+      } else if (friendStatus === 'pending_sent') {
+        // Hủy lời mời
+        await api(`/api/friends/cancel-request/${user._id}`, { method: "DELETE" });
+        setFriendStatus('none');
+      } else if (friendStatus === 'pending_received') {
+        // Chấp nhận - cần load requests để tìm requestId
+        const requestsRes = await api("/api/friends/requests");
+        const request = requestsRes.requests?.find(r => {
+          const fromId = r.from?._id || r.from;
+          return fromId === user._id || fromId?.toString() === user._id?.toString();
+        });
+        if (request) {
+          await api(`/api/friends/accept-request/${request._id}`, { method: "POST" });
+          setFriendStatus('friend');
+          // Reload friends list
+          await loadFriends();
+        } else {
+          throw new Error("Không tìm thấy lời mời kết bạn");
+        }
+      } else if (friendStatus === 'friend') {
+        // Hủy kết bạn (Cần confirm)
+        if(window.confirm("Bạn có chắc muốn hủy kết bạn?")) {
+           await api(`/api/friends/remove/${user._id}`, { method: "DELETE" });
+           setFriendStatus('none');
+           // Reload friends list
+           await loadFriends();
+        }
+      }
+    } catch (e) {
+      alert(e.message || "Có lỗi xảy ra");
     } finally {
-      setActionLoading(false);
+      setLoadingAction(false);
     }
-  }
+  };
 
-  async function declineFriendRequest() {
-    if (!profile?.user?._id) return;
+  const handleMessage = () => {
+    navigate(`/chat?user=${user._id}`);
+  };
+
+  const handleBlock = async () => {
+    if (!window.confirm(isBlocked 
+      ? "Bạn có chắc muốn bỏ chặn người dùng này?" 
+      : "Bạn có chắc muốn chặn người dùng này? Bạn sẽ không thể xem nội dung của họ và họ cũng không thể xem nội dung của bạn."
+    )) {
+      return;
+    }
+
+    setLoadingBlock(true);
     try {
-      setActionLoading(true);
-      await api(`/api/friends/decline/${profile.user._id}`, { method: "POST" });
-      await loadProfile();
-      setError("");
-    } catch (error) {
-      setError(error.message || "Có lỗi xảy ra khi từ chối lời mời kết bạn");
+      if (isBlocked) {
+        // Bỏ chặn
+        await api(`/api/users/unblock/${user._id}`, { method: "POST" });
+        setIsBlocked(false);
+      } else {
+        // Chặn
+        await api(`/api/users/block/${user._id}`, { method: "POST" });
+        setIsBlocked(true);
+        // Reset friend status khi block
+        setFriendStatus('none');
+      }
+      setShowMenu(false);
+    } catch (e) {
+      alert(e.message || "Có lỗi xảy ra");
     } finally {
-      setActionLoading(false);
+      setLoadingBlock(false);
     }
-  }
+  };
 
-  async function removeFriend() {
-    if (!profile?.user?._id) return;
-    try {
-      setActionLoading(true);
-      await api(`/api/friends/remove/${profile.user._id}`, { method: "DELETE" });
-      await loadProfile();
-      setError("");
-    } catch (error) {
-      setError(error.message || "Có lỗi xảy ra khi bỏ kết bạn");
-    } finally {
-      setActionLoading(false);
-    }
-  }
+  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-white"></div></div>;
+  if (error || !user) return <div className="min-h-screen bg-black flex items-center justify-center text-white">{error || "Người dùng không tồn tại"}</div>;
 
-  async function blockUser() {
-    if (!profile?.user?._id) return;
-    try {
-      setActionLoading(true);
-      await api(`/api/users/block/${profile.user._id}`, { method: "POST" });
-      await loadProfile();
-      setError("");
-    } catch (error) {
-      setError(error.message || "Có lỗi xảy ra khi chặn người dùng");
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function unblockUser() {
-    if (!profile?.user?._id) return;
-    try {
-      setActionLoading(true);
-      await api(`/api/users/unblock/${profile.user._id}`, { method: "POST" });
-      await loadProfile();
-      setError("");
-    } catch (error) {
-      setError(error.message || "Có lỗi xảy ra khi bỏ chặn người dùng");
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  function renderFriendButton() {
-    if (actionLoading) {
       return (
-        <button disabled className="px-4 py-2 bg-gray-400 text-white rounded-lg flex items-center gap-2 text-sm">
-          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          Đang xử lý...
-        </button>
-      );
-    }
+    <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-white transition-colors duration-300 font-sans relative overflow-x-hidden">
+      <NoiseOverlay />
+      <GridPattern />
 
-    if (profile.user?.theyBlockedMe) {
-      return <div className="text-red-600 text-sm">Người dùng này đã chặn bạn</div>;
-    }
-
-    if (profile.user?.iBlockedThem) {
-      return (
-        <button
-          onClick={unblockUser}
-          className="px-4 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm"
-        >
-          Bỏ chặn
-        </button>
-      );
-    }
-
-    switch (profile.friendshipStatus) {
-      case "friends":
-        return (
-          <div className="flex flex-wrap gap-2">
-            <MessageButton
-              user={profile.user}
-              className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm"
-              style={{ backgroundColor: '#000', color: '#fff' }}
+      {/* --- 1. HEADER SECTION --- */}
+      <div className="relative">
+        {/* Cover Image */}
+        <div className="h-64 md:h-80 lg:h-96 w-full relative overflow-hidden group">
+          {user.coverUrl && user.useCoverImage !== false ? (
+            <motion.img
+              initial={{ scale: 1.1 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 1.5 }}
+              src={user.coverUrl}
+              alt="Cover"
+              className="w-full h-full object-cover"
             />
-            <button
-              onClick={removeFriend}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm"
-            >
-              <UserMinus className="w-4 h-4" />
-              Bỏ kết bạn
-            </button>
-            <button
-              onClick={blockUser}
-              className="px-3 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm"
-            >
-              Chặn
-            </button>
-          </div>
-        );
-      case "request_sent":
-        return (
-          <div className="flex flex-wrap gap-2">
-            <button disabled className="px-4 py-2 bg-gray-400 text-white rounded-lg text-sm">
-              Đã gửi lời mời
-            </button>
-            <button
-              onClick={blockUser}
-              className="px-3 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm"
-            >
-              Chặn
-            </button>
-          </div>
-        );
-      case "request_received":
-        return (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={acceptFriendRequest}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm"
-            >
-              <UserCheck className="w-4 h-4" />
-              Chấp nhận
-            </button>
-            <button
-              onClick={declineFriendRequest}
-              className="px-4 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-2 text-sm"
-            >
-              <UserMinus className="w-4 h-4" />
-              Từ chối
-            </button>
-            <button
-              onClick={blockUser}
-              className="px-3 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm"
-            >
-              Chặn
-            </button>
-          </div>
-        );
-      default:
-        return (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={sendFriendRequest}
-              className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm"
-            >
-              <UserPlus className="w-4 h-4" />
-              Kết bạn
-            </button>
-            <MessageButton
-              user={profile.user}
-              className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm"
-            />
-            <button
-              onClick={blockUser}
-              className="px-3 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm"
-            >
-              Chặn
-            </button>
-          </div>
-        );
-    }
-  }
-
-  if (loading) {
-    return <div className="w-full min-h-screen bg-gray-100 animate-pulse" />;
-  }
-
-  if (error) {
-    return <div className="w-full min-h-screen flex items-center justify-center">{error}</div>;
-  }
-
-  if (!profile?.user) {
-    return <div className="w-full min-h-screen flex items-center justify-center">Không tìm thấy người dùng</div>;
-  }
-
-  const user = profile.user;
-
-  return (
-    <div className="w-full min-h-screen bg-gray-50">
-      {/* Cover */}
-      <div className="relative h-72 md:h-80 lg:h-96 group">
-        {user.coverUrl ? (
-          <img src={user.coverUrl} alt="Cover" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-blue-500" />
-        )}
-        <div className="absolute inset-0 bg-black bg-opacity-20" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-neutral-200 to-neutral-400 dark:from-neutral-800 dark:to-neutral-900" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent dark:from-black dark:via-transparent dark:to-transparent opacity-90" />
       </div>
 
-      {/* Profile Info */}
-      <div className="relative -mt-8 md:-mt-20 px-4 md:px-6 pb-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white dark:bg-[#111] rounded-[32px] 
-          shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-          hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
-          transition-all duration-500 border border-transparent dark:border-white/5 overflow-hidden">
-            <div className="pt-12 md:pt-8 p-4 md:p-6">
-              <div className="flex flex-col md:flex-row items-start md:items-end gap-4 md:gap-6">
+        {/* Info Container */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-24 relative z-10">
+          <div className="flex flex-col md:flex-row items-end md:items-end gap-6 mb-8">
+            
                 {/* Avatar */}
-                <div className="relative -mt-12 md:-mt-28 flex-shrink-0">
-                  <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg overflow-hidden">
-                    <img
-                      src={
-                        getUserAvatarUrl(user, AVATAR_SIZES.XLARGE)
-                      }
-                      alt="Avatar"
+            <div className="relative mx-auto md:mx-0">
+              <motion.div 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full border-4 md:border-[6px] border-white dark:border-black overflow-hidden bg-neutral-200 dark:bg-neutral-800 shadow-2xl"
+              >
+                 <img 
+                    src={user.avatarUrl || generateAvatarUrl(user.name, AVATAR_SIZES.XLARGE)} 
+                    alt={user.name}
                       className="w-full h-full object-cover"
                     />
+              </motion.div>
+                      </div>
+
+            {/* Name & Actions */}
+            <div className="flex-1 mb-2 w-full md:w-auto text-center md:text-left">
+               <div className="flex items-center gap-3 mb-1 flex-wrap justify-center md:justify-start">
+                  <motion.h1 
+                     initial={{ opacity: 0, y: 10 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     className="text-3xl md:text-5xl font-black text-neutral-900 dark:text-white tracking-tight"
+                  >
+                     {user.name}
+                  </motion.h1>
+                  {user.role && user.role !== "user" && (
+                      <span className="px-3 py-1 bg-neutral-900 dark:bg-white text-white dark:text-black text-xs font-bold rounded-full uppercase tracking-wider">
+                        {user.role}
+                      </span>
+                  )}
+               </div>
+               {user.nickname && (
+                  <p className="text-neutral-500 dark:text-neutral-400 text-lg font-medium mb-4">{user.nickname}</p>
+               )}
+               {!user.nickname && (
+                  <div className="mb-4"></div>
+               )}
+               
+               {/* Stats Row (Mobile - Grid 2 columns) */}
+               <div className="grid grid-cols-2 md:hidden gap-4 mb-6 max-w-xs mx-auto md:mx-0">
+                  <div className="text-center p-3 bg-neutral-50 dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                     <span className="block font-black text-black dark:text-white text-2xl">{posts.length}</span>
+                     <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Bài viết</span>
+                  </div>
+                  <div className="text-center p-3 bg-neutral-50 dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                     <span className="block font-black text-black dark:text-white text-2xl">{friends.length || 0}</span>
+                     <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Bạn bè</span>
+                  </div>
+               </div>
+               
+               <div className="flex flex-wrap justify-center md:justify-start gap-2 md:gap-3 w-full md:w-auto">
+                  {/* Nút Kết bạn (Magic Button State) */}
+                  <button 
+                    onClick={handleFriendAction}
+                    disabled={loadingAction}
+                    className={cn(
+                        "px-4 md:px-6 py-2.5 rounded-full font-bold text-xs md:text-sm hover:scale-105 active:scale-95 transition-transform shadow-lg flex items-center justify-center gap-1.5 md:gap-2 min-h-[44px] touch-manipulation flex-1 md:flex-initial",
+                        friendStatus === 'friend' ? "bg-green-600 text-white" : 
+                        friendStatus === 'pending_sent' ? "bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300" :
+                        friendStatus === 'pending_received' ? "bg-blue-600 text-white" :
+                        "bg-neutral-900 dark:bg-white text-white dark:text-black"
+                    )}
+                  >
+                    {loadingAction ? "..." : (
+                        <>
+                            {friendStatus === 'none' && <><UserPlus size={16} className="md:w-[18px] md:h-[18px]" /> <span className="whitespace-nowrap">Kết bạn</span></>}
+                            {friendStatus === 'friend' && <><UserCheck size={16} className="md:w-[18px] md:h-[18px]" /> <span className="whitespace-nowrap">Bạn bè</span></>}
+                            {friendStatus === 'pending_sent' && <><Users size={16} className="md:w-[18px] md:h-[18px]" /> <span className="hidden sm:inline">Đã gửi lời mời</span><span className="sm:hidden">Đã gửi</span></>}
+                            {friendStatus === 'pending_received' && <><UserPlus size={16} className="md:w-[18px] md:h-[18px]" /> <span className="whitespace-nowrap">Chấp nhận</span></>}
+                        </>
+                    )}
+                  </button>
+                  
+                  {/* Nút Nhắn tin */}
+                  <button 
+                    onClick={handleMessage}
+                    className="px-4 md:px-6 py-2.5 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white font-medium text-xs md:text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors flex items-center justify-center gap-1.5 md:gap-2 min-h-[44px] touch-manipulation flex-1 md:flex-initial"
+                  >
+                    <MessageCircle size={16} className="md:w-[18px] md:h-[18px]" /> <span className="hidden sm:inline">Nhắn tin</span><span className="sm:hidden">Tin</span>
+                  </button>
+
+                  <div className="relative" ref={menuRef}>
+                    <button 
+                      onClick={() => setShowMenu(!showMenu)}
+                      className="p-2.5 md:p-2.5 rounded-full border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors min-w-[44px] min-h-[44px] touch-manipulation flex items-center justify-center"
+                    >
+                      <MoreHorizontal size={18} />
+                    </button>
+                    
+                    {/* Dropdown Menu */}
+                    {showMenu && (
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg z-50 overflow-hidden">
+                        <button
+                          onClick={handleBlock}
+                          disabled={loadingBlock}
+                          className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors disabled:opacity-50"
+                        >
+                          {loadingBlock ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-red-600 dark:border-red-400"></div>
+                          ) : isBlocked ? (
+                            <>
+                              <Shield size={16} />
+                              Bỏ chặn
+                            </>
+                          ) : (
+                            <>
+                              <Ban size={16} />
+                              Chặn
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   </div>
                 </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0 w-full">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-
-                      <div className="flex items-center gap-2 mb-1">
-                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 break-words">
-                          <UserName user={user} />
-                        </h1>
-                      </div>
-                      {user.bio && (
-                        <p className="text-gray-600 mb-3 text-sm md:text-base break-words" style={{ whiteSpace: 'pre-line' }}>{user.bio}</p>
-                      )}
-
-                      {/* Contact Info */}
-                      <div className="mt-3">
-                        {(() => {
-                          const hasContactInfo = (
-                            (user.showEmail !== false && user.email) ||
-                            (user.showPhone !== false && user.phone) ||
-                            (user.showLocation !== false && user.location) ||
-                            (user.showWebsite !== false && user.website) ||
-                            (user.showBirthday !== false && user.birthday) ||
-                            (user.showHobbies !== false && user.hobbies)
-                          );
-
-                          if (!hasContactInfo) {
-                            return (
-                              <div className="bg-gray-50 rounded-lg p-3 text-center mb-3">
-                                <p className="text-gray-500 text-sm">Chưa có thông tin liên hệ</p>
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <div className="grid [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] gap-2 text-sm text-gray-700 mb-2">
-                              {user.showEmail !== false && user.email && (
-                                <div className="flex items-center min-w-0 gap-2 py-0.5">
-                                  <Mail className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                  <span className="truncate">{user.email}</span>
-                                </div>
-                              )}
-                              {user.showPhone !== false && user.phone && (
-                                <div className="flex items-center min-w-0 gap-2 py-0.5">
-                                  <Phone className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                  <span className="truncate">{user.phone}</span>
-                                </div>
-                              )}
-                              {user.showLocation !== false && user.location && (
-                                <div className="flex items-center min-w-0 gap-2 py-0.5">
-                                  <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                  <span className="truncate">{user.location}</span>
-                                </div>
-                              )}
-                              {user.showWebsite !== false && user.website && (
-                                <div className="flex items-center min-w-0 gap-2 py-0.5">
-                                  <Globe className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                  <a href={user.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate leading-tight block">
-                                    {user.website}
-                                  </a>
-                                </div>
-                              )}
-                              {user.showBirthday !== false && user.birthday && (
-                                <div className="flex items-center min-w-0 gap-2 py-0.5">
-                                  <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                  <span className="truncate">{new Date(user.birthday).toISOString().slice(0, 10)}</span>
-                                </div>
-                              )}
-                              {user.showHobbies !== false && user.hobbies && (
-                                <div className="flex items-center min-w-0 gap-2 py-0.5">
-                                  <Heart className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                  <span className="truncate">{user.hobbies}</span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </div>
-
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
-                        {user.showJoinDate === false ? null : (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            Tham gia {new Date(user.createdAt).toLocaleDateString("vi-VN")}
-                          </span>
-                        )}
-                        {user.isOnline && (
-                          <span className="flex items-center gap-1 text-green-600">
-                            <div className="w-2 h-2 bg-green-500 rounded-full" />
-                            Đang hoạt động
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 flex-shrink-0">{renderFriendButton()}</div>
-                  </div>
-                </div>
-              </div>
+            {/* Desktop Stats */}
+            <div className="hidden md:flex gap-4 mb-2">
+               <SpotlightCard className="py-4 px-6 min-w-[120px] text-center !rounded-2xl">
+                  <span className="block text-2xl font-black text-black dark:text-white">{posts.length}</span>
+                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Bài viết</span>
+               </SpotlightCard>
+               <SpotlightCard className="py-4 px-6 min-w-[120px] text-center !rounded-2xl">
+                  <span className="block text-2xl font-black text-black dark:text-white">{friends.length || 0}</span>
+                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Bạn bè</span>
+               </SpotlightCard>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="max-w-4xl mx-auto px-4 md:px-6 -mt-4">
-        <div className="bg-white dark:bg-[#111] rounded-[32px] mb-6
-        shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-        hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
-        transition-all duration-500 border border-transparent dark:border-white/5 overflow-hidden">
-          {/* Navigation */}
-          <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
-            <nav className="grid grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700">
+          {/* Details */}
+          <motion.div 
+             initial={{ opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ delay: 0.2 }}
+             className="max-w-3xl mb-12"
+          >
+             <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-neutral-500 dark:text-neutral-500">
+                {user.location && (
+                   <div className="flex items-center gap-1.5">
+                      <MapPin size={16} /> {user.location}
+                   </div>
+                )}
+                {user.phone && (
+                   <div className="flex items-center gap-1.5">
+                      <Phone size={16} /> {user.phone}
+                   </div>
+                )}
+                {user.birthday && (
+                   <div className="flex items-center gap-1.5">
+                      <CalendarIcon size={16} /> {new Date(user.birthday).toLocaleDateString('vi-VN')}
+                   </div>
+                )}
+                {user.gender && (
+                   <div className="flex items-center gap-1.5">
+                      <span className="text-xs">Giới tính:</span> {
+                         user.gender === 'male' ? 'Nam' :
+                         user.gender === 'female' ? 'Nữ' :
+                         user.gender === 'other' ? 'Khác' : user.gender
+                      }
+                   </div>
+                )}
+                {user.hobbies && (
+                   <div className="flex items-center gap-1.5">
+                      <Heart size={16} /> {user.hobbies}
+                   </div>
+                )}
+                {user.website && (
+                   <a 
+                      href={user.website} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="flex items-center gap-1.5 hover:text-blue-500 transition-colors"
+                   >
+                      <LinkIcon size={16} /> {user.website.replace(/^https?:\/\//, '')}
+                   </a>
+                )}
+             </div>
+          </motion.div>
+
+          {/* --- 2. TABS NAVIGATION --- */}
+          <div className="sticky top-20 z-30 mb-6 md:mb-8">
+            <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl rounded-full p-1 md:p-1.5 flex shadow-sm border border-neutral-200 dark:border-neutral-800 max-w-full md:max-w-xs mx-auto md:mx-0">
               {[
-                ...(user.showPosts === false ? [] : [{ id: "posts", label: "Bài đăng", icon: FileText, count: posts.length }]),
-                { id: "friends", label: "Bạn bè", icon: Users, count: user.friends?.length || 0 },
-              ].map(({ id, label, icon: Icon, count }) => (
+                { id: "posts", label: "Bài viết", icon: FileText },
+                { id: "friends", label: "Bạn bè", icon: Users },
+              ].map((tab) => (
                 <button
-                  key={id}
-                  onClick={() => setActiveTab(id)}
-                  className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 font-medium transition-all duration-200 whitespace-nowrap relative touch-target text-xs sm:text-sm md:text-base ${
-                    activeTab === id
-                      ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30"
-                  }`}
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-3 md:px-4 rounded-full text-xs md:text-sm font-bold transition-all duration-300 min-h-[44px] touch-manipulation",
+                    activeTab === tab.id
+                      ? "bg-black dark:bg-white text-white dark:text-black shadow-md"
+                      : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/20"
+                  )}
                 >
-                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span>{label}</span>
-                  {count > 0 && (
-                    <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold min-w-[18px] sm:min-w-[20px] text-center leading-none ${
-                      activeTab === id
-                        ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm dark:shadow-blue-900/50'
-                        : 'bg-gray-300 dark:bg-gray-600/80 text-gray-700 dark:text-gray-200'
-                    }`}>
-                      {count > 99 ? '99+' : count}
-                    </span>
-                  )}
-                  {activeTab === id && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
-                  )}
+                  <tab.icon size={14} className="md:w-4 md:h-4" strokeWidth={2.5} />
+                  <span className="whitespace-nowrap">{tab.label}</span>
                 </button>
               ))}
-            </nav>
+            </div>
           </div>
 
-          {/* Content */}
-          <div className="min-h-[50px] p-4 md:p-6">
+          {/* --- 3. CONTENT AREA --- */}
+          <div className="min-h-[500px] pb-32 md:pb-28">
+            
+            {/* Posts Tab */}
             {activeTab === "posts" && (
-              <div>
-                {user.showPosts === false ? (
-                  <div className="text-center py-16 text-gray-500">
-                    Bài đăng đã được đặt ở chế độ riêng tư
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Sidebar Info */}
+                <div className="hidden lg:block lg:col-span-1">
+                   <div className="sticky top-40 space-y-6">
+                      <SpotlightCard>
+                         <h3 className="font-bold text-lg text-neutral-900 dark:text-white mb-4">Tiểu sử</h3>
+                         <div className="pt-2">
+                            {user.bio ? (
+                               <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed whitespace-pre-line text-center">
+                                  {user.bio}
+                               </p>
+                            ) : (
+                               <div className="text-center py-8">
+                                  <span className="text-neutral-500 dark:text-neutral-400 text-sm block">
+                                     Chưa cập nhật tiểu sử
+                                  </span>
+                               </div>
+                            )}
+                         </div>
+                      </SpotlightCard>
+                   </div>
                   </div>
-                ) : postsLoading ? (
-                  <div>Đang tải bài đăng...</div>
-                ) : postsError ? (
-                  <div className="text-red-600">{postsError}</div>
+
+                {/* Feed */}
+                <div className="lg:col-span-2 space-y-6">
+                   {postsLoading ? (
+                      [1,2,3].map(i => <div key={i} className="h-64 bg-neutral-100 dark:bg-neutral-900 rounded-3xl animate-pulse"/>)
                 ) : posts.length > 0 ? (
-                  <div className="space-y-4">
-                    {posts.map((post) => (
-                      <ModernPostCard
+                      posts.map((post, index) => (
+                         <motion.div 
                         key={post._id}
-                        post={post}
-                        user={currentUser}
-                        isSaved={savedMap[post._id]}
-                        onSavedChange={updateSavedState}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-16">
-                    <div className="w-20 h-20 mx-auto mb-6 bg-blue-50 rounded-full flex items-center justify-center">
-                      <FileText className="w-10 h-10 text-blue-500" />
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: index * 0.05 }}
+                         >
+                            <ModernPostCard post={post} user={currentUser} onUpdate={loadPosts} isSaved={savedMap[post._id]} onSavedChange={updateSavedState} hideActionsMenu={true}/>
+                         </motion.div>
+                      ))
+                   ) : (
+                      <div className="text-center py-20 bg-neutral-50 dark:bg-neutral-900 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-700">
+                         <div className="w-16 h-16 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <FileText className="text-neutral-400" />
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Chưa có bài đăng</h3>
-                    <p className="text-gray-500 text-base">Người dùng này chưa có bài đăng nào</p>
+                         <h3 className="font-bold text-lg">Chưa có bài viết nào</h3>
+                         <p className="text-neutral-500">Người dùng này chưa đăng bài viết công khai nào.</p>
                   </div>
                 )}
+                </div>
               </div>
             )}
 
-            {activeTab === 'friends' && (
-              <div>
-                {user.showFriends === false ? (
-                  <div className="text-center py-16">
-                    <div className="w-20 h-20 mx-auto mb-6 bg-blue-50 rounded-full flex items-center justify-center">
-                      <Users className="w-10 h-10 text-blue-500" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Danh sách bạn bè riêng tư</h3>
-                    <p className="text-gray-500 text-base">Chỉ người dùng này mới có thể xem danh sách bạn bè</p>
-                  </div>
-                ) : user.friends && user.friends.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {user.friends.map(friend => (
-                      <div key={friend._id} className="bg-white dark:bg-[#111] border border-transparent dark:border-white/5 rounded-[24px] p-4 
-                      shadow-[0_4px_15px_rgb(0,0,0,0.02)] dark:shadow-[0_4px_15px_rgb(0,0,0,0.3)]
-                      hover:shadow-[0_8px_25px_rgb(0,0,0,0.06)] dark:hover:shadow-[0_8px_25px_rgb(0,0,0,0.5)]
-                      transition-all duration-300">
-                        <div className="flex items-center space-x-3">
-                          {/* Avatar */}
-                          <div className="relative">
-                            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-                              {friend.avatarUrl ? (
-                                <img
-                                  src={friend.avatarUrl}
-                                  alt={friend.name || 'Avatar'}
-                                  className="w-full h-full object-cover"
-                                  onError={e => {
-                                    e.target.style.display = 'none';
-                                    e.target.nextSibling.style.display = 'flex';
-                                  }}
-                                />
-                              ) : null}
-                              <div
-                                className={`w-full h-full flex items-center justify-center text-gray-600 font-medium text-lg ${friend.avatarUrl ? 'hidden' : 'flex'
-                                  }`}
-                              >
-                                {friend.name ? friend.name.charAt(0).toUpperCase() : '?'}
-                              </div>
+            {/* Friends Tab */}
+            {activeTab === "friends" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                 {friendsLoading ? (
+                    [1,2,3,4,5,6].map(i => <div key={i} className="h-24 bg-neutral-100 dark:bg-neutral-900 rounded-2xl animate-pulse"/>)
+                 ) : friends.length > 0 ? (
+                    friends.map(friend => {
+                      // Check xem currentUser có phải là bạn của friend này không
+                      const isCurrentUserFriend = currentUser && currentUserFriends.some(f => 
+                        (f._id || f) === friend._id || (f._id || f)?.toString() === friend._id?.toString()
+                      );
+                      
+                      return (
+                        <SpotlightCard key={friend._id} className="p-4">
+                          <div className="flex items-center gap-4 mb-3">
+                             <img 
+                                src={friend.avatarUrl || generateAvatarUrl(friend.name)} 
+                                className="w-12 h-12 rounded-full bg-neutral-200 cursor-pointer hover:opacity-80 transition-opacity" 
+                                alt=""
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/user/${friend._id}`);
+                                }}
+                             />
+                             <div className="flex-1 min-w-0">
+                                <div 
+                                   className="font-bold cursor-pointer hover:text-blue-500 transition-colors truncate"
+                                   onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/user/${friend._id}`);
+                                   }}
+                                >
+                                   {friend.name}
+                                </div>
+                                <div className="text-xs text-neutral-500 uppercase font-bold tracking-wider">
+                                   {friend.isOnline ? "Online" : "Offline"}
+                                </div>
                             </div>
-                            {/* Chấm online/offline */}
-                            <div
-                              className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${friend.isOnline ? 'bg-green-500' : 'bg-gray-400'
-                                }`}
-                            />
                           </div>
 
-                          {/* Friend Info */}
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-gray-900 truncate">{friend.name || 'Người dùng'}</h4>
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex flex-col space-y-2">
-                            <button
-                              onClick={() => navigate(`/user/${friend._id}`)}
-                              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                              title="Xem profile"
-                            >
-                              <Users className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => navigate(`/chat?user=${friend._id}`)}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Nhắn tin"
-                            >
-                              <MessageCircle className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-16">
-                    <div className="w-20 h-20 mx-auto mb-6 bg-blue-50 rounded-full flex items-center justify-center">
-                      <Users className="w-10 h-10 text-blue-500" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Chưa có bạn bè</h3>
-                    <p className="text-gray-500 text-base">Người dùng này chưa có bạn bè nào</p>
-                  </div>
+                          {/* Nút hành động */}
+                          {currentUser && (
+                             <div className="flex gap-2">
+                                {/* Nút kết bạn (chỉ hiển thị nếu chưa là bạn) */}
+                                {!isCurrentUserFriend ? (
+                                   <button
+                                      onClick={async (e) => {
+                                         e.stopPropagation();
+                                         try {
+                                            await api("/api/friends/send-request", { method: "POST", body: { to: friend._id } });
+                                            // Reload currentUser friends để update status
+                                            const friendsRes = await api("/api/friends/list");
+                                            setCurrentUserFriends(friendsRes.friends || []);
+                                         } catch (err) {
+                                            alert(err.message || "Có lỗi xảy ra");
+                                         }
+                                      }}
+                                      className="flex-1 px-4 py-2 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-black font-bold text-sm hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2"
+                                   >
+                                      <UserPlus size={16} /> Kết bạn
+                                   </button>
+                                ) : (
+                                   <button
+                                      onClick={async (e) => {
+                                         e.stopPropagation();
+                                         if (window.confirm(`Bạn có chắc muốn hủy kết bạn với ${friend.name}?`)) {
+                                            try {
+                                               await api(`/api/friends/remove/${friend._id}`, { method: "DELETE" });
+                                               // Reload currentUser friends để update status
+                                               const friendsRes = await api("/api/friends/list");
+                                               setCurrentUserFriends(friendsRes.friends || []);
+                                               // Reload friends của user profile
+                                               await loadFriends();
+                                            } catch (err) {
+                                               alert(err.message || "Có lỗi xảy ra");
+                                            }
+                                         }
+                                      }}
+                                      className="flex-1 px-4 py-2 rounded-full bg-green-600 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-colors cursor-pointer"
+                                   >
+                                      <UserCheck size={16} /> Đã kết bạn
+                                   </button>
+                                )}
+                                
+                                {/* Nút nhắn tin */}
+                                <button
+                                   onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/chat?user=${friend._id}`);
+                                   }}
+                                   className="px-4 py-2 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white font-medium text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
+                                >
+                                   <MessageCircle size={16} />
+                                </button>
+                             </div>
+                          )}
+                        </SpotlightCard>
+                      );
+                    })
+                 ) : (
+                    <div className="col-span-full text-center py-10 text-neutral-500">Chưa có bạn bè công khai.</div>
                 )}
               </div>
             )}
           </div>
+
         </div>
       </div>
     </div>

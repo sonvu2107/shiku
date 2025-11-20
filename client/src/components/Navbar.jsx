@@ -11,7 +11,6 @@ import NotificationBell from "./NotificationBell";
 import ChatDropdown from "./ChatDropdown";
 import ChatPopup from "./ChatPopup";
 import { ChatPopupWithCallModal } from "./ChatPopup";
-import ChatPopupManager from "./ChatPopupManager";
 import MobileMenu from "./MobileMenu";
 import UserName from "./UserName";
 import { useChat } from "../contexts/ChatContext";
@@ -655,11 +654,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
             )}
           </div>
         </div>
-        {/* Popup chat Messenger */}
-        <ChatPopupManager 
-          conversations={openPopups}
-          onCloseConversation={closeChatPopup}
-        />
+        {/* Popup chat Messenger - Chỉ hiển thị trên trang Home, không hiển thị ở Navbar */}
       </div>
 
       {/* Mobile search bar - Compact modern design */}

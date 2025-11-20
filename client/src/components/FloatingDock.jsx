@@ -7,7 +7,7 @@ import {
   PlusSquare, 
   UserCheck, 
   Image, 
-  Settings, 
+  Bookmark, 
   Calendar 
 } from "lucide-react";
 import { cn } from "../utils/cn";
@@ -20,19 +20,21 @@ const dockItems = [
   { icon: PlusSquare, label: "Đăng bài", href: "/new", isPrimary: true }, // Nút nổi bật
   { icon: Calendar, label: "Sự kiện", href: "/events" },
   { icon: Image, label: "Media", href: "/media" },
-  { icon: Settings, label: "Cài đặt", href: "/settings" },
+  { icon: Bookmark, label: "Bài đã lưu", href: "/saved" },
 ];
 
 export default function FloatingDock() {
   let mouseX = useMotionValue(Infinity);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Kiểm tra xem modal PostCreator có đang mở không
+  // Kiểm tra xem modal PostCreator hoặc ProfileCustomization có đang mở không
   useEffect(() => {
     const checkModal = () => {
       // Kiểm tra xem có element modal nào đang hiển thị không
       const modal = document.querySelector('[data-post-creator-modal]') || 
-                    document.querySelector('.fixed.inset-0.z-\\[110\\]');
+                    document.querySelector('[data-profile-customization-modal]') ||
+                    document.querySelector('.fixed.inset-0.z-\\[110\\]') ||
+                    document.querySelector('.fixed.inset-0.z-\\[50\\]');
       setIsModalOpen(!!modal);
     };
 
@@ -58,7 +60,7 @@ export default function FloatingDock() {
   }
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] hidden md:flex pointer-events-none" style={{ willChange: 'transform' }}>
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] hidden md:flex pointer-events-none mb-6" style={{ willChange: 'transform' }}>
       <motion.div
         onMouseMove={(e) => mouseX.set(e.pageX)}
         onMouseLeave={() => mouseX.set(Infinity)}

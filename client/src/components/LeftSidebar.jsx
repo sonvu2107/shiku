@@ -16,7 +16,8 @@ import {
   ChevronRight,
   FileText,
   Heart,
-  Eye
+  Eye,
+  HelpCircle
 } from 'lucide-react';
 import { removeAuthToken } from '../utils/auth';
 import { api } from '../api';
@@ -119,28 +120,46 @@ export default function LeftSidebar({ user, setUser }) {
   // Load user stats
   useEffect(() => {
     const loadStats = async () => {
-      if (!user?._id) return;
+      const userId = user?.id || user?._id;
+      if (!userId) return;
       
       try {
         // Get user profile with friends populated
-        const data = await api(`/api/users/${user._id}`);
+        const data = await api(`/api/users/${userId}`);
         
-        // Get post count - check both response structure
+        // Get post count từ analytics API (giống như tab thống kê)
         let postCount = 0;
         try {
-          const postsRes = await api(`/api/posts?author=${user._id}&limit=1`);
-          // Check different response structures
-          if (postsRes.pagination?.total !== undefined) {
-            postCount = postsRes.pagination.total;
-          } else if (postsRes.total !== undefined) {
-            postCount = postsRes.total;
-          } else if (Array.isArray(postsRes.items)) {
-            // If no total, count from items (fallback)
-            const allPostsRes = await api(`/api/posts?author=${user._id}&limit=1000`);
-            postCount = allPostsRes.items?.length || 0;
+          const analyticsRes = await api(`/api/posts/analytics?period=30d`);
+          if (analyticsRes?.analytics?.totalPosts !== undefined) {
+            postCount = analyticsRes.analytics.totalPosts;
           }
         } catch (err) {
-          console.warn('Error loading post count:', err);
+          console.warn('Error loading post count from analytics:', err);
+          // Fallback: đếm từ posts API nếu analytics fail
+          try {
+            const [publicRes, privateRes] = await Promise.all([
+              api(`/api/posts?author=${userId}&status=published&limit=50`).catch(() => ({ posts: [], items: [] })),
+              api(`/api/posts?author=${userId}&status=private&limit=50`).catch(() => ({ posts: [], items: [] })),
+            ]);
+            
+            const publicPosts = publicRes?.posts || publicRes?.items || [];
+            const privatePosts = privateRes?.posts || privateRes?.items || [];
+            postCount = publicPosts.length + privatePosts.length;
+            
+            // Nếu có pagination.total, dùng nó (chính xác hơn)
+            if (publicRes?.pagination?.total !== undefined || privateRes?.pagination?.total !== undefined) {
+              const publicTotal = publicRes?.pagination?.total || 0;
+              const privateTotal = privateRes?.pagination?.total || 0;
+              postCount = publicTotal + privateTotal;
+            } else if (publicRes?.total !== undefined || privateRes?.total !== undefined) {
+              const publicTotal = publicRes?.total || 0;
+              const privateTotal = privateRes?.total || 0;
+              postCount = publicTotal + privateTotal;
+            }
+          } catch (fallbackErr) {
+            console.warn('Error loading post count fallback:', fallbackErr);
+          }
         }
         
         // Get friend count - ensure friends array exists
@@ -151,8 +170,15 @@ export default function LeftSidebar({ user, setUser }) {
         let viewCount = 0;
         try {
           // Load posts in batches to get accurate counts
-          const allPostsRes = await api(`/api/posts?author=${user._id}&limit=1000`);
-          const allPosts = allPostsRes.items || [];
+          const [publicRes, privateRes] = await Promise.all([
+            api(`/api/posts?author=${userId}&status=published&limit=1000`).catch(() => ({ posts: [], items: [] })),
+            api(`/api/posts?author=${userId}&status=private&limit=1000`).catch(() => ({ posts: [], items: [] })),
+          ]);
+          
+          const allPosts = [
+            ...(publicRes?.posts || publicRes?.items || []),
+            ...(privateRes?.posts || privateRes?.items || [])
+          ];
           
           // Aggregate likes (emotes) and views
           likeCount = allPosts.reduce((sum, post) => {
@@ -181,7 +207,7 @@ export default function LeftSidebar({ user, setUser }) {
     };
     
     loadStats();
-  }, [user?._id]);
+  }, [user?.id, user?._id]);
 
   const handleLogout = async () => {
     try {
@@ -206,12 +232,14 @@ export default function LeftSidebar({ user, setUser }) {
     { icon: UserCheck, label: "Nhóm", path: "/groups", show: true },
     { icon: User, label: "Trang cá nhân", path: "/profile", show: true },
     { icon: Settings, label: "Cài đặt", path: "/settings", show: true },
+    { icon: HelpCircle, label: "Trợ giúp", path: "/support", show: true },
     { icon: Crown, label: "Admin", path: "/admin", show: user.role === "admin", isAdmin: true },
   ] : [
     { icon: Home, label: "Trang chủ", path: "/", show: true, exact: true },
     { icon: Compass, label: "Khám phá", path: "/explore", show: true },
     { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
     { icon: Image, label: "Media", path: "/media", show: true },
+    { icon: HelpCircle, label: "Trợ giúp", path: "/support", show: true },
   ];
 
   const isActive = (path, exact = false) => {
@@ -258,7 +286,7 @@ export default function LeftSidebar({ user, setUser }) {
             height={88}
             className={`w-auto transition-all duration-300 ${isCollapsed ? 'h-8' : 'h-16'}`}
             loading="eager"
-            fetchpriority="high"
+            fetchPriority="high"
           />
         </Link>
       </div>

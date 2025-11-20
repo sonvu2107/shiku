@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, CheckCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, CheckCheck, Trash2, Bell } from "lucide-react";
 import { api } from "../api";
+import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
+import { motion } from "framer-motion";
+import { cn } from "../utils/cn";
+
 /**
- * NotificationHistory - Trang lịch sử thông báo
+ * NotificationHistory - Trang lịch sử thông báo (Monochrome Luxury Style)
  * Hiển thị danh sách thông báo với pagination, filter và bulk actions
  * @returns {JSX.Element} Component notification history page
  */
@@ -134,12 +138,12 @@ export default function NotificationHistory() {
       case "ban": return <span className="text-lg">🚫</span>;
       case "unban": return <span className="text-lg">✅</span>;
       case "system": return (
-        <span className="bg-blue-600 text-white text-xs px-1 py-0.5 rounded font-bold">
+        <span className="bg-neutral-900 dark:bg-white text-white dark:text-black text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
           SYSTEM
         </span>
       );
       case "admin_message": return (
-        <span className="bg-red-600 text-white text-xs px-1 py-0.5 rounded font-bold">
+        <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
           ADMIN
         </span>
       );
@@ -172,239 +176,253 @@ export default function NotificationHistory() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16 sm:pt-20">
-      <div className="max-w-5xl mx-auto p-3 sm:p-6">
-        {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-            <div className="flex items-center gap-3 sm:gap-4">
+    <PageLayout>
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="group flex items-center gap-2 text-neutral-500 hover:text-black dark:hover:text-white mb-6 transition-colors"
+      >
+        <div className="p-2 rounded-full bg-neutral-100 dark:bg-neutral-900 group-hover:bg-neutral-200 dark:group-hover:bg-neutral-800 transition-colors">
+          <ArrowLeft size={20} />
+        </div>
+        <span className="font-medium">Quay lại</span>
+      </button>
+
+      {/* Header */}
+      <PageHeader 
+        title="Lịch sử thông báo" 
+        subtitle="Quản lý và theo dõi tất cả thông báo của bạn"
+        action={
+          <div className="flex flex-wrap gap-3">
+            {unreadCount > 0 && (
               <button
-                onClick={() => navigate(-1)}
-                className="p-2 hover:bg-gray-100 rounded-xl transition-colors touch-target"
+                onClick={markAllAsRead}
+                className="px-4 py-2 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white font-semibold text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-2"
               >
-                <ArrowLeft size={18} className="sm:w-5 sm:h-5" />
+                <CheckCheck size={18} />
+                <span>Đánh dấu tất cả đã đọc ({unreadCount})</span>
               </button>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">Lịch sử thông báo</h1>
-                <p className="text-gray-500 text-xs sm:text-sm">Quản lý và theo dõi tất cả thông báo của bạn</p>
-              </div>
-            </div>
+            )}
             
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 hover:border-blue-300 rounded-xl transition-all font-medium text-sm sm:text-base touch-target"
-                >
-                  <CheckCheck size={14} className="sm:w-4 sm:h-4" />
-                  <span className="whitespace-nowrap">
-                    <span className="hidden sm:inline">Đánh dấu tất cả đã đọc ({unreadCount})</span>
-                    <span className="sm:hidden">Đọc hết ({unreadCount})</span>
-                  </span>
-                </button>
-              )}
-              
-              {selectedNotifications.length > 0 && (
-                <button
-                  onClick={deleteSelected}
-                  className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 rounded-xl transition-all font-medium text-sm sm:text-base touch-target"
-                >
-                  <Trash2 size={14} className="sm:w-4 sm:h-4" />
-                  <span className="whitespace-nowrap">
-                    <span className="hidden sm:inline">Xóa đã chọn ({selectedNotifications.length})</span>
-                    <span className="sm:hidden">Xóa ({selectedNotifications.length})</span>
-                  </span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Filter Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
-          <div className="flex gap-2 sm:gap-4 overflow-x-auto scrollbar-hide">
-            {[
-              { key: "all", label: "Tất cả", count: notifications.length },
-              { key: "unread", label: "Chưa đọc", count: unreadCount },
-              { key: "read", label: "Đã đọc", count: notifications.length - unreadCount }
-            ].map(tab => (
+            {selectedNotifications.length > 0 && (
               <button
-                key={tab.key}
-                onClick={() => setFilter(tab.key)}
-                className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 transition-all duration-200 whitespace-nowrap font-medium text-sm sm:text-base touch-target ${
-                  filter === tab.key
-                    ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
-                    : "border-gray-200 text-gray-600 hover:text-gray-800 hover:border-gray-300 hover:bg-gray-50"
-                }`}
+                onClick={deleteSelected}
+                className="px-4 py-2 rounded-full bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors flex items-center gap-2"
               >
-                <span className="mr-1 sm:mr-2">{tab.label}</span>
-                <span className={`text-xs sm:text-sm px-2 py-1 rounded-full ${
-                  filter === tab.key 
-                    ? "bg-blue-200 text-blue-800" 
-                    : "bg-gray-200 text-gray-600"
-                }`}>
-                  {tab.count}
-                </span>
+                <Trash2 size={18} />
+                <span>Xóa đã chọn ({selectedNotifications.length})</span>
               </button>
-            ))}
+            )}
           </div>
+        }
+      />
+
+      {/* Filter Tabs */}
+      <div className="sticky top-24 z-30 mb-8">
+        <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl rounded-full p-1.5 flex gap-2 shadow-sm border border-neutral-200 dark:border-neutral-800 max-w-md">
+          {[
+            { key: "all", label: "Tất cả", count: notifications.length },
+            { key: "unread", label: "Chưa đọc", count: unreadCount },
+            { key: "read", label: "Đã đọc", count: notifications.length - unreadCount }
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all duration-300",
+                filter === tab.key
+                  ? "bg-black dark:bg-white text-white dark:text-black shadow-md"
+                  : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-black/5 dark:hover:bg-white/10"
+              )}
+            >
+              <span>{tab.label}</span>
+              <span className={cn(
+                "text-xs px-2 py-0.5 rounded-full font-bold",
+                filter === tab.key
+                  ? "bg-white/20 dark:bg-black/20"
+                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
+              )}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
+      </div>
 
-        {/* Bulk Actions */}
-        {notifications.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-            <label className="flex items-center justify-between cursor-pointer">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={selectedNotifications.length === notifications.length && notifications.length > 0}
-                  onChange={selectAll}
-                  className="rounded w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700 font-medium">
-                  Chọn tất cả thông báo
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">
-                  Đã chọn:
-                </span>
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-                  {selectedNotifications.length}/{notifications.length}
-                </span>
-              </div>
-            </label>
-          </div>
-        )}
-
-        {/* Notifications List */}
-        <div className="space-y-4">
-          {loading && page === 1 ? (
-            <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-200">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <div className="text-gray-500 font-medium">Đang tải thông báo...</div>
+      {/* Bulk Actions */}
+      {notifications.length > 0 && (
+        <SpotlightCard className="mb-6">
+          <label className="flex items-center justify-between cursor-pointer">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={selectedNotifications.length === notifications.length && notifications.length > 0}
+                onChange={selectAll}
+                className="w-5 h-5 rounded border-neutral-300 dark:border-neutral-700 text-black dark:text-white focus:ring-2 focus:ring-black dark:focus:ring-white"
+              />
+              <span className="text-sm font-semibold text-neutral-900 dark:text-white">
+                Chọn tất cả thông báo
+              </span>
             </div>
-          ) : notifications.length === 0 ? (
-            <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-200">
-              <div className="text-6xl mb-4">🔔</div>
-              <div className="text-gray-500 text-lg mb-2 font-semibold">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-neutral-500 dark:text-neutral-400">
+                Đã chọn:
+              </span>
+              <span className="px-3 py-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-full text-sm font-bold">
+                {selectedNotifications.length}/{notifications.length}
+              </span>
+            </div>
+          </label>
+        </SpotlightCard>
+      )}
+
+      {/* Notifications List */}
+      <div className="space-y-4">
+        {loading && page === 1 ? (
+          <SpotlightCard>
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-black dark:border-white mx-auto mb-4"></div>
+              <div className="text-neutral-500 dark:text-neutral-400 font-medium">Đang tải thông báo...</div>
+            </div>
+          </SpotlightCard>
+        ) : notifications.length === 0 ? (
+          <SpotlightCard>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Bell className="w-8 h-8 text-neutral-400" />
+              </div>
+              <div className="text-neutral-900 dark:text-white text-lg mb-2 font-bold">
                 {filter === "all" ? "Chưa có thông báo nào" : 
                  filter === "unread" ? "Không có thông báo chưa đọc" : 
                  "Không có thông báo đã đọc"}
               </div>
-              <div className="text-gray-400 text-sm">
+              <div className="text-neutral-500 dark:text-neutral-400 text-sm">
                 {filter === "all" ? "Thông báo sẽ xuất hiện ở đây khi có hoạt động mới" : 
                  filter === "unread" ? "Tất cả thông báo đã được đọc" : 
                  "Chưa có thông báo nào được đánh dấu đã đọc"}
               </div>
             </div>
-          ) : (
-            notifications.map((notification) => (
-              <div
-                key={notification._id}
-                className={`bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 ${
-                  !notification.read ? "ring-2 ring-blue-100 border-blue-200" : ""
-                }`}
+          </SpotlightCard>
+        ) : (
+          notifications.map((notification, index) => (
+            <motion.div
+              key={notification._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <SpotlightCard 
+                className={cn(
+                  "cursor-pointer transition-all",
+                  !notification.read && "ring-2 ring-neutral-200 dark:ring-neutral-800"
+                )}
+                onClick={() => handleNotificationClick(notification)}
               >
-                <div className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <input
-                        type="checkbox"
-                        checked={selectedNotifications.includes(notification._id)}
-                        onChange={() => toggleSelectNotification(notification._id)}
-                        className="rounded w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500"
-                      />
-                      {(notification.type === 'system' || notification.type === 'admin_message') && (
-                        <div className="flex-shrink-0">
-                          {getNotificationIcon(notification.type)}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {!(notification.type === 'system' || notification.type === 'admin_message') && (
-                      <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gray-50 rounded-xl">
+                <div className="flex items-start gap-4">
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={selectedNotifications.includes(notification._id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleSelectNotification(notification._id);
+                      }}
+                      className="w-5 h-5 rounded border-neutral-300 dark:border-neutral-700 text-black dark:text-white focus:ring-2 focus:ring-black dark:focus:ring-white"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    {(notification.type === 'system' || notification.type === 'admin_message') && (
+                      <div className="flex-shrink-0">
                         {getNotificationIcon(notification.type)}
                       </div>
                     )}
-                    
-                    <div 
-                      className="flex-1 min-w-0 cursor-pointer"
-                      onClick={() => handleNotificationClick(notification)}
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-semibold text-gray-800 leading-tight text-sm sm:text-base truncate pr-2">
-                          {notification.title}
-                        </h3>
-                        <div className="flex items-center gap-1 sm:gap-2 ml-2 flex-shrink-0">
-                          {!notification.read && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                markAsRead(notification._id);
-                              }}
-                              className="text-blue-600 hover:text-blue-800 p-1.5 sm:p-2 rounded-lg hover:bg-blue-50 transition-all touch-target"
-                              title="Đánh dấu đã đọc"
-                            >
-                              <Check size={14} className="sm:w-4 sm:h-4" />
-                            </button>
-                          )}
+                  </div>
+                  
+                  {!(notification.type === 'system' || notification.type === 'admin_message') && (
+                    <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 rounded-2xl">
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                  )}
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className={cn(
+                        "font-bold leading-tight text-base truncate pr-2",
+                        !notification.read 
+                          ? "text-neutral-900 dark:text-white" 
+                          : "text-neutral-600 dark:text-neutral-400"
+                      )}>
+                        {notification.title}
+                      </h3>
+                      <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                        {!notification.read && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              deleteNotification(notification._id);
+                              markAsRead(notification._id);
                             }}
-                            className="text-red-600 hover:text-red-800 p-1.5 sm:p-2 rounded-lg hover:bg-red-50 transition-all touch-target"
-                            title="Xóa thông báo"
+                            className="text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
+                            title="Đánh dấu đã đọc"
                           >
-                            <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                            <Check size={18} />
                           </button>
-                        </div>
-                      </div>
-                      
-                      <p className="text-gray-600 mb-4 leading-relaxed text-sm sm:text-base line-clamp-2">
-                        {notification.message}
-                      </p>
-                      
-                      <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <span className="text-gray-400 font-medium bg-gray-100 px-2 sm:px-3 py-1 rounded-full">
-                          {getTimeAgo(notification.createdAt)}
-                        </span>
-                        {notification.sender && (
-                          <span className="text-gray-500 bg-blue-50 text-blue-700 px-2 sm:px-3 py-1 rounded-full font-medium truncate max-w-[120px] sm:max-w-none" title={notification.sender.name}>
-                            từ {notification.sender.name}
-                          </span>
                         )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteNotification(notification._id);
+                          }}
+                          className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-500 p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                          title="Xóa thông báo"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       </div>
+                    </div>
+                    
+                    <p className="text-neutral-600 dark:text-neutral-400 mb-4 leading-relaxed text-sm line-clamp-2">
+                      {notification.message}
+                    </p>
+                    
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-neutral-500 dark:text-neutral-500 font-medium bg-neutral-100 dark:bg-neutral-800 px-3 py-1 rounded-full">
+                        {getTimeAgo(notification.createdAt)}
+                      </span>
+                      {notification.sender && (
+                        <span className="text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-3 py-1 rounded-full font-medium truncate max-w-[150px]" title={notification.sender.name}>
+                          từ {notification.sender.name}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Load More */}
-        {hasMore && !loading && notifications.length > 0 && (
-          <div className="text-center mt-8">
-            <button
-              onClick={loadMore}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              Tải thêm thông báo
-            </button>
-          </div>
-        )}
-
-        {loading && page > 1 && (
-          <div className="text-center mt-8">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              <div className="text-gray-500 text-sm font-medium">Đang tải thêm...</div>
-            </div>
-          </div>
+              </SpotlightCard>
+            </motion.div>
+          ))
         )}
       </div>
-    </div>
+
+      {/* Load More */}
+      {hasMore && !loading && notifications.length > 0 && (
+        <div className="text-center mt-8">
+          <button
+            onClick={loadMore}
+            className="px-8 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-lg"
+          >
+            Tải thêm thông báo
+          </button>
+        </div>
+      )}
+
+      {loading && page > 1 && (
+        <div className="text-center mt-8">
+          <SpotlightCard>
+            <div className="py-6">
+              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-black dark:border-white mx-auto mb-2"></div>
+              <div className="text-neutral-500 dark:text-neutral-400 text-sm font-medium">Đang tải thêm...</div>
+            </div>
+          </SpotlightCard>
+        </div>
+      )}
+    </PageLayout>
   );
 }

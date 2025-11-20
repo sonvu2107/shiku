@@ -1,51 +1,73 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { api } from "../api";
 import { useSEO } from "../utils/useSEO";
-import { 
-  Calendar, 
-  MapPin, 
-  Clock, 
-  Users, 
-  ArrowLeft, 
-  Edit, 
-  Trash2, 
-  UserPlus, 
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  Users,
+  ArrowLeft,
+  Edit,
+  Trash2,
+  UserPlus,
   UserMinus,
   Share2,
   Tag,
   Heart,
   XCircle,
   UserCheck,
-  UserX
+  UserX,
+  Check,
+  MoreVertical,
+  Globe,
+  Lock
 } from "lucide-react";
+import { PageLayout, SpotlightCard } from "../components/ui/DesignSystem";
+import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
+import { cn } from "../utils/cn";
 
 /**
- * EventDetail - Trang chi tiết sự kiện
- * Hiển thị thông tin chi tiết và cho phép tham gia/rời sự kiện
+ * EventDetail - Trang chi tiết sự kiện (Redesigned)
+ * Style: Monochrome Luxury
  */
 export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
 
-  // ==================== SEO ====================
-  // Trang chi tiết sự kiện là public → index, follow
+  // SEO
   useSEO({
     title: event ? `${event.title} - Shiku` : "Sự kiện - Shiku",
-    description: event?.description 
+    description: event?.description
       ? `${event.description.substring(0, 160)}...`
       : `Xem sự kiện ${event?.title || ''} trên Shiku`,
     robots: "index, follow",
     canonical: event?._id ? `https://shiku.click/events/${event._id}` : undefined
   });
-  const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadEvent();
   }, [id]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const loadEvent = async () => {
     setLoading(true);
@@ -57,561 +79,359 @@ export default function EventDetail() {
         setError(response.message || "Không tìm thấy sự kiện");
       }
     } catch (error) {
-      // Silent handling for event loading error
       setError("Có lỗi xảy ra khi tải sự kiện");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleJoinEvent = async () => {
+  const handleAction = async (actionType) => {
     setActionLoading(true);
     try {
-      const response = await api(`/api/events/${id}/join`, { method: "POST" });
-      if (response.success) {
-        setEvent(response.event);
-      } else {
-        throw new Error(response.message || "Có lỗi xảy ra khi tham gia sự kiện");
+      let endpoint = "";
+      let method = "POST";
+      
+      switch (actionType) {
+        case "join": endpoint = `/api/events/${id}/join`; break;
+        case "leave": endpoint = `/api/events/${id}/leave`; break;
+        case "interested": endpoint = `/api/events/${id}/interested`; break;
+        case "decline": endpoint = `/api/events/${id}/decline`; break;
+        case "delete": 
+            if (!window.confirm("Bạn có chắc chắn muốn xóa sự kiện này?")) {
+                setActionLoading(false);
+                return;
+            }
+            endpoint = `/api/events/${id}`; 
+            method = "DELETE"; 
+            break;
+        default: return;
       }
+
+      const response = await api(endpoint, { method });
+
+      if (actionType === "delete") {
+          if (response.success) navigate("/events");
+          else throw new Error(response.message);
+      } else {
+          if (response.success) setEvent(response.event);
+          else throw new Error(response.message);
+      }
+
     } catch (error) {
-      // Silent handling for event joining error
-      alert(error.message || "Có lỗi xảy ra khi tham gia sự kiện");
+      alert(error.message || "Có lỗi xảy ra");
     } finally {
       setActionLoading(false);
-    }
-  };
-
-  const handleLeaveEvent = async () => {
-    setActionLoading(true);
-    try {
-      const response = await api(`/api/events/${id}/leave`, { method: "POST" });
-      if (response.success) {
-        setEvent(response.event);
-      } else {
-        throw new Error(response.message || "Có lỗi xảy ra khi rời sự kiện");
-      }
-    } catch (error) {
-      // Silent handling for event leaving error
-      alert(error.message || "Có lỗi xảy ra khi rời sự kiện");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleMarkInterested = async () => {
-    setActionLoading(true);
-    try {
-      const response = await api(`/api/events/${id}/interested`, { method: "POST" });
-      if (response.success) {
-        setEvent(response.event);
-      } else {
-        throw new Error(response.message || "Có lỗi xảy ra khi đánh dấu quan tâm");
-      }
-    } catch (error) {
-      // Silent handling for interested marking error
-      alert(error.message || "Có lỗi xảy ra khi đánh dấu quan tâm");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDeclineEvent = async () => {
-    setActionLoading(true);
-    try {
-      const response = await api(`/api/events/${id}/decline`, { method: "POST" });
-      if (response.success) {
-        setEvent(response.event);
-      } else {
-        throw new Error(response.message || "Có lỗi xảy ra khi từ chối");
-      }
-    } catch (error) {
-      // Silent handling for event declining error
-      alert(error.message || "Có lỗi xảy ra khi từ chối");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDeleteEvent = async () => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa sự kiện này?")) {
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      const response = await api(`/api/events/${id}`, { method: "DELETE" });
-      if (response.success) {
-        navigate("/events");
-      } else {
-        throw new Error(response.message || "Có lỗi xảy ra khi xóa sự kiện");
-      }
-    } catch (error) {
-      alert(error.message || "Có lỗi xảy ra khi xóa sự kiện");
-    } finally {
-      setActionLoading(false);
+      setShowMenu(false);
     }
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return {
-      date: date.toLocaleDateString("vi-VN", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-      }),
-      time: date.toLocaleTimeString("vi-VN", { 
-        hour: "2-digit", 
-        minute: "2-digit" 
-      })
+      date: date.toLocaleDateString("vi-VN", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+      time: date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+      day: date.getDate(),
+      month: date.toLocaleString('vi-VN', { month: 'short' }).toUpperCase()
     };
   };
 
-  const isUpcoming = (dateString) => {
-    return new Date(dateString) > new Date();
-  };
-
-  const isPast = (dateString) => {
-    return new Date(dateString) < new Date();
-  };
-
-  const isFull = () => {
-    return event.maxAttendees && event.attendees.length >= event.maxAttendees;
-  };
-
-  const canJoin = () => {
-    return isUpcoming(event.date) && 
-           event.userRole !== 'creator' && 
-           event.userRole !== 'attendee' && 
-           event.userRole !== 'interested' &&
-           event.userRole !== 'declined' &&
-           !isFull();
-  };
-
-  const canLeave = () => {
-    return event.userRole === 'attendee';
-  };
-
-  const canMarkInterested = () => {
-    return isUpcoming(event.date) && 
-           event.userRole !== 'creator' && 
-           event.userRole !== 'attendee' && 
-           event.userRole !== 'interested' &&
-           event.userRole !== 'declined';
-  };
-
-  const canDecline = () => {
-    return isUpcoming(event.date) && 
-           event.userRole !== 'creator' && 
-           event.userRole !== 'attendee' && 
-           event.userRole !== 'declined';
-  };
-
-  const canEdit = () => {
-    return event.userRole === 'creator';
-  };
+  const isUpcoming = (dateString) => new Date(dateString) > new Date();
+  const isPast = (dateString) => new Date(dateString) < new Date();
+  const isFull = () => event.maxAttendees && event.attendees.length >= event.maxAttendees;
+  const canEdit = () => event.userRole === 'creator';
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-black dark:border-white"></div>
       </div>
     );
   }
 
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-20">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <button
-            onClick={() => navigate("/events")}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Quay lại
-          </button>
-          <div className="text-center py-12">
-            <div className="text-red-500 text-lg mb-4">{error}</div>
-            <button
-              onClick={() => navigate("/events")}
-              className="btn"
-            >
-              Quay về danh sách sự kiện
-            </button>
-          </div>
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center text-neutral-500">
+        <div className="text-center">
+           <p className="mb-4 text-lg">{error || "Sự kiện không tồn tại"}</p>
+           <button onClick={() => navigate("/events")} className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold">Quay lại</button>
         </div>
       </div>
     );
   }
 
-  const { date, time } = formatDate(event.date);
+  const { date, time, day, month } = formatDate(event.date);
   const upcoming = isUpcoming(event.date);
   const past = isPast(event.date);
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate("/events")}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Quay lại
-          </button>
-          
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{event.title}</h1>
-              <div className="flex items-center gap-2 mb-4">
-                {event.userRole === 'creator' && (
-                  <span key="creator" className="bg-blue-100 text-blue-600 text-sm px-3 py-1 rounded-full">
-                    Người tạo
-                  </span>
-                )}
-                {event.userRole === 'attendee' && (
-                  <span key="attendee" className="bg-green-100 text-green-600 text-sm px-3 py-1 rounded-full">
-                    Đã tham gia
-                  </span>
-                )}
-                {upcoming && (
-                  <span key="upcoming" className="bg-green-100 text-green-600 text-sm px-3 py-1 rounded-full">
-                    Sắp diễn ra
-                  </span>
-                )}
-                {past && (
-                  <span key="past" className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">
-                    Đã kết thúc
-                  </span>
-                )}
-                {isFull() && (
-                  <span key="full" className="bg-red-100 text-red-600 text-sm px-3 py-1 rounded-full">
-                    Đã đầy
-                  </span>
-                )}
-              </div>
-            </div>
+    <PageLayout>
+      {/* Back Button */}
+      <button
+        onClick={() => navigate("/events")}
+        className="group flex items-center gap-2 text-neutral-500 hover:text-black dark:hover:text-white mb-6 transition-colors"
+      >
+        <div className="p-2 rounded-full bg-neutral-100 dark:bg-neutral-900 group-hover:bg-neutral-200 dark:group-hover:bg-neutral-800 transition-colors">
+           <ArrowLeft size={20} />
+        </div>
+        <span className="font-medium">Quay lại danh sách</span>
+      </button>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2 ml-4">
-              {(canEdit() || event.userRole === 'creator') && (
-                <React.Fragment key="edit-actions">
-                  <button
-                    onClick={() => navigate(`/events/${id}/edit`)}
-                    className="p-2 text-gray-400 hover:text-gray-600"
-                    title="Chỉnh sửa"
-                  >
-                    <Edit size={20} />
-                  </button>
-                  <button
-                    onClick={handleDeleteEvent}
-                    disabled={actionLoading}
-                    className="p-2 text-gray-400 hover:text-red-600"
-                    title="Xóa"
-                  >
-                    <Trash2 size={20} />
-                  </button>
-                </React.Fragment>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* LEFT COLUMN: MAIN CONTENT */}
+        <div className="lg:col-span-2 space-y-8">
+           
+           {/* HERO IMAGE CARD */}
+           <motion.div 
+             initial={{ opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+             className="relative rounded-[32px] overflow-hidden h-64 md:h-96 group"
+           >
+              {event.coverImage ? (
+                 <img src={event.coverImage} alt={event.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              ) : (
+                 <div className="w-full h-full bg-gradient-to-br from-neutral-200 to-neutral-400 dark:from-neutral-800 dark:to-neutral-900 flex items-center justify-center">
+                    <Calendar size={64} className="text-neutral-400 dark:text-neutral-600 opacity-50" />
+                 </div>
               )}
-              <button
-                onClick={() => navigator.share?.({ 
-                  title: event.title, 
-                  text: event.description,
-                  url: window.location.href 
-                })}
-                className="p-2 text-gray-400 hover:text-gray-600"
-                title="Chia sẻ"
-              >
-                <Share2 size={20} />
-              </button>
-            </div>
-          </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-90" />
+              
+              {/* Date Badge (Floating) */}
+              <div className="absolute top-6 left-6 bg-white/90 dark:bg-black/80 backdrop-blur-md rounded-2xl p-3 text-center min-w-[80px] shadow-lg border border-white/20 dark:border-white/10">
+                 <span className="block text-sm font-bold text-neutral-500 uppercase tracking-wider">{month}</span>
+                 <span className="block text-3xl font-black text-neutral-900 dark:text-white leading-none mt-1">{day}</span>
+              </div>
+
+              {/* Type Badge */}
+              <div className="absolute top-6 right-6">
+                 <span className="flex items-center gap-2 bg-black/50 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-bold border border-white/10">
+                    {event.type === 'private' ? <Lock size={14} /> : <Globe size={14} />}
+                    {event.type === 'private' ? 'Riêng tư' : 'Công khai'}
+                 </span>
+              </div>
+
+              {/* Title & Location (Overlay) */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+                 <h1 className="text-3xl md:text-5xl font-black text-white mb-2 tracking-tight leading-tight drop-shadow-md">{event.title}</h1>
+                 <div className="flex flex-wrap items-center gap-4 text-neutral-300 font-medium text-sm md:text-base">
+                    <div className="flex items-center gap-2"><Clock size={18} /> {time}</div>
+                    <div className="flex items-center gap-2"><MapPin size={18} /> {event.location || 'Online / Chưa xác định'}</div>
+                 </div>
+              </div>
+           </motion.div>
+
+           {/* DESCRIPTION */}
+           <SpotlightCard className="min-h-[200px]">
+              <h2 className="text-2xl font-bold mb-4 text-neutral-900 dark:text-white">Chi tiết sự kiện</h2>
+              <p className="text-neutral-600 dark:text-neutral-300 whitespace-pre-wrap leading-relaxed text-lg">
+                 {event.description}
+              </p>
+              
+              {event.tags && event.tags.length > 0 && (
+                 <div className="mt-6 flex flex-wrap gap-2">
+                    {event.tags.map((tag, i) => (
+                       <span key={i} className="px-3 py-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-sm font-medium text-neutral-600 dark:text-neutral-400">#{tag}</span>
+                    ))}
+                 </div>
+              )}
+           </SpotlightCard>
+
+           {/* COMMENTS (Placeholder - có thể thêm component comment vào đây) */}
+           {/* <div className="mt-8"><CommentSection ... /></div> */}
         </div>
 
-        {/* Cover Image */}
-        {event.coverImage && (
-          <div className="mb-8">
-            <img
-              src={event.coverImage}
-              alt={event.title}
-              className="w-full h-64 sm:h-80 lg:h-96 object-cover rounded-lg shadow-lg"
-            />
-          </div>
-        )}
+        {/* RIGHT COLUMN: SIDEBAR */}
+        <div className="space-y-6">
+           
+           {/* CREATOR INFO */}
+           <SpotlightCard className="p-5">
+              <div className="flex items-start gap-4 mb-4">
+                 <img src={getUserAvatarUrl(event.creator, AVATAR_SIZES.MEDIUM)} className="w-16 h-16 rounded-full object-cover bg-neutral-200 border-2 border-neutral-200 dark:border-neutral-800 flex-shrink-0" alt={event.creator.name} />
+                 <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">Tổ chức bởi</div>
+                    <Link to={`/user/${event.creator._id}`} className="font-bold text-lg hover:text-blue-500 dark:hover:text-blue-400 transition-colors block truncate">{event.creator.name}</Link>
+                    {event.creator.bio && (
+                       <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1 line-clamp-2">{event.creator.bio}</p>
+                    )}
+                 </div>
+              </div>
+              <Link 
+                 to={`/user/${event.creator._id}`}
+                 className="w-full py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white font-semibold text-sm text-center hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors block"
+              >
+                 Xem hồ sơ
+              </Link>
+           </SpotlightCard>
 
-        {/* Event Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Description */}
-            <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
-            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-            border border-transparent dark:border-white/5">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Mô tả sự kiện</h2>
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{event.description}</p>
-            </div>
+           {/* EVENT INFO SUMMARY */}
+           <SpotlightCard className="p-5">
+              <h3 className="font-bold text-lg mb-4 text-neutral-900 dark:text-white flex items-center gap-2">
+                 <Calendar size={18} /> Thông tin sự kiện
+              </h3>
+              <div className="space-y-3">
+                 <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex-shrink-0">
+                       <Calendar size={16} className="text-neutral-600 dark:text-neutral-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                       <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-0.5">Ngày</div>
+                       <div className="text-sm font-semibold text-neutral-900 dark:text-white">{date}</div>
+                    </div>
+                 </div>
+                 <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex-shrink-0">
+                       <Clock size={16} className="text-neutral-600 dark:text-neutral-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                       <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-0.5">Giờ</div>
+                       <div className="text-sm font-semibold text-neutral-900 dark:text-white">{time}</div>
+                    </div>
+                 </div>
+                 <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex-shrink-0">
+                       <MapPin size={16} className="text-neutral-600 dark:text-neutral-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                       <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-0.5">Địa điểm</div>
+                       <div className="text-sm font-semibold text-neutral-900 dark:text-white">{event.location || 'Online / Chưa xác định'}</div>
+                    </div>
+                 </div>
+                 <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex-shrink-0">
+                       <Users size={16} className="text-neutral-600 dark:text-neutral-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                       <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-0.5">Tham gia</div>
+                       <div className="text-sm font-semibold text-neutral-900 dark:text-white">
+                          {event.attendees.length} người
+                          {event.maxAttendees && ` / ${event.maxAttendees} tối đa`}
+                          {event.interested && event.interested.length > 0 && (
+                             <span className="text-neutral-500 dark:text-neutral-400 font-normal"> • {event.interested.length} quan tâm</span>
+                          )}
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </SpotlightCard>
 
-            {/* Event Info */}
-            <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
-            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-            border border-transparent dark:border-white/5">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Thông tin sự kiện</h2>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Calendar className="text-gray-400 dark:text-gray-500" size={20} />
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{date}</p>
-                    <p className="text-gray-600 dark:text-gray-400">{time}</p>
-                  </div>
-                </div>
+           {/* ACTION PANEL (Sticky) */}
+           <div className="sticky top-24 space-y-6">
+              <div className="bg-white dark:bg-[#1C1C1E] rounded-[24px] p-6 border border-neutral-200 dark:border-neutral-800 shadow-xl">
+                 <h3 className="font-bold text-xl mb-6 text-neutral-900 dark:text-white flex items-center justify-between">
+                    Thao tác
+                    {/* Admin Menu */}
+                    {canEdit() && (
+                       <div className="relative" ref={menuRef}>
+                          <button onClick={() => setShowMenu(!showMenu)} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors">
+                             <MoreVertical size={20} className="text-neutral-500" />
+                          </button>
+                          <AnimatePresence>
+                             {showMenu && (
+                                <motion.div 
+                                   initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                   animate={{ opacity: 1, scale: 1, y: 0 }}
+                                   exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                                   className="absolute right-0 top-10 w-48 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-2xl z-50 overflow-hidden"
+                                >
+                                   <button onClick={() => navigate(`/events/${id}/edit`)} className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 flex items-center gap-2">
+                                      <Edit size={16} /> Chỉnh sửa
+                                   </button>
+                                   <button onClick={() => handleAction("delete")} className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2">
+                                      <Trash2 size={16} /> Xóa sự kiện
+                                   </button>
+                                </motion.div>
+                             )}
+                          </AnimatePresence>
+                       </div>
+                    )}
+                 </h3>
 
-                {event.location && (
-                  <div className="flex items-center gap-3">
-                    <MapPin className="text-gray-400 dark:text-gray-500" size={20} />
-                    <p className="text-gray-700 dark:text-gray-300">{event.location}</p>
-                  </div>
-                )}
+                 <div className="space-y-3">
+                    {/* Main Action Button */}
+                    {upcoming && !event.userRole && !isFull() && (
+                       <button 
+                          onClick={() => handleAction("join")} 
+                          disabled={actionLoading}
+                          className="w-full py-4 bg-black dark:bg-white text-white dark:text-black rounded-2xl font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-lg flex items-center justify-center gap-2"
+                       >
+                          {actionLoading ? "Đang xử lý..." : <><UserPlus size={20} /> THAM GIA NGAY</>}
+                       </button>
+                    )}
 
-                <div className="flex items-center gap-3">
-                  <Users className="text-gray-400 dark:text-gray-500" size={20} />
-                  <p className="text-gray-700 dark:text-gray-300">
-                    {event.attendees.length} người tham gia
-                    {event.maxAttendees && ` / ${event.maxAttendees} tối đa`}
-                  </p>
-                </div>
+                    {event.userRole === 'attendee' && (
+                       <div className="w-full py-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 border border-green-200 dark:border-green-800">
+                          <Check size={24} /> ĐÃ THAM GIA
+                       </div>
+                    )}
 
-                {event.tags && event.tags.length > 0 && (
-                  <div className="flex items-start gap-3">
-                    <Tag className="text-gray-400 dark:text-gray-500 mt-1" size={20} />
+                    {/* Secondary Actions */}
+                    <div className="grid grid-cols-2 gap-3">
+                       {(!event.userRole || event.userRole === 'declined') && upcoming && (
+                          <button 
+                             onClick={() => handleAction("interested")}
+                             disabled={actionLoading}
+                             className="py-3 px-4 rounded-xl bg-orange-50 dark:bg-orange-900/10 text-orange-600 dark:text-orange-400 font-bold text-sm hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors flex items-center justify-center gap-2"
+                          >
+                             <Heart size={18} /> Quan tâm
+                          </button>
+                       )}
+                       {(!event.userRole || event.userRole === 'interested') && upcoming && (
+                          <button 
+                             onClick={() => handleAction("decline")}
+                             disabled={actionLoading}
+                             className="py-3 px-4 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-bold text-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors flex items-center justify-center gap-2"
+                          >
+                             <XCircle size={18} /> Từ chối
+                          </button>
+                       )}
+                    </div>
+                    
+                    {event.userRole === 'attendee' && (
+                       <button 
+                          onClick={() => handleAction("leave")}
+                          disabled={actionLoading}
+                          className="w-full py-3 text-red-500 font-medium text-sm hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-colors flex items-center justify-center gap-2"
+                       >
+                          <UserMinus size={16} /> Rời sự kiện
+                       </button>
+                    )}
+
+                    <button 
+                       onClick={() => navigator.share?.({ title: event.title, url: window.location.href })}
+                       className="w-full py-3 border border-neutral-200 dark:border-neutral-800 rounded-xl font-bold text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
+                    >
+                       <Share2 size={18} /> Chia sẻ
+                    </button>
+                 </div>
+
+                 {isFull() && <div className="mt-4 text-center text-red-500 font-medium text-sm bg-red-50 dark:bg-red-900/10 p-2 rounded-lg">Sự kiện đã đủ người tham gia</div>}
+                 {past && <div className="mt-4 text-center text-neutral-500 font-medium text-sm bg-neutral-100 dark:bg-neutral-800 p-2 rounded-lg">Sự kiện đã kết thúc</div>}
+              </div>
+
+              {/* ATTENDEES MINI GRID */}
+              <SpotlightCard>
+                 <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-lg flex items-center gap-2"><Users size={18}/> Tham gia ({event.attendees.length})</h3>
+                 </div>
+                 {event.attendees.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {event.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm px-3 py-1 rounded-full"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                       {event.attendees.slice(0, 12).map(user => (
+                          <Link key={user._id} to={`/user/${user._id}`} title={user.name}>
+                             <img src={getUserAvatarUrl(user, AVATAR_SIZES.SMALL)} className="w-10 h-10 rounded-full border-2 border-white dark:border-black hover:scale-110 transition-transform" alt="" />
+                          </Link>
+                       ))}
+                       {event.attendees.length > 12 && (
+                          <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 border-2 border-white dark:border-black flex items-center justify-center text-xs font-bold text-neutral-500">
+                             +{event.attendees.length - 12}
+                          </div>
+                       )}
                     </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Participants */}
-            <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
-            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-            border border-transparent dark:border-white/5">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Người tham gia ({event.attendees.length})
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {event.attendees.map((attendee) => (
-                  <div key={attendee._id} className="flex items-center gap-3">
-                    <img
-                      src={attendee.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(attendee.name)}&length=2&background=cccccc&color=222222`}
-                      alt={attendee.name}
-                      className="w-10 h-10 rounded-full"
-                    />
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{attendee.name}</p>
-                      {attendee._id === event.creator._id && (
-                        <p className="text-xs text-blue-600">Người tạo</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Interested */}
-            {event.interested && event.interested.length > 0 && (
-              <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
-              shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-              border border-transparent dark:border-white/5">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  Quan tâm ({event.interested.length})
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {event.interested.map((user) => (
-                    <div key={user._id} className="flex items-center gap-3">
-                      <img
-                        src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
-                        alt={user.name}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">{user.name}</p>
-                        <p className="text-xs text-orange-600">Quan tâm</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Declined */}
-            {event.declined && event.declined.length > 0 && (
-              <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
-              shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-              border border-transparent dark:border-white/5">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  Từ chối ({event.declined.length})
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {event.declined.map((user) => (
-                    <div key={user._id} className="flex items-center gap-3">
-                      <img
-                        src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
-                        alt={user.name}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">{user.name}</p>
-                        <p className="text-xs text-red-600">Từ chối</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Creator Info */}
-            <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
-            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-            border border-transparent dark:border-white/5">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Người tạo</h3>
-              <div className="flex items-center gap-3">
-                <img
-                  src={event.creator.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(event.creator.name)}&length=2&background=cccccc&color=222222`}
-                  alt={event.creator.name}
-                  className="w-12 h-12 rounded-full"
-                />
-                <div>
-                  <p className="font-medium text-gray-900">{event.creator.name}</p>
-                  <Link
-                    to={`/user/${event.creator._id}`}
-                    className="text-blue-600 hover:text-blue-700 text-sm"
-                  >
-                    Xem hồ sơ
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="bg-white dark:bg-[#111] rounded-[32px] px-5 pt-4 pb-6 mb-6
-            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-            border border-transparent dark:border-white/5">
-              {canJoin() && (
-                <button
-                  onClick={handleJoinEvent}
-                  disabled={actionLoading}
-                  className="w-full btn flex items-center justify-center gap-2 mb-3"
-                >
-                  {actionLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  ) : (
-                    <>
-                      <UserPlus size={20} />
-                      Tham gia sự kiện
-                    </>
-                  )}
-                </button>
-              )}
-
-              {canMarkInterested() && (
-                <button
-                  onClick={handleMarkInterested}
-                  disabled={actionLoading}
-                  className="w-full btn-outline flex items-center justify-center gap-2 mb-3"
-                >
-                  {actionLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                  ) : (
-                    <>
-                      <Heart size={20} />
-                      Quan tâm
-                    </>
-                  )}
-                </button>
-              )}
-
-              {canDecline() && (
-                <button
-                  onClick={handleDeclineEvent}
-                  disabled={actionLoading}
-                  className="w-full btn-outline flex items-center justify-center gap-2 mb-3"
-                >
-                  {actionLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                  ) : (
-                    <>
-                      <XCircle size={20} />
-                      Từ chối
-                    </>
-                  )}
-                </button>
-              )}
-
-              {canLeave() && (
-                <button
-                  onClick={handleLeaveEvent}
-                  disabled={actionLoading}
-                  className="w-full btn-outline flex items-center justify-center gap-2 mb-3"
-                >
-                  {actionLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                  ) : (
-                    <>
-                      <UserMinus size={20} />
-                      Rời sự kiện
-                    </>
-                  )}
-                </button>
-              )}
-
-              {/* Status indicators */}
-              {event.userRole === 'interested' && (
-                <div className="flex items-center justify-center gap-2 text-orange-600 text-sm mb-3">
-                  <Heart size={16} />
-                  Bạn đã quan tâm sự kiện này
-                </div>
-              )}
-
-              {event.userRole === 'declined' && (
-                <div className="flex items-center justify-center gap-2 text-red-600 text-sm mb-3">
-                  <XCircle size={16} />
-                  Bạn đã từ chối sự kiện này
-                </div>
-              )}
-
-              {!upcoming && !past && (
-                <p className="text-center text-gray-500 text-sm mt-4">
-                  Sự kiện đang diễn ra
-                </p>
-              )}
-
-              {past && (
-                <p className="text-center text-gray-500 text-sm mt-4">
-                  Sự kiện đã kết thúc
-                </p>
-              )}
-
-              {isFull() && event.userRole !== 'attendee' && event.userRole !== 'creator' && (
-                <p className="text-center text-red-500 text-sm mt-4">
-                  Sự kiện đã đầy
-                </p>
-              )}
-            </div>
-          </div>
+                 ) : (
+                    <div className="text-neutral-500 text-sm text-center py-4">Chưa có ai tham gia</div>
+                 )}
+              </SpotlightCard>
+           </div>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

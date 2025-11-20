@@ -22,7 +22,7 @@ const emoteMap = {
 };
 const emotes = Object.keys(emoteMap);
 
-const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedChange }) => {
+const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedChange, hideActionsMenu = false }) => {
   const navigate = useNavigate();
   
   // ==================== STATE & REFS ====================
@@ -346,33 +346,35 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             </div>
           </div>
         </div>
-        <div className="relative z-10 flex-shrink-0">
-          <button 
-            ref={mainMenuButtonRef}
-            type="button"
-            className="p-2 md:p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors focus:outline-none active:scale-95 touch-manipulation"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowMainMenu(prev => !prev);
-            }}
-            title="Tùy chọn"
-            aria-label="Tùy chọn"
-            aria-expanded={showMainMenu}
-            aria-haspopup="true"
-            tabIndex={0}
-          >
-            <MoreHorizontal size={18} className="md:w-5 md:h-5" />
-          </button>
+        {!hideActionsMenu && (
+          <div className="relative z-[9998] flex-shrink-0" style={{ position: 'relative' }}>
+            <button 
+              ref={mainMenuButtonRef}
+              type="button"
+              className="p-2 md:p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors focus:outline-none active:scale-95 touch-manipulation"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowMainMenu(prev => !prev);
+              }}
+              title="Tùy chọn"
+              aria-label="Tùy chọn"
+              aria-expanded={showMainMenu}
+              aria-haspopup="true"
+              tabIndex={0}
+            >
+              <MoreHorizontal size={18} className="md:w-5 md:h-5" />
+            </button>
 
-          {/* Dropdown menu */}
-          {showMainMenu && (
+            {/* Dropdown menu */}
+            {showMainMenu && (
             <div
               ref={mainMenuRef}
-              className="absolute right-0 top-full mt-2 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg dark:shadow-2xl z-[100] min-w-[240px] overflow-hidden"
+              className="absolute right-0 top-full mt-2 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg dark:shadow-2xl z-[9999] w-[280px] overflow-visible"
               onClick={(e) => e.stopPropagation()}
+              style={{ position: 'absolute' }}
             >
-              <div className="py-1">
+              <div className="py-2">
                 {/* Chỉ hiển thị nút quan tâm/không quan tâm khi user đã đăng nhập và không phải tác giả */}
                 {user && user._id && user._id !== post.author?._id && (
                   <>
@@ -380,7 +382,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                     <button
                       type="button"
                       className={cn(
-                        "w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors flex items-start gap-3 group",
+                        "w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors flex items-start gap-3 group whitespace-normal",
                         interestStatus === true && "bg-blue-50 dark:bg-blue-900/20",
                         interestLoading && "opacity-50 cursor-not-allowed"
                       )}
@@ -402,9 +404,9 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                       )}>
                         <Plus size={16} className={interestStatus === true ? "text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"} />
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-visible">
                         <div className={cn(
-                          "font-semibold text-sm mb-0.5",
+                          "font-semibold text-sm mb-0.5 break-words",
                           interestStatus === true 
                             ? "text-blue-600 dark:text-blue-400" 
                             : "text-gray-900 dark:text-white"
@@ -412,7 +414,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                           Quan tâm
                           {interestStatus === true && <span className="ml-2 text-xs">✓</span>}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed break-words">
                           Bạn sẽ nhìn thấy nhiều bài viết tương tự hơn.
                         </div>
                       </div>
@@ -422,7 +424,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                     <button
                       type="button"
                       className={cn(
-                        "w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors flex items-start gap-3 group border-t border-gray-100 dark:border-neutral-700",
+                        "w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors flex items-start gap-3 group border-t border-gray-100 dark:border-neutral-700 whitespace-normal",
                         interestStatus === false && "bg-red-50 dark:bg-red-900/20",
                         interestLoading && "opacity-50 cursor-not-allowed"
                       )}
@@ -444,9 +446,9 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                       )}>
                         <Minus size={16} className={interestStatus === false ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"} />
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-visible">
                         <div className={cn(
-                          "font-semibold text-sm mb-0.5",
+                          "font-semibold text-sm mb-0.5 break-words",
                           interestStatus === false 
                             ? "text-red-600 dark:text-red-400" 
                             : "text-gray-900 dark:text-white"
@@ -454,7 +456,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                           Không quan tâm
                           {interestStatus === false && <span className="ml-2 text-xs">✓</span>}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed break-words">
                           Bạn sẽ nhìn thấy ít bài viết tương tự hơn.
                         </div>
                       </div>
@@ -463,8 +465,9 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 )}
               </div>
             </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 2. Title */}

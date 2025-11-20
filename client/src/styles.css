@@ -64,6 +64,16 @@ label { @apply text-sm font-medium text-gray-700; }
   border-radius: 3px;
 }
 
+/* No Scrollbar - Hide scrollbar but keep scrolling */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Stroke Text Effect */
 .stroke-text {
   -webkit-text-stroke: 1px #000;
@@ -103,10 +113,65 @@ label { @apply text-sm font-medium text-gray-700; }
 .dark .card { @apply bg-[#111] border border-gray-800; }
 .dark .btn-outline { @apply bg-transparent border-gray-600 text-gray-100 hover:bg-gray-800; }
 .dark input, .dark textarea { @apply bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400; }
-.dark label { @apply text-gray-300; }
+.dark label { color: #d1d5db; }
 
 /* Lucide/inline icons inherit currentColor, make currentColor white-ish in dark */
 .dark svg { color: #d1d5db; }
+
+/* Icon color optimization for dark mode */
+.dark svg[class*="lucide"] {
+  color: #d1d5db;
+}
+
+/* Ensure icons in buttons adapt to dark mode */
+.dark button svg,
+.dark a svg {
+  color: inherit;
+}
+
+/* Icon color classes for dark mode */
+.dark .icon-gray-600 { color: #9ca3af !important; }
+.dark .icon-gray-500 { color: #6b7280 !important; }
+.dark .icon-gray-400 { color: #9ca3af !important; }
+.dark .icon-white { color: #f3f4f6 !important; }
+.dark .icon-black { color: #d1d5db !important; }
+
+/* Ensure icons with text color classes work in dark mode */
+.dark .text-gray-600 svg,
+.dark .text-gray-500 svg,
+.dark .text-gray-400 svg {
+  color: #9ca3af;
+}
+
+.dark .text-gray-300 svg,
+.dark .text-gray-200 svg {
+  color: #d1d5db;
+}
+
+/* Ensure all lucide-react icons inherit proper colors in dark mode */
+.dark [class*="lucide"] {
+  color: currentColor;
+}
+
+/* Fix for icons in cards and containers */
+.dark .card svg,
+.dark [class*="bg-white"] svg,
+.dark [class*="bg-gray-50"] svg,
+.dark [class*="bg-gray-100"] svg {
+  color: #d1d5db;
+}
+
+/* Ensure icons in hover states work correctly */
+.dark button:hover svg,
+.dark a:hover svg {
+  color: inherit;
+}
+
+/* Fix for icons in badges and labels */
+.dark [class*="badge"] svg,
+.dark [class*="label"] svg {
+  color: currentColor;
+}
 
 /* Dark compatibility overrides for common Tailwind classes used across app */
 .dark .bg-white { background-color: #111827 !important; }
@@ -160,6 +225,12 @@ label { @apply text-sm font-medium text-gray-700; }
   border: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+
+.dark .emote-picker {
+  background: #1f2937;
+  border: 1px solid #374151;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
 .emote-btn { 
   width: 32px; 
   height: 32px; 
@@ -173,6 +244,10 @@ label { @apply text-sm font-medium text-gray-700; }
 .emote-btn:hover { 
   transform: scale(1.08); 
   background-color: #f3f4f6;
+}
+
+.dark .emote-btn:hover {
+  background-color: #374151;
 }
 .emote-btn.active {
   background-color: #dbeafe;
@@ -202,6 +277,12 @@ label { @apply text-sm font-medium text-gray-700; }
   white-space: nowrap;
   z-index: 9999;
   min-width: 200px;
+}
+
+.dark .comment-emote-picker {
+  background: #1f2937;
+  border: 2px solid #3b82f6;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
 .comment-emote-btn {
@@ -331,6 +412,16 @@ label { @apply text-sm font-medium text-gray-700; }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Scrollbar hide for all screen sizes */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* Prevent zoom on input focus on iOS */

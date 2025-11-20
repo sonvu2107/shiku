@@ -14,6 +14,7 @@ import socketService from "../socket";
 import callManager from "../utils/callManager";
 import { getUserInfo } from "../utils/auth";
 import { chatbotAPI } from "../services/chatbotAPI";
+import { useToast } from "../components/Toast";
 
 /**
  * Chat - Trang chat chính với real-time messaging
@@ -24,6 +25,7 @@ export default function Chat() {
   // ==================== ROUTER & LOCATION ====================
   
   const location = useLocation(); // Để handle state từ MessageButton
+  const { showInfo } = useToast();
   
   // ==================== STATE MANAGEMENT ====================
   
@@ -736,37 +738,28 @@ export default function Chat() {
   const handleVideoCall = async (conversationId) => {
     if (!selectedConversation) return;
     
+    const isGroup = selectedConversation.conversationType === 'group';
+    
+    // Kiểm tra nếu là group chat - hiển thị thông báo và không thực hiện call
+    if (isGroup) {
+      showInfo("Tính năng chưa khả dụng, sẽ cập nhật trong tương lai");
+      return;
+    }
+    
     // Join conversation room
     await socketService.joinConversation(conversationId);
     
-    const isGroup = selectedConversation.conversationType === 'group';
     const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
     
-    if (isGroup) {
-      // Group call
-      const participants = selectedConversation.participants
-        ?.filter(p => !p.leftAt)
-        ?.map(p => ({
-          id: p.user?._id || p.user?.id || p._id || p.id,
-          name: p.nickname || p.user?.name || p.name || "Người dùng",
-          avatar: p.user?.avatarUrl || p.avatarUrl,
-          isOnline: true // Assume all are online for now
-        })) || [];
-      
-      setGroupParticipants(participants);
-      setIsGroupCall(true);
-      setRemoteUser(null); // Clear for group call
-    } else {
-      // 1-1 call
-      const otherParticipant = selectedConversation.participants?.find(p => {
-        const participantId = p.user?._id || p.user?.id || p._id || p.id;
-        return participantId !== currentUserId;
-      });
-      
-      setRemoteUser(otherParticipant?.user || otherParticipant || { name: "Người dùng" });
-      setIsGroupCall(false);
-      setGroupParticipants([]); // Clear for 1-1 call
-    }
+    // 1-1 call
+    const otherParticipant = selectedConversation.participants?.find(p => {
+      const participantId = p.user?._id || p.user?.id || p._id || p.id;
+      return participantId !== currentUserId;
+    });
+    
+    setRemoteUser(otherParticipant?.user || otherParticipant || { name: "Người dùng" });
+    setIsGroupCall(false);
+    setGroupParticipants([]); // Clear for 1-1 call
     
     setIsVideoCall(true);
     setCallOpen(true);
@@ -778,37 +771,28 @@ export default function Chat() {
   const handleVoiceCall = async (conversationId) => {
     if (!selectedConversation) return;
     
+    const isGroup = selectedConversation.conversationType === 'group';
+    
+    // Kiểm tra nếu là group chat - hiển thị thông báo và không thực hiện call
+    if (isGroup) {
+      showInfo("Tính năng chưa khả dụng, sẽ cập nhật trong tương lai");
+      return;
+    }
+    
     // Join conversation room
     await socketService.joinConversation(conversationId);
     
-    const isGroup = selectedConversation.conversationType === 'group';
     const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
     
-    if (isGroup) {
-      // Group call
-      const participants = selectedConversation.participants
-        ?.filter(p => !p.leftAt)
-        ?.map(p => ({
-          id: p.user?._id || p.user?.id || p._id || p.id,
-          name: p.nickname || p.user?.name || p.name || "Người dùng",
-          avatar: p.user?.avatarUrl || p.avatarUrl,
-          isOnline: true // Assume all are online for now
-        })) || [];
-      
-      setGroupParticipants(participants);
-      setIsGroupCall(true);
-      setRemoteUser(null); // Clear for group call
-    } else {
-      // 1-1 call
-      const otherParticipant = selectedConversation.participants?.find(p => {
-        const participantId = p.user?._id || p.user?.id || p._id || p.id;
-        return participantId !== currentUserId;
-      });
-      
-      setRemoteUser(otherParticipant?.user || otherParticipant || { name: "Người dùng" });
-      setIsGroupCall(false);
-      setGroupParticipants([]); // Clear for 1-1 call
-    }
+    // 1-1 call
+    const otherParticipant = selectedConversation.participants?.find(p => {
+      const participantId = p.user?._id || p.user?.id || p._id || p.id;
+      return participantId !== currentUserId;
+    });
+    
+    setRemoteUser(otherParticipant?.user || otherParticipant || { name: "Người dùng" });
+    setIsGroupCall(false);
+    setGroupParticipants([]); // Clear for 1-1 call
     
     setIsVideoCall(false);
     setCallOpen(true);

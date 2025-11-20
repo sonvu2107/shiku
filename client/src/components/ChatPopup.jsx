@@ -54,9 +54,10 @@ const EMOTES = [
  * @param {Function} props.onClose - Callback đóng popup
  * @param {Function} props.setCallOpen - Callback mở modal gọi
  * @param {Function} props.setIsVideoCall - Callback set loại cuộc gọi
+ * @param {Function} props.onShowInfo - Callback hiển thị thông báo
  * @returns {JSX.Element} Component chat popup
  */
-export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVideoCall, index = 0 }) {
+export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVideoCall, index = 0, onShowInfo }) {
   const isChatbot = conversation?.conversationType === "chatbot";
   // ==================== EFFECTS ====================
   
@@ -325,20 +326,28 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                 <button
                   className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
                   onClick={() => {
+                    if (isGroup) {
+                      onShowInfo?.("Tính năng chưa khả dụng, sẽ cập nhật trong tương lai");
+                      return;
+                    }
                     setCallOpen && setCallOpen(true);
                     setIsVideoCall && setIsVideoCall(false);
                   }}
-                  title="Gọi thoại"
+                  title={isGroup ? "Gọi thoại nhóm (chưa khả dụng)" : "Gọi thoại"}
                 >
                   <Phone size={14} className="sm:w-4 sm:h-4" />
                 </button>
                 <button
                   className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
                   onClick={() => {
+                    if (isGroup) {
+                      onShowInfo?.("Tính năng chưa khả dụng, sẽ cập nhật trong tương lai");
+                      return;
+                    }
                     setCallOpen && setCallOpen(true);
                     setIsVideoCall && setIsVideoCall(true);
                   }}
-                  title="Gọi video"
+                  title={isGroup ? "Gọi video nhóm (chưa khả dụng)" : "Gọi video"}
                 >
                   <Video size={14} className="sm:w-4 sm:h-4" />
                 </button>

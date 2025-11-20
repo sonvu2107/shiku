@@ -52,9 +52,10 @@ if (typeof document !== 'undefined') {
  * @param {Object} props - Component props
  * @param {Array} props.conversations - Danh sách conversations đang mở
  * @param {Function} props.onCloseConversation - Callback đóng conversation
+ * @param {Function} props.onShowInfo - Callback hiển thị thông báo
  * @returns {JSX.Element} Component chat popup manager
  */
-export default function ChatPopupManager({ conversations = [], onCloseConversation }) {
+export default function ChatPopupManager({ conversations = [], onCloseConversation, onShowInfo }) {
   // ==================== STATE MANAGEMENT ====================
   
   const [callOpen, setCallOpen] = useState(false);
@@ -158,6 +159,7 @@ export default function ChatPopupManager({ conversations = [], onCloseConversati
             }}
             setIsVideoCall={setIsVideoCall}
             index={index}
+            onShowInfo={onShowInfo}
           />
         ))}
       </div>

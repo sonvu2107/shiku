@@ -2,6 +2,7 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef } from "rea
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { Globe, Lock, Image, Users, BarChart3, Plus, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import BanNotification from "./BanNotification";
 
 /**
@@ -10,9 +11,10 @@ import BanNotification from "./BanNotification";
  * Hỗ trợ upload media, privacy settings, tags, groups
  * @param {Object} user - Thông tin user hiện tại
  * @param {string} groupId - ID của nhóm (nếu đang tạo bài trong nhóm)
+ * @param {boolean} hideTrigger - Ẩn trigger input card (chỉ hiển thị modal)
  * @param {React.Ref} triggerRef - Ref để trigger modal từ bên ngoài
  */
-const PostCreator = forwardRef(function PostCreator({ user, groupId = null }, ref) {
+const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hideTrigger = false }, ref) {
   // ==================== STATE MANAGEMENT ====================
   
   // Modal và form states
@@ -264,424 +266,474 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null }, re
         aria-hidden="true"
       />
       
-      {/* Modal - updated for black & white theme */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4" data-post-creator-modal>
-          <div className="bg-white dark:bg-neutral-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-300 dark:border-neutral-600">
-            <div className="p-6 border-b border-gray-300 dark:border-neutral-600">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Tạo bài viết</h2>
-                <button
-                  onClick={handleClose}
-                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
-                >
-                  ×
-                </button>
-              </div>
+      {/* Trigger Input Card - Monochrome Luxury Style (chỉ hiển thị khi không có groupId và không bị ẩn) */}
+      {!groupId && !hideTrigger && (
+        <div
+          onClick={() => setShowModal(true)}
+          className="bg-white dark:bg-neutral-900 rounded-3xl shadow-lg border border-neutral-200 dark:border-neutral-800 p-5 cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.01]"
+        >
+        <div className="flex items-center gap-4">
+          <img
+            src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=cccccc&color=222222&size=40`}
+            alt={userDisplayName}
+            width={40}
+            height={40}
+            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+            loading="lazy"
+          />
+          <div className="flex-1 text-neutral-500 dark:text-neutral-400 text-base font-medium">
+            {userDisplayName} ơi, bạn đang nghĩ gì?
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" title="Thêm ảnh/video">
+              <Image size={20} className="text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors" />
             </div>
-
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              {/* Avatar + Privacy */}
-              <div className="flex items-center gap-3 mb-4">
-                <img
-                  src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=cccccc&color=222222&size=40`}
-                  alt={userDisplayName}
-                  width={40}
-                  height={40}
-                  className="w-10 h-10 rounded-full object-cover"
-                  loading="lazy"
-                />
-                <div>
-                  <div className="font-medium">{userDisplayName}</div>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowPrivacyDropdown(!showPrivacyDropdown)}
-                      className="text-sm bg-gray-100 hover:bg-gray-200 rounded px-2 py-1 flex items-center gap-1 transition-colors"
-                    >
-                      {status === "published" ? (
-                        <>
-                          <Globe size={14} />
-                          <span>Công khai</span>
-                        </>
-                      ) : (
-                        <>
-                          <Lock size={14} />
-                          <span>Riêng tư</span>
-                        </>
-                      )}
-                      <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-
-                    {showPrivacyDropdown && (
-                      <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setStatus("published");
-                            setShowPrivacyDropdown(false);
-                          }}
-                          className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
-                        >
-                          <Globe size={14} />
-                          <span>Công khai</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setStatus("private");
-                            setShowPrivacyDropdown(false);
-                          }}
-                          className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
-                        >
-                          <Lock size={14} />
-                          <span>Riêng tư</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
+            <div className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" title="Tạo bình chọn">
+              <BarChart3 size={20} className="text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors" />
+            </div>
+          </div>
+        </div>
+        </div>
+      )}
+      
+      {/* Modal - Monochrome Luxury with Glassmorphism */}
+      <AnimatePresence>
+        {showModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[110] p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) handleClose();
+            }}
+            data-post-creator-modal
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              className="bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl border border-neutral-200/50 dark:border-neutral-800/50"
+            >
+              {/* Glass Header - Sticky */}
+              <div className="sticky top-0 z-10 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-200 dark:border-neutral-800 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-black text-neutral-900 dark:text-white">Tạo bài viết</h2>
+                  <button
+                    onClick={handleClose}
+                    className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white w-10 h-10 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200"
+                    aria-label="Đóng"
+                  >
+                    <X size={20} strokeWidth={2.5} />
+                  </button>
                 </div>
               </div>
 
-              {/* Group Selection */}
-              {!groupId && groups.length > 0 && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <span>Đăng trong:</span>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowGroupDropdown(!showGroupDropdown)}
-                      className="bg-gray-100 hover:bg-gray-200 rounded px-2 py-1 flex items-center gap-1 transition-colors"
-                    >
-                      {selectedGroup ? (
-                        <>
-                          <Users size={14} />
-                          <span>{groups.find(g => g._id === selectedGroup)?.name || 'Chọn nhóm'}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Globe size={14} />
-                          <span>Trang cá nhân</span>
-                        </>
-                      )}
-                      <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-
-                    {showGroupDropdown && (
-                      <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px]">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedGroup(null);
-                            setShowGroupDropdown(false);
-                          }}
-                          className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
-                        >
-                          <Globe size={14} />
-                          <span>Trang cá nhân</span>
-                        </button>
-                        {groups.map((group) => (
-                          <button
-                            key={group._id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedGroup(group._id);
-                              setShowGroupDropdown(false);
-                            }}
-                            className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
-                          >
-                            <Users size={14} />
-                            <span>{group.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Title */}
-              <div>
-                <input
-                  type="text"
-                  placeholder="Tiêu đề bài viết..."
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full border-0 text-lg font-medium resize-none focus:outline-none"
-                />
-              </div>
-
-              {/* Content */}
-              <div>
-                <textarea
-                  placeholder={hasPoll ? `${userDisplayName} ơi, bạn đang nghĩ gì thế?` : `${userDisplayName} ơi, bạn đang nghĩ gì thế?`}
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  rows={6}
-                  className="w-full border-0 text-base resize-none focus:outline-none"
-                />
-                {hasPoll && (
-                  <p className="text-sm text-gray-500 mt-1">
-                  </p>
-                )}
-              </div>
-
-              {/* Upload section: ảnh/video + preview */}
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex-1">
-                  <label className="btn-outline flex items-center gap-2 cursor-pointer w-fit">
-                    <Image size={18} />
-                    <span>{uploading ? "Đang tải..." : "Thêm ảnh/video"}</span>
-                    <input
-                      type="file"
-                      accept="image/*,video/*"
-                      multiple
-                      onChange={handleFilesUpload}
-                      disabled={uploading}
-                      className="hidden"
+              <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                  {/* Avatar + Privacy */}
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=cccccc&color=222222&size=40`}
+                      alt={userDisplayName}
+                      width={40}
+                      height={40}
+                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      loading="lazy"
                     />
-                  </label>
-                </div>
-                {files.length > 0 && (
-                  <div className="flex gap-2 flex-wrap">
-                    {files.map((f, idx) => (
-                      <div key={idx} className="relative">
-                        {f.type === "image" ? (
-                          <img src={f.url} alt="preview" width={64} height={64} className="w-16 h-16 object-cover rounded-lg" loading="lazy" />
-                        ) : (
-                          <video src={f.url} controls className="w-16 h-16 object-cover rounded-lg" />
-                        )}
+                    <div className="flex-1">
+                      <div className="font-bold text-neutral-900 dark:text-white mb-1">{userDisplayName}</div>
+                      <div className="relative">
                         <button
                           type="button"
-                          onClick={() => setFiles(files.filter((_, i) => i !== idx))}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
+                          onClick={() => setShowPrivacyDropdown(!showPrivacyDropdown)}
+                          className="text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full px-3 py-1.5 flex items-center gap-1.5 transition-all duration-200"
                         >
-                          ×
+                          {status === "published" ? (
+                            <>
+                              <Globe size={12} strokeWidth={2.5} />
+                              <span>Công khai</span>
+                            </>
+                          ) : (
+                            <>
+                              <Lock size={12} strokeWidth={2.5} />
+                              <span>Riêng tư</span>
+                            </>
+                          )}
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
                         </button>
+
+                        {showPrivacyDropdown && (
+                          <div className="absolute top-full left-0 mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-20 min-w-[140px] overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStatus("published");
+                                setShowPrivacyDropdown(false);
+                              }}
+                              className="w-full px-4 py-2.5 text-left hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2 text-sm font-bold text-neutral-700 dark:text-neutral-300 transition-colors"
+                            >
+                              <Globe size={14} strokeWidth={2.5} />
+                              <span>Công khai</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStatus("private");
+                                setShowPrivacyDropdown(false);
+                              }}
+                              className="w-full px-4 py-2.5 text-left hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2 text-sm font-bold text-neutral-700 dark:text-neutral-300 transition-colors"
+                            >
+                              <Lock size={14} strokeWidth={2.5} />
+                              <span>Riêng tư</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Tags */}
-              <div>
-                <input
-                  type="text"
-                  placeholder="Thêm tags (phân cách bằng dấu phẩy)..."
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-
-              {/* Poll Toggle Button */}
-              <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-neutral-600">
-                <button
-                  type="button"
-                  onClick={() => setHasPoll(!hasPoll)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    hasPoll
-                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-700"
-                      : "bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600 text-gray-700 dark:text-gray-300 border border-transparent"
-                  }`}
-                >
-                  <BarChart3 size={18} className={hasPoll ? "text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"} />
-                  <span>{hasPoll ? "Đã tạo bình chọn" : "Tạo bình chọn"}</span>
-                </button>
-              </div>
-
-              {/* Poll Configuration */}
-              {hasPoll && (
-                <div className="space-y-3 p-4 bg-gray-50 dark:bg-neutral-700/50 rounded-lg border border-gray-200 dark:border-neutral-600">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-gray-900 dark:text-white">Tạo bình chọn</h4>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setHasPoll(false);
-                        setPollQuestion("");
-                        setPollOptions(["", ""]);
-                        setPollExpiresIn("");
-                      }}
-                      className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                      title="Đóng"
-                    >
-                      <X size={20} />
-                    </button>
+                    </div>
                   </div>
 
-                  {/* Poll Question */}
+                  {/* Group Selection */}
+                  {!groupId && groups.length > 0 && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Đăng trong:</span>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowGroupDropdown(!showGroupDropdown)}
+                          className="text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full px-3 py-1.5 flex items-center gap-1.5 transition-all duration-200"
+                        >
+                          {selectedGroup ? (
+                            <>
+                              <Users size={12} strokeWidth={2.5} />
+                              <span>{groups.find(g => g._id === selectedGroup)?.name || 'Chọn nhóm'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Globe size={12} strokeWidth={2.5} />
+                              <span>Trang cá nhân</span>
+                            </>
+                          )}
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+
+                        {showGroupDropdown && (
+                          <div className="absolute top-full left-0 mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-20 min-w-[220px] overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedGroup(null);
+                                setShowGroupDropdown(false);
+                              }}
+                              className="w-full px-4 py-2.5 text-left hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2 text-sm font-bold text-neutral-700 dark:text-neutral-300 transition-colors"
+                            >
+                              <Globe size={14} strokeWidth={2.5} />
+                              <span>Trang cá nhân</span>
+                            </button>
+                            {groups.map((group) => (
+                              <button
+                                key={group._id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedGroup(group._id);
+                                  setShowGroupDropdown(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-left hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2 text-sm font-bold text-neutral-700 dark:text-neutral-300 transition-colors"
+                              >
+                                <Users size={14} strokeWidth={2.5} />
+                                <span>{group.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Title - Borderless */}
                   <div>
                     <input
                       type="text"
-                      placeholder="Câu hỏi bình chọn..."
-                      value={pollQuestion}
-                      onChange={(e) => setPollQuestion(e.target.value)}
-                      className="w-full border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors"
-                      maxLength={500}
+                      placeholder="Tiêu đề bài viết..."
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full border-0 bg-transparent text-2xl font-black text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 resize-none focus:outline-none"
                     />
                   </div>
 
-                  {/* Poll Options */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Các lựa chọn:
+                  {/* Content - Borderless */}
+                  <div>
+                    <textarea
+                      placeholder={`${userDisplayName} ơi, bạn đang nghĩ gì thế?`}
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      rows={8}
+                      className="w-full border-0 bg-transparent text-base text-neutral-700 dark:text-neutral-300 placeholder-neutral-400 dark:placeholder-neutral-500 resize-none focus:outline-none leading-relaxed"
+                    />
+                  </div>
+
+                  {/* Actions - Minimalist Icons */}
+                  <div className="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+                    <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-all duration-200 group" title="Thêm ảnh/video">
+                      <Image size={18} className="text-neutral-500 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors" strokeWidth={2.5} />
+                      <span className="text-sm font-bold text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors">
+                        {uploading ? "Đang tải..." : "Ảnh/Video"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*,video/*"
+                        multiple
+                        onChange={handleFilesUpload}
+                        disabled={uploading}
+                        className="hidden"
+                      />
                     </label>
-                    {pollOptions.map((option, index) => (
-                      <div key={index} className="flex items-center gap-2 group">
-                        <div className="flex-1 relative">
-                          <input
-                            type="text"
-                            placeholder={`Lựa chọn ${index + 1}...`}
-                            value={option}
-                            onChange={(e) => {
-                              const newOptions = [...pollOptions];
-                              newOptions[index] = e.target.value;
-                              setPollOptions(newOptions);
-                            }}
-                            className="w-full border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
-                            maxLength={200}
-                          />
-                          {option.trim() && (
-                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                              <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full"></div>
-                            </div>
+                    <button
+                      type="button"
+                      onClick={() => setHasPoll(!hasPoll)}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
+                        hasPoll
+                          ? "bg-neutral-900 dark:bg-white text-white dark:text-black"
+                          : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                      }`}
+                      title="Tạo bình chọn"
+                    >
+                      <BarChart3 size={18} className={hasPoll ? "text-white dark:text-black" : "text-neutral-500 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"} strokeWidth={2.5} />
+                      <span className={`text-sm font-bold ${hasPoll ? "text-white dark:text-black" : "text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"}`}>
+                        Bình chọn
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Media Preview */}
+                  {files.length > 0 && (
+                    <div className="flex gap-3 flex-wrap">
+                      {files.map((f, idx) => (
+                        <div key={idx} className="relative group">
+                          {f.type === "image" ? (
+                            <img src={f.url} alt="preview" className="w-24 h-24 object-cover rounded-2xl border border-neutral-200 dark:border-neutral-800" loading="lazy" />
+                          ) : (
+                            <video src={f.url} controls className="w-24 h-24 object-cover rounded-2xl border border-neutral-200 dark:border-neutral-800" />
                           )}
-                        </div>
-                        {pollOptions.length > 2 && (
                           <button
                             type="button"
-                            onClick={() => {
-                              const newOptions = pollOptions.filter((_, i) => i !== index);
-                              setPollOptions(newOptions);
-                            }}
-                            className="opacity-0 group-hover:opacity-100 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-opacity p-1 rounded"
-                            title="Xóa lựa chọn này"
+                            onClick={() => setFiles(files.filter((_, i) => i !== idx))}
+                            className="absolute -top-2 -right-2 bg-neutral-900 dark:bg-white text-white dark:text-black rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:scale-110"
+                            title="Xóa"
                           >
-                            <X size={18} />
+                            <X size={14} strokeWidth={3} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Tags - Borderless */}
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Thêm tags cho bài viết..."
+                      value={tags}
+                      onChange={(e) => setTags(e.target.value)}
+                      className="w-full border-0 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl px-4 py-3 text-sm font-medium text-neutral-700 dark:text-neutral-300 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-white transition-all"
+                    />
+                  </div>
+
+
+                  {/* Poll Configuration */}
+                  {hasPoll && (
+                    <div className="space-y-4 p-5 bg-neutral-50 dark:bg-neutral-800/50 rounded-2xl border border-neutral-200 dark:border-neutral-700">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-lg font-black text-neutral-900 dark:text-white">Tạo bình chọn</h4>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHasPoll(false);
+                            setPollQuestion("");
+                            setPollOptions(["", ""]);
+                            setPollExpiresIn("");
+                          }}
+                          className="text-neutral-400 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors p-1 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                          title="Đóng"
+                        >
+                          <X size={18} strokeWidth={2.5} />
+                        </button>
+                      </div>
+
+                      {/* Poll Question */}
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Câu hỏi bình chọn..."
+                          value={pollQuestion}
+                          onChange={(e) => setPollQuestion(e.target.value)}
+                          className="w-full border-0 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 rounded-xl px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-white transition-all"
+                          maxLength={500}
+                        />
+                      </div>
+
+                      {/* Poll Options */}
+                      <div className="space-y-3">
+                        <label className="text-xs font-black text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                          Các lựa chọn:
+                        </label>
+                        {pollOptions.map((option, index) => (
+                          <div key={index} className="flex items-center gap-2 group">
+                            <div className="flex-1 relative">
+                              <input
+                                type="text"
+                                placeholder={`Lựa chọn ${index + 1}...`}
+                                value={option}
+                                onChange={(e) => {
+                                  const newOptions = [...pollOptions];
+                                  newOptions[index] = e.target.value;
+                                  setPollOptions(newOptions);
+                                }}
+                                className="w-full border-0 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-white transition-all"
+                                maxLength={200}
+                              />
+                              {option.trim() && (
+                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                  <div className="w-2 h-2 bg-neutral-900 dark:bg-white rounded-full"></div>
+                                </div>
+                              )}
+                            </div>
+                            {pollOptions.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newOptions = pollOptions.filter((_, i) => i !== index);
+                                  setPollOptions(newOptions);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-opacity p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                                title="Xóa lựa chọn này"
+                              >
+                                <X size={16} strokeWidth={2.5} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Add Option Button */}
+                        {pollOptions.length < 10 && (
+                          <button
+                            type="button"
+                            onClick={() => setPollOptions([...pollOptions, ""])}
+                            className="flex items-center gap-2 text-sm font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 px-4 py-2.5 rounded-xl transition-all duration-200 border border-dashed border-neutral-300 dark:border-neutral-600 hover:border-neutral-400 dark:hover:border-neutral-500"
+                          >
+                            <Plus size={16} strokeWidth={2.5} />
+                            <span>Thêm lựa chọn</span>
                           </button>
                         )}
                       </div>
-                    ))}
 
-                    {/* Add Option Button */}
-                    {pollOptions.length < 10 && (
-                      <button
-                        type="button"
-                        onClick={() => setPollOptions([...pollOptions, ""])}
-                        className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-2 rounded-lg transition-colors border border-dashed border-blue-300 dark:border-blue-600 hover:border-blue-400 dark:hover:border-blue-500"
-                      >
-                        <Plus size={18} className="text-blue-600 dark:text-blue-400" />
-                        <span>Thêm lựa chọn</span>
-                      </button>
-                    )}
-                  </div>
+                      {/* Poll Settings */}
+                      <div className="space-y-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+                        {/* Expiry Time */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                            Hết hạn sau:
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="number"
+                              placeholder="Số ngày (để trống = không giới hạn)"
+                              value={pollExpiresIn}
+                              onChange={(e) => setPollExpiresIn(e.target.value)}
+                              min="1"
+                              max="365"
+                              className="flex-1 border-0 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-white transition-all"
+                            />
+                            <span className="text-sm font-bold text-neutral-500 dark:text-neutral-400 whitespace-nowrap">ngày</span>
+                          </div>
+                        </div>
 
-                  {/* Poll Settings */}
-                  <div className="space-y-3 pt-3 border-t border-gray-300 dark:border-neutral-600">
-                    {/* Expiry Time */}
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Hết hạn sau:
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          placeholder="Số ngày (để trống = không giới hạn)"
-                          value={pollExpiresIn}
-                          onChange={(e) => setPollExpiresIn(e.target.value)}
-                          min="1"
-                          max="365"
-                          className="flex-1 border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors"
-                        />
-                        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">ngày</span>
+                        {/* Checkboxes */}
+                        <div className="space-y-3">
+                          <label className="flex items-center gap-3 text-sm cursor-pointer hover:text-neutral-900 dark:hover:text-white group text-neutral-700 dark:text-neutral-300">
+                            <div className="relative">
+                              <input
+                                type="checkbox"
+                                checked={pollAllowMultiple}
+                                onChange={(e) => setPollAllowMultiple(e.target.checked)}
+                                className="sr-only"
+                              />
+                              <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${
+                                pollAllowMultiple 
+                                  ? 'bg-neutral-900 dark:bg-white border-neutral-900 dark:border-white text-white dark:text-black' 
+                                  : 'border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 group-hover:border-neutral-900 dark:group-hover:border-white'
+                              }`}>
+                                {pollAllowMultiple && (
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+                            <span className="leading-tight flex-1 font-medium">Cho phép chọn nhiều lựa chọn</span>
+                          </label>
+
+                          <label className="flex items-center gap-3 text-sm cursor-pointer hover:text-neutral-900 dark:hover:text-white group text-neutral-700 dark:text-neutral-300">
+                            <div className="relative">
+                              <input
+                                type="checkbox"
+                                checked={pollIsPublic}
+                                onChange={(e) => setPollIsPublic(e.target.checked)}
+                                className="sr-only"
+                              />
+                              <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${
+                                pollIsPublic 
+                                  ? 'bg-neutral-900 dark:bg-white border-neutral-900 dark:border-white text-white dark:text-black' 
+                                  : 'border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 group-hover:border-neutral-900 dark:group-hover:border-white'
+                              }`}>
+                                {pollIsPublic && (
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+                            <span className="leading-tight flex-1 font-medium">Hiển thị ai đã vote (công khai)</span>
+                          </label>
+                        </div>
                       </div>
                     </div>
+                  )}
 
-                    {/* Checkboxes */}
-                    <div className="space-y-3">
-                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:text-gray-900 dark:hover:text-white group text-gray-700 dark:text-gray-300">
-                        <div className="relative">
-                          <input
-                            type="checkbox"
-                            checked={pollAllowMultiple}
-                            onChange={(e) => setPollAllowMultiple(e.target.checked)}
-                            className="sr-only"
-                          />
-                          <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${
-                            pollAllowMultiple 
-                              ? 'bg-blue-600 dark:bg-blue-500 border-blue-600 dark:border-blue-500 text-white' 
-                              : 'border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 group-hover:border-blue-400 dark:group-hover:border-blue-500'
-                          }`}>
-                            {pollAllowMultiple && (
-                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                        <span className="leading-tight flex-1">Cho phép chọn nhiều lựa chọn</span>
-                      </label>
-
-                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:text-gray-900 dark:hover:text-white group text-gray-700 dark:text-gray-300">
-                        <div className="relative">
-                          <input
-                            type="checkbox"
-                            checked={pollIsPublic}
-                            onChange={(e) => setPollIsPublic(e.target.checked)}
-                            className="sr-only"
-                          />
-                          <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${
-                            pollIsPublic 
-                              ? 'bg-blue-600 dark:bg-blue-500 border-blue-600 dark:border-blue-500 text-white' 
-                              : 'border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 group-hover:border-blue-400 dark:group-hover:border-blue-500'
-                          }`}>
-                            {pollIsPublic && (
-                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                        <span className="leading-tight flex-1">Hiển thị ai đã vote (công khai)</span>
-                      </label>
+                  {err && (
+                    <div className="text-red-600 dark:text-red-400 text-sm font-bold bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-200 dark:border-red-800">
+                      {err}
                     </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="px-6 py-3 border-2 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading || !title.trim() || (!hasPoll && !content.trim())}
+                      className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold hover:scale-105 transition-all duration-200 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    >
+                      {loading ? "Đang đăng..." : "Đăng bài"}
+                    </button>
                   </div>
-                </div>
-              )}
-
-              {err && (
-                <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
-                  {err}
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex justify-center gap-2 pt-4">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="btn-outline"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || !title.trim() || (!hasPoll && !content.trim())}
-                  className="btn disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? "Đang đăng..." : "Đăng bài"}
-                </button>
+                </form>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Ban Notification */}
       {showBanNotification && (

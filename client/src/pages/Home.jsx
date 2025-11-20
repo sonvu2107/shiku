@@ -5,7 +5,6 @@ import { useSavedPosts } from "../hooks/useSavedPosts";
 import { useSEO } from "../utils/useSEO";
 import PostCard from "../components/PostCard";
 import ModernPostCard from "../components/ModernPostCard";
-import PostCreator from "../components/PostCreator";
 import Stories from "../components/Stories";
 import LeftSidebar from "../components/LeftSidebar";
 import RightSidebar from "../components/RightSidebar";
@@ -14,13 +13,14 @@ import ChatDropdown from "../components/ChatDropdown";
 import ChatPopupManager from "../components/ChatPopupManager";
 import UserName from "../components/UserName";
 import Navbar from "../components/Navbar";
-import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2, Sparkles, Search, Bell, MessageCircle, Settings, Plus, X, Moon, Sun } from "lucide-react";
+import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2, Sparkles, Search, Bell, MessageCircle, Plus, X, Moon, Sun, Users } from "lucide-react";
 import { motion } from "framer-motion";
+import { useToast } from "../components/Toast";
 
 /**
  * Home - Trang chủ mạng xã hội với bố cục 3 cột
  * - Sidebar trái: Shortcuts (menu nhanh)
- * - Cột giữa: Stories, PostCreator, Posts feed với infinite scroll
+ * - Cột giữa: Stories, Posts feed với infinite scroll
  * - Sidebar phải: OnlineFriends (bạn bè online)
  */
 export default function Home({ user, setUser }) {
@@ -75,7 +75,16 @@ export default function Home({ user, setUser }) {
   const [searchParams] = useSearchParams();
   const q = searchParams.get('q') || '';
   const [sortBy, setSortBy] = useState('recommended');
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  
+  // Hàm chuyển sang chế độ sắp xếp tiếp theo
+  const cycleSortBy = useCallback(() => {
+    const sortOptions = ['recommended', 'newest', 'oldest', 'mostViewed', 'leastViewed'];
+    setSortBy(prev => {
+      const currentIndex = sortOptions.indexOf(prev);
+      const nextIndex = (currentIndex + 1) % sortOptions.length;
+      return sortOptions[nextIndex];
+    });
+  }, []);
   const [topSearchQuery, setTopSearchQuery] = useState(q);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -84,9 +93,8 @@ export default function Home({ user, setUser }) {
   const [searchLoading, setSearchLoading] = useState(false);
   const [historyEditing, setHistoryEditing] = useState(false);
   const [openPopups, setOpenPopups] = useState([]);
-  const postCreatorRef = useRef(null);
-  const postCreatorWrapperRef = useRef(null);
   const searchInputRef = useRef(null);
+  const { showInfo } = useToast();
 
   const addChatPopup = (conv) => {
     if (!openPopups.find(p => p._id === conv._id)) {
@@ -256,16 +264,6 @@ export default function Home({ user, setUser }) {
     loadInitial();
   }, [q, user, sortBy, loadInitial]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showSortDropdown && !event.target.closest('.sort-dropdown')) {
-        setShowSortDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showSortDropdown]);
 
   // ==================== SEARCH HELPER FUNCTIONS ====================
 
@@ -791,15 +789,10 @@ export default function Home({ user, setUser }) {
               {/* Add New Post Button - Giữ nguyên vị trí */}
             <button
               onClick={() => {
-                // Trigger PostCreator modal via ref
-                if (postCreatorRef.current && typeof postCreatorRef.current.openModal === 'function') {
-                  postCreatorRef.current.openModal();
-                } else {
-                  // Fallback: click hidden trigger button
-                  const triggerBtn = document.querySelector('[data-post-creator-trigger]');
-                  if (triggerBtn) {
-                    triggerBtn.click();
-                  }
+                // Trigger PostCreator modal từ global PostCreator (App.jsx)
+                const triggerBtn = document.querySelector('[data-post-creator-trigger]');
+                if (triggerBtn) {
+                  triggerBtn.click();
                 }
               }}
               className="px-4 md:px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 text-sm whitespace-nowrap flex-shrink-0 active:scale-[0.98]"
@@ -815,7 +808,7 @@ export default function Home({ user, setUser }) {
             {/* User Icons - Đẩy sang bên phải */}
             {user && (
               <div className="flex items-center gap-2 flex-shrink-0">
-                {/* Dark Mode Toggle */}
+                {/* 1. Dark Mode Toggle */}
                 <button
                   onClick={() => {
                     // Use flushSync for immediate state update
@@ -832,16 +825,23 @@ export default function Home({ user, setUser }) {
                   )}
                 </button>
                 
-                <ChatDropdown onOpenChat={addChatPopup} />
-                <NotificationBell user={user} />
+                {/* 2. Friends */}
                 <Link
-                  to="/settings"
+                  to="/friends"
                   className="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
-                  title="Cài đặt"
-                  aria-label="Cài đặt"
+                  title="Bạn bè"
+                  aria-label="Bạn bè"
                 >
-                  <Settings size={20} className="text-gray-600 dark:text-gray-300" />
+                  <Users size={20} className="text-gray-600 dark:text-gray-300" />
                 </Link>
+                
+                {/* 3. Chat */}
+                <ChatDropdown onOpenChat={addChatPopup} />
+                
+                {/* 4. Thông báo */}
+                <NotificationBell user={user} />
+                
+                {/* Avatar */}
                 <Link
                   to="/profile"
                   className="ml-0.5"
@@ -861,7 +861,7 @@ export default function Home({ user, setUser }) {
         </nav>
 
         {/* Feed Bar - Trải dài toàn bộ chiều rộng - Sticky trên mobile (dưới navbar), static trên desktop, sát navbar trên desktop */}
-        <div className="sticky md:static top-[64px] md:top-0 z-30 px-4 md:px-6 lg:px-8 py-3 md:py-3 border-b border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-black/70 backdrop-blur-xl transition-colors duration-300">
+        <div className="sticky md:static top-[64px] md:top-0 z-[100] px-4 md:px-6 lg:px-8 py-2 md:py-2 border-b border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-black/70 backdrop-blur-xl transition-colors duration-300">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 overflow-hidden">
               <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white whitespace-nowrap flex-shrink-0">Bảng tin</h2>
@@ -876,15 +876,10 @@ export default function Home({ user, setUser }) {
             <div className="md:hidden flex-shrink-0">
               <button
                 onClick={() => {
-                  // Trigger PostCreator modal via ref
-                  if (postCreatorRef.current && typeof postCreatorRef.current.openModal === 'function') {
-                    postCreatorRef.current.openModal();
-                  } else {
-                    // Fallback: click hidden trigger button
-                    const triggerBtn = document.querySelector('[data-post-creator-trigger]');
-                    if (triggerBtn) {
-                      triggerBtn.click();
-                    }
+                  // Trigger PostCreator modal từ global PostCreator (App.jsx)
+                  const triggerBtn = document.querySelector('[data-post-creator-trigger]');
+                  if (triggerBtn) {
+                    triggerBtn.click();
                   }
                 }}
                 className="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-1.5 text-xs whitespace-nowrap active:scale-[0.98] touch-manipulation min-h-[36px]"
@@ -896,52 +891,22 @@ export default function Home({ user, setUser }) {
               </button>
             </div>
 
-            <div className="relative sort-dropdown flex-shrink-0">
-              <button
-                onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 whitespace-nowrap touch-manipulation"
-                aria-label={`Sắp xếp: ${getSortLabel(sortBy)}`}
-                aria-expanded={showSortDropdown}
-                aria-haspopup="true"
-              >
-                <span className="flex-shrink-0">{getSortIcon(sortBy)}</span>
-                <span className="whitespace-nowrap">{getSortLabel(sortBy)}</span>
-                <ArrowUpDown size={14} className="opacity-60 dark:opacity-70 flex-shrink-0 text-gray-600 dark:text-gray-300" />
-              </button>
-
-              {showSortDropdown && (
-                <div className="absolute right-0 top-full mt-2 bg-white dark:bg-[#111] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-50 py-2 min-w-[200px] w-auto max-w-[90vw]">
-                  {[
-                    { key: 'recommended', label: 'Đề xuất', icon: <Sparkles size={14} className="text-gray-600 dark:text-gray-300 flex-shrink-0" />, badge: 'AI' },
-                    { key: 'newest', label: 'Mới nhất', icon: <Clock size={14} className="text-gray-600 dark:text-gray-300 flex-shrink-0" /> },
-                    { key: 'oldest', label: 'Cũ nhất', icon: <Clock size={14} className="rotate-180 text-gray-600 dark:text-gray-300 flex-shrink-0" /> },
-                    { key: 'mostViewed', label: 'Xem nhiều nhất', icon: <Eye size={14} className="text-gray-600 dark:text-gray-300 flex-shrink-0" /> },
-                    { key: 'leastViewed', label: 'Xem ít nhất', icon: <Eye size={14} className="opacity-50 text-gray-600 dark:text-gray-400 flex-shrink-0" /> }
-                  ].map(option => (
-                    <button
-                      key={option.key}
-                      onClick={() => {
-                        setSortBy(option.key);
-                        setShowSortDropdown(false);
-                      }}
-                      className={`w-full px-4 py-2.5 text-left hover:bg-gray-200 dark:hover:bg-gray-800 active:bg-gray-300 dark:active:bg-gray-700 flex items-center justify-between gap-3 transition-colors ${sortBy === option.key ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300'
-                        }`}
-                      aria-label={`Sắp xếp theo ${option.label}`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <span className="flex-shrink-0">{option.icon}</span>
-                        <span className="text-sm font-medium whitespace-nowrap">{option.label}</span>
-                      </div>
-                      {option.badge && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-blue-600 dark:bg-blue-500 text-white rounded-full font-bold flex-shrink-0 ml-2">
-                          {option.badge}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
+            <button
+              onClick={cycleSortBy}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 whitespace-nowrap touch-manipulation"
+              aria-label={`Sắp xếp: ${getSortLabel(sortBy)}. Bấm để chuyển sang chế độ khác`}
+              title={`Bấm để chuyển sang chế độ sắp xếp khác`}
+            >
+              <span className="flex-shrink-0">{getSortIcon(sortBy)}</span>
+              <span className="whitespace-nowrap">{getSortLabel(sortBy)}</span>
+              {sortBy === 'recommended' && (
+                <span className="relative inline-flex items-center gap-1 text-[11px] px-2.5 py-1 bg-gradient-to-r from-black via-neutral-800 to-black dark:from-white dark:via-neutral-200 dark:to-white text-white dark:text-black rounded-full font-black flex-shrink-0 shadow-lg shadow-black/20 dark:shadow-white/20 animate-pulse">
+                  <Sparkles size={10} strokeWidth={3} className="text-white dark:text-black" />
+                  <span>AI</span>
+                </span>
               )}
-            </div>
+              <ArrowUpDown size={14} className="opacity-60 dark:opacity-70 flex-shrink-0 text-gray-600 dark:text-gray-300" />
+            </button>
           </div>
         </div>
 
@@ -952,11 +917,6 @@ export default function Home({ user, setUser }) {
               <div className="space-y-6 min-w-0">
                 {/* Stories Section */}
                 <Stories user={user} />
-
-                {/* Post Creator - luôn hiển thị input, click để mở modal */}
-                <div ref={postCreatorWrapperRef}>
-                  <PostCreator user={user} ref={postCreatorRef} />
-                </div>
 
                 {/* Posts Feed */}
                 {loading ? (
@@ -1040,7 +1000,7 @@ export default function Home({ user, setUser }) {
               </div>
 
               {/* Right Sidebar - Friend Suggestions, Profile Activity, Upcoming Events */}
-              <aside className="hidden xl:block" role="complementary" aria-label="Gợi ý bạn bè và hoạt động">
+              <aside className="hidden xl:block relative z-[1]" role="complementary" aria-label="Gợi ý bạn bè và hoạt động">
                 <div className="sticky top-20">
                   <RightSidebar user={user} />
                 </div>
@@ -1053,6 +1013,7 @@ export default function Home({ user, setUser }) {
       <ChatPopupManager
         conversations={openPopups}
         onCloseConversation={closeChatPopup}
+        onShowInfo={showInfo}
       />
     </div>
   );

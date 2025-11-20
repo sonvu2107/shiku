@@ -16,7 +16,8 @@ import {
   Compass,
   Calendar,
   Image,
-  Bookmark
+  Bookmark,
+  LifeBuoy
 } from "lucide-react";
 import { removeAuthToken } from "../utils/auth.js";
 import { api } from "../api.js";
@@ -84,8 +85,9 @@ export default function MobileMenu({ user, setUser }) {
   { icon: UserCheck, label: "Nhóm", path: "/groups", show: true },
   { icon: MessageCircle, label: "Chat", path: "/chat", show: false },
   { icon: Bell, label: "Thông báo", path: "/notifications", show: false },
-  { icon: User, label: "Trang cá nhân", path: "/profile", show: true },
+    { icon: User, label: "Trang cá nhân", path: "/profile", show: true },
     { icon: Settings, label: "Cài đặt", path: "/settings", show: true },
+    { icon: LifeBuoy, label: "Trợ giúp", path: "/support", show: true },
     { icon: Crown, label: "Admin", path: "/admin", show: user.role === "admin", isAdmin: true },
   ] : [
     { icon: Home, label: "Trang chủ", path: "/", show: true },

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GroupCreator from '../components/GroupCreator';
+import { PageLayout } from '../components/ui/DesignSystem';
 
 /**
- * CreateGroup Page - Trang tạo nhóm mới
+ * CreateGroup Page - Trang tạo nhóm mới (Monochrome Luxury Style)
  * Sử dụng GroupCreator component trong full-screen mode
  */
 const CreateGroup = () => {
@@ -23,13 +24,13 @@ const CreateGroup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <PageLayout>
       <GroupCreator
         isOpen={isCreatorOpen}
         onClose={handleCreatorClose}
         onSuccess={handleCreatorSuccess}
       />
-    </div>
+    </PageLayout>
   );
 };
 

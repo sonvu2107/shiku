@@ -333,9 +333,9 @@ export default function App() {
           <FloatingDock />
         )}
 
-        {/* Global PostCreator - để có thể mở modal từ bất kỳ trang nào (qua FloatingDock) */}
+        {/* Global PostCreator - để có thể mở modal từ bất kỳ trang nào (qua FloatingDock) - ẩn trigger input card */}
         {user && !shouldHideNavbar && (
-          <PostCreator user={user} />
+          <PostCreator user={user} hideTrigger={true} />
         )}
 
       {/* Routing logic dựa trên loại trang */}
