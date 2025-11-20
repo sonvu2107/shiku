@@ -246,7 +246,7 @@ router.post("/refresh",
           tokenToUse,
           process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET
         );
-        
+
         if (isProduction) {
         }
 
@@ -436,12 +436,100 @@ router.post("/forgot-password",
       setImmediate(async () => {
         try {
           const resetLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`;
+
+          // Template email chuyên nghiệp
+          const emailHtml = `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Đặt lại mật khẩu Shiku</title>
+  <!--[if mso]>
+  <style type="text/css">
+    table {border-collapse:collapse;border-spacing:0;margin:0;}
+    div, td {padding:0;}
+    div {margin:0 !important;}
+  </style>
+  <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0; padding: 0; background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">Shiku</h1>
+              <p style="margin: 8px 0 0; color: #ffffff; font-size: 14px; opacity: 0.9;">Mạng xã hội của bạn</p>
+            </td>
+          </tr>
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 40px 30px;">
+              <h2 style="margin: 0 0 20px; color: #1a1a1a; font-size: 24px; font-weight: 600; line-height: 1.3;">Đặt lại mật khẩu</h2>
+              <p style="margin: 0 0 20px; color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+                Chào bạn,
+              </p>
+              <p style="margin: 0 0 30px; color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+                Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản Shiku của bạn. Nhấn vào nút bên dưới để tạo mật khẩu mới:
+              </p>
+              
+              <!-- Button -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td align="center" style="padding: 0 0 30px;">
+                    <a href="${resetLink}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">
+                      Đặt lại mật khẩu
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Alternative Link -->
+              <p style="margin: 0 0 30px; color: #8a8a8a; font-size: 14px; line-height: 1.6;">
+                Hoặc copy và dán link này vào trình duyệt:<br>
+                <a href="${resetLink}" style="color: #667eea; text-decoration: none; word-break: break-all;">${resetLink}</a>
+              </p>
+              
+              <!-- Warning -->
+              <div style="padding: 20px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 30px 0;">
+                <p style="margin: 0; color: #856404; font-size: 14px; line-height: 1.6;">
+                  <strong>⚠️ Lưu ý:</strong> Link này chỉ có hiệu lực trong <strong>30 phút</strong>. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này. Tài khoản của bạn vẫn an toàn.
+                </p>
+              </div>
+              
+              <p style="margin: 30px 0 0; color: #8a8a8a; font-size: 14px; line-height: 1.6;">
+                Nếu bạn gặp vấn đề, vui lòng liên hệ với chúng tôi qua email <a href="mailto:support@shiku.click" style="color: #667eea; text-decoration: none;">support@shiku.click</a>
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 30px 40px; background-color: #f8f9fa; border-radius: 0 0 12px 12px; border-top: 1px solid #e9ecef;">
+              <p style="margin: 0 0 10px; color: #6c757d; font-size: 12px; text-align: center; line-height: 1.5;">
+                © ${new Date().getFullYear()} Shiku. Tất cả quyền được bảo lưu.
+              </p>
+              <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center; line-height: 1.5;">
+                Email này được gửi từ <strong>support@shiku.click</strong>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
           await sendEmail({
             to: email,
             subject: "Đặt lại mật khẩu Shiku",
-            html: `<p>Chào bạn,<br/>Bạn vừa yêu cầu đặt lại mật khẩu. Nhấn vào link bên dưới để đặt lại mật khẩu mới:</p>
-            <p><a href='${resetLink}'>Đặt lại mật khẩu</a></p>
-            <p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`,
+            html: emailHtml,
             timeout: 25000 // 25 seconds timeout
           });
         } catch (emailError) {
@@ -568,7 +656,7 @@ router.post("/heartbeat",
     try {
       // Validate user exists
       if (!req.user) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           error: "User not authenticated",
           code: "USER_NOT_AUTHENTICATED"
         });
@@ -598,7 +686,7 @@ router.post("/heartbeat",
       });
     } catch (error) {
       console.error("[ERROR][AUTH-SECURE] Heartbeat error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Heartbeat failed",
         code: "HEARTBEAT_ERROR",
         message: error.message

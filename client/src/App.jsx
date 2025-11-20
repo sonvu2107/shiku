@@ -56,6 +56,7 @@ const Support = lazy(() => import("./pages/Support.jsx"));
 // Utility pages
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 
 // Import các utilities và services (giữ nguyên - cần thiết ngay)
 import { api } from "./api.js";
@@ -91,7 +92,7 @@ export default function App() {
   // Đặt mặc định 'index, follow' cho các trang công khai
   useEffect(() => {
     // Danh sách các trang private (cần noindex)
-    const privatePages = ["/login", "/register", "/reset-password", "/settings", "/notifications", "/chat", "/admin"];
+    const privatePages = ["/login", "/register", "/forgot-password", "/reset-password", "/settings", "/notifications", "/chat", "/admin"];
     const isPrivatePage = privatePages.some(page => location.pathname.startsWith(page));
     
     // Chỉ set robots nếu không phải trang private (các trang private sẽ tự set qua useSEO)
@@ -108,7 +109,7 @@ export default function App() {
   }, [location.pathname]);
 
   // Danh sách các trang không hiển thị navbar
-  const hideNavbarPages = ["/login", "/register", "/reset-password", "/", "/tour"];
+  const hideNavbarPages = ["/login", "/register", "/forgot-password", "/reset-password", "/", "/tour"];
   const shouldHideNavbar = hideNavbarPages.includes(location.pathname) && !user;
 
   // Effect chạy khi app khởi tạo để kiểm tra authentication
@@ -347,6 +348,7 @@ export default function App() {
             <Route path="/tour" element={<Tour />} />
             <Route path="/login" element={<Login setUser={setUser} />} />
             <Route path="/register" element={<Register setUser={setUser} />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
           </Routes>
         </Suspense>

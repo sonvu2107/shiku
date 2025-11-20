@@ -186,7 +186,7 @@ export default function Login({ setUser }) {
                 required
               />
               <div className="flex justify-end mt-2">
-                <Link to="/reset-password" className="text-xs text-neutral-500 hover:text-white transition-colors">
+                <Link to="/forgot-password" className="text-xs text-neutral-500 hover:text-white transition-colors">
                   Quên mật khẩu?
                 </Link>
               </div>

@@ -1,10 +1,10 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 /**
- * Utility để gửi email sử dụng Nodemailer
- * Hỗ trợ SMTP configuration từ environment variables
+ * Utility để gửi email sử dụng Resend API
+ * Sử dụng domain riêng @shiku.click đã được verify
  * @param {Object} options - Email options
- * @param {string} options.to - Địa chỉ email người nhận
+ * @param {string} options.to - Địa chỉ email người nhận (có thể là string hoặc array)
  * @param {string} options.subject - Tiêu đề email
  * @param {string} options.html - Nội dung HTML của email
  * @param {number} options.timeout - Timeout trong milliseconds (mặc định 30s)
@@ -17,24 +17,33 @@ export async function sendEmail({ to, subject, html, timeout = 30000 }) {
     }, timeout);
 
     try {
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || "smtp.gmail.com",
-        port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465,
-        secure: true,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
-        },
-        // Thêm timeout cho SMTP connection
-        connectionTimeout: 10000, // 10 seconds
-        greetingTimeout: 5000,   // 5 seconds
-        socketTimeout: 10000     // 10 seconds
-      });
+      // Kiểm tra API key
+      const apiKey = process.env.RESEND_API_KEY;
+      
+      // Debug: Log để kiểm tra (chỉ trong development)
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[sendEmail] Checking RESEND_API_KEY:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+      }
+      
+      if (!apiKey) {
+        const errorMsg = 'RESEND_API_KEY không được tìm thấy trong environment variables.\n' +
+          'Vui lòng kiểm tra:\n' +
+          '1. File .env có ở thư mục server/ không?\n' +
+          '2. Tên biến có đúng là RESEND_API_KEY không?\n' +
+          '3. Đã restart server sau khi thêm biến chưa?';
+        throw new Error(errorMsg);
+      }
 
-      // Gửi email
-      const info = await transporter.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to,
+      // Khởi tạo Resend client
+      const resend = new Resend(apiKey);
+
+      // Chuyển đổi 'to' thành array nếu là string
+      const toArray = Array.isArray(to) ? to : [to];
+
+      // Gửi email qua Resend API
+      const info = await resend.emails.send({
+        from: "Shiku Support <support@shiku.click>",
+        to: toArray,
         subject,
         html
       });
