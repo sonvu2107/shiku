@@ -93,11 +93,11 @@ export default function CommentImageUpload({ onImagesChange, maxImages = 5, clas
           onClick={handleClick}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors touch-target"
+          className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors touch-target"
         >
-          <Image size={16} />
-          <span>Thêm ảnh</span>
-          <span className="text-xs text-gray-400">
+          <Image size={18} />
+          <span className="font-medium">Thêm ảnh</span>
+          <span className="text-xs text-neutral-400">
             ({selectedImages.length}/{maxImages})
           </span>
         </button>
@@ -105,20 +105,20 @@ export default function CommentImageUpload({ onImagesChange, maxImages = 5, clas
 
       {/* Image Previews */}
       {selectedImages.length > 0 && (
-        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2 animate-in fade-in zoom-in-95 duration-200">
           {selectedImages.map((image) => (
             <div key={image.id} className="relative group">
-              <div className="w-full rounded-lg border border-gray-200 overflow-hidden bg-gray-50 aspect-[4/3]">
+              <div className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 overflow-hidden bg-neutral-50 dark:bg-neutral-900 aspect-square">
                 <img
                   src={image.preview}
                   alt="Preview"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => removeImage(image.id)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity touch-target"
+                className="absolute top-1 right-1 bg-black/50 hover:bg-black text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all touch-target backdrop-blur-sm"
               >
                 <X size={12} />
               </button>

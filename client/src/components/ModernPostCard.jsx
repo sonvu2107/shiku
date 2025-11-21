@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, memo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Plus, Minus } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Plus, Minus, Star, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getOptimizedImageUrl } from "../utils/imageOptimization";
 import LazyImage from "./LazyImageSimple";
@@ -346,126 +346,38 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             </div>
           </div>
         </div>
-        {!hideActionsMenu && (
-          <div className="relative z-[9998] flex-shrink-0" style={{ position: 'relative' }}>
-            <button 
-              ref={mainMenuButtonRef}
-              type="button"
-              className="p-2 md:p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors focus:outline-none active:scale-95 touch-manipulation"
+        {!hideActionsMenu && user && user._id && user._id !== post.author?._id && (
+          <div className="flex items-center gap-1">
+            <button
               onClick={(e) => {
-                e.preventDefault();
                 e.stopPropagation();
-                setShowMainMenu(prev => !prev);
+                handleInterested(true);
               }}
-              title="Tùy chọn"
-              aria-label="Tùy chọn"
-              aria-expanded={showMainMenu}
-              aria-haspopup="true"
-              tabIndex={0}
+              className={cn(
+                "p-2 rounded-full transition-colors",
+                interestStatus === true
+                  ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
+                  : "text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
+              )}
+              title="Quan tâm"
             >
-              <MoreHorizontal size={18} className="md:w-5 md:h-5" />
+              <Star size={18} className={cn(interestStatus === true && "fill-current")} />
             </button>
-
-            {/* Dropdown menu */}
-            {showMainMenu && (
-            <div
-              ref={mainMenuRef}
-              className="absolute right-0 top-full mt-2 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg dark:shadow-2xl z-[9999] w-[280px] overflow-visible"
-              onClick={(e) => e.stopPropagation()}
-              style={{ position: 'absolute' }}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleInterested(false);
+              }}
+              className={cn(
+                "p-2 rounded-full transition-colors",
+                interestStatus === false
+                  ? "text-red-500 bg-red-50 dark:bg-red-900/20"
+                  : "text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
+              )}
+              title="Không quan tâm"
             >
-              <div className="py-2">
-                {/* Chỉ hiển thị nút quan tâm/không quan tâm khi user đã đăng nhập và không phải tác giả */}
-                {user && user._id && user._id !== post.author?._id && (
-                  <>
-                    {/* Quan tâm */}
-                    <button
-                      type="button"
-                      className={cn(
-                        "w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors flex items-start gap-3 group whitespace-normal",
-                        interestStatus === true && "bg-blue-50 dark:bg-blue-900/20",
-                        interestLoading && "opacity-50 cursor-not-allowed"
-                      )}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (!interestLoading) {
-                          setShowMainMenu(false);
-                          handleInterested(true);
-                        }
-                      }}
-                      disabled={interestLoading}
-                    >
-                      <div className={cn(
-                        "flex-shrink-0 w-8 h-8 rounded-full border flex items-center justify-center transition-colors",
-                        interestStatus === true 
-                          ? "bg-blue-100 dark:bg-blue-800 border-blue-300 dark:border-blue-600" 
-                          : "bg-gray-100 dark:bg-neutral-700 border-gray-200 dark:border-neutral-600 group-hover:bg-gray-200 dark:group-hover:bg-neutral-600"
-                      )}>
-                        <Plus size={16} className={interestStatus === true ? "text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"} />
-                      </div>
-                      <div className="flex-1 min-w-0 overflow-visible">
-                        <div className={cn(
-                          "font-semibold text-sm mb-0.5 break-words",
-                          interestStatus === true 
-                            ? "text-blue-600 dark:text-blue-400" 
-                            : "text-gray-900 dark:text-white"
-                        )}>
-                          Quan tâm
-                          {interestStatus === true && <span className="ml-2 text-xs">✓</span>}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed break-words">
-                          Bạn sẽ nhìn thấy nhiều bài viết tương tự hơn.
-                        </div>
-                      </div>
-                    </button>
-                    
-                    {/* Không quan tâm */}
-                    <button
-                      type="button"
-                      className={cn(
-                        "w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors flex items-start gap-3 group border-t border-gray-100 dark:border-neutral-700 whitespace-normal",
-                        interestStatus === false && "bg-red-50 dark:bg-red-900/20",
-                        interestLoading && "opacity-50 cursor-not-allowed"
-                      )}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (!interestLoading) {
-                          setShowMainMenu(false);
-                          handleInterested(false);
-                        }
-                      }}
-                      disabled={interestLoading}
-                    >
-                      <div className={cn(
-                        "flex-shrink-0 w-8 h-8 rounded-full border flex items-center justify-center transition-colors",
-                        interestStatus === false 
-                          ? "bg-red-100 dark:bg-red-800 border-red-300 dark:border-red-600" 
-                          : "bg-gray-100 dark:bg-neutral-700 border-gray-200 dark:border-neutral-600 group-hover:bg-gray-200 dark:group-hover:bg-neutral-600"
-                      )}>
-                        <Minus size={16} className={interestStatus === false ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"} />
-                      </div>
-                      <div className="flex-1 min-w-0 overflow-visible">
-                        <div className={cn(
-                          "font-semibold text-sm mb-0.5 break-words",
-                          interestStatus === false 
-                            ? "text-red-600 dark:text-red-400" 
-                            : "text-gray-900 dark:text-white"
-                        )}>
-                          Không quan tâm
-                          {interestStatus === false && <span className="ml-2 text-xs">✓</span>}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed break-words">
-                          Bạn sẽ nhìn thấy ít bài viết tương tự hơn.
-                        </div>
-                      </div>
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-            )}
+              <X size={18} />
+            </button>
           </div>
         )}
       </div>

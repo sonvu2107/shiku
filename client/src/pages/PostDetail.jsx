@@ -306,7 +306,7 @@
               <div className="relative flex-shrink-0 ml-2">
                 <MenuActions
                   onToggleStatus={togglePostStatus}
-                  onEdit={() => navigate(`/edit/${p._id}`)}
+                  onEdit={() => navigate(`/edit-post/${p._id}`)}
                   onDelete={deletePost}
                   onSave={toggleSave}
                   isPrivate={p.status === "private"}

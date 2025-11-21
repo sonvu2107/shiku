@@ -195,90 +195,102 @@ export default function EditPost() {
           <label htmlFor="status" className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
             Trạng thái
           </label>
-          <div className="flex items-start gap-4">
-            <div className="flex items-center gap-2">
-              <input
-                type="radio"
-                id="published"
-                name="status"
-                value="published"
-                checked={post.status === "published"}
-                onChange={e => setPost({ ...post, status: e.target.value })}
-                className="w-4 h-4 text-black dark:text-white border-neutral-300 dark:border-neutral-700 focus:ring-2 focus:ring-black dark:focus:ring-white"
-              />
-              <label htmlFor="published" className="flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-white cursor-pointer">
-                <Globe size={16} />
-                Công khai
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="radio"
-                id="private"
-                name="status"
-                value="private"
-                checked={post.status === "private"}
-                onChange={e => setPost({ ...post, status: e.target.value })}
-                className="w-4 h-4 text-black dark:text-white border-neutral-300 dark:border-neutral-700 focus:ring-2 focus:ring-black dark:focus:ring-white"
-              />
-              <label htmlFor="private" className="flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-white cursor-pointer">
-                <Lock size={16} />
-                Riêng tư
-              </label>
-            </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setPost({ ...post, status: "published" })}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border transition-all font-semibold text-sm",
+                post.status === "published"
+                  ? "bg-black dark:bg-white text-white dark:text-black border-transparent"
+                  : "bg-transparent border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-900"
+              )}
+            >
+              <Globe size={18} />
+              Công khai
+            </button>
+            <button
+              type="button"
+              onClick={() => setPost({ ...post, status: "private" })}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border transition-all font-semibold text-sm",
+                post.status === "private"
+                  ? "bg-black dark:bg-white text-white dark:text-black border-transparent"
+                  : "bg-transparent border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-900"
+              )}
+            >
+              <Lock size={18} />
+              Riêng tư
+            </button>
           </div>
         </SpotlightCard>
 
         {/* Multi-file upload section */}
         <SpotlightCard>
           <label className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
-            <Image className="inline w-4 h-4 mr-2" />
-            <Video className="inline w-4 h-4 mr-2" />
             Ảnh/Video
           </label>
-          <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white font-semibold text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer">
-            <Image size={18} />
-            <Video size={18} />
-            <span>{uploading ? "Đang tải..." : "Thêm ảnh/video"}</span>
-            <input
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              onChange={handleFilesUpload}
-              disabled={uploading}
-              className="hidden"
-            />
-          </label>
           
-          {/* Preview all files */}
-          {post.files && post.files.length > 0 && (
-            <div className="flex gap-3 flex-wrap mt-4">
-              {post.files.map((file, idx) => (
-                <div key={idx} className="relative group">
-                  {file.type === "image" ? (
-                    <img 
-                      src={file.url} 
-                      alt="preview" 
-                      className="w-24 h-24 object-cover rounded-2xl border border-neutral-200 dark:border-neutral-800"
-                    />
-                  ) : (
-                    <video 
-                      src={file.url} 
-                      className="w-24 h-24 object-cover rounded-2xl border border-neutral-200 dark:border-neutral-800"
-                      controls
-                    />
-                  )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {/* Upload Button */}
+            <label className="aspect-square flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-all cursor-pointer group">
+              <div className="p-3 rounded-full bg-neutral-100 dark:bg-neutral-800 group-hover:scale-110 transition-transform">
+                {uploading ? (
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-black dark:border-white"></div>
+                ) : (
+                  <Image size={24} className="text-neutral-500 dark:text-neutral-400" />
+                )}
+              </div>
+              <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                {uploading ? "Đang tải..." : "Thêm ảnh"}
+              </span>
+              <input
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                onChange={handleFilesUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+            </label>
+
+            {/* Preview Files */}
+            {post.files && post.files.map((file, idx) => (
+              <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900">
+                {file.type === "image" ? (
+                  <img 
+                    src={file.url} 
+                    alt="preview" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <video 
+                    src={file.url} 
+                    className="w-full h-full object-cover"
+                    controls
+                  />
+                )}
+                
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <button
                     type="button"
                     onClick={() => setPost({ ...post, files: post.files.filter((_, i) => i !== idx) })}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-2 bg-white/20 backdrop-blur-sm hover:bg-red-500 text-white rounded-full transition-colors"
                   >
-                    <X size={14} />
+                    <X size={16} />
                   </button>
                 </div>
-              ))}
-            </div>
-          )}
+
+                {/* Cover Badge */}
+                {idx === 0 && (
+                  <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-lg text-[10px] font-bold text-white uppercase tracking-wider">
+                    Ảnh bìa
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </SpotlightCard>
 
         {/* Editor */}

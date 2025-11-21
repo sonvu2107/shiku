@@ -28,13 +28,9 @@ import {
   MessageCircle, // Icon tin nhắn/support
   Bell,         // Icon thông báo
   UserCheck,    // Icon groups
-  Home,         // Icon trang chủ
-  Compass,      // Icon khám phá
-  Calendar,     // Icon sự kiện
-  Image,        // Icon kho media
-  Moon,
-  Sun,
-  Settings      // Icon cài đặt thú cưng
+  Settings,     // Icon cài đặt
+  Moon,         // Icon chế độ tối
+  Sun           // Icon chế độ sáng
 } from "lucide-react";
 
 /**
@@ -328,61 +324,32 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
 
   // ==================== RENDER ====================
 
-  // Helper component cho navigation icons
-  const NavIcon = ({ icon: Icon, active, to, title, badge = null, variant = 'center' }) => {
-    const variantStyles = {
-      center: { padding: 'p-3', size: 24, base: 'rounded-xl' },
-      right: { padding: 'p-2.5', size: 22, base: 'rounded-full' },
-      subtle: { padding: 'p-2', size: 18, base: 'rounded-full' }
-    };
-    const v = variantStyles[variant] || variantStyles.center;
-
-    return (
-      <Link
-        to={to}
-        title={title}
-        className={`${v.padding} ${v.base} transition-all duration-200 relative ${
-          active
-            ? "bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-blue-400 shadow-md dark:shadow-[inset_0_0_4px_rgba(255,255,255,0.1)]"
-            : "text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
-        }`}
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      >
-        <Icon size={v.size} />
-        {badge && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-            {badge}
-          </span>
-        )}
-      </Link>
-    );
-  };
-
   return (
-    // Main navbar container - compact & modern
-    <div className={`fixed top-0 left-0 w-full z-50 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors`}>
-
-      <div className="flex items-center justify-between px-6 h-[64px]">
-        {/* LEFT ZONE: Logo + Search */}
-        <div className="flex items-center gap-2 flex-1 translate-y-[1px]">
-
-          <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-            <span onClick={() => { navigate('/'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-              <Logo size="small" className="translate-y-[1px]" />
-            </span>
+    // Main navbar container - Monochrome Luxury Style
+    <div className="fixed top-0 left-0 w-full z-50 bg-white/80 dark:bg-black/80 backdrop-blur-2xl border-b border-neutral-200/50 dark:border-neutral-800/50 transition-all duration-300">
+      <div className="max-w-[1920px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
+        
+        {/* LEFT ZONE: Logo & Search */}
+        <div className="flex items-center gap-4 md:gap-8 flex-shrink-0">
+          <Link 
+            to="/" 
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity group"
+            onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          >
+            <Logo size="small" className="transition-transform group-hover:scale-105" />
           </Link>
 
-          {/* Search bar - compact design */}
-          <form onSubmit={handleSearch} className="relative hidden md:flex items-center ml-3">
+          {/* Desktop Search */}
+          <form onSubmit={handleSearch} className="relative hidden lg:block group/search">
             <div className="relative">
-              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within/search:text-black dark:group-focus-within/search:text-white transition-colors" />
               <input
                 type="text"
                 placeholder="Tìm kiếm trên Shiku..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 maxLength={100}
-                className="pl-10 pr-4 py-2.5 w-72 text-sm rounded-full border-0 bg-gray-100 dark:bg-[#3A3B3C] text-gray-900 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
+                className="pl-11 pr-4 py-2.5 w-[280px] xl:w-[320px] text-[15px] rounded-full bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-white placeholder-neutral-400 border-none outline-none ring-1 ring-transparent focus:ring-black/10 dark:focus:ring-white/10 focus:bg-white dark:focus:bg-black transition-all shadow-sm"
                 autoComplete="off"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setTimeout(() => {
@@ -391,106 +358,105 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                   }
                 }, 200)}
               />
-              {/* Dropdown kết quả tìm kiếm - compact */}
+              
+              {/* Search Dropdown */}
               {(searchFocused || searchQuery.trim() || historyEditing) && (
                 (searchResults.length > 0 || searchPosts.length > 0 || searchHistory.length > 0) && (
-                  <div className="absolute left-0 top-full mt-1 w-80 sm:w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-                    {/* Lịch sử tìm kiếm / Gợi ý */}
+                  <div className="absolute left-0 top-full mt-2 w-[360px] bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-100 dark:border-neutral-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    {/* History Section */}
                     {(!searchQuery.trim() || (searchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0)) && searchHistory.length > 0 && (
-                      <React.Fragment>
-                        <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700">
-                          <span>Gần đây</span>
+                      <div className="py-2">
+                        <div className="flex items-center justify-between px-4 py-2">
+                          <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Gần đây</span>
                           <button 
                             type="button" 
                             onMouseDown={(e) => {
                               e.preventDefault();
-                              e.stopPropagation();
                               if (historyEditing) {
-                                // Khi click "Xong" - tắt dropdown và reset focus
                                 setHistoryEditing(false);
                                 setSearchFocused(false);
                                 setSearchQuery('');
                               } else {
-                                // Khi click "Chỉnh sửa" - chỉ enable editing mode
                                 setHistoryEditing(true);
                               }
                             }} 
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                            className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400"
                           >
                             {historyEditing ? 'Xong' : 'Chỉnh sửa'}
                           </button>
                         </div>
                         {searchHistory
                           .filter(h => !searchQuery.trim() || h.query.toLowerCase().includes(searchQuery.toLowerCase()))
-                          .slice(0, 10)
-                          .map((item, index) => (
-                            <div key={`${item.id}-${index}`} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer group border-b border-gray-100 dark:border-gray-600 last:border-b-0"
-                              onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}>
-                              <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 flex items-center justify-center text-xs">•</div>
+                          .slice(0, 8)
+                          .map((item) => (
+                            <div 
+                              key={item.id} 
+                              className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer group transition-colors"
+                              onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}
+                            >
+                              <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 group-hover:bg-white dark:group-hover:bg-neutral-700 group-hover:shadow-sm transition-all">
+                                <Search size={14} />
+                              </div>
                               <div className="flex-1 min-w-0">
-                                <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{item.query}</div>
-                                <div className="text-xs text-gray-500">{new Date(item.lastSearchedAt).toLocaleDateString('vi-VN')}</div>
+                                <div className="font-medium text-neutral-900 dark:text-white text-sm truncate">{item.query}</div>
                               </div>
                               {historyEditing && (
-                                <button type="button" onMouseDown={(e) => { e.stopPropagation(); deleteHistoryItem(item.id); }} className="text-gray-400 hover:text-red-600">✕</button>
+                                <button 
+                                  type="button" 
+                                  onMouseDown={(e) => { e.stopPropagation(); deleteHistoryItem(item.id); }} 
+                                  className="p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                                >
+                                  <X size={14} />
+                                </button>
                               )}
                             </div>
                           ))}
-                        {historyEditing && (
-                          <div className="px-3 py-2">
-                            <button type="button" onMouseDown={(e) => { e.stopPropagation(); clearHistory(); }} className="text-red-600 text-xs hover:underline">Xóa tất cả lịch sử</button>
-                          </div>
-                        )}
-                        <div className="h-px bg-gray-100 dark:bg-gray-700" />
-                      </React.Fragment>
+                      </div>
                     )}
-                    {/* Kết quả user */}
+
+                    {/* Users Results */}
                     {searchResults.length > 0 && (
-                      <React.Fragment>
-                        <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700">Người dùng</div>
+                      <div className="py-2 border-t border-neutral-100 dark:border-neutral-800">
+                        <div className="px-4 py-2 text-xs font-bold text-neutral-500 uppercase tracking-wider">Mọi người</div>
                         {searchResults.map(user => (
                           <div
                             key={user._id}
-                            className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
                             onClick={() => navigate(`/user/${user._id}`)}
                           >
                             <img
-                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
+                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=000000&color=ffffff`}
                               alt={user.name}
-                              className="w-7 h-7 rounded-full"
+                              className="w-9 h-9 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
                             />
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                                <UserName user={user} maxLength={20} />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-neutral-900 dark:text-white text-sm truncate">
+                                <UserName user={user} maxLength={25} />
                               </div>
+                              <div className="text-xs text-neutral-500 truncate">{user.email}</div>
                             </div>
                           </div>
                         ))}
-                      </React.Fragment>
+                      </div>
                     )}
-                    {/* Kết quả bài viết: chỉ hiện nếu không có user nào khớp */}
+
+                    {/* Posts Results */}
                     {searchResults.length === 0 && searchPosts.length > 0 && (
-                      <React.Fragment>
-                        <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700">Bài viết</div>
+                      <div className="py-2 border-t border-neutral-100 dark:border-neutral-800">
+                        <div className="px-4 py-2 text-xs font-bold text-neutral-500 uppercase tracking-wider">Bài viết</div>
                         {searchPosts.map(post => (
                           <div
                             key={post._id}
-                            className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
                             onClick={() => navigate(`/post/${post.slug || post._id}`)}
                           >
-                            {renderPostPreview(post, "w-7 h-7 rounded object-cover")}
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900 dark:text-gray-100 text-sm">{post.title}</div>
-                              <div className="text-xs text-gray-500">{post.author?.name || ''}</div>
+                            {renderPostPreview(post, "w-10 h-10 rounded-lg object-cover shadow-sm")}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-neutral-900 dark:text-white text-sm line-clamp-1">{post.title || post.content}</div>
+                              <div className="text-xs text-neutral-500">bởi {post.author?.name}</div>
                             </div>
                           </div>
                         ))}
-                      </React.Fragment>
-                    )}
-                    {searchLoading && (
-                      <div className="px-3 py-3 text-gray-500 text-sm text-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mx-auto mb-1"></div>
-                        Đang tìm kiếm...
                       </div>
                     )}
                   </div>
@@ -500,168 +466,162 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           </form>
         </div>
 
-        {/* RIGHT ZONE: Actions - Compact spacing */}
-  <div className="flex items-center justify-end flex-1 gap-2">
-          {/* Dark mode toggle - Compact design */}
+        {/* RIGHT ZONE: Actions */}
+        <div className="flex items-center justify-end gap-2 md:gap-3 flex-shrink-0">
+          
+          {/* Dark Mode Toggle */}
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="hidden md:inline-flex p-2 rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
-            aria-label={darkMode ? "Tắt dark mode" : "Bật dark mode"}
-            title={darkMode ? "Tắt dark mode" : "Bật dark mode"}
+            className="p-2.5 rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white transition-all hidden md:flex"
           >
-            {darkMode ? <Moon size={18} /> : <Sun size={18} />}
+            {darkMode ? <Moon size={20} /> : <Sun size={20} />}
           </button>
-          
-          {/* Friends Icon with badge - Desktop only */}
-          <div className="hidden md:flex items-center">
-            {user && (
-              <NavIcon
-                icon={Users}
-                active={location.pathname === "/friends"}
-                to="/friends"
-                title="Bạn bè"
-                badge={pendingRequests > 0 ? pendingRequests : null}
-                variant="right"
-              />
-            )}
-          </div>
-          
-          {/* MOBILE ACTIONS (only mobile) — order: search, darkmode, chat, bell, menu, right-aligned */}
 
-          <div className="flex md:hidden items-center gap-[7px] ml-1 [&>button]:w-9 [&>button]:h-9 [&>button]:flex [&>button]:items-center [&>button]:justify-center">
-            {/* Darkmode (mobile) */}
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
-              aria-label={darkMode ? "Tắt dark mode" : "Bật dark mode"}
-              title={darkMode ? "Tắt dark mode" : "Bật dark mode"}
-            >
-              {darkMode ? <Moon size={21} /> : <Sun size={21} />}
-            </button>
+          {user ? (
+            <>
+              {/* Desktop Actions */}
+              <div className="hidden md:flex items-center gap-1">
+                {/* Friends */}
+                <Link 
+                  to="/friends" 
+                  className={`p-2.5 rounded-full transition-all relative ${
+                    location.pathname === '/friends'
+                      ? "text-black dark:text-white bg-neutral-100 dark:bg-neutral-800"
+                      : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white"
+                  }`}
+                  title="Bạn bè"
+                >
+                  <Users size={20} />
+                  {pendingRequests > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-black" />
+                  )}
+                </Link>
 
-            {/* Search (mobile) */}
-            <button
-              onClick={() => navigate('/search')}
-              className="p-2 rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
-              title="Tìm kiếm"
-              aria-label="Tìm kiếm"
-            >
-              <Search size={18} />
-            </button>
-
-            {/* Chat */}
-            {user && (
-              <button
-                onClick={() => navigate('/chat')}
-                className="rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100 relative"
-                title="Chat"
-                aria-label="Chat"
-              >
-                <MessageCircle size={19} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-            )}
-
-            {/* Thông báo */}
-            {user && (
-              <button
-                onClick={() => navigate('/notifications')}
-                className="rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
-                title="Thông báo"
-                aria-label="Thông báo"
-              >
-                <Bell size={20} />
-              </button>
-            )}
-
-            {/* Menu */}
-            <MobileMenu user={user} setUser={setUser} />
-          </div>
-
-          {/* Desktop Navigation - Hidden on mobile */}
-          <div className="hidden md:flex items-center gap-2">
-            {user ? (
-              <React.Fragment>
-                <ChatDropdown onOpenChat={(conv) => {
-                  addChatPopup(conv);
-                }} />
+                {/* Chat */}
+                <ChatDropdown onOpenChat={addChatPopup} />
+                
+                {/* Notifications */}
                 <NotificationBell user={user} />
-                <div className="relative" onKeyDown={(e) => { if (e.key === 'Escape') setShowProfileMenu(false); }}>
+                
+                {/* Profile Menu */}
+                <div className="relative ml-2" onKeyDown={(e) => { if (e.key === 'Escape') setShowProfileMenu(false); }}>
                   <button
-                    className="flex items-center gap-2 focus:outline-none rounded-full p-2 transition-all duration-200 hover:bg-gray-200/60 dark:hover:bg-gray-700/60"
+                    className="flex items-center gap-2 rounded-full p-1 pr-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700"
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                   >
                     <img
-                      src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
+                      src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=000000&color=ffffff`}
                       alt={user.name}
-                      className="w-9 h-9 rounded-full border border-gray-300 dark:border-gray-600 shadow-sm"
+                      className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
                     />
+                    <span className="font-bold text-sm text-neutral-900 dark:text-white max-w-[100px] truncate hidden xl:block">
+                      {user.name}
+                    </span>
                   </button>
+
+                  {/* Profile Dropdown */}
                   {showProfileMenu && (
-                    <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 py-3"
-                      onMouseLeave={() => { /* optional */ }}>
-                      {/* Click outside closer */}
-                      <div className="fixed inset-0 -z-10" onClick={() => setShowProfileMenu(false)} />
-                      <div className="px-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+                    <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-100 dark:border-neutral-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="fixed inset-0 z-[-1]" onClick={() => setShowProfileMenu(false)} />
+                      
+                      <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50">
                         <div className="flex items-center gap-3">
                           <img
-                            src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
+                            src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=000000&color=ffffff`}
                             alt={user.name}
-                            className="w-12 h-12 rounded-full border border-gray-200 dark:border-gray-600"
+                            className="w-12 h-12 rounded-full border-2 border-white dark:border-neutral-700 shadow-sm"
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-gray-900 dark:text-gray-100 text-base truncate">
+                            <div className="font-bold text-neutral-900 dark:text-white text-base truncate">
                               <UserName user={user} maxLength={18} />
                             </div>
-                            <Link to={`/profile`} className="text-gray-500 dark:text-gray-400 text-sm hover:underline" onClick={() => setShowProfileMenu(false)}>Xem trang cá nhân</Link>
+                            <Link to="/profile" className="text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline" onClick={() => setShowProfileMenu(false)}>
+                              Xem trang cá nhân
+                            </Link>
                           </div>
                         </div>
                       </div>
-                      <div className="py-2">
+
+                      <div className="p-2">
                         {user.role === "admin" && (
-                          <Link to="/admin" className="flex items-center px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-red-600 dark:text-red-400 text-base" onClick={() => setShowProfileMenu(false)}>
-                            <Crown size={18} className="mr-3" />
-                            <span>Admin</span>
+                          <Link to="/admin" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors" onClick={() => setShowProfileMenu(false)}>
+                            <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                              <Crown size={16} />
+                            </div>
+                            <span className="font-medium">Admin Dashboard</span>
                           </Link>
                         )}
-                        <Link to="/settings" className="flex items-center px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-base" onClick={() => setShowProfileMenu(false)}>
-                          <User size={18} className="mr-3" />
-                          <span>Cài đặt & quyền riêng tư</span>
+                        <Link to="/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors" onClick={() => setShowProfileMenu(false)}>
+                          <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-500">
+                            <Settings size={16} />
+                          </div>
+                          <span className="font-medium">Cài đặt & Quyền riêng tư</span>
                         </Link>
-                        <Link to="/support" className="flex items-center px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-base" onClick={() => setShowProfileMenu(false)}>
-                          <MessageCircle size={18} className="mr-3" />
-                          <span>Trợ giúp & hỗ trợ</span>
+                        <Link to="/support" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors" onClick={() => setShowProfileMenu(false)}>
+                          <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-500">
+                            <MessageCircle size={16} />
+                          </div>
+                          <span className="font-medium">Trợ giúp & Hỗ trợ</span>
                         </Link>
-                        <button onClick={() => { setShowProfileMenu(false); logout(); }} className="flex items-center px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 w-full text-left text-gray-700 dark:text-gray-300 text-base">
-                          <LogOut size={18} className="mr-3" />
-                          <span>Đăng xuất</span>
+                        
+                        <div className="h-px bg-neutral-100 dark:bg-neutral-800 my-1" />
+                        
+                        <button onClick={() => { setShowProfileMenu(false); logout(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors">
+                          <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                            <LogOut size={16} />
+                          </div>
+                          <span className="font-bold">Đăng xuất</span>
                         </button>
                       </div>
                     </div>
                   )}
                 </div>
-              </React.Fragment>
-            ) : (
-              <React.Fragment>
-                <Link to="/login" className="btn-outline flex items-center gap-2 text-sm px-3 py-1.5">
-                  <LogIn size={18} />
-                  Đăng nhập
-                </Link>
-                <Link to="/register" className="btn flex items-center gap-2 text-sm px-3 py-1.5">
-                  <UserPlus size={18} />
-                  Đăng ký
-                </Link>
-              </React.Fragment>
-            )}
-          </div>
-        </div>
-        {/* Popup chat Messenger - Chỉ hiển thị trên trang Home, không hiển thị ở Navbar */}
-      </div>
+              </div>
 
+              {/* Mobile Actions */}
+              <div className="flex md:hidden items-center gap-1">
+                <button
+                  onClick={() => navigate('/search')}
+                  className="p-2 rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                >
+                  <Search size={20} />
+                </button>
+                
+                <button
+                  onClick={() => navigate('/chat')}
+                  className="p-2 rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 relative"
+                >
+                  <MessageCircle size={20} />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-black" />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => navigate('/notifications')}
+                  className="p-2 rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                >
+                  <Bell size={20} />
+                </button>
+
+                <MobileMenu user={user} setUser={setUser} />
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Link to="/login" className="hidden md:flex px-5 py-2.5 rounded-full font-bold text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 transition-colors">
+                Đăng nhập
+              </Link>
+              <Link to="/register" className="px-5 py-2.5 rounded-full font-bold text-sm bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity shadow-lg shadow-black/20 dark:shadow-white/20">
+                Đăng ký
+              </Link>
+              <div className="md:hidden">
+                 <MobileMenu user={user} setUser={setUser} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
