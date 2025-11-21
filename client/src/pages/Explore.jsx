@@ -144,19 +144,19 @@ export default function Explore({ user }) {
             </form>
 
             {/* Tab Navigation */}
-            <div className="flex gap-1 overflow-x-auto no-scrollbar p-1 border-t md:border-t-0 md:border-l border-neutral-200 dark:border-neutral-800 pt-2 md:pt-0 md:pl-2">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar p-1 border-t md:border-t-0 md:border-l border-neutral-200 dark:border-neutral-800 pt-3 md:pt-0 md:pl-2 w-full md:w-auto">
                {tabs.map((tab) => (
                   <button
                      key={tab.id}
                      onClick={() => setActiveTab(tab.id)}
                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
+                        "flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap flex-1 md:flex-none",
                         activeTab === tab.id 
                           ? "bg-black dark:bg-white text-white dark:text-black shadow-md" 
-                          : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-white/5"
+                          : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-white/5 bg-neutral-50/50 dark:bg-white/5 md:bg-transparent"
                      )}
                   >
-                     <tab.icon size={16} /> {tab.label}
+                     <tab.icon size={18} /> {tab.label}
                   </button>
                ))}
             </div>

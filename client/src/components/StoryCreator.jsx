@@ -118,150 +118,161 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 dark:bg-opacity-85 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+      <div className="bg-white dark:bg-neutral-900 rounded-[32px] max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Tạo tin</h2>
+        <div className="p-5 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl z-10">
+          <h2 className="text-xl font-bold text-neutral-900 dark:text-white">Tạo tin mới</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="p-2 text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
           >
-            <X size={20} />
+            <X size={24} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-4">
+        <div className="p-5 space-y-6 flex-1">
           {/* Media Upload/Preview */}
           {!mediaPreview ? (
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
-              <div className="flex flex-col items-center gap-4">
+            <div className="border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-3xl p-10 text-center hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors group cursor-pointer relative">
+              <input
+                type="file"
+                accept="image/*,video/*"
+                onChange={handleFileSelect}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              />
+              <div className="flex flex-col items-center gap-4 pointer-events-none">
                 <div className="flex gap-4">
-                  <ImageIcon size={32} className="text-gray-400 dark:text-gray-500" />
-                  <Video size={32} className="text-gray-400 dark:text-gray-500" />
+                  <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+                     <ImageIcon size={32} />
+                  </div>
+                  <div className="w-16 h-16 bg-purple-50 dark:bg-purple-900/20 rounded-2xl flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform delay-75">
+                     <Video size={32} />
+                  </div>
                 </div>
                 <div>
-                  <p className="text-gray-600 dark:text-gray-300 mb-2">Chọn ảnh hoặc video</p>
-                  <label className="inline-block px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 cursor-pointer transition-colors">
-                    Chọn file
-                    <input
-                      type="file"
-                      accept="image/*,video/*"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                  </label>
+                  <p className="text-lg font-bold text-neutral-900 dark:text-white mb-1">Chọn ảnh hoặc video</p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Kéo thả hoặc nhấn để tải lên</p>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Tối đa 50MB</p>
+                <div className="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-full text-xs font-bold text-neutral-500 dark:text-neutral-400">
+                   Tối đa 50MB
+                </div>
               </div>
             </div>
           ) : (
-            <div className="relative">
-              {/* Preview */}
-              <div className="relative bg-black rounded-lg overflow-hidden" style={{ maxHeight: '400px' }}>
+            <div className="space-y-4">
+              <div className="relative bg-black rounded-3xl overflow-hidden shadow-lg aspect-[9/16] max-h-[500px] mx-auto">
                 {mediaType === 'image' ? (
                   <img
                     src={mediaPreview}
                     alt="Preview"
-                    className="w-full h-auto"
+                    className="w-full h-full object-contain"
                   />
                 ) : (
                   <video
                     src={mediaPreview}
                     controls
-                    className="w-full h-auto"
+                    className="w-full h-full object-contain"
                   />
                 )}
                 
-                {/* Caption Overlay */}
+                {/* Caption Overlay Preview */}
                 {caption && (
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <p className="text-white text-lg font-medium drop-shadow-lg">
-                      {caption}
-                    </p>
+                  <div className="absolute bottom-8 left-4 right-4 pointer-events-none">
+                    <div className="bg-black/40 backdrop-blur-md p-3 rounded-xl border border-white/10">
+                      <p className="text-white text-center font-medium text-sm drop-shadow-md break-words">
+                        {caption}
+                      </p>
+                    </div>
                   </div>
                 )}
+
+                <button
+                  onClick={() => {
+                    setMediaFile(null);
+                    setMediaPreview(null);
+                    setMediaType(null);
+                    setCaption("");
+                  }}
+                  className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors backdrop-blur-sm"
+                >
+                  <X size={20} />
+                </button>
               </div>
 
-              {/* Change File Button */}
-              <button
-                onClick={() => {
-                  setMediaFile(null);
-                  setMediaPreview(null);
-                  setMediaType(null);
-                }}
-                className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-              >
-                Chọn file khác
-              </button>
+              {/* Caption Input */}
+              <div className="space-y-2">
+                 <label className="text-sm font-bold text-neutral-900 dark:text-white ml-1">Thêm chú thích</label>
+                 <div className="relative">
+                    <Type className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
+                    <input
+                      type="text"
+                      value={caption}
+                      onChange={(e) => setCaption(e.target.value)}
+                      placeholder="Nhập nội dung..."
+                      className="w-full pl-12 pr-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                      maxLength={100}
+                    />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400">
+                       {caption.length}/100
+                    </div>
+                 </div>
+              </div>
+
+              {/* Visibility Selection */}
+              <div className="space-y-2">
+                 <label className="text-sm font-bold text-neutral-900 dark:text-white ml-1">Quyền riêng tư</label>
+                 <div className="flex gap-2">
+                    <button
+                       onClick={() => setVisibility('public')}
+                       className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                          visibility === 'public' 
+                             ? 'bg-black dark:bg-white text-white dark:text-black border-transparent' 
+                             : 'bg-transparent text-neutral-500 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                       }`}
+                    >
+                       Công khai
+                    </button>
+                    <button
+                       onClick={() => setVisibility('friends')}
+                       className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                          visibility === 'friends' 
+                             ? 'bg-black dark:bg-white text-white dark:text-black border-transparent' 
+                             : 'bg-transparent text-neutral-500 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                       }`}
+                    >
+                       Bạn bè
+                    </button>
+                 </div>
+              </div>
             </div>
           )}
 
-          {/* Caption Input */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <Type size={16} />
-              Caption (không bắt buộc)
-            </label>
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="Thêm chú thích cho story..."
-              maxLength={500}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm 
-                        bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
-                        placeholder-gray-500 dark:placeholder-gray-400
-                        focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-none"
-              rows={3}
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{caption.length}/500</p>
-          </div>
-
-          {/* Visibility Settings */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-              Ai có thể xem
-            </label>
-            <select
-              value={visibility}
-              onChange={(e) => setVisibility(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm 
-                        bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
-                        focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-            >
-              <option value="friends">Bạn bè</option>
-              <option value="public">Công khai</option>
-            </select>
-          </div>
-
-          {/* Error Message */}
           {error && (
-            <div className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
-              {error}
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium flex items-center gap-2">
+               <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+               {error}
             </div>
           )}
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-4">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 
-                        text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700
-                        rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-            >
-              Hủy
-            </button>
-            <button
-              onClick={handleCreate}
-              disabled={!mediaFile || creating || uploading}
-              className="flex-1 px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg 
-                        hover:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 
-                        disabled:cursor-not-allowed transition-colors"
-            >
-              {uploading ? "Đang tải lên..." : creating ? "Đang tạo..." : "Đăng tin"}
-            </button>
-          </div>
+        {/* Footer */}
+        <div className="p-5 border-t border-neutral-100 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl sticky bottom-0 z-10">
+          <button
+            onClick={handleCreate}
+            disabled={!mediaFile || creating || uploading}
+            className="w-full py-3.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-bold text-base hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-black/10 dark:shadow-white/5 flex items-center justify-center gap-2"
+          >
+            {creating || uploading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 dark:border-black/30 border-t-white dark:border-t-black rounded-full animate-spin" />
+                <span>Đang đăng tin...</span>
+              </>
+            ) : (
+              <span>Chia sẻ lên tin</span>
+            )}
+          </button>
         </div>
       </div>
     </div>

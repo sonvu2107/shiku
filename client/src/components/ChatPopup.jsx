@@ -108,6 +108,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   const [minimized, setMinimized] = useState(false); // Trạng thái thu nhỏ popup
   const [uploading, setUploading] = useState(false); // Trạng thái upload ảnh
   const [imageViewer, setImageViewer] = useState({ isOpen: false, imageUrl: null, alt: "" }); // Image viewer state
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true); // Kiểm soát scroll
   
   // Message states
   const [messages, setMessages] = useState([]); // Danh sách tin nhắn
@@ -133,6 +134,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       try {
         const res = await api(`/api/messages/conversations/${conversation._id}/messages?limit=50`);
         setMessages(res.messages || []);
+        setShouldScrollToBottom(true); // Scroll to bottom khi load messages lần đầu
       } catch {
         setMessages([]);
       }
@@ -140,15 +142,26 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
     fetchMessages();
   }, [conversation._id, isChatbot]);
 
+  // Scroll to bottom when minimized state changes from true to false
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!minimized && shouldScrollToBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [minimized, shouldScrollToBottom]);
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (shouldScrollToBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, shouldScrollToBottom]);
 
   const handleSend = async () => {
     if (isChatbot || !input.trim()) return;
     
     const messageContent = input;
     setInput(""); // Clear input immediately for better UX
+    setShouldScrollToBottom(true); // Scroll to bottom khi gửi tin nhắn
     
     try {
       const response = await api(`/api/messages/conversations/${conversation._id}/messages`, {

@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { existsSync } from "fs";
 
 /**
  * Environment Variables Security Configuration
@@ -11,7 +12,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load environment variables
-dotenv.config({ path: path.join(__dirname, '../../.env') });
+// Thử load từ server/.env trước, nếu không có thì thử root/.env
+const envPathServer = path.join(__dirname, '../../.env'); // server/.env
+const envPathRoot = path.join(__dirname, '../../../.env'); // root/.env
+
+// Load từ server/.env (ưu tiên) hoặc root/.env
+if (existsSync(envPathServer)) {
+  dotenv.config({ path: envPathServer });
+} else if (existsSync(envPathRoot)) {
+  dotenv.config({ path: envPathRoot });
+} else {
+  // Thử load mặc định (từ thư mục hiện tại)
+  dotenv.config();
+}
 
 /**
  * Danh sách các environment variables bắt buộc
@@ -23,11 +36,6 @@ const requiredEnvVars = [
   'CLOUDINARY_CLOUD_NAME',
   'CLOUDINARY_API_KEY',
   'CLOUDINARY_API_SECRET',
-  'SMTP_HOST',
-  'SMTP_PORT',
-  'SMTP_USER',
-  'SMTP_PASS',
-  'SMTP_FROM',
   'NODE_ENV',
   'FRONTEND_URL',
   'APP_URL'
@@ -51,10 +59,6 @@ export const validateEnvVars = () => {
   // Giữ lại kiểm tra các biến còn lại
   if (process.env.MONGODB_URI && !process.env.MONGODB_URI.startsWith('mongodb')) {
     invalidVars.push('MONGODB_URI phải là một MongoDB connection string hợp lệ');
-  }
-
-  if (process.env.SMTP_PORT && isNaN(Number(process.env.SMTP_PORT))) {
-    invalidVars.push('SMTP_PORT phải là một số');
   }
 
   // Báo lỗi nếu có biến thiếu hoặc không hợp lệ

@@ -1,4 +1,3 @@
-
 /**
  * Quản lý token: lưu access token trong RAM, refresh token trong httpOnly cookie.
  * Có thể bật chế độ cũ (legacy) lưu refresh token vào localStorage qua biến môi trường.
@@ -273,4 +272,17 @@ export async function getValidAccessToken() {
   
   console.log("[tokenManager] Failed to refresh access token");
   return null;
+}
+
+/**
+ * Lấy thông tin user từ access token hiện tại
+ */
+export function getUser() {
+  if (!inMemoryAccessToken) return null;
+  try {
+    const payload = JSON.parse(atob(inMemoryAccessToken.split(".")[1]));
+    return payload;
+  } catch (error) {
+    return null;
+  }
 }

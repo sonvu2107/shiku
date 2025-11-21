@@ -229,16 +229,16 @@ export default function StoryViewer({
 
   return (
     <div 
-      className="story-viewer fixed inset-0 bg-black z-50 flex items-center justify-center"
+      className="story-viewer fixed inset-0 bg-black z-[9999] flex items-center justify-center"
       onClick={(e) => {
-        // Click outside để đóng
-        if (e.target === e.currentTarget) {
+        // Click outside để đóng (chỉ trên desktop)
+        if (e.target === e.currentTarget && window.innerWidth >= 768) {
           safeClose();
         }
       }}
     >
       {/* Custom CSS for paper slide animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes slideInFromLeft {
           0% {
             transform: translateX(-100%);
@@ -259,14 +259,18 @@ export default function StoryViewer({
         }
       `}</style>
       
-      {/* Story Container - Facebook style */}
-      <div className="relative w-full max-w-md h-full md:max-w-lg md:h-[95vh] bg-black md:rounded-2xl overflow-hidden">
-        {/* Progress Bars - Facebook style thinner */}
-        <div className="absolute top-0 left-0 right-0 flex gap-0.5 p-2 z-20">
+      {/* Story Container - Mobile Fullscreen, Desktop Card */}
+      <div className="relative w-full h-full md:w-[400px] md:h-[85vh] md:max-h-[800px] bg-black md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col">
+        
+        {/* Top Gradient Overlay for visibility */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/60 to-transparent z-10 pointer-events-none" />
+        
+        {/* Progress Bars */}
+        <div className="absolute top-0 left-0 right-0 flex gap-1 p-3 z-20 pt-safe-top">
           {stories.map((_, idx) => (
-            <div key={idx} className="flex-1 h-0.5 bg-white/40 rounded-full overflow-hidden">
+            <div key={idx} className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
               <div 
-                className="h-full bg-white transition-all duration-100"
+                className="h-full bg-white transition-all duration-100 ease-linear"
                 style={{ 
                   width: idx < currentIndex ? '100%' : idx === currentIndex ? `${progress}%` : '0%'
                 }}
@@ -275,127 +279,97 @@ export default function StoryViewer({
           ))}
         </div>
 
-        {/* Header - Facebook style */}
-        <div className="absolute top-6 left-0 right-0 flex items-center justify-between px-4 z-20">
+        {/* Header */}
+        <div className="absolute top-6 left-0 right-0 flex items-center justify-between px-4 z-20 mt-safe-top">
           {/* Author Info */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="relative">
+            <div className="relative group cursor-pointer">
               <img
                 src={author?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(author?.name || 'User')}`}
                 alt={author?.name}
-                className="w-10 h-10 rounded-full border-2 border-white"
+                className="w-10 h-10 rounded-full border border-white/20 shadow-sm"
               />
-              {/* Online indicator for active stories */}
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-black rounded-full"></div>
             </div>
-            <div className="text-white min-w-0 flex-1">
+            <div className="text-white min-w-0 flex-1 drop-shadow-md">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm truncate">{author?.name}</span>
+                <span className="font-bold text-sm truncate">{author?.name}</span>
                 {author?.isVerified && (
-                  <VerifiedBadge size={14} />
+                  <VerifiedBadge size={14} className="text-blue-400" />
                 )}
               </div>
-              <p className="text-xs text-white/80">
+              <p className="text-xs text-white/70 font-medium">
                 {(() => {
                   const now = new Date();
                   const storyTime = new Date(currentStory.createdAt);
                   const diffMinutes = Math.floor((now - storyTime) / (1000 * 60));
                   
                   if (diffMinutes < 1) return 'Vừa xong';
-                  if (diffMinutes < 60) return `${diffMinutes}p`;
-                  if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h`;
-                  return `${Math.floor(diffMinutes / 1440)}d`;
+                  if (diffMinutes < 60) return `${diffMinutes} phút`;
+                  if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)} giờ`;
+                  return `${Math.floor(diffMinutes / 1440)} ngày`;
                 })()}
               </p>
             </div>
           </div>
           
           {/* Right Controls */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* Pause/Play Button */}
             <button
-              onClick={() => setIsPaused(!isPaused)}
-              className="text-white/80 hover:text-white transition-colors p-2"
-              title={isPaused ? "Tiếp tục" : "Tạm dừng"}
+              onClick={(e) => { e.stopPropagation(); setIsPaused(!isPaused); }}
+              className="text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 backdrop-blur-md"
             >
               {isPaused ? (
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
               ) : (
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                </svg>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
               )}
             </button>
 
             {/* More options menu for owner */}
             {isOwner && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowViewers(!showViewers)}
-                  className="text-white/80 hover:text-white transition-colors p-2"
-                  title="Tùy chọn"
-                >
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-                  </svg>
-                </button>
-              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowViewers(!showViewers); }}
+                className="text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 backdrop-blur-md"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+              </button>
             )}
             
             {/* Close */}
             <button
-              onClick={safeClose}
-              className="text-white/80 hover:text-white transition-colors p-2"
-              title="Đóng"
+              onClick={(e) => { e.stopPropagation(); safeClose(); }}
+              className="text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 backdrop-blur-md"
             >
               <X size={24} />
             </button>
           </div>
         </div>
 
-        {/* Story Content */}
+        {/* Story Content Area */}
         <div 
-          className="w-full h-full flex items-center justify-center relative"
+          className="flex-1 relative flex items-center justify-center bg-black"
           onMouseDown={() => setIsPaused(true)}
           onMouseUp={() => setIsPaused(false)}
           onTouchStart={() => setIsPaused(true)}
           onTouchEnd={() => setIsPaused(false)}
         >
-          {/* Click areas for navigation - Facebook style */}
+          {/* Click areas for navigation */}
           <div className="absolute inset-0 flex z-10">
-            {/* Previous area - Left 1/3 */}
             <button
               onClick={handlePrev}
-              className="w-1/3 h-full flex items-center justify-start pl-4 opacity-0 hover:opacity-100 transition-opacity"
+              className="w-1/3 h-full outline-none focus:outline-none"
               disabled={currentIndex === 0}
-            >
-              {currentIndex > 0 && (
-                <div className="bg-black/40 backdrop-blur-sm rounded-full p-2 text-white">
-                  <ChevronLeft size={24} />
-                </div>
-              )}
-            </button>
-
-            {/* Center area - pause/play by tap */}
+            />
             <div 
-              className="w-1/3 h-full flex items-center justify-center"
+              className="w-1/3 h-full"
               onClick={() => setIsPaused(!isPaused)}
             />
-
-            {/* Next area - Right 1/3 */}
             <button
               onClick={handleNext}
-              className="w-1/3 h-full flex items-center justify-end pr-4 opacity-0 hover:opacity-100 transition-opacity"
+              className="w-1/3 h-full outline-none focus:outline-none"
               disabled={currentIndex === stories.length - 1}
-            >
-              {currentIndex < stories.length - 1 && (
-                <div className="bg-black/40 backdrop-blur-sm rounded-full p-2 text-white">
-                  <ChevronRight size={24} />
-                </div>
-              )}
-            </button>
+            />
           </div>
 
           {/* Media Content */}
@@ -403,8 +377,7 @@ export default function StoryViewer({
             <img
               src={currentStory.mediaUrl}
               alt="Story"
-              className="max-w-full max-h-full object-contain"
-              style={{ maxHeight: 'calc(100vh - 120px)' }}
+              className="w-full h-full object-contain"
             />
           ) : (
             <video
@@ -413,170 +386,183 @@ export default function StoryViewer({
               autoPlay
               playsInline
               muted
-              className="max-w-full max-h-full object-contain"
-              style={{ maxHeight: 'calc(100vh - 120px)' }}
-              onLoadedMetadata={() => {
-                setProgress(0);
-              }}
+              className="w-full h-full object-contain"
+              onLoadedMetadata={() => setProgress(0)}
             />
           )}
           
-          {/* Caption Overlay - Facebook style */}
+          {/* Caption Overlay */}
           {currentStory.caption && (
-            <div className="absolute bottom-20 left-4 right-4 z-10">
-              <p className="text-white text-center font-medium leading-relaxed drop-shadow-lg">
-                {currentStory.caption}
-              </p>
+            <div className="absolute bottom-32 left-0 right-0 z-10 px-6">
+              <div className="bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+                <p className="text-white text-center font-medium leading-relaxed text-sm md:text-base">
+                  {currentStory.caption}
+                </p>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Bottom Actions - Facebook style */}
-        <div className="absolute bottom-0 left-0 right-0 z-20">
-          {/* Reaction Button for non-owners - Compact left corner */}
+        {/* Bottom Gradient Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10 pointer-events-none" />
+
+        {/* Bottom Actions */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 p-4 pb-8 md:pb-4">
+          {/* Reaction Button for non-owners */}
           {!isOwner && (
-            <div className="absolute bottom-6 left-4">
-              <div className="relative">
-                <button
+            <div className="flex items-center gap-4">
+               <div className="relative flex-1">
+                  <input 
+                     type="text" 
+                     placeholder="Gửi tin nhắn..." 
+                     className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-5 py-3 text-white placeholder-white/50 focus:outline-none focus:border-white/40 transition-colors text-sm"
+                  />
+               </div>
+               <button
                   onClick={() => setShowReactions(!showReactions)}
-                  className="bg-black/30 backdrop-blur-sm text-white rounded-full px-4 py-3 flex items-center gap-3 hover:bg-black/50 transition-all"
-                >
-                  <Heart size={18} />
-                  <span className="text-sm font-medium">Cảm xúc</span>
-                </button>
+                  className="bg-white/10 backdrop-blur-md text-white rounded-full p-3 hover:bg-white/20 transition-all border border-white/20"
+               >
+                  <Heart size={20} className={showReactions ? "fill-red-500 text-red-500" : ""} />
+               </button>
                 
-                {/* Reactions Popup - To the right of button, matching height */}
+                {/* Reactions Popup */}
                 {showReactions && (
-                  <div className="absolute left-full ml-2 top-0 bg-black/30 backdrop-blur-sm rounded-full shadow-lg px-4 py-3 flex gap-3 h-[48px] items-center animate-slide-from-left">
+                  <div className="absolute right-0 bottom-full mb-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full p-2 flex gap-2 animate-slide-from-left shadow-2xl">
                     {Object.entries(reactionConfig).map(([type, { Icon, color }], index) => (
                       <button
                         key={type}
                         onClick={() => handleReaction(type)}
-                        className={`p-2.5 hover:scale-110 transition-all duration-200 rounded-full hover:bg-white/20 ${color}`}
-                        style={{
-                          transform: 'translateX(-100%)',
-                          opacity: 0,
-                          animationDelay: `${index * 80}ms`,
-                          animation: `slideInFromLeft 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards ${index * 80}ms`
-                        }}
+                        className={`p-2 hover:scale-125 transition-all duration-200 rounded-full hover:bg-white/20 ${color}`}
                       >
-                        <Icon size={18} />
+                        <Icon size={24} />
                       </button>
                     ))}
                   </div>
                 )}
-              </div>
             </div>
           )}
 
           {/* Owner actions */}
           {isOwner && (
-            <div className="flex justify-center gap-4 pb-6">
+            <div className="flex justify-center gap-3">
               <button
                 onClick={loadViewers}
-                className="bg-black/30 backdrop-blur-sm text-white rounded-full px-4 py-2 flex items-center gap-2 hover:bg-black/50 transition-all"
+                className="bg-white/10 backdrop-blur-md text-white rounded-xl px-4 py-3 flex items-center gap-2 hover:bg-white/20 transition-all border border-white/10 flex-1 justify-center"
                 disabled={loading}
               >
                 <Eye size={18} />
-                <span className="text-sm font-medium">
-                  {currentStory.viewCount || 0} lượt xem
+                <span className="text-sm font-bold">
+                  {currentStory.viewCount || 0}
                 </span>
               </button>
               
               <button
                 onClick={() => setShowAnalytics(true)}
-                className="bg-black/30 backdrop-blur-sm text-white rounded-full px-4 py-2 flex items-center gap-2 hover:bg-black/50 transition-all"
+                className="bg-white/10 backdrop-blur-md text-white rounded-xl px-4 py-3 flex items-center gap-2 hover:bg-white/20 transition-all border border-white/10 flex-1 justify-center"
               >
                 <BarChart3 size={18} />
-                <span className="text-sm font-medium">Thống kê</span>
+                <span className="text-sm font-bold">Thống kê</span>
               </button>
               
               <button
                 onClick={handleDelete}
-                className="bg-black/30 backdrop-blur-sm text-white rounded-full px-4 py-2 flex items-center gap-2 hover:bg-red-500/50 transition-all"
+                className="bg-red-500/20 backdrop-blur-md text-red-400 rounded-xl px-4 py-3 flex items-center gap-2 hover:bg-red-500/30 transition-all border border-red-500/20 flex-1 justify-center"
               >
                 <Trash2 size={18} />
-                <span className="text-sm font-medium">Xóa</span>
+                <span className="text-sm font-bold">Xóa</span>
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Viewers Modal */}
+      {/* Viewers Modal - Modern Style */}
       {showViewers && (
         <div 
-          className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center z-[10000] p-0 md:p-4"
           onClick={() => setShowViewers(false)}
         >
           <div 
-            className="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-md max-h-[70vh] overflow-y-auto"
+            className="bg-white dark:bg-neutral-900 rounded-t-[32px] md:rounded-3xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-gray-200">
-              <h3 className="font-semibold">Người xem ({viewersList.length})</h3>
+            <div className="p-5 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between bg-white/50 dark:bg-neutral-900/50 backdrop-blur-xl sticky top-0 z-10">
+              <h3 className="font-bold text-lg dark:text-white">Người xem ({viewersList.length})</h3>
+              <button onClick={() => setShowViewers(false)} className="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-full text-neutral-500 dark:text-neutral-400">
+                <X size={18} />
+              </button>
             </div>
-            <div className="p-4 space-y-3">
-              {viewersList.map((view, idx) => (
-                <div key={idx} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={view.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(view.user?.name || 'User')}`}
-                      alt={view.user?.name}
-                      className="w-10 h-10 rounded-full"
-                    />
-                    <div>
-                      <p className="font-medium">{view.user?.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(view.viewedAt).toLocaleString('vi-VN')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="p-2 overflow-y-auto flex-1">
+              {viewersList.length === 0 ? (
+                 <div className="py-10 text-center text-neutral-500 dark:text-neutral-400">Chưa có ai xem tin này</div>
+              ) : (
+                 viewersList.map((view, idx) => (
+                   <div key={idx} className="flex items-center justify-between p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-2xl transition-colors">
+                     <div className="flex items-center gap-3">
+                       <img
+                         src={view.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(view.user?.name || 'User')}`}
+                         alt={view.user?.name}
+                         className="w-10 h-10 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
+                       />
+                       <div>
+                         <p className="font-bold text-sm dark:text-white">{view.user?.name}</p>
+                         <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                           {new Date(view.viewedAt).toLocaleString('vi-VN')}
+                         </p>
+                       </div>
+                     </div>
+                   </div>
+                 ))
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Reactions Modal */}
+      {/* Reactions Modal - Modern Style */}
       {showReactionsList && (
         <div 
-          className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center z-[10000] p-0 md:p-4"
           onClick={() => setShowReactionsList(false)}
         >
           <div 
-            className="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-md max-h-[70vh] overflow-y-auto"
+            className="bg-white dark:bg-neutral-900 rounded-t-[32px] md:rounded-3xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-gray-200">
-              <h3 className="font-semibold">Cảm xúc ({reactionsList.length})</h3>
+            <div className="p-5 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between bg-white/50 dark:bg-neutral-900/50 backdrop-blur-xl sticky top-0 z-10">
+              <h3 className="font-bold text-lg dark:text-white">Cảm xúc ({reactionsList.length})</h3>
+              <button onClick={() => setShowReactionsList(false)} className="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-full text-neutral-500 dark:text-neutral-400">
+                <X size={18} />
+              </button>
             </div>
-            <div className="p-4 space-y-3">
-              {reactionsList.map((reaction, idx) => {
-                const { Icon, color } = reactionConfig[reaction.type] || { Icon: Heart, color: 'text-red-500' };
-                return (
-                  <div key={idx} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={reaction.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(reaction.user?.name || 'User')}`}
-                        alt={reaction.user?.name}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <div>
-                        <p className="font-medium">{reaction.user?.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(reaction.reactedAt).toLocaleString('vi-VN')}
-                        </p>
-                      </div>
-                    </div>
-                    <div className={`${color} flex items-center gap-1`}>
-                      <Icon size={20} />
-                      <span className="text-sm font-medium capitalize">{reaction.type}</span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="p-2 overflow-y-auto flex-1">
+              {reactionsList.length === 0 ? (
+                 <div className="py-10 text-center text-neutral-500 dark:text-neutral-400">Chưa có cảm xúc nào</div>
+              ) : (
+                 reactionsList.map((reaction, idx) => {
+                   const { Icon, color } = reactionConfig[reaction.type] || { Icon: Heart, color: 'text-red-500' };
+                   return (
+                     <div key={idx} className="flex items-center justify-between p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-2xl transition-colors">
+                       <div className="flex items-center gap-3">
+                         <img
+                           src={reaction.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(reaction.user?.name || 'User')}`}
+                           alt={reaction.user?.name}
+                           className="w-10 h-10 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
+                         />
+                         <div>
+                           <p className="font-bold text-sm dark:text-white">{reaction.user?.name}</p>
+                           <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                             {new Date(reaction.reactedAt).toLocaleString('vi-VN')}
+                           </p>
+                         </div>
+                       </div>
+                       <div className={`${color} flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 rounded-full`}>
+                         <Icon size={16} />
+                       </div>
+                     </div>
+                   );
+                 })
+              )}
             </div>
           </div>
         </div>

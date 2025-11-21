@@ -45,13 +45,13 @@ import {
  */
 export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
   // ==================== STATE MANAGEMENT ====================
-  const { openPopups, addChatPopup, closeChatPopup } = useChat();
+  const { openPopups, addChatPopup, closeChatPopup, unreadCount } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Search states
   const [searchQuery, setSearchQuery] = useState(""); // Query tìm kiếm
-  const [showMobileSearch, setShowMobileSearch] = useState(false); // Hiện search mobile
+  // const [showMobileSearch, setShowMobileSearch] = useState(false); // Hiện search mobile -> Removed in favor of Search page
   const [searchResults, setSearchResults] = useState([]); // Kết quả search users
   const [searchLoading, setSearchLoading] = useState(false); // Loading state
   const [searchPosts, setSearchPosts] = useState([]); // Kết quả search posts
@@ -360,7 +360,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
 
   return (
     // Main navbar container - compact & modern
-    <div className="fixed top-0 left-0 w-full z-50 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors">
+    <div className={`fixed top-0 left-0 w-full z-50 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors`}>
 
       <div className="flex items-center justify-between px-6 h-[64px]">
         {/* LEFT ZONE: Logo + Search */}
@@ -397,7 +397,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                   <div className="absolute left-0 top-full mt-1 w-80 sm:w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
                     {/* Lịch sử tìm kiếm / Gợi ý */}
                     {(!searchQuery.trim() || (searchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0)) && searchHistory.length > 0 && (
-                      <React.Fragment key="search-history">
+                      <React.Fragment>
                         <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700">
                           <span>Gần đây</span>
                           <button 
@@ -423,8 +423,8 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                         {searchHistory
                           .filter(h => !searchQuery.trim() || h.query.toLowerCase().includes(searchQuery.toLowerCase()))
                           .slice(0, 10)
-                          .map(item => (
-                            <div key={item.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer group border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                          .map((item, index) => (
+                            <div key={`${item.id}-${index}`} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer group border-b border-gray-100 dark:border-gray-600 last:border-b-0"
                               onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}>
                               <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 flex items-center justify-center text-xs">•</div>
                               <div className="flex-1 min-w-0">
@@ -446,7 +446,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                     )}
                     {/* Kết quả user */}
                     {searchResults.length > 0 && (
-                      <React.Fragment key="search-fragment">
+                      <React.Fragment>
                         <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700">Người dùng</div>
                         {searchResults.map(user => (
                           <div
@@ -470,7 +470,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                     )}
                     {/* Kết quả bài viết: chỉ hiện nếu không có user nào khớp */}
                     {searchResults.length === 0 && searchPosts.length > 0 && (
-                      <React.Fragment key="search-fragment">
+                      <React.Fragment>
                         <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700">Bài viết</div>
                         {searchPosts.map(post => (
                           <div
@@ -541,7 +541,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
 
             {/* Search (mobile) */}
             <button
-              onClick={() => setShowMobileSearch(!showMobileSearch)}
+              onClick={() => navigate('/search')}
               className="p-2 rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
               title="Tìm kiếm"
               aria-label="Tìm kiếm"
@@ -553,11 +553,16 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
             {user && (
               <button
                 onClick={() => navigate('/chat')}
-                className="rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100"
+                className="rounded-full transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-gray-100 relative"
                 title="Chat"
                 aria-label="Chat"
               >
                 <MessageCircle size={19} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
             )}
 
@@ -580,7 +585,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           {/* Desktop Navigation - Hidden on mobile */}
           <div className="hidden md:flex items-center gap-2">
             {user ? (
-              <React.Fragment key="user-desktop-nav">
+              <React.Fragment>
                 <ChatDropdown onOpenChat={(conv) => {
                   addChatPopup(conv);
                 }} />
@@ -641,7 +646,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                 </div>
               </React.Fragment>
             ) : (
-              <React.Fragment key="guest-desktop-nav">
+              <React.Fragment>
                 <Link to="/login" className="btn-outline flex items-center gap-2 text-sm px-3 py-1.5">
                   <LogIn size={18} />
                   Đăng nhập
@@ -657,151 +662,6 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         {/* Popup chat Messenger - Chỉ hiển thị trên trang Home, không hiển thị ở Navbar */}
       </div>
 
-      {/* Mobile search bar - Compact modern design */}
-      {showMobileSearch && (
-        <div className="md:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3">
-          <form onSubmit={handleSearch} className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Tìm kiếm trên Shiku"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-4 pr-4 py-2 w-full border border-gray-300 dark:border-gray-700 rounded-md focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200 text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                autoFocus
-              />
-              {/* Mobile search results dropdown - Compact */}
-              {(searchQuery.trim() || searchHistory.length > 0) && (
-                (searchResults.length > 0 || searchPosts.length > 0 || searchHistory.length > 0) && (
-                  <div className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-72 overflow-y-auto">
-                    {/* Lịch sử tìm kiếm / Gợi ý */}
-                    {(!searchQuery.trim() || (searchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0)) && searchHistory.length > 0 && (
-                      <React.Fragment key="search-fragment">
-                        <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700 font-medium">
-                          <span>Mới đây</span>
-                          <button 
-                            type="button" 
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (historyEditing) {
-                                // Khi click "Xong" - tắt dropdown và reset
-                                setHistoryEditing(false);
-                                setShowMobileSearch(false);
-                                setSearchQuery('');
-                              } else {
-                                // Khi click "Chỉnh sửa" - chỉ enable editing mode
-                                setHistoryEditing(true);
-                              }
-                            }} 
-                            className="text-blue-600 dark:text-blue-400"
-                          >
-                            {historyEditing ? 'Xong' : 'Chỉnh sửa'}
-                          </button>
-                        </div>
-                        {searchHistory
-                          .filter(h => !searchQuery.trim() || h.query.toLowerCase().includes(searchQuery.toLowerCase()))
-                          .slice(0, 8)
-                          .map(item => (
-                            <div key={item.id}
-                              className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0"
-                              onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}>
-                              <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 flex items-center justify-center text-xs">•</div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{item.query}</div>
-                                <div className="text-xs text-gray-500 truncate">{new Date(item.lastSearchedAt).toLocaleDateString('vi-VN')}</div>
-                              </div>
-                              {historyEditing && (
-                                <button type="button" onMouseDown={(e) => { e.stopPropagation(); deleteHistoryItem(item.id); }} className="text-gray-400 hover:text-red-600">✕</button>
-                              )}
-                            </div>
-                          ))}
-                        {historyEditing && (
-                          <div className="px-3 py-2">
-                            <button type="button" onMouseDown={(e) => { e.stopPropagation(); clearHistory(); }} className="text-red-600 text-xs">Xóa tất cả</button>
-                          </div>
-                        )}
-                        <div className="h-px bg-gray-100 dark:bg-gray-700" />
-                      </React.Fragment>
-                    )}
-                    {/* Kết quả user */}
-                    {searchResults.length > 0 && (
-                      <React.Fragment key="search-fragment">
-                        <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700 font-medium">Người dùng</div>
-                        {searchResults.map(user => (
-                          <div
-                            key={user._id}
-                            className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0"
-                            onClick={() => {
-                              navigate(`/user/${user._id}`);
-                              setShowMobileSearch(false);
-                              setSearchQuery("");
-                            }}
-                          >
-                            <img
-                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
-                              alt={user.name}
-                              className="w-7 h-7 rounded-full flex-shrink-0"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
-                                <UserName user={user} maxLength={15} />
-                              </div>
-                              <div className="text-xs text-gray-500 truncate">{user.email}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </React.Fragment>
-                    )}
-                    {/* Kết quả bài viết: chỉ hiện nếu không có user nào khớp */}
-                    {searchResults.length === 0 && searchPosts.length > 0 && (
-                      <React.Fragment key="search-fragment">
-                        <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-700 font-medium">Bài viết</div>
-                        {searchPosts.map(post => (
-                          <div
-                            key={post._id}
-                            className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0"
-                            onClick={() => {
-                              navigate(`/post/${post.slug || post._id}`);
-                              setShowMobileSearch(false);
-                              setSearchQuery("");
-                            }}
-                          >
-                            {renderPostPreview(post, "w-7 h-7 rounded flex-shrink-0 object-cover")}
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{post.title}</div>
-                              <div className="text-xs text-gray-500 truncate">{post.author?.name || ''}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </React.Fragment>
-                    )}
-                    {searchLoading && (
-                      <div className="px-3 py-3 text-center text-gray-500 text-sm">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mx-auto mb-1"></div>
-                        Đang tìm kiếm...
-                      </div>
-                    )}
-                    {searchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0 && !searchLoading && (
-                      <div className="px-3 py-3 text-center text-gray-500 text-sm">
-                        Không tìm thấy kết quả nào
-                      </div>
-                    )}
-                  </div>
-                )
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowMobileSearch(false)}
-              className="btn-outline p-2 text-sm"
-              title="Đóng tìm kiếm"
-            >
-              <X size={18} />
-            </button>
-          </form>
-        </div>
-      )}
     </div>
   );
 }

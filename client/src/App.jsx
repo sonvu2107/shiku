@@ -24,6 +24,7 @@ const Register = lazy(() => import("./pages/Register.jsx"));
 const PostDetail = lazy(() => import("./pages/PostDetail.jsx"));
 const NewPost = lazy(() => import("./pages/NewPost.jsx"));
 const EditPost = lazy(() => import("./pages/EditPost.jsx"));
+const Search = lazy(() => import("./pages/Search.jsx"));
 
 // User pages
 const Profile = lazy(() => import("./pages/Profile.jsx"));
@@ -57,6 +58,7 @@ const Support = lazy(() => import("./pages/Support.jsx"));
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
+const Terms = lazy(() => import("./pages/Terms.jsx"));
 
 // Import các utilities và services (giữ nguyên - cần thiết ngay)
 import { api } from "./api.js";
@@ -111,7 +113,7 @@ export default function App() {
   // Danh sách các trang không hiển thị navbar
   // reset-password và forgot-password luôn ẩn navbar (bất kể đã đăng nhập hay chưa)
   const alwaysHideNavbarPages = ["/forgot-password", "/reset-password"];
-  const conditionalHideNavbarPages = ["/login", "/register", "/", "/tour"];
+  const conditionalHideNavbarPages = ["/login", "/register", "/", "/tour", "/terms", "/support"];
   const shouldHideNavbar = alwaysHideNavbarPages.includes(location.pathname) || 
     (conditionalHideNavbarPages.includes(location.pathname) && !user);
 
@@ -236,7 +238,7 @@ export default function App() {
   useEffect(() => {
     // Chỉ chạy trong production để tránh server Render sleep
     if (process.env.NODE_ENV === 'production') {
-      console.log('[App] 🚀 Starting server keepalive service...');
+      console.log('[App] Starting server keepalive service...');
       const cleanup = startKeepAlive(12, true); // Ping mỗi 12 phút, chỉ khi tab active
       
       return cleanup;
@@ -328,7 +330,7 @@ export default function App() {
         {/* Mobile CSRF Debug Component */}
         
         {/* Hiển thị navbar cho tất cả trang trừ login/register/landing (khi chưa đăng nhập), chat và home (home có layout riêng) */}
-        {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && location.pathname !== "/home" && location.pathname !== "/feed" && (
+        {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && location.pathname !== "/home" && location.pathname !== "/feed" && location.pathname !== "/search" && (
           <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
         )}
 
@@ -353,6 +355,8 @@ export default function App() {
             <Route path="/register" element={<Register setUser={setUser} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/support" element={<Support />} />
           </Routes>
         </Suspense>
       ) : location.pathname === "/chat" ? (
@@ -383,10 +387,13 @@ export default function App() {
               {/* Các trang được bảo vệ (cần đăng nhập) */}
               <Route path="/home" element={<ProtectedRoute user={user}><Home user={user} setUser={setUser} /></ProtectedRoute>} />
               <Route path="/feed" element={<ProtectedRoute user={user}><Home user={user} setUser={setUser} /></ProtectedRoute>} />
-              <Route path="/post/:slug" element={<PostDetail />} />
-              <Route path="/new" element={<ProtectedRoute user={user}><NewPost /></ProtectedRoute>} />
-              <Route path="/edit/:id" element={<ProtectedRoute user={user}><EditPost /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute user={user}><Profile /></ProtectedRoute>} />
+              <Route path="/post/:slug" element={<PostDetail user={user} />} />
+              <Route path="/new-post" element={<ProtectedRoute user={user}><NewPost user={user} /></ProtectedRoute>} />
+              <Route path="/edit-post/:id" element={<ProtectedRoute user={user}><EditPost user={user} /></ProtectedRoute>} />
+              <Route path="/search" element={<Search user={user} />} />
+
+              {/* User Routes */}
+              <Route path="/profile" element={<ProtectedRoute user={user}><Profile user={user} setUser={setUser} /></ProtectedRoute>} />
               <Route path="/user/:userId" element={<ProtectedRoute user={user}><UserProfile /></ProtectedRoute>} />
               <Route path="/friends" element={<ProtectedRoute user={user}><Friends /></ProtectedRoute>} />
               <Route path="/groups" element={<ProtectedRoute user={user}><Groups /></ProtectedRoute>} />
@@ -412,6 +419,7 @@ export default function App() {
               {/* Auth pages - cần có ở cả 2 nhánh để đảm bảo luôn match (bất kể đã đăng nhập hay chưa) */}
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/terms" element={<Terms />} />
               
               {/* Catch-all route - redirect về trang chủ */}
               <Route path="*" element={<Navigate to="/" />} />

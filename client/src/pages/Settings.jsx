@@ -8,7 +8,7 @@ import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSy
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Shield, Lock, Bell, Ban, Mail, Key, CheckCircle2, 
-  AlertCircle, Loader2, LogOut, UserX, ChevronRight, User
+  AlertCircle, Loader2, LogOut, UserX, ChevronRight, User, FileText
 } from "lucide-react";
 import { cn } from "../utils/cn";
 
@@ -171,6 +171,18 @@ export default function Settings() {
                 {activeTab === tab.id && <ChevronRight size={16} />}
               </button>
             ))}
+
+            {/* Terms Link */}
+            <button
+              onClick={() => navigate('/terms')}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all mb-1 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-200"
+            >
+              <div className="flex items-center gap-3">
+                <FileText size={18} />
+                Điều khoản & Chính sách
+              </div>
+              <ChevronRight size={16} />
+            </button>
           </div>
 
           {/* Logout Button */}

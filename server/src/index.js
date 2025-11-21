@@ -1,5 +1,7 @@
 // Import các thư viện cần thiết
-import 'dotenv/config';
+// Import env config trước để load .env từ đúng vị trí (server/.env hoặc root/.env)
+import "./config/env.js"; // Load .env từ server/.env hoặc root/.env
+import 'dotenv/config'; // Fallback nếu env.js chưa load được
 import express from "express";
 import compression from "compression"; // Import compression
 import helmet from "helmet"; // Security middleware

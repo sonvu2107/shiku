@@ -3,6 +3,7 @@ import { MessageCircle, Bot } from "lucide-react";
 import { api } from "../api";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { chatbotAPI } from "../services/chatbotAPI";
+import { useChat } from "../contexts/ChatContext";
 
 /**
  * ChatDropdown - Dropdown hiển thị danh sách cuộc trò chuyện
@@ -13,6 +14,7 @@ import { chatbotAPI } from "../services/chatbotAPI";
  */
 export default function ChatDropdown({ onOpenChat }) {
   // ==================== STATE MANAGEMENT ====================
+  const { unreadCount, refreshUnreadCount } = useChat();
   
   // UI states
   const [open, setOpen] = useState(false); // Trạng thái mở/đóng dropdown
@@ -56,6 +58,9 @@ export default function ChatDropdown({ onOpenChat }) {
         conv => conv.conversationType !== 'chatbot'
       );
       setConversations(filteredConversations);
+      
+      // Cập nhật lại số lượng tin nhắn chưa đọc
+      refreshUnreadCount();
     } catch (err) {
       setConversations([]);
     } finally {
@@ -123,11 +128,16 @@ export default function ChatDropdown({ onOpenChat }) {
   return (
     <div className="relative" ref={wrapperRef}>
       <button
-        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-200"
+        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-200 relative"
         onClick={() => setOpen(!open)}
         title="Tin nhắn"
       >
         <MessageCircle size={22} />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50">
@@ -163,27 +173,33 @@ export default function ChatDropdown({ onOpenChat }) {
                     .map((conv) => {
                     const avatar = getAvatar(conv);
                     const name = getName(conv);
+                    const isUnread = conv.unreadCount > 0;
 
                     return (
                       <div
                         key={conv._id}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 transition-colors"
+                        className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 transition-colors relative ${isUnread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
                         onClick={() => {
                           setOpen(false);
                           onOpenChat(conv);
                         }}
                       >
-                        <img
-                          src={avatar}
-                          alt={name}
-                          className="w-10 h-10 rounded-full object-cover"
-                          onError={(e) => {
-                            e.target.src = getUserAvatarUrl({ name: name }, AVATAR_SIZES.MEDIUM);
-                          }}
-                        />
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900 dark:text-white">{name}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <div className="relative">
+                          <img
+                            src={avatar}
+                            alt={name}
+                            className="w-12 h-12 rounded-full object-cover"
+                            onError={(e) => {
+                              e.target.src = getUserAvatarUrl({ name: name }, AVATAR_SIZES.MEDIUM);
+                            }}
+                          />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-sm truncate ${isUnread ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-900 dark:text-white'}`}>
+                            {name}
+                          </div>
+                          <div className={`text-xs truncate ${isUnread ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
                             {conv.lastMessage?.messageType === "emote" ? (
                               <span className="text-lg">{conv.lastMessage.emote}</span>
                             ) : conv.lastMessage?.messageType === "image" ? (
@@ -193,12 +209,18 @@ export default function ChatDropdown({ onOpenChat }) {
                             )}
                           </div>
                         </div>
-                        <div className="text-xs text-gray-400 dark:text-gray-500">
-                          {conv.lastActivity
-                            ? new Date(conv.lastActivity).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-                            : conv.updatedAt
-                            ? new Date(conv.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-                            : ""}
+                        
+                        <div className="flex flex-col items-end gap-1">
+                          <div className={`text-[10px] ${isUnread ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                            {conv.lastActivity
+                              ? new Date(conv.lastActivity).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                              : conv.updatedAt
+                              ? new Date(conv.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                              : ""}
+                          </div>
+                          {isUnread && (
+                            <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                          )}
                         </div>
                       </div>
                     );

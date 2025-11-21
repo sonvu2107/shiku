@@ -401,11 +401,10 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
              <Logo size="small" />
-             <span className="font-bold text-neutral-900 dark:text-white">Developed by Son  with ❤️</span>
+             <span className="font-bold text-neutral-900 dark:text-white">Copyright © 2025</span>
           </div>
           <div className="flex gap-8 text-neutral-500 text-sm font-medium">
             <Link to="/support" className="hover:text-black dark:hover:text-white transition-colors">Hỗ trợ</Link>
-            <Link to="/privacy" className="hover:text-black dark:hover:text-white transition-colors">Quyền riêng tư</Link>
             <Link to="/terms" className="hover:text-black dark:hover:text-white transition-colors">Điều khoản</Link>
           </div>
         </div>

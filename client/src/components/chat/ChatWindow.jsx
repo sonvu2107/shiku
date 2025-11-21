@@ -41,16 +41,28 @@ export default function ChatWindow({
 }) {
   // ==================== REFS ====================
   const messagesEndRef = useRef(null); // Ref để scroll xuống cuối tin nhắn
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true); // Kiểm soát scroll
 
+  // Scroll to bottom when conversation changes (first load)
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (conversation) {
+      setShouldScrollToBottom(true);
+    }
+  }, [conversation?._id]);
+
+  // Scroll to bottom when messages change and shouldScrollToBottom is true
+  useEffect(() => {
+    if (shouldScrollToBottom) {
+      scrollToBottom();
+    }
+  }, [messages, shouldScrollToBottom]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleSendMessage = async (content, messageType = 'text', emote = null, image = null) => {
+    setShouldScrollToBottom(true); // Scroll to bottom khi gửi tin nhắn
     if (onSendMessage) {
       await onSendMessage(content, messageType, emote, image);
     }

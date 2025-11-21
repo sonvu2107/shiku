@@ -1,5 +1,8 @@
 // Sử dụng React.createContext thay vì destructuring để tránh lỗi bundling
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../api';
+import socketService from '../socket';
+import { getUser } from '../utils/tokenManager';
 
 // Đảm bảo React đã được load
 if (!React || typeof createContext !== 'function') {
@@ -19,6 +22,19 @@ export const useChat = () => {
 
 export const ChatProvider = ({ children }) => {
   const [openPopups, setOpenPopups] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await api('/api/messages/conversations');
+      if (response.conversations && Array.isArray(response.conversations)) {
+        const count = response.conversations.reduce((acc, conv) => acc + (conv.unreadCount || 0), 0);
+        setUnreadCount(count);
+      }
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  };
 
   const addChatPopup = (conversation) => {
     if (!conversation) return;
@@ -28,15 +44,67 @@ export const ChatProvider = ({ children }) => {
       _id: conversationId,
       conversationType: conversation.conversationType || (conversation.otherParticipants?.length > 1 ? 'group' : 'private')
     };
-    // Kiểm tra xem conversation đã mở chưa
-    const isAlreadyOpen = openPopups.some(conv => conv._id === normalizedConversation._id);
+    
+    setOpenPopups(prev => {
+      // Kiểm tra xem conversation đã mở chưa trong state mới nhất
+      const isAlreadyOpen = prev.some(conv => conv._id === normalizedConversation._id);
 
-    if (isAlreadyOpen) {
-      setOpenPopups(prev => prev.map(conv => conv._id === normalizedConversation._id ? { ...conv, ...normalizedConversation } : conv));
-    } else {
-      setOpenPopups(prev => [...prev, normalizedConversation]);
-    }
+      if (isAlreadyOpen) {
+        // Nếu đã mở, update nhưng giữ lại thông tin quan trọng nếu dữ liệu mới thiếu
+        return prev.map(conv => {
+          if (conv._id === normalizedConversation._id) {
+            const merged = { ...conv, ...normalizedConversation };
+            // Giữ lại otherParticipants nếu dữ liệu mới bị thiếu hoặc không đầy đủ (do socket message chỉ có sender)
+            if (conv.otherParticipants && (!normalizedConversation.otherParticipants || !normalizedConversation.otherParticipants[0]?.user)) {
+              merged.otherParticipants = conv.otherParticipants;
+            }
+            return merged;
+          }
+          return conv;
+        });
+      } else {
+        return [...prev, normalizedConversation];
+      }
+    });
   };
+
+  useEffect(() => {
+    fetchUnreadCount();
+
+    const handleNewMessage = (message) => {
+      const currentUser = getUser();
+      const currentUserId = currentUser?.id || currentUser?._id;
+      const senderId = message.sender?._id || message.sender;
+
+      // If message is from me, don't increment unread count
+      if (currentUserId && senderId && senderId.toString() === currentUserId.toString()) {
+        return;
+      }
+
+      setUnreadCount(prev => prev + 1);
+
+      // Open chat popup if not already open
+      let conversation = message.conversation;
+      
+      if (typeof conversation === 'string') {
+          conversation = {
+              _id: conversation,
+              isGroup: false, 
+              otherParticipants: [{ user: message.sender }], // Fix structure: wrap sender in user object
+          };
+      }
+      
+      if (conversation && conversation._id) {
+          addChatPopup(conversation);
+      }
+    };
+
+    socketService.onNewMessage(handleNewMessage);
+
+    return () => {
+      socketService.offNewMessage(handleNewMessage);
+    };
+  }, []);
 
   const removeChatPopup = (conversationId) => {
     setOpenPopups(prev => prev.filter(conv => conv._id !== conversationId));
@@ -51,7 +119,9 @@ export const ChatProvider = ({ children }) => {
     addChatPopup,
     removeChatPopup,
     closeChatPopup,
-    setOpenPopups
+    setOpenPopups,
+    unreadCount,
+    refreshUnreadCount: fetchUnreadCount
   };
 
   return (

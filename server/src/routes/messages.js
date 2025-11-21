@@ -46,13 +46,14 @@ router.get("/conversations", authRequired, async (req, res) => {
 
 
     // Optimize unread count calculation with batch query
+    // Only count messages from OTHERS (not from current user)
     const conversationIds = conversations.map(conv => conv._id);
     const unreadCounts = await Message.aggregate([
       {
         $match: {
           conversation: { $in: conversationIds },
-          'readBy.user': { $ne: req.user._id },
-          sender: { $ne: req.user._id }
+          sender: { $ne: req.user._id }, // Chỉ đếm tin nhắn từ người khác
+          'readBy.user': { $ne: req.user._id } // Chỉ đếm tin nhắn chưa đọc
         }
       },
       {

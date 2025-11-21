@@ -16,6 +16,7 @@ import Navbar from "../components/Navbar";
 import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2, Sparkles, Search, Bell, MessageCircle, Plus, X, Moon, Sun, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "../components/Toast";
+import { useChat } from "../contexts/ChatContext";
 
 /**
  * Home - Trang chủ mạng xã hội với bố cục 3 cột
@@ -92,19 +93,9 @@ export default function Home({ user, setUser }) {
   const [searchHistory, setSearchHistory] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [historyEditing, setHistoryEditing] = useState(false);
-  const [openPopups, setOpenPopups] = useState([]);
+  const { openPopups, addChatPopup, closeChatPopup } = useChat();
   const searchInputRef = useRef(null);
   const { showInfo } = useToast();
-
-  const addChatPopup = (conv) => {
-    if (!openPopups.find(p => p._id === conv._id)) {
-      setOpenPopups([...openPopups, conv]);
-    }
-  };
-
-  const closeChatPopup = (convId) => {
-    setOpenPopups(openPopups.filter(p => p._id !== convId));
-  };
 
   // Infinite scroll
   const observer = useRef();
@@ -893,19 +884,18 @@ export default function Home({ user, setUser }) {
 
             <button
               onClick={cycleSortBy}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 whitespace-nowrap touch-manipulation"
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 whitespace-nowrap touch-manipulation flex-shrink-0"
               aria-label={`Sắp xếp: ${getSortLabel(sortBy)}. Bấm để chuyển sang chế độ khác`}
               title={`Bấm để chuyển sang chế độ sắp xếp khác`}
             >
-              <span className="flex-shrink-0">{getSortIcon(sortBy)}</span>
+              <span className="hidden sm:inline-flex flex-shrink-0">{getSortIcon(sortBy)}</span>
               <span className="whitespace-nowrap">{getSortLabel(sortBy)}</span>
               {sortBy === 'recommended' && (
-                <span className="relative inline-flex items-center gap-1 text-[11px] px-2.5 py-1 bg-gradient-to-r from-black via-neutral-800 to-black dark:from-white dark:via-neutral-200 dark:to-white text-white dark:text-black rounded-full font-black flex-shrink-0 shadow-lg shadow-black/20 dark:shadow-white/20 animate-pulse">
-                  <Sparkles size={10} strokeWidth={3} className="text-white dark:text-black" />
+                <span className="relative inline-flex items-center text-[11px] px-2 sm:px-2.5 py-1 bg-gradient-to-r from-black via-neutral-800 to-black dark:from-white dark:via-neutral-200 dark:to-white text-white dark:text-black rounded-full font-black flex-shrink-0 shadow-lg shadow-black/20 dark:shadow-white/20 animate-pulse">
                   <span>AI</span>
                 </span>
               )}
-              <ArrowUpDown size={14} className="opacity-60 dark:opacity-70 flex-shrink-0 text-gray-600 dark:text-gray-300" />
+              <ArrowUpDown size={14} className="opacity-60 dark:opacity-70 flex-shrink-0 text-gray-600 dark:text-gray-300 hidden sm:inline" />
             </button>
           </div>
         </div>

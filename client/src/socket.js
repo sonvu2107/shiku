@@ -4,6 +4,8 @@ import { API_CONFIG } from "./config/environment.js";
 
 // URL của Socket.IO server - sử dụng environment config
 const SOCKET_URL = API_CONFIG.baseURL;
+// Sử dụng notification sound từ assets
+const NOTIFICATION_SOUND_URL = "/assets/new-notification-3-398649.mp3";
 
 /**
  * Service quản lý WebSocket connection và real-time communication
@@ -104,6 +106,34 @@ class SocketService {
     this.socket = null; // Socket.IO client instance
     this.currentConversation = null; // ID của conversation hiện tại
     this.currentUser = null; // User context for reconnection
+    this.messageCallbacks = []; // Danh sách callbacks cho UI
+    this.audio = null;
+    this.audioLoaded = false;
+    
+    // Khởi tạo audio
+    this.initAudio();
+  }
+
+  /**
+   * Khởi tạo audio
+   */
+  initAudio() {
+    if (typeof Audio === "undefined") return;
+    
+    this.audio = new Audio(NOTIFICATION_SOUND_URL);
+    this.audio.volume = 0.5;
+    this.audio.preload = "auto";
+    
+    this.audio.addEventListener('canplaythrough', () => {
+      this.audioLoaded = true;
+    });
+    
+    this.audio.addEventListener('error', (e) => {
+      console.warn('Failed to load notification sound:', e);
+    });
+    
+    // Load audio
+    this.audio.load();
   }
 
   /**
@@ -190,6 +220,58 @@ class SocketService {
     this.socket.on('disconnect', (reason) => {
       console.log('Socket disconnected:', reason);
     });
+
+    // Global message listener for sound and UI updates
+    this.socket.on('new-message', (message) => {
+      this.handleNewMessage(message);
+    });
+  }
+
+  /**
+   * Xử lý tin nhắn mới nhận được
+   * @param {Object} message - Tin nhắn mới
+   */
+  handleNewMessage(message) {
+    // 1. Play sound
+    this.playNotificationSound(message);
+
+    // 2. Call all UI callbacks
+    this.messageCallbacks.forEach(callback => {
+      try {
+        callback(message);
+      } catch (error) {
+        console.error('Error in message callback:', error);
+      }
+    });
+  }
+
+  /**
+   * Phát âm thanh thông báo
+   * @param {Object} message - Tin nhắn mới
+   */
+  playNotificationSound(message) {
+    // Không play sound nếu là tin nhắn của chính mình
+    if (this.currentUser && message.sender && message.sender._id === this.currentUser._id) {
+      return;
+    }
+    
+    if (this.audio && this.audioLoaded) {
+      this.audio.currentTime = 0;
+      this.audio.play().catch(e => {
+        console.warn('Could not play notification sound:', e.message);
+        // Browsers block autoplay until user interacts with page
+      });
+    } else if (this.audio && !this.audioLoaded) {
+      // Nếu audio chưa load xong, thử load lại
+      this.audio.load();
+      setTimeout(() => {
+        if (this.audioLoaded) {
+          this.audio.play().catch(e => {
+            console.warn('Could not play notification sound after reload:', e.message);
+          });
+        }
+      }, 200);
+    }
   }
 
   /**
@@ -347,13 +429,8 @@ class SocketService {
    * @param {Function} callback - Callback xử lý khi nhận message mới
    */
   onNewMessage(callback) {
-    if (this.socket) {
-      // Xóa listener cũ để tránh duplicate
-      this.socket.off('new-message');
-      
-      this.socket.on('new-message', (message) => {
-        callback(message);
-      });
+    if (typeof callback === 'function' && !this.messageCallbacks.includes(callback)) {
+      this.messageCallbacks.push(callback);
     }
   }
 
@@ -364,14 +441,17 @@ class SocketService {
     if (this.socket) {
       this.socket.removeAllListeners();
     }
+    this.messageCallbacks = [];
   }
 
   /**
    * Tắt listener cho new messages
    */
-  offNewMessage() {
-    if (this.socket) {
-      this.socket.off('new-message');
+  offNewMessage(callback) {
+    if (callback) {
+      this.messageCallbacks = this.messageCallbacks.filter(cb => cb !== callback);
+    } else {
+      this.messageCallbacks = [];
     }
   }
 
