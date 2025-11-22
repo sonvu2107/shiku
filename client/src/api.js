@@ -23,10 +23,11 @@ import {
  * @param {string} options.method - HTTP method (GET, POST, PUT, DELETE)
  * @param {Object} options.body - Request body data
  * @param {Object} options.headers - Additional headers
+ * @param {boolean} options._isRetry - Internal flag to prevent infinite retry loops
  * @returns {Promise<Object>} Response data từ API
  * @throws {Error} Lỗi với thông tin ban nếu user bị cấm
  */
-export async function api(path, { method = "GET", body, headers = {} } = {}) {
+export async function api(path, { method = "GET", body, headers = {}, _isRetry = false } = {}) {
   // Lấy valid access token (tự động refresh nếu cần)
   const token = await getValidAccessToken();
   
@@ -87,22 +88,26 @@ export async function api(path, { method = "GET", body, headers = {} } = {}) {
 
     // Xử lý lỗi response
     if (!res.ok) {
-      // Nếu là lỗi 401, thử refresh access token trước khi redirect
-      if (res.status === 401) {
-        const refreshOutcome = await refreshAccessToken();
-        if (refreshOutcome?.success && refreshOutcome.accessToken) {
-          headers.Authorization = `Bearer ${refreshOutcome.accessToken}`;
-          const retryRes = await fetch(`${API_URL}${path}`, {
-            ...requestOptions,
-            headers: { ...requestOptions.headers, ...headers },
-            mode: "cors"
-          });
-
-          if (retryRes.ok) {
-            return await retryRes.json();
-          }
+      // Nếu là lỗi 401, chỉ retry nếu chưa từng retry (tránh vòng lặp)
+      if (res.status === 401 && !_isRetry) {
+        console.log("[api] Got 401, attempting token refresh...");
+        const refreshResult = await refreshAccessToken();
+        if (refreshResult) {
+          console.log("[api] Refresh successful, retrying request...");
+          // Retry request với token mới
+          return await api(path, { method, body, headers: { ...headers, Authorization: `Bearer ${refreshResult}` }, _isRetry: true });
         }
-
+        
+        // Refresh failed, clear tokens and redirect
+        console.log("[api] Refresh failed, redirecting to login...");
+        clearTokens();
+        window.location.href = "/login";
+        return;
+      }
+      
+      // If this was a retry and still got 401, give up
+      if (res.status === 401 && _isRetry) {
+        console.log("[api] Retry failed with 401, session invalid");
         clearTokens();
         window.location.href = "/login";
         return;

@@ -26,6 +26,14 @@ export const ChatProvider = ({ children }) => {
 
   const fetchUnreadCount = async () => {
     try {
+      // Check if user is logged in before making API call
+      const currentUser = getUser();
+      if (!currentUser) {
+        console.log('[ChatContext] No user logged in, skipping unread count fetch');
+        setUnreadCount(0);
+        return;
+      }
+
       const response = await api('/api/messages/conversations');
       if (response.conversations && Array.isArray(response.conversations)) {
         const count = response.conversations.reduce((acc, conv) => acc + (conv.unreadCount || 0), 0);
@@ -33,6 +41,8 @@ export const ChatProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to fetch unread count:', error);
+      // Don't throw error, just set count to 0
+      setUnreadCount(0);
     }
   };
 
@@ -69,6 +79,13 @@ export const ChatProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    // Check if user is logged in before fetching
+    const currentUser = getUser();
+    if (!currentUser) {
+      console.log('[ChatContext] No user logged in, skipping initial fetch');
+      return;
+    }
+
     fetchUnreadCount();
 
     const handleNewMessage = (message) => {

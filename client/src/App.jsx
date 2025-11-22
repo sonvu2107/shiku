@@ -119,12 +119,15 @@ export default function App() {
 
   // Debug log
   useEffect(() => {
-    console.log("[App] Location:", location.pathname, "| User:", user ? user.name : "null", "| shouldHideNavbar:", shouldHideNavbar);
+    if (process.env.NODE_ENV === 'development') {
+      console.log("[App] Location:", location.pathname, "| User:", user ? user.name : "null", "| shouldHideNavbar:", shouldHideNavbar);
+    }
   }, [location.pathname, user, shouldHideNavbar]);
 
   // Effect chạy khi app khởi tạo để kiểm tra authentication
   useEffect(() => {
     let cancelled = false;
+    let timeoutId = null;
 
     const checkAuth = async () => {
       try {
@@ -180,18 +183,28 @@ export default function App() {
       }
     };
     
-    checkAuth();
+    // Debounce the auth check to prevent multiple calls
+    timeoutId = setTimeout(checkAuth, 100);
+    
     return () => {
       cancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
   }, []);
 
   useEffect(() => {
+    // Only run token refresh interval when user is logged in
+    if (!user) {
+      return;
+    }
+
     const interval = setInterval(() => {
       getValidAccessToken().catch(() => {});
     }, 10 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   // Apply/remove dark class on root html element
   useEffect(() => {
