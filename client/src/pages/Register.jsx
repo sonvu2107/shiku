@@ -78,11 +78,33 @@ export default function Register({ setUser }) {
   const step2Ref = useRef(null);
   const [containerHeight, setContainerHeight] = useState('auto');
 
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   useSEO({
     title: "Đăng ký - Shiku",
     description: "Tạo tài khoản mới trên Shiku",
     robots: "noindex, nofollow"
   });
+
+  // Redirect to home if already logged in
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { loadUser } = await import("../utils/userCache");
+        const cachedUser = await loadUser();
+        if (cachedUser) {
+          console.log("[Register] User already logged in, redirecting to home");
+          navigate("/", { replace: true });
+        } else {
+          setCheckingAuth(false);
+        }
+      } catch (err) {
+        // User not logged in, stay on register page
+        setCheckingAuth(false);
+      }
+    };
+    checkUser();
+  }, [navigate]);
 
   // Đo và đồng bộ chiều cao
   useEffect(() => {
@@ -221,7 +243,7 @@ export default function Register({ setUser }) {
 
       await getCSRFToken(true);
       if (setUser) setUser(data.user);
-      navigate("/");
+      navigate("/", { replace: true });
     } catch (err) {
       if (err.message.includes('csrf') || err.message.includes('CSRF')) {
         clearCSRFToken();
@@ -231,6 +253,15 @@ export default function Register({ setUser }) {
       setLoading(false);
     }
   };
+
+  // Show loading while checking auth
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-black text-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-white"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-black text-white relative overflow-hidden font-sans selection:bg-white/20">

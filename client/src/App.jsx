@@ -117,6 +117,11 @@ export default function App() {
   const shouldHideNavbar = alwaysHideNavbarPages.includes(location.pathname) || 
     (conditionalHideNavbarPages.includes(location.pathname) && !user);
 
+  // Debug log
+  useEffect(() => {
+    console.log("[App] Location:", location.pathname, "| User:", user ? user.name : "null", "| shouldHideNavbar:", shouldHideNavbar);
+  }, [location.pathname, user, shouldHideNavbar]);
+
   // Effect chạy khi app khởi tạo để kiểm tra authentication
   useEffect(() => {
     let cancelled = false;
@@ -417,6 +422,8 @@ export default function App() {
               <Route path="/support" element={<ProtectedRoute user={user}><Support /></ProtectedRoute>} />
               
               {/* Auth pages - cần có ở cả 2 nhánh để đảm bảo luôn match (bất kể đã đăng nhập hay chưa) */}
+              <Route path="/login" element={<Login setUser={setUser} />} />
+              <Route path="/register" element={<Register setUser={setUser} />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/terms" element={<Terms />} />

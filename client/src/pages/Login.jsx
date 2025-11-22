@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { motion } from "framer-motion";
@@ -59,6 +59,7 @@ export default function Login({ setUser }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const navigate = useNavigate();
 
   // SEO
@@ -67,6 +68,26 @@ export default function Login({ setUser }) {
     description: "Đăng nhập vào Shiku để khám phá những câu chuyện thú vị",
     robots: "noindex, nofollow"
   });
+
+  // Redirect to home if already logged in
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { loadUser } = await import("../utils/userCache");
+        const cachedUser = await loadUser();
+        if (cachedUser) {
+          console.log("[Login] User already logged in, redirecting to home");
+          navigate("/", { replace: true });
+        } else {
+          setCheckingAuth(false);
+        }
+      } catch (err) {
+        // User not logged in, stay on login page
+        setCheckingAuth(false);
+      }
+    };
+    checkUser();
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -112,8 +133,8 @@ export default function Login({ setUser }) {
       // Cập nhật user state toàn cục
       setUser(data.user);
       
-      // Redirect đến trang chủ
-      navigate("/");
+      // Redirect đến trang chủ (replace để không quay lại được trang login)
+      navigate("/", { replace: true });
     } catch (err) {
       // Nếu là lỗi CSRF, clear cache và thử lại
       if (err.message.includes('csrf') || err.message.includes('CSRF')) {
@@ -124,6 +145,15 @@ export default function Login({ setUser }) {
       setLoading(false);
     }
   };
+
+  // Show loading while checking auth
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-black text-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-white"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-black text-white relative overflow-hidden font-sans selection:bg-white/20">
