@@ -42,7 +42,7 @@ import supportRoutes from "./routes/support.js"; // Support/feedback routes
 import groupRoutes from "./routes/groups.js"; // Groups/communities routes
 import eventRoutes from "./routes/events.js"; // Events routes
 import mediaRoutes from "./routes/media.js"; // Media routes
-import apiMonitoringRoutes, { trackAPICall } from "./routes/apiMonitoring.js"; // API Monitoring routes
+import apiMonitoringRoutes, { trackAPICall, cleanupInvalidEnvKeys } from "./routes/apiMonitoring.js"; // API Monitoring routes
 import sitemapRoutes from "./routes/sitemap.js"; // Sitemap routes
 import searchHistoryRoutes from "./routes/searchHistory.js"; // Search history routes
 import storyRoutes from "./routes/stories.js"; // Stories routes
@@ -1070,6 +1070,9 @@ if (process.env.DISABLE_SERVER_START === "true") {
   }
 
   connectDB(process.env.MONGODB_URI).then(async () => {
+    
+    // Run API monitoring cleanup after DB connection
+    await cleanupInvalidEnvKeys();
 
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`[INFO][SERVER] Server listening on http://localhost:${PORT}`);

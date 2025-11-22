@@ -4,8 +4,8 @@ import ApiStats from "../models/ApiStats.js";
 import { getClientAgent } from "../utils/clientAgent.js";
 import mongoose from "mongoose";
 
-// TEMP: Cleanup invalid env keys - SIMPLIFIED
-(async () => {
+// Cleanup function to be called after DB connection
+export const cleanupInvalidEnvKeys = async () => {
   try {
     console.log('[INFO][API-MONITORING] Starting cleanup...');
     
@@ -47,7 +47,7 @@ import mongoose from "mongoose";
       console.error('[ERROR][API-MONITORING] Emergency delete failed:', deleteErr.message);
     }
   }
-})();
+};
 
 const router = express.Router();
 const monitoringEnabled = (process.env.DISABLE_API_MONITORING ?? "false") !== "true";
