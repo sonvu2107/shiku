@@ -29,6 +29,32 @@ const emoteConfig = {
 };
 
 /**
+ * Danh sách emoji phổ biến
+ */
+const emojiList = [
+  '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
+  '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙',
+  '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔',
+  '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥',
+  '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮',
+  '🤧', '🥵', '🥶', '😶‍🌫️', '😵', '😵‍💫', '🤯', '🤠', '🥳', '😎',
+  '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳',
+  '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖',
+  '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬',
+  '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻', '👽',
+  '👾', '🤖', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿',
+  '😾', '🙈', '🙉', '🙊', '💋', '💌', '💘', '💝', '💖', '💗',
+  '💓', '💞', '💕', '💟', '❣️', '💔', '❤️', '🧡', '💛', '💚',
+  '💙', '💜', '🖤', '🤍', '🤎', '💯', '💢', '💥', '💫', '💦',
+  '💨', '🕳️', '💣', '💬', '👁️‍🗨️', '🗨️', '🗯️', '💭', '💤', '👋',
+  '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟',
+  '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎',
+  '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏',
+  '✍️', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠',
+  '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅', '👄', '💋', '🩸'
+];
+
+/**
  * CommentSection - Component hiển thị và quản lý bình luận
  * Hỗ trợ nested comments, reply, edit, delete với tree structure
  * @param {string} postId - ID của bài viết
@@ -66,6 +92,11 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   
   // Emote system
   const [showEmotePicker, setShowEmotePicker] = useState(null); // ID comment đang hiện emote picker
+  
+  // Emoji picker system
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Hiển thị emoji picker cho comment mới
+  const [showReplyEmojiPicker, setShowReplyEmojiPicker] = useState(null); // ID comment đang hiện emoji picker cho reply
+  const [showEditEmojiPicker, setShowEditEmojiPicker] = useState(null); // ID comment đang hiện emoji picker cho edit
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -76,11 +107,20 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       if (showEmotePicker && !event.target.closest(".emote-picker")) {
         setShowEmotePicker(null);
       }
+      if (showEmojiPicker && !event.target.closest(".emoji-picker-container")) {
+        setShowEmojiPicker(false);
+      }
+      if (showReplyEmojiPicker && !event.target.closest(".emoji-picker-container")) {
+        setShowReplyEmojiPicker(null);
+      }
+      if (showEditEmojiPicker && !event.target.closest(".emoji-picker-container")) {
+        setShowEditEmojiPicker(null);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showDropdown, showEmotePicker]);
+  }, [showDropdown, showEmotePicker, showEmojiPicker, showReplyEmojiPicker, showEditEmojiPicker]);
 
   useEffect(() => {
     const organizeComments = (commentList) => {
@@ -415,6 +455,38 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   }
 
 
+  /**
+   * Render emoji picker component
+   */
+  const renderEmojiPicker = (onSelect, isOpen, onClose, position = "left") => {
+    if (!isOpen) return null;
+    
+    const positionClass = position === "right" ? "right-0" : "left-0";
+    
+    return (
+      <div className={`absolute bottom-full ${positionClass} mb-2 w-[320px] sm:w-[360px] bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
+        <div className="p-3 max-h-[280px] overflow-y-auto">
+          <div className="grid grid-cols-8 gap-1">
+            {emojiList.map((emoji, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => {
+                  onSelect(emoji);
+                  onClose();
+                }}
+                className="w-10 h-10 flex items-center justify-center text-2xl hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+                title={emoji}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderComment = (comment, level = 0) => {
     const isExpanded = expandedReplies.has(comment._id);
     const hasReplies = comment.replies && comment.replies.length > 0;
@@ -422,7 +494,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
     return (
       <div key={comment._id} className={`${level > 0 ? "ml-2 sm:ml-4 md:ml-6 lg:ml-8 pl-2 sm:pl-4 border-l-2 border-neutral-100 dark:border-neutral-800" : ""}`}>
         {/* Main Comment */}
-        <div className="flex gap-2 sm:gap-3 py-3 group/comment">
+        <div className="flex gap-2 sm:gap-3 py-1.5 group/comment">
           <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="focus:outline-none flex-shrink-0">
             <img
               src={
@@ -445,14 +517,35 @@ export default function CommentSection({ postId, initialComments = [], user }) {
               
               {editingComment === comment._id ? (
                 <div className="mt-2">
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    className="w-full p-3 bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
-                    rows="3"
-                    placeholder="Chỉnh sửa bình luận..."
-                    autoFocus
-                  />
+                  <div className="relative emoji-picker-container">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full p-3 bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                      rows="3"
+                      placeholder="Chỉnh sửa bình luận..."
+                      autoFocus
+                    />
+                    <div className="absolute right-2 bottom-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setShowEditEmojiPicker(showEditEmojiPicker === comment._id ? null : comment._id);
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors"
+                        title="Thêm emoji"
+                      >
+                        <Smile size={16} />
+                      </button>
+                      {renderEmojiPicker(
+                        (emoji) => setEditContent(prev => prev + emoji),
+                        showEditEmojiPicker === comment._id,
+                        () => setShowEditEmojiPicker(null),
+                        "right"
+                      )}
+                    </div>
+                  </div>
                   
                   {/* Current Images Display */}
                   {comment.images && comment.images.length > 0 && (
@@ -519,7 +612,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
             </div>
 
             {/* Comment Actions */}
-            <div className="flex items-center gap-3 sm:gap-4 mt-2 ml-1 sm:ml-2">
+            <div className="flex items-center gap-3 sm:gap-4 mt-1.5 ml-1 sm:ml-2">
               <span className="text-[10px] sm:text-xs text-neutral-400 font-medium flex-shrink-0 whitespace-nowrap">
                 {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
               </span>
@@ -595,7 +688,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
 
             {/* Reply Input */}
             {replyingTo === comment._id && user && (
-              <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
                 <form onSubmit={(e) => handleSubmitReply(e, comment._id, comment.author)} className="flex gap-3">
                   <img
                     src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "User")}&background=000000&color=ffffff&size=32`}
@@ -613,7 +706,24 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                         autoFocus
                         style={{ minHeight: '44px' }}
                       />
-                      <div className="absolute right-2 bottom-2 flex items-center gap-1">
+                      <div className="absolute right-2 bottom-2 flex items-center gap-1 emoji-picker-container relative">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setShowReplyEmojiPicker(showReplyEmojiPicker === comment._id ? null : comment._id);
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors"
+                          title="Thêm emoji"
+                        >
+                          <Smile size={16} />
+                        </button>
+                        {renderEmojiPicker(
+                          (emoji) => setReplyContent(prev => prev + emoji),
+                          showReplyEmojiPicker === comment._id,
+                          () => setShowReplyEmojiPicker(null),
+                          "right"
+                        )}
                         <CommentImageUpload
                           onImagesChange={setReplyImages}
                           maxImages={3}
@@ -661,7 +771,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
             {hasReplies && (
               <button
                 onClick={() => toggleReplies(comment._id)}
-                className="flex items-center gap-2 mt-2 text-xs font-bold text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300 transition-colors group/toggle"
+                className="flex items-center gap-2 mt-1.5 text-xs font-bold text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300 transition-colors group/toggle"
               >
                 <div className="w-6 h-[1px] bg-neutral-300 dark:bg-neutral-700 group-hover/toggle:bg-neutral-500 transition-colors"></div>
                 {isExpanded ? "Ẩn phản hồi" : `Xem ${comment.replies.length} phản hồi`}
@@ -670,7 +780,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
 
             {/* Nested Replies */}
             {isExpanded && hasReplies && (
-              <div className="mt-3 space-y-4">
+              <div className="mt-1.5 space-y-1.5">
                 {comment.replies.map((reply) =>
                   renderComment(reply, level + 1)
                 )}
@@ -726,7 +836,23 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                 />
                 
                 <div className="px-2 pb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 emoji-picker-container relative">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowEmojiPicker(!showEmojiPicker);
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors"
+                      title="Thêm emoji"
+                    >
+                      <Smile size={18} />
+                    </button>
+                    {renderEmojiPicker(
+                      (emoji) => setNewComment(prev => prev + emoji),
+                      showEmojiPicker,
+                      () => setShowEmojiPicker(false)
+                    )}
                     <CommentImageUpload
                       key={`comment-upload-${newCommentImages.length}`}
                       onImagesChange={setNewCommentImages}
@@ -764,7 +890,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         </div>
 
         {/* Comments List */}
-        <div className="space-y-6">
+        <div className="space-y-2">
           {comments.length > 0 ? (
             comments.map((comment) => renderComment(comment))
           ) : (

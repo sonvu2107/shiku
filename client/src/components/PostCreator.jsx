@@ -4,6 +4,7 @@ import { api } from "../api";
 import { Globe, Lock, Image, Users, BarChart3, Plus, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BanNotification from "./BanNotification";
+import MarkdownEditor from "./MarkdownEditor";
 
 /**
  * PostCreator - Component tạo bài viết mới
@@ -466,14 +467,13 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                     />
                   </div>
 
-                  {/* Content - Borderless */}
+                  {/* Content - Markdown Editor */}
                   <div>
-                    <textarea
-                      placeholder={`${userDisplayName} ơi, bạn đang nghĩ gì thế?`}
+                    <MarkdownEditor
                       value={content}
-                      onChange={(e) => setContent(e.target.value)}
+                      onChange={setContent}
+                      placeholder={`${userDisplayName} ơi, bạn đang nghĩ gì thế?`}
                       rows={8}
-                      className="w-full border-0 bg-transparent text-base text-neutral-700 dark:text-neutral-300 placeholder-neutral-400 dark:placeholder-neutral-500 resize-none focus:outline-none leading-relaxed"
                     />
                   </div>
 

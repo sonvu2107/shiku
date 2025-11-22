@@ -542,7 +542,7 @@ router.get("/feed", authOptional, async (req, res, next) => {
 
     // Projection to reduce payload
     const postProjection = {
-      title: 1, slug: 1, tags: 1, createdAt: 1, author: 1, role: 1,
+      title: 1, content: 1, slug: 1, tags: 1, createdAt: 1, author: 1, role: 1,
       status: 1, views: 1, coverUrl: 1, files: 1,
       commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1
     };

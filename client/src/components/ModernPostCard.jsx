@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, memo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Plus, Minus, Star, X } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Plus, Minus, Star, X, Smile, Image as ImageIcon, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getOptimizedImageUrl } from "../utils/imageOptimization";
 import LazyImage from "./LazyImageSimple";
@@ -10,6 +10,7 @@ import { cn } from "../utils/cn";
 import { api } from "../api";
 import UserName from "./UserName";
 import VerifiedBadge from "./VerifiedBadge";
+import ReactMarkdown from "react-markdown";
 
 // Mapping emotes với file GIF tương ứng
 const emoteMap = {
@@ -47,6 +48,13 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const heartAnimationKey = useRef(0);
   const [localUserEmote, setLocalUserEmote] = useState(null);
+  
+  // Comment input states
+  const [commentContent, setCommentContent] = useState("");
+  const [commentImages, setCommentImages] = useState([]);
+  const [showCommentEmojiPicker, setShowCommentEmojiPicker] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const commentTextareaRef = useRef(null);
 
   // Sync emotesState when post.emotes changes
   useEffect(() => {
@@ -299,10 +307,120 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           setShowEmotePopup(false);
         }
       }
+      if (showCommentEmojiPicker && !event.target.closest('.comment-emoji-picker-container')) {
+        setShowCommentEmojiPicker(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showEmotePopup]);
+  }, [showEmotePopup, showCommentEmojiPicker]);
+
+  // Emoji list for comment input
+  const emojiList = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
+    '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙',
+    '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔',
+    '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔',
+    '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵',
+    '🥶', '😵', '🤯', '🤠', '🥳', '😎', '🤓', '🧐', '😕', '😟',
+    '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨',
+    '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩',
+    '😫', '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️',
+    '💩', '🤡', '👹', '👺', '👻', '👽', '👾', '🤖', '😺', '😸',
+    '😹', '😻', '😼', '😽', '🙀', '😿', '😾', '🙈', '🙉', '🙊',
+    '💋', '💌', '💘', '💝', '💖', '💗', '💓', '💞', '💕', '💟',
+    '❣️', '💔', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+    '🤎', '💯', '💢', '💥', '💫', '💦', '💨', '🕳️', '💣', '💬',
+    '👁️‍🗨️', '🗨️', '🗯️', '💭', '💤', '👋', '🤚', '🖐️', '✋', '🖖',
+    '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉',
+    '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜',
+    '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💪', '🦾', '🦿',
+    '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🫀', '🫁', '🦷', '🦴',
+    '👀', '👁️', '👅', '👄', '💋', '🩸'
+  ];
+
+  // Render emoji picker for comment
+  const renderCommentEmojiPicker = () => {
+    if (!showCommentEmojiPicker) return null;
+    
+    return (
+      <div className="absolute bottom-full right-0 mb-2 w-[calc(100vw-2rem)] sm:w-[360px] max-w-[360px] bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 z-[9999] overflow-hidden animate-in fade-in zoom-in-95 duration-200 comment-emoji-picker-container">
+        <div className="p-3 max-h-[280px] overflow-y-auto">
+          <div className="grid grid-cols-8 gap-1">
+            {emojiList.map((emoji, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => {
+                  setCommentContent(prev => prev + emoji);
+                  setShowCommentEmojiPicker(false);
+                }}
+                className="w-10 h-10 flex items-center justify-center text-2xl hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+                title={emoji}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Handle submit comment
+  const handleSubmitComment = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if ((!commentContent.trim() && commentImages.length === 0) || !user) {
+      if (!user) {
+        navigate('/login');
+      }
+      return;
+    }
+
+    setSubmittingComment(true);
+    try {
+      let requestBody;
+      
+      if (commentImages.length > 0) {
+        // Có ảnh - sử dụng FormData
+        const formData = new FormData();
+        formData.append('content', commentContent);
+        
+        commentImages.forEach((image) => {
+          formData.append('files', image.file);
+        });
+        
+        requestBody = formData;
+      } else {
+        // Không có ảnh - sử dụng JSON
+        requestBody = { content: commentContent };
+      }
+
+      await api(`/api/comments/post/${post._id}`, {
+        method: "POST",
+        body: requestBody
+      });
+
+      // Reset form
+      setCommentContent("");
+      commentImages.forEach(img => img.preview && URL.revokeObjectURL(img.preview));
+      setCommentImages([]);
+      
+      // Update post comment count
+      if (onUpdate) {
+        onUpdate();
+      }
+      
+      // Navigate to post to see the new comment
+      navigate(`/post/${post.slug || post._id}`);
+    } catch (error) {
+      alert(error?.message || "Lỗi khi đăng bình luận");
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
 
   return (
     <div 
@@ -384,16 +502,50 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
 
       {/* 2. Title */}
       {post.title && (
-        <h3 className="mb-2 md:mb-3 text-base md:text-lg font-bold text-gray-900 dark:text-white leading-tight line-clamp-2">
+        <h3 className="mb-2 md:mb-3 text-base md:text-lg font-bold text-gray-900 dark:text-white leading-tight line-clamp-2 break-words">
           {post.title}
         </h3>
       )}
 
       {/* 3. Content */}
       {post.content && (
-        <p className="mb-3 md:mb-4 text-sm md:text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-3">
-          {post.content}
-        </p>
+        <div className="mb-3 md:mb-4">
+          <div className="prose dark:prose-invert max-w-none text-sm md:text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed prose-p:mb-2 prose-headings:mb-2 prose-headings:mt-3 prose-headings:text-base md:prose-headings:text-lg prose-p:line-clamp-3 prose-p:break-words prose-strong:font-bold prose-em:italic prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800 prose-pre:p-3 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-ul:list-disc prose-ol:list-decimal prose-li:ml-4 prose-blockquote:border-l-4 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-700 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-400">
+            <ReactMarkdown
+              components={{
+                // Limit heading sizes for preview
+                h1: ({ children }) => <h1 className="text-lg md:text-xl font-bold mb-2 mt-3">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-base md:text-lg font-bold mb-2 mt-3">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-sm md:text-base font-bold mb-2 mt-2">{children}</h3>,
+                // Limit paragraphs to 3 lines
+                p: ({ children }) => <p className="line-clamp-3 break-words mb-2">{children}</p>,
+                // Style code blocks
+                code: ({ node, inline, ...props }) => {
+                  if (inline) {
+                    return <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm" {...props} />;
+                  }
+                  return <code className="block bg-gray-100 dark:bg-gray-800 p-3 rounded-lg overflow-x-auto my-2" {...props} />;
+                },
+                // Style links
+                a: ({ children, href }) => (
+                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
+                    {children}
+                  </a>
+                ),
+                // Limit list items
+                li: ({ children }) => <li className="ml-4">{children}</li>,
+                // Style blockquotes
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-4 border-gray-300 dark:border-gray-700 pl-4 my-2 italic text-gray-600 dark:text-gray-400">
+                    {children}
+                  </blockquote>
+                ),
+              }}
+            >
+              {post.content}
+            </ReactMarkdown>
+          </div>
+        </div>
       )}
 
       {/* 4. Media (Tràn viền bo góc) */}
@@ -637,6 +789,105 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           <Bookmark size={20} className={cn("md:w-[22px] md:h-[22px]", saved ? "fill-current" : "")} strokeWidth={saved ? 0 : 2} />
         </button>
       </div>
+
+      {/* Comment Input Section */}
+      {user && (
+        <div className="mt-2 md:mt-3 pt-2 md:pt-3 px-3 md:px-0 border-t border-gray-100 dark:border-gray-800" onClick={e => e.stopPropagation()}>
+          {/* Image Previews */}
+          {commentImages.length > 0 && (
+            <div className="mb-2 ml-10 grid grid-cols-3 gap-2">
+              {commentImages.map((img, idx) => (
+                <div key={idx} className="relative group">
+                  <div className="w-full rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-50 dark:bg-gray-800 aspect-square">
+                    <img src={img.preview} className="w-full h-full object-cover" alt={`Preview ${idx + 1}`} />
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      URL.revokeObjectURL(img.preview);
+                      setCommentImages(prev => prev.filter((_, i) => i !== idx));
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmitComment} className="flex items-center gap-2">
+            <img
+              src={getOptimizedImageUrl(user?.avatarUrl, 100) || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&length=2&background=cccccc&color=222222`}
+              alt={user?.name}
+              className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0"
+            />
+            <div className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-3 md:px-4 py-1.5 md:py-2 relative">
+              <input
+                ref={commentTextareaRef}
+                type="text"
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+                placeholder="Nói lên suy nghĩ của bạn..."
+                disabled={submittingComment}
+                className="flex-1 bg-transparent border-none outline-none text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50"
+              />
+              <label className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer" title="Thêm ảnh">
+                <ImageIcon size={18} className="text-gray-500 dark:text-gray-400" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length === 0) return;
+                    
+                    const newImages = files.slice(0, 3 - commentImages.length).map(file => ({
+                      file,
+                      preview: URL.createObjectURL(file),
+                      id: Math.random().toString(36).substr(2, 9)
+                    }));
+                    
+                    setCommentImages(prev => [...prev, ...newImages]);
+                    if (e.target) e.target.value = "";
+                  }}
+                  className="hidden"
+                />
+              </label>
+              <div className="comment-emoji-picker-container relative">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowCommentEmojiPicker(!showCommentEmojiPicker);
+                  }}
+                  className={cn(
+                    "p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors",
+                    showCommentEmojiPicker && "text-blue-500"
+                  )}
+                  title="Thêm emoji"
+                >
+                  <Smile size={18} className={cn("text-gray-500 dark:text-gray-400", showCommentEmojiPicker && "text-blue-500")} />
+                </button>
+                {renderCommentEmojiPicker()}
+              </div>
+              <button
+                type="submit"
+                disabled={(!commentContent.trim() && commentImages.length === 0) || submittingComment}
+                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Gửi"
+              >
+                {submittingComment ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-blue-500"></div>
+                ) : (
+                  <Send size={18} className="text-blue-500" />
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,63 +1,20 @@
-import { useState } from "react";
-import { uploadImage } from "../api";
+import MarkdownEditor from "./MarkdownEditor";
 
 /**
- * Editor - Component editor đơn giản cho Markdown content
- * Hỗ trợ upload ảnh và chèn vào nội dung
+ * Editor - Component editor Markdown mạnh mẽ
+ * Wrapper cho MarkdownEditor với các tính năng đầy đủ
  * @param {string} value - Nội dung hiện tại của editor
  * @param {Function} onChange - Callback khi nội dung thay đổi
+ * @param {string} placeholder - Placeholder text
+ * @param {number} rows - Số dòng mặc định
  */
-export default function Editor({ value, onChange }) {
-  // ==================== STATE MANAGEMENT ====================
-  
-  const [uploading, setUploading] = useState(false); // Loading state khi upload ảnh
-
-  // ==================== EVENT HANDLERS ====================
-  
-  /**
-   * Xử lý upload ảnh và chèn vào nội dung
-   * @param {Event} e - File input change event
-   */
-  async function handleUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setUploading(true);
-    try {
-      // Upload ảnh qua API
-      const { url } = await uploadImage(file);
-      
-      // Chèn ảnh vào nội dung dưới dạng Markdown
-      onChange((value || "") + `\n\n![](${url})\n`);
-    } catch (e) {
-      alert("Upload thất bại: " + e.message);
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  // ==================== RENDER ====================
-  
+export default function Editor({ value, onChange, placeholder, rows }) {
   return (
-    <div className="space-y-2">
-      {/* Textarea editor cho Markdown content */}
-      <textarea 
-        rows="12" 
-        value={value} 
-        onChange={e => onChange(e.target.value)} 
-        placeholder="Nội dung (Markdown)..." 
-        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
-      />
-      
-      {/* File input cho upload ảnh (ẩn) */}
-      <input
-        type="file"
-        accept="image/*"
-        onChange={handleUpload}
-        disabled={uploading}
-        className="hidden"
-        id="image-upload"
-      />
-    </div>
+    <MarkdownEditor 
+      value={value} 
+      onChange={onChange} 
+      placeholder={placeholder || "Nội dung (Markdown)..."}
+      rows={rows || 12}
+    />
   );
 }

@@ -469,18 +469,17 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         {/* RIGHT ZONE: Actions */}
         <div className="flex items-center justify-end gap-2 md:gap-3 flex-shrink-0">
           
-          {/* Dark Mode Toggle */}
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="p-2.5 rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white transition-all hidden md:flex"
-          >
-            {darkMode ? <Moon size={20} /> : <Sun size={20} />}
-          </button>
-
           {user ? (
             <>
               {/* Desktop Actions */}
               <div className="hidden md:flex items-center gap-1">
+                {/* Dark Mode Toggle */}
+                <button
+                  onClick={() => setDarkMode(!darkMode)}
+                  className="p-2.5 rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white transition-all"
+                >
+                  {darkMode ? <Moon size={20} /> : <Sun size={20} />}
+                </button>
                 {/* Friends */}
                 <Link 
                   to="/friends" 
@@ -609,6 +608,13 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
             </>
           ) : (
             <div className="flex items-center gap-3">
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2.5 rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white transition-all hidden md:flex"
+              >
+                {darkMode ? <Moon size={20} /> : <Sun size={20} />}
+              </button>
               <Link to="/login" className="hidden md:flex px-5 py-2.5 rounded-full font-bold text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 transition-colors">
                 Đăng nhập
               </Link>
