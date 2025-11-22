@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from "../api";
 import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp, Smile, Frown, Laugh, Angry, Image, X } from "lucide-react";
 import MediaViewer from "./MediaViewer";
@@ -7,6 +7,8 @@ import UserName from "./UserName";
 import { Link } from "react-router-dom";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
 import CommentImageUpload from "./CommentImageUpload";
+import MentionText from "./MentionText";
+import MentionAutocomplete from "./MentionAutocomplete";
 
 /**
  * Mapping các role với icon tương ứng (hiện tại chưa sử dụng)
@@ -69,6 +71,9 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   const [newComment, setNewComment] = useState(""); // Nội dung comment mới
   const [newCommentImages, setNewCommentImages] = useState([]); // Ảnh comment mới
   const [showCommentForm, setShowCommentForm] = useState(true); // Hiển thị form nhập bình luận
+  const [newCommentCursorPosition, setNewCommentCursorPosition] = useState(0); // Vị trí cursor trong newComment
+  const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false); // Hiển thị mention autocomplete
+  const newCommentTextareaRef = useRef(null); // Ref cho textarea newComment
   
   // Reply system
   const [replyingTo, setReplyingTo] = useState(null); // ID comment đang reply
@@ -153,10 +158,75 @@ export default function CommentSection({ postId, initialComments = [], user }) {
     fetchComments();
   }, [postId]);
 
+  // Handle mention autocomplete
+  const handleMentionSelect = (user, startPosition, endPosition) => {
+    if (!newCommentTextareaRef.current) return;
+    
+    const before = newComment.substring(0, startPosition);
+    const after = newComment.substring(endPosition);
+    const mention = `@${user.name} `;
+    
+    const newContent = before + mention + after;
+    setNewComment(newContent);
+    
+    // Set cursor position after mention
+    setTimeout(() => {
+      if (newCommentTextareaRef.current) {
+        const newCursorPos = startPosition + mention.length;
+        newCommentTextareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        newCommentTextareaRef.current.focus();
+        setNewCommentCursorPosition(newCursorPos);
+      }
+    }, 0);
+    
+    setShowMentionAutocomplete(false);
+  };
+
+  // Handle textarea change and cursor position
+  const handleNewCommentChange = (e) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    
+    setNewComment(value);
+    setNewCommentCursorPosition(cursorPos);
+    
+    // Check if we should show autocomplete (user typed @)
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+      // Show autocomplete if @ is followed by valid characters or empty
+      if (textAfterAt.length === 0 || /^[\p{L}\p{N}_\s]*$/u.test(textAfterAt)) {
+        const spaceAfter = textAfterAt.includes(' ');
+        if (!spaceAfter || textAfterAt.match(/^[\p{L}\p{N}_]+\s+[\p{L}\p{N}_]*$/u)) {
+          setShowMentionAutocomplete(true);
+          return;
+        }
+      }
+    }
+    
+    setShowMentionAutocomplete(false);
+  };
+
+  // Handle textarea key events
+  const handleNewCommentKeyDown = (e) => {
+    if (showMentionAutocomplete && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === "Tab" || e.key === "Escape")) {
+      // Let MentionAutocomplete handle these keys
+      return;
+    }
+    
+    // Close autocomplete on Escape or when typing space after non-mention text
+    if (e.key === "Escape") {
+      setShowMentionAutocomplete(false);
+    }
+  };
+
   const handleSubmitComment = async (e) => {
     e.preventDefault();
     if ((!newComment.trim() && newCommentImages.length === 0) || !user) return;
 
+    setShowMentionAutocomplete(false); // Close autocomplete when submitting
     setLoading(true);
     try {
       let requestBody;
@@ -188,6 +258,8 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         ...prev
       ]);
       setNewComment("");
+      setNewCommentCursorPosition(0);
+      setShowMentionAutocomplete(false);
       // Reset ảnh và file input
       newCommentImages.forEach(img => img.preview && URL.revokeObjectURL(img.preview));
       setNewCommentImages([]);
@@ -591,7 +663,10 @@ export default function CommentSection({ postId, initialComments = [], user }) {
                 </div>
               ) : (
                 <div className="text-neutral-800 dark:text-neutral-200 text-sm leading-relaxed whitespace-pre-wrap break-words">
-                  {comment.content}
+                  <MentionText 
+                    text={comment.content} 
+                    mentionedUsers={comment.mentions || []}
+                  />
                   
                   {/* Display Images */}
                   {comment.images && comment.images.length > 0 && (
@@ -827,13 +902,29 @@ export default function CommentSection({ postId, initialComments = [], user }) {
             <form onSubmit={handleSubmitComment} className="relative group/input">
               <div className="relative bg-neutral-100 dark:bg-neutral-900 rounded-2xl transition-all focus-within:ring-2 focus-within:ring-black/5 dark:focus-within:ring-white/10 focus-within:bg-white dark:focus-within:bg-black border border-transparent focus-within:border-neutral-200 dark:focus-within:border-neutral-800">
                 <textarea
+                  ref={newCommentTextareaRef}
                   value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
+                  onChange={handleNewCommentChange}
+                  onKeyDown={handleNewCommentKeyDown}
+                  onSelect={(e) => setNewCommentCursorPosition(e.target.selectionStart)}
+                  onClick={(e) => setNewCommentCursorPosition(e.target.selectionStart)}
                   placeholder="Viết bình luận của bạn..."
                   className="w-full px-4 py-3 bg-transparent border-none text-sm sm:text-base text-neutral-900 dark:text-white placeholder-neutral-500 focus:ring-0 resize-none rounded-2xl"
                   rows={Math.max(2, newComment.split('\n').length)}
                   style={{ minHeight: '60px', maxHeight: '200px' }}
                 />
+                
+                {/* Mention Autocomplete */}
+                {showMentionAutocomplete && (
+                  <div className="absolute bottom-full left-0 mb-2" style={{ zIndex: 100 }}>
+                    <MentionAutocomplete
+                      value={newComment}
+                      cursorPosition={newCommentCursorPosition}
+                      onSelect={handleMentionSelect}
+                      onClose={() => setShowMentionAutocomplete(false)}
+                    />
+                  </div>
+                )}
                 
                 <div className="px-2 pb-2 flex items-center justify-between">
                   <div className="flex items-center gap-1 emoji-picker-container relative">

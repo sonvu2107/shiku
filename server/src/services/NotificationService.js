@@ -95,6 +95,59 @@ class NotificationService {
     });
   }
 
+  // Create mention notification for posts
+  static async createPostMentionNotification(post, mentionedUserIds, mentioner) {
+    // Don't notify if mentioning yourself
+    const userIdsToNotify = mentionedUserIds.filter(
+      userId => userId.toString() !== mentioner._id.toString()
+    );
+
+    if (userIdsToNotify.length === 0) return;
+
+    // Create notifications for all mentioned users
+    const notifications = userIdsToNotify.map(userId => ({
+      recipient: userId,
+      sender: mentioner._id,
+      type: "mention",
+      title: "Bạn được đề cập",
+      message: `${mentioner.name} đã đề cập đến bạn trong bài viết "${post.title}"`,
+      data: {
+        post: post._id,
+        url: `/post/${post.slug}`,
+        metadata: { mentionType: "post" }
+      }
+    }));
+
+    await Notification.insertMany(notifications);
+  }
+
+  // Create mention notification for comments
+  static async createCommentMentionNotification(comment, post, mentionedUserIds, mentioner) {
+    // Don't notify if mentioning yourself
+    const userIdsToNotify = mentionedUserIds.filter(
+      userId => userId.toString() !== mentioner._id.toString()
+    );
+
+    if (userIdsToNotify.length === 0) return;
+
+    // Create notifications for all mentioned users
+    const notifications = userIdsToNotify.map(userId => ({
+      recipient: userId,
+      sender: mentioner._id,
+      type: "mention",
+      title: "Bạn được đề cập",
+      message: `${mentioner.name} đã đề cập đến bạn trong một bình luận`,
+      data: {
+        post: post._id,
+        comment: comment._id,
+        url: `/post/${post.slug}#comment-${comment._id}`,
+        metadata: { mentionType: "comment" }
+      }
+    }));
+
+    await Notification.insertMany(notifications);
+  }
+
   // Create ban notification
   static async createBanNotification(bannedUser, adminUser, reason, expiresAt) {
     const isPermament = !expiresAt;

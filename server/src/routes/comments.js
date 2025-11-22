@@ -102,6 +102,7 @@ router.get("/post/:postId", authOptional, async (req, res, next) => {
       .populate("parent", "content author createdAt") // Only get essential fields
       .populate("likes", "name avatarUrl") // Optimized
       .populate("emotes.user", "name avatarUrl")
+      .populate("mentions", "name nickname avatarUrl email _id") // Populate mentioned users
       .sort({ createdAt: -1 })
       .lean();
 
@@ -254,11 +255,16 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
       }
     }
 
+    // Extract mentions from content
+    const { extractMentionedUsers } = await import("../utils/mentions.js");
+    const mentionedUserIds = content ? await extractMentionedUsers(content) : [];
+
     const commentData = {
       post: post._id,
       author: req.user._id,
       content: content || "",
-      parent: parentId || null
+      parent: parentId || null,
+      mentions: mentionedUserIds
     };
     
     // Chỉ thêm images nếu có
@@ -282,6 +288,17 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
         await NotificationService.createReplyNotification(c, parent, post, req.user);
       } else {
         await NotificationService.createCommentNotification(c, post, req.user);
+      }
+
+      // Create mention notifications
+      if (mentionedUserIds.length > 0) {
+        const NotificationService = (await import("../services/NotificationService.js")).default;
+        await NotificationService.createCommentMentionNotification(
+          c,
+          post,
+          mentionedUserIds,
+          req.user
+        );
       }
     } catch (notifError) {
       console.error("[ERROR][COMMENTS] Error creating notification:", notifError);

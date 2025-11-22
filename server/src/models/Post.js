@@ -34,6 +34,7 @@ const PostSchema = new mongoose.Schema({
   tags: [{ type: String, index: true }], // Tags để phân loại (có index để search nhanh)
   status: { type: String, enum: ["private", "published"], default: "published" }, // Trạng thái bài viết
   group: { type: mongoose.Schema.Types.ObjectId, ref: "Group", default: null }, // Nhóm (nếu bài viết thuộc nhóm)
+  mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", index: true }], // Users được mention trong bài viết
   
   // ==================== INTERACTIONS ====================
   emotes: [EmoteSchema], // Danh sách emotes/reactions

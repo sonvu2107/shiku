@@ -839,6 +839,7 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
     )
       .populate({ path: "author", select: "name nickname avatarUrl role blockedUsers", populate: { path: "role", select: "name displayName iconUrl" } })
       .populate({ path: "emotes.user", select: "name nickname avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
+      .populate({ path: "mentions", select: "name nickname avatarUrl email _id" })
       .populate({ path: "group", select: "name settings members" });
 
     // If not found, check private
@@ -850,6 +851,7 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
       )
         .populate({ path: "author", select: "name nickname avatarUrl role blockedUsers", populate: { path: "role", select: "name displayName iconUrl" } })
         .populate({ path: "emotes.user", select: "name nickname avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
+        .populate({ path: "mentions", select: "name nickname avatarUrl email _id" })
         .populate({ path: "group", select: "name settings members" });
 
       if (post) {
@@ -944,6 +946,11 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
       return res.status(400).json({ error: "Vui lòng nhập nội dung hoặc tạo poll" });
     }
 
+    // Extract mentions from title and content
+    const { extractMentionedUsers } = await import("../utils/mentions.js");
+    const mentionedText = `${sanitized.title || ""} ${sanitized.content || ""}`;
+    const mentionedUserIds = await extractMentionedUsers(mentionedText);
+
     const post = await Post.create({
       author: req.user._id,
       title: sanitized.title, 
@@ -952,8 +959,27 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
       coverUrl: sanitized.coverUrl || "",
       status,
       files: Array.isArray(files) ? files : [],
-      group
+      group,
+      mentions: mentionedUserIds
     });
+    
+    // Create mention notifications
+    if (mentionedUserIds.length > 0) {
+      try {
+        const NotificationService = (await import("../services/NotificationService.js")).default;
+        const populatedPost = await Post.findById(post._id)
+          .populate("author", "name")
+          .lean();
+        await NotificationService.createPostMentionNotification(
+          populatedPost,
+          mentionedUserIds,
+          req.user
+        );
+      } catch (notifError) {
+        // Silent fail for notifications - don't break post creation
+        console.error("[ERROR][POSTS] Failed to create mention notifications:", notifError);
+      }
+    }
     
     // Invalidate cache for this user's posts
     invalidateCache(postCache, `my-posts:${req.user._id.toString()}`);
@@ -999,6 +1025,17 @@ router.put("/:id", authRequired, checkBanStatus, async (req, res, next) => {
       return res.status(400).json({ error: "Trạng thái không hợp lệ" });
     }
     post.status = status;
+
+    // Update mentions if title or content changed
+    if (title !== undefined || content !== undefined) {
+      const { extractMentionedUsers } = await import("../utils/mentions.js");
+      const finalTitle = title !== undefined ? sanitizedUpdate.title : post.title;
+      const finalContent = content !== undefined ? sanitizedUpdate.content : post.content;
+      const mentionedText = `${finalTitle || ""} ${finalContent || ""}`;
+      const mentionedUserIds = await extractMentionedUsers(mentionedText);
+      post.mentions = mentionedUserIds;
+    }
+
     await post.save();
     
     // Invalidate cache for this user's posts and general posts

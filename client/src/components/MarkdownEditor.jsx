@@ -1,10 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { 
   Bold, Italic, Underline, Code, List, ListOrdered, 
   CheckSquare, Link, Image as ImageIcon, Eye, Edit3,
   Heading1, Heading2, Heading3, Quote, Minus
 } from "lucide-react";
 import { uploadImage } from "../api";
+import MentionAutocomplete from "./MentionAutocomplete";
 
 /**
  * MarkdownEditor - Trình soạn thảo Markdown mạnh mẽ
@@ -18,6 +19,8 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
   const [showPreview, setShowPreview] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showTips, setShowTips] = useState(false);
+  const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState(0);
   const textareaRef = useRef(null);
 
   /**
@@ -92,6 +95,96 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
       if (e.target) e.target.value = "";
     }
   };
+
+  /**
+   * Handle mention autocomplete selection
+   */
+  const handleMentionSelect = (user, startPosition, endPosition) => {
+    if (!textareaRef.current) return;
+    
+    const before = value.substring(0, startPosition);
+    const after = value.substring(endPosition);
+    const mention = `@${user.name} `;
+    
+    const newContent = before + mention + after;
+    onChange(newContent);
+    
+    // Set cursor position after mention
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newCursorPos = startPosition + mention.length;
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        textareaRef.current.focus();
+        setCursorPosition(newCursorPos);
+      }
+    }, 0);
+    
+    setShowMentionAutocomplete(false);
+  };
+
+  /**
+   * Handle textarea change and cursor position
+   */
+  const handleTextareaChange = (e) => {
+    const newValue = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    
+    onChange(newValue);
+    setCursorPosition(cursorPos);
+    
+    // Check if we should show autocomplete (user typed @)
+    const textBeforeCursor = newValue.substring(0, cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+      // Show autocomplete if @ is followed by valid characters or empty
+      if (textAfterAt.length === 0 || /^[\p{L}\p{N}_\s]*$/u.test(textAfterAt)) {
+        const spaceAfter = textAfterAt.includes(' ');
+        if (!spaceAfter || textAfterAt.match(/^[\p{L}\p{N}_]+\s+[\p{L}\p{N}_]*$/u)) {
+          setShowMentionAutocomplete(true);
+          return;
+        }
+      }
+    }
+    
+    setShowMentionAutocomplete(false);
+  };
+
+  /**
+   * Handle textarea key events
+   */
+  const handleTextareaKeyDown = (e) => {
+    if (showMentionAutocomplete && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === "Tab" || e.key === "Escape")) {
+      // Let MentionAutocomplete handle these keys
+      return;
+    }
+    
+    // Close autocomplete on Escape
+    if (e.key === "Escape") {
+      setShowMentionAutocomplete(false);
+    }
+  };
+
+  /**
+   * Close autocomplete when clicking outside
+   */
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showMentionAutocomplete && textareaRef.current && !textareaRef.current.contains(e.target)) {
+        // Check if click is on autocomplete dropdown
+        const autocompleteElement = e.target.closest('[class*="absolute"]');
+        if (!autocompleteElement || !autocompleteElement.querySelector('[class*="MentionAutocomplete"]')) {
+          setShowMentionAutocomplete(false);
+        }
+      }
+    };
+
+    if (showMentionAutocomplete) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showMentionAutocomplete]);
 
   /**
    * Render Markdown preview (đơn giản)
@@ -276,15 +369,30 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
             {renderPreview()}
           </div>
         ) : (
-          <textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            rows={rows}
-            className="w-full p-3 bg-transparent border-none text-sm text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-0 resize-none"
-            style={{ minHeight: `${rows * 1.5}rem` }}
-          />
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={handleTextareaChange}
+              onKeyDown={handleTextareaKeyDown}
+              onSelect={(e) => setCursorPosition(e.target.selectionStart)}
+              placeholder={placeholder}
+              rows={rows}
+              className="w-full p-3 bg-transparent border-none text-sm text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-0 resize-none"
+              style={{ minHeight: `${rows * 1.5}rem` }}
+            />
+            {/* Mention Autocomplete */}
+            {showMentionAutocomplete && !showPreview && (
+              <div className="absolute bottom-full left-0 mb-2">
+                <MentionAutocomplete
+                  value={value}
+                  cursorPosition={cursorPosition}
+                  onSelect={handleMentionSelect}
+                  onClose={() => setShowMentionAutocomplete(false)}
+                />
+              </div>
+            )}
+          </div>
         )}
       </div>
 

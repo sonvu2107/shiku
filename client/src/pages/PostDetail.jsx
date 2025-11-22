@@ -3,6 +3,7 @@
   import { useNavigate, useParams, Link } from "react-router-dom";
   import { api } from "../api";
   import ReactMarkdown from "react-markdown";
+import MarkdownWithMentions from "../components/MarkdownWithMentions";
   import CommentSection from "../components/CommentSection";
   import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
   import UserName from "../components/UserName";
@@ -334,7 +335,10 @@
           {p.content && (
             <div className="px-0 sm:px-1 mb-3 sm:mb-4">
               <div className="prose dark:prose-invert max-w-none text-sm sm:text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed prose-p:mb-3 prose-headings:mb-2 prose-headings:mt-4">
-                <ReactMarkdown>{p.content}</ReactMarkdown>
+                <MarkdownWithMentions 
+                  content={p.content} 
+                  mentionedUsers={p.mentions || []}
+                />
               </div>
             </div>
           )}

@@ -77,6 +77,22 @@ router.get('/', authRequired, async (req, res) => {
   }
 });
 
+// Get user suggestions for mention autocomplete
+router.get('/suggestions', authRequired, async (req, res) => {
+  try {
+    const { getUserSuggestions } = await import('../utils/mentions.js');
+    const query = (req.query.q || '').trim();
+    const limit = Math.min(parseInt(req.query.limit) || 10, 20);
+    
+    const users = await getUserSuggestions(query, req.user._id.toString(), limit);
+    
+    res.json({ users });
+  } catch (error) {
+    console.error('[ERROR][USERS] Error fetching user suggestions:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
 // Tìm kiếm user theo tên hoặc email (with caching)
 router.get('/search', authRequired, async (req, res) => {
   try {

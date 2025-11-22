@@ -17,6 +17,7 @@ const notificationSchema = new mongoose.Schema({
       "comment", // someone commented on your post
       "reply", // someone replied to your comment  
       "reaction", // someone reacted to your post
+      "mention", // someone mentioned you in a post or comment
       "ban", // you were banned
       "unban", // you were unbanned
       "system", // system notifications (server updates, etc)

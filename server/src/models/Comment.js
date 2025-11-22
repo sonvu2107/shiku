@@ -11,6 +11,7 @@ const CommentSchema = new mongoose.Schema({
   content: { type: String, required: false, trim: true },
   parent: { type: mongoose.Schema.Types.ObjectId, ref: "Comment", default: null }, // Comment cha (cho nested replies)
   edited: { type: Boolean, default: false },
+  mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", index: true }], // Users được mention trong comment
   
   // ==================== MEDIA ====================
   images: [{
