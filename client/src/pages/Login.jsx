@@ -71,8 +71,14 @@ export default function Login({ setUser }) {
 
   // Redirect to home if already logged in
   useEffect(() => {
+    let timeoutId;
     const checkUser = async () => {
       try {
+        // Add small delay to prevent race condition
+        await new Promise(resolve => {
+          timeoutId = setTimeout(resolve, 100);
+        });
+
         const { loadUser } = await import("../utils/userCache");
         const cachedUser = await loadUser();
         if (cachedUser) {
@@ -83,10 +89,15 @@ export default function Login({ setUser }) {
         }
       } catch (err) {
         // User not logged in, stay on login page
+        console.log("[Login] No cached user, showing login form");
         setCheckingAuth(false);
       }
     };
     checkUser();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [navigate]);
 
   const handleLogin = async (e) => {

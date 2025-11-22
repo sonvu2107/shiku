@@ -391,7 +391,19 @@ export const cleanupOldLogs = () => {
 };
 
 // Cleanup old logs mỗi ngày
-setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000);
+const securityLogsCleanupInterval = setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000);
+
+// Cleanup function for graceful shutdown (called by main server)
+export const cleanupSecurityLogging = () => {
+  try {
+    if (securityLogsCleanupInterval) {
+      clearInterval(securityLogsCleanupInterval);
+    }
+    console.log('[INFO][SECURITY-LOGGING] Cleanup completed');
+  } catch (error) {
+    console.error('[ERROR][SECURITY-LOGGING] Cleanup failed:', error.message);
+  }
+};
 
 // Export constants
 export { LOG_LEVELS, SECURITY_EVENTS };

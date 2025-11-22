@@ -447,3 +447,16 @@ if (typeof global.refreshAttemptsCleanup === 'undefined') {
     }
   }, 5 * 60 * 1000); // Mỗi 5 phút
 }
+
+// Cleanup function for graceful shutdown (called by main server)
+export const cleanupJWTSecurity = () => {
+  try {
+    if (global.refreshAttemptsCleanup) {
+      clearInterval(global.refreshAttemptsCleanup);
+      global.refreshAttemptsCleanup = undefined;
+    }
+    console.log('[INFO][JWT] Cleanup completed');
+  } catch (error) {
+    console.error('[ERROR][JWT] Cleanup failed:', error.message);
+  }
+};

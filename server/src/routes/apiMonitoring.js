@@ -198,20 +198,28 @@ const flushStatsBuffer = async () => {
   }
 };
 
+// Track all intervals for cleanup
+const monitoringIntervals = [];
+
+// Cleanup function for graceful shutdown
+export const cleanupAPIMonitoring = async () => {
+  try {
+    await flushStatsBuffer();
+    monitoringIntervals.forEach(interval => {
+      if (interval) clearInterval(interval);
+    });
+    monitoringIntervals.length = 0; // Clear array
+    console.log('[INFO][API-MONITORING] Cleanup completed');
+  } catch (error) {
+    console.error('[ERROR][API-MONITORING] Cleanup failed:', error.message);
+  }
+};
+
 // Start batch write interval if monitoring is enabled
 if (monitoringEnabled && !batchWriteInterval) {
   batchWriteInterval = setInterval(flushStatsBuffer, BATCH_WRITE_INTERVAL);
+  monitoringIntervals.push(batchWriteInterval);
   console.log(`[INFO][API-MONITORING] Batch write system started (interval: ${BATCH_WRITE_INTERVAL}ms)`);
-  
-  // Flush on process exit
-  process.on('SIGTERM', async () => {
-    await flushStatsBuffer();
-    if (batchWriteInterval) clearInterval(batchWriteInterval);
-  });
-  process.on('SIGINT', async () => {
-    await flushStatsBuffer();
-    if (batchWriteInterval) clearInterval(batchWriteInterval);
-  });
 }
 
 // Middleware to track API calls with batched database persistence
@@ -363,7 +371,7 @@ export const trackAPICall = async (req, res, next) => {
 
 if (monitoringEnabled) {
   // Reset current period stats every hour with database persistence
-  setInterval(async () => {
+  const hourlyInterval = setInterval(async () => {
     try {
       const stats = await ApiStats.getOrCreateStats();
       stats.resetCurrentPeriod();
@@ -373,9 +381,10 @@ if (monitoringEnabled) {
       console.error('[ERROR][API-MONITORING] Error resetting API current period stats:', error);
     }
   }, 60 * 60 * 1000); // Reset every hour
+  monitoringIntervals.push(hourlyInterval);
 
   // Reset hourly stats daily at midnight (00:00)
-  setInterval(async () => {
+  const dailyInterval = setInterval(async () => {
     try {
       const stats = await ApiStats.getOrCreateStats();
       stats.resetHourlyStats();
@@ -385,6 +394,7 @@ if (monitoringEnabled) {
       console.error('[ERROR][API-MONITORING] Error resetting API hourly stats:', error);
     }
   }, 24 * 60 * 60 * 1000); // Reset every 24 hours
+  monitoringIntervals.push(dailyInterval);
 
   // Schedule daily reset at midnight (Vietnam timezone)
   const scheduleDailyReset = () => {
@@ -396,7 +406,7 @@ if (monitoringEnabled) {
     // Calculate time until Vietnam midnight
     const timeUntilMidnight = tomorrow.getTime() - vietnamNow.getTime();
     
-    setTimeout(async () => {
+    const midnightTimeout = setTimeout(async () => {
       try {
         const stats = await ApiStats.getOrCreateStats();
         stats.resetHourlyStats();
@@ -412,6 +422,9 @@ if (monitoringEnabled) {
       }
     }, timeUntilMidnight);
     
+    // Store timeout for cleanup
+    monitoringIntervals.push(midnightTimeout);
+    
     console.log(`[INFO][API-MONITORING] Next hourly stats reset scheduled for Vietnam time: ${tomorrow.toISOString()}`);
   };
 
@@ -419,13 +432,14 @@ if (monitoringEnabled) {
   scheduleDailyReset();
 
   // Clean old data every 24 hours
-  setInterval(async () => {
+  const cleanupInterval = setInterval(async () => {
     try {
       await ApiStats.cleanOldData();
     } catch (error) {
       console.error('[ERROR][API-MONITORING] Error cleaning old API stats data:', error);
     }
   }, 24 * 60 * 60 * 1000); // Clean every 24 hours
+  monitoringIntervals.push(cleanupInterval);
 } else {
   console.log("[INFO][API-MONITORING] Disabled via DISABLE_API_MONITORING flag");
 }

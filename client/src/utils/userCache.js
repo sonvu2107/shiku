@@ -1,4 +1,5 @@
 import { api } from "../api";
+import { getAccessToken } from "./tokenManager";
 
 /**
  * Global User Cache
@@ -23,6 +24,13 @@ export async function loadUser() {
   // Return cached data if still valid
   if (userCache && now < cacheExpiry) {
     return userCache;
+  }
+
+  // Check if we have a token before making API call
+  const token = getAccessToken();
+  if (!token) {
+    console.log("[userCache] No access token, user not logged in");
+    return null;
   }
 
   // If already loading, return the existing promise

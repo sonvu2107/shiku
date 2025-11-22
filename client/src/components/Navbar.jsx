@@ -312,6 +312,57 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
       // Silent handling for logout error
     }
 
+    // Cleanup all services with error handling
+    const cleanupPromises = [];
+    
+    // Socket cleanup
+    cleanupPromises.push(
+      (async () => {
+        try {
+          const { default: socketService } = await import('../socket');
+          if (socketService && typeof socketService.disconnect === 'function') {
+            socketService.disconnect();
+          }
+        } catch (err) {
+          console.warn('Failed to disconnect socket:', err);
+        }
+      })()
+    );
+    
+    // Heartbeat cleanup
+    cleanupPromises.push(
+      (async () => {
+        try {
+          const { heartbeatManager } = await import('../services/heartbeatManager');
+          if (heartbeatManager && typeof heartbeatManager.stop === 'function') {
+            heartbeatManager.stop();
+          }
+        } catch (err) {
+          console.warn('Failed to stop heartbeat:', err);
+        }
+      })()
+    );
+    
+    // Keepalive cleanup
+    cleanupPromises.push(
+      (async () => {
+        try {
+          const { stopKeepAlive } = await import('../utils/keepalive');
+          if (typeof stopKeepAlive === 'function') {
+            stopKeepAlive();
+          }
+        } catch (err) {
+          console.warn('Failed to stop keepalive:', err);
+        }
+      })()
+    );
+    
+    // Wait for all cleanups to complete (with timeout)
+    await Promise.race([
+      Promise.allSettled(cleanupPromises),
+      new Promise(resolve => setTimeout(resolve, 2000)) // 2s timeout
+    ]);
+
     // Xóa token khỏi localStorage
     removeAuthToken();
     // Clear user cache

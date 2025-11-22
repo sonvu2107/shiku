@@ -88,8 +88,14 @@ export default function Register({ setUser }) {
 
   // Redirect to home if already logged in
   useEffect(() => {
+    let timeoutId;
     const checkUser = async () => {
       try {
+        // Add small delay to prevent race condition
+        await new Promise(resolve => {
+          timeoutId = setTimeout(resolve, 100);
+        });
+
         const { loadUser } = await import("../utils/userCache");
         const cachedUser = await loadUser();
         if (cachedUser) {
@@ -100,10 +106,15 @@ export default function Register({ setUser }) {
         }
       } catch (err) {
         // User not logged in, stay on register page
+        console.log("[Register] No cached user, showing register form");
         setCheckingAuth(false);
       }
     };
     checkUser();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [navigate]);
 
   // Đo và đồng bộ chiều cao

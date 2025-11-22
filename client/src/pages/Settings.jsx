@@ -126,6 +126,33 @@ export default function Settings() {
       // Silent handling for logout error - vẫn tiếp tục logout ở client
       console.warn("Logout API error:", err);
     } finally {
+      // Cleanup all services with robust error handling
+      const cleanupPromises = [
+        (async () => {
+          try {
+            const { default: socketService } = await import('../socket');
+            if (socketService?.disconnect) socketService.disconnect();
+          } catch (err) { console.warn('Socket cleanup failed:', err); }
+        })(),
+        (async () => {
+          try {
+            const { heartbeatManager } = await import('../services/heartbeatManager');
+            if (heartbeatManager?.stop) heartbeatManager.stop();
+          } catch (err) { console.warn('Heartbeat cleanup failed:', err); }
+        })(),
+        (async () => {
+          try {
+            const { stopKeepAlive } = await import('../utils/keepalive');
+            if (stopKeepAlive) stopKeepAlive();
+          } catch (err) { console.warn('Keepalive cleanup failed:', err); }
+        })()
+      ];
+      
+      await Promise.race([
+        Promise.allSettled(cleanupPromises),
+        new Promise(resolve => setTimeout(resolve, 2000))
+      ]);
+      
       // Xóa token khỏi localStorage
       removeAuthToken();
       // Clear user cache

@@ -103,25 +103,51 @@ app.use(helmet({
       scriptSrc: ["'self'"],
       connectSrc: ["'self'", "ws:", "wss:"],
       objectSrc: ["'none'"],
-      frameSrc: ["'none'"], // Anti-clickjacking protection
-      frameAncestors: ["'none'"], // Anti-clickjacking protection
-      upgradeInsecureRequests: []
+      frameSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: isProduction ? [] : null
     }
   },
   crossOriginEmbedderPolicy: false,
-  // Anti-clickjacking protection
-  frameguard: { action: 'deny' },
-  // Prevent MIME type sniffing
+  // Anti-clickjacking protection (X-Frame-Options)
+  frameguard: { 
+    action: 'deny' 
+  },
+  // Prevent MIME type sniffing (X-Content-Type-Options)
   noSniff: true,
   // Additional security headers
   xssFilter: true,
   hidePoweredBy: true,
-  hsts: {
+  hsts: isProduction ? {
     maxAge: 31536000,
     includeSubDomains: true,
     preload: true
+  } : false,
+  // Referrer Policy
+  referrerPolicy: {
+    policy: 'strict-origin-when-cross-origin'
   }
 }));
+
+// Additional security headers middleware
+app.use((req, res, next) => {
+  // X-Content-Type-Options (prevent MIME sniffing)
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  // X-Frame-Options (anti-clickjacking)
+  res.setHeader('X-Frame-Options', 'DENY');
+  
+  // X-XSS-Protection (legacy XSS protection)
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  // Permissions-Policy (feature policy)
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  
+  // Referrer-Policy
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  next();
+});
 
 // ==================== MIDDLEWARE SETUP ====================
 
@@ -271,67 +297,6 @@ app.post("/api/test-csrf-middleware", (req, res) => {
   });
 });
 
-// Debug endpoint để kiểm tra CORS và CSRF
-app.get("/api/debug", (req, res) => {
-  const origin = req.get('Origin');
-  const isOriginAllowed = allowedOrigins.some(allowedOrigin => {
-    if (allowedOrigin.includes('*')) {
-      const pattern = allowedOrigin.replace(/\*/g, '.*');
-      const regex = new RegExp(`^${pattern}$`);
-      return regex.test(origin);
-    }
-    return allowedOrigin === origin;
-  });
-
-  res.json({
-    success: true,
-    timestamp: new Date().toISOString(),
-    origin: origin,
-    isOriginAllowed: isOriginAllowed,
-    clientAgent: getClientAgent(req),
-    ip: req.ip,
-    headers: {
-      origin: req.get('Origin'),
-      referer: req.get('Referer'),
-      host: req.get('Host'),
-      cookie: req.get('Cookie')
-    },
-    csrfToken: (typeof req.csrfToken === 'function') ? req.csrfToken() : null,
-    csrfCookie: req.cookies._csrf,
-    corsConfig: {
-      allowedOrigins: allowedOrigins,
-      corsOriginEnv: process.env.CORS_ORIGIN,
-      environment: process.env.NODE_ENV
-    },
-    cookies: req.cookies,
-    cookieNames: Object.keys(req.cookies || {})
-  });
-});
-
-// Production cookie debug endpoint
-app.get("/api/debug-cookies", (req, res) => {
-  const isProduction = process.env.NODE_ENV === "production";
-  
-  res.json({
-    environment: process.env.NODE_ENV,
-    isProduction,
-    cookies: req.cookies,
-    cookieNames: Object.keys(req.cookies || {}),
-    headers: {
-      origin: req.get('Origin'),
-      referer: req.get('Referer'),
-      host: req.get('Host'),
-      userAgent: req.get('User-Agent')
-    },
-    cookieSettings: {
-      domain: isProduction ? ".shiku.click" : undefined,
-      secure: isProduction,
-      sameSite: "lax",
-      httpOnly: true
-    }
-  });
-});
-
 // Test refresh endpoint without CSRF
 app.post("/api/test-refresh", (req, res) => {
   res.json({
@@ -467,15 +432,8 @@ app.post("/api/test-token-generation", async (req, res) => {
       });
     }
     
-    console.log("[INFO][TEST-TOKEN] User found:", user.name);
-    console.log("[INFO][TEST-TOKEN] Attempting to generate token pair...");
-    
     // Test token generation
     const tokens = await generateTokenPair(user);
-    
-    console.log("[INFO][TEST-TOKEN] Token generation successful");
-    console.log("[INFO][TEST-TOKEN] Access token length:", tokens.accessToken?.length);
-    console.log("[INFO][TEST-TOKEN] Refresh token length:", tokens.refreshToken?.length);
     
     res.json({
       success: true,
@@ -487,15 +445,12 @@ app.post("/api/test-token-generation", async (req, res) => {
       },
       tokens: {
         accessToken: tokens.accessToken ? "GENERATED" : "MISSING",
-        refreshToken: tokens.refreshToken ? "GENERATED" : "MISSING",
-        accessTokenLength: tokens.accessToken?.length,
-        refreshTokenLength: tokens.refreshToken?.length
+        refreshToken: tokens.refreshToken ? "GENERATED" : "MISSING"
       },
       message: "Token generation test successful"
     });
     
   } catch (error) {
-    console.error("[ERROR][TEST-TOKEN] Token generation error:", error);
     res.status(500).json({
       error: "Token generation failed",
       code: "TOKEN_GENERATION_ERROR",
@@ -565,7 +520,6 @@ app.post("/api/test-login", async (req, res) => {
     });
     
   } catch (error) {
-    console.error("[ERROR][TEST-LOGIN] Test login error:", error);
     res.status(500).json({
       error: "Internal server error",
       code: "INTERNAL_ERROR",
@@ -933,6 +887,13 @@ io.on("connection", async (socket) => {
     const userInfo = connectedUsers.get(socket.id);
     if (userInfo && userInfo.userId) {
       try {
+        // Validate userId before query
+        if (!mongoose.Types.ObjectId.isValid(userInfo.userId)) {
+          console.warn('[WARN][SOCKET] Invalid userId on disconnect:', userInfo.userId);
+          connectedUsers.delete(socket.id);
+          return;
+        }
+        
         await User.findByIdAndUpdate(userInfo.userId, {
           isOnline: false,
           lastSeen: new Date()
@@ -940,17 +901,19 @@ io.on("connection", async (socket) => {
 
         // Thông báo cho tất cả bạn bè về trạng thái offline
         const user = await User.findById(userInfo.userId).populate('friends', '_id');
-        if (user && user.friends) {
+        if (user && user.friends && Array.isArray(user.friends)) {
           user.friends.forEach(friend => {
-            io.to(`user-${friend._id}`).emit('friend-offline', {
-              userId: userInfo.userId,
-              isOnline: false,
-              lastSeen: new Date()
-            });
+            if (friend && friend._id) {
+              io.to(`user-${friend._id}`).emit('friend-offline', {
+                userId: userInfo.userId,
+                isOnline: false,
+                lastSeen: new Date()
+              });
+            }
           });
         }
       } catch (error) {
-        // Error updating user offline status
+        console.error('[ERROR][SOCKET] Error updating user offline status:', error.message);
       }
     }
 
@@ -1026,19 +989,71 @@ process.on('uncaughtException', (error) => {
 });
 
 // Handle SIGTERM (e.g., from process managers)
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('[INFO][SERVER] SIGTERM received, shutting down gracefully');
+  
+  // Centralized cleanup - call all cleanup functions
+  try {
+    // Import cleanup functions
+    const { cleanupAPIMonitoring } = await import('./routes/apiMonitoring.js');
+    const { cleanupJWTSecurity } = await import('./middleware/jwtSecurity.js');
+    const { cleanupSecurityLogging } = await import('./middleware/securityLogging.js');
+    
+    // Run all cleanups in parallel with error handling
+    await Promise.allSettled([
+      cleanupAPIMonitoring(),
+      Promise.resolve(cleanupJWTSecurity()),
+      Promise.resolve(cleanupSecurityLogging())
+    ]);
+    
+    console.log('[INFO][SERVER] All cleanup functions completed');
+  } catch (error) {
+    console.error('[ERROR][SERVER] Cleanup error:', error.message);
+  }
+  
   server.close(() => {
     console.log('[INFO][SERVER] Process terminated');
+    process.exit(0);
   });
+  
+  // Force exit if graceful shutdown takes too long
+  setTimeout(() => {
+    console.error('[ERROR][SERVER] Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
 });
 
 // Handle SIGINT (Ctrl+C)
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('[INFO][SERVER] SIGINT received, shutting down gracefully');
+  
+  // Centralized cleanup - call all cleanup functions
+  try {
+    const { cleanupAPIMonitoring } = await import('./routes/apiMonitoring.js');
+    const { cleanupJWTSecurity } = await import('./middleware/jwtSecurity.js');
+    const { cleanupSecurityLogging } = await import('./middleware/securityLogging.js');
+    
+    await Promise.allSettled([
+      cleanupAPIMonitoring(),
+      Promise.resolve(cleanupJWTSecurity()),
+      Promise.resolve(cleanupSecurityLogging())
+    ]);
+    
+    console.log('[INFO][SERVER] All cleanup functions completed');
+  } catch (error) {
+    console.error('[ERROR][SERVER] Cleanup error:', error.message);
+  }
+  
   server.close(() => {
     console.log('[INFO][SERVER] Process terminated');
+    process.exit(0);
   });
+  
+  // Force exit if graceful shutdown takes too long
+  setTimeout(() => {
+    console.error('[ERROR][SERVER] Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
 });
 
 export { app, server };
