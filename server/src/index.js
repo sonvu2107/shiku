@@ -13,6 +13,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createServer } from "http"; // HTTP server
 import { Server } from "socket.io"; // WebSocket server
+import mongoose from "mongoose"; // MongoDB ODM
 
 // Import config và middleware
 import { connectDB } from "./config/db.js";
