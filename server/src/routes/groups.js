@@ -1156,20 +1156,26 @@ router.get('/:id/analytics', authRequired, async (req, res) => {
     const publishedPosts = allPosts.filter(p => p.status === 'published').length;
     const avgViewsPerPost = totalPosts > 0 ? Math.round(totalViews / totalPosts) : 0;
 
-    // Calculate posts by day for the period
-    const postsByDay = {};
-    const currentDate = new Date();
-    for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
-      const dateKey = d.toISOString().split('T')[0];
-      postsByDay[dateKey] = 0;
-    }
-    
-    recentPosts.forEach(post => {
-      const dateKey = new Date(post.createdAt).toISOString().split('T')[0];
-      if (postsByDay[dateKey] !== undefined) {
-        postsByDay[dateKey]++;
+    // Calculate posts by day for the period using aggregation (avoid per-day loop)
+    const postsByDayAgg = await Post.aggregate([
+      {
+        $match: {
+          group: group._id,
+          createdAt: { $gte: startDate, $lte: new Date() }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 }
+        }
       }
-    });
+    ]);
+
+    const postsByDay = postsByDayAgg.reduce((acc, entry) => {
+      acc[entry._id] = entry.count;
+      return acc;
+    }, {});
 
     res.json({
       success: true,

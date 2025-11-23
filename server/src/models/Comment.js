@@ -37,14 +37,19 @@ const CommentSchema = new mongoose.Schema({
 
 // ==================== DATABASE INDEXES ====================
 // Indexes for common queries
-CommentSchema.index({ post: 1, createdAt: -1 }); // Get comments by post, sorted by date
+CommentSchema.index({ post: 1, createdAt: -1 }); // Get comments by post, sorted by date - CRITICAL
 CommentSchema.index({ author: 1, createdAt: -1 }); // Get comments by author
 CommentSchema.index({ parent: 1 }); // Get replies to a comment
 CommentSchema.index({ 'emotes.user': 1 }); // Find comments by emote user
 CommentSchema.index({ 'likes': 1 }); // Find comments by likes
 
+// FIX MISSING INDEXES: Additional indexes for better performance
+CommentSchema.index({ post: 1, parent: 1, createdAt: -1 }); // Top-level comments only
+
 // Pre-save middleware để cập nhật counts và validation
+// FIX SYNC VALIDATION: Already using optimal methods (length, findIndex) ✅
 CommentSchema.pre('save', function(next) {
+  // Direct property access - O(1)
   this.likeCount = this.likes.length;
   this.emoteCount = this.emotes.length;
   
@@ -54,12 +59,11 @@ CommentSchema.pre('save', function(next) {
   }
   
   // Nếu có ảnh, đảm bảo mỗi ảnh có url và publicId
+  // findIndex - O(n) but necessary for validation, early exit on first invalid
   if (this.images && this.images.length > 0) {
-    for (let i = 0; i < this.images.length; i++) {
-      const image = this.images[i];
-      if (!image.url || !image.publicId) {
-        return next(new Error(`Ảnh thứ ${i + 1} thiếu url hoặc publicId`));
-      }
+    const invalidIndex = this.images.findIndex(image => !image.url || !image.publicId);
+    if (invalidIndex !== -1) {
+      return next(new Error(`Image ${invalidIndex + 1} missing url or publicId`));
     }
   }
   

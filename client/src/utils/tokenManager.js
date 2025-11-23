@@ -251,19 +251,19 @@ export async function refreshAccessToken() {
  */
 export async function checkCookies() {
   try {
-    const response = await fetch(`${API_URL}/api/test-session-persistence`, {
+    const response = await fetch(`${API_URL}/api/auth-status`, {
       method: "GET",
       credentials: "include"
     });
     
     if (response.ok) {
       const data = await response.json();
-      console.log("[tokenManager] Cookie check:", data);
+      console.log("[tokenManager] Auth status:", data);
       return data;
     }
     return null;
   } catch (error) {
-    console.error("[tokenManager] Failed to check cookies:", error);
+    console.error("[tokenManager] Failed to check auth status:", error);
     return null;
   }
 }
@@ -285,10 +285,10 @@ export async function initializeAccessToken() {
     try {
       console.log("[tokenManager] Initializing access token...");
       
-      // First check what cookies we have
-      const cookieInfo = await checkCookies();
-      if (cookieInfo) {
-        console.log("[tokenManager] Cookie status:", cookieInfo.cookies);
+      // First check authentication status
+      const authStatus = await checkCookies();
+      if (authStatus) {
+        console.log("[tokenManager] Auth status:", authStatus.authenticated ? "authenticated" : "not authenticated");
       }
       
       // Try to get a valid access token (will attempt refresh if needed)

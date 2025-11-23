@@ -7,7 +7,7 @@ import Event from '../models/Event.js';
 const router = express.Router();
 
 /**
- * Sitemap Routes - API routes cho sitemap động
+ * Sitemap Routes - API routes cho sitemap tổng
  * Generate sitemap.xml với tất cả nội dung từ database
  */
 
@@ -18,9 +18,6 @@ router.get('/', async (req, res) => {
     const inferredBase = `${req.protocol}://${req.get('host')}`;
     const baseUrl = envBase || inferredBase;
     const currentDate = new Date().toISOString().split('T')[0];
-    
-    let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
 
     // ==================== TRANG TĨNH ====================
     const staticPages = [
@@ -38,19 +35,16 @@ router.get('/', async (req, res) => {
       { url: '/support', priority: '0.5', changefreq: 'monthly' }
     ];
 
-    // Add static pages
-    staticPages.forEach(page => {
-      sitemap += `
+    const staticXml = staticPages.map(page => `
   <url>
     <loc>${baseUrl}${page.url}</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>
-  </url>`;
-    });
+  </url>`).join('');
 
     // ==================== NỘI DUNG ĐỘNG ====================
-    
+
     // Get published posts (giới hạn 1000 bài mới nhất)
     const posts = await Post.find({ 
       status: 'published',
@@ -66,20 +60,21 @@ router.get('/', async (req, res) => {
     })
       .select('_id title updatedAt')
       .sort({ updatedAt: -1 })
-      .limit(1000);
+      .limit(1000)
+      .lean();
 
     console.log(`Found ${posts.length} published posts`);
 
-    posts.forEach(post => {
+    const postXml = posts.map(post => {
       const lastmod = new Date(post.updatedAt).toISOString().split('T')[0];
-      sitemap += `
+      return `
   <url>
     <loc>${baseUrl}/post/${post._id}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`;
-    });
+    }).join('');
 
     // Get public users (không bị ban, giới hạn 500 user)
     const users = await User.find({ 
@@ -88,20 +83,21 @@ router.get('/', async (req, res) => {
     })
       .select('_id name updatedAt')
       .sort({ updatedAt: -1 })
-      .limit(500);
+      .limit(500)
+      .lean();
 
     console.log(`Found ${users.length} public users`);
 
-    users.forEach(user => {
+    const userXml = users.map(user => {
       const lastmod = new Date(user.updatedAt).toISOString().split('T')[0];
-      sitemap += `
+      return `
   <url>
     <loc>${baseUrl}/user/${user._id}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>`;
-    });
+    }).join('');
 
     // Get public groups (active, giới hạn 200 nhóm)
     const groups = await Group.find({ 
@@ -110,20 +106,21 @@ router.get('/', async (req, res) => {
     })
       .select('_id name updatedAt')
       .sort({ updatedAt: -1 })
-      .limit(200);
+      .limit(200)
+      .lean();
 
     console.log(`Found ${groups.length} active groups`);
 
-    groups.forEach(group => {
+    const groupXml = groups.map(group => {
       const lastmod = new Date(group.updatedAt).toISOString().split('T')[0];
-      sitemap += `
+      return `
   <url>
     <loc>${baseUrl}/groups/${group._id}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>`;
-    });
+    }).join('');
 
     // Get active events (sự kiện sắp tới, giới hạn 100 sự kiện)
     const events = await Event.find({ 
@@ -132,22 +129,24 @@ router.get('/', async (req, res) => {
     })
       .select('_id title updatedAt')
       .sort({ date: 1 })
-      .limit(100);
+      .limit(100)
+      .lean();
 
     console.log(`Found ${events.length} upcoming events`);
 
-    events.forEach(event => {
+    const eventXml = events.map(event => {
       const lastmod = new Date(event.updatedAt).toISOString().split('T')[0];
-      sitemap += `
+      return `
   <url>
     <loc>${baseUrl}/events/${event._id}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>`;
-    });
+    }).join('');
 
-    sitemap += `
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${staticXml}${postXml}${userXml}${groupXml}${eventXml}
 </urlset>`;
 
     // Set proper headers

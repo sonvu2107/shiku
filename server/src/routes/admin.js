@@ -270,9 +270,11 @@ router.get("/stats", adminRateLimit, statsCache, authRequired, adminRequired, as
       privatePosts,
       adminUsers
     ] = await Promise.all([
-      Post.countDocuments(),
-      User.countDocuments(),
-      Comment.countDocuments(),
+      // ✅ FIX: Use estimatedDocumentCount for total counts (much faster)
+      Post.estimatedDocumentCount(),
+      User.estimatedDocumentCount(),
+      Comment.estimatedDocumentCount(),
+      // Keep countDocuments for filtered queries (need accurate counts)
       Post.countDocuments({ status: "published" }),
       Post.countDocuments({ status: "private" }),
       User.countDocuments({ role: "admin" })
@@ -706,7 +708,8 @@ router.get("/online-users", adminRateLimit, noCache, authRequired, adminRequired
 router.get("/total-visitors", authRequired, adminRequired, async (req, res, next) => {
   try {
     // Tổng số users đã đăng ký
-    const totalUsers = await User.countDocuments();
+    // ✅ FIX: Use estimatedDocumentCount for better performance
+    const totalUsers = await User.estimatedDocumentCount();
     
     // Số users đã từng online (có lastSeen)
     const usersWithActivity = await User.countDocuments({
@@ -756,12 +759,12 @@ router.get("/total-visitors", authRequired, adminRequired, async (req, res, next
  */
 router.post("/update-offline-users", authRequired, adminRequired, async (req, res, next) => {
   try {
-    // Tìm users online nhưng không hoạt động trong 2 phút
-    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    // Tìm users online nhưng không hoạt động trong 5 phút (tăng từ 2 phút để tránh false positive)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     const result = await User.updateMany(
       { 
         isOnline: true, 
-        lastSeen: { $lt: twoMinutesAgo } 
+        lastSeen: { $lt: fiveMinutesAgo } 
       },
       { 
         isOnline: false 

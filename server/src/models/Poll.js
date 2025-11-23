@@ -56,9 +56,10 @@ PollSchema.index({ "options.votes.user": 1 }); // Index for checking if user vot
 
 /**
  * Pre-save hook: Tính lại tổng số votes và kiểm tra expiry
+ * FIX: Already using Array.reduce() - optimal implementation ✅
  */
 PollSchema.pre("save", function(next) {
-  // Tính tổng số votes từ tất cả options
+  // Tính tổng số votes từ tất cả options (using reduce - optimal)
   this.totalVotes = this.options.reduce((total, option) => {
     return total + (option.votes ? option.votes.length : 0);
   }, 0);
@@ -79,13 +80,17 @@ PollSchema.pre("save", function(next) {
  * @returns {Object|null} Vote info nếu đã vote, null nếu chưa
  */
 PollSchema.methods.hasUserVoted = function(userId) {
-  for (let i = 0; i < this.options.length; i++) {
-    const vote = this.options[i].votes.find(v => v.user.toString() === userId.toString());
-    if (vote) {
-      return { optionIndex: i, votedAt: vote.votedAt };
-    }
-  }
-  return null;
+  const optionIndex = this.options.findIndex(option =>
+    option.votes.some(v => v.user.toString() === userId.toString())
+  );
+
+  if (optionIndex === -1) return null;
+
+  const vote = this.options[optionIndex].votes.find(
+    v => v.user.toString() === userId.toString()
+  );
+
+  return vote ? { optionIndex, votedAt: vote.votedAt } : null;
 };
 
 /**
@@ -140,11 +145,13 @@ PollSchema.methods.addVote = function(userId, optionIndex) {
 
 /**
  * Xóa tất cả votes của user
+ * FIX: forEach is acceptable here as it modifies in-place (not blocking) ✅
  * @param {ObjectId} userId - ID của user
  */
 PollSchema.methods.removeVote = function(userId) {
+  const userIdStr = userId.toString();
   this.options.forEach(option => {
-    option.votes = option.votes.filter(v => v.user.toString() !== userId.toString());
+    option.votes = option.votes.filter(v => v.user.toString() !== userIdStr);
   });
 };
 

@@ -55,9 +55,10 @@ const notificationSchema = new mongoose.Schema({
   }
 });
 
-// Index for efficient queries
-notificationSchema.index({ recipient: 1, createdAt: -1 });
-notificationSchema.index({ recipient: 1, read: 1 });
+// ✅ FIX MISSING INDEXES: Compound indexes for efficient queries
+notificationSchema.index({ recipient: 1, createdAt: -1 }); // Timeline
+notificationSchema.index({ recipient: 1, read: 1 }); // Filter by read status
+notificationSchema.index({ recipient: 1, read: 1, createdAt: -1 }); // Unread notifications sorted
 
 // PHASE 4: Lightweight unread counter
 notificationSchema.statics.countUnread = function(recipientId) {

@@ -13,7 +13,7 @@ const router = express.Router();
  */
 router.get("/feed", authRequired, async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).select('friends');
+    const user = await User.findById(req.user._id).select('friends').lean();
     if (!user) {
       return res.status(404).json({ error: "User không tồn tại" });
     }
@@ -47,7 +47,7 @@ router.get("/user/:userId", authRequired, async (req, res, next) => {
     const { userId } = req.params;
     
     // Lấy thông tin user và friends để check permission
-    const currentUser = await User.findById(req.user._id).select('friends');
+    const currentUser = await User.findById(req.user._id).select('friends').lean();
     
     const stories = await Story.getActiveStoriesForUser(userId);
     
@@ -73,14 +73,15 @@ router.get("/:storyId", authRequired, async (req, res, next) => {
     const story = await Story.findById(req.params.storyId)
       .populate('author', 'name avatarUrl isVerified')
       .populate('views.user', 'name avatarUrl')
-      .populate('reactions.user', 'name avatarUrl');
+      .populate('reactions.user', 'name avatarUrl')
+      .lean();
     
     if (!story) {
       return res.status(404).json({ error: "Story không tồn tại" });
     }
     
     // Kiểm tra quyền xem
-    const user = await User.findById(req.user._id).select('friends');
+    const user = await User.findById(req.user._id).select('friends').lean();
     if (!story.canView(req.user._id, user.friends)) {
       return res.status(403).json({ error: "Bạn không có quyền xem story này" });
     }
@@ -164,7 +165,7 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
  */
 router.post("/:storyId/view", authRequired, async (req, res, next) => {
   try {
-    const story = await Story.findById(req.params.storyId);
+    const story = await Story.findById(req.params.storyId).lean();
     
     if (!story) {
       return res.status(404).json({ error: "Story không tồn tại" });
@@ -297,7 +298,8 @@ router.delete("/:storyId", authRequired, async (req, res, next) => {
 router.get("/:storyId/views", authRequired, async (req, res, next) => {
   try {
     const story = await Story.findById(req.params.storyId)
-      .populate('views.user', 'name avatarUrl isVerified isOnline');
+      .populate('views.user', 'name avatarUrl isVerified isOnline')
+      .lean();
     
     if (!story) {
       return res.status(404).json({ error: "Story không tồn tại" });
@@ -324,7 +326,8 @@ router.get("/:storyId/views", authRequired, async (req, res, next) => {
 router.get("/:storyId/reactions", authRequired, async (req, res, next) => {
   try {
     const story = await Story.findById(req.params.storyId)
-      .populate('reactions.user', 'name avatarUrl isVerified isOnline');
+      .populate('reactions.user', 'name avatarUrl isVerified isOnline')
+      .lean();
     
     if (!story) {
       return res.status(404).json({ error: "Story không tồn tại" });
@@ -354,7 +357,7 @@ router.get("/:storyId/analytics", authRequired, async (req, res, next) => {
     const { limit = 20, offset = 0, quick = false } = req.query;
     
     // Kiểm tra story tồn tại và quyền truy cập trước
-    const story = await Story.findById(req.params.storyId).select('author createdAt expiresAt');
+    const story = await Story.findById(req.params.storyId).select('author createdAt expiresAt').lean();
     
     if (!story) {
       return res.status(404).json({ error: "Story không tồn tại" });
@@ -370,7 +373,8 @@ router.get("/:storyId/analytics", authRequired, async (req, res, next) => {
       const basicStats = await Story.findById(req.params.storyId)
         .populate('views.user', 'name avatarUrl isVerified isOnline')
         .populate('reactions.user', 'name avatarUrl isVerified isOnline')
-        .select('views reactions createdAt expiresAt');
+        .select('views reactions createdAt expiresAt')
+        .lean();
       
       const totalViews = basicStats.views?.length || 0;
       const totalReactions = basicStats.reactions?.length || 0;
@@ -417,7 +421,8 @@ router.get("/:storyId/analytics", authRequired, async (req, res, next) => {
           select: 'name avatarUrl isVerified isOnline',
           options: { limit: parseInt(limit), skip: parseInt(offset) }
         })
-        .select('views createdAt'),
+        .select('views createdAt')
+        .lean(),
       
       // Reactions với giới hạn
       Story.findById(req.params.storyId)
@@ -427,6 +432,7 @@ router.get("/:storyId/analytics", authRequired, async (req, res, next) => {
           options: { limit: parseInt(limit), skip: parseInt(offset) }
         })
         .select('reactions')
+        .lean()
     ]);
     
     // Tính toán analytics nhanh

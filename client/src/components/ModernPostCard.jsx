@@ -11,6 +11,7 @@ import { api } from "../api";
 import UserName from "./UserName";
 import VerifiedBadge from "./VerifiedBadge";
 import ReactMarkdown from "react-markdown";
+import Poll from "./Poll";
 
 // Mapping emotes với file GIF tương ứng
 const emoteMap = {
@@ -567,6 +568,13 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               style={{ aspectRatio: '16/9', minHeight: '200px' }}
             />
           )}
+        </div>
+      )}
+
+      {/* Poll Section */}
+      {post.hasPoll && (
+        <div className="mb-3 md:mb-4" onClick={e => e.stopPropagation()}>
+          <Poll post={post} user={user} />
         </div>
       )}
 

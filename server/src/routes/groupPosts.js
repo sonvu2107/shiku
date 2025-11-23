@@ -72,24 +72,14 @@ router.get("/:groupId/posts", authRequired, async (req, res, next) => {
       savedCounts.map(c => [c._id.toString(), c.count])
     );
     
-    const itemsWithCommentCount = await Promise.all(posts.map(async post => {
-      const postObj = post.toObject();
-      const commentCount = commentCountMap.get(post._id.toString()) || 0;
-      const savedCount = savedCountMap.get(post._id.toString()) || 0;
-      
-      // Đảm bảo emotes.user được populate - kiểm tra và populate lại nếu cần
-      if (postObj.emotes && Array.isArray(postObj.emotes) && postObj.emotes.length > 0) {
-        // Lấy tất cả user IDs từ emotes
-        const emoteUserIds = [];
-        postObj.emotes.forEach(emote => {
+    // ✅ FIX N+1: Collect ALL user IDs from ALL posts FIRST
+    const allEmoteUserIds = new Set();
+    posts.forEach(post => {
+      if (post.emotes && Array.isArray(post.emotes)) {
+        post.emotes.forEach(emote => {
           if (emote && emote.user) {
             let userId = null;
-            // Nếu đã được populate (có _id và name), không cần populate lại
-            if (typeof emote.user === 'object' && emote.user._id && emote.user.name) {
-              // Đã được populate - skip
-              return;
-            }
-            // Nếu chưa được populate, lấy ID
+            // Extract user ID regardless of format
             if (typeof emote.user === 'object' && emote.user._id) {
               userId = emote.user._id.toString();
             } else if (typeof emote.user === 'string') {
@@ -98,53 +88,57 @@ router.get("/:groupId/posts", authRequired, async (req, res, next) => {
               userId = emote.user.toString();
             }
             if (userId) {
-              emoteUserIds.push(userId);
+              allEmoteUserIds.add(userId);
             }
           }
         });
-        
-        // Populate users nếu có
-        if (emoteUserIds.length > 0) {
-          const uniqueUserIds = [...new Set(emoteUserIds)];
-          const users = await User.find({ _id: { $in: uniqueUserIds } })
-            .select("name nickname avatarUrl role")
-            .lean();
-          
-          const userMap = new Map();
-          users.forEach(u => userMap.set(u._id.toString(), u));
-          
-          // Populate lại emotes.user
-          postObj.emotes = postObj.emotes.map(emote => {
-            if (emote && emote.user) {
-              // Nếu đã được populate, giữ nguyên
-              if (typeof emote.user === 'object' && emote.user._id && emote.user.name) {
-                return emote;
-              }
-              
-              // Nếu chưa được populate, populate lại
-              let userId = null;
-              if (typeof emote.user === 'object' && emote.user._id) {
-                userId = emote.user._id.toString();
-              } else if (typeof emote.user === 'string') {
-                userId = emote.user;
-              } else if (emote.user && emote.user.toString) {
-                userId = emote.user.toString();
-              }
-              
-              if (userId) {
-                const populatedUser = userMap.get(userId);
-                if (populatedUser) {
-                  return { ...emote, user: populatedUser };
-                }
-              }
+      }
+    });
+    
+    // ✅ SINGLE QUERY for all users across all posts
+    let globalUserMap = new Map();
+    if (allEmoteUserIds.size > 0) {
+      const allUsers = await User.find({ _id: { $in: Array.from(allEmoteUserIds) } })
+        .select("name nickname avatarUrl role")
+        .lean();
+      allUsers.forEach(u => globalUserMap.set(u._id.toString(), u));
+    }
+    
+    // ✅ Map posts with no additional queries
+    const itemsWithCommentCount = posts.map(post => {
+      const postObj = post.toObject();
+      const commentCount = commentCountMap.get(post._id.toString()) || 0;
+      const savedCount = savedCountMap.get(post._id.toString()) || 0;
+      
+      // Populate emotes.user from global user map
+      if (postObj.emotes && Array.isArray(postObj.emotes) && postObj.emotes.length > 0) {
+        postObj.emotes = postObj.emotes.map(emote => {
+          if (emote && emote.user) {
+            // If already populated with full data, keep it
+            if (typeof emote.user === 'object' && emote.user._id && emote.user.name) {
+              return emote;
             }
-            return emote;
-          });
-        }
+            
+            // Extract user ID and populate from global map
+            let userId = null;
+            if (typeof emote.user === 'object' && emote.user._id) {
+              userId = emote.user._id.toString();
+            } else if (typeof emote.user === 'string') {
+              userId = emote.user;
+            } else if (emote.user && emote.user.toString) {
+              userId = emote.user.toString();
+            }
+            
+            if (userId && globalUserMap.has(userId)) {
+              return { ...emote, user: globalUserMap.get(userId) };
+            }
+          }
+          return emote;
+        });
       }
       
       return { ...postObj, commentCount, savedCount };
-    }));
+    });
 
     // Đếm tổng số bài viết
     const total = await Post.countDocuments(filter);

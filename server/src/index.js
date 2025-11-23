@@ -64,6 +64,8 @@ app.use(compression({
 }));
 
 // Trust proxy để rate limiting hoạt động đúng với reverse proxy (Render, Railway, Heroku, etc.)
+// Note: If running behind multiple proxy layers (e.g., Cloudflare -> Nginx -> app),
+// adjust this value or use 'true' to trust all proxies
 app.set("trust proxy", 1);
 
 // Import security config
@@ -83,7 +85,7 @@ const io = new Server(server, {
   upgradeTimeout: 10000, // 10 seconds
   maxHttpBufferSize: 1e6, // 1MB
   transports: ['websocket', 'polling'],
-  allowEIO3: true // Allow Engine.IO v3 clients
+  allowEIO3: false // Disable Engine.IO v3 for security (use v4 only)
 });
 
 // Track connected users to prevent memory leaks (single shared Map declared above)
@@ -92,6 +94,44 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 4000;
 
 // ==================== MIDDLEWARE SETUP ====================
+
+// Parse cookie trước tiên
+app.use(cookieParser());
+
+// CORS cấu hình đầy đủ 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://shiku.click",
+  "https://www.shiku.click",
+  "https://shiku123.netlify.app"
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin only in development (Postman, curl, etc.)
+    if (!origin) {
+      if (!isProduction) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'X-CSRF-Token', 'X-Requested-With', 'X-Session-ID', 'Accept', 'Origin', 'Cache-Control', 'Pragma'],
+  exposedHeaders: ['set-cookie', 'Set-Cookie'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
 
 // Security middleware - bảo vệ app khỏi các lỗ hổng thông thường
 app.use(helmet({
@@ -111,8 +151,8 @@ app.use(helmet({
   },
   crossOriginEmbedderPolicy: false,
   // Anti-clickjacking protection (X-Frame-Options)
-  frameguard: { 
-    action: 'deny' 
+  frameguard: {
+    action: 'deny'
   },
   // Prevent MIME type sniffing (X-Content-Type-Options)
   noSniff: true,
@@ -132,61 +172,14 @@ app.use(helmet({
 
 // Additional security headers middleware
 app.use((req, res, next) => {
-  // X-Content-Type-Options (prevent MIME sniffing)
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  
-  // X-Frame-Options (anti-clickjacking)
-  res.setHeader('X-Frame-Options', 'DENY');
-  
-  // X-XSS-Protection (legacy XSS protection)
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  
-  // Permissions-Policy (feature policy)
+  // Permissions-Policy (feature policy) - not covered by helmet
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-  
-  // Referrer-Policy
+
+  // Referrer-Policy - additional enforcement
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
+
   next();
 });
-
-// ==================== MIDDLEWARE SETUP ====================
-
-// Parse cookie trước
-app.use(cookieParser());
-
-// CORS cấu hình đầy đủ 
-const isProd = process.env.NODE_ENV === "production";
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "https://shiku.click",
-  "https://www.shiku.click",
-  "https://shiku123.netlify.app"
-];
-
-const corsOptions = {
-  origin: allowedOrigins,
-  credentials: true, // Cho phép gửi cookie cross-origin
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "x-csrf-token",
-    "X-CSRF-Token",
-    "X-Requested-With",
-    "X-Session-ID",
-    "Accept",
-    "Origin",
-    "Cache-Control",
-    "Pragma"
-  ],
-  exposedHeaders: ["set-cookie", "Set-Cookie"]
-};
-
-// Tạo middleware
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // Đảm bảo preflight hoạt động
 
 // Parse JSON after CORS
 app.use(express.json({ limit: "10mb" }));
@@ -209,7 +202,7 @@ app.use((req, res, next) => {
 });
 
 // Logging và timeout
-app.use(morgan(isProd ? "combined" : "dev"));
+app.use(morgan(isProduction ? "combined" : "dev"));
 app.use(requestTimeout(30000));
 
 
@@ -239,6 +232,15 @@ app.get("/", (req, res) => {
 
 // Detailed health check endpoint
 app.get("/health", (req, res) => {
+  // Minimal info in production to prevent fingerprinting
+  if (isProduction) {
+    return res.json({
+      status: "ok",
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Full info in dev/staging
   const memoryUsage = process.memoryUsage();
   const uptime = process.uptime();
 
@@ -255,6 +257,15 @@ app.get("/health", (req, res) => {
 
 // Heartbeat endpoint for monitoring services (Railway, Netlify, etc.)
 app.get("/heartbeat", (req, res) => {
+  // Minimal info in production to prevent fingerprinting
+  if (isProduction) {
+    return res.json({
+      status: "ok",
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Full info in dev/staging
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
@@ -271,12 +282,12 @@ app.get("/heartbeat", (req, res) => {
 app.get("/api/csrf-token", (req, res) => {
   try {
     const existingSecret = req.cookies._csrf;
-    
+
     // csurf will automatically:
     // - Reuse secret if _csrf cookie exists
     // - Create new secret if not present
     const token = req.csrfToken();
-    
+
     res.json({
       csrfToken: token,
       csrfEnabled: true,
@@ -287,8 +298,21 @@ app.get("/api/csrf-token", (req, res) => {
   }
 });
 
+// ==================== TEST ENDPOINTS (Development/Staging Only) ====================
+
+// Middleware to block test endpoints in production
+const blockInProduction = (req, res, next) => {
+  if (isProduction) {
+    return res.status(403).json({
+      error: "Test endpoints are disabled in production",
+      code: "FORBIDDEN"
+    });
+  }
+  next();
+};
+
 // Test CSRF middleware để kiểm tra token
-app.post("/api/test-csrf-middleware", (req, res) => {
+app.post("/api/test-csrf-middleware", blockInProduction, (req, res) => {
   // Endpoint này đã được bảo vệ bởi middleware CSRF ở trên
   res.json({
     success: true,
@@ -299,7 +323,7 @@ app.post("/api/test-csrf-middleware", (req, res) => {
 });
 
 // Test refresh endpoint without CSRF
-app.post("/api/test-refresh", (req, res) => {
+app.post("/api/test-refresh", blockInProduction, (req, res) => {
   res.json({
     success: true,
     message: "Refresh endpoint test - no CSRF required",
@@ -313,8 +337,15 @@ app.post("/api/test-refresh", (req, res) => {
 
 // Authentication status endpoint
 app.get("/api/auth-status", (req, res) => {
-  const isProduction = process.env.NODE_ENV === "production";
-  
+  // Minimal info in production to prevent cookie structure disclosure
+  if (isProduction) {
+    return res.json({
+      authenticated: !!req.cookies?.accessToken,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Full info in dev/staging
   res.json({
     authenticated: false, // This endpoint doesn't require auth
     timestamp: new Date().toISOString(),
@@ -328,46 +359,34 @@ app.get("/api/auth-status", (req, res) => {
   });
 });
 
-// Test session persistence endpoint
-app.get("/api/test-session-persistence", async (req, res) => {
+// Clear rate limit endpoint (for debugging) - ADMIN ONLY
+app.post("/api/clear-rate-limit", async (req, res) => {
   try {
-    const cookies = req.cookies;
-    const hasAccessToken = !!cookies?.accessToken;
-    const hasRefreshToken = !!cookies?.refreshToken;
+    // Import auth middleware
+    const { authRequired } = await import('./middleware/auth.js');
     
-    res.json({
-      success: true,
-      timestamp: new Date().toISOString(),
-      cookies: {
-        accessToken: hasAccessToken ? "EXISTS" : "MISSING",
-        refreshToken: hasRefreshToken ? "EXISTS" : "MISSING",
-        csrf: !!cookies?._csrf ? "EXISTS" : "MISSING"
-      },
-      cookieNames: Object.keys(cookies || {}),
-      message: "Check if cookies are properly set for session persistence"
+    // Check admin role
+    await new Promise((resolve, reject) => {
+      authRequired(req, res, (err) => {
+        if (err) return reject(err);
+        if (!req.user || req.user.role !== 'admin') {
+          return reject(new Error('Admin access required'));
+        }
+        resolve();
+      });
     });
-  } catch (error) {
-    res.status(500).json({
-      error: "Internal server error",
-      details: error.message
-    });
-  }
-});
 
-// Clear rate limit endpoint (for debugging)
-app.post("/api/clear-rate-limit", (req, res) => {
-  try {
     const { ip } = req.body;
     const targetIP = ip || req.ip;
-    
+
     if (!global.refreshAttempts) {
       global.refreshAttempts = new Map();
     }
-    
+
     const key = `refresh:${targetIP}`;
     const hadLimit = global.refreshAttempts.has(key);
     global.refreshAttempts.delete(key);
-    
+
     res.json({
       success: true,
       message: `Rate limit cleared for IP: ${targetIP}`,
@@ -375,18 +394,18 @@ app.post("/api/clear-rate-limit", (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({
-      error: "Failed to clear rate limit",
-      details: error.message
+    res.status(error.message === 'Admin access required' ? 403 : 500).json({
+      error: error.message || "Failed to clear rate limit",
+      details: process.env.NODE_ENV === 'production' ? undefined : error.message
     });
   }
 });
 
 // Test timeout endpoint
-app.get("/api/test-timeout", (req, res) => {
+app.get("/api/test-timeout", blockInProduction, (req, res) => {
   const delay = parseInt(req.query.delay) || 5000;
   const startTime = Date.now();
-  
+
   setTimeout(() => {
     const duration = Date.now() - startTime;
     res.json({
@@ -399,22 +418,22 @@ app.get("/api/test-timeout", (req, res) => {
 });
 
 // Test token generation endpoint
-app.post("/api/test-token-generation", async (req, res) => {
+app.post("/api/test-token-generation", blockInProduction, async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
       return res.status(400).json({
         error: "Email and password required",
         code: "MISSING_CREDENTIALS"
       });
     }
-    
+
     // Import dependencies
     const User = (await import("./models/User.js")).default;
     const bcrypt = (await import("bcryptjs")).default;
     const { generateTokenPair } = await import("./middleware/jwtSecurity.js");
-    
+
     // Find user
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
@@ -423,19 +442,19 @@ app.post("/api/test-token-generation", async (req, res) => {
         code: "INVALID_CREDENTIALS"
       });
     }
-    
+
     // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({
-        error: "Invalid credentials", 
+        error: "Invalid credentials",
         code: "INVALID_CREDENTIALS"
       });
     }
-    
+
     // Test token generation
     const tokens = await generateTokenPair(user);
-    
+
     res.json({
       success: true,
       user: {
@@ -450,7 +469,7 @@ app.post("/api/test-token-generation", async (req, res) => {
       },
       message: "Token generation test successful"
     });
-    
+
   } catch (error) {
     res.status(500).json({
       error: "Token generation failed",
@@ -462,23 +481,23 @@ app.post("/api/test-token-generation", async (req, res) => {
 });
 
 // Test login endpoint
-app.post("/api/test-login", async (req, res) => {
+app.post("/api/test-login", blockInProduction, async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
       return res.status(400).json({
         error: "Email and password required",
         code: "MISSING_CREDENTIALS"
       });
     }
-    
+
     // Import User model
     const User = (await import("./models/User.js")).default;
     const bcrypt = (await import("bcryptjs")).default;
     const { generateTokenPair } = await import("./middleware/jwtSecurity.js");
     const { buildCookieOptions } = await import("./utils/cookieOptions.js");
-    
+
     // Find user
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
@@ -487,26 +506,26 @@ app.post("/api/test-login", async (req, res) => {
         code: "INVALID_CREDENTIALS"
       });
     }
-    
+
     // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({
-        error: "Invalid credentials", 
+        error: "Invalid credentials",
         code: "INVALID_CREDENTIALS"
       });
     }
-    
+
     // Generate tokens
     const tokens = await generateTokenPair(user);
-    
+
     // Set cookies
     const accessCookieOptions = buildCookieOptions(15 * 60 * 1000);
     const refreshCookieOptions = buildCookieOptions(30 * 24 * 60 * 60 * 1000);
-    
+
     res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
     res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
-    
+
     res.json({
       success: true,
       user: {
@@ -519,7 +538,7 @@ app.post("/api/test-login", async (req, res) => {
       refreshToken: tokens.refreshToken,
       message: "Test login successful"
     });
-    
+
   } catch (error) {
     res.status(500).json({
       error: "Internal server error",
@@ -530,7 +549,7 @@ app.post("/api/test-login", async (req, res) => {
 });
 
 // Test CSRF endpoint
-app.post("/api/test-csrf", (req, res) => {
+app.post("/api/test-csrf", blockInProduction, (req, res) => {
   res.json({
     success: true,
     message: "CSRF test successful!",
@@ -544,6 +563,18 @@ app.post("/api/test-csrf", (req, res) => {
 // CSRF và Session status endpoint
 app.get("/api/csrf-status", (req, res) => {
   const csrfCookie = req.cookies?._csrf;
+
+  // Minimal info in production
+  if (isProduction) {
+    return res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      csrfEnabled: true,
+      csrfCookiePresent: Boolean(csrfCookie)
+    });
+  }
+
+  // Full info in dev/staging
   const preview = csrfCookie ? `${csrfCookie.substring(0, 6)}...` : null;
 
   res.json({
@@ -557,7 +588,7 @@ app.get("/api/csrf-status", (req, res) => {
 });
 
 // CORS preflight test endpoint
-app.options("/api/cors-test", (req, res) => {
+app.options("/api/cors-test", blockInProduction, (req, res) => {
   res.json({
     success: true,
     message: "CORS preflight successful!",
@@ -568,7 +599,7 @@ app.options("/api/cors-test", (req, res) => {
   });
 });
 
-app.post("/api/cors-test", (req, res) => {
+app.post("/api/cors-test", blockInProduction, (req, res) => {
   res.json({
     success: true,
     message: "CORS POST test successful!",
@@ -684,13 +715,31 @@ io.on("connection", async (socket) => {
       // Thông báo cho tất cả bạn bè về trạng thái online
       const user = await User.findById(socket.userId).populate('friends', '_id');
       if (user && user.friends) {
-        user.friends.forEach(friend => {
-          io.to(`user-${friend._id}`).emit('friend-online', {
-            userId: socket.userId,
-            isOnline: true,
-            lastSeen: new Date()
+        //  FIX BLOCKING forEach: Use setImmediate to yield event loop
+        // Batch emit in chunks to prevent blocking
+        const friends = user.friends;
+        const BATCH_SIZE = 50; // Process 50 friends at a time
+
+        for (let i = 0; i < friends.length; i += BATCH_SIZE) {
+          const batch = friends.slice(i, i + BATCH_SIZE);
+
+          // Yield to event loop between batches
+          setImmediate(() => {
+            batch.forEach(friend => {
+              if (friend && friend._id) {
+                try {
+                  io.to(`user-${friend._id}`).emit('friend-online', {
+                    userId: socket.userId,
+                    isOnline: true,
+                    lastSeen: new Date()
+                  });
+                } catch (err) {
+                  // Silent error - don't break the loop
+                }
+              }
+            });
           });
-        });
+        }
       }
     } catch (error) {
       // Error updating user online status
@@ -703,6 +752,15 @@ io.on("connection", async (socket) => {
   socket.on("call-offer", ({ offer, conversationId, isVideo }) => {
     try {
       if (!conversationId || !offer || !offer.type || !offer.sdp) {
+        return;
+      }
+
+      // SECURITY: Only allow if user is authenticated and joined conversation
+      if (!socket.userId) {
+        return;
+      }
+
+      if (!isInConversationRoom(socket, conversationId)) {
         return;
       }
 
@@ -728,6 +786,12 @@ io.on("connection", async (socket) => {
       if (!conversationId) {
         return;
       }
+
+      // SECURITY: Only allow if user is authenticated and joined conversation
+      if (!socket.userId || !isInConversationRoom(socket, conversationId)) {
+        return;
+      }
+
       // Gửi answer về cho caller
       socket.to(`conversation-${conversationId}`).emit("call-answer", {
         answer,
@@ -744,6 +808,12 @@ io.on("connection", async (socket) => {
       if (!conversationId) {
         return;
       }
+
+      // SECURITY: Only allow if user is authenticated and joined conversation
+      if (!socket.userId || !isInConversationRoom(socket, conversationId)) {
+        return;
+      }
+
       // Gửi ICE candidate đến các users khác
       socket.to(`conversation-${conversationId}`).emit("call-candidate", {
         candidate,
@@ -760,6 +830,12 @@ io.on("connection", async (socket) => {
       if (!conversationId) {
         return;
       }
+
+      // SECURITY: Only allow if user is authenticated and joined conversation
+      if (!socket.userId || !isInConversationRoom(socket, conversationId)) {
+        return;
+      }
+
       // Thông báo kết thúc cuộc gọi đến tất cả users trong conversation
       socket.to(`conversation-${conversationId}`).emit("call-end", {
         conversationId
@@ -775,6 +851,16 @@ io.on("connection", async (socket) => {
       if (!userId) {
         return;
       }
+      
+      // SECURITY: Only allow user to join their own room
+      if (!socket.userId || socket.userId.toString() !== userId.toString()) {
+        socket.emit('error', { 
+          code: 'FORBIDDEN', 
+          message: 'Cannot join another user\'s room' 
+        });
+        return;
+      }
+      
       socket.join(`user-${userId}`);
       const userInfo = connectedUsers.get(socket.id);
       if (userInfo) {
@@ -788,6 +874,15 @@ io.on("connection", async (socket) => {
 
   socket.on("join-api-monitoring", () => {
     try {
+      // SECURITY: Only allow admin to join API monitoring room
+      if (!socket.user || socket.user.role !== 'admin') {
+        socket.emit('error', { 
+          code: 'FORBIDDEN', 
+          message: 'Admin access required for API monitoring' 
+        });
+        return;
+      }
+      
       socket.join("api-monitoring");
       const userInfo = connectedUsers.get(socket.id);
       if (userInfo) {
@@ -799,10 +894,38 @@ io.on("connection", async (socket) => {
   });
 
   // Join conversation room để nhận messages real-time
-  socket.on("join-conversation", (conversationId) => {
+  socket.on("join-conversation", async (conversationId) => {
     try {
       if (!conversationId) {
-        return;
+        return socket.emit("conversation-joined", {
+          conversationId,
+          success: false,
+          error: "INVALID_CONVERSATION_ID"
+        });
+      }
+
+      // SECURITY: Require authentication
+      if (!socket.userId) {
+        return socket.emit("conversation-joined", {
+          conversationId,
+          success: false,
+          error: "AUTH_REQUIRED"
+        });
+      }
+
+      // SECURITY: Verify user is participant in conversation
+      const Conversation = (await import("./models/Conversation.js")).default;
+      const conversation = await Conversation.findOne({
+        _id: conversationId,
+        "participants.user": socket.userId
+      }).select("_id");
+
+      if (!conversation) {
+        return socket.emit("conversation-joined", {
+          conversationId,
+          success: false,
+          error: "FORBIDDEN"
+        });
       }
 
       socket.join(`conversation-${conversationId}`);
@@ -822,7 +945,7 @@ io.on("connection", async (socket) => {
       socket.emit("conversation-joined", {
         conversationId,
         success: false,
-        error: error.message
+        error: "INTERNAL_ERROR"
       });
     }
   });
@@ -843,14 +966,50 @@ io.on("connection", async (socket) => {
     }
   });
 
+  // ==================== HELPER FUNCTIONS ====================
+
+  // Helper to check if socket is in conversation room
+  const isInConversationRoom = (socket, conversationId) => {
+    const userInfo = connectedUsers.get(socket.id);
+    return userInfo?.joinedRooms.has(`conversation-${conversationId}`);
+  };
+
   // ==================== POLL REALTIME VOTING ====================
 
   // Join poll room khi user vào xem poll
-  socket.on("join-poll", (pollId) => {
+  socket.on("join-poll", async (pollId) => {
     try {
       if (!pollId) {
         return;
       }
+
+      // SECURITY: Require authentication for polls
+      if (!socket.userId) {
+        return;
+      }
+
+      // SECURITY: Verify user has access to poll's post
+      const Poll = (await import("./models/Poll.js")).default;
+      const Post = (await import("./models/Post.js")).default;
+      
+      const poll = await Poll.findById(pollId).select("post").lean();
+      if (!poll) {
+        return;
+      }
+
+      // Check if post exists and user has access (published or author)
+      const post = await Post.findOne({
+        _id: poll.post,
+        $or: [
+          { status: "published" },
+          { author: socket.userId }
+        ]
+      }).select("_id").lean();
+
+      if (!post) {
+        return;
+      }
+
       socket.join(`poll-${pollId}`);
       const userInfo = connectedUsers.get(socket.id);
       if (userInfo) {
@@ -894,7 +1053,7 @@ io.on("connection", async (socket) => {
           connectedUsers.delete(socket.id);
           return;
         }
-        
+
         await User.findByIdAndUpdate(userInfo.userId, {
           isOnline: false,
           lastSeen: new Date()
@@ -903,15 +1062,29 @@ io.on("connection", async (socket) => {
         // Thông báo cho tất cả bạn bè về trạng thái offline
         const user = await User.findById(userInfo.userId).populate('friends', '_id');
         if (user && user.friends && Array.isArray(user.friends)) {
-          user.friends.forEach(friend => {
-            if (friend && friend._id) {
-              io.to(`user-${friend._id}`).emit('friend-offline', {
-                userId: userInfo.userId,
-                isOnline: false,
-                lastSeen: new Date()
+          //  FIX BLOCKING forEach: Batch emit with setImmediate
+          const friends = user.friends;
+          const BATCH_SIZE = 50;
+
+          for (let i = 0; i < friends.length; i += BATCH_SIZE) {
+            const batch = friends.slice(i, i + BATCH_SIZE);
+
+            setImmediate(() => {
+              batch.forEach(friend => {
+                if (friend && friend._id) {
+                  try {
+                    io.to(`user-${friend._id}`).emit('friend-offline', {
+                      userId: userInfo.userId,
+                      isOnline: false,
+                      lastSeen: new Date()
+                    });
+                  } catch (err) {
+                    // Silent error handling
+                  }
+                }
               });
-            }
-          });
+            });
+          }
         }
       } catch (error) {
         console.error('[ERROR][SOCKET] Error updating user offline status:', error.message);
@@ -923,42 +1096,49 @@ io.on("connection", async (socket) => {
   });
 });
 
+//  FIX BLOCKING setInterval: Wrap heavy operations in setImmediate
 // Periodic cleanup of stale connections
 setInterval(() => {
-  const now = new Date();
-  const staleThreshold = 5 * 60 * 1000; // 5 minutes
+  // Yield to event loop immediately
+  setImmediate(() => {
+    const now = new Date();
+    const staleThreshold = 5 * 60 * 1000; // 5 minutes
 
-  for (const [socketId, userInfo] of connectedUsers.entries()) {
-    if (now - userInfo.connectedAt > staleThreshold) {
-      if (process.env.NODE_ENV === 'development') {
-        // Cleaning up stale connection
+    for (const [socketId, userInfo] of connectedUsers.entries()) {
+      if (now - userInfo.connectedAt > staleThreshold) {
+        if (process.env.NODE_ENV === 'development') {
+          // Cleaning up stale connection
+        }
+        connectedUsers.delete(socketId);
       }
-      connectedUsers.delete(socketId);
     }
-  }
+  });
 }, 60000); // Run every minute
 
 // Memory monitoring and warnings
 setInterval(() => {
-  const memoryUsage = process.memoryUsage();
-  const heapUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
-  const heapTotalMB = Math.round(memoryUsage.heapTotal / 1024 / 1024);
-  const rssMB = Math.round(memoryUsage.rss / 1024 / 1024);
+  // Yield to event loop for non-critical monitoring
+  setImmediate(() => {
+    const memoryUsage = process.memoryUsage();
+    const heapUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+    const heapTotalMB = Math.round(memoryUsage.heapTotal / 1024 / 1024);
+    const rssMB = Math.round(memoryUsage.rss / 1024 / 1024);
 
-  // Log memory stats every 5 minutes (only in development)
-  if (process.env.NODE_ENV === 'development') {
-    // Memory stats logged
-  }
+    // Log memory stats every 5 minutes (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[INFO][MEMORY] Heap: ${heapUsedMB}MB/${heapTotalMB}MB, RSS: ${rssMB}MB, Connected: ${connectedUsers.size}`);
+    }
 
-  // Warning if memory usage is high
-  if (heapUsedMB > 400) { // 400MB threshold
-    // High memory usage detected
-  }
+    // Warning if memory usage is high
+    if (heapUsedMB > 400) { // 400MB threshold
+      console.warn(`[WARN][SERVER] High memory usage: ${heapUsedMB}MB heap used`);
+    }
 
-  // Critical warning if memory usage is very high
-  if (heapUsedMB > 800) { // 800MB threshold
-    console.error(`[ERROR][SERVER] Critical memory usage: ${heapUsedMB}MB heap used - consider restarting`);
-  }
+    // Critical warning if memory usage is very high
+    if (heapUsedMB > 800) { // 800MB threshold
+      console.error(`[ERROR][SERVER] Critical memory usage: ${heapUsedMB}MB heap used - consider restarting`);
+    }
+  });
 }, 5 * 60 * 1000); // Every 5 minutes
 
 // ==================== PROCESS ERROR HANDLERS ====================
@@ -966,10 +1146,19 @@ setInterval(() => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[ERROR][SERVER] Unhandled Rejection at:', promise, 'reason:', reason);
-  // Don't exit process in production, just log the error
-  if (process.env.NODE_ENV !== 'production') {
+  // Exit in all environments to allow process manager (PM2/Docker/k8s) to restart cleanly
+  // This prevents running in corrupted state
+  console.log('[INFO][SERVER] Attempting graceful shutdown after unhandled rejection...');
+  server.close(() => {
+    console.log('[INFO][SERVER] Server closed');
     process.exit(1);
-  }
+  });
+
+  // Force exit if graceful shutdown takes too long
+  setTimeout(() => {
+    console.error('[ERROR][SERVER] Forced shutdown');
+    process.exit(1);
+  }, 10000);
 });
 
 // Handle uncaught exceptions
@@ -992,31 +1181,31 @@ process.on('uncaughtException', (error) => {
 // Handle SIGTERM (e.g., from process managers)
 process.on('SIGTERM', async () => {
   console.log('[INFO][SERVER] SIGTERM received, shutting down gracefully');
-  
+
   // Centralized cleanup - call all cleanup functions
   try {
     // Import cleanup functions
     const { cleanupAPIMonitoring } = await import('./routes/apiMonitoring.js');
     const { cleanupJWTSecurity } = await import('./middleware/jwtSecurity.js');
     const { cleanupSecurityLogging } = await import('./middleware/securityLogging.js');
-    
+
     // Run all cleanups in parallel with error handling
     await Promise.allSettled([
       cleanupAPIMonitoring(),
       Promise.resolve(cleanupJWTSecurity()),
       Promise.resolve(cleanupSecurityLogging())
     ]);
-    
+
     console.log('[INFO][SERVER] All cleanup functions completed');
   } catch (error) {
     console.error('[ERROR][SERVER] Cleanup error:', error.message);
   }
-  
+
   server.close(() => {
     console.log('[INFO][SERVER] Process terminated');
     process.exit(0);
   });
-  
+
   // Force exit if graceful shutdown takes too long
   setTimeout(() => {
     console.error('[ERROR][SERVER] Forced shutdown after timeout');
@@ -1027,29 +1216,29 @@ process.on('SIGTERM', async () => {
 // Handle SIGINT (Ctrl+C)
 process.on('SIGINT', async () => {
   console.log('[INFO][SERVER] SIGINT received, shutting down gracefully');
-  
+
   // Centralized cleanup - call all cleanup functions
   try {
     const { cleanupAPIMonitoring } = await import('./routes/apiMonitoring.js');
     const { cleanupJWTSecurity } = await import('./middleware/jwtSecurity.js');
     const { cleanupSecurityLogging } = await import('./middleware/securityLogging.js');
-    
+
     await Promise.allSettled([
       cleanupAPIMonitoring(),
       Promise.resolve(cleanupJWTSecurity()),
       Promise.resolve(cleanupSecurityLogging())
     ]);
-    
+
     console.log('[INFO][SERVER] All cleanup functions completed');
   } catch (error) {
     console.error('[ERROR][SERVER] Cleanup error:', error.message);
   }
-  
+
   server.close(() => {
     console.log('[INFO][SERVER] Process terminated');
     process.exit(0);
   });
-  
+
   // Force exit if graceful shutdown takes too long
   setTimeout(() => {
     console.error('[ERROR][SERVER] Forced shutdown after timeout');
@@ -1070,7 +1259,7 @@ if (process.env.DISABLE_SERVER_START === "true") {
   }
 
   connectDB(process.env.MONGODB_URI).then(async () => {
-    
+
     // Run API monitoring cleanup after DB connection
     await cleanupInvalidEnvKeys();
 
@@ -1078,7 +1267,7 @@ if (process.env.DISABLE_SERVER_START === "true") {
       console.log(`[INFO][SERVER] Server listening on http://localhost:${PORT}`);
       console.log(`[INFO][SERVER] Network access: http://YOUR_IP:${PORT}`);
       console.log('[INFO][SERVER] Socket.IO ready');
-      
+
       // Log environment info
       if (process.env.NODE_ENV === "production") {
         console.log("[INFO][SERVER] Production server started");
@@ -1092,5 +1281,3 @@ if (process.env.DISABLE_SERVER_START === "true") {
     process.exit(1);
   });
 }
-
-

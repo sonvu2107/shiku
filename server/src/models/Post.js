@@ -56,11 +56,15 @@ const PostSchema = new mongoose.Schema({
 // Compound indexes for common queries
 PostSchema.index({ author: 1, status: 1, createdAt: -1 }); // User posts by status
 PostSchema.index({ group: 1, status: 1, createdAt: -1 }); // Group posts by status
-PostSchema.index({ status: 1, createdAt: -1 }); // All posts by status
+PostSchema.index({ status: 1, createdAt: -1 }); // All posts by status - CRITICAL for feed
 PostSchema.index({ tags: 1, status: 1 }); // Posts by tags
 PostSchema.index({ title: "text", content: "text" }); // Text search
 PostSchema.index({ views: -1, status: 1 }); // Popular posts
 PostSchema.index({ createdAt: -1, status: 1 }); // Recent posts
+
+// ✅ FIX MISSING INDEXES: Additional critical indexes
+PostSchema.index({ status: 1 }); // Fast status filtering
+PostSchema.index({ author: 1, createdAt: -1 }); // User posts timeline
 
 // ==================== MIDDLEWARE/HOOKS ====================
 

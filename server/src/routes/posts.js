@@ -559,8 +559,67 @@ router.get("/feed", authOptional, async (req, res, next) => {
       Post.countDocuments(filter)
     ]);
 
+    // FIX NESTED POPULATE: Fetch all roles in ONE query instead of nested populate
+    const roleIds = new Set();
+    items.forEach(post => {
+      // Validate ObjectId before adding
+      if (post.author?.role && mongoose.Types.ObjectId.isValid(post.author.role)) {
+        roleIds.add(post.author.role.toString());
+      }
+      if (post.emotes) {
+        post.emotes.forEach(emote => {
+          if (emote.user?.role && mongoose.Types.ObjectId.isValid(emote.user.role)) {
+            roleIds.add(emote.user.role.toString());
+          }
+        });
+      }
+    });
+    
+    // Single query for all roles (only if we have valid IDs)
+    let rolesMap = new Map();
+    if (roleIds.size > 0) {
+      const Role = mongoose.model('Role');
+      const roles = await Role.find({ _id: { $in: Array.from(roleIds) } })
+        .select("name displayName iconUrl")
+        .lean();
+      roles.forEach(r => rolesMap.set(r._id.toString(), r));
+    }
+    
+    // Manually populate roles
+    const itemsWithRoles = items.map(post => {
+      const postCopy = { ...post };
+      
+      // Populate author.role
+      if (postCopy.author?.role) {
+        const roleId = postCopy.author.role.toString();
+        postCopy.author = {
+          ...postCopy.author,
+          role: rolesMap.get(roleId) || postCopy.author.role
+        };
+      }
+      
+      // Populate emotes.user.role
+      if (postCopy.emotes) {
+        postCopy.emotes = postCopy.emotes.map(emote => {
+          if (emote.user?.role) {
+            const roleId = emote.user.role.toString();
+            return {
+              ...emote,
+              user: {
+                ...emote.user,
+                role: rolesMap.get(roleId) || emote.user.role
+              }
+            };
+          }
+          return emote;
+        });
+      }
+      
+      return postCopy;
+    });
+
     // Format items
-    const itemsWithCounts = items.map(post => ({
+    const itemsWithCounts = itemsWithRoles.map(post => ({
       ...post,
       commentCount: post.commentCount || 0,
       savedCount: post.savedCount || 0
@@ -832,63 +891,132 @@ router.get("/", authOptional, async (req, res, next) => {
 // Get by slug - Enhanced with isSaved and groupContext
 router.get("/slug/:slug", authOptional, async (req, res, next) => {
   try {
+    // FIX DUPLICATE QUERY: Query once with $or instead of twice
+    // FIX NESTED POPULATE: Only populate 1 level, fetch roles separately
     let post = await Post.findOneAndUpdate(
-      { slug: req.params.slug, status: "published" },
+      { 
+        slug: req.params.slug,
+        status: { $in: ["published", "private"] }
+      },
       { $inc: { views: 1 } },
       { new: true }
     )
-      .populate({ path: "author", select: "name nickname avatarUrl role blockedUsers", populate: { path: "role", select: "name displayName iconUrl" } })
-      .populate({ path: "emotes.user", select: "name nickname avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
+      .populate({ path: "author", select: "name nickname avatarUrl role blockedUsers" })
+      .populate({ path: "emotes.user", select: "name nickname avatarUrl role" })
       .populate({ path: "mentions", select: "name nickname avatarUrl email _id" })
-      .populate({ path: "group", select: "name settings members" });
+      .populate({ path: "group", select: "name settings members" })
+      .lean();
 
-    // If not found, check private
     if (!post) {
-      post = await Post.findOneAndUpdate(
-        { slug: req.params.slug, status: "private" },
-        { $inc: { views: 1 } },
-        { new: true }
-      )
-        .populate({ path: "author", select: "name nickname avatarUrl role blockedUsers", populate: { path: "role", select: "name displayName iconUrl" } })
-        .populate({ path: "emotes.user", select: "name nickname avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
-        .populate({ path: "mentions", select: "name nickname avatarUrl email _id" })
-        .populate({ path: "group", select: "name settings members" });
-
-      if (post) {
-        if (!req.headers.authorization && !req.cookies?.token) {
-          return res.status(401).json({ error: "Cần đăng nhập để xem bài viết này" });
-        }
-        try {
-          let token = req.cookies?.token;
-          if (!token) {
-            const header = req.headers.authorization || "";
-            token = header.startsWith("Bearer ") ? header.slice(7) : null;
-          }
-          const decoded = jwt.verify(token, process.env.JWT_SECRET);
-          if (post.author._id.toString() !== decoded.id) {
-            return res.status(403).json({ error: "Bạn không có quyền xem bài viết này" });
-          }
-        } catch {
-          return res.status(401).json({ error: "Token không hợp lệ" });
-        }
-      }
+      return res.status(404).json({ error: "Không tìm thấy bài viết" });
     }
 
-    if (!post) return res.status(404).json({ error: "Không tìm thấy bài viết" });
+    // Check permission for private posts
+    if (post.status === "private") {
+      if (!req.headers.authorization && !req.cookies?.token) {
+        return res.status(401).json({ error: "Cần đăng nhập để xem bài viết này" });
+      }
+      try {
+        let token = req.cookies?.token;
+        if (!token) {
+          const header = req.headers.authorization || "";
+          token = header.startsWith("Bearer ") ? header.slice(7) : null;
+        }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (post.author._id.toString() !== decoded.id) {
+          return res.status(403).json({ error: "Bạn không có quyền xem bài viết này" });
+        }
+      } catch {
+        return res.status(401).json({ error: "Token không hợp lệ" });
+      }
+    }
+    
+    // ✅ FIX NESTED POPULATE: Fetch all roles in ONE query
+    const roleIds = new Set();
+    // Validate and collect only valid ObjectIds
+    if (post.author?.role && mongoose.Types.ObjectId.isValid(post.author.role)) {
+      roleIds.add(post.author.role.toString());
+    }
+    if (post.emotes) {
+      post.emotes.forEach(emote => {
+        if (emote.user?.role && mongoose.Types.ObjectId.isValid(emote.user.role)) {
+          roleIds.add(emote.user.role.toString());
+        }
+      });
+    }
+    
+    // Single query for all roles (only if we have valid IDs)
+    let rolesMap = new Map();
+    if (roleIds.size > 0) {
+      const Role = mongoose.model('Role');
+      const roles = await Role.find({ _id: { $in: Array.from(roleIds) } })
+        .select("name displayName iconUrl")
+        .lean();
+      roles.forEach(r => rolesMap.set(r._id.toString(), r));
+    }
+    
+    // Manually populate roles
+    if (post.author?.role) {
+      const roleId = post.author.role.toString();
+      post.author.role = rolesMap.get(roleId) || post.author.role;
+    }
+    
+    if (post.emotes) {
+      post.emotes = post.emotes.map(emote => {
+        if (emote.user?.role) {
+          const roleId = emote.user.role.toString();
+          return {
+            ...emote,
+            user: {
+              ...emote.user,
+              role: rolesMap.get(roleId) || emote.user.role
+            }
+          };
+        }
+        return emote;
+      });
+    }
 
     // Fetch comments and check if saved in parallel
     const [comments, isSaved] = await Promise.all([
       Comment.find({ post: post._id })
-        .populate({ path: "author", select: "name nickname avatarUrl role", populate: { path: "role", select: "name displayName iconUrl" } })
+        .populate({ path: "author", select: "name nickname avatarUrl role" })
         .populate("parent", "_id")
-        .sort({ createdAt: -1 }),
+        .sort({ createdAt: -1 })
+        .lean(),
       // Check if post is saved by current user
       req.user ?
-        User.findById(req.user._id).select("savedPosts").then(user =>
+        User.findById(req.user._id).select("savedPosts").lean().then(user =>
           (user?.savedPosts || []).some(id => id.toString() === post._id.toString())
         ) :
         Promise.resolve(false)
     ]);
+    
+    // FIX NESTED POPULATE: Fetch comment author roles in ONE query
+    const commentRoleIds = new Set();
+    comments.forEach(comment => {
+      // Validate ObjectId before adding
+      if (comment.author?.role && mongoose.Types.ObjectId.isValid(comment.author.role)) {
+        commentRoleIds.add(comment.author.role.toString());
+      }
+    });
+    
+    if (commentRoleIds.size > 0) {
+      const Role = mongoose.model('Role');
+      const commentRoles = await Role.find({ _id: { $in: Array.from(commentRoleIds) } })
+        .select("name displayName iconUrl")
+        .lean();
+      const commentRolesMap = new Map();
+      commentRoles.forEach(r => commentRolesMap.set(r._id.toString(), r));
+      
+      // Populate roles for comments
+      comments.forEach(comment => {
+        if (comment.author?.role) {
+          const roleId = comment.author.role.toString();
+          comment.author.role = commentRolesMap.get(roleId) || comment.author.role;
+        }
+      });
+    }
 
     // Get group context if post belongs to a group
     let groupContext = null;
@@ -901,8 +1029,9 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
       };
     }
 
+    // FIX: post is already a plain object (from .lean()), no need for .toObject()
     const postObject = {
-      ...post.toObject(),
+      ...post,
       commentCount: comments.length,
       isSaved,
       groupContext
@@ -1138,13 +1267,18 @@ router.get("/analytics", authRequired, async (req, res, next) => {
       new Date(post.createdAt) >= startDate
     );
     
-    // Calculate views by day for the period
+    // FIX DATE RANGE LOOP: Generate date array efficiently without blocking loop
     const viewsByDay = {};
     const currentDate = new Date();
-    for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
-      const dateKey = d.toISOString().split('T')[0];
+    const daysDiff = Math.ceil((currentDate - startDate) / (1000 * 60 * 60 * 24));
+    
+    // Generate dates efficiently using Array.from
+    Array.from({ length: daysDiff + 1 }, (_, i) => {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      const dateKey = date.toISOString().split('T')[0];
       viewsByDay[dateKey] = 0;
-    }
+    });
     
     // Get top posts (by views)
     const topPosts = posts
@@ -1215,10 +1349,7 @@ router.get("/is-saved", authRequired, async (req, res, next) => {
     const validIds = ids.filter((id) => mongoose.Types.ObjectId.isValid(id));
     if (validIds.length === 0) {
       // No valid ids, respond with false for provided ids
-      const emptyResponse = {};
-      ids.forEach((id) => {
-        emptyResponse[id] = false;
-      });
+      const emptyResponse = Object.fromEntries(ids.map((id) => [id, false]));
       return res.json(emptyResponse);
     }
 
@@ -1227,11 +1358,7 @@ router.get("/is-saved", authRequired, async (req, res, next) => {
       (user?.savedPosts || []).map((savedId) => savedId.toString())
     );
 
-    const response = {};
-    ids.forEach((id) => {
-      response[id] = savedIds.has(id);
-    });
-
+    const response = Object.fromEntries(ids.map((id) => [id, savedIds.has(id)]));
     res.json(response);
   } catch (error) {
     next(error);

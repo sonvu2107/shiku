@@ -253,8 +253,9 @@ tempRouter.post("/heartbeat", async (req, res, next) => {
       return res.status(401).json({ error: "Token không hợp lệ" });
     }
     
-    // Update last seen
+    // Update last seen AND online status
     user.lastSeen = new Date();
+    user.isOnline = true; // Ensure user is marked as online when sending heartbeat
     await user.save();
     
     res.json({

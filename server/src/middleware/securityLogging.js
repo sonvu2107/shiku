@@ -369,29 +369,39 @@ export const unauthorizedAccessLogger = (req, res, next) => {
 /**
  * Cleanup old log files (older than 30 days)
  */
-export const cleanupOldLogs = () => {
+export const cleanupOldLogs = async () => {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  
-  fs.readdir(logsDir, (err, files) => {
-    if (err) return;
-    
-    files.forEach(file => {
-      if (file.startsWith('security-') && file.endsWith('.log')) {
-        const filePath = path.join(logsDir, file);
-        const stats = fs.statSync(filePath);
-        
-        if (stats.mtime < thirtyDaysAgo) {
-          fs.unlinkSync(filePath);
-          console.log(`🗑️ Deleted old log file: ${file}`);
-        }
+
+  try {
+    const files = await fs.promises.readdir(logsDir);
+    await Promise.all(files.map(async (file) => {
+      if (!file.startsWith('security-') || !file.endsWith('.log')) return;
+
+      const filePath = path.join(logsDir, file);
+      const stats = await fs.promises.stat(filePath);
+
+      if (stats.mtime < thirtyDaysAgo) {
+        await fs.promises.unlink(filePath);
+        console.log(`[INFO][SECURITY-LOGGING] Deleted old log file: ${file}`);
       }
-    });
-  });
+    }));
+  } catch (err) {
+    console.error('[ERROR][SECURITY-LOGGING] Failed to cleanup logs:', err.message);
+  }
 };
 
-// Cleanup old logs mỗi ngày
-const securityLogsCleanupInterval = setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000);
+let securityLogsCleanupRunning = false;
+// Cleanup old logs mỗi ngày, yielding to the event loop and skipping overlaps
+const securityLogsCleanupInterval = setInterval(() => setImmediate(async () => {
+  if (securityLogsCleanupRunning) return;
+  securityLogsCleanupRunning = true;
+  try {
+    await cleanupOldLogs();
+  } finally {
+    securityLogsCleanupRunning = false;
+  }
+}), 24 * 60 * 60 * 1000);
 
 // Cleanup function for graceful shutdown (called by main server)
 export const cleanupSecurityLogging = () => {

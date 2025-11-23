@@ -374,7 +374,7 @@ export default function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/terms" element={<Terms />} />
-            <Route path="/support" element={<Support />} />
+            <Route path="/support" element={<Support user={user} />} />
           </Routes>
         </Suspense>
       ) : location.pathname === "/chat" ? (
@@ -432,7 +432,7 @@ export default function App() {
               
               {/* Các trang khác */}
               <Route path="/settings" element={<ProtectedRoute user={user}><Settings /></ProtectedRoute>} />
-              <Route path="/support" element={<ProtectedRoute user={user}><Support /></ProtectedRoute>} />
+              <Route path="/support" element={<ProtectedRoute user={user}><Support user={user} /></ProtectedRoute>} />
               
               {/* Auth pages - cần có ở cả 2 nhánh để đảm bảo luôn match (bất kể đã đăng nhập hay chưa) */}
               <Route path="/login" element={<Login setUser={setUser} />} />

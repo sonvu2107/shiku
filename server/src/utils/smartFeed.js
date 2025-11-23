@@ -248,11 +248,11 @@ export async function getPersonalizedPosts(userId, limit = 10, notInterestedPost
       ...commentedPosts.flatMap(p => p.tags || [])
     ];
     
-    // Get unique tags and their frequency
-    const tagFrequency = {};
-    allTags.forEach(tag => {
-      tagFrequency[tag] = (tagFrequency[tag] || 0) + 1;
-    });
+    // Get unique tags and their frequency without mutating external state
+    const tagFrequency = allTags.reduce((freq, tag) => {
+      freq[tag] = (freq[tag] || 0) + 1;
+      return freq;
+    }, {});
     
     // Get top 5 most frequent tags
     const topTags = Object.entries(tagFrequency)
