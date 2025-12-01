@@ -9,11 +9,8 @@
     "start:prod": "NODE_ENV=production node src/index.js",
     "dev": "nodemon src/index.js",
     "dev:prod": "NODE_ENV=production nodemon src/index.js",
-    "init-roles": "node scripts/initRoles.js",
-    "create-admin": "node scripts/createAdmin.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
-    "build": "echo 'No build step required for Node.js'",
-    "postinstall": "npm run init-roles"
+    "build": "echo 'No build step required for Node.js'"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
