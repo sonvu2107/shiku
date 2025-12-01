@@ -979,13 +979,27 @@ router.get("/stats", async (req, res, next) => {
  */
 router.post("/fix-realms", async (req, res, next) => {
   try {
+    console.log("[FIX-REALMS] Starting...");
+    console.log("[FIX-REALMS] req.user:", req.user ? { id: req.user._id, role: req.user.role, name: req.user.name } : "null");
+    
+    // Kiểm tra quyền admin
+    if (!req.user || req.user.role !== 'admin') {
+      console.log("[FIX-REALMS] Access denied - not admin");
+      return res.status(403).json({
+        success: false,
+        error: "Chỉ admin mới có quyền sử dụng chức năng này"
+      });
+    }
+
+    console.log("[FIX-REALMS] Admin verified, fetching cultivations...");
+    
     // Lấy tất cả cultivation records
     const cultivations = await Cultivation.find().populate('user', 'name');
     let fixed = 0;
     const details = [];
     
     console.log(`[FIX-REALMS] Found ${cultivations.length} cultivation records`);
-    console.log(`[FIX-REALMS] CULTIVATION_REALMS:`, CULTIVATION_REALMS.map(r => ({ level: r.level, name: r.name, minExp: r.minExp })));
+    console.log(`[FIX-REALMS] CULTIVATION_REALMS count:`, CULTIVATION_REALMS?.length || 0);
     
     for (const cult of cultivations) {
       // Debug: tính realm thủ công
