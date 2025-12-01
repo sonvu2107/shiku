@@ -1,7 +1,7 @@
 import React from "react";
 
 /**
- * EventCardSkeleton - Skeleton loader cho Event card
+ * EventCardSkeleton - Skeleton loader for Event card
  */
 export default function EventCardSkeleton() {
   return (

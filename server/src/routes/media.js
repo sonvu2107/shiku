@@ -1,7 +1,18 @@
+/**
+ * Media Routes
+ * 
+ * Routes xử lý các thao tác liên quan đến media (ảnh, video):
+ * - Lấy danh sách media với phân trang và tìm kiếm
+ * - Upload media
+ * - Xóa media
+ * - Quản lý media của user
+ * 
+ * @module media
+ */
+
 import express from 'express';
 import Media from '../models/Media.js';
 import { authRequired } from '../middleware/auth.js';
-// Cache utilities imported but using custom cache for media
 
 const router = express.Router();
 

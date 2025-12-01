@@ -7,7 +7,7 @@ import { PROFILE_MESSAGES } from "../../constants/profile";
 import { api } from "../../api";
 
 /**
- * FriendsTab - Component hiển thị tab Bạn bè
+ * FriendsTab - Component showing Friends tab in user profile
  */
 export default function FriendsTab({
   friends,
@@ -50,9 +50,9 @@ export default function FriendsTab({
               </div>
             </div>
 
-            {/* Nút hành động */}
+            {/* Action buttons */}
             <div className="flex gap-2">
-              {/* Badge đã kết bạn (vì đây là profile của chính mình, tất cả đều là bạn bè) */}
+              {/* Friend badge (since this is the user's own profile, all are friends) */}
               <button
                 onClick={async (e) => {
                   e.stopPropagation();
@@ -60,7 +60,7 @@ export default function FriendsTab({
                     try {
                       setRemovingFriendId(friend._id);
                       await api(`/api/friends/remove/${friend._id}`, { method: "DELETE" });
-                      // Gọi callback để reload friends
+                      // Call callback to reload friends
                       if (onRemoveFriend) {
                         onRemoveFriend();
                       }
@@ -77,7 +77,7 @@ export default function FriendsTab({
                 <UserCheck size={16} /> {removingFriendId === friend._id ? "Đang xử lý..." : "Đã kết bạn"}
               </button>
               
-              {/* Nút nhắn tin */}
+              {/* Message button */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();

@@ -2,30 +2,31 @@ import { MessageCircle, UserMinus, Circle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import MessageButton from "./MessageButton";
 import UserName from "./UserName";
+import UserAvatar from "./UserAvatar";
 
 /**
- * FriendCard - Component hiển thị thông tin bạn bè
- * Bao gồm avatar, tên, trạng thái online và các action buttons
- * @param {Object} friend - Thông tin bạn bè
- * @param {string} friend._id - ID của bạn bè
- * @param {string} friend.name - Tên hiển thị
- * @param {string} friend.avatarUrl - URL avatar
- * @param {boolean} friend.isOnline - Trạng thái online
- * @param {string} friend.lastSeen - Thời gian hoạt động cuối
- * @param {Function} onRemoveFriend - Callback khi hủy kết bạn
- * @param {boolean} showOnlineStatus - Hiển thị trạng thái online (default: true)
+ * FriendCard - Component show friend information
+ * Includes avatar, name, online status, and action buttons
+ * @param {Object} friend - Friend information
+ * @param {string} friend._id - Friend's ID
+ * @param {string} friend.name - Display name
+ * @param {string} friend.avatarUrl - Avatar URL
+ * @param {boolean} friend.isOnline - Online status
+ * @param {string} friend.lastSeen - Last active time
+ * @param {Function} onRemoveFriend - Callback when removing friend
+ * @param {boolean} showOnlineStatus - Show online status (default: true)
  */
 export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = true }) {
   const navigate = useNavigate();
   
-  // Hàm tính toán thời gian hoạt động cuối
+  // Function to calculate last active time text
   const getLastSeenText = (lastSeen) => {
     if (!lastSeen) return 'Chưa có thông tin';
 
     const now = new Date();
     const lastSeenDate = new Date(lastSeen);
 
-    // Kiểm tra lastSeenDate có hợp lệ không
+    // Check if lastSeenDate is valid
     if (isNaN(lastSeenDate.getTime())) return 'Chưa có thông tin';
 
     const diffMs = now - lastSeenDate;
@@ -38,7 +39,7 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
     if (diffHours < 24) return `${diffHours} giờ trước`;
     if (diffDays < 7) return `${diffDays} ngày trước`;
     
-    // Nếu quá 7 ngày, hiển thị ngày tháng
+    // If more than 7 days, display date
     return `Hoạt động ${lastSeenDate.toLocaleDateString('vi-VN')}`;
   };
   
@@ -48,16 +49,29 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
       <div className="flex items-center gap-2 sm:gap-3">
         <div className="relative flex-shrink-0">
           {/* Avatar với click để xem profile */}
-          <img
-            src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=cccccc&color=222222&size=64`}
-            alt="avatar"
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 cursor-pointer hover:opacity-80 transition-opacity"
+          <div 
+            className="cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => navigate(`/user/${friend._id}`)}
-          />
+          >
+            <UserAvatar 
+              user={friend}
+              size={48}
+              showFrame={true}
+              showBadge={true}
+              className="hidden sm:block"
+            />
+            <UserAvatar 
+              user={friend}
+              size={40}
+              showFrame={true}
+              showBadge={true}
+              className="sm:hidden"
+            />
+          </div>
           
           {/* Online status indicator */}
           {showOnlineStatus && (
-            <div className="absolute -bottom-1 -right-1">
+            <div className="absolute -bottom-1 -right-1 z-20">
               <Circle 
                 size={12} 
                 className={`sm:w-4 sm:h-4 ${
@@ -70,7 +84,7 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
           )}
         </div>
         
-        {/* Thông tin tên và trạng thái */}
+        {/* Name and status information */}
         <div className="flex-1 min-w-0">
           <Link 
             to={`/user/${friend._id}`}

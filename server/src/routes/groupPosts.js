@@ -72,7 +72,7 @@ router.get("/:groupId/posts", authRequired, async (req, res, next) => {
       savedCounts.map(c => [c._id.toString(), c.count])
     );
     
-    // ✅ FIX N+1: Collect ALL user IDs from ALL posts FIRST
+    // FIX N+1: Collect ALL user IDs from ALL posts FIRST
     const allEmoteUserIds = new Set();
     posts.forEach(post => {
       if (post.emotes && Array.isArray(post.emotes)) {
@@ -95,16 +95,16 @@ router.get("/:groupId/posts", authRequired, async (req, res, next) => {
       }
     });
     
-    // ✅ SINGLE QUERY for all users across all posts
+    // SINGLE QUERY for all users across all posts
     let globalUserMap = new Map();
     if (allEmoteUserIds.size > 0) {
       const allUsers = await User.find({ _id: { $in: Array.from(allEmoteUserIds) } })
-        .select("name nickname avatarUrl role")
+        .select("name nickname avatarUrl role cultivationCache displayBadgeType")
         .lean();
       allUsers.forEach(u => globalUserMap.set(u._id.toString(), u));
     }
     
-    // ✅ Map posts with no additional queries
+    // Map posts with no additional queries
     const itemsWithCommentCount = posts.map(post => {
       const postObj = post.toObject();
       const commentCount = commentCountMap.get(post._id.toString()) || 0;

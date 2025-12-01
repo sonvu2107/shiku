@@ -17,57 +17,57 @@ import { chatbotAPI } from "../services/chatbotAPI";
 import { useToast } from "../components/Toast";
 
 /**
- * Chat - Trang chat chính với real-time messaging
- * Bao gồm danh sách cuộc trò chuyện, cửa sổ chat và các modals
- * @returns {JSX.Element} Component chat page
+ * Chat - Main chat page with real-time messaging
+ * Includes conversation list, chat window and related modals
+ * @returns {JSX.Element} Chat page component
  */
 export default function Chat() {
   // ==================== ROUTER & LOCATION ====================
   
-  const location = useLocation(); // Để handle state từ MessageButton
+  const location = useLocation(); // To handle state passed from `MessageButton`
   const { showInfo } = useToast();
   
   // ==================== STATE MANAGEMENT ====================
   
   // Conversations
-  const [conversations, setConversations] = useState([]); // Danh sách cuộc trò chuyện
-  const [selectedConversation, setSelectedConversation] = useState(null); // Cuộc trò chuyện đang chọn
+  const [conversations, setConversations] = useState([]); // List of conversations
+  const [selectedConversation, setSelectedConversation] = useState(null); // Currently selected conversation
   
   // Messages
-  const [messages, setMessages] = useState([]); // Tin nhắn trong cuộc trò chuyện hiện tại
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false); // Loading tin nhắn
-  const [hasMoreMessages, setHasMoreMessages] = useState(false); // Có thêm tin nhắn để load
-  const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại cho pagination
+  const [messages, setMessages] = useState([]); // Messages for the current conversation
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false); // Loading messages flag
+  const [hasMoreMessages, setHasMoreMessages] = useState(false); // Whether more messages are available to load
+  const [currentPage, setCurrentPage] = useState(1); // Current page number for pagination
   
   // Modals
-  const [showNewConversationModal, setShowNewConversationModal] = useState(false); // Modal tạo cuộc trò chuyện mới
-  const [showAddMembersModal, setShowAddMembersModal] = useState(false); // Modal thêm thành viên
+  const [showNewConversationModal, setShowNewConversationModal] = useState(false); // New conversation modal
+  const [showAddMembersModal, setShowAddMembersModal] = useState(false); // Add members modal
   
   // Call states
-  const [callOpen, setCallOpen] = useState(false); // Modal cuộc gọi đang diễn ra
-  const [isVideoCall, setIsVideoCall] = useState(true); // Loại cuộc gọi (video/voice)
-  const [incomingCall, setIncomingCall] = useState(null); // Cuộc gọi đến
-  const [incomingOffer, setIncomingOffer] = useState(null); // Offer từ người gọi
-  const [remoteUser, setRemoteUser] = useState(null); // Thông tin người dùng đối phương (1-1)
-  const [groupParticipants, setGroupParticipants] = useState([]); // Danh sách participants trong group call
-  const [isGroupCall, setIsGroupCall] = useState(false); // Có phải group call không
+  const [callOpen, setCallOpen] = useState(false); // Is a call modal open
+  const [isVideoCall, setIsVideoCall] = useState(true); // Call type: video or voice
+  const [incomingCall, setIncomingCall] = useState(null); // Incoming call data
+  const [incomingOffer, setIncomingOffer] = useState(null); // Incoming WebRTC offer
+  const [remoteUser, setRemoteUser] = useState(null); // Remote user's info (1-1 call)
+  const [groupParticipants, setGroupParticipants] = useState([]); // Participants in a group call
+  const [isGroupCall, setIsGroupCall] = useState(false); // Whether it's a group call
   
   // Online status tracking
-  const [userOnlineStatus, setUserOnlineStatus] = useState({}); // Map user ID -> online status
+  const [userOnlineStatus, setUserOnlineStatus] = useState({}); // Map: user ID -> online status
   
   // User & Loading
-  const [currentUser, setCurrentUser] = useState(null); // User hiện tại
-  const [isLoading, setIsLoading] = useState(true); // Loading conversations
+  const [currentUser, setCurrentUser] = useState(null); // Current logged-in user
+  const [isLoading, setIsLoading] = useState(true); // Loading state for conversations
   
   // Mobile view state
-  const [showChatWindow, setShowChatWindow] = useState(false); // Hiển thị chat window trên mobile
+  const [showChatWindow, setShowChatWindow] = useState(false); // Whether to show chat window on mobile
 
   useEffect(() => {
     loadCurrentUser();
     loadConversations();
   }, []);
 
-  // Xử lý incoming calls - setup listener sau khi user và socket đã sẵn sàng
+  // Handle incoming calls - setup listener after user and socket are ready
   useEffect(() => {
     // Chỉ setup listener khi đã có currentUser và socket
     if (!currentUser || !socketService.socket) {

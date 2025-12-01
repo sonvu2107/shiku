@@ -5,10 +5,11 @@ import { motion } from "framer-motion";
 import ModernPostCard from "../components/ModernPostCard";
 import { useSavedPosts } from "../hooks/useSavedPosts";
 import { generateAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
+import UserAvatar, { UserTitle, UserBadge } from "../components/UserAvatar";
 import { cn } from "../utils/cn";
 import {
   MapPin, Link as LinkIcon, Calendar as CalendarIcon, Heart, Users, FileText,
-  MessageCircle, UserPlus, UserMinus, UserCheck, MoreHorizontal, Phone, Ban, Shield
+  MessageCircle, UserPlus, UserMinus, UserCheck, MoreHorizontal, Phone, Ban, Shield, Sparkles
 } from "lucide-react";
 
 // --- UI COMPONENTS (Đồng bộ với Profile) ---
@@ -323,13 +324,31 @@ export default function UserProfile() {
               <motion.div 
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full border-4 md:border-[6px] border-white dark:border-black overflow-hidden bg-neutral-200 dark:bg-neutral-800 shadow-2xl"
               >
-                 <img 
-                    src={user.avatarUrl || generateAvatarUrl(user.name, AVATAR_SIZES.XLARGE)} 
-                    alt={user.name}
-                      className="w-full h-full object-cover"
-                    />
+                <UserAvatar 
+                  user={user}
+                  size={160}
+                  showFrame={true}
+                  showBadge={true}
+                  showTitle={false}
+                  className="hidden md:block border-4 md:border-[6px] border-white dark:border-black rounded-full shadow-2xl"
+                />
+                <UserAvatar 
+                  user={user}
+                  size={128}
+                  showFrame={true}
+                  showBadge={true}
+                  showTitle={false}
+                  className="hidden sm:block md:hidden border-4 border-white dark:border-black rounded-full shadow-2xl"
+                />
+                <UserAvatar 
+                  user={user}
+                  size={112}
+                  showFrame={true}
+                  showBadge={true}
+                  showTitle={false}
+                  className="sm:hidden border-4 border-white dark:border-black rounded-full shadow-2xl"
+                />
               </motion.div>
                       </div>
 
@@ -343,12 +362,28 @@ export default function UserProfile() {
                   >
                      {user.name}
                   </motion.h1>
-                  {user.role && user.role !== "user" && (
-                      <span className="px-3 py-1 bg-neutral-900 dark:bg-white text-white dark:text-black text-xs font-bold rounded-full uppercase tracking-wider">
-                        {user.role}
-                      </span>
+                  {/* Hiển thị role hoặc cảnh giới tùy theo lựa chọn công khai */}
+                  {user.displayBadgeType === 'cultivation' ? (
+                     // Hiển thị cảnh giới tu tiên
+                     user.cultivationCache?.realmName && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-full text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                           <Sparkles size={12} />
+                           {user.cultivationCache.realmName}
+                           {user.cultivationCache.realmLevel > 1 && ` T${user.cultivationCache.realmLevel}`}
+                        </span>
+                     )
+                  ) : (
+                     // Hiển thị role (mặc định)
+                     user.role && user.role !== "user" && (
+                        <span className="px-3 py-1 bg-neutral-900 dark:bg-white text-white dark:text-black text-xs font-bold rounded-full uppercase tracking-wider">
+                           {user.role}
+                        </span>
+                     )
                   )}
+                  {/* Danh hiệu tu tiên */}
+                  <UserTitle user={user} className="text-sm" />
                </div>
+               
                {user.nickname && (
                   <p className="text-neutral-500 dark:text-neutral-400 text-lg font-medium mb-4">{user.nickname}</p>
                )}
@@ -594,26 +629,36 @@ export default function UserProfile() {
                       return (
                         <SpotlightCard key={friend._id} className="p-4">
                           <div className="flex items-center gap-4 mb-3">
-                             <img 
-                                src={friend.avatarUrl || generateAvatarUrl(friend.name)} 
-                                className="w-12 h-12 rounded-full bg-neutral-200 cursor-pointer hover:opacity-80 transition-opacity" 
-                                alt=""
+                             <div 
+                                className="cursor-pointer hover:opacity-80 transition-opacity"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   navigate(`/user/${friend._id}`);
                                 }}
-                             />
+                             >
+                                <UserAvatar 
+                                   user={friend} 
+                                   size={48} 
+                                   showFrame={true} 
+                                   showBadge={true} 
+                                />
+                             </div>
                              <div className="flex-1 min-w-0">
                                 <div 
-                                   className="font-bold cursor-pointer hover:text-blue-500 transition-colors truncate"
+                                   className="font-bold cursor-pointer hover:text-blue-500 transition-colors truncate flex items-center gap-2"
                                    onClick={(e) => {
                                       e.stopPropagation();
                                       navigate(`/user/${friend._id}`);
                                    }}
                                 >
                                    {friend.name}
+                                   <UserTitle user={friend} />
                                 </div>
-                                <div className="text-xs text-neutral-500 uppercase font-bold tracking-wider">
+                                <div className="text-xs text-neutral-500 uppercase font-bold tracking-wider flex items-center gap-2">
+                                   <span className={cn(
+                                      "w-2 h-2 rounded-full",
+                                      friend.isOnline ? "bg-green-500" : "bg-neutral-400"
+                                   )} />
                                    {friend.isOnline ? "Online" : "Offline"}
                                 </div>
                             </div>

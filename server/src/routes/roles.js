@@ -1,3 +1,15 @@
+/**
+ * Roles Routes
+ * 
+ * Routes xử lý các thao tác liên quan đến roles (vai trò):
+ * - Lấy danh sách roles (public và admin)
+ * - Tạo, sửa, xóa roles
+ * - Gán role cho user
+ * - Upload icon cho role
+ * 
+ * @module roles
+ */
+
 import express from "express";
 import { authRequired } from "../middleware/auth.js";
 import Role from "../models/Role.js";
@@ -348,7 +360,7 @@ router.get("/:id/users", authRequired, adminRequired, async (req, res, next) => 
     }
     
     const users = await User.find({ role: role.name })
-      .select('name email avatarUrl createdAt')
+      .select('name email avatarUrl createdAt cultivationCache displayBadgeType')
       .sort({ createdAt: -1 })
       .limit(50); // Giới hạn 50 user để tránh quá tải
     

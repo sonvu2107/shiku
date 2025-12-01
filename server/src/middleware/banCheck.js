@@ -1,6 +1,23 @@
+/**
+ * Ban Check Middleware
+ * 
+ * Kiểm tra trạng thái ban của user và tự động unban khi hết hạn.
+ * 
+ * @module banCheck
+ */
+
 import User from "../models/User.js";
 
-// Middleware để kiểm tra nếu user bị cấm
+/**
+ * Middleware kiểm tra trạng thái ban của user
+ * 
+ * - Tự động unban nếu thời gian ban đã hết
+ * - Trả về lỗi 403 nếu user vẫn bị ban
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
+ */
 export const checkBanStatus = async (req, res, next) => {
   try {
     if (!req.user) return next();
@@ -8,7 +25,6 @@ export const checkBanStatus = async (req, res, next) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ error: "Người dùng không tồn tại" });
     
-    // Auto-unban nếu thời gian ban đã hết
     if (user.isBanned && user.banExpiresAt && new Date() >= user.banExpiresAt) {
       user.isBanned = false;
       user.banReason = "";
@@ -19,7 +35,6 @@ export const checkBanStatus = async (req, res, next) => {
       return next();
     }
     
-    // Kiểm tra nếu vẫn bị cấm
     if (user.isCurrentlyBanned()) {
       const remainingMinutes = user.getRemainingBanTime();
       const banMessage = remainingMinutes === -1 

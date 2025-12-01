@@ -1,7 +1,12 @@
 /**
- * Temporary auth endpoints for development
- * Cac endpoint tam thoi cho viec phat trien
+ * Temporary Auth Endpoints
+ * 
+ * Các endpoint tạm thời cho việc phát triển và tương thích ngược.
+ * Endpoints này trả về token trong response body (legacy behavior).
+ * 
+ * @module auth-token
  */
+
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -20,25 +25,18 @@ const accessCookieOptions = buildCookieOptions(ACCESS_TOKEN_MAX_AGE);
 const refreshCookieOptions = buildCookieOptions(REFRESH_TOKEN_MAX_AGE);
 
 /**
- * Tao JWT token cho user
- * @param {Object} user - User object
- * @returns {string} JWT token
- */
-function sign(user) {
-  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
-}
-
-/**
- * POST /login-token - Dang nhap va tra ve token
- * Endpoint tam thoi cho viec phat trien
- * @param {string} req.body.email - Email dang nhap
- * @param {string} req.body.password - Mat khau
- * @returns {Object} User info va JWT token
+ * POST /login-token - Đăng nhập và trả về token
+ * 
+ * Endpoint tạm thời cho tương thích ngược.
+ * Trả về access token trong response body (legacy behavior).
+ * 
+ * @param {string} req.body.email - Email đăng nhập
+ * @param {string} req.body.password - Mật khẩu
+ * @returns {Object} Thông tin user và JWT token
  */
 tempRouter.post("/login-token", async (req, res, next) => {
   const startTime = Date.now();
   try {
-    
     const { email, password } = req.body;
     
     if (!email || !password) {
@@ -54,10 +52,7 @@ tempRouter.post("/login-token", async (req, res, next) => {
     if (!ok) {
       return res.status(401).json({ error: "Email hoặc mật khẩu không đúng!" });
     }
-    
-    
-    // DEPRECATED: This endpoint is for backward compatibility only
-    // Clear old 'token' cookie if exists (from previous auth system)
+
     res.clearCookie("token", buildCookieOptions(0));
 
     const tokens = await generateTokenPair(user);
@@ -82,13 +77,10 @@ tempRouter.post("/login-token", async (req, res, next) => {
         lastSeen: user.lastSeen
       },
       token: tokens.accessToken,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken
+      accessToken: tokens.accessToken
     };
     
     const duration = Date.now() - startTime;
-    
-    // Reset rate limit for this IP after successful login
     resetRateLimit(req.ip);
     
     res.json(response);
@@ -100,17 +92,20 @@ tempRouter.post("/login-token", async (req, res, next) => {
 });
 
 /**
- * POST /register-token - Dang ky va tra ve token
- * Endpoint tam thoi cho viec phat trien
- * @param {string} req.body.name - Ten nguoi dung
- * @param {string} req.body.email - Email dang ky
- * @param {string} req.body.password - Mat khau
- * @returns {Object} User info va JWT token
+ * POST /register-token - Đăng ký và trả về token
+ * 
+ * Endpoint tạm thời cho tương thích ngược.
+ * Trả về access token trong response body (legacy behavior).
+ * 
+ * @param {string} req.body.name - Tên người dùng
+ * @param {string} req.body.email - Email đăng ký
+ * @param {string} req.body.password - Mật khẩu
+ * @param {string} req.body.dateOfBirth - Ngày sinh (tùy chọn)
+ * @returns {Object} Thông tin user và JWT token
  */
 tempRouter.post("/register-token", async (req, res, next) => {
   const startTime = Date.now();
   try {
-    
     const { name, email, password, dateOfBirth } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ error: "Vui lòng điền đầy đủ thông tin!" });
@@ -137,8 +132,6 @@ tempRouter.post("/register-token", async (req, res, next) => {
     
     const user = await User.create(userData);
     
-    // DEPRECATED: This endpoint is for backward compatibility only
-    // Clear old 'token' cookie if exists (from previous auth system)
     res.clearCookie("token", buildCookieOptions(0));
 
     const tokens = await generateTokenPair(user);
@@ -163,13 +156,10 @@ tempRouter.post("/register-token", async (req, res, next) => {
         lastSeen: user.lastSeen
       },
       token: tokens.accessToken,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken
+      accessToken: tokens.accessToken
     };
     
     const duration = Date.now() - startTime;
-    
-    // Reset rate limit for this IP after successful registration
     resetRateLimit(req.ip);
     
     res.status(201).json(response);
@@ -182,11 +172,13 @@ tempRouter.post("/register-token", async (req, res, next) => {
 
 /**
  * GET /me - Lấy thông tin user hiện tại
- * @returns {Object} User info
+ * 
+ * Endpoint tạm thời, sử dụng token từ cookie hoặc header.
+ * 
+ * @returns {Object} Thông tin user
  */
 tempRouter.get("/me", async (req, res, next) => {
   try {
-    // Lấy token từ cookie hoặc header
     let token = req.cookies?.token;
     if (!token) {
       const header = req.headers.authorization || "";
@@ -197,7 +189,6 @@ tempRouter.get("/me", async (req, res, next) => {
       return res.status(401).json({ error: "Vui lòng đăng nhập" });
     }
     
-    // Verify JWT token
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(payload.id).select("-password");
     
@@ -230,11 +221,13 @@ tempRouter.get("/me", async (req, res, next) => {
 
 /**
  * POST /heartbeat - Heartbeat endpoint
- * @returns {Object} Heartbeat status
+ * 
+ * Cập nhật trạng thái online và lastSeen của user.
+ * 
+ * @returns {Object} Trạng thái heartbeat
  */
 tempRouter.post("/heartbeat", async (req, res, next) => {
   try {
-    // Lấy token từ cookie hoặc header
     let token = req.cookies?.token;
     if (!token) {
       const header = req.headers.authorization || "";
@@ -245,7 +238,6 @@ tempRouter.post("/heartbeat", async (req, res, next) => {
       return res.status(401).json({ error: "Vui lòng đăng nhập" });
     }
     
-    // Verify JWT token
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(payload.id);
     
@@ -253,9 +245,8 @@ tempRouter.post("/heartbeat", async (req, res, next) => {
       return res.status(401).json({ error: "Token không hợp lệ" });
     }
     
-    // Update last seen AND online status
     user.lastSeen = new Date();
-    user.isOnline = true; // Ensure user is marked as online when sending heartbeat
+    user.isOnline = true;
     await user.save();
     
     res.json({

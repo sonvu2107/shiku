@@ -1,14 +1,21 @@
+/**
+ * Events Routes
+ * 
+ * Routes xử lý các thao tác liên quan đến sự kiện (events):
+ * - Tạo, sửa, xóa sự kiện
+ * - Lấy danh sách sự kiện (upcoming, past, my events)
+ * - Tham gia, hủy tham gia sự kiện
+ * - Tìm kiếm sự kiện
+ * 
+ * @module events
+ */
+
 import express from 'express';
 import Event from '../models/Event.js';
 import User from '../models/User.js';
 import { authRequired, authOptional } from '../middleware/auth.js';
 
 const router = express.Router();
-
-/**
- * Events Routes - API routes cho chức năng sự kiện
- * Bao gồm CRUD operations và quản lý sự kiện
- */
 
 /**
  * @route   GET /api/events

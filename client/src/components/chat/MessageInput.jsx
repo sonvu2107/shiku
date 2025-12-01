@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Send, Image, Smile, X } from "lucide-react";
 
 /**
- * Danh sách emoji để chọn trong chat
+ * List of emojis to choose from in chat message input
  */
 const EMOTES = [
   '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
@@ -24,23 +24,22 @@ const EMOTES = [
 ];
 
 /**
- * MessageInput - Component input để gửi tin nhắn
- * Hỗ trợ gửi text, emoji, hình ảnh với preview
- * @param {Function} onSendMessage - Callback khi gửi tin nhắn
+ * MessageInput - Component input to send chat messages
+ * Supports sending text, emoji, and images with preview
+ * @param {Function} onSendMessage - Callback when sending a message
  */
 export default function MessageInput({ onSendMessage }) {
   // ==================== STATE MANAGEMENT ====================
   
   // Message states
-  const [message, setMessage] = useState(''); // Nội dung tin nhắn text
-  const [showEmotePicker, setShowEmotePicker] = useState(false); // Hiện emoji picker
-  const [selectedImage, setSelectedImage] = useState(null); // File ảnh đã chọn
-  const [imagePreview, setImagePreview] = useState(null); // Preview ảnh
+  const [message, setMessage] = useState(''); // Text message content
+  const [showEmotePicker, setShowEmotePicker] = useState(false); // Show emoji picker
+  const [selectedImage, setSelectedImage] = useState(null); // Selected image file
+  const [imagePreview, setImagePreview] = useState(null); // Image preview
   
   // Refs
-  const fileInputRef = useRef(null); // Ref cho file input
-  const textareaRef = useRef(null); // Ref cho textarea
-
+  const fileInputRef = useRef(null); // Ref for file input
+  const textareaRef = useRef(null); // Ref for textarea
   const handleSubmit = async (e) => {
     e.preventDefault();
     

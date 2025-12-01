@@ -2,59 +2,59 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api.js";
 
 /**
- * Hook để lấy danh sách bạn bè
- * Sử dụng React Query để cache và tự động refetch
+ * Hook to fetch the friends list
+ * Uses React Query for caching and automatic refetching
  */
 export function useFriends() {
   return useQuery({
     queryKey: ["friends"],
     queryFn: async () => {
       const response = await api("/api/friends");
-      // Optional chaining để tránh crash nếu response không có data
+      // Optional chaining to avoid crash if response has no data
       return response?.friends ?? [];
     },
-    staleTime: 5 * 60 * 1000, // 5 phút
-    gcTime: 10 * 60 * 1000, // 10 phút
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 
 /**
- * Hook để lấy danh sách friend requests
+ * Hook to fetch friend requests
  */
 export function useFriendRequests() {
   return useQuery({
     queryKey: ["friendRequests"],
     queryFn: async () => {
       const response = await api("/api/friends/requests");
-      // Optional chaining để tránh crash nếu response không có data
+      // Optional chaining to avoid crash if response has no data
       return response?.requests ?? [];
     },
-    staleTime: 2 * 60 * 1000, // 2 phút (cập nhật thường xuyên hơn)
-    gcTime: 5 * 60 * 1000, // 5 phút
+    staleTime: 2 * 60 * 1000, // 2 minutes (refetch more frequently)
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
 /**
- * Hook để lấy danh sách bạn bè online
+ * Hook to fetch the list of online friends
  */
 export function useOnlineFriends() {
   return useQuery({
     queryKey: ["onlineFriends"],
     queryFn: async () => {
       const response = await api("/api/friends/list");
-      // Filter chỉ những bạn bè online
-      // Optional chaining để tránh crash nếu response không có data
+      // Filter only online friends
+      // Optional chaining to avoid crash if response has no data
       const onlineFriends = (response?.friends ?? []).filter(friend => friend.isOnline === true);
       return { friends: onlineFriends };
     },
-    staleTime: 1 * 60 * 1000, // 1 phút (cập nhật thường xuyên)
-    gcTime: 3 * 60 * 1000, // 3 phút
-    refetchInterval: 2 * 60 * 1000, // Auto refetch mỗi 2 phút
+    staleTime: 1 * 60 * 1000, // 1 minute (update frequently)
+    gcTime: 3 * 60 * 1000, // 3 minutes
+    refetchInterval: 2 * 60 * 1000, // Auto refetch every 2 minutes
   });
 }
 
 /**
- * Hook để gửi friend request
+ * Hook to send a friend request
  */
 export function useSendFriendRequest() {
   const queryClient = useQueryClient();
@@ -74,7 +74,7 @@ export function useSendFriendRequest() {
 }
 
 /**
- * Hook để accept friend request
+ * Hook to accept a friend request
  */
 export function useAcceptFriendRequest() {
   const queryClient = useQueryClient();
@@ -95,7 +95,7 @@ export function useAcceptFriendRequest() {
 }
 
 /**
- * Hook để decline friend request
+ * Hook to decline a friend request
  */
 export function useDeclineFriendRequest() {
   const queryClient = useQueryClient();
@@ -114,7 +114,7 @@ export function useDeclineFriendRequest() {
 }
 
 /**
- * Hook để remove friend
+ * Hook to remove a friend
  */
 export function useRemoveFriend() {
   const queryClient = useQueryClient();

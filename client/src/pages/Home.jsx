@@ -12,11 +12,27 @@ import NotificationBell from "../components/NotificationBell";
 import ChatDropdown from "../components/ChatDropdown";
 import ChatPopupManager from "../components/ChatPopupManager";
 import UserName from "../components/UserName";
+import UserAvatar from "../components/UserAvatar";
 import Navbar from "../components/Navbar";
-import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2, Sparkles, Search, Bell, MessageCircle, Plus, X, Moon, Sun, Users } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2, Sparkles, Search, Bell, MessageCircle, Plus, X, Moon, Sun, Users, ArrowUp } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../components/Toast";
 import { useChat } from "../contexts/ChatContext";
+
+// --- VISUAL COMPONENTS FROM LANDING PAGE ---
+const NoiseOverlay = () => (
+  <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.03] mix-blend-overlay"
+    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
+  />
+);
+
+const GridPattern = () => {
+  return (
+    <div className="fixed inset-0 z-0 h-full w-full bg-white dark:bg-black bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]">
+      <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-neutral-400 opacity-10 blur-[120px] dark:bg-white"></div>
+    </div>
+  );
+};
 
 /**
  * Home - Trang chủ mạng xã hội với bố cục 3 cột
@@ -24,7 +40,7 @@ import { useChat } from "../contexts/ChatContext";
  * - Cột giữa: Stories, Posts feed với infinite scroll
  * - Sidebar phải: OnlineFriends (bạn bè online)
  */
-export default function Home({ user, setUser }) {
+function Home({ user, setUser }) {
   // ==================== STATE MANAGEMENT ====================
   
   // Dark mode state for mobile navbar - sync with localStorage
@@ -101,6 +117,29 @@ export default function Home({ user, setUser }) {
   const observer = useRef();
   const loadingRef = useRef(false);
   const navigate = useNavigate();
+
+  // Scroll to top button logic
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   // ==================== SEO ====================
   // QUAN TRỌNG: Phải set robots="index, follow" để đảm bảo Google index trang chủ
@@ -390,12 +429,12 @@ export default function Home({ user, setUser }) {
   }
 
   /**
-   * Xử lý tìm kiếm users và posts
+   * Xử lý tìm kiếm users và posts - Memoized
    * @param {Event} e - Sự kiện gửi biểu mẫu (tùy chọn)
    * @param {string} query - Chuỗi truy vấn để tìm kiếm (tùy chọn, sử dụng topSearchQuery nếu không được cung cấp)
    * @param {boolean} saveToHistory - Có lưu vào lịch sử tìm kiếm hay không (mặc định: false cho tìm kiếm bị trả lại, true cho tìm kiếm rõ ràng)
    */
-  async function handleSearch(e, query = null, saveToHistory = false) {
+  const handleSearch = useCallback(async (e, query = null, saveToHistory = false) => {
     if (e) e.preventDefault();
     const trimmedQuery = (query || topSearchQuery).trim();
 
@@ -425,7 +464,7 @@ export default function Home({ user, setUser }) {
       setSearchResults([]);
       setSearchPosts([]);
     }
-  }
+  }, [topSearchQuery, addToSearchHistory]);
 
   // Debounced search function
   const handleSearchDebounced = useCallback(
@@ -579,206 +618,214 @@ export default function Home({ user, setUser }) {
 
   // ==================== RENDER ====================
   return (
-    <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pb-32">
-      {/* Accessible, SEO-friendly heading without affecting layout */}
-      <h1 className="sr-only">Shiku – Mạng xã hội chia sẻ khoảnh khắc</h1>
-      <p className="sr-only">Nơi chia sẻ câu chuyện hàng ngày, khám phá cộng đồng xung quanh bạn.</p>
+    <div className="min-h-screen bg-white dark:bg-black transition-colors duration-300 pb-32 relative font-sans selection:bg-neutral-200 dark:selection:bg-neutral-800">
+      <NoiseOverlay />
+      <GridPattern />
+      
+      <div className="relative z-10">
+        {/* Accessible, SEO-friendly heading without affecting layout */}
+        <h1 className="sr-only">Shiku – Mạng xã hội chia sẻ khoảnh khắc</h1>
+        <p className="sr-only">Nơi chia sẻ câu chuyện hàng ngày, khám phá cộng đồng xung quanh bạn.</p>
 
-      {/* Mobile Navbar - chỉ hiện trên mobile, fixed top */}
-      <nav className="md:hidden fixed top-0 left-0 right-0 z-50" role="navigation" aria-label="Điều hướng chính">
-        <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
-      </nav>
+        {/* Mobile Navbar - chỉ hiện trên mobile, fixed top */}
+        <nav className="md:hidden fixed top-0 left-0 right-0 z-50" role="navigation" aria-label="Điều hướng chính">
+          <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
+        </nav>
 
       {/* Left Sidebar - ẩn trên mobile */}
-      <aside role="complementary" aria-label="Menu điều hướng">
-        <LeftSidebar user={user} setUser={setUser} />
-      </aside>
-
-      {/* Main Content Area với margin-left cho left sidebar */}
-      <main 
-        className="main-content-with-sidebar pt-[64px] md:pt-16 lg:ml-64 min-h-screen transition-all duration-300 ease-in-out" 
-        role="main"
+      <motion.aside 
+        initial={{ x: -50, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        role="complementary" 
+        aria-label="Menu điều hướng"
       >
-        {/* Top Navigation Bar - ẩn trên mobile, hiện từ md trở lên - luôn fixed và visible */}
-        <nav 
-          className="nav-with-sidebar hidden md:flex fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-gray-300 dark:border-gray-800 shadow-sm z-40 transition-all duration-300 ease-in-out" 
-          role="navigation" 
-          aria-label="Thanh tìm kiếm và điều hướng"
+        <LeftSidebar user={user} setUser={setUser} />
+      </motion.aside>        {/* Main Content Area với margin-left cho left sidebar */}
+        <main 
+          className="main-content-with-sidebar pt-[64px] md:pt-16 lg:ml-64 min-h-screen transition-all duration-300 ease-in-out" 
+          role="main"
         >
-          <div className="w-full flex items-center h-full px-4 md:px-6 lg:px-8">
-            {/* Search Input with Dropdown - Left side, takes available space */}
-            <form onSubmit={handleTopSearch} className="flex-1 max-w-2xl mr-4">
-              <div className="relative">
-                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Tìm kiếm bạn bè, nhóm, bài viết..."
-                  value={topSearchQuery}
-                  onChange={(e) => setTopSearchQuery(e.target.value)}
-                  maxLength={100}
-                  autoComplete="off"
-                  onFocus={() => setSearchFocused(true)}
-                  onBlur={() => setTimeout(() => {
-                    if (!historyEditing) {
-                      setSearchFocused(false);
-                    }
-                  }, 200)}
-                  className="w-full pl-12 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 rounded-full text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all text-sm"
-                />
-                {/* Search Dropdown */}
-                {(searchFocused || topSearchQuery.trim() || historyEditing) && (
-                  (searchResults.length > 0 || searchPosts.length > 0 || searchHistory.length > 0) && (
-                    <div className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-[#111] border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg dark:shadow-2xl z-50 max-h-80 overflow-y-auto custom-scrollbar">
-                      {/* Lịch sử tìm kiếm / Gợi ý */}
-                      {(!topSearchQuery.trim() || (topSearchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0)) && searchHistory.length > 0 && (
-                        <React.Fragment key="search-history">
-                          <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">
-                            <span>Gần đây</span>
-                            <button
-                              type="button"
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                if (historyEditing) {
-                                  // Khi click "Xong" - tắt dropdown và reset focus
-                                  setHistoryEditing(false);
-                                  setSearchFocused(false);
-                                  setTopSearchQuery('');
-                                } else {
-                                  // Khi click "Chỉnh sửa" - chỉ enable editing mode
-                                  setHistoryEditing(true);
-                                }
-                              }}
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {historyEditing ? 'Xong' : 'Chỉnh sửa'}
-                            </button>
-                          </div>
-                          {searchHistory
-                            .filter(h => !topSearchQuery.trim() || h.query.toLowerCase().includes(topSearchQuery.toLowerCase()))
-                            .slice(0, 10)
-                            .map(item => (
-                              <div
-                                key={item.id}
-                                className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer group border-b border-gray-100 dark:border-gray-800 last:border-b-0"
-                                onMouseDown={() => {
-                                  setTopSearchQuery(item.query);
-                                  setTimeout(() => {
-                                    handleSearch(null, item.query, true); // Save to history when clicking history item
-                                  }, 0);
-                                }}
-                              >
-                                <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs">•</div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-gray-900 dark:text-white text-sm truncate">{item.query}</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{new Date(item.lastSearchedAt).toLocaleDateString('vi-VN')}</div>
-                                </div>
-                                {historyEditing && (
-                                  <button
-                                    type="button"
-                                    onMouseDown={(e) => {
-                                      e.stopPropagation();
-                                      deleteHistoryItem(item.id);
-                                    }}
-                                    className="text-gray-400 hover:text-red-600 dark:hover:text-red-400"
-                                  >
-                                    ✕
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          {historyEditing && (
-                            <div className="px-3 py-2">
+          {/* Top Navigation Bar - ẩn trên mobile, hiện từ md trở lên - luôn fixed và visible */}
+          <nav 
+            className="nav-with-sidebar hidden md:flex fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white/70 dark:bg-black/70 backdrop-blur-2xl border-b border-neutral-200/50 dark:border-neutral-800/50 shadow-sm z-40 transition-all duration-300 ease-in-out" 
+            role="navigation" 
+            aria-label="Thanh tìm kiếm và điều hướng"
+          >
+            <div className="w-full flex items-center h-full px-4 md:px-6 lg:px-8">
+              {/* Search Input with Dropdown - Left side, takes available space */}
+              <form onSubmit={handleTopSearch} className="flex-1 max-w-2xl mr-4">
+                <div className="relative">
+                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Tìm kiếm bạn bè, nhóm, bài viết..."
+                    value={topSearchQuery}
+                    onChange={(e) => setTopSearchQuery(e.target.value)}
+                    maxLength={100}
+                    autoComplete="off"
+                    onFocus={() => setSearchFocused(true)}
+                    onBlur={() => setTimeout(() => {
+                      if (!historyEditing) {
+                        setSearchFocused(false);
+                      }
+                    }, 200)}
+                    className="w-full pl-12 pr-4 py-2.5 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all text-sm"
+                  />
+                  {/* Search Dropdown */}
+                  {(searchFocused || topSearchQuery.trim() || historyEditing) && (
+                    (searchResults.length > 0 || searchPosts.length > 0 || searchHistory.length > 0) && (
+                      <div className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-lg dark:shadow-2xl z-50 max-h-80 overflow-y-auto custom-scrollbar">
+                        {/* Lịch sử tìm kiếm / Gợi ý */}
+                        {(!topSearchQuery.trim() || (topSearchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0)) && searchHistory.length > 0 && (
+                          <React.Fragment key="search-history">
+                            <div className="flex items-center justify-between px-3 py-2 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-900">
+                              <span>Gần đây</span>
                               <button
                                 type="button"
                                 onMouseDown={(e) => {
+                                  e.preventDefault();
                                   e.stopPropagation();
-                                  clearHistory();
+                                  if (historyEditing) {
+                                    // Khi click "Xong" - tắt dropdown và reset focus
+                                    setHistoryEditing(false);
+                                    setSearchFocused(false);
+                                    setTopSearchQuery('');
+                                  } else {
+                                    // Khi click "Chỉnh sửa" - chỉ enable editing mode
+                                    setHistoryEditing(true);
+                                  }
                                 }}
-                                className="text-red-600 dark:text-red-400 text-xs hover:underline"
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
                               >
-                                Xóa tất cả lịch sử
+                                {historyEditing ? 'Xong' : 'Chỉnh sửa'}
                               </button>
                             </div>
-                          )}
-                          <div className="h-px bg-gray-100 dark:bg-gray-800" />
-                        </React.Fragment>
-                      )}
-                      {/* Kết quả user */}
-                      {searchResults.length > 0 && (
-                        <React.Fragment key="search-users">
-                          <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">Người dùng</div>
-                          {searchResults.map(user => (
-                            <div
-                              key={user._id}
-                              className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-b-0"
-                              onClick={() => {
-                                navigate(`/user/${user._id}`);
-                                setSearchFocused(false);
-                                setTopSearchQuery("");
-                              }}
-                            >
-                              <img
-                                src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222`}
-                                alt={user.name}
-                                width={28}
-                                height={28}
-                                className="w-7 h-7 rounded-full flex-shrink-0"
-                                loading="lazy"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-gray-900 dark:text-white text-sm truncate">
-                                  <UserName user={user} maxLength={20} />
+                            {searchHistory
+                              .filter(h => !topSearchQuery.trim() || h.query.toLowerCase().includes(topSearchQuery.toLowerCase()))
+                              .slice(0, 10)
+                              .map(item => (
+                                <div
+                                  key={item.id}
+                                  className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-900 cursor-pointer group border-b border-neutral-100 dark:border-neutral-800 last:border-b-0"
+                                  onMouseDown={() => {
+                                    setTopSearchQuery(item.query);
+                                    setTimeout(() => {
+                                      handleSearch(null, item.query, true); // Save to history when clicking history item
+                                    }, 0);
+                                  }}
+                                >
+                                  <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 flex items-center justify-center text-xs">•</div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-neutral-900 dark:text-white text-sm truncate">{item.query}</div>
+                                    <div className="text-xs text-neutral-500 dark:text-neutral-400 truncate">{new Date(item.lastSearchedAt).toLocaleDateString('vi-VN')}</div>
+                                  </div>
+                                  {historyEditing && (
+                                    <button
+                                      type="button"
+                                      onMouseDown={(e) => {
+                                        e.stopPropagation();
+                                        deleteHistoryItem(item.id);
+                                      }}
+                                      className="text-neutral-400 hover:text-red-600 dark:hover:text-red-400"
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
                                 </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</div>
+                              ))}
+                            {historyEditing && (
+                              <div className="px-3 py-2">
+                                <button
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    clearHistory();
+                                  }}
+                                  className="text-red-600 dark:text-red-400 text-xs hover:underline"
+                                >
+                                  Xóa tất cả lịch sử
+                                </button>
                               </div>
-                            </div>
-                          ))}
-                        </React.Fragment>
-                      )}
-                      {/* Kết quả bài viết: chỉ hiện nếu không có user nào khớp */}
-                      {searchResults.length === 0 && searchPosts.length > 0 && (
-                        <React.Fragment key="search-posts">
-                          <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">Bài viết</div>
-                          {searchPosts.map(post => (
-                            <div
-                              key={post._id}
-                              className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-b-0"
-                              onClick={() => {
-                                navigate(`/post/${post.slug || post._id}`);
-                                setSearchFocused(false);
-                                setTopSearchQuery("");
-                              }}
-                            >
-                              {renderPostPreview(post, "w-7 h-7 rounded flex-shrink-0 object-cover")}
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-gray-900 dark:text-white text-sm truncate">{post.title}</div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{post.author?.name || ''}</div>
+                            )}
+                            <div className="h-px bg-neutral-100 dark:bg-neutral-800" />
+                          </React.Fragment>
+                        )}
+                        {/* Kết quả user */}
+                        {searchResults.length > 0 && (
+                          <React.Fragment key="search-users">
+                            <div className="px-3 py-2 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-900">Người dùng</div>
+                            {searchResults.map(user => (
+                              <div
+                                key={user._id}
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-900 cursor-pointer border-b border-neutral-100 dark:border-neutral-800 last:border-b-0"
+                                onClick={() => {
+                                  navigate(`/user/${user._id}`);
+                                  setSearchFocused(false);
+                                  setTopSearchQuery("");
+                                }}
+                              >
+                                <UserAvatar 
+                                  user={user} 
+                                  size={28}
+                                  showFrame={true}
+                                  showBadge={true}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-neutral-900 dark:text-white text-sm truncate">
+                                    <UserName user={user} maxLength={20} />
+                                  </div>
+                                  <div className="text-xs text-neutral-500 dark:text-neutral-400 truncate">{user.email}</div>
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                        </React.Fragment>
-                      )}
-                      {searchLoading && (
-                        <div className="px-3 py-3 text-gray-500 dark:text-gray-400 text-sm text-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 dark:border-gray-300 mx-auto mb-1"></div>
-                          <span className="dark:text-gray-300">Đang tìm kiếm...</span>
-                        </div>
-                      )}
-                      {topSearchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0 && !searchLoading && (
-                        <div className="px-3 py-3 text-gray-500 dark:text-gray-400 text-sm text-center">
-                          <span className="dark:text-gray-300">Không tìm thấy kết quả nào</span>
-                        </div>
-                      )}
-                    </div>
-                  )
-                )}
-              </div>
-            </form>
+                            ))}
+                          </React.Fragment>
+                        )}
+                        {/* Kết quả bài viết: chỉ hiện nếu không có user nào khớp */}
+                        {searchResults.length === 0 && searchPosts.length > 0 && (
+                          <React.Fragment key="search-posts">
+                            <div className="px-3 py-2 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-900">Bài viết</div>
+                            {searchPosts.map(post => (
+                              <div
+                                key={post._id}
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-900 cursor-pointer border-b border-neutral-100 dark:border-neutral-800 last:border-b-0"
+                                onClick={() => {
+                                  navigate(`/post/${post.slug || post._id}`);
+                                  setSearchFocused(false);
+                                  setTopSearchQuery("");
+                                }}
+                              >
+                                {renderPostPreview(post, "w-7 h-7 rounded flex-shrink-0 object-cover")}
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-neutral-900 dark:text-white text-sm truncate">{post.title}</div>
+                                  <div className="text-xs text-neutral-500 dark:text-neutral-400 truncate">{post.author?.name || ''}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </React.Fragment>
+                        )}
+                        {searchLoading && (
+                          <div className="px-3 py-3 text-neutral-500 dark:text-neutral-400 text-sm text-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-600 dark:border-neutral-300 mx-auto mb-1"></div>
+                            <span className="dark:text-neutral-300">Đang tìm kiếm...</span>
+                          </div>
+                        )}
+                        {topSearchQuery.trim() && searchResults.length === 0 && searchPosts.length === 0 && !searchLoading && (
+                          <div className="px-3 py-3 text-neutral-500 dark:text-neutral-400 text-sm text-center">
+                            <span className="dark:text-neutral-300">Không tìm thấy kết quả nào</span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              </form>
 
               {/* Add New Post Button - Giữ nguyên vị trí */}
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => {
                 // Trigger PostCreator modal từ global PostCreator (App.jsx)
                 const triggerBtn = document.querySelector('[data-post-creator-trigger]');
@@ -791,7 +838,7 @@ export default function Home({ user, setUser }) {
             >
               <Plus size={18} strokeWidth={2.5} className="text-white dark:text-black" />
               <span>Đăng bài mới</span>
-            </button>
+            </motion.button>
 
             {/* Spacer - Đẩy các icons sang bên phải */}
             <div className="flex-1"></div>
@@ -837,13 +884,11 @@ export default function Home({ user, setUser }) {
                   to="/profile"
                   className="ml-0.5"
                 >
-                  <img
-                    src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=cccccc&color=222222&size=40`}
-                    alt={user.name}
-                    width={40}
-                    height={40}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-800"
-                    loading="lazy"
+                  <UserAvatar 
+                    user={user} 
+                    size={40}
+                    showFrame={true}
+                    showBadge={true}
                   />
                   </Link>
                 </div>
@@ -852,12 +897,12 @@ export default function Home({ user, setUser }) {
         </nav>
 
         {/* Feed Bar - Trải dài toàn bộ chiều rộng - Sticky trên mobile (dưới navbar), static trên desktop, sát navbar trên desktop */}
-        <div className="sticky md:static top-[64px] md:top-0 z-[100] px-4 md:px-6 lg:px-8 py-2 md:py-2 border-b border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-black/70 backdrop-blur-xl transition-colors duration-300">
+        <div className="sticky md:static top-[64px] md:top-0 z-[100] px-4 md:px-6 lg:px-8 py-2 md:py-2 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-white/70 dark:bg-black/70 backdrop-blur-2xl transition-colors duration-300">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 overflow-hidden">
-              <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white whitespace-nowrap flex-shrink-0">Bảng tin</h2>
+              <h2 className="text-lg md:text-xl font-bold text-neutral-900 dark:text-white whitespace-nowrap flex-shrink-0">Bảng tin</h2>
               {items.length > 0 && (
-                <span className="hidden sm:inline text-xs sm:text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full font-semibold whitespace-nowrap flex-shrink-0">
+                <span className="hidden sm:inline text-xs sm:text-sm text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-900 px-3 py-1.5 rounded-full font-semibold whitespace-nowrap flex-shrink-0">
                   {items.length} bài viết
                 </span>
               )}
@@ -884,7 +929,7 @@ export default function Home({ user, setUser }) {
 
             <button
               onClick={cycleSortBy}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 whitespace-nowrap touch-manipulation flex-shrink-0"
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all duration-200 whitespace-nowrap touch-manipulation flex-shrink-0"
               aria-label={`Sắp xếp: ${getSortLabel(sortBy)}. Bấm để chuyển sang chế độ khác`}
               title={`Bấm để chuyển sang chế độ sắp xếp khác`}
             >
@@ -895,7 +940,7 @@ export default function Home({ user, setUser }) {
                   <span>AI</span>
                 </span>
               )}
-              <ArrowUpDown size={14} className="opacity-60 dark:opacity-70 flex-shrink-0 text-gray-600 dark:text-gray-300 hidden sm:inline" />
+              <ArrowUpDown size={14} className="opacity-60 dark:opacity-70 flex-shrink-0 text-neutral-600 dark:text-neutral-300 hidden sm:inline" />
             </button>
           </div>
         </div>
@@ -990,13 +1035,38 @@ export default function Home({ user, setUser }) {
               </div>
 
               {/* Right Sidebar - Friend Suggestions, Profile Activity, Upcoming Events */}
-              <aside className="hidden xl:block relative z-[1]" role="complementary" aria-label="Gợi ý bạn bè và hoạt động">
+              <motion.aside 
+                initial={{ x: 50, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
+                className="hidden xl:block relative z-[1]" 
+                role="complementary" 
+                aria-label="Gợi ý bạn bè và hoạt động"
+              >
                 <div className="sticky top-20">
                   <RightSidebar user={user} />
                 </div>
-              </aside>
+              </motion.aside>
             </div>
           </div>
+
+          {/* Scroll To Top Button */}
+          <AnimatePresence>
+            {showScrollTop && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.5, y: 20 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={scrollToTop}
+                className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-50 p-3 bg-black dark:bg-neutral-700 text-white dark:text-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
+                aria-label="Cuộn lên đầu trang"
+              >
+                <ArrowUp size={24} />
+              </motion.button>
+            )}
+          </AnimatePresence>
       </main>
 
       {/* Chat Popup Manager */}
@@ -1005,6 +1075,14 @@ export default function Home({ user, setUser }) {
         onCloseConversation={closeChatPopup}
         onShowInfo={showInfo}
       />
+      </div>
     </div>
   );
 }
+
+// Memoize component với custom comparison để tối ưu performance
+export default React.memo(Home, (prevProps, nextProps) => {
+  // Chỉ re-render khi user._id thay đổi
+  return prevProps.user?._id === nextProps.user?._id &&
+         prevProps.setUser === nextProps.setUser;
+});

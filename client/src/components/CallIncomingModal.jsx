@@ -2,14 +2,14 @@ import React from "react";
 import { Phone, PhoneOff, Video, Mic } from "lucide-react";
 
 /**
- * CallIncomingModal - Modal hiển thị khi có cuộc gọi đến
- * UI/UX tone đen trắng đồng nhất với web
+ * CallIncomingModal - Modal displayed when there is an incoming call
+ * UI/UX uses a monochrome tone consistent with the site
  * @param {Object} props - Component props
- * @param {boolean} props.open - Trạng thái mở/đóng modal
- * @param {Object} props.caller - Thông tin người gọi
- * @param {boolean} props.isVideo - Loại cuộc gọi (video/voice)
- * @param {Function} props.onAccept - Callback khi chấp nhận cuộc gọi
- * @param {Function} props.onReject - Callback khi từ chối cuộc gọi
+ * @param {boolean} props.open - Whether the modal is open
+ * @param {Object} props.caller - Caller information
+ * @param {boolean} props.isVideo - Call type (video/voice)
+ * @param {Function} props.onAccept - Callback when accepting the call
+ * @param {Function} props.onReject - Callback when rejecting the call
  */
 const CallIncomingModal = ({ open, caller, isVideo, onAccept, onReject }) => {
   if (!open) {
@@ -27,7 +27,7 @@ const CallIncomingModal = ({ open, caller, isVideo, onAccept, onReject }) => {
       <div className="absolute inset-0 bg-gradient-to-b from-gray-800/50 via-gray-900/80 to-black/90 dark:from-black/50 dark:via-black/80 dark:to-black/95"></div>
 
       <div className="relative z-10 flex flex-col items-center justify-center px-4 py-8 w-full max-w-md">
-        {/* Avatar với animation */}
+        {/* Avatar with animation */}
         <div className="relative mb-8">
           {/* Pulsating rings */}
           <div className="absolute inset-0 -m-4 rounded-full border-4 border-gray-400 dark:border-gray-300 opacity-40 animate-ping"></div>

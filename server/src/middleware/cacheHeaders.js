@@ -1,11 +1,15 @@
 /**
  * Cache Headers Middleware
- * Add appropriate cache headers to responses
+ * 
+ * Middleware thêm các header cache phù hợp vào phản hồi.
+ * Hỗ trợ nhiều chiến lược cache: static, stale-while-revalidate, ETag, smart cache.
+ * 
+ * @module cacheHeaders
  */
 
 /**
- * Add cache headers for static/immutable resources
- * @param {number} maxAge - Max age in seconds (default 1 hour)
+ * Thêm header cache cho tài nguyên tĩnh/không thay đổi
+ * @param {number} maxAge - Thời gian tối đa (giây) (mặc định 1 giờ)
  */
 export function cacheControl(maxAge = 3600) {
   return (req, res, next) => {
@@ -18,9 +22,9 @@ export function cacheControl(maxAge = 3600) {
 }
 
 /**
- * Add cache headers with stale-while-revalidate
- * @param {number} maxAge - Fresh time in seconds
- * @param {number} staleTime - Stale time in seconds
+ * Thêm header cache với `stale-while-revalidate`
+ * @param {number} maxAge - Thời gian tươi (giây)
+ * @param {number} staleTime - Thời gian stale (giây)
  */
 export function staleWhileRevalidate(maxAge = 60, staleTime = 300) {
   return (req, res, next) => {
@@ -32,7 +36,7 @@ export function staleWhileRevalidate(maxAge = 60, staleTime = 300) {
 }
 
 /**
- * No cache for dynamic content
+ * Không cache cho nội dung động
  */
 export function noCache(req, res, next) {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -42,7 +46,7 @@ export function noCache(req, res, next) {
 }
 
 /**
- * ETag support for efficient caching
+ * Hỗ trợ ETag để cache hiệu quả hơn
  */
 export function etag(req, res, next) {
   const originalSend = res.send;
@@ -66,47 +70,47 @@ export function etag(req, res, next) {
 }
 
 /**
- * Apply appropriate caching based on route type
+ * Áp dụng chính sách cache phù hợp dựa trên loại route
  */
 export function smartCache(req, res, next) {
   const path = req.path;
 
-  // Static resources - long cache
+  // Tài nguyên tĩnh - cache dài hạn
   if (path.match(/\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot)$/)) {
     return cacheControl(86400 * 30)(req, res, next); // 30 days
   }
 
-  // API endpoints
+  // Các endpoint API
   if (path.startsWith('/api/')) {
-    // User-specific data - no cache
+    // Dữ liệu theo người dùng - không cache
     if (path.includes('/me') || path.includes('/my-')) {
       return noCache(req, res, next);
     }
 
-    // Public data - short cache with revalidation
+    // Dữ liệu công khai - cache ngắn có revalidation
     if (path.includes('/posts') || path.includes('/users')) {
       return staleWhileRevalidate(60, 300)(req, res, next);
     }
 
-    // Static reference data - longer cache
+    // Dữ liệu tham chiếu tĩnh - cache dài hơn
     if (path.includes('/roles') || path.includes('/categories')) {
       return staleWhileRevalidate(300, 600)(req, res, next);
     }
   }
 
-  // Default - no cache for safety
+  // Mặc định - không cache để an toàn
   next();
 }
 
 /**
- * Conditional caching based on auth status
+ * Cache có điều kiện dựa trên trạng thái xác thực
  */
 export function authAwareCache(req, res, next) {
   if (req.user) {
-    // Logged in users - don't cache to ensure fresh data
+    // Người dùng đã đăng nhập - không cache để đảm bảo dữ liệu luôn mới
     noCache(req, res, next);
   } else {
-    // Public users - cache for better performance
+    // Người dùng công khai - cache để cải thiện hiệu năng
     staleWhileRevalidate(60, 300)(req, res, next);
   }
 }

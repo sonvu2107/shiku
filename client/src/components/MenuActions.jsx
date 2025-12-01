@@ -2,26 +2,26 @@ import React, { useState, useRef } from "react";
 import { MoreVertical, Lock, Globe, Edit, Trash2, Bookmark, BookmarkCheck } from "lucide-react";
 
 /**
- * MenuActions - Menu dropdown với các hành động cho bài viết
- * Hiển thị menu với các tùy chọn: đổi trạng thái, sửa, xóa bài viết, lưu bài
+ * MenuActions - Dropdown menu with actions for a post
+ * Shows options: toggle visibility, edit, delete, save/unsave
  * @param {Object} props - Component props
- * @param {Function} props.onToggleStatus - Callback đổi trạng thái public/private
- * @param {Function} props.onEdit - Callback sửa bài viết
- * @param {Function} props.onDelete - Callback xóa bài viết
- * @param {Function} props.onSave - Callback lưu/bỏ lưu bài viết
- * @param {boolean} props.isPrivate - Trạng thái hiện tại của bài viết (private/public)
- * @param {boolean} props.saved - Trạng thái đã lưu hay chưa
- * @returns {JSX.Element} Component menu actions
+ * @param {Function} props.onToggleStatus - Callback to toggle public/private
+ * @param {Function} props.onEdit - Callback to edit the post
+ * @param {Function} props.onDelete - Callback to delete the post
+ * @param {Function} props.onSave - Callback to save/unsave the post
+ * @param {boolean} props.isPrivate - Current visibility state (private/public)
+ * @param {boolean} props.saved - Saved status
+ * @returns {JSX.Element} Menu actions component
  */
 export default function MenuActions({ onToggleStatus, onEdit, onDelete, onSave, isPrivate, saved }) {
   // ==================== STATE MANAGEMENT ====================
   
-  const [open, setOpen] = useState(false); // Trạng thái mở/đóng menu
-  const menuRef = useRef(); // Ref để detect click outside
+  const [open, setOpen] = useState(false); // Open/closed state of the menu
+  const menuRef = useRef(); // Ref used to detect clicks outside the menu
 
   // ==================== EFFECTS ====================
   
-  // Đóng menu khi click ra ngoài
+  // Close menu when clicking outside
   React.useEffect(() => {
     function handleClick(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {

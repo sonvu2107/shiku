@@ -4,6 +4,7 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Cultivation from "../models/Cultivation.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import {
   registerSchema,
@@ -29,6 +30,8 @@ import {
 } from "../middleware/securityLogging.js";
 import { buildCookieOptions } from "../utils/cookieOptions.js";
 import { requestTimeout } from "../middleware/timeout.js";
+import { progressiveAuthRateLimit, checkLockoutStatus } from "../middleware/progressiveRateLimit.js";
+import { conditionalCaptchaMiddleware, getCaptchaConfig } from "../services/captchaService.js";
 
 // Apply auth logging middleware
 router.use(authLogger);
@@ -43,10 +46,6 @@ const refreshCookieOptions = buildCookieOptions(REFRESH_TOKEN_MAX_AGE);
 
 /**
  * POST /register - Đăng ký tài khoản mới
- * @param {string} req.body.name - Tên người dùng
- * @param {string} req.body.email - Email đăng ký
- * @param {string} req.body.password - Mật khẩu
- * @returns {Object} User info và tokens
  */
 router.post("/register",
   validate(registerSchema, 'body'),
@@ -54,7 +53,6 @@ router.post("/register",
     try {
       const { name, email, password } = req.body;
 
-      // Kiểm tra email đã tồn tại
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res.status(400).json({
@@ -63,10 +61,8 @@ router.post("/register",
         });
       }
 
-      // Hash password
       const hashedPassword = await bcrypt.hash(password, 12);
 
-      // Tạo user mới
       const user = await User.create({
         name: sanitizeHtml(name),
         email: email.toLowerCase(),
@@ -75,20 +71,18 @@ router.post("/register",
         lastSeen: new Date()
       });
 
-      // Tạo token pair
       const tokens = await generateTokenPair(user);
 
-      // Set cookies
       res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
       res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
 
-
-      // Log security event
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.REGISTER_SUCCESS, {
         email: email,
         ip: req.ip
       }, req);
 
+      // Access token trả về trong body để frontend lưu vào RAM
+      // Refresh token KHÔNG trả về trong body (đã set trong httpOnly cookie)
       res.status(201).json({
         user: {
           id: user._id,
@@ -96,8 +90,7 @@ router.post("/register",
           email: user.email,
           role: user.role
         },
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken
+        accessToken: tokens.accessToken
       });
     } catch (error) {
       // Log register failed
@@ -114,49 +107,86 @@ router.post("/register",
 
 /**
  * POST /login - Đăng nhập
- * @param {string} req.body.email - Email đăng nhập
- * @param {string} req.body.password - Mật khẩu
- * @returns {Object} User info và tokens
+ * 
+ * Middleware:
+ * - progressiveAuthRateLimit: Giới hạn tốc độ với exponential backoff
+ * - conditionalCaptchaMiddleware: Yêu cầu CAPTCHA nếu đạt ngưỡng
  */
 router.post("/login",
+  progressiveAuthRateLimit,
+  conditionalCaptchaMiddleware,
   validate(loginSchema, 'body'),
   async (req, res, next) => {
     try {
       const { email, password } = req.body;
 
-      // Tìm user
-      const user = await User.findOne({ email: email.toLowerCase() });
+      // OPTIMIZATION: Use lean() to skip Mongoose document instantiation (~20-30ms faster)
+      const user = await User.findOne({ email: email.toLowerCase() }).lean();
       if (!user) {
-        // Log failed login attempt
+        const failureStatus = req.recordAuthFailure?.();
+        
         logSecurityEvent(LOG_LEVELS.WARN, SECURITY_EVENTS.LOGIN_FAILED, {
           email: email,
           ip: req.ip,
-          reason: "User not found"
+          reason: "User not found",
+          attempts: failureStatus?.attempts
         }, req);
 
-        return res.status(401).json({
+        const currentStatus = checkLockoutStatus(req.ip);
+
+        const response = {
           error: "Email hoặc mật khẩu không đúng",
           code: "INVALID_CREDENTIALS"
-        });
+        };
+
+        if (currentStatus.requiresCaptcha || failureStatus?.requiresCaptcha) {
+          response.requiresCaptcha = true;
+          response.message = "Bạn cần giải CAPTCHA để tiếp tục";
+          const captchaConfig = getCaptchaConfig();
+          if (captchaConfig.enabled) {
+            response.captchaConfig = {
+              siteKey: captchaConfig.siteKey,
+              provider: captchaConfig.provider
+            };
+          }
+        }
+
+        return res.status(401).json(response);
       }
 
-      // Kiểm tra password
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
-        // Log failed login attempt
+        const failureStatus = req.recordAuthFailure?.();
+        
         logSecurityEvent(LOG_LEVELS.WARN, SECURITY_EVENTS.LOGIN_FAILED, {
           email: email,
           ip: req.ip,
-          reason: "Invalid password"
+          reason: "Invalid password",
+          attempts: failureStatus?.attempts
         }, req);
 
-        return res.status(401).json({
+        const currentStatus = checkLockoutStatus(req.ip);
+
+        const response = {
           error: "Email hoặc mật khẩu không đúng",
           code: "INVALID_CREDENTIALS"
-        });
+        };
+        
+        if (currentStatus.requiresCaptcha || failureStatus?.requiresCaptcha) {
+          response.requiresCaptcha = true;
+          response.message = "Bạn cần giải CAPTCHA để tiếp tục";
+          const captchaConfig = getCaptchaConfig();
+          if (captchaConfig.enabled) {
+            response.captchaConfig = {
+              siteKey: captchaConfig.siteKey,
+              provider: captchaConfig.provider
+            };
+          }
+        }
+
+        return res.status(401).json(response);
       }
 
-      // Kiểm tra user có bị ban không
       if (user.isBanned) {
         logSecurityEvent(LOG_LEVELS.WARN, SECURITY_EVENTS.LOGIN_FAILED, {
           email: email,
@@ -170,25 +200,28 @@ router.post("/login",
         });
       }
 
-      // Cập nhật trạng thái online
-      user.isOnline = true;
-      user.lastSeen = new Date();
-      await user.save();
+      req.resetAuthFailures?.();
 
-      // Tạo token pair
+      // OPTIMIZATION: Fire-and-forget updateOne - don't await non-critical update
+      // This saves 20-50ms by not waiting for the write acknowledgment
+      User.updateOne(
+        { _id: user._id },
+        { $set: { isOnline: true, lastSeen: new Date() } }
+      ).exec().catch(err => console.error('Failed to update user online status:', err));
+
       const tokens = await generateTokenPair(user);
 
-      // Set cookies
       res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
       res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
 
-      // Log successful login
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.LOGIN_SUCCESS, {
         email: email,
         userId: user._id,
         ip: req.ip
       }, req);
 
+      // Access token trả về trong body để frontend lưu vào RAM
+      // Refresh token KHÔNG trả về trong body (đã set trong httpOnly cookie)
       res.json({
         user: {
           id: user._id,
@@ -196,8 +229,7 @@ router.post("/login",
           email: user.email,
           role: user.role
         },
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken
+        accessToken: tokens.accessToken
       });
     } catch (error) {
       next(error);
@@ -206,49 +238,30 @@ router.post("/login",
 );
 
 /**
- * POST /refresh - Refresh access token (Simplified version)
- * @param {string} req.body.refreshToken - Refresh token
- * @returns {Object} New access token
+ * POST /refresh - Làm mới access token
+ * 
+ * Lấy refresh token từ body hoặc cookie, xác thực và tạo access token mới
  */
 router.post("/refresh",
   refreshTokenLimiter,
   async (req, res, next) => {
     try {
-      // Lấy refresh token từ body hoặc cookie
       const { refreshToken } = req.body;
       const cookieRefreshToken = req.cookies?.refreshToken;
-
-      // Better logging for production debugging
-      const isProduction = process.env.NODE_ENV === "production";
-      if (isProduction) {
-      }
-
       const tokenToUse = refreshToken || cookieRefreshToken;
 
       if (!tokenToUse) {
-        const errorMsg = "Refresh token là bắt buộc";
-        // Only log in development or if this is not a repeated request
-        if (!isProduction) {
-        }
         return res.status(400).json({
-          error: errorMsg,
-          code: "MISSING_REFRESH_TOKEN",
-          debug: isProduction ? undefined : { cookies: req.cookies }
+          error: "Refresh token là bắt buộc",
+          code: "MISSING_REFRESH_TOKEN"
         });
       }
 
-      if (isProduction) {
-      }
-
-      // Simplified refresh logic - just verify and create new token
       try {
         const payload = jwt.verify(
           tokenToUse,
           process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET
         );
-
-        if (isProduction) {
-        }
 
         if (payload.type !== 'refresh') {
           throw new Error("Invalid token type");
@@ -259,10 +272,6 @@ router.post("/refresh",
           throw new Error("User not found");
         }
 
-        if (isProduction) {
-        }
-
-        // Create new access token
         const newAccessToken = jwt.sign(
           {
             id: user._id,
@@ -273,11 +282,7 @@ router.post("/refresh",
           { expiresIn: "15m" }
         );
 
-        // Set new access token cookie with proper options
         res.cookie("accessToken", newAccessToken, accessCookieOptions);
-
-        if (isProduction) {
-        }
 
         res.json({
           accessToken: newAccessToken,
@@ -290,16 +295,11 @@ router.post("/refresh",
         });
 
       } catch (jwtError) {
-        if (isProduction) {
-        }
         throw jwtError;
       }
 
     } catch (error) {
       const isProduction = process.env.NODE_ENV === "production";
-      if (isProduction) {
-      }
-
       res.status(401).json({
         error: "Refresh token không hợp lệ",
         code: "INVALID_REFRESH_TOKEN",
@@ -363,22 +363,18 @@ router.get("/session",
 
 /**
  * POST /logout - Đăng xuất
- * @returns {Object} Thông báo logout thành công
  */
 router.post("/logout",
   authRequired,
   async (req, res, next) => {
     try {
-      // Blacklist current token
       if (req.token) {
-        logout(req.token);
+        await logout({ accessToken: req.token });
       }
 
-      // Clear cookies
       res.clearCookie("accessToken");
       res.clearCookie("refreshToken");
 
-      // Cập nhật trạng thái offline
       if (req.user) {
         await User.findByIdAndUpdate(req.user._id, {
           isOnline: false,
@@ -386,7 +382,6 @@ router.post("/logout",
         });
       }
 
-      // Log logout event
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.LOGOUT, {
         userId: req.user?.id,
         ip: req.ip
@@ -606,6 +601,44 @@ router.get("/me",
         ip: req.ip
       }, req);
 
+      // Lấy thông tin cultivation cơ bản nếu user chọn hiển thị cultivation badge
+      let cultivationInfo = null;
+      let cultivationCache = req.user.cultivationCache;
+      
+      // Luôn load cultivation để lấy equipped items
+      const cultivation = await Cultivation.getOrCreate(req.user._id);
+      if (cultivation) {
+        cultivationInfo = {
+          exp: cultivation.exp,
+          realmLevel: cultivation.realmLevel,
+          realmName: cultivation.realmName,
+          equipped: cultivation.equipped
+        };
+        
+        // Sync cultivationCache nếu chưa có hoặc khác
+        const needsSync = !cultivationCache || 
+            cultivationCache.realmLevel !== cultivation.realmLevel ||
+            cultivationCache.exp !== cultivation.exp ||
+            JSON.stringify(cultivationCache.equipped) !== JSON.stringify(cultivation.equipped);
+            
+        if (needsSync) {
+          cultivationCache = {
+            realmLevel: cultivation.realmLevel,
+            realmName: cultivation.realmName,
+            exp: cultivation.exp,
+            equipped: {
+              title: cultivation.equipped?.title || null,
+              badge: cultivation.equipped?.badge || null,
+              avatarFrame: cultivation.equipped?.avatarFrame || null
+            }
+          };
+          // Update user's cultivationCache in background
+          User.findByIdAndUpdate(req.user._id, { cultivationCache }).catch(err => 
+            console.error('[AUTH] Error syncing cultivationCache:', err)
+          );
+        }
+      }
+
       res.json({
         user: {
           id: req.user._id,
@@ -634,6 +667,9 @@ router.get("/me",
           showFriends: req.user.showFriends,
           showPosts: req.user.showPosts,
           showEvents: req.user.showEvents,
+          displayBadgeType: req.user.displayBadgeType || 'role',
+          cultivation: cultivationInfo,
+          cultivationCache: cultivationCache,
           isOnline: req.user.isOnline,
           isVerified: req.user.isVerified,
           lastSeen: req.user.lastSeen,
@@ -709,7 +745,7 @@ router.put("/update-profile",
         name, email, password, bio, nickname, birthday, gender, hobbies, avatarUrl,
         coverUrl, location, website, phone, profileTheme, profileLayout, useCoverImage,
         showEmail, showPhone, showBirthday, showLocation, showWebsite,
-        showHobbies, showFriends, showPosts
+        showHobbies, showFriends, showPosts, displayBadgeType
       } = req.body;
 
       // Kiểm tra email có bị trùng không
@@ -749,6 +785,7 @@ router.put("/update-profile",
       if (showHobbies !== undefined) req.user.showHobbies = showHobbies;
       if (showFriends !== undefined) req.user.showFriends = showFriends;
       if (showPosts !== undefined) req.user.showPosts = showPosts;
+      if (displayBadgeType !== undefined) req.user.displayBadgeType = displayBadgeType;
 
       if (password) {
         req.user.password = await bcrypt.hash(password, 12);
@@ -790,7 +827,9 @@ router.put("/update-profile",
           showHobbies: req.user.showHobbies,
           showFriends: req.user.showFriends,
           showPosts: req.user.showPosts,
-          showEvents: req.user.showEvents
+          showEvents: req.user.showEvents,
+          displayBadgeType: req.user.displayBadgeType || 'role',
+          cultivationCache: req.user.cultivationCache
         }
       });
     } catch (error) {
@@ -798,5 +837,27 @@ router.put("/update-profile",
     }
   }
 );
+
+/**
+ * GET /captcha-config - Lấy cấu hình CAPTCHA cho frontend
+ */
+router.get("/captcha-config", (req, res) => {
+  try {
+    const config = getCaptchaConfig();
+    res.json({
+      success: true,
+      data: {
+        enabled: config.enabled,
+        provider: config.provider,
+        siteKey: config.siteKey
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: "Không thể lấy cấu hình CAPTCHA"
+    });
+  }
+});
 
 export default router;

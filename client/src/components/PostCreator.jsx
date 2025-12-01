@@ -5,50 +5,51 @@ import { Globe, Lock, Image, Users, BarChart3, Plus, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BanNotification from "./BanNotification";
 import MarkdownEditor from "./MarkdownEditor";
+import UserAvatar from "./UserAvatar";
 
 /**
- * PostCreator - Component tạo bài viết mới
- * Gồm Facebook-style post input và modal tạo bài chi tiết
- * Hỗ trợ upload media, privacy settings, tags, groups
- * @param {Object} user - Thông tin user hiện tại
- * @param {string} groupId - ID của nhóm (nếu đang tạo bài trong nhóm)
- * @param {boolean} hideTrigger - Ẩn trigger input card (chỉ hiển thị modal)
- * @param {React.Ref} triggerRef - Ref để trigger modal từ bên ngoài
+ * PostCreator - Component for creating a new post
+ * Includes a Facebook-style quick input and a modal for detailed post creation
+ * Supports media uploads, privacy settings, tags and group posting
+ * @param {Object} user - Current user object
+ * @param {string} groupId - Group ID when creating a post inside a group
+ * @param {boolean} hideTrigger - Hide the quick input trigger (show modal only)
+ * @param {React.Ref} triggerRef - Ref to trigger the modal externally
  */
 const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hideTrigger = false }, ref) {
   // ==================== STATE MANAGEMENT ====================
-  
-  // Modal và form states
-  const [showModal, setShowModal] = useState(false); // Hiển thị modal tạo bài
-  const [title, setTitle] = useState(""); // Tiêu đề bài viết
-  const [content, setContent] = useState(""); // Nội dung bài viết
-  const [tags, setTags] = useState(""); // Tags (phân cách bằng phẩy)
-  const [files, setFiles] = useState([]); // Media files đã upload
-  const [status, setStatus] = useState("published"); // Trạng thái public/private
-  
+
+  // Modal and form states
+  const [showModal, setShowModal] = useState(false); // Whether the create-post modal is visible
+  const [title, setTitle] = useState(""); // Post title
+  const [content, setContent] = useState(""); // Post content
+  const [tags, setTags] = useState(""); // Tags (comma-separated)
+  const [files, setFiles] = useState([]); // Uploaded media files
+  const [status, setStatus] = useState("published"); // Post status (published/private)
+
   // UI states
-  const [err, setErr] = useState(""); // Error message
-  const [loading, setLoading] = useState(false); // Loading khi submit
-  const [uploading, setUploading] = useState(false); // Loading khi upload files
-  const [coverUrl, setCoverUrl] = useState(""); // URL ảnh cover
-  const [showPrivacyDropdown, setShowPrivacyDropdown] = useState(false); // Dropdown privacy
-  
+  const [err, setErr] = useState(""); // Error message shown to user
+  const [loading, setLoading] = useState(false); // Loading state while submitting
+  const [uploading, setUploading] = useState(false); // Loading state while uploading files
+  const [coverUrl, setCoverUrl] = useState(""); // Cover image URL
+  const [showPrivacyDropdown, setShowPrivacyDropdown] = useState(false); // Privacy dropdown visibility
+
   // Group states
-  const [groups, setGroups] = useState([]); // Danh sách nhóm của user
-  const [selectedGroup, setSelectedGroup] = useState(groupId); // Nhóm được chọn
-  const [showGroupDropdown, setShowGroupDropdown] = useState(false); // Dropdown chọn nhóm
-  
+  const [groups, setGroups] = useState([]); // User's groups list
+  const [selectedGroup, setSelectedGroup] = useState(groupId); // Currently selected group
+  const [showGroupDropdown, setShowGroupDropdown] = useState(false); // Group dropdown visibility
+
   // Ban notification states
   const [showBanNotification, setShowBanNotification] = useState(false);
   const [banInfo, setBanInfo] = useState(null);
 
   // Poll states
-  const [hasPoll, setHasPoll] = useState(false); // Có tạo poll không
-  const [pollQuestion, setPollQuestion] = useState(""); // Câu hỏi poll
-  const [pollOptions, setPollOptions] = useState(["", ""]); // Danh sách options (tối thiểu 2)
-  const [pollExpiresIn, setPollExpiresIn] = useState(""); // Thời gian hết hạn (days)
-  const [pollIsPublic, setPollIsPublic] = useState(true); // Hiển thị ai vote gì
-  const [pollAllowMultiple, setPollAllowMultiple] = useState(false); // Cho phép vote nhiều options
+  const [hasPoll, setHasPoll] = useState(false); // Whether creating a poll
+  const [pollQuestion, setPollQuestion] = useState(""); // Poll question
+  const [pollOptions, setPollOptions] = useState(["", ""]); // Poll options (minimum 2)
+  const [pollExpiresIn, setPollExpiresIn] = useState(""); // Expiry in days
+  const [pollIsPublic, setPollIsPublic] = useState(true); // Whether poll votes are public
+  const [pollAllowMultiple, setPollAllowMultiple] = useState(false); // Allow multiple choices
 
   const navigate = useNavigate();
 
@@ -73,13 +74,13 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
   }, [user]);
 
   // ==================== HELPERS ====================
-  
-  const userDisplayName = user?.name || "Bạn"; // Fallback name
+
+  const userDisplayName = user?.name || "Bạn"; // Fallback display name
 
   // ==================== EVENT HANDLERS ====================
-  
+
   /**
-   * Xử lý submit form tạo bài viết
+   * Handle submit of the create-post form
    * @param {Event} e - Form submit event
    */
   const handleSubmit = async (e) => {
@@ -116,10 +117,10 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
 
     setLoading(true);
     try {
-      // Parse tags từ string thành array
+      // Parse tags from comma-separated string into an array
       const tagsArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag);
 
-      // Gọi API tạo bài viết
+      // Call API to create the post
       const post = await api("/api/posts", {
         method: "POST",
         body: {
@@ -134,7 +135,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
         }
       });
 
-      // Nếu có poll, tạo poll cho bài viết
+      // If a poll is present, create the poll for the post
       if (hasPoll) {
         const validOptions = pollOptions.filter(opt => opt.trim()).map(opt => ({ text: opt.trim() }));
 
@@ -158,7 +159,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
         });
       }
 
-      // Reset form và đóng modal
+      // Reset form and close modal
       setShowModal(false);
       resetForm();
 
@@ -183,7 +184,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
   };
 
   /**
-   * Reset tất cả form fields về trạng thái ban đầu
+   * Reset all form fields to their initial state
    */
   const resetForm = () => {
     setTitle("");
@@ -206,7 +207,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
   };
 
   /**
-   * Xử lý upload multiple files (images/videos)
+   * Handle uploading multiple files (images/videos)
    * @param {Event} e - File input change event
    */
   const handleFilesUpload = async (e) => {
@@ -215,24 +216,24 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
     
     setUploading(true);
     try {
-      // Tạo FormData cho multiple files
+      // Create a FormData object for multiple files
       const formData = new FormData();
       selectedFiles.forEach(f => formData.append("files", f));
 
-      // Upload files qua api helper với FormData
+      // Upload files via API helper using FormData
       const data = await api("/api/uploads/media", {
         method: "POST",
         body: formData
       });
       
-      // Thêm files đã upload vào state
+      // Append uploaded files to state
       if (data.files) {
         setFiles(prev => {
           const newFiles = [...prev, ...data.files];
           // Auto-select first image as cover if no cover is set
           if (!coverUrl) {
             const firstImage = newFiles.find(f => f.type === "image");
-            // setCoverUrl(firstImage?.url); // Commented out - có thể implement sau
+            // setCoverUrl(firstImage?.url); // Commented out - can implement later
           }
           return newFiles;
         });
@@ -245,7 +246,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
   };
 
   /**
-   * Đóng modal và reset form
+   * Close the modal and reset the form
    */
   const handleClose = () => {
     setShowModal(false);
@@ -274,23 +275,21 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
           className="bg-white dark:bg-neutral-900 rounded-3xl shadow-lg border border-neutral-200 dark:border-neutral-800 p-5 cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.01]"
         >
         <div className="flex items-center gap-4">
-          <img
-            src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=cccccc&color=222222&size=40`}
-            alt={userDisplayName}
-            width={40}
-            height={40}
-            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-            loading="lazy"
+          <UserAvatar 
+            user={user}
+            size={40}
+            showFrame={true}
+            showBadge={true}
           />
           <div className="flex-1 text-neutral-500 dark:text-neutral-400 text-base font-medium">
             {userDisplayName} ơi, bạn đang nghĩ gì?
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" title="Thêm ảnh/video">
-              <Image size={20} className="text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors" />
+              <Image size={20} className="text-neutral-400 dark:text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors" />
             </div>
             <div className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" title="Tạo bình chọn">
-              <BarChart3 size={20} className="text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors" />
+              <BarChart3 size={20} className="text-neutral-400 dark:text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors" />
             </div>
           </div>
         </div>
@@ -335,13 +334,11 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                   {/* Avatar + Privacy */}
                   <div className="flex items-center gap-4">
-                    <img
-                      src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDisplayName)}&background=cccccc&color=222222&size=40`}
-                      alt={userDisplayName}
-                      width={40}
-                      height={40}
-                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                      loading="lazy"
+                    <UserAvatar 
+                      user={user}
+                      size={40}
+                      showFrame={true}
+                      showBadge={true}
                     />
                     <div className="flex-1">
                       <div className="font-bold text-neutral-900 dark:text-white mb-1">{userDisplayName}</div>
@@ -480,8 +477,8 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                   {/* Actions - Minimalist Icons */}
                   <div className="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-800">
                     <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-all duration-200 group" title="Thêm ảnh/video">
-                      <Image size={18} className="text-neutral-500 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors" strokeWidth={2.5} />
-                      <span className="text-sm font-bold text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors">
+                      <Image size={18} className="text-neutral-500 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors" strokeWidth={2.5} />
+                      <span className="text-sm font-bold text-neutral-600 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors">
                         {uploading ? "Đang tải..." : "Ảnh/Video"}
                       </span>
                       <input
@@ -503,8 +500,8 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                       }`}
                       title="Tạo bình chọn"
                     >
-                      <BarChart3 size={18} className={hasPoll ? "text-white dark:text-black" : "text-neutral-500 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"} strokeWidth={2.5} />
-                      <span className={`text-sm font-bold ${hasPoll ? "text-white dark:text-black" : "text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"}`}>
+                      <BarChart3 size={18} className={hasPoll ? "text-white dark:text-black" : "text-neutral-500 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"} strokeWidth={2.5} />
+                      <span className={`text-sm font-bold ${hasPoll ? "text-white dark:text-black" : "text-neutral-600 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"}`}>
                         Bình chọn
                       </span>
                     </button>
@@ -624,7 +621,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                           <button
                             type="button"
                             onClick={() => setPollOptions([...pollOptions, ""])}
-                            className="flex items-center gap-2 text-sm font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 px-4 py-2.5 rounded-xl transition-all duration-200 border border-dashed border-neutral-300 dark:border-neutral-600 hover:border-neutral-400 dark:hover:border-neutral-500"
+                            className="flex items-center gap-2 text-sm font-bold text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 px-4 py-2.5 rounded-xl transition-all duration-200 border border-dashed border-neutral-300 dark:border-neutral-600 hover:border-neutral-400 dark:hover:border-neutral-500"
                           >
                             <Plus size={16} strokeWidth={2.5} />
                             <span>Thêm lựa chọn</span>

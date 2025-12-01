@@ -2,7 +2,7 @@ import React from 'react';
 
 /**
  * Component Error Boundary - Smaller error boundary for individual components
- * Bắt lỗi trong các component cụ thể mà không crash toàn bộ app
+ * Catch errors in specific components without crashing the entire app
  */
 class ComponentErrorBoundary extends React.Component {
   constructor(props) {

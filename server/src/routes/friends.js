@@ -1,8 +1,21 @@
+/**
+ * Friends Routes
+ * 
+ * Routes xử lý các thao tác liên quan đến bạn bè (friends):
+ * - Gửi, chấp nhận, từ chối lời mời kết bạn
+ * - Lấy danh sách bạn bè
+ * - Hủy kết bạn
+ * - Kiểm tra trạng thái bạn bè
+ * 
+ * @module friends
+ */
+
 import express from 'express';
 import mongoose from 'mongoose';
 import FriendRequest from '../models/FriendRequest.js';
 import User from '../models/User.js';
 import { authRequired } from '../middleware/auth.js';
+import { withCache, userCache, invalidateCacheByPrefix } from '../utils/cache.js';
 
 const router = express.Router();
 
@@ -211,23 +224,57 @@ router.get('/sent-requests', authRequired, async (req, res) => {
 /**
  * GET /list - Lấy danh sách bạn bè
  * Lấy tất cả friends của user hiện tại với thông tin online status
+ * OPTIMIZED: Sử dụng cache và aggregation
  * @returns {Array} Danh sách bạn bè
  */
 router.get('/list', authRequired, async (req, res) => {
   try {
-    const userId = req.user._id.toString(); // Convert to string
+    const userId = req.user._id.toString();
+    const cacheKey = `friends:list:${userId}`;
     
-    const user = await User.findById(userId)
-      .populate('friends', 'name nickname email avatarUrl isOnline lastSeen')
-      .lean();
+    // Cache for 30 seconds (friends list changes infrequently)
+    const friends = await withCache(userCache, cacheKey, async () => {
+      // OPTIMIZATION: Use aggregation instead of populate for better performance
+      const result = await User.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(userId) } },
+        // Only project friends array
+        { $project: { friends: 1 } },
+        // Unwind friends array
+        { $unwind: { path: '$friends', preserveNullAndEmptyArrays: true } },
+        // Lookup friend details
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'friends',
+            foreignField: '_id',
+            as: 'friendData',
+            pipeline: [
+              { $project: { name: 1, nickname: 1, email: 1, avatarUrl: 1, isOnline: 1, lastSeen: 1 } }
+            ]
+          }
+        },
+        // Unwind friendData
+        { $unwind: { path: '$friendData', preserveNullAndEmptyArrays: true } },
+        // Group back to array
+        {
+          $group: {
+            _id: null,
+            friends: { $push: '$friendData' }
+          }
+        },
+        // Project final result
+        { $project: { _id: 0, friends: 1 } }
+      ]);
 
-    // Ensure all friends have default values for isOnline and lastSeen
-    const friends = (user.friends || []).map(friend => ({
-      ...friend,
-      isOnline: friend.isOnline || false,
-      lastSeen: friend.lastSeen || new Date()
-    }));
-
+      const friendsList = result[0]?.friends?.filter(f => f) || [];
+      
+      // Ensure default values
+      return friendsList.map(friend => ({
+        ...friend,
+        isOnline: friend.isOnline || false,
+        lastSeen: friend.lastSeen || new Date()
+      }));
+    }, 30 * 1000); // 30 seconds cache
 
     res.json({ friends });
   } catch (error) {
@@ -261,7 +308,7 @@ router.get('/suggestions', authRequired, async (req, res) => {
       _id: { 
         $nin: [...user.friends, userId, ...pendingUserIds] 
       }
-    }).select('name nickname email avatarUrl isOnline lastSeen')
+    }).select('name nickname email avatarUrl isOnline lastSeen cultivationCache displayBadgeType')
       .limit(10)
       .lean();
 
@@ -363,7 +410,7 @@ router.get('/search', authRequired, async (req, res) => {
         { name: { $regex: escapedQuery, $options: 'i' } },
         { email: { $regex: escapedQuery, $options: 'i' } }
       ]
-    }).select('name nickname email avatarUrl isOnline lastSeen')
+    }).select('name nickname email avatarUrl isOnline lastSeen cultivationCache displayBadgeType')
       .limit(20);
 
     res.json({ users });

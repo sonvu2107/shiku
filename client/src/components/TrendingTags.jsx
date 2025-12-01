@@ -4,8 +4,8 @@ import { TrendingUp, Hash } from "lucide-react";
 import { api } from "../api";
 
 /**
- * TrendingTags - Component hiển thị các tag xu hướng
- * Hiển thị các tag phổ biến nhất để người dùng khám phá nội dung
+ * TrendingTags - Component that displays trending tags
+ * Shows the most popular tags so users can discover content
  */
 export default function TrendingTags({ limit = 10 }) {
   const [trendingTags, setTrendingTags] = useState([]);
@@ -19,10 +19,10 @@ export default function TrendingTags({ limit = 10 }) {
   const loadTrendingTags = async () => {
     try {
       setLoading(true);
-      // Gọi API để lấy các tag xu hướng
+      // Call API to fetch recent posts (used to compute trending tags)
       const response = await api(`/api/posts?limit=100`);
       
-      // Đếm tần suất xuất hiện của mỗi tag
+      // Count the frequency of each tag across fetched posts
       const tagCount = {};
       response.items?.forEach(post => {
         if (post.tags && Array.isArray(post.tags)) {
@@ -35,7 +35,7 @@ export default function TrendingTags({ limit = 10 }) {
         }
       });
 
-      // Chuyển thành array và sắp xếp theo tần suất
+      // Convert tag counts to an array, sort by frequency, and limit results
       const sortedTags = Object.entries(tagCount)
         .map(([tag, count]) => ({ tag, count }))
         .sort((a, b) => b.count - a.count)

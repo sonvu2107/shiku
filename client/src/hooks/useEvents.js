@@ -2,10 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api.js";
 
 /**
- * Hook để lấy danh sách events của user
+ * Hook to fetch the user's list of events
  * @param {Object} options - Query options
  * @param {string} options.filter - Filter type: 'my', 'joined', 'upcoming', 'past'
- * @param {number} options.limit - Số lượng events giới hạn
+ * @param {number} options.limit - Maximum number of events
  */
 export function useMyEvents(options = {}) {
   const { filter = 'my', limit = 10 } = options;
@@ -18,34 +18,34 @@ export function useMyEvents(options = {}) {
       if (limit) params.append('limit', limit);
       
       const response = await api(`/api/events?${params.toString()}`);
-      // Optional chaining để tránh crash nếu response không có data
+      // Optional chaining to avoid crash if response has no data
       return response?.events ?? [];
     },
-    staleTime: 5 * 60 * 1000, // 5 phút
-    gcTime: 10 * 60 * 1000, // 10 phút
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 
 /**
- * Hook để lấy chi tiết một event
- * @param {string} eventId - ID của event
+ * Hook to fetch the details of an event
+ * @param {string} eventId - Event ID
  */
 export function useEvent(eventId) {
   return useQuery({
     queryKey: ["event", eventId],
     queryFn: async () => {
       const response = await api(`/api/events/${eventId}`);
-      // Optional chaining để tránh crash nếu response không có data
+      // Optional chaining to avoid crash if response has no data
       return response?.event ?? null;
     },
-    enabled: !!eventId, // Chỉ fetch khi có eventId
+    enabled: !!eventId, // Only fetch when eventId is present
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
 }
 
 /**
- * Hook để tạo event mới
+ * Hook to create a new event
  */
 export function useCreateEvent() {
   const queryClient = useQueryClient();
@@ -59,14 +59,14 @@ export function useCreateEvent() {
       return response;
     },
     onSuccess: () => {
-      // Invalidate tất cả các queries liên quan đến events
+      // Invalidate all queries related to events
       queryClient.invalidateQueries({ queryKey: ["myEvents"] });
     },
   });
 }
 
 /**
- * Hook để update event
+ * Hook to update an event
  */
 export function useUpdateEvent() {
   const queryClient = useQueryClient();
@@ -87,7 +87,7 @@ export function useUpdateEvent() {
 }
 
 /**
- * Hook để delete event
+ * Hook to delete an event
  */
 export function useDeleteEvent() {
   const queryClient = useQueryClient();
@@ -106,7 +106,7 @@ export function useDeleteEvent() {
 }
 
 /**
- * Hook để join event
+ * Hook to join an event
  */
 export function useJoinEvent() {
   const queryClient = useQueryClient();
@@ -126,7 +126,7 @@ export function useJoinEvent() {
 }
 
 /**
- * Hook để leave event
+ * Hook to leave an event
  */
 export function useLeaveEvent() {
   const queryClient = useQueryClient();

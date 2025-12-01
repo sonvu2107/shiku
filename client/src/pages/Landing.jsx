@@ -404,6 +404,7 @@ export default function Landing() {
              <span className="font-bold text-neutral-900 dark:text-white">Copyright © 2025</span>
           </div>
           <div className="flex gap-8 text-neutral-500 text-sm font-medium">
+            <Link to="/about" className="hover:text-black dark:hover:text-white transition-colors">Về chúng tôi</Link>
             <Link to="/support" className="hover:text-black dark:hover:text-white transition-colors">Hỗ trợ</Link>
             <Link to="/terms" className="hover:text-black dark:hover:text-white transition-colors">Điều khoản</Link>
           </div>

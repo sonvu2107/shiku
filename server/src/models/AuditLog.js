@@ -112,10 +112,10 @@ auditLogSchema.index({ timestamp: -1 }); // For recent logs
 auditLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 365 * 24 * 60 * 60 });
 
 /**
- * Static methods for common audit operations
+ * Phương pháp tĩnh cho các hoạt động kiểm toán chung
  */
 
-// Log admin action
+// Log hành động admin 
 auditLogSchema.statics.logAction = async function(adminId, action, options = {}) {
   try {
     const logEntry = new this({
@@ -141,7 +141,7 @@ auditLogSchema.statics.logAction = async function(adminId, action, options = {})
   }
 };
 
-// Get recent admin activities
+// Lấy các hoạt động của admin gần đây
 auditLogSchema.statics.getRecentActivities = async function(limit = 50) {
   return this.find()
     .populate('adminId', 'name email role')
@@ -150,7 +150,7 @@ auditLogSchema.statics.getRecentActivities = async function(limit = 50) {
     .lean();
 };
 
-// Get activities by admin
+// Lấy các hoạt động của admin
 auditLogSchema.statics.getActivitiesByAdmin = async function(adminId, limit = 100) {
   return this.find({ adminId })
     .sort({ timestamp: -1 })
@@ -158,7 +158,7 @@ auditLogSchema.statics.getActivitiesByAdmin = async function(adminId, limit = 10
     .lean();
 };
 
-// Get activities by action type
+// Lấy các hoạt động theo loại hành động
 auditLogSchema.statics.getActivitiesByAction = async function(action, limit = 100) {
   return this.find({ action })
     .populate('adminId', 'name email')
@@ -167,7 +167,7 @@ auditLogSchema.statics.getActivitiesByAction = async function(action, limit = 10
     .lean();
 };
 
-// Get suspicious activities (multiple failed actions)
+// Lấy các hoạt động đáng ngờ (nhiều hành động thất bại)
 auditLogSchema.statics.getSuspiciousActivities = async function(timeframe = 24) {
   const since = new Date(Date.now() - timeframe * 60 * 60 * 1000);
   
@@ -191,7 +191,7 @@ auditLogSchema.statics.getSuspiciousActivities = async function(timeframe = 24) 
     },
     {
       $match: {
-        failedAttempts: { $gte: 3 } // 3 or more failed attempts
+        failedAttempts: { $gte: 3 } // 3 hoặc nhiều hơn các lần thất bại
       }
     },
     {

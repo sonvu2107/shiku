@@ -7,22 +7,22 @@ import { ChatPopupWithCallModal } from './ChatPopup';
 import socketService from '../socket';
 import { useOnlineFriends } from '../hooks/useFriends';
 import UserName from './UserName';
+import UserAvatar from './UserAvatar';
 import { useChat } from '../contexts/ChatContext';
 
 /**
- * OnlineFriends - Component hiển thị danh sách bạn bè online
- * Giống sidebar phải của Facebook Messenger
+ * OnlineFriends - Component show online friends sidebar
  */
 export default function OnlineFriends({ user, minimal = false }) {
   const { addChatPopup } = useChat();
 
-  // Sử dụng React Query cho online friends
+  // Use React Query for online friends
   const { data: onlineFriendsData, isLoading, refetch } = useOnlineFriends();
   const onlineFriends = onlineFriendsData?.friends || [];
 
   useEffect(() => {
     if (user) {
-      // Join user room để nhận real-time updates
+      // Join user room to receive real-time updates
       socketService.ensureConnection().then(connected => {
         if (connected) {
           const socket = socketService.socket;
@@ -34,18 +34,18 @@ export default function OnlineFriends({ user, minimal = false }) {
     }
   }, [user]);
 
-  // Lắng nghe real-time updates cho trạng thái online của bạn bè
+  // Listen for real-time updates on friends' online status
   useEffect(() => {
     let isMounted = true;
     let socketRef = null;
 
     const handleFriendOnline = (data) => {
-      // Refetch danh sách online friends khi có thay đổi
+      // Refetch online friends list when there is a change
       refetch();
     };
 
     const handleFriendOffline = (data) => {
-      // Refetch danh sách online friends khi có thay đổi
+      // Refetch online friends list when there is a change
       refetch();
     };
 
@@ -73,7 +73,7 @@ export default function OnlineFriends({ user, minimal = false }) {
     };
   }, [refetch]);
 
-  // Format thời gian lastSeen
+  // Format time lastSeen
   const formatLastSeen = (lastSeen) => {
     if (!lastSeen) return 'Không rõ';
     
@@ -92,14 +92,14 @@ export default function OnlineFriends({ user, minimal = false }) {
     
     return lastSeenDate.toLocaleDateString('vi-VN');
   };
-
-  // Mở chat popup với bạn bè
+  
+  // Open chat popup with a friend
   const handleOpenChat = async (friend) => {
     try {
-      // Tạo conversation mới hoặc lấy conversation hiện có
+      // Create new conversation or get existing one
       const conversation = await chatAPI.createPrivateConversation(friend._id);
       
-      // Tạo conversation object giống hệt ChatPopup
+      // Create conversation object identical to ChatPopup
       const conversationData = {
         _id: conversation._id || conversation.id,
         conversationType: 'private',
@@ -133,7 +133,7 @@ export default function OnlineFriends({ user, minimal = false }) {
         me: user
       };
       
-      // Thêm vào danh sách popups đang mở
+      // Add to the list of open popups
       addChatPopup(conversationData);
     } catch (error) {
       alert('Không thể mở cuộc trò chuyện');
@@ -197,18 +197,15 @@ export default function OnlineFriends({ user, minimal = false }) {
               className={minimal ? "flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50/40 dark:hover:bg-gray-700/40 transition-colors group" : "flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"}
             >
               <div className="relative">
-                <img
-                  src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&length=2&background=cccccc&color=222222&size=40`}
-                  alt={friend.name}
-                  className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700"
-                  onError={(e) => {
-                    // Fallback nếu ảnh lỗi
-                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&length=2&background=cccccc&color=222222&size=40`;
-                  }}
+                <UserAvatar 
+                  user={friend}
+                  size={40}
+                  showFrame={true}
+                  showBadge={true}
                 />
-                {/* Online indicator - chỉ hiển thị khi isOnline = true */}
+                {/* Online indicator - only show when isOnline = true */}
                 {friend.isOnline && (
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full z-20"></div>
                 )}
               </div>
               

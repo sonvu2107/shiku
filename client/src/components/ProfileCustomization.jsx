@@ -20,7 +20,9 @@ import {
   FileText, 
   Camera,
   Image as ImageIcon,
-  Settings
+  Settings,
+  Sparkles,
+  Shield
 } from "lucide-react";
 import { cn } from "../utils/cn";
 
@@ -61,8 +63,8 @@ const SpotlightCard = ({ children, className = "" }) => {
 };
 
 /**
- * ProfileCustomization - Component tùy chỉnh profile
- * Chỉ bao gồm appearance và privacy settings (đã bỏ các trường trùng với form chỉnh sửa)
+ * ProfileCustomization - Profile customization component
+ * Includes appearance and privacy settings only (fields overlapping with the edit form are omitted)
  */
 export default function ProfileCustomization({ user, onUpdate, onClose }) {
   // ==================== STATE MANAGEMENT ====================
@@ -92,6 +94,9 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
     showPosts: true
   });
   
+  // Display badge type state (role or cultivation)
+  const [displayBadgeType, setDisplayBadgeType] = useState("role");
+  
   // Upload states
   const [uploadingCover, setUploadingCover] = useState(false);
   const [previewCover, setPreviewCover] = useState("");
@@ -118,6 +123,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
         showPosts: user.showPosts !== false
       });
       
+      setDisplayBadgeType(user.displayBadgeType || "role");
       setPreviewCover(user.coverUrl || "");
     }
   }, [user]);
@@ -194,6 +200,11 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
         }
       });
       
+      // Display badge type - check if changed
+      if (displayBadgeType !== (user.displayBadgeType || "role")) {
+        updateData.displayBadgeType = displayBadgeType;
+      }
+      
       // Only send request if there are changes
       if (Object.keys(updateData).length === 0) {
         setError("Không có thay đổi nào để lưu");
@@ -225,6 +236,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
       appearance.profileTheme !== (user.profileTheme || "default") ||
       appearance.profileLayout !== (user.profileLayout || "classic") ||
       appearance.useCoverImage !== (user.useCoverImage === true) ||
+      displayBadgeType !== (user.displayBadgeType || "role") ||
       Object.keys(privacy).some(key => privacy[key] !== (user[key] !== false))
     );
   };
@@ -529,6 +541,95 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                         </button>
                       </div>
                     ))}
+                  </div>
+                </SpotlightCard>
+
+                {/* Badge Display Type */}
+                <SpotlightCard>
+                  <h3 className="font-bold text-neutral-900 dark:text-white mb-2">Hiển thị danh hiệu</h3>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                    Chọn loại danh hiệu hiển thị bên cạnh tên của bạn
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Role option */}
+                    <button
+                      onClick={() => setDisplayBadgeType("role")}
+                      className={cn(
+                        "relative p-4 rounded-xl border-2 transition-all duration-200",
+                        displayBadgeType === "role"
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
+                      )}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <div className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center",
+                          displayBadgeType === "role"
+                            ? "bg-blue-500 text-white"
+                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
+                        )}>
+                          <Shield className="w-5 h-5" />
+                        </div>
+                        <span className={cn(
+                          "font-bold text-sm",
+                          displayBadgeType === "role"
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-neutral-700 dark:text-neutral-300"
+                        )}>
+                          Vai trò
+                        </span>
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                          Hiển thị Admin, Mod, User...
+                        </span>
+                      </div>
+                      {displayBadgeType === "role" && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Cultivation option */}
+                    <button
+                      onClick={() => setDisplayBadgeType("cultivation")}
+                      className={cn(
+                        "relative p-4 rounded-xl border-2 transition-all duration-200",
+                        displayBadgeType === "cultivation"
+                          ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                          : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
+                      )}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <div className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center",
+                          displayBadgeType === "cultivation"
+                            ? "bg-gradient-to-br from-purple-500 to-amber-500 text-white"
+                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
+                        )}>
+                          <Sparkles className="w-5 h-5" />
+                        </div>
+                        <span className={cn(
+                          "font-bold text-sm",
+                          displayBadgeType === "cultivation"
+                            ? "text-purple-600 dark:text-purple-400"
+                            : "text-neutral-700 dark:text-neutral-300"
+                        )}>
+                          Cảnh giới
+                        </span>
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                          Hiển thị Tu Tiên cảnh giới
+                        </span>
+                      </div>
+                      {displayBadgeType === "cultivation" && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
                   </div>
                 </SpotlightCard>
               </motion.div>

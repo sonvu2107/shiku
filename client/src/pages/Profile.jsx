@@ -25,9 +25,25 @@ const NoiseOverlay = () => (
   />
 );
 
-export default function Profile() {
+export default function Profile({ user: propUser, setUser: propSetUser }) {
   // ==================== STATE MANAGEMENT ====================
-  const [user, setUser] = useState(null);
+  // Local state for user, synced with prop from App.jsx
+  const [user, setLocalUser] = useState(propUser);
+  
+  // Sync local user when propUser changes from App
+  useEffect(() => {
+    if (propUser) {
+      setLocalUser(propUser);
+    }
+  }, [propUser]);
+  
+  // Wrapper to update both local and App state
+  const setUser = (newUser) => {
+    setLocalUser(newUser);
+    if (propSetUser) {
+      propSetUser(newUser);
+    }
+  };
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     name: "", email: "", nickname: "", birthday: "", gender: "", hobbies: "",

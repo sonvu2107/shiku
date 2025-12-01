@@ -1,13 +1,24 @@
 import { Resend } from "resend";
 
 /**
- * Utility để gửi email sử dụng Resend API
- * Sử dụng domain riêng @shiku.click đã được verify
+ * Send Email Utility
+ * 
+ * Utility để gửi email sử dụng Resend API.
+ * Hỗ trợ timeout, error handling và retry logic.
+ * 
+ * @module sendEmail
+ */
+
+/**
+ * Gửi email sử dụng Resend API
+ * 
  * @param {Object} options - Email options
- * @param {string} options.to - Địa chỉ email người nhận (có thể là string hoặc array)
+ * @param {string|string[]} options.to - Địa chỉ email người nhận (string hoặc array)
  * @param {string} options.subject - Tiêu đề email
  * @param {string} options.html - Nội dung HTML của email
- * @param {number} options.timeout - Timeout trong milliseconds (mặc định 30s)
+ * @param {number} [options.timeout=30000] - Timeout trong milliseconds
+ * @returns {Promise<Object>} Thông tin email đã gửi từ Resend API
+ * @throws {Error} Nếu thiếu API key hoặc gửi email thất bại
  */
 export async function sendEmail({ to, subject, html, timeout = 30000 }) {
   return new Promise(async (resolve, reject) => {
@@ -20,9 +31,9 @@ export async function sendEmail({ to, subject, html, timeout = 30000 }) {
       // Kiểm tra API key
       const apiKey = process.env.RESEND_API_KEY;
       
-      // Debug: Log để kiểm tra (chỉ trong development)
+      // Log trạng thái API key (không log nội dung key)
       if (process.env.NODE_ENV !== 'production') {
-        console.log('[sendEmail] Checking RESEND_API_KEY:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+        console.log('[sendEmail] RESEND_API_KEY:', apiKey ? 'configured' : 'NOT FOUND');
       }
       
       if (!apiKey) {
@@ -42,7 +53,7 @@ export async function sendEmail({ to, subject, html, timeout = 30000 }) {
 
       // Gửi email qua Resend API
       const info = await resend.emails.send({
-        from: "Shiku Support <support@shiku.click>",
+        from: `Shiku Support <support@${process.env.EMAIL_DOMAIN || 'shiku.click'}>`,
         to: toArray,
         subject,
         html

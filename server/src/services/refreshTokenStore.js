@@ -1,32 +1,45 @@
 /**
  * Refresh Token Store
- * A lightweight in-memory implementation that mimics a persistent store.
- * Replace with Redis or database-backed storage in production.
+ * 
+ * Quản lý metadata của refresh tokens trong bộ nhớ.
+ * Hỗ trợ:
+ * - Token family tracking (theo dõi chuỗi rotation)
+ * - Token reuse detection (phát hiện token bị đánh cắp)
+ * - Thống kê và monitoring
+ * 
+ * Lưu ý: Trong production, nên thay bằng Redis hoặc database-backed storage
  */
 
 const refreshTokenIndex = new Map();
+const tokenFamilies = new Map(); // familyId -> Set<jti>
 
 const MILLISECONDS_IN_SECOND = 1000;
 
 /**
- * Persist refresh token metadata.
+ * Lưu metadata của refresh token
  * @param {Object} params
- * @param {string} params.jti
- * @param {string} params.userId
- * @param {Date} params.issuedAt
- * @param {Date} params.expiresAt
- * @param {boolean} [params.legacy=false]
+ * @param {string} params.jti - Token ID
+ * @param {string} params.userId - User ID
+ * @param {Date} params.issuedAt - Thời điểm phát hành
+ * @param {Date} params.expiresAt - Thời điểm hết hạn
+ * @param {boolean} [params.legacy=false] - Token cũ (dùng secret cũ)
+ * @param {string} [params.familyId] - ID của token family (cho rotation tracking)
+ * @param {string} [params.parentJti] - JTI của token cha (cho rotation chain)
  */
 export async function persistRefreshToken({
   jti,
   userId,
   issuedAt,
   expiresAt,
-  legacy = false
+  legacy = false,
+  familyId = null,
+  parentJti = null
 }) {
   if (!jti) {
-    throw new Error("Refresh token requires jti");
+    throw new Error("Refresh token cần có jti");
   }
+
+  const actualFamilyId = familyId || jti;
 
   refreshTokenIndex.set(jti, {
     jti,
@@ -35,14 +48,28 @@ export async function persistRefreshToken({
     expiresAt,
     revoked: false,
     revokedAt: null,
-    legacy
+    legacy,
+    familyId: actualFamilyId,
+    parentJti,
+    rotationCount: parentJti ? getRotationCount(parentJti) + 1 : 0
   });
+
+  if (!tokenFamilies.has(actualFamilyId)) {
+    tokenFamilies.set(actualFamilyId, new Set());
+  }
+  tokenFamilies.get(actualFamilyId).add(jti);
 }
 
 /**
- * Retrieve refresh token metadata.
- * @param {string} jti
- * @returns {Promise<Object|null>}
+ * Lấy số lần rotation từ token cha
+ */
+function getRotationCount(parentJti) {
+  const parent = refreshTokenIndex.get(parentJti);
+  return parent?.rotationCount || 0;
+}
+
+/**
+ * Lấy metadata của refresh token
  */
 export async function getRefreshToken(jti) {
   if (!jti) return null;
@@ -50,9 +77,7 @@ export async function getRefreshToken(jti) {
 }
 
 /**
- * Mark refresh token as revoked.
- * @param {string} jti
- * @param {string} [reason]
+ * Đánh dấu refresh token đã bị thu hồi
  */
 export async function revokeRefreshToken(jti, reason = "revoked") {
   const token = refreshTokenIndex.get(jti);
@@ -65,8 +90,62 @@ export async function revokeRefreshToken(jti, reason = "revoked") {
 }
 
 /**
- * Flag a token that was issued with the legacy secret for monitoring.
- * @param {string} jti
+ * Thu hồi tất cả tokens trong một family (khi phát hiện token reuse attack)
+ * @param {string} familyId - ID của token family
+ * @param {string} reason - Lý do thu hồi
+ * @returns {number} Số lượng tokens đã thu hồi
+ */
+export async function revokeTokenFamily(familyId, reason = "security_breach") {
+  const family = tokenFamilies.get(familyId);
+  if (!family) return 0;
+
+  let revokedCount = 0;
+  for (const jti of family) {
+    const token = refreshTokenIndex.get(jti);
+    if (token && !token.revoked) {
+      token.revoked = true;
+      token.revokedAt = new Date();
+      token.revocationReason = reason;
+      refreshTokenIndex.set(jti, token);
+      revokedCount++;
+    }
+  }
+
+  console.warn(`[SECURITY][RefreshToken] Đã thu hồi ${revokedCount} tokens trong family ${familyId}: ${reason}`);
+  return revokedCount;
+}
+
+/**
+ * Phát hiện token reuse attack
+ * Nếu một token đã bị revoke nhưng vẫn được sử dụng, đây là dấu hiệu token bị đánh cắp
+ * Tự động thu hồi toàn bộ tokens trong family để bảo mật
+ */
+export async function detectTokenReuse(jti) {
+  const token = refreshTokenIndex.get(jti);
+  
+  if (!token) {
+    return { isReuseAttack: false };
+  }
+
+  if (token.revoked) {
+    console.error(`[SECURITY][RefreshToken] Phát hiện token reuse attack! JTI: ${jti}, User: ${token.userId}`);
+    
+    if (token.familyId) {
+      await revokeTokenFamily(token.familyId, "token_reuse_attack");
+    }
+
+    return {
+      isReuseAttack: true,
+      familyId: token.familyId,
+      userId: token.userId
+    };
+  }
+
+  return { isReuseAttack: false };
+}
+
+/**
+ * Đánh dấu token được phát hành với secret cũ (cho monitoring)
  */
 export async function markLegacySecret(jti) {
   const token = refreshTokenIndex.get(jti);
@@ -77,9 +156,7 @@ export async function markLegacySecret(jti) {
 }
 
 /**
- * Determine whether a refresh token has been revoked.
- * @param {string} jti
- * @returns {Promise<boolean>}
+ * Kiểm tra refresh token có bị thu hồi không
  */
 export async function isRefreshTokenRevoked(jti) {
   const token = await getRefreshToken(jti);
@@ -87,27 +164,72 @@ export async function isRefreshTokenRevoked(jti) {
 }
 
 /**
- * Remove expired tokens from memory.
- * In production replace with TTL or scheduled job.
+ * Xóa các token đã hết hạn khỏi bộ nhớ
  */
 export async function pruneExpiredTokens(now = new Date()) {
+  const nowTime = now.getTime();
+  
   for (const [jti, token] of refreshTokenIndex.entries()) {
-    if (token.expiresAt && token.expiresAt.getTime() <= now.getTime()) {
+    if (token.expiresAt && token.expiresAt.getTime() <= nowTime) {
       refreshTokenIndex.delete(jti);
+      
+      if (token.familyId) {
+        const family = tokenFamilies.get(token.familyId);
+        if (family) {
+          family.delete(jti);
+          if (family.size === 0) {
+            tokenFamilies.delete(token.familyId);
+          }
+        }
+      }
     }
   }
 }
 
 /**
- * Utility for tests to reset store.
+ * Lấy thống kê cho monitoring
  */
-export function __unsafeResetStore() {
-  refreshTokenIndex.clear();
+export function getRefreshTokenStats() {
+  const now = Date.now();
+  let active = 0;
+  let revoked = 0;
+  let expired = 0;
+  let totalRotations = 0;
+
+  for (const [, token] of refreshTokenIndex.entries()) {
+    if (token.expiresAt && token.expiresAt.getTime() <= now) {
+      expired++;
+    } else if (token.revoked) {
+      revoked++;
+    } else {
+      active++;
+    }
+    totalRotations += token.rotationCount || 0;
+  }
+
+  return {
+    totalTokens: refreshTokenIndex.size,
+    activeTokens: active,
+    revokedTokens: revoked,
+    expiredTokens: expired,
+    tokenFamilies: tokenFamilies.size,
+    totalRotations,
+    avgRotationsPerFamily: tokenFamilies.size > 0 
+      ? (totalRotations / tokenFamilies.size).toFixed(2) 
+      : 0
+  };
 }
 
 /**
- * Utility to compute expiry date from seconds.
- * @param {number} seconds
+ * Reset store (chỉ dùng cho testing)
+ */
+export function __unsafeResetStore() {
+  refreshTokenIndex.clear();
+  tokenFamilies.clear();
+}
+
+/**
+ * Tính thời điểm hết hạn từ số giây
  */
 export function calculateExpiry(seconds) {
   return new Date(Date.now() + seconds * MILLISECONDS_IN_SECOND);

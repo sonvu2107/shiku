@@ -3,8 +3,8 @@ import { X, BarChart3, Eye, Heart, Users, TrendingUp, Clock, ThumbsUp, Laugh, Fr
 import { api } from '../api';
 
 /**
- * StoryAnalytics - Component hiển thị thống kê story chi tiết
- * Sử dụng API thực tế để lấy dữ liệu analytics
+ * StoryAnalytics - Component showing analytics for a story
+ * Uses real API to fetch analytics data
  */
 export default function StoryAnalytics({ storyId, onClose }) {
   const [analytics, setAnalytics] = useState(null);

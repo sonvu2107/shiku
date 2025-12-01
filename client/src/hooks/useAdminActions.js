@@ -3,7 +3,6 @@ import { api } from '../api';
 
 /**
  * Custom hook for admin actions (ban, unban, notifications)
- * Tách logic các hành động admin ra khỏi component
  */
 export function useAdminActions() {
   // ==================== STATE ====================

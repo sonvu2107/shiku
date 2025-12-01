@@ -8,8 +8,8 @@ import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSy
 import { motion } from "framer-motion";
 
 /**
- * EditEvent - Trang chỉnh sửa sự kiện (Monochrome Luxury Style)
- * Cho phép người tạo chỉnh sửa thông tin sự kiện
+ * EditEvent - Page for editing an event (Monochrome Luxury style)
+ * Allows the event creator to update event information
  */
 export default function EditEvent() {
   const { id } = useParams();
@@ -42,7 +42,7 @@ export default function EditEvent() {
       if (response.success) {
         const eventData = response.event;
         
-        // Kiểm tra quyền chỉnh sửa
+        // Check edit permissions
         if (eventData.userRole !== 'creator') {
           showError("Bạn không có quyền chỉnh sửa sự kiện này");
           navigate("/events");

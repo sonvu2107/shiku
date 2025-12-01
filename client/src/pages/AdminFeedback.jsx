@@ -68,7 +68,7 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-neutral-950">
-          {/* Original Ticket */}
+          {/* Original ticket message */}
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
               <img src={ticket.user?.avatarUrl || `https://ui-avatars.com/api/?name=${ticket.user?.name}`} alt="" className="w-full h-full object-cover" />
@@ -102,7 +102,7 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Reply Input */}
+        {/* Reply input form */}
         <form onSubmit={handleReply} className="p-4 border-t border-gray-200/80 dark:border-gray-800/80 bg-white dark:bg-neutral-900 flex gap-2">
           <input
             type="text"

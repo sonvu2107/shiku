@@ -2,8 +2,8 @@ import React from "react";
 import { Loader2 } from "lucide-react";
 
 /**
- * PageLoader - Component hiển thị loading state khi lazy load pages
- * Sử dụng cho React.Suspense fallback
+ * PageLoader - Component show loading state when lazy load pages
+ * Used for React.Suspense fallback
  */
 export function PageLoader() {
   return (
@@ -17,7 +17,7 @@ export function PageLoader() {
 }
 
 /**
- * ComponentLoader - Component loading nhỏ hơn cho lazy load components
+ * ComponentLoader - Smaller loading component for lazy loaded components
  */
 export function ComponentLoader({ className = "" }) {
   return (

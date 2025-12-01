@@ -1,3 +1,15 @@
+/**
+ * Uploads Secure Routes
+ * 
+ * Routes xử lý upload file với các biện pháp bảo mật nâng cao:
+ * - File validation (magic bytes, size, type)
+ * - Security logging
+ * - JWT authentication
+ * - Ban check
+ * 
+ * @module uploads-secure
+ */
+
 import express from "express";
 import { authRequired } from "../middleware/jwtSecurity.js";
 import { checkBanStatus } from "../middleware/banCheck.js";

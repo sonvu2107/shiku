@@ -1,10 +1,24 @@
+/**
+ * Mentions Utility
+ * 
+ * Utility xử lý @mentions trong nội dung text:
+ * - Parse @mentions từ text
+ * - Resolve user IDs từ mentions
+ * - Render mentions thành HTML links
+ * - Get user suggestions cho autocomplete
+ * 
+ * @module mentions
+ */
+
 import User from "../models/User.js";
 
 /**
- * Parse @mentions from text content
- * Supports formats: @username, @username123, @user_name
- * @param {string} text - The text content to parse
- * @returns {string[]} Array of unique usernames found (without @)
+ * Parse @mentions từ nội dung text
+ * Hỗ trợ các format: @username, @username123, @user_name, @Nguyễn Văn A
+ * Hỗ trợ ký tự tiếng Việt và Unicode
+ * 
+ * @param {string} text - Nội dung text cần parse
+ * @returns {string[]} Mảng các username duy nhất (không có ký tự @)
  */
 export function parseMentions(text) {
   if (!text || typeof text !== "string") {
@@ -35,9 +49,11 @@ export function parseMentions(text) {
 }
 
 /**
- * Extract and resolve user IDs from mentions in text
- * @param {string} text - The text content to parse
- * @returns {Promise<string[]>} Array of user ObjectIds that were mentioned
+ * Extract và resolve user IDs từ mentions trong text
+ * Tìm users theo name hoặc email (case-insensitive, hỗ trợ tiếng Việt)
+ * 
+ * @param {string} text - Nội dung text cần parse
+ * @returns {Promise<string[]>} Mảng các user ObjectIds đã được mention
  */
 export async function extractMentionedUsers(text) {
   const usernames = parseMentions(text);
@@ -108,11 +124,12 @@ export async function extractMentionedUsers(text) {
 }
 
 /**
- * Convert text with @mentions to HTML with clickable links
- * @param {string} text - The text content
- * @param {Object} options - Options for rendering
- * @param {Function} options.userLink - Function to generate user profile link
- * @returns {string} HTML string with mentions as links
+ * Chuyển đổi text có @mentions thành HTML với các link có thể click
+ * 
+ * @param {string} text - Nội dung text
+ * @param {Object} options - Tùy chọn render
+ * @param {Function} options.userLink - Function tạo link profile user
+ * @returns {string} HTML string với mentions là các link
  */
 export function renderMentions(text, options = {}) {
   if (!text || typeof text !== "string") {
@@ -131,13 +148,14 @@ export function renderMentions(text, options = {}) {
 }
 
 /**
- * Get user suggestions based on search query
- * Useful for autocomplete in post/comment creation
- * Supports Vietnamese characters and partial matching
+ * Lấy danh sách user suggestions dựa trên search query
+ * Hữu ích cho autocomplete khi tạo post/comment
+ * Hỗ trợ ký tự tiếng Việt và partial matching
+ * 
  * @param {string} query - Search query (partial username)
- * @param {string} currentUserId - ID of current user (to exclude from results)
- * @param {number} limit - Maximum number of results
- * @returns {Promise<Array>} Array of user objects with _id, name, avatarUrl
+ * @param {string|null} currentUserId - ID của user hiện tại (để loại trừ khỏi kết quả)
+ * @param {number} limit - Số lượng kết quả tối đa
+ * @returns {Promise<Array>} Mảng các user objects với _id, name, avatarUrl
  */
 export async function getUserSuggestions(query, currentUserId = null, limit = 10) {
   if (!query || query.trim().length === 0) {

@@ -15,7 +15,7 @@ import socketService from "../socket";
 import { isOnline, getConnectionQuality, listenToNetworkChanges } from "../utils/networkDetection";
 
 /**
- * CallModal - Modal cuộc gọi video/voice với WebRTC (Facebook style)
+ * CallModal - Video/voice call modal using WebRTC (Facebook-style)
  * @param {Object} props - Component props
  */
 export default function CallModal({
@@ -43,11 +43,11 @@ export default function CallModal({
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [callTimeout, setCallTimeout] = useState(null);
   const [fallbackTimeout, setFallbackTimeout] = useState(null);
-  const [isFullscreen, setIsFullscreen] = useState(false); // Trạng thái phóng to video
+  const [isFullscreen, setIsFullscreen] = useState(false); // Fullscreen state for the video
   const [networkStatus, setNetworkStatus] = useState({ 
     online: isOnline(), 
     quality: getConnectionQuality() 
-  }); // Trạng thái mạng
+  }); // Network status (online + quality)
 
   // Call duration timer
   useEffect(() => {
@@ -60,12 +60,12 @@ export default function CallModal({
     return () => clearInterval(interval);
   }, [callState]);
   
-  // Theo dõi trạng thái mạng
+  // Monitor network status and react to changes
   useEffect(() => {
     const cleanupNetworkListener = listenToNetworkChanges((isOnline, quality) => {
       setNetworkStatus({ online: isOnline, quality });
       
-      // Hiển thị thông báo nếu kết nối kém
+      // Show a notification if the connection is poor
       if (!isOnline) {
         setError("Mất kết nối mạng. Đang thử kết nối lại...");
       } else if (quality === 'slow' && callState === 'active') {
@@ -102,10 +102,10 @@ export default function CallModal({
         setLocalStream(stream);
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
-        // Setup peer connection với tối ưu dựa trên tình trạng mạng
+        // Setup peer connection, optimizing configuration based on network quality
         const connectionQuality = getConnectionQuality();
         
-        // Điều chỉnh cấu hình dựa trên tình trạng mạng
+        // Adjust configuration according to network quality
         const config = {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -117,7 +117,7 @@ export default function CallModal({
           iceCandidatePoolSize: 10
         };
         
-        // Thêm cài đặt tối ưu cho điện thoại
+        // Add mobile-optimized settings for poor connections
         if (connectionQuality === 'slow') {
           config.sdpSemantics = 'unified-plan';
           config.bundlePolicy = 'max-bundle';
@@ -126,13 +126,13 @@ export default function CallModal({
         const peer = new RTCPeerConnection(config);
         peerRef.current = peer;
 
-        // Tối ưu video constraints cho kết nối chậm
+        // Optimize video constraints for slow connections
         if (connectionQuality === 'slow' && isVideo) {
           const videoTrack = stream.getVideoTracks()[0];
           if (videoTrack) {
             try {
               const sender = peer.addTrack(videoTrack, stream);
-              // Đặt độ phân giải thấp hơn và bitrate thấp hơn cho kết nối chậm
+              // Lower resolution and bitrate for slow connections
               const params = sender.getParameters();
               if (params.encodings && params.encodings.length > 0) {
                 // Giảm bitrate và độ phân giải cho kết nối chậm
@@ -145,13 +145,13 @@ export default function CallModal({
             }
           }
           
-          // Thêm audio track
+          // Add audio track
           const audioTrack = stream.getAudioTracks()[0];
           if (audioTrack) {
             peer.addTrack(audioTrack, stream);
           }
         } else {
-          // Thêm tất cả các track như bình thường
+          // Add all tracks normally
           stream.getTracks().forEach(track => peer.addTrack(track, stream));
         }
 
@@ -189,10 +189,10 @@ export default function CallModal({
           }
         };
 
-        // Giảm thời gian timeout để trải nghiệm mượt mà hơn
+        // Reduce the timeout to improve perceived responsiveness
         const fbTimeout = setTimeout(() => {
           if (mounted && peerRef.current?.connectionState === 'connecting') {
-            // Đặt trạng thái "active" sớm hơn để tránh chờ đợi quá lâu
+            // Set the 'active' state earlier to avoid long waiting periods
             setCallState("active");
           }
         }, 5000); // Giảm xuống 5 giây thay vì 10 giây

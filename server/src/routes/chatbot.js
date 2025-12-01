@@ -1,3 +1,15 @@
+/**
+ * Chatbot Routes
+ * 
+ * Routes xử lý các thao tác liên quan đến AI chatbot:
+ * - Gửi tin nhắn cho AI chatbot
+ * - Nhận phản hồi từ AI (sử dụng Gemini)
+ * - Quản lý lịch sử chat
+ * - Lấy danh sách conversations với chatbot
+ * 
+ * @module chatbot
+ */
+
 import express from 'express';
 import { authRequired } from '../middleware/auth.js';
 import geminiService from '../services/geminiService.js';

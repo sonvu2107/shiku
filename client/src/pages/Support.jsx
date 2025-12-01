@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, HelpCircle, MessageCircle, FileText, Shield, 
@@ -9,13 +10,7 @@ import { api } from "../api";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 
-// --- DATA MOCKUP ---
-const CATEGORIES = [
-  { id: 'start', label: 'Bắt đầu', icon: Zap, desc: 'Hướng dẫn cho người mới' },
-  { id: 'account', label: 'Tài khoản', icon: User, desc: 'Cài đặt & Hồ sơ' },
-  { id: 'security', label: 'Bảo mật', icon: Shield, desc: '2FA & Mật khẩu' },
-  { id: 'privacy', label: 'Riêng tư', icon: Lock, desc: 'Quản lý hiển thị' },
-];
+// (Categories removed - simplified UI)
 
 // --- SUB-COMPONENT: FAQ ITEM ---
 const FaqItem = ({ item, isOpen, onClick }) => {
@@ -453,18 +448,7 @@ export default function Support({ user }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
             >
-              {/* Categories */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-                {CATEGORIES.map((cat, index) => (
-                  <SpotlightCard key={cat.id} className="flex flex-col items-center text-center p-6 cursor-pointer hover:border-blue-500/30 transition-colors">
-                     <div className="w-12 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-3 text-neutral-900 dark:text-white">
-                        <cat.icon size={24} />
-                     </div>
-                     <h3 className="font-bold text-neutral-900 dark:text-white">{cat.label}</h3>
-                     <p className="text-xs text-neutral-500 mt-1">{cat.desc}</p>
-                  </SpotlightCard>
-                ))}
-              </div>
+              {/* Categories removed per user request */}
 
               {/* FAQ List */}
               <div className="bg-white dark:bg-[#1C1C1E] rounded-[32px] p-6 md:p-10 shadow-xl shadow-neutral-200/20 dark:shadow-none border border-neutral-100 dark:border-neutral-800">

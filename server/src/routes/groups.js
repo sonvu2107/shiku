@@ -1,17 +1,26 @@
+/**
+ * Groups Routes
+ * 
+ * Routes xử lý các thao tác liên quan đến nhóm (groups):
+ * - Tạo, sửa, xóa nhóm
+ * - Quản lý thành viên (thêm, xóa, phân quyền)
+ * - Upload avatar/cover cho nhóm
+ * - Tìm kiếm nhóm
+ * 
+ * @module groups
+ */
+
 import express from 'express';
+import mongoose from 'mongoose';
 import Group from '../models/Group.js';
 import Post from '../models/Post.js';
 import User from '../models/User.js';
 import { authRequired, authOptional } from '../middleware/auth.js';
+import { withCache, userCache, invalidateCacheByPrefix } from '../utils/cache.js';
 import multer from 'multer';
 import { v2 as cloudinaryV2 } from 'cloudinary';
 
 const router = express.Router();
-
-/**
- * Groups Routes - API routes cho chức năng nhóm/group
- * Bao gồm CRUD operations, quản lý thành viên, và các chức năng tương tác
- */
 
 // Cấu hình multer cho upload ảnh vào memory
 const upload = multer({ 
@@ -159,69 +168,110 @@ router.get('/', authOptional, async (req, res) => {
  * @route   GET /api/groups/my-groups
  * @desc    Lấy danh sách nhóm của user (tham gia hoặc sở hữu)
  * @access  Private
+ * OPTIMIZED: Sử dụng aggregation và cache
  */
 router.get('/my-groups', authRequired, async (req, res) => {
   try {
     const userId = req.user._id;
-    const { page = 1, limit = 10, role = 'all' } = req.query;
-
-    let query = { isActive: true };
-    
-    // Lọc theo vai trò trong nhóm
-    if (role !== 'all') {
-      query['members'] = {
-        $elemMatch: {
-          user: userId,
-          role: role
-        }
-      };
-    } else {
-      query.$or = [
-        { owner: userId },
-        { 'members.user': userId }
-      ];
-    }
-
-    const groups = await Group.find(query)
-      .populate('owner', 'name avatarUrl')
-      .populate('members.user', 'name avatarUrl')
-      .sort({ updatedAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .lean();
-
-    // Thêm thông tin vai trò của user trong mỗi nhóm
     const userIdStr = userId.toString();
-    const groupsWithRole = groups.map(group => {
-      const ownerId = group.owner?._id?.toString() || group.owner?.toString();
-      if (ownerId === userIdStr) {
-        return { ...group, userRole: 'owner' };
+    const { page = 1, limit = 10, role = 'all' } = req.query;
+    
+    const cacheKey = `my-groups:${userIdStr}:${page}:${limit}:${role}`;
+    
+    // Cache for 60 seconds
+    const result = await withCache(userCache, cacheKey, async () => {
+      // OPTIMIZATION: Use aggregation pipeline instead of find + populate
+      const matchStage = { isActive: true };
+      
+      if (role !== 'all') {
+        matchStage['members'] = {
+          $elemMatch: {
+            user: userId,
+            role: role
+          }
+        };
+      } else {
+        matchStage.$or = [
+          { owner: userId },
+          { 'members.user': userId }
+        ];
       }
-      
-      // Tìm member - xử lý cả trường hợp user đã populate và chưa populate
-      const member = group.members.find(m => {
-        const memberUserId = m.user?._id?.toString() || m.user?.toString();
-        return memberUserId === userIdStr;
+
+      const pipeline = [
+        { $match: matchStage },
+        { $sort: { updatedAt: -1 } },
+        { $skip: (parseInt(page) - 1) * parseInt(limit) },
+        { $limit: parseInt(limit) },
+        // Lookup owner with minimal fields
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'owner',
+            foreignField: '_id',
+            as: 'owner',
+            pipeline: [{ $project: { name: 1, avatarUrl: 1 } }]
+          }
+        },
+        { $unwind: { path: '$owner', preserveNullAndEmptyArrays: true } },
+        // Project only needed fields (skip full members populate for list view)
+        {
+          $project: {
+            name: 1,
+            description: 1,
+            avatar: 1,
+            coverImage: 1,
+            owner: 1,
+            settings: 1,
+            memberCount: { $size: '$members' },
+            // Include minimal member info for role detection
+            members: {
+              $filter: {
+                input: '$members',
+                as: 'member',
+                cond: { $eq: ['$$member.user', userId] }
+              }
+            },
+            createdAt: 1,
+            updatedAt: 1
+          }
+        }
+      ];
+
+      const [groups, totalResult] = await Promise.all([
+        Group.aggregate(pipeline),
+        Group.aggregate([{ $match: matchStage }, { $count: 'total' }])
+      ]);
+
+      const total = totalResult[0]?.total || 0;
+
+      // Add userRole to each group
+      const groupsWithRole = groups.map(group => {
+        const ownerId = group.owner?._id?.toString();
+        if (ownerId === userIdStr) {
+          return { ...group, userRole: 'owner' };
+        }
+        
+        const member = group.members?.[0];
+        return {
+          ...group,
+          userRole: member ? member.role : null,
+          members: undefined // Remove members array from response
+        };
       });
-      
+
       return {
-        ...group,
-        userRole: member ? member.role : null
-      };
-    });
-
-    const total = await Group.countDocuments(query);
-
-    res.json({
-      success: true,
-      data: {
         groups: groupsWithRole,
         pagination: {
           current: parseInt(page),
-          pages: Math.ceil(total / limit),
+          pages: Math.ceil(total / parseInt(limit)),
           total
         }
-      }
+      };
+    }, 60 * 1000); // 60 seconds cache
+
+    res.json({
+      success: true,
+      data: result
     });
   } catch (error) {
     console.error('[ERROR][GROUPS] Error fetching user groups:', error);

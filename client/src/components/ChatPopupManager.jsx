@@ -6,7 +6,7 @@ import { getUserInfo } from "../utils/auth";
 import socketService from "../socket";
 import callManager from "../utils/callManager";
 
-// CSS cho layout bong bóng theo cột
+// CSS for column bubble layout
 const chatBubbleStyles = `
   .chat-popup-container {
     position: fixed !important;
@@ -25,7 +25,7 @@ const chatBubbleStyles = `
     position: relative !important;
   }
   
-  /* Chat popup mở sẽ hiển thị ở vị trí cũ (xuống dưới) */
+  /* The open chat popup will appear in the same position (down below) */
   .chat-popup-container .chat-popup-mobile:not(.minimized) {
     position: fixed !important;
     bottom: 20px !important;
@@ -33,7 +33,7 @@ const chatBubbleStyles = `
     z-index: 10000 !important;
   }
   
-  /* Bong bóng minimized sẽ theo layout cột */
+  /* The minimized bubble will follow the column layout */
   .chat-popup-container .chat-popup-mobile.minimized {
     position: relative !important;
     margin-bottom: 0 !important;
@@ -48,12 +48,12 @@ if (typeof document !== 'undefined') {
 }
 
 /**
- * ChatPopupManager - Quản lý nhiều chat popup và xếp chúng theo hàng như Facebook
+ * ChatPopupManager - Manage multiple chat popups and arrange them in a column 
  * @param {Object} props - Component props
- * @param {Array} props.conversations - Danh sách conversations đang mở
- * @param {Function} props.onCloseConversation - Callback đóng conversation
- * @param {Function} props.onShowInfo - Callback hiển thị thông báo
- * @returns {JSX.Element} Component chat popup manager
+ * @param {Array} props.conversations - List of open conversations
+ * @param {Function} props.onCloseConversation - Callback to close a conversation
+ * @param {Function} props.onShowInfo - Callback to show information
+ * @returns {JSX.Element} Chat popup manager component
  */
 export default function ChatPopupManager({ conversations = [], onCloseConversation, onShowInfo }) {
   // ==================== STATE MANAGEMENT ====================
@@ -72,7 +72,7 @@ export default function ChatPopupManager({ conversations = [], onCloseConversati
       const myId = getUserInfo()?.id;
       const mySocketId = socketService.socket?.id;
 
-      // Bỏ qua nếu chính mình là caller
+      // Ignore if the caller is myself
       if (caller === myId || callerSocketId === mySocketId) {
         return;
       }
@@ -82,7 +82,7 @@ export default function ChatPopupManager({ conversations = [], onCloseConversati
         return;
       }
 
-      // Chỉ hiển thị incoming call nếu conversation đang mở
+      // Only show incoming call if the conversation is open
       const isConversationOpen = conversations.some(conv => conv._id === conversationId);
       if (isConversationOpen) {
         const incomingCallData = {

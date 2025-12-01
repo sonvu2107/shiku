@@ -3,13 +3,13 @@ import { X, User, Edit3, Trash2 } from "lucide-react";
 import { chatAPI } from "../../chatAPI";
 
 /**
- * NicknameModal - Modal để quản lý biệt danh của người dùng trong cuộc trò chuyện
+ * NicknameModal - Modal to manage user nicknames in chat
  * @param {Object} props - Component props
- * @param {boolean} props.isOpen - Trạng thái mở/đóng modal
- * @param {Function} props.onClose - Callback đóng modal
- * @param {Object} props.conversation - Dữ liệu cuộc trò chuyện
- * @param {Object} props.targetUser - Người dùng cần đặt biệt danh
- * @param {Function} props.onNicknameUpdated - Callback khi biệt danh được cập nhật
+ * @param {boolean} props.isOpen - Modal open/close state
+ * @param {Function} props.onClose - Callback to close modal
+ * @param {Object} props.conversation - Conversation data
+ * @param {Object} props.targetUser - User to set nickname for
+ * @param {Function} props.onNicknameUpdated - Callback when nickname is updated
  * @returns {JSX.Element} Component nickname modal
  */
 export default function NicknameModal({ 
@@ -21,9 +21,9 @@ export default function NicknameModal({
 }) {
   // ==================== STATE MANAGEMENT ====================
   
-  const [nickname, setNickname] = useState(""); // Biệt danh hiện tại
-  const [newNickname, setNewNickname] = useState(""); // Biệt danh mới đang nhập
-  const [isEditing, setIsEditing] = useState(false); // Trạng thái đang chỉnh sửa
+  const [nickname, setNickname] = useState(""); // Current nickname
+  const [newNickname, setNewNickname] = useState(""); // New nickname being entered
+  const [isEditing, setIsEditing] = useState(false); // Editing state
   const [loading, setLoading] = useState(false); // Loading state
   const [error, setError] = useState(""); // Error message
 

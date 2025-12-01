@@ -8,12 +8,12 @@ import { uploadImage } from "../api";
 import MentionAutocomplete from "./MentionAutocomplete";
 
 /**
- * MarkdownEditor - Trình soạn thảo Markdown mạnh mẽ
- * Hỗ trợ định dạng văn bản, chèn code, tạo checklist, preview
- * @param {string} value - Nội dung Markdown hiện tại
- * @param {Function} onChange - Callback khi nội dung thay đổi
+ * MarkdownEditor
+ * Support text formatting, code insertion, checklist creation, preview
+ * @param {string} value - Current Markdown content
+ * @param {Function} onChange - Callback when content changes
  * @param {string} placeholder - Placeholder text
- * @param {number} rows - Số dòng mặc định của textarea
+ * @param {number} rows - Default number of textarea rows
  */
 export default function MarkdownEditor({ value = "", onChange, placeholder = "Viết nội dung của bạn...", rows = 12 }) {
   const [showPreview, setShowPreview] = useState(false);
@@ -24,7 +24,7 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
   const textareaRef = useRef(null);
 
   /**
-   * Chèn text vào vị trí cursor trong textarea
+   * Insert text at the cursor position in the textarea
    */
   const insertText = (before, after = "", placeholder = "") => {
     const textarea = textareaRef.current;
@@ -42,7 +42,7 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
 
     onChange(newValue);
 
-    // Đặt cursor sau text đã chèn
+    // Set cursor after inserted text
     setTimeout(() => {
       const newCursorPos = start + before.length + textToInsert.length + after.length;
       textarea.focus();
@@ -51,7 +51,7 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
   };
 
   /**
-   * Chèn text ở đầu dòng hiện tại
+   * Insert text at the start of the current line
    */
   const insertAtLineStart = (prefix) => {
     const textarea = textareaRef.current;
@@ -77,7 +77,7 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
   };
 
   /**
-   * Upload ảnh và chèn vào nội dung
+   * Upload image and insert into content
    */
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -187,12 +187,12 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
   }, [showMentionAutocomplete]);
 
   /**
-   * Render Markdown preview (đơn giản)
+   * Render Markdown preview (simple version)
    */
   const renderPreview = () => {
     if (!showPreview) return null;
 
-    // Simple Markdown rendering (có thể nâng cấp với thư viện markdown parser)
+    // Simple Markdown rendering (can be enhanced with a markdown parser library)
     let html = value
       // Headers
       .replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold mt-4 mb-2">$1</h3>')
@@ -232,7 +232,7 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
     );
   };
 
-  // Nhóm toolbar buttons theo chức năng
+  // Group toolbar buttons by function
   const textFormatButtons = [
     { icon: Bold, label: "Bold", action: () => insertText("**", "**", "văn bản đậm") },
     { icon: Italic, label: "Italic", action: () => insertText("*", "*", "văn bản nghiêng") },

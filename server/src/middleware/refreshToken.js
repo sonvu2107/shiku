@@ -1,11 +1,15 @@
+/**
+ * Refresh Token Middleware
+ * 
+ * Xử lý refresh token để tạo access token mới.
+ * Legacy middleware - đã được thay thế bởi jwtSecurity.js.
+ * 
+ * @module refreshToken
+ */
+
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../models/User.js";
-
-/**
- * Refresh Token Middleware
- * Xử lý refresh token để tạo access token mới
- */
 
 /**
  * Tạo refresh token (dài hạn, 30 ngày)

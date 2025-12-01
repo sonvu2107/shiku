@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 
 /**
- * Story Schema - Định nghĩa cấu trúc cho Stories (tự động xóa sau 24h)
- * Tương tự Instagram/Facebook Stories
+ * Story Schema
+ * Lưu Stories (tự động hết hạn sau 24 giờ) — tương tự Instagram/Facebook
  */
 const StorySchema = new mongoose.Schema({
   // ==================== THÔNG TIN CƠ BẢN ====================
@@ -46,7 +46,7 @@ const StorySchema = new mongoose.Schema({
     default: "#FFFFFF" 
   }, // Màu chữ
   
-  // ==================== INTERACTIONS ====================
+  // ==================== TƯƠNG TÁC ====================
   views: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     viewedAt: { type: Date, default: Date.now }
@@ -62,7 +62,7 @@ const StorySchema = new mongoose.Schema({
     reactedAt: { type: Date, default: Date.now }
   }], // Reactions như messages
   
-  // ==================== PRIVACY & STATUS ====================
+  // ==================== QUYỀN RIÊNG TƯ & TRẠNG THÁI ====================
   visibility: {
     type: String,
     enum: ["public", "friends", "custom"],
@@ -79,7 +79,7 @@ const StorySchema = new mongoose.Schema({
     default: true 
   }, // Story còn active hay không
   
-  // ==================== EXPIRY ====================
+  // ==================== HẾT HẠN (EXPIRY) ====================
   expiresAt: { 
     type: Date, 
     required: true,
@@ -105,37 +105,28 @@ const StorySchema = new mongoose.Schema({
   timestamps: true 
 });
 
-// ==================== DATABASE INDEXES ====================
+// Indexes: tối ưu truy vấn theo tác giả, trạng thái hoạt động và thời điểm hết hạn
 StorySchema.index({ author: 1, createdAt: -1 });
-StorySchema.index({ expiresAt: 1, isActive: 1 }); // Để tự động xóa expired stories
+StorySchema.index({ expiresAt: 1, isActive: 1 }); // Dùng khi xóa stories đã hết hạn
 StorySchema.index({ "views.user": 1 });
 
-// ==================== VIRTUAL PROPERTIES ====================
-
-/**
- * Đếm số lượt xem
- */
+// Virtuals tiện ích
+// Số lượt xem
 StorySchema.virtual('viewCount').get(function() {
   return this.views ? this.views.length : 0;
 });
 
-/**
- * Đếm số reactions
- */
+// Số reactions
 StorySchema.virtual('reactionCount').get(function() {
   return this.reactions ? this.reactions.length : 0;
 });
 
-/**
- * Kiểm tra story đã hết hạn chưa
- */
+// Kiểm tra story đã hết hạn hay chưa
 StorySchema.virtual('isExpired').get(function() {
   return new Date() > this.expiresAt;
 });
 
-/**
- * Thời gian còn lại (milliseconds)
- */
+// Thời gian còn lại (ms)
 StorySchema.virtual('timeRemaining').get(function() {
   return Math.max(0, this.expiresAt - new Date());
 });
@@ -218,19 +209,13 @@ StorySchema.methods.canView = function(userId, userFriends = []) {
 
 // ==================== STATIC METHODS ====================
 
-/**
- * Xóa tất cả stories đã hết hạn
- */
+// Xóa tất cả stories đã hết hạn
 StorySchema.statics.cleanExpiredStories = async function() {
-  const result = await this.deleteMany({ 
-    expiresAt: { $lt: new Date() } 
-  });
+  const result = await this.deleteMany({ expiresAt: { $lt: new Date() } });
   return result.deletedCount;
 };
 
-/**
- * Lấy active stories của một user
- */
+// Lấy stories đang active của 1 user (chưa hết hạn)
 StorySchema.statics.getActiveStoriesForUser = async function(userId) {
   return this.find({
     author: userId,
@@ -241,35 +226,23 @@ StorySchema.statics.getActiveStoriesForUser = async function(userId) {
   .populate('author', 'name avatarUrl isVerified');
 };
 
-/**
- * Lấy stories feed cho user (stories của bạn bè + stories công khai)
- */
+// Lấy stories feed cho user: stories của chính user, bạn bè và stories public
 StorySchema.statics.getStoriesFeed = async function(userId, friendIds) {
   try {
-    console.log(`[INFO][STORY] getStoriesFeed called for user: ${userId}`);
-    console.log(`[INFO][STORY] Friend IDs: ${JSON.stringify(friendIds)}`);
-    
-    // Group stories theo author
+    // Group stories theo author và lọc theo visibility sau khi aggregate
     const stories = await this.aggregate([
       {
         $match: {
           isActive: true,
           expiresAt: { $gt: new Date() },
           $or: [
-            // Stories của chính mình
             { author: new mongoose.Types.ObjectId(userId) },
-            // Stories của bạn bè (tất cả visibility)
-            { 
-              author: { $in: (friendIds || []).map(id => new mongoose.Types.ObjectId(id)) }
-            },
-            // Stories công khai của tất cả mọi người (kể cả không phải bạn bè)
+            { author: { $in: (friendIds || []).map(id => new mongoose.Types.ObjectId(id)) } },
             { visibility: 'public' }
           ]
         }
       },
-      {
-        $sort: { createdAt: -1 }
-      },
+      { $sort: { createdAt: -1 } },
       {
         $group: {
           _id: '$author',
@@ -278,77 +251,40 @@ StorySchema.statics.getStoriesFeed = async function(userId, friendIds) {
           storyCount: { $sum: 1 }
         }
       },
-      {
-        $sort: { 'latestStory.createdAt': -1 }
-      }
+      { $sort: { 'latestStory.createdAt': -1 } }
     ]);
-    
-    console.log(`[INFO][STORY] Found ${stories.length} story groups from aggregate`);
-    
-    // Populate author info - Fix: populate _id field with User model
-    await mongoose.model("User").populate(stories, {
-      path: '_id',
-      select: 'name avatarUrl isVerified'
-    });
-    
-    console.log(`[INFO][STORY] After populate: ${stories.length} story groups`);
-    
-    // Filter stories based on visibility
+
+    // Populate author info
+    await mongoose.model("User").populate(stories, { path: '_id', select: 'name avatarUrl isVerified' });
+
+    // Lọc stories trong mỗi nhóm theo visibility (own, public, friends)
     const filteredStories = [];
     for (const storyGroup of stories) {
       try {
-        const authorId = storyGroup._id._id || storyGroup._id;
         const userFriends = friendIds || [];
-        
-        console.log(`[INFO][STORY] Processing story group for author: ${authorId}`);
-        console.log(`[INFO][STORY] Stories in group: ${storyGroup.storyCount}`);
-        
-        // Filter stories within this group based on visibility
         const visibleStories = storyGroup.stories.filter(story => {
-          // Own stories - always visible
-          if (story.author.toString() === userId.toString()) {
-            return true;
-          }
-          
-          // Check if story is hidden from this user
-          if (story.hiddenFrom && story.hiddenFrom.some(id => id.toString() === userId.toString())) {
-            return false;
-          }
-          
-          // Public stories - always visible to everyone
-          if (story.visibility === 'public') {
-            return true;
-          }
-          
-          // Friends stories - only visible to friends
-          if (story.visibility === 'friends' && userFriends.some(fid => fid.toString() === story.author.toString())) {
-            return true;
-          }
-          
+          if (story.author.toString() === userId.toString()) return true; // own
+          if (story.hiddenFrom && story.hiddenFrom.some(id => id.toString() === userId.toString())) return false;
+          if (story.visibility === 'public') return true;
+          if (story.visibility === 'friends' && userFriends.some(fid => fid.toString() === story.author.toString())) return true;
           return false;
         });
-        
-        console.log(`[INFO][STORY] Visible stories: ${visibleStories.length}/${storyGroup.storyCount}`);
-        
+
         if (visibleStories.length > 0) {
           filteredStories.push({
             ...storyGroup,
             stories: visibleStories,
             storyCount: visibleStories.length,
-            latestStory: visibleStories[0] // Most recent visible story
+            latestStory: visibleStories[0]
           });
         }
       } catch (groupError) {
-        console.error(`[ERROR][STORY] Error processing story group:`, groupError);
-        // Continue with other groups
+        // Continue with other groups on error
       }
     }
-    
-    console.log(`[INFO][STORY] Final filtered stories: ${filteredStories.length} groups`);
+
     return filteredStories;
-    
   } catch (error) {
-    console.error(`[ERROR][STORY] Error in getStoriesFeed:`, error);
     throw error;
   }
 };

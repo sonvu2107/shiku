@@ -4,14 +4,14 @@ import { chatAPI } from '../../chatAPI';
 import { getUserAvatarUrl, AVATAR_SIZES } from '../../utils/avatarUtils';
 
 /**
- * AddMembersModal - Modal thêm thành viên vào nhóm chat
- * Cho phép tìm kiếm và thêm người dùng mới vào cuộc trò chuyện nhóm
+ * AddMembersModal - Modal add member to group chat
+ * Allows searching and adding new users to the group chat
  * @param {Object} props - Component props
- * @param {Object} props.conversation - Dữ liệu cuộc trò chuyện
- * @param {boolean} props.isOpen - Trạng thái hiển thị modal
- * @param {Function} props.onClose - Callback đóng modal
- * @param {Function} props.onUpdateConversation - Callback cập nhật conversation
- * @returns {JSX.Element|null} Component modal hoặc null nếu không hiển thị
+ * @param {Object} props.conversation - Conversation data
+ * @param {boolean} props.isOpen - Modal visibility state
+ * @param {Function} props.onClose - Callback to close modal
+ * @param {Function} props.onUpdateConversation - Callback to update conversation
+ * @returns {JSX.Element|null} Modal component or null if not visible
  */
 const AddMembersModal = ({ 
   conversation, 
@@ -26,8 +26,8 @@ const AddMembersModal = ({
   const [isSearching, setIsSearching] = useState(false); // Search loading state
   
   // Search states
-  const [searchQuery, setSearchQuery] = useState(''); // Từ khóa tìm kiếm
-  const [searchResults, setSearchResults] = useState([]); // Kết quả tìm kiếm
+  const [searchQuery, setSearchQuery] = useState(''); // Search query
+  const [searchResults, setSearchResults] = useState([]); // Search results
 
   useEffect(() => {
     if (!isOpen) {

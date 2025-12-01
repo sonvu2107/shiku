@@ -18,15 +18,15 @@ import {
 import UserName from './UserName';
 
 /**
- * GroupCard Component - Hiển thị thông tin nhóm trong dạng card
- * Bao gồm ảnh đại diện, thông tin cơ bản, số thành viên và các action buttons
+ * GroupCard Component - Display group information in card form
+ * Includes avatar, basic info, member count, and action buttons
  * 
- * @param {Object} group - Thông tin nhóm
- * @param {Function} onJoin - Callback khi join group
- * @param {Function} onLeave - Callback khi leave group
- * @param {Function} onEdit - Callback khi edit group
- * @param {boolean} showActions - Hiển thị action buttons hay không
- * @param {string} userRole - Vai trò của user trong nhóm (owner, admin, member, null)
+ * @param {Object} group - Group information
+ * @param {Function} onJoin - Callback when joining group
+ * @param {Function} onLeave - Callback when leaving group
+ * @param {Function} onEdit - Callback when editing group
+ * @param {boolean} showActions - Whether to show action buttons
+ * @param {string} userRole - User's role in the group (owner, admin, member, null)
  */
 const GroupCard = ({ 
   group, 
@@ -40,7 +40,7 @@ const GroupCard = ({
   const [isLeaving, setIsLeaving] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
-  // Xử lý join group
+  // Handle join group
   const handleJoin = async () => {
     if (!onJoin) return;
     
@@ -54,7 +54,7 @@ const GroupCard = ({
     }
   };
 
-  // Xử lý leave group
+  // Handle leave group
   const handleLeave = async () => {
     if (!onLeave) return;
     
@@ -68,7 +68,7 @@ const GroupCard = ({
     }
   };
 
-  // Xử lý edit group
+  // Handle edit group
   const handleEdit = () => {
     if (onEdit) {
       onEdit(group);
@@ -76,7 +76,7 @@ const GroupCard = ({
     setShowMenu(false);
   };
 
-  // Lấy icon theo loại nhóm
+  // Get icon based on group type
   const getGroupTypeIcon = () => {
     switch (group.settings?.type) {
       case 'public':
@@ -90,7 +90,7 @@ const GroupCard = ({
     }
   };
 
-  // Lấy text theo loại nhóm
+  // Get text based on group type
   const getGroupTypeText = () => {
     switch (group.settings?.type) {
       case 'public':
@@ -104,17 +104,17 @@ const GroupCard = ({
     }
   };
 
-  // Kiểm tra trạng thái tham gia
-  const isMember = !!userRole; // Đã tham gia nhóm (có userRole)
+  // Check participation status
+  const isMember = !!userRole; // Already a member (has userRole)
   const isOwner = userRole === 'owner';
   
-  // Kiểm tra xem có thể join không (chưa tham gia)
+  // Check if can join (not a member yet)
   const canJoin = !userRole;
   
-  // Kiểm tra xem có thể leave không (đã tham gia nhưng không phải owner)
+  // Check if can leave (already a member but not owner)
   const canLeave = userRole && userRole !== 'owner';
   
-  // Kiểm tra xem có thể edit không
+  // Check if can edit (owner or admin)
   const canEdit = userRole === 'owner' || userRole === 'admin';
 
   return (

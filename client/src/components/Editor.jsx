@@ -1,12 +1,12 @@
 import MarkdownEditor from "./MarkdownEditor";
 
 /**
- * Editor - Component editor Markdown mạnh mẽ
- * Wrapper cho MarkdownEditor với các tính năng đầy đủ
- * @param {string} value - Nội dung hiện tại của editor
- * @param {Function} onChange - Callback khi nội dung thay đổi
+ * Editor - Markdown editor component
+ * Wrapper for MarkdownEditor with full features
+ * @param {string} value - Current content of the editor
+ * @param {Function} onChange - Callback when content changes
  * @param {string} placeholder - Placeholder text
- * @param {number} rows - Số dòng mặc định
+ * @param {number} rows - Default number of rows
  */
 export default function Editor({ value, onChange, placeholder, rows }) {
   return (

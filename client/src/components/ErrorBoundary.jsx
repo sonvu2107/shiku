@@ -2,7 +2,7 @@ import React from 'react';
 
 /**
  * Error Boundary Component
- * Bắt và xử lý lỗi JavaScript trong React component tree
+ * Catch and handle JavaScript errors in React component tree
  */
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -15,7 +15,7 @@ class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
-    // Update state để render fallback UI
+    // Update state to render fallback UI
     return { hasError: true };
   }
 
@@ -27,7 +27,7 @@ class ErrorBoundary extends React.Component {
     });
 
     // Silent error handling - errors are shown in UI
-    // Có thể gửi error đến logging service ở đây
+    // You can send error to logging service here
     // logErrorToService(error, errorInfo);
   }
 

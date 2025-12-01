@@ -1,6 +1,19 @@
+/**
+ * Notifications Routes
+ * 
+ * Routes xử lý các thao tác liên quan đến thông báo (notifications):
+ * - Lấy danh sách thông báo
+ * - Đếm số thông báo chưa đọc
+ * - Đánh dấu đã đọc
+ * - Xóa thông báo
+ * 
+ * @module notifications
+ */
+
 import express from "express";
 import { authRequired } from "../middleware/auth.js";
 import NotificationService from "../services/NotificationService.js";
+import { withCache, statsCache, invalidateCacheByPrefix } from "../utils/cache.js";
 
 const router = express.Router();
 
@@ -21,19 +34,26 @@ router.get("/", authRequired, async (req, res, next) => {
   }
 });
 
-// Get unread count
+// Get unread count - OPTIMIZED with caching
 // Lightweight unread count (PHASE 4 optimization: avoid full notifications fetch)
 router.get("/unread-count", authRequired, async (req, res, next) => {
   try {
-    // Direct count using indexed fields { recipient, read }
-    const unreadCount = await NotificationService.countUnread?.(req.user._id);
-    if (typeof unreadCount === 'number') {
-      return res.json({ unreadCount });
-    }
-    // Fallback if countUnread helper not implemented yet
-    const { default: Notification } = await import("../models/Notification.js");
-    const count = await Notification.countDocuments({ recipient: req.user._id, read: false });
-    res.json({ unreadCount: count });
+    const userId = req.user._id.toString();
+    const cacheKey = `notifications:unread:${userId}`;
+    
+    // Cache for 10 seconds - unread count doesn't need to be real-time
+    const unreadCount = await withCache(statsCache, cacheKey, async () => {
+      // Direct count using indexed fields { recipient, read }
+      const count = await NotificationService.countUnread?.(userId);
+      if (typeof count === 'number') {
+        return count;
+      }
+      // Fallback if countUnread helper not implemented yet
+      const { default: Notification } = await import("../models/Notification.js");
+      return await Notification.countDocuments({ recipient: userId, read: false });
+    }, 10 * 1000); // 10 seconds cache
+    
+    res.json({ unreadCount });
   } catch (error) {
     next(error);
   }

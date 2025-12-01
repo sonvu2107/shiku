@@ -3,7 +3,6 @@ import { api } from '../api';
 
 /**
  * Custom hook for admin data management
- * Tách logic quản lý dữ liệu admin ra khỏi component
  */
 export function useAdminData() {
   // ==================== STATE ====================

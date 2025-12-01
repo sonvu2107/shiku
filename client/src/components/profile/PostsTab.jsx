@@ -7,7 +7,7 @@ import { PostCardSkeleton } from "../ui/Skeleton";
 import { PROFILE_MESSAGES } from "../../constants/profile";
 
 /**
- * PostsTab - Component hiển thị tab Bài viết
+ * PostsTab - Component showing Posts tab in user profile
  */
 export default function PostsTab({
   user,
@@ -19,7 +19,7 @@ export default function PostsTab({
   onUpdate,
   onSavedChange,
 }) {
-  // recentImages được truyền từ parent component (đã được extract từ posts)
+  // recentImages is passed from parent component (extracted from posts)
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" style={{ overflow: 'visible' }}>

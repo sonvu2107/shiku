@@ -5,18 +5,18 @@ import NicknameModal from "./NicknameModal";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../../utils/avatarUtils";
 
 /**
- * ChatHeader - Header của cuộc trò chuyện
- * Hiển thị thông tin cuộc trò chuyện, avatar, tên và các nút hành động
+ * ChatHeader - Header of the conversation
+ * Display conversation information, avatar, name, and action buttons
  * @param {Object} props - Component props
- * @param {Object} props.conversation - Dữ liệu cuộc trò chuyện
- * @param {Object} props.currentUser - Thông tin user hiện tại
- * @param {Function} props.onUpdateConversation - Callback cập nhật conversation
- * @param {Function} props.onLeaveConversation - Callback rời khỏi conversation
- * @param {Function} props.onDeleteConversation - Callback xóa conversation
- * @param {Function} props.onAddMembers - Callback thêm thành viên
- * @param {Function} props.onVideoCall - Callback gọi video
- * @param {Function} props.onVoiceCall - Callback gọi thoại
- * @param {Function} props.onBack - Callback quay lại danh sách (mobile)
+ * @param {Object} props.conversation - Conversation data
+ * @param {Object} props.currentUser - Current user information
+ * @param {Function} props.onUpdateConversation - Callback to update conversation
+ * @param {Function} props.onLeaveConversation - Callback to leave conversation
+ * @param {Function} props.onDeleteConversation - Callback to delete conversation
+ * @param {Function} props.onAddMembers - Callback to add members
+ * @param {Function} props.onVideoCall - Callback to start video call
+ * @param {Function} props.onVoiceCall - Callback to start voice call
+ * @param {Function} props.onBack - Callback to go back to the list (mobile)
  * @returns {JSX.Element} Component chat header
  */
 export default function ChatHeader({ 
@@ -33,13 +33,13 @@ export default function ChatHeader({
   // ==================== STATE MANAGEMENT ====================
   
   // UI states
-  const [showMenu, setShowMenu] = useState(false); // Trạng thái hiển thị menu dropdown
-  const [showEditName, setShowEditName] = useState(false); // Trạng thái edit tên nhóm
-  const [showGroupSettings, setShowGroupSettings] = useState(false); // Trạng thái hiển thị group settings
-  const [showNicknameModal, setShowNicknameModal] = useState(false); // Trạng thái hiển thị nickname modal
+  const [showMenu, setShowMenu] = useState(false); // State for showing dropdown menu
+  const [showEditName, setShowEditName] = useState(false); // State for editing group name
+  const [showGroupSettings, setShowGroupSettings] = useState(false); // State for showing group settings
+  const [showNicknameModal, setShowNicknameModal] = useState(false); // State for showing nickname modal
   
   // Form states
-  const [newName, setNewName] = useState(conversation?.name || ''); // Tên mới của nhóm
+  const [newName, setNewName] = useState(conversation?.name || ''); // New group name
 
   const isGroup = conversation?.conversationType === 'group';
   const activeParticipants = conversation?.participants?.filter(p => !p.leftAt) || [];
@@ -150,7 +150,7 @@ const getAvatarUrl = () => {
     <div className="relative w-full bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between h-14 px-4">
       {/* Left side - Back button (mobile) + Avatar and info */}
       <div className="flex items-center space-x-3">
-        {/* Back button - chỉ hiển thị trên mobile */}
+        {/* Back button - only visible on mobile */}
         {onBack && (
           <button
             onClick={onBack}

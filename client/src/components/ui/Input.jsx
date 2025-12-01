@@ -1,7 +1,7 @@
 import { cn } from "../../utils/cn";
 
 /**
- * Input component với consistent styling
+ * Input component with consistent styling
  */
 export default function Input({
   label,

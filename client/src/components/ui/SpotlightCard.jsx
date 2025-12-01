@@ -2,8 +2,8 @@ import { useRef, useState } from "react";
 import { cn } from "../../utils/cn";
 
 /**
- * SpotlightCard - Card với spotlight effect khi hover
- * @param {boolean} noOverflow - Nếu true, sẽ dùng overflow-visible thay vì overflow-hidden để cho phép dropdown/popover hiển thị ra ngoài
+ * SpotlightCard - Card with spotlight effect on hover
+ * @param {boolean} noOverflow - If true, uses overflow-visible instead of overflow-hidden to allow dropdown/popover to display outside
  */
 export function SpotlightCard({ children, className = "", onClick, noOverflow = false }) {
   const divRef = useRef(null);

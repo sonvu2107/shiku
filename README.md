@@ -2,8 +2,10 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-sonvu2107%2Fshiku-blue)](https://github.com/sonvu2107/shiku)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-18.3-blue)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/React-19.2-blue)](https://reactjs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-7.5-green)](https://www.mongodb.com/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC)](https://tailwindcss.com/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8-black)](https://socket.io/)
 
 Shiku là một nền tảng mạng xã hội đầy đủ tính năng, được xây dựng với công nghệ web hiện đại. Ứng dụng cung cấp trải nghiệm người dùng mượt mà với các tính năng như đăng bài viết, nhắn tin real-time, hệ thống bạn bè, nhóm, sự kiện và nhiều hơn nữa.
 
@@ -65,38 +67,48 @@ Shiku là một nền tảng mạng xã hội đầy đủ tính năng, được
 ## Công nghệ sử dụng
 
 ### Frontend
-- **React 18.3** - UI framework
-- **React Router 6** - Client-side routing
-- **TailwindCSS 3.4** - Utility-first CSS
-- **Vite 5.4** - Build tool & dev server
-- **Socket.IO Client** - Real-time communication
-- **Axios** - HTTP client với retry logic
-- **TanStack Query** - Data fetching & caching
-- **Lucide React** - Icon library
-- **React Markdown** - Markdown rendering
-- **IndexedDB** - Client-side storage
+- **React 19.2** - UI framework (latest stable)
+- **React Router 6.26** - Client-side routing
+- **TailwindCSS 3.4.10** - Utility-first CSS
+- **Vite 5.4.6** - Build tool & dev server
+- **Socket.IO Client 4.8.1** - Real-time communication
+- **Axios Retry 4.5** - HTTP client với retry logic
+- **TanStack Query 5.90** - Data fetching & caching
+- **TanStack Virtual 3.13** - Virtualized lists
+- **Framer Motion 12.23** - Animation library
+- **Lucide React 0.542** - Icon library
+- **React Markdown 9** - Markdown rendering
+- **idb 8** - IndexedDB wrapper
+- **date-fns 4.1** - Date utility library
+- **Vaul 1.1** - Drawer component
 
 ### Backend
-- **Node.js & Express** - Server framework
+- **Node.js 18+ & Express 4.18** - Server framework
 - **MongoDB & Mongoose 7.5** - Database
-- **Socket.IO 4.8** - WebSocket server
-- **JWT** - Authentication tokens
-- **Bcrypt** - Password hashing
-- **Helmet** - Security middleware
+- **Socket.IO 4.7.2** - WebSocket server
+- **JWT (jsonwebtoken 9)** - Authentication tokens
+- **Bcryptjs 2.4** - Password hashing
+- **Helmet 7** - Security middleware
 - **CORS** - Cross-origin resource sharing
-- **Express Rate Limit** - Rate limiting
-- **Multer** - File upload handling
-- **Cloudinary** - Image/video hosting
-- **Nodemailer** - Email service
-- **Sanitize HTML** - XSS protection
-- **Morgan** - HTTP request logging
+- **Express Rate Limit 6.11** - Rate limiting
+- **Express Slow Down 3** - Request throttling
+- **Multer 1.4.5** - File upload handling
+- **Cloudinary 1.40** - Image/video hosting
+- **Nodemailer 7** - Email service
+- **Resend 4** - Modern email API
+- **Sanitize HTML 2.17** - XSS protection
+- **Morgan 1.10** - HTTP request logging
+- **ioredis 5.8** - Redis client
+- **Google Generative AI 0.24** - AI integration
+- **Joi 18** - Schema validation
 
 ### DevOps & Testing
-- **Jest** - Testing framework
-- **Supertest** - API testing
-- **Nodemon** - Auto-restart server
-- **ESLint** - Code linting
-- **Prettier** - Code formatting
+- **Jest 29.7** - Testing framework
+- **Supertest 6.3** - API testing
+- **Nodemon 3** - Auto-restart server
+- **Terser 5.44** - JavaScript minification
+- **Vite Plugin Compression** - Gzip/Brotli compression
+- **Vite Plugin PWA** - Progressive Web App support
 
 ## Cấu trúc dự án
 
@@ -106,8 +118,14 @@ Project_Shiku/
 │   ├── src/
 │   │   ├── components/    # React components
 │   │   ├── pages/         # Page components
+│   │   ├── contexts/      # React contexts
+│   │   ├── hooks/         # Custom hooks
+│   │   ├── services/      # Service layer
 │   │   ├── utils/         # Utility functions
+│   │   ├── constants/     # App constants
+│   │   ├── config/        # Configuration
 │   │   ├── api.js         # API client
+│   │   ├── chatAPI.js     # Chat API client
 │   │   ├── socket.js      # Socket.IO client
 │   │   └── App.jsx        # Main app component
 │   ├── public/            # Static assets
@@ -126,16 +144,19 @@ Project_Shiku/
 │   └── package.json
 │
 ├── docs/                  # Documentation
+├── scripts/              # Build & utility scripts
 ├── script_test/          # Testing scripts
+├── bats/                 # Batch scripts (Windows)
 └── migration/            # Database migrations
 ```
 
 ## Cài đặt & Chạy
 
 ### Yêu cầu hệ thống
-- Node.js 18+ 
-- MongoDB 5+
+- Node.js 18+ (khuyến nghị 20+)
+- MongoDB 5+ hoặc MongoDB Atlas
 - npm hoặc yarn
+- Redis (optional, cho caching nâng cao)
 
 ### Bước 1: Clone repository
 ```bash
@@ -177,14 +198,23 @@ REFRESH_TOKEN_EXPIRES_IN=7d
 # CSRF
 CSRF_SECRET=your_csrf_secret_key_here
 
+# Redis (optional)
+REDIS_URL=redis://localhost:6379
+
 # Cloudinary (optional)
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 
-# Email (optional)
+# Email - Nodemailer (optional)
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
+
+# Email - Resend (optional)
+RESEND_API_KEY=your_resend_api_key
+
+# Google Generative AI (optional)
+GOOGLE_AI_API_KEY=your_google_ai_api_key
 
 # Frontend URL
 FRONTEND_URL=http://localhost:5173
@@ -342,26 +372,32 @@ node script_test/comprehensive-check.js
 
 ## Hiệu năng
 
-- **Infinite scroll** với virtualization cho danh sách dài
+- **React 19** với automatic batching và concurrent features
+- **Infinite scroll** với virtualization (TanStack Virtual) cho danh sách dài
 - **Image optimization** tự động với Cloudinary
 - **Code splitting** và lazy loading components
-- **API caching** với React Query
-- **IndexedDB** cho offline support
-- **Compression** cho assets và API responses
+- **API caching** với TanStack Query v5
+- **IndexedDB** cho offline support (idb)
+- **Compression** cho assets và API responses (gzip/brotli)
 - **CDN** cho static files
+- **Redis caching** cho server-side caching
+- **Request throttling** với express-slow-down
+- **Framer Motion** cho smooth animations
 
 ## Bảo mật
 
 -  **CSRF Protection** - Bảo vệ chống CSRF attacks
 -  **Rate Limiting** - Giới hạn request (50/15min dev, 10/15min prod)
+-  **Request Throttling** - Slow down cho suspicious requests
 -  **Helmet.js** - Security headers tự động
 -  **JWT Tokens** - Access & Refresh tokens
--  **Password Hashing** - Bcrypt với salt rounds
+-  **Password Hashing** - Bcryptjs với salt rounds
 -  **Input Validation** - Express-validator & Joi
 -  **XSS Protection** - Sanitize HTML input
 -  **CORS** - Controlled cross-origin access
 -  **HTTPS** - Enforced in production
 -  **Environment Variables** - Sensitive data protection
+-  **File Type Validation** - Secure file uploads
 
 ## Deployment
 
@@ -376,9 +412,12 @@ Dự án đã được cấu hình sẵn cho deploy lên Railway/Render:
 - `NODE_ENV=production`
 - `MONGODB_URI` - MongoDB connection string
 - `JWT_SECRET` - JWT secret key
+- `REFRESH_TOKEN_SECRET` - Refresh token secret
 - `FRONTEND_URL` - Frontend URL
+- `REDIS_URL` - Redis connection string (optional)
+- `GOOGLE_AI_API_KEY` - Google AI API key (optional)
 - Các Cloudinary credentials
-- Email service credentials
+- Email service credentials (Nodemailer hoặc Resend)
 
 ## Đóng góp
 
@@ -392,13 +431,29 @@ Mọi đóng góp đều được chào đón! Để đóng góp:
 
 ## License
 
-Dự án này được phát hành dưới giấy phép ISC.
+Dự án này được phát hành dưới giấy phép MIT.
 
 ## Tác giả
 
 **Son Vu**
 - GitHub: [@sonvu2107](https://github.com/sonvu2107)
 - Repository: [shiku](https://github.com/sonvu2107/shiku)
+
+## Changelog
+
+### v1.1.0 (November 2025)
+-  Nâng cấp React từ 18.3 lên **19.2.0**
+-  Nâng cấp TanStack Query lên **5.90**
+-  Thêm **Framer Motion 12.23** cho animations
+-  Thêm **TanStack Virtual 3.13** cho virtualized lists
+-  Thêm **ioredis 5.8** cho Redis caching
+-  Thêm **Google Generative AI 0.24** integration
+-  Thêm **Resend 4** cho modern email API
+-  Thêm **Vaul 1.1** cho drawer components
+-  Cải thiện hiệu năng với React 19 concurrent features
+-  Thêm express-slow-down cho request throttling
+-  Thêm file-type validation cho secure uploads
+-  Cập nhật tất cả dependencies lên phiên bản mới nhất
 
 ## Cảm ơn
 

@@ -2,21 +2,21 @@ import React, { useEffect, useState } from "react";
 import socketService from "../socket";
 
 /**
- * Hook để sử dụng Socket.IO connection
- * @returns {Object} socket instance hoặc null
+ * Hook to use the Socket.IO connection
+ * @returns {Object} socket instance or null
  */
 export function useSocket() {
-  // Tạm thời disable để tránh lỗi
+  // Temporarily disabled to avoid errors
   return null;
   
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    // Lấy socket instance từ socketService
+    // Get socket instance from socketService
     const socketInstance = socketService.socket;
     setSocket(socketInstance);
 
-    // Cleanup - không disconnect vì socket được quản lý globally
+    // Cleanup - do not disconnect because socket is managed globally
     return () => {
       // Do not disconnect here as socket is shared across app
     };

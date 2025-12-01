@@ -5,15 +5,15 @@ import { uploadImage } from '../../api';
 import GroupMembersModal from './GroupMembersModal';
 
 /**
- * GroupSettingsModal - Modal cài đặt nhóm chat
- * Quản lý thông tin nhóm, thành viên và quyền hạn
+ * GroupSettingsModal - Modal group chat settings
+ * Manage group info, members, and permissions
  * @param {Object} props - Component props
- * @param {Object} props.conversation - Dữ liệu cuộc trò chuyện
- * @param {Object} props.currentUser - Thông tin user hiện tại
- * @param {boolean} props.isOpen - Trạng thái hiển thị modal
- * @param {Function} props.onClose - Callback đóng modal
- * @param {Function} props.onUpdateConversation - Callback cập nhật conversation
- * @returns {JSX.Element|null} Component modal hoặc null nếu không hiển thị
+ * @param {Object} props.conversation - Conversation data
+ * @param {Object} props.currentUser - Current user
+ * @param {boolean} props.isOpen - Modal open state
+ * @param {Function} props.onClose - Callback to close modal
+ * @param {Function} props.onUpdateConversation - Callback to update conversation
+ * @returns {JSX.Element|null} Component modal or null if not visible
  */
 const GroupSettingsModal = ({ 
   conversation, 
@@ -25,12 +25,12 @@ const GroupSettingsModal = ({
   // ==================== STATE MANAGEMENT ====================
   
   // UI states
-  const [activeTab, setActiveTab] = useState('info'); // Tab hiện tại: info, members, permissions
+  const [activeTab, setActiveTab] = useState('info'); // Current tab: info, members, permissions
   const [loading, setLoading] = useState(false); // Loading state
-  const [showMembersModal, setShowMembersModal] = useState(false); // Hiển thị modal quản lý thành viên
+  const [showMembersModal, setShowMembersModal] = useState(false); // Show members management modal
   
   // Data states
-  const [conversationDetails, setConversationDetails] = useState(null); // Chi tiết conversation
+  const [conversationDetails, setConversationDetails] = useState(null); // Conversation details
 
   useEffect(() => {
     if (isOpen && conversation) {
@@ -63,7 +63,7 @@ const GroupSettingsModal = ({
     }
   };
 
-  // Upload avatar lên cloud và cập nhật avatar nhóm
+  // Upload avatar to cloud and update group avatar
   const handleUpdateGroupAvatar = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -285,7 +285,7 @@ const GroupSettingsModal = ({
                           />
                           <div>
                             <p className="font-medium text-sm">{participant.user.name}</p>
-                            {/* Không hiển thị email ở đây */}
+                            {/* Do not display email here */}
                             {participant.role === 'admin' && (
                               <p className="text-xs text-orange-500 flex items-center">
                                 <Crown className="w-3 h-3 mr-1" />

@@ -1,3 +1,15 @@
+/**
+ * Uploads Routes
+ * 
+ * Routes xử lý upload file (ảnh, video):
+ * - Upload single/multiple files
+ * - Validate file type và size
+ * - Magic bytes validation
+ * - Upload lên Cloudinary
+ * 
+ * @module uploads
+ */
+
 import express from "express";
 import multer from "multer";
 import streamifier from "streamifier";

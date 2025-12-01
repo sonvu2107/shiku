@@ -1,10 +1,10 @@
-// Sử dụng React.createContext thay vì destructuring để tránh lỗi bundling
+// Use React.createContext instead of structuring to avoid encapsulation errors
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../api';
 import socketService from '../socket';
 import { getUser } from '../utils/tokenManager';
 
-// Đảm bảo React đã được load
+// Make sure React is loaded properly
 if (!React || typeof createContext !== 'function') {
   console.error('[ChatContext] React is not available or createContext is missing. React:', React);
   throw new Error('React createContext is not available. Please check your React installation.');
@@ -56,15 +56,15 @@ export const ChatProvider = ({ children }) => {
     };
     
     setOpenPopups(prev => {
-      // Kiểm tra xem conversation đã mở chưa trong state mới nhất
+      // Check if conversation is already open in the latest state
       const isAlreadyOpen = prev.some(conv => conv._id === normalizedConversation._id);
 
       if (isAlreadyOpen) {
-        // Nếu đã mở, update nhưng giữ lại thông tin quan trọng nếu dữ liệu mới thiếu
+        // If already open, update but retain important info if new data is missing
         return prev.map(conv => {
           if (conv._id === normalizedConversation._id) {
             const merged = { ...conv, ...normalizedConversation };
-            // Giữ lại otherParticipants nếu dữ liệu mới bị thiếu hoặc không đầy đủ (do socket message chỉ có sender)
+            // Retain otherParticipants if new data is missing or incomplete (because socket message only has sender)
             if (conv.otherParticipants && (!normalizedConversation.otherParticipants || !normalizedConversation.otherParticipants[0]?.user)) {
               merged.otherParticipants = conv.otherParticipants;
             }

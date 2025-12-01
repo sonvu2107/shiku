@@ -2,12 +2,12 @@ import React, { useEffect } from 'react';
 import { X, Download, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 
 /**
- * ImageViewer - Component để xem ảnh full screen
+ * ImageViewer - Component to view images in a modal with zoom, rotate, and download features
  * @param {Object} props - Component props
- * @param {boolean} props.isOpen - Trạng thái mở/đóng
- * @param {string} props.imageUrl - URL của ảnh
- * @param {Function} props.onClose - Callback đóng viewer
- * @param {string} props.alt - Alt text cho ảnh
+ * @param {boolean} props.isOpen - Modal open/close state
+ * @param {string} props.imageUrl - Image URL
+ * @param {Function} props.onClose - Callback to close viewer
+ * @param {string} props.alt - Alt text for image
  * @returns {JSX.Element} Component image viewer
  */
 export default function ImageViewer({ isOpen, imageUrl, onClose, alt = "Ảnh" }) {

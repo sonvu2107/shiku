@@ -1,3 +1,15 @@
+/**
+ * Stories Routes
+ * 
+ * Routes xử lý các thao tác liên quan đến stories:
+ * - Tạo, xem, xóa story
+ * - Lấy stories feed (của bạn bè)
+ * - Lấy stories của một user
+ * - Story tự động hết hạn sau 24 giờ
+ * 
+ * @module stories
+ */
+
 import express from "express";
 import Story from "../models/Story.js";
 import User from "../models/User.js";

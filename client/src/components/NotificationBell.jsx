@@ -10,14 +10,14 @@ import {
 } from "../hooks/useNotifications";
 
 /**
- * NotificationBell - Component chuông thông báo với dropdown
- * Hiển thị số lượng thông báo chưa đọc và danh sách thông báo
- * @param {Object} user - Thông tin user hiện tại
+ * NotificationBell - Component ring bell for notifications
+ * Displays the count of unread notifications and the notification list
+ * @param {Object} user - Current user information
  */
 export default function NotificationBell({ user }) {
   // ==================== STATE MANAGEMENT ====================
   
-  const [showDropdown, setShowDropdown] = useState(false); // Hiện dropdown
+  const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
 
   // React Query hooks
@@ -28,7 +28,7 @@ export default function NotificationBell({ user }) {
 
   const notifications = notificationsData?.notifications || [];
   const unreadCount = unreadCountData?.unreadCount || 0;
-  const loading = notificationsLoading; // Fix: define loading from isLoading
+  const loading = notificationsLoading;
 
   // ==================== API FUNCTIONS ====================
 
@@ -50,7 +50,7 @@ export default function NotificationBell({ user }) {
 
   const handleBellClick = () => {
     setShowDropdown(!showDropdown);
-    // React Query sẽ tự động load notifications khi cần
+    // React Query will automatically load notifications when needed  
   };
 
   const getNotificationIcon = (type) => {

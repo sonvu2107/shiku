@@ -3,13 +3,13 @@ import { X, Search, Users, User, Check, Plus } from "lucide-react";
 import { chatAPI } from "../../chatAPI";
 
 /**
- * NewConversationModal - Modal tạo cuộc trò chuyện mới
- * Hỗ trợ tạo private chat và group chat với multi-step wizard
+ * NewConversationModal - Modal create new conversation
+ * Supports creating private chat and group chat with multi-step wizard
  * @param {Object} props - Component props
- * @param {boolean} props.isOpen - Trạng thái hiển thị modal
- * @param {Function} props.onClose - Callback đóng modal
- * @param {Function} props.onCreateConversation - Callback tạo conversation
- * @returns {JSX.Element|null} Component modal hoặc null nếu không hiển thị
+ * @param {boolean} props.isOpen - Modal visibility state
+ * @param {Function} props.onClose - Callback to close modal
+ * @param {Function} props.onCreateConversation - Callback to create conversation
+ * @returns {JSX.Element|null} Component modal or null if not visible
  */
 export default function NewConversationModal({ isOpen, onClose, onCreateConversation }) {
   // ==================== STATE MANAGEMENT ====================
@@ -19,19 +19,19 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
   const [conversationType, setConversationType] = useState('private'); // 'private' or 'group'
   
   // Search states
-  const [searchTerm, setSearchTerm] = useState(''); // Từ khóa tìm kiếm
-  const [searchResults, setSearchResults] = useState([]); // Kết quả tìm kiếm
+  const [searchTerm, setSearchTerm] = useState(''); // Search keyword
+  const [searchResults, setSearchResults] = useState([]); // Search results
   const [searchMode, setSearchMode] = useState('friends'); // 'friends' or 'all'
-  const [isSearching, setIsSearching] = useState(false); // Trạng thái đang tìm kiếm
+  const [isSearching, setIsSearching] = useState(false); // Searching state
   
   // Data states
-  const [friends, setFriends] = useState([]); // Danh sách bạn bè
-  const [selectedUsers, setSelectedUsers] = useState([]); // Users đã chọn
-  const [groupName, setGroupName] = useState(''); // Tên nhóm
+  const [friends, setFriends] = useState([]); // Friends list
+  const [selectedUsers, setSelectedUsers] = useState([]); // Selected users
+  const [groupName, setGroupName] = useState(''); // Group name
   const [existingConversations, setExistingConversations] = useState({}); // Map user ID -> existing conversation
   
   // Loading states
-  const [isLoading, setIsLoading] = useState(false); // Loading state chung
+  const [isLoading, setIsLoading] = useState(false); // General loading state
 
   // Load friends when modal opens
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
       const friendsList = response.friends || [];
       setFriends(friendsList);
       
-      // Kiểm tra existing conversations cho từng bạn bè
+      // Check existing conversations for each friend
       const existingMap = {};
       for (const friend of friendsList) {
         try {
@@ -104,10 +104,10 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
 
   const handleUserSelect = (user) => {
     if (conversationType === 'private') {
-      // Cho private chat, chỉ cho phép chọn 1 người
+      // For private chat, only allow selecting 1 user
       setSelectedUsers([user]);
     } else {
-      // Cho group chat, cho phép chọn nhiều người
+      // For group chat, allow selecting multiple users
       setSelectedUsers(prev => {
         const isSelected = prev.some(u => u._id === user._id);
         if (isSelected) {
@@ -125,18 +125,18 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
     setIsLoading(true);
     try {
       if (conversationType === 'private') {
-        // Kiểm tra xem cuộc trò chuyện đã tồn tại chưa
+        // Check if the conversation already exists
         const existingConversation = await chatAPI.checkPrivateConversation(users[0]._id);
         
         if (existingConversation.exists) {
-          // Nếu đã tồn tại, mở cuộc trò chuyện hiện có
+          // If it exists, open the existing conversation
           await onCreateConversation({
             type: 'private',
             participants: [users[0]._id],
             existingConversation: existingConversation
           });
         } else {
-          // Tạo cuộc trò chuyện mới
+          // Create new conversation
           await onCreateConversation({
             type: 'private',
             participants: [users[0]._id]
@@ -317,7 +317,7 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
                     <p className="text-gray-500 dark:text-gray-400 mt-2">Đang tìm kiếm...</p>
                   </div>
                 ) : searchTerm.trim() ? (
-                  // Hiển thị kết quả tìm kiếm
+                  // Display search results
                   searchResults.length > 0 ? (
                     <div className="space-y-2 pb-4">
                       {searchResults.map(user => {
@@ -376,7 +376,7 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
                     </div>
                   )
                 ) : searchMode === 'friends' ? (
-                  // Hiển thị danh sách bạn bè khi không có từ khóa tìm kiếm
+                  // Display friends list when there is no search keyword
                   friends.length > 0 ? (
                     <div className="space-y-2 pb-4">
                       {friends.map(user => {

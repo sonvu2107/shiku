@@ -1,5 +1,10 @@
 import mongoose from 'mongoose';
 
+/**
+ * Media Schema
+ * Lưu metadata cho media (ảnh, video, audio, tài liệu)
+ * Các trường chính: url, originalName, title, type, uploadedBy
+ */
 const mediaSchema = new mongoose.Schema({
   url: {
     type: String,
@@ -52,17 +57,16 @@ const mediaSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes
+// Indexes để tối ưu truy vấn theo người tải lên, loại, trạng thái và tìm kiếm text
 mediaSchema.index({ uploadedBy: 1 });
 mediaSchema.index({ type: 1 });
 mediaSchema.index({ isActive: 1 });
 mediaSchema.index({ title: 'text', description: 'text', originalName: 'text' });
-mediaSchema.index({ createdAt: -1 }); // For sorting by uploadedAt (virtual field maps to createdAt)
-// Compound indexes for common query patterns
-mediaSchema.index({ uploadedBy: 1, isActive: 1, createdAt: -1 }); // User's active media sorted by date
-mediaSchema.index({ uploadedBy: 1, type: 1, isActive: 1 }); // User's media by type
+mediaSchema.index({ createdAt: -1 }); // Dùng để sắp xếp theo thời gian tải lên
+mediaSchema.index({ uploadedBy: 1, isActive: 1, createdAt: -1 });
+mediaSchema.index({ uploadedBy: 1, type: 1, isActive: 1 });
 
-// Virtual for formatted size
+// Virtual: kích thước được format thân thiện (KB/MB...)
 mediaSchema.virtual('formattedSize').get(function() {
   if (this.size === 0) return '0 B';
   
@@ -78,7 +82,7 @@ mediaSchema.virtual('formattedSize').get(function() {
   return `${size.toFixed(1)} ${units[unitIndex]}`;
 });
 
-// Virtual for uploadedAt (alias for createdAt)
+// Virtual: alias cho createdAt
 mediaSchema.virtual('uploadedAt').get(function() {
   return this.createdAt;
 });
@@ -89,7 +93,7 @@ mediaSchema.methods.incrementViews = function() {
   return this.save();
 };
 
-// Ensure virtual fields are serialized
+// Đảm bảo virtuals được serialize khi trả về JSON
 mediaSchema.set('toJSON', { virtuals: true });
 mediaSchema.set('toObject', { virtuals: true });
 

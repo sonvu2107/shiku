@@ -1,20 +1,21 @@
 import { UserCheck, UserX, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import UserName from "./UserName";
+import UserAvatar from "./UserAvatar";
 
 /**
- * FriendRequestCard - Component hiển thị thẻ lời mời kết bạn
- * Hiển thị thông tin người gửi lời mời và các nút hành động (chấp nhận/từ chối)
+ * FriendRequestCard - Component show friend request card
+ * Displays information about the sender of the request and action buttons (accept/reject)
  * @param {Object} props - Component props
- * @param {Object} props.request - Dữ liệu lời mời kết bạn
- * @param {Object} props.request.from - Thông tin người gửi lời mời
- * @param {string} props.request.from._id - ID người gửi
- * @param {string} props.request.from.name - Tên người gửi
- * @param {string} props.request.from.avatarUrl - Avatar URL người gửi
- * @param {string} props.request.createdAt - Thời gian tạo lời mời
- * @param {string} props.request.status - Trạng thái: pending, accepted, rejected
- * @param {Function} props.onAccept - Callback khi chấp nhận lời mời
- * @param {Function} props.onReject - Callback khi từ chối lời mời
+ * @param {Object} props.request - Friend request data
+ * @param {Object} props.request.from - Information about the sender of the request
+ * @param {string} props.request.from._id - ID of the sender
+ * @param {string} props.request.from.name - Name of the sender
+ * @param {string} props.request.from.avatarUrl - Avatar URL of the sender
+ * @param {string} props.request.createdAt - Creation time of the request
+ * @param {string} props.request.status - Status: pending, accepted, rejected
+ * @param {Function} props.onAccept - Callback when accepting the request
+ * @param {Function} props.onReject - Callback when rejecting the request
  * @returns {JSX.Element} Component friend request card
  */
 export default function FriendRequestCard({ request, onAccept, onReject }) {
@@ -28,12 +29,25 @@ export default function FriendRequestCard({ request, onAccept, onReject }) {
       {/* User Info Section */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Avatar */}
-        <img
-          src={from.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(from.name)}&background=cccccc&color=222222&size=64`}
-          alt="avatar"
-          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+        <div 
+          className="cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
           onClick={() => navigate(`/user/${from._id}`)}
-        />
+        >
+          <UserAvatar 
+            user={from}
+            size={48}
+            showFrame={true}
+            showBadge={true}
+            className="hidden sm:block"
+          />
+          <UserAvatar 
+            user={from}
+            size={40}
+            showFrame={true}
+            showBadge={true}
+            className="sm:hidden"
+          />
+        </div>
         
         {/* User Details */}
         <div className="flex-1 min-w-0">

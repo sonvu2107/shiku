@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 
 /**
- * RoleManagement - Component quản lý role trong admin dashboard
- * Cho phép admin thêm, sửa, xóa role và upload logo cho role
+ * RoleManagement - Component manages user roles
+ * Allows admin to add, edit, delete roles and upload logos for roles
  */
 export default function RoleManagement({ onRolesChange = () => {} }) {
   const [roles, setRoles] = useState([]);
@@ -55,7 +55,7 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    // Tự động định dạng tên vai trò thành chữ thường và thay thế khoảng trắng bằng dấu gạch dưới
+    // Automatically format role name to lowercase and replace spaces with underscores
     if (name === 'name') {
       const formattedValue = value.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
       setFormData(prev => ({

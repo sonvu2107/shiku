@@ -1,10 +1,5 @@
 /**
  * Batch Saved Posts Hook
- * Replaces individual /api/posts/:id/is-saved calls with single batch request
- *
- * Before: 100 posts = 100 API calls
- * After:  100 posts = 1 API call
- * Improvement: 99% reduction!
  */
 
 import { useState, useEffect, useCallback } from 'react';

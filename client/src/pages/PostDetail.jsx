@@ -7,6 +7,7 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
   import CommentSection from "../components/CommentSection";
   import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
   import UserName from "../components/UserName";
+  import UserAvatar from "../components/UserAvatar";
   import VerifiedBadge from "../components/VerifiedBadge";
   import Poll from "../components/Poll";
   import { useSEO } from "../utils/useSEO";
@@ -274,11 +275,19 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
           <div className="flex items-center justify-between mb-3 sm:mb-4 px-0 sm:px-1">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <Link to={`/user/${p.author?._id}`} className="relative flex-shrink-0">
-                <div className="absolute -inset-1 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-500" />
-                <img
-                  src={getOptimizedImageUrl(p.author?.avatarUrl, 100) || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.author?.name || 'User')}&length=2&background=cccccc&color=222222`}
-                  alt={p.author?.name}
-                  className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-white dark:border-[#111]"
+                <UserAvatar 
+                  user={p.author}
+                  size={48}
+                  showFrame={true}
+                  showBadge={true}
+                  className="hidden sm:block"
+                />
+                <UserAvatar 
+                  user={p.author}
+                  size={40}
+                  showFrame={true}
+                  showBadge={true}
+                  className="sm:hidden"
                 />
               </Link>
               <div className="min-w-0 flex-1">
@@ -544,14 +553,24 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                     }
                     if (emoteUsers.length === 0) return <div className="text-gray-400 dark:text-gray-500 text-sm sm:text-base py-4 text-center">Chưa có ai thả cảm xúc này.</div>;
                     return emoteUsers.map((e, idx) => {
-                      const user = e.user || {};
-                      const avatar = user.avatarUrl
-                        ? user.avatarUrl
-                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "?")}&length=2&background=cccccc&color=222222&size=40`;
+                      const emoteUser = e.user || {};
                       return (
                         <div key={idx} className="flex gap-2 sm:gap-3 py-2 border-b border-gray-200 dark:border-gray-800 items-center">
-                          <img src={avatar} alt={user.name || "Người dùng"} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
-                          <UserName user={user} className="font-semibold text-xs sm:text-sm text-gray-900 dark:text-white min-w-0 flex-1" />
+                          <UserAvatar 
+                            user={emoteUser}
+                            size={40}
+                            showFrame={true}
+                            showBadge={true}
+                            className="hidden sm:block"
+                          />
+                          <UserAvatar 
+                            user={emoteUser}
+                            size={32}
+                            showFrame={true}
+                            showBadge={true}
+                            className="sm:hidden"
+                          />
+                          <UserName user={emoteUser} className="font-semibold text-xs sm:text-sm text-gray-900 dark:text-white min-w-0 flex-1" />
                           <div className="flex-shrink-0">
                             <img src={`/assets/${emoteMap[e.type]}`} alt={e.type} className="w-4 h-4 sm:w-5 sm:h-5 ml-1 sm:ml-2" />
                           </div>

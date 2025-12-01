@@ -3,8 +3,8 @@ import { api } from "../api";
 import { Upload, X, Image } from "lucide-react";
 
 /**
- * ImageUpload - Component upload ảnh đơn giản
- * Chỉ hỗ trợ upload hình ảnh cho ảnh bìa sự kiện
+ * ImageUpload - Component upload image
+ * Only supports image upload for event cover photos
  */
 export default function ImageUpload({ onUpload, accept = "image/*", className = "", children }) {
   const [uploading, setUploading] = useState(false);
@@ -39,11 +39,11 @@ export default function ImageUpload({ onUpload, accept = "image/*", className = 
       if (response.success && response.url) {
         onUpload(response.url);
       } else {
-        throw new Error(response.message || 'Upload thất bại');
+        throw new Error(response.message || 'Tải lên thất bại');
       }
     } catch (error) {
       // Silent handling for upload error
-      alert('Có lỗi xảy ra khi upload ảnh: ' + error.message);
+      alert('Có lỗi xảy ra khi tải lên ảnh: ' + error.message);
     } finally {
       setUploading(false);
     }
@@ -91,7 +91,7 @@ export default function ImageUpload({ onUpload, accept = "image/*", className = 
       {uploading ? (
         <div className="flex flex-col items-center justify-center h-full">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-          <p className="text-sm text-gray-600">Đang upload...</p>
+          <p className="text-sm text-gray-600">Đang tải lên...</p>
         </div>
       ) : (
         children

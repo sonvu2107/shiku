@@ -1,7 +1,7 @@
 import { cn } from "../../utils/cn";
 
 /**
- * Select component với consistent styling
+ * Select component with consistent styling
  */
 export default function Select({
   label,

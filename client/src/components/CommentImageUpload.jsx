@@ -2,8 +2,8 @@ import { useState, useRef } from "react";
 import { Upload, X, Image, Loader2 } from "lucide-react";
 
 /**
- * CommentImageUpload - Component upload ảnh cho comment
- * Hỗ trợ multiple files, preview ảnh trước khi upload
+ * CommentImageUpload - Component upload image for comment
+ * Supports multiple files, preview images before upload
  */
 export default function CommentImageUpload({ onImagesChange, maxImages = 5, className = "" }) {
   const [selectedImages, setSelectedImages] = useState([]);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Home, 
@@ -17,27 +17,36 @@ import {
   FileText,
   Heart,
   Eye,
-  HelpCircle
+  HelpCircle,
+  Sparkles
 } from 'lucide-react';
 import { removeAuthToken } from '../utils/auth';
 import { api } from '../api';
 import { getCachedRole, loadRoles } from '../utils/roleCache';
+import { useUserStats } from '../hooks/useUserStats';
+import UserAvatar from './UserAvatar';
 
 /**
- * LeftSidebar - Sidebar trái với dark theme
- * Tái sử dụng menu items từ MobileMenu
- * Bao gồm logo, search, navigation menu, badges, Go Pro, user profile
+ * LeftSidebar - Lefit sidebar component
+ * Reuse menu items from MobileMenu
+ * Includes logo, search, navigation menu, badges, Go Pro, user profile
  */
-export default function LeftSidebar({ user, setUser }) {
+function LeftSidebar({ user, setUser }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [roleLabel, setRoleLabel] = useState('Basic Member');
-  const [stats, setStats] = useState({
+  
+  // OPTIMIZATION: Sử dụng React Query hook thay vì manual API calls
+  const userId = user?.id || user?._id;
+  const { data: stats, isLoading: statsLoading } = useUserStats(userId);
+  
+  // Fallback nếu chưa có data
+  const displayStats = stats || {
     postCount: 0,
     friendCount: 0,
     likeCount: 0,
     viewCount: 0
-  });
+  };
   
   // Collapse state - load from localStorage
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -73,16 +82,16 @@ export default function LeftSidebar({ user, setUser }) {
         return;
       }
 
-      // Nếu role là object (có displayName)
+      // If role is object (has displayName)
       if (typeof user.role === 'object' && user.role.displayName) {
         setRoleLabel(user.role.displayName);
         return;
       }
 
-      // Nếu role là string, lấy role name
+      // If role is string, get role name
       const roleName = typeof user.role === 'string' ? user.role : (user.role.name || 'user');
 
-      // Xử lý các role mặc định
+      // Handle default roles
       if (roleName === 'user') {
         setRoleLabel('Người dùng');
         return;
@@ -92,7 +101,7 @@ export default function LeftSidebar({ user, setUser }) {
         return;
       }
 
-      // Thử lấy từ cache hoặc load từ API
+      // Try to get from cache or load from API
       try {
         const cachedRole = getCachedRole(roleName);
         if (cachedRole && cachedRole.displayName) {
@@ -116,98 +125,6 @@ export default function LeftSidebar({ user, setUser }) {
 
     updateRoleLabel();
   }, [user?.role]);
-
-  // Load user stats
-  useEffect(() => {
-    const loadStats = async () => {
-      const userId = user?.id || user?._id;
-      if (!userId) return;
-      
-      try {
-        // Get user profile with friends populated
-        const data = await api(`/api/users/${userId}`);
-        
-        // Get post count từ analytics API (giống như tab thống kê)
-        let postCount = 0;
-        try {
-          const analyticsRes = await api(`/api/posts/analytics?period=30d`);
-          if (analyticsRes?.analytics?.totalPosts !== undefined) {
-            postCount = analyticsRes.analytics.totalPosts;
-          }
-        } catch (err) {
-          console.warn('Error loading post count from analytics:', err);
-          // Fallback: đếm từ posts API nếu analytics fail
-          try {
-            const [publicRes, privateRes] = await Promise.all([
-              api(`/api/posts?author=${userId}&status=published&limit=50`).catch(() => ({ posts: [], items: [] })),
-              api(`/api/posts?author=${userId}&status=private&limit=50`).catch(() => ({ posts: [], items: [] })),
-            ]);
-            
-            const publicPosts = publicRes?.posts || publicRes?.items || [];
-            const privatePosts = privateRes?.posts || privateRes?.items || [];
-            postCount = publicPosts.length + privatePosts.length;
-            
-            // Nếu có pagination.total, dùng nó (chính xác hơn)
-            if (publicRes?.pagination?.total !== undefined || privateRes?.pagination?.total !== undefined) {
-              const publicTotal = publicRes?.pagination?.total || 0;
-              const privateTotal = privateRes?.pagination?.total || 0;
-              postCount = publicTotal + privateTotal;
-            } else if (publicRes?.total !== undefined || privateRes?.total !== undefined) {
-              const publicTotal = publicRes?.total || 0;
-              const privateTotal = privateRes?.total || 0;
-              postCount = publicTotal + privateTotal;
-            }
-          } catch (fallbackErr) {
-            console.warn('Error loading post count fallback:', fallbackErr);
-          }
-        }
-        
-        // Get friend count - ensure friends array exists
-        const friendCount = Array.isArray(data.user?.friends) ? data.user.friends.length : 0;
-        
-        // Get likes and views from posts - use aggregation approach
-        let likeCount = 0;
-        let viewCount = 0;
-        try {
-          // Load posts in batches to get accurate counts
-          const [publicRes, privateRes] = await Promise.all([
-            api(`/api/posts?author=${userId}&status=published&limit=1000`).catch(() => ({ posts: [], items: [] })),
-            api(`/api/posts?author=${userId}&status=private&limit=1000`).catch(() => ({ posts: [], items: [] })),
-          ]);
-          
-          const allPosts = [
-            ...(publicRes?.posts || publicRes?.items || []),
-            ...(privateRes?.posts || privateRes?.items || [])
-          ];
-          
-          // Aggregate likes (emotes) and views
-          likeCount = allPosts.reduce((sum, post) => {
-            // emotes is an array, count its length
-            return sum + (Array.isArray(post.emotes) ? post.emotes.length : 0);
-          }, 0);
-          
-          viewCount = allPosts.reduce((sum, post) => {
-            // views is a number
-            return sum + (typeof post.views === 'number' ? post.views : 0);
-          }, 0);
-        } catch (err) {
-          console.warn('Error loading likes/views:', err);
-        }
-        
-        setStats({
-          postCount,
-          friendCount,
-          likeCount,
-          viewCount
-        });
-      } catch (err) {
-        // Silent handling - use defaults
-        console.error('Error loading stats:', err);
-      }
-    };
-    
-    loadStats();
-  }, [user?.id, user?._id]);
 
   const handleLogout = async () => {
     try {
@@ -248,10 +165,11 @@ export default function LeftSidebar({ user, setUser }) {
     navigate("/");
   };
 
-  // Navigation menu items - tái sử dụng từ MobileMenu
+  // Navigation menu items
   const menuItems = user ? [
     { icon: Home, label: "Trang chủ", path: "/", show: true, exact: true },
     { icon: Compass, label: "Khám phá", path: "/explore", show: true },
+    { icon: Sparkles, label: "Tu Tiên", path: "/cultivation", show: true, highlight: true },
     { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
     { icon: Image, label: "Media", path: "/media", show: true },
     { icon: Bookmark, label: "Bài đã lưu", path: "/saved", show: true },
@@ -299,7 +217,7 @@ export default function LeftSidebar({ user, setUser }) {
               e.preventDefault();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
-              // Nếu không ở trang chủ, navigate và scroll to top sau khi load
+              // If not on the homepage, navigate and scroll to top after loading
               setTimeout(() => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }, 100);
@@ -332,7 +250,7 @@ export default function LeftSidebar({ user, setUser }) {
         )}
       </button>
 
-      {/* Navigation Menu - Scrollable với scroll ẩn */}
+      {/* Navigation Menu - Scrollable with hidden scroll */}
       <div className="flex-1 overflow-y-auto py-4 scrollbar-hide">
         <nav className={`space-y-1 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-3'}`}>
           {menuItems
@@ -362,7 +280,7 @@ export default function LeftSidebar({ user, setUser }) {
                 {!isCollapsed && (
                   <span className="font-medium text-sm flex-1">{item.label}</span>
                 )}
-                {/* Tooltip khi collapsed */}
+                {/* Tooltip when collapsed */}
                 {isCollapsed && (
                   <span className="absolute left-full ml-2 px-3 py-2 bg-neutral-800 dark:bg-neutral-700 text-white text-sm rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50 shadow-lg">
                     {item.label}
@@ -385,11 +303,11 @@ export default function LeftSidebar({ user, setUser }) {
             <div className="flex flex-col items-center gap-2">
               <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-neutral-800/50">
                 <FileText size={16} className="text-blue-400" />
-                <span className="text-xs font-semibold text-white">{stats.postCount > 999 ? '999+' : stats.postCount}</span>
+                <span className="text-xs font-semibold text-white">{displayStats.postCount > 999 ? '999+' : displayStats.postCount}</span>
               </div>
               <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-neutral-800/50">
                 <Users size={16} className="text-green-400" />
-                <span className="text-xs font-semibold text-white">{stats.friendCount > 999 ? '999+' : stats.friendCount}</span>
+                <span className="text-xs font-semibold text-white">{displayStats.friendCount > 999 ? '999+' : displayStats.friendCount}</span>
               </div>
             </div>
           ) : (
@@ -400,7 +318,7 @@ export default function LeftSidebar({ user, setUser }) {
                 className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 transition-all duration-200 group"
               >
                 <FileText size={18} className="text-blue-400 group-hover:scale-110 transition-transform" />
-                <span className="text-lg font-bold text-white">{stats.postCount > 999 ? '999+' : stats.postCount.toLocaleString('vi-VN')}</span>
+                <span className="text-lg font-bold text-white">{displayStats.postCount > 999 ? '999+' : displayStats.postCount.toLocaleString('vi-VN')}</span>
                 <span className="text-xs text-neutral-400">Bài viết</span>
               </Link>
               
@@ -410,21 +328,21 @@ export default function LeftSidebar({ user, setUser }) {
                 className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 transition-all duration-200 group"
               >
                 <Users size={18} className="text-green-400 group-hover:scale-110 transition-transform" />
-                <span className="text-lg font-bold text-white">{stats.friendCount > 999 ? '999+' : stats.friendCount.toLocaleString('vi-VN')}</span>
+                <span className="text-lg font-bold text-white">{displayStats.friendCount > 999 ? '999+' : displayStats.friendCount.toLocaleString('vi-VN')}</span>
                 <span className="text-xs text-neutral-400">Bạn bè</span>
               </Link>
               
               {/* Like Count */}
               <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-neutral-800/50">
                 <Heart size={18} className="text-red-400" />
-                <span className="text-lg font-bold text-white">{stats.likeCount > 999 ? '999+' : stats.likeCount.toLocaleString('vi-VN')}</span>
+                <span className="text-lg font-bold text-white">{displayStats.likeCount > 999 ? '999+' : displayStats.likeCount.toLocaleString('vi-VN')}</span>
                 <span className="text-xs text-neutral-400">Lượt thích</span>
               </div>
               
               {/* View Count */}
               <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-neutral-800/50">
                 <Eye size={18} className="text-purple-400" />
-                <span className="text-lg font-bold text-white">{stats.viewCount > 999 ? '999+' : stats.viewCount.toLocaleString('vi-VN')}</span>
+                <span className="text-lg font-bold text-white">{displayStats.viewCount > 999 ? '999+' : displayStats.viewCount.toLocaleString('vi-VN')}</span>
                 <span className="text-xs text-neutral-400">Lượt xem</span>
               </div>
             </div>
@@ -439,13 +357,11 @@ export default function LeftSidebar({ user, setUser }) {
         }`}>
           {isCollapsed ? (
             <div className="flex flex-col items-center gap-2">
-              <img
-                src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=ffffff&color=000000&size=40`}
-                alt={user.name}
-                width={40}
-                height={40}
-                className="w-10 h-10 rounded-full object-cover border border-neutral-700"
-                loading="lazy"
+              <UserAvatar 
+                user={user} 
+                size={40}
+                showFrame={true}
+                showBadge={true}
               />
               <button
                 onClick={handleLogout}
@@ -457,17 +373,26 @@ export default function LeftSidebar({ user, setUser }) {
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <img
-                src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=ffffff&color=000000&size=40`}
-                alt={user.name}
-                width={40}
-                height={40}
-                className="w-10 h-10 rounded-full object-cover border border-neutral-700"
-                loading="lazy"
+              <UserAvatar 
+                user={user} 
+                size={40}
+                showFrame={true}
+                showBadge={true}
               />
               <div className="flex-1 min-w-0">
                 <p className="text-white font-medium text-sm truncate">{user.name}</p>
-                <p className="text-neutral-400 text-xs truncate">{roleLabel}</p>
+                {/* Hiển thị role hoặc cảnh giới tùy theo lựa chọn */}
+                {user.displayBadgeType === 'cultivation' ? (
+                  user.cultivationCache?.realmName && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-400">
+                      <Sparkles size={10} />
+                      {user.cultivationCache.realmName}
+                      {user.cultivationCache.realmLevel > 1 && ` T${user.cultivationCache.realmLevel}`}
+                    </span>
+                  )
+                ) : (
+                  <p className="text-neutral-400 text-xs truncate">{roleLabel}</p>
+                )}
               </div>
               <button
                 onClick={handleLogout}
@@ -483,4 +408,14 @@ export default function LeftSidebar({ user, setUser }) {
     </div>
   );
 }
+
+// Memoize component để tối ưu performance
+export default React.memo(LeftSidebar, (prevProps, nextProps) => {
+  // Re-render khi user thay đổi các field quan trọng
+  return prevProps.user?._id === nextProps.user?._id &&
+         prevProps.user?.displayBadgeType === nextProps.user?.displayBadgeType &&
+         prevProps.user?.cultivationCache?.realmLevel === nextProps.user?.cultivationCache?.realmLevel &&
+         prevProps.user?.role === nextProps.user?.role &&
+         prevProps.setUser === nextProps.setUser;
+});
 

@@ -17,6 +17,7 @@ import Home from "./pages/Home.jsx"; // Eager load Home for better LCP
 // Core pages (load ngay)
 const Landing = lazy(() => import("./pages/Landing.jsx"));
 const Tour = lazy(() => import("./pages/Tour.jsx"));
+const About = lazy(() => import("./pages/About.jsx"));
 const Login = lazy(() => import("./pages/Login.jsx"));
 const Register = lazy(() => import("./pages/Register.jsx"));
 
@@ -53,6 +54,9 @@ const Saved = lazy(() => import("./pages/Saved.jsx"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard.jsx"));
 const AdminFeedback = lazy(() => import("./pages/AdminFeedback.jsx"));
 const Support = lazy(() => import("./pages/Support.jsx"));
+
+// Tu Tiên System
+const Cultivation = lazy(() => import("./pages/Cultivation.jsx"));
 
 // Utility pages
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory.jsx"));
@@ -112,7 +116,7 @@ export default function App() {
 
   // Danh sách các trang không hiển thị navbar
   // reset-password và forgot-password luôn ẩn navbar (bất kể đã đăng nhập hay chưa)
-  const alwaysHideNavbarPages = ["/forgot-password", "/reset-password"];
+  const alwaysHideNavbarPages = ["/forgot-password", "/reset-password", "/about", "/cultivation"];
   const conditionalHideNavbarPages = ["/login", "/register", "/", "/tour", "/terms", "/support"];
   const shouldHideNavbar = alwaysHideNavbarPages.includes(location.pathname) || 
     (conditionalHideNavbarPages.includes(location.pathname) && !user);
@@ -347,18 +351,18 @@ export default function App() {
         
         {/* Mobile CSRF Debug Component */}
         
-        {/* Hiển thị navbar cho tất cả trang trừ login/register/landing (khi chưa đăng nhập), chat và home (home có layout riêng) */}
-        {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && location.pathname !== "/home" && location.pathname !== "/feed" && location.pathname !== "/search" && (
+        {/* Hiển thị navbar cho tất cả trang trừ login/register/landing (khi chưa đăng nhập), chat, home và cultivation */}
+        {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && location.pathname !== "/home" && location.pathname !== "/feed" && location.pathname !== "/search" && location.pathname !== "/cultivation" && (
           <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
         )}
 
-        {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat, và không có story viewer đang mở */}
-        {user && !shouldHideNavbar && location.pathname !== "/chat" && !isStoryViewerOpen && (
+        {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat/cultivation, và không có story viewer đang mở */}
+        {user && !shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/cultivation" && !isStoryViewerOpen && (
           <FloatingDock />
         )}
 
         {/* Global PostCreator - để có thể mở modal từ bất kỳ trang nào (qua FloatingDock) - ẩn trigger input card */}
-        {user && !shouldHideNavbar && (
+        {user && !shouldHideNavbar && location.pathname !== "/cultivation" && (
           <PostCreator user={user} hideTrigger={true} />
         )}
 
@@ -374,7 +378,9 @@ export default function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/terms" element={<Terms />} />
+            <Route path="/about" element={<About />} />
             <Route path="/support" element={<Support user={user} />} />
+            <Route path="/cultivation" element={<ProtectedRoute user={user}><Cultivation /></ProtectedRoute>} />
           </Routes>
         </Suspense>
       ) : location.pathname === "/chat" ? (
@@ -401,6 +407,9 @@ export default function App() {
             <Routes>
               {/* Trang chủ - Landing page nếu chưa đăng nhập, Home nếu đã đăng nhập */}
               <Route path="/" element={user ? <Home user={user} setUser={setUser} /> : <Landing />} />
+              
+              {/* Trang About - Public */}
+              <Route path="/about" element={<About />} />
               
               {/* Các trang được bảo vệ (cần đăng nhập) */}
               <Route path="/home" element={<ProtectedRoute user={user}><Home user={user} setUser={setUser} /></ProtectedRoute>} />
@@ -429,6 +438,9 @@ export default function App() {
               {/* Trang admin */}
               <Route path="/admin" element={<ProtectedRoute user={user}><AdminDashboard /></ProtectedRoute>} />
               <Route path="/admin/feedback" element={<ProtectedRoute user={user}><AdminFeedback /></ProtectedRoute>} />
+              
+              {/* Tu Tiên System */}
+              <Route path="/cultivation" element={<ProtectedRoute user={user}><Cultivation /></ProtectedRoute>} />
               
               {/* Các trang khác */}
               <Route path="/settings" element={<ProtectedRoute user={user}><Settings /></ProtectedRoute>} />

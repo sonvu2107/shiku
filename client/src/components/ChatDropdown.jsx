@@ -6,22 +6,22 @@ import { chatbotAPI } from "../services/chatbotAPI";
 import { useChat } from "../contexts/ChatContext";
 
 /**
- * ChatDropdown - Dropdown hiển thị danh sách cuộc trò chuyện
- * Hiển thị danh sách conversations với avatar, tên và tin nhắn cuối
+ * ChatDropdown - Dropdown shows list of conversations
+ * Displays list of conversations with avatar, name, and last message
  * @param {Object} props - Component props
- * @param {Function} props.onOpenChat - Callback khi click vào conversation
- * @returns {JSX.Element} Component chat dropdown
+ * @param {Function} props.onOpenChat - Callback when clicking on a conversation
+ * @returns {JSX.Element} Chat dropdown component
  */
 export default function ChatDropdown({ onOpenChat }) {
   // ==================== STATE MANAGEMENT ====================
   const { unreadCount, refreshUnreadCount } = useChat();
   
   // UI states
-  const [open, setOpen] = useState(false); // Trạng thái mở/đóng dropdown
+  const [open, setOpen] = useState(false); // Dropdown open/close state
   const [loading, setLoading] = useState(false); // Loading state
   
   // Data states
-  const [conversations, setConversations] = useState([]); // Danh sách conversations
+  const [conversations, setConversations] = useState([]); // List of conversations
   const wrapperRef = useRef(null);
 
   useEffect(() => {
@@ -53,13 +53,13 @@ export default function ChatDropdown({ onOpenChat }) {
     setLoading(true);
     try {
       const res = await api("/api/messages/conversations");
-      // Loại bỏ chatbot conversation khỏi danh sách vì nó được hiển thị riêng
+      // Filter out chatbot conversations as they are displayed separately
       const filteredConversations = (res.conversations || []).filter(
         conv => conv.conversationType !== 'chatbot'
       );
       setConversations(filteredConversations);
       
-      // Cập nhật lại số lượng tin nhắn chưa đọc
+      // Update unread message count
       refreshUnreadCount();
     } catch (err) {
       setConversations([]);
@@ -76,7 +76,7 @@ export default function ChatDropdown({ onOpenChat }) {
       if (response.success && response.data) {
         onOpenChat?.(response.data);
       } else {
-        // Fallback: sử dụng conversation tạm thời
+        // Fallback: use temporary conversation
         const chatbotConversation = {
           _id: "__chatbot__",
           conversationType: "chatbot",
@@ -90,7 +90,7 @@ export default function ChatDropdown({ onOpenChat }) {
       }
     } catch (error) {
       console.error('Error loading chatbot conversation:', error);
-      // Fallback: sử dụng conversation tạm thời
+      // Fallback: Use temporary conversation
       const chatbotConversation = {
         _id: "__chatbot__",
         conversationType: "chatbot",
@@ -120,7 +120,7 @@ export default function ChatDropdown({ onOpenChat }) {
     if (conv.conversationType === "group") {
       return conv.groupName || "Nhóm";
     }
-    // Ưu tiên hiển thị nickname trước tên thật
+    // Prioritize displaying nicknames before real names
     const otherParticipant = conv.otherParticipants?.[0];
     return otherParticipant?.nickname || otherParticipant?.user?.name || "Không tên";
   };
@@ -169,7 +169,7 @@ export default function ChatDropdown({ onOpenChat }) {
                   <div className="p-4 text-gray-500 dark:text-gray-400">Không có hội thoại nào</div>
                 ) : (
                   conversations
-                    .filter(conv => conv.conversationType !== 'chatbot') // Đảm bảo loại bỏ chatbot conversation
+                    .filter(conv => conv.conversationType !== 'chatbot') // Ensure chatbot conversations are excluded
                     .map((conv) => {
                     const avatar = getAvatar(conv);
                     const name = getName(conv);

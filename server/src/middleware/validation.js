@@ -1,9 +1,13 @@
-import Joi from "joi";
-
 /**
- * Middleware validation cho các input quan trọng
- * Sử dụng Joi để validate và sanitize input
+ * Validation Middleware
+ * 
+ * Middleware validation cho các input quan trọng.
+ * Sử dụng Joi để validate và sanitize input, chống XSS và NoSQL injection.
+ * 
+ * @module validation
  */
+
+import Joi from "joi";
 
 // Schema validation cho đăng ký user
 export const registerSchema = Joi.object({
@@ -263,7 +267,13 @@ export const updateProfileSchema = Joi.object({
   showHobbies: Joi.boolean().optional(),
   showFriends: Joi.boolean().optional(),
   showPosts: Joi.boolean().optional(),
-  showEvents: Joi.boolean().optional()
+  showEvents: Joi.boolean().optional(),
+  displayBadgeType: Joi.string()
+    .valid('role', 'cultivation')
+    .optional()
+    .messages({
+      'any.only': 'Loại badge phải là role hoặc cultivation'
+    })
 });
 
 // Schema validation cho search

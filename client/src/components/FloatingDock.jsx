@@ -12,12 +12,12 @@ import {
 } from "lucide-react";
 import { cn } from "../utils/cn";
 
-// Cấu hình danh sách items
+// Configure list items
 const dockItems = [
   { icon: Home, label: "Trang chủ", href: "/" },
   { icon: Compass, label: "Khám phá", href: "/explore" },
   { icon: UserCheck, label: "Nhóm", href: "/groups" },
-  { icon: PlusSquare, label: "Đăng bài", href: "/new", isPrimary: true }, // Nút nổi bật
+  { icon: PlusSquare, label: "Đăng bài", href: "/new", isPrimary: true }, 
   { icon: Calendar, label: "Sự kiện", href: "/events" },
   { icon: Image, label: "Media", href: "/media" },
   { icon: Bookmark, label: "Bài đã lưu", href: "/saved" },
@@ -27,10 +27,10 @@ export default function FloatingDock() {
   let mouseX = useMotionValue(Infinity);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Kiểm tra xem modal PostCreator hoặc ProfileCustomization có đang mở không
+      // Check if PostCreator or ProfileCustomization modal is open
   useEffect(() => {
     const checkModal = () => {
-      // Kiểm tra xem có element modal nào đang hiển thị không
+      // Check if any modal element is currently displayed
       const modal = document.querySelector('[data-post-creator-modal]') || 
                     document.querySelector('[data-profile-customization-modal]') ||
                     document.querySelector('.fixed.inset-0.z-\\[110\\]') ||
@@ -38,13 +38,13 @@ export default function FloatingDock() {
       setIsModalOpen(!!modal);
     };
 
-    // Kiểm tra ban đầu
+    // Initial check
     checkModal();
 
-    // Lắng nghe sự kiện click để kiểm tra khi modal mở/đóng
+    // Listen for click events to check when modal opens/closes
     const interval = setInterval(checkModal, 100);
 
-    // Lắng nghe mutation observer để detect khi modal được thêm/xóa
+    // Listen for mutation observer to detect when modal is added/removed
     const observer = new MutationObserver(checkModal);
     observer.observe(document.body, { childList: true, subtree: true });
 
@@ -54,7 +54,7 @@ export default function FloatingDock() {
     };
   }, []);
 
-  // Ẩn Dock khi modal mở
+  // Hide Dock when modal is open
   if (isModalOpen) {
     return null;
   }
@@ -81,26 +81,26 @@ function DockIcon({ mouseX, item }) {
                    (item.href === "/" && location.pathname === "/home") ||
                    (item.href === "/" && location.pathname === "/feed");
 
-  // Tính toán khoảng cách từ chuột đến icon
+  // Calculate distance from mouse to icon
   let distance = useTransform(mouseX, (val) => {
     let bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
     return val - bounds.x - bounds.width / 2;
   });
 
-  // Biến đổi độ rộng icon dựa trên khoảng cách (Magnify effect)
+  // Transform icon width based on distance (Magnify effect)
   let widthSync = useTransform(distance, [-150, 0, 150], [40, 80, 40]);
   let width = useSpring(widthSync, { mass: 0.1, stiffness: 150, damping: 12 });
 
-  // Xử lý click cho nút "Đăng bài" - mở modal thay vì navigate
+  // Handle click for "Đăng bài" button - open modal instead of navigate
   const handleClick = (e) => {
     if (item.isPrimary) {
       e.preventDefault();
-      // Tìm PostCreator ref từ Home page hoặc trigger hidden button
+      // Find PostCreator ref from Home page or trigger hidden button
       const triggerBtn = document.querySelector('[data-post-creator-trigger]');
       if (triggerBtn) {
         triggerBtn.click();
       } else {
-        // Fallback: navigate đến /new nếu không tìm thấy trigger
+        // Fallback: navigate to /new if trigger not found
         window.location.href = '/new';
       }
     }
@@ -116,31 +116,31 @@ function DockIcon({ mouseX, item }) {
           className={cn(
             "flex h-full w-full items-center justify-center rounded-2xl transition-colors duration-200",
             isActive 
-              ? "bg-black text-white dark:bg-white dark:text-black" 
+              ? "bg-black text-white dark:bg-neutral-700 dark:text-white" 
               : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100",
-            item.isPrimary && "bg-black text-white dark:bg-white dark:text-black shadow-lg shadow-black/30 dark:shadow-white/30"
+            item.isPrimary && "bg-black text-white dark:bg-neutral-700 dark:text-white shadow-lg shadow-black/30 dark:shadow-neutral-900/30"
           )}
         >
           <item.icon className={cn(
             "h-5 w-5 md:h-6 md:w-6",
-            isActive && "dark:text-black",
+            isActive && "dark:text-white",
             !isActive && !item.isPrimary && "dark:text-gray-300 dark:group-hover:text-gray-100"
           )} strokeWidth={item.isPrimary ? 2.5 : 2} />
         </motion.div>
         
-        {/* Tooltip (chỉ hiện khi hover) */}
+        {/* Tooltip (only visible on hover) */}
         <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white dark:text-gray-100 text-xs rounded-md whitespace-nowrap pointer-events-none z-50 shadow-lg dark:shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
           {item.label}
         </div>
         
-        {/* Dấu chấm Active */}
+        {/* Active dot */}
         {isActive && !item.isPrimary && (
           <span className="absolute -bottom-2 w-1 h-1 rounded-full bg-black dark:bg-white" />
         )}
       </motion.div>
   );
 
-  // Nếu là nút "Đăng bài", dùng button thay vì Link
+  // If it's the "Đăng bài" button, use button instead of Link
   if (item.isPrimary) {
     return (
       <button 
@@ -154,7 +154,7 @@ function DockIcon({ mouseX, item }) {
     );
   }
 
-  // Các icon khác dùng Link như bình thường
+  // Other icons use Link as usual
   return (
     <Link 
       to={item.href}

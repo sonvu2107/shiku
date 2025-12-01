@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { X, Download, Eye, Play, Pause, Volume2, VolumeX, ZoomIn, ZoomOut, RotateCw, ChevronLeft, ChevronRight } from "lucide-react";
 
 /**
- * MediaViewer - Component xem ảnh/video full screen
- * Modal hiển thị media với các controls
+ * MediaViewer - Fullscreen media viewer component
+ * Modal that displays media with playback and image controls
  */
 export default function MediaViewer({ media, onClose, gallery, index, onNavigate }) {
   const [isPlaying, setIsPlaying] = useState(false);

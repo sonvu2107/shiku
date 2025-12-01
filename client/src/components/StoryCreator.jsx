@@ -3,8 +3,8 @@ import { X, Image as ImageIcon, Video, Type } from 'lucide-react';
 import { api } from '../api';
 
 /**
- * StoryCreator - Modal tạo story mới
- * Upload ảnh/video với caption
+ * StoryCreator - Modal create new story
+ * Upload image/video with caption
  */
 export default function StoryCreator({ user, onClose, onStoryCreated }) {
   const [mediaFile, setMediaFile] = useState(null);
@@ -17,7 +17,7 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
   const [error, setError] = useState("");
 
   /**
-   * Xử lý chọn file ảnh/video
+   * Handle file selection
    */
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -48,7 +48,7 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
   };
 
   /**
-   * Upload file lên server
+   * Upload file to server
    */
   const uploadMedia = async () => {
     if (!mediaFile) return null;
@@ -69,7 +69,7 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
   };
 
   /**
-   * Tạo story
+   * Create story
    */
   const handleCreate = async () => {
     if (!mediaFile) {
@@ -81,7 +81,7 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
     setError("");
 
     try {
-      // Upload media trước
+      // Upload media first
       setUploading(true);
       const mediaUrl = await uploadMedia();
       setUploading(false);
@@ -90,7 +90,7 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
         throw new Error("Không thể upload file");
       }
 
-      // Tạo story
+      // Create story
       const storyData = {
         mediaUrl,
         mediaType,
@@ -103,7 +103,7 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
         body: storyData
       });
 
-      // Callback khi tạo thành công
+      // Callback when created successfully
       if (onStoryCreated) {
         onStoryCreated(response.story);
       }

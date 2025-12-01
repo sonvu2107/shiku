@@ -1,12 +1,12 @@
 /**
  * Lazy Components - Component-level code splitting
- * Chứa các component lớn được lazy load để tối ưu performance
+ * Contains large components that are lazy loaded to optimize performance
  */
 
 import { lazy, Suspense } from 'react';
 import { ComponentLoader } from './PageLoader.jsx';
 
-// 🚀 HEAVY COMPONENTS - Lazy load các component lớn (>15KB)
+// HEAVY COMPONENTS - Lazy load large components (>15KB)
 export const LazyNavbar = lazy(() => import('./Navbar.jsx'));
 export const LazyCommentSection = lazy(() => import('./CommentSection.jsx'));
 export const LazyPostCreator = lazy(() => import('./PostCreator.jsx'));
@@ -20,7 +20,7 @@ export const LazyStoryViewer = lazy(() => import('./StoryViewer.jsx'));
 export const LazyRoleManagement = lazy(() => import('./RoleManagement.jsx'));
 export const LazyGroupSettingsModal = lazy(() => import('./GroupSettingsModal.jsx'));
 
-// 🔄 MEDIUM COMPONENTS - Lazy load các component trung bình (10-15KB)  
+// MEDIUM COMPONENTS - Lazy load medium-sized components (10-15KB)  
 export const LazyPostCard = lazy(() => import('./PostCard.jsx'));
 export const LazyPoll = lazy(() => import('./Poll.jsx'));
 export const LazyNotificationBell = lazy(() => import('./NotificationBell.jsx'));
@@ -32,7 +32,7 @@ export const LazyGroupCard = lazy(() => import('./GroupCard.jsx'));
 export const LazyChatHeader = lazy(() => import('./ChatHeader.jsx'));
 export const LazyMediaUpload = lazy(() => import('./MediaUpload.jsx'));
 
-// 📦 WRAPPER COMPONENTS với Suspense fallback
+// WRAPPER COMPONENTS with Suspense fallback
 export const SuspendedNavbar = (props) => (
   <Suspense fallback={<ComponentLoader />}>
     <LazyNavbar {...props} />
@@ -105,7 +105,7 @@ export const SuspendedStories = (props) => (
   </Suspense>
 );
 
-// Export default object với tất cả lazy components
+// Export default object with all lazy components
 export default {
   // Heavy Components (>15KB)
   Navbar: SuspendedNavbar,

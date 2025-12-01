@@ -3,12 +3,12 @@ import { getUserSuggestions } from "../utils/mentions";
 import { useNavigate } from "react-router-dom";
 
 /**
- * MentionAutocomplete - Component hiển thị dropdown gợi ý khi gõ @
+ * MentionAutocomplete - Dropdown suggestions component when typing @mentions
  * @param {Object} props
- * @param {string} props.value - Giá trị hiện tại của textarea/input
- * @param {number} props.cursorPosition - Vị trí con trỏ trong textarea
- * @param {Function} props.onSelect - Callback khi chọn user (user, insertPosition) => void
- * @param {Function} props.onClose - Callback khi đóng autocomplete
+ * @param {string} props.value - Current value of the textarea/input
+ * @param {number} props.cursorPosition - Cursor position inside the textarea
+ * @param {Function} props.onSelect - Callback when selecting a user (user, insertPosition) => void
+ * @param {Function} props.onClose - Callback when closing the autocomplete
  */
 export default function MentionAutocomplete({ value, cursorPosition, onSelect, onClose }) {
   const [suggestions, setSuggestions] = useState([]);
@@ -17,17 +17,17 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
 
-  // Extract query từ vị trí hiện tại
+  // Extract the mention query from the current cursor position
   const getMentionQuery = useCallback(() => {
     if (!value || cursorPosition === undefined) return null;
     
-    // Tìm @ gần nhất trước cursor
+    // Find the nearest @ before the cursor
     const textBeforeCursor = value.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
     
     if (lastAtIndex === -1) return null;
     
-    // Kiểm tra xem có khoảng trắng hoặc ký tự đặc biệt giữa @ và cursor không
+    // Check if there are spaces or special characters between @ and the cursor
     const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
     const wordBoundaryMatch = textAfterAt.match(/^[\p{L}\p{N}_]+(?:\s+[\p{L}\p{N}_]+)*/u);
     
@@ -35,13 +35,13 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
     
     const query = wordBoundaryMatch[0];
     
-    // Chỉ hiển thị nếu query không quá dài (tránh spam)
+    // Only show if query is not too long (avoid spam)
     if (query.length > 30) return null;
     
     return { query, startPosition: lastAtIndex };
   }, [value, cursorPosition]);
 
-  // Fetch suggestions khi query thay đổi
+  // Fetch suggestions when the mention query changes
   useEffect(() => {
     const mentionInfo = getMentionQuery();
     
@@ -71,7 +71,7 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
       }
     };
 
-    // Debounce để tránh quá nhiều requests
+    // Debounce to avoid sending too many requests
     const timeoutId = setTimeout(fetchSuggestions, 200);
 
     return () => {
@@ -117,7 +117,7 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
     const mentionInfo = getMentionQuery();
     if (!mentionInfo) return;
 
-    // Tìm vị trí kết thúc của mention (bao gồm @ và query)
+    // Find the end position of the mention (including @ and query)
     const endPosition = mentionInfo.startPosition + 1 + mentionInfo.query.length;
     
     onSelect?.(user, mentionInfo.startPosition, endPosition);
@@ -136,7 +136,7 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
 
   const mentionInfo = getMentionQuery();
   
-  // Không hiển thị nếu không có query hoặc suggestions
+  // Do not display if there is no query or suggestions
   if (!mentionInfo || !mentionInfo.query.trim() || suggestions.length === 0) {
     return null;
   }

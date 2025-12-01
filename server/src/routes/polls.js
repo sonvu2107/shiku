@@ -1,3 +1,15 @@
+/**
+ * Polls Routes
+ * 
+ * Routes xử lý các thao tác liên quan đến bình chọn (polls):
+ * - Tạo poll cho bài viết
+ * - Bình chọn trong poll
+ * - Lấy kết quả poll
+ * - Xóa poll
+ * 
+ * @module polls
+ */
+
 import express from "express";
 import mongoose from "mongoose";
 import Poll from "../models/Poll.js";

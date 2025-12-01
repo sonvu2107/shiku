@@ -1,7 +1,7 @@
 import { cn } from "../../utils/cn";
 
 /**
- * Button component với các variants
+ * Button component with variants
  */
 export default function Button({
   children,

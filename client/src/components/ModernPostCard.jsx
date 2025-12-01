@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, memo } from "react";
+import React, { useState, useRef, useEffect, memo, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Plus, Minus, Star, X, Smile, Image as ImageIcon, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,10 +10,11 @@ import { cn } from "../utils/cn";
 import { api } from "../api";
 import UserName from "./UserName";
 import VerifiedBadge from "./VerifiedBadge";
+import UserAvatar, { UserTitle } from "./UserAvatar";
 import ReactMarkdown from "react-markdown";
 import Poll from "./Poll";
 
-// Mapping emotes với file GIF tương ứng
+// Mapping of emotes to corresponding GIF filenames
 const emoteMap = {
   "👍": "like.gif",
   "❤️": "care.gif", 
@@ -107,8 +108,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     };
   }, [post._id, user, post.author?._id]);
 
-  // Handle interest
-  const handleInterested = async (interested) => {
+  // Handle interest - Memoized
+  const handleInterested = useCallback(async (interested) => {
     if (!user || !user._id) {
       alert('Vui lòng đăng nhập để sử dụng tính năng này');
       return;
@@ -136,7 +137,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     } finally {
       setInterestLoading(false);
     }
-  };
+  }, [user, post._id, post.author?._id]);
 
   // Close main menu when clicking outside
   useEffect(() => {
@@ -158,7 +159,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     };
   }, [showMainMenu]);
 
-  // Lấy cảm xúc user đã thả
+  // Get the emote the current user has left
   const getUserEmote = React.useMemo(() => {
     if (!user || typeof user !== 'object') return null;
     const currentUserRawId = user._id ?? user.id;
@@ -208,21 +209,23 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   const userEmote = getUserEmote;
   const uiUserEmote = localUserEmote !== null ? localUserEmote : userEmote;
 
-  // Đếm số lượng từng loại emote
-  const countEmotes = () => {
+  // Count each type of emote - Memoized
+  const counts = useMemo(() => {
     const counts = {};
     for (const emo of emotes) counts[emo] = 0;
     for (const e of emotesState) {
       if (counts[e.type] !== undefined) counts[e.type]++;
     }
     return counts;
-  };
+  }, [emotesState]);
   
-  const counts = countEmotes();
-  const totalEmotes = Object.values(counts).reduce((a, b) => a + b, 0);
+  const totalEmotes = useMemo(() => 
+    Object.values(counts).reduce((a, b) => a + b, 0),
+    [counts]
+  );
 
-  // Thêm/xóa emote cho bài viết
-  const handleEmote = async (emoteType) => {
+  // Add/remove emote for the post - Memoized
+  const handleEmote = useCallback(async (emoteType) => {
     const hadEmote = !!uiUserEmote;
     if ((emoteType === '👍' || emoteType === '❤️') && !hadEmote) {
       heartAnimationKey.current += 1;
@@ -254,10 +257,10 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     } catch (e) {
       alert(e?.message || 'Không thể thêm cảm xúc. Vui lòng thử lại.');
     }
-  };
+  }, [post._id, uiUserEmote]);
 
-  // Xử lý save
-  const handleSave = async (e) => {
+  // Handle save (toggle saved state) - Memoized
+  const handleSave = useCallback(async (e) => {
     e.stopPropagation();
     if (!user) {
       navigate('/login');
@@ -275,15 +278,15 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     } catch (error) {
       alert(error?.message || "Không thể lưu bài viết");
     }
-  };
+  }, [user, navigate, post._id, onSavedChange]);
 
-  // Format thời gian
+  // Format time
   const timeAgo = post.createdAt 
     ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: vi }) 
     : "";
 
-  // Lấy media để hiển thị
-  const getDisplayMedia = () => {
+  // Determine media to display (coverUrl preferred, then first file) - Memoized
+  const displayMedia = useMemo(() => {
     if (post.coverUrl) {
       const found = Array.isArray(post.files)
         ? post.files.find(f => f.url === post.coverUrl)
@@ -295,9 +298,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       return post.files[0];
     }
     return null;
-  };
-
-  const displayMedia = getDisplayMedia();
+  }, [post.coverUrl, post.files]);
   const statusLabel = post.status === 'private' ? 'Riêng tư' : 'Công khai';
 
   // Close emote popup when clicking outside
@@ -368,8 +369,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     );
   };
 
-  // Handle submit comment
-  const handleSubmitComment = async (e) => {
+  // Handle submit comment - Memoized
+  const handleSubmitComment = useCallback(async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -385,7 +386,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       let requestBody;
       
       if (commentImages.length > 0) {
-        // Có ảnh - sử dụng FormData
+        // Has images - use FormData
         const formData = new FormData();
         formData.append('content', commentContent);
         
@@ -395,7 +396,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         
         requestBody = formData;
       } else {
-        // Không có ảnh - sử dụng JSON
+        // No images - use JSON
         requestBody = { content: commentContent };
       }
 
@@ -421,7 +422,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     } finally {
       setSubmittingComment(false);
     }
-  };
+  }, [commentContent, commentImages, user, navigate, post._id, post.slug, onUpdate]);
 
   return (
     <div 
@@ -435,22 +436,32 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       <div className="flex justify-between items-start mb-2 md:mb-3">
         <div className="flex items-center gap-2 md:gap-3" onClick={e => e.stopPropagation()}>
           <Link to={`/user/${post.author?._id}`} className="relative flex-shrink-0">
-            <div className="absolute -inset-1 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-500" />
-            <img
-              src={getOptimizedImageUrl(post.author?.avatarUrl, 100) || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author?.name || 'User')}&length=2&background=cccccc&color=222222`}
-              alt={post.author?.name}
-              className="relative w-8 h-8 md:w-9 md:h-9 rounded-full object-cover border-2 border-white dark:border-[#111]"
+            <UserAvatar 
+              user={post.author} 
+              size={36}
+              showFrame={true}
+              showBadge={true}
+              className="md:hidden"
+            />
+            <UserAvatar 
+              user={post.author} 
+              size={40}
+              showFrame={true}
+              showBadge={true}
+              className="hidden md:block"
             />
           </Link>
           <div className="min-w-0 flex-1">
-            <Link 
-              to={`/user/${post.author?._id}`} 
-              className="font-bold text-sm md:text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 truncate"
-              onClick={e => e.stopPropagation()}
-            >
-              <UserName user={post.author} maxLength={20} />
-              {post.author?.role === 'admin' && <VerifiedBadge user={post.author} />}
-            </Link>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link 
+                to={`/user/${post.author?._id}`} 
+                className="font-bold text-sm md:text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 truncate"
+                onClick={e => e.stopPropagation()}
+              >
+                <UserName user={post.author} maxLength={20} />
+              </Link>
+              <UserTitle user={post.author} />
+            </div>
             <div className="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1 md:gap-1.5 mt-0.5">
               {timeAgo && <span className="truncate max-w-[120px] md:max-w-none">{timeAgo}</span>}
               {timeAgo && <span>•</span>}
@@ -549,7 +560,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         </div>
       )}
 
-      {/* 4. Media (Tràn viền bo góc) */}
+      {/* 4. Media */}
       {displayMedia && (
         <div className="rounded-xl md:rounded-3xl overflow-hidden bg-gray-100 dark:bg-black mb-3 md:mb-4 relative group/media">
           {displayMedia.type === 'video' ? (
@@ -581,7 +592,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       {/* 5. Action Bar (Floating Style) */}
       <div className="flex items-center justify-between" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-0.5 md:gap-1">
-          {/* Emote/Like Button với Popup */}
+          {/* Emote/Like Button with Popup */}
           <div
             className="relative emote-trigger"
             role="button"

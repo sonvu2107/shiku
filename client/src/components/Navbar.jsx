@@ -1,11 +1,11 @@
-// Import các dependencies cần thiết
+// Import internal dependencies
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { api } from "../api";
 import { removeAuthToken } from "../utils/auth";
 import { invalidateUserCache } from "../utils/userCache.js";
 
-// Import các components
+// Import components
 import Logo from "./Logo";
 import NotificationBell from "./NotificationBell";
 import ChatDropdown from "./ChatDropdown";
@@ -13,56 +13,56 @@ import ChatPopup from "./ChatPopup";
 import { ChatPopupWithCallModal } from "./ChatPopup";
 import MobileMenu from "./MobileMenu";
 import UserName from "./UserName";
+import UserAvatar from "./UserAvatar";
 import { useChat } from "../contexts/ChatContext";
 
-// Import icons từ Lucide React
+// Import icons from Lucide React
 import {
   Crown,        // Icon admin
   User,         // Icon user
-  LogOut,       // Icon đăng xuất
-  LogIn,        // Icon đăng nhập
-  UserPlus,     // Icon đăng ký
-  Search,       // Icon tìm kiếm
-  X,            // Icon đóng
-  Users,        // Icon bạn bè
-  MessageCircle, // Icon tin nhắn/support
-  Bell,         // Icon thông báo
+  LogOut,       // Icon logout
+  LogIn,        // Icon login
+  UserPlus,     // Icon register
+  Search,       // Icon search
+  X,            // Icon close
+  Users,        // Icon friends
+  MessageCircle, // Icon messages/support
+  Bell,         // Icon notifications
   UserCheck,    // Icon groups
-  Settings,     // Icon cài đặt
-  Moon,         // Icon chế độ tối
-  Sun           // Icon chế độ sáng
+  Settings,     // Icon settings
+  Moon,         // Icon dark mode
+  Sun           // Icon light mode
 } from "lucide-react";
 
 /**
- * Navbar - Component thanh điều hướng chính của ứng dụng
- * Bao gồm logo, search, navigation links, user menu, chat popups
- * @param {Object} user - Thông tin user hiện tại (null nếu chưa đăng nhập)
- * @param {Function} setUser - Function để cập nhật user state
+ * Navbar - Main navigation bar component of the application
+ * Includes logo, search, navigation links, user menu, chat popups
+ * @param {Object} user - Current user information (null if not logged in)
+ * @param {Function} setUser - Function to update user state
  */
-export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
+function Navbar({ user, setUser, darkMode, setDarkMode }) {
   // ==================== STATE MANAGEMENT ====================
   const { openPopups, addChatPopup, closeChatPopup, unreadCount } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Search states
-  const [searchQuery, setSearchQuery] = useState(""); // Query tìm kiếm
-  // const [showMobileSearch, setShowMobileSearch] = useState(false); // Hiện search mobile -> Removed in favor of Search page
-  const [searchResults, setSearchResults] = useState([]); // Kết quả search users
+  const [searchQuery, setSearchQuery] = useState(""); // Search query
+  // const [showMobileSearch, setShowMobileSearch] = useState(false); // Show mobile search -> Removed in favor of Search page
+  const [searchResults, setSearchResults] = useState([]); // Search results for users
   const [searchLoading, setSearchLoading] = useState(false); // Loading state
-  const [searchPosts, setSearchPosts] = useState([]); // Kết quả search posts
+  const [searchPosts, setSearchPosts] = useState([]); // Search results for posts
   const [searchFocused, setSearchFocused] = useState(false); // Focus input desktop
-  const [historyEditing, setHistoryEditing] = useState(false); // Chỉnh sửa lịch sử
-  const [searchHistory, setSearchHistory] = useState([]); // Lịch sử tìm kiếm
+  const [historyEditing, setHistoryEditing] = useState(false); // Edit history
+  const [searchHistory, setSearchHistory] = useState([]); // Search history
 
   // UI states
-  const [pendingRequests, setPendingRequests] = useState(0); // Số lời mời kết bạn
-  const [showProfileMenu, setShowProfileMenu] = useState(false); // Menu profile dropdown
-
+  const [pendingRequests, setPendingRequests] = useState(0); // Number of pending friend requests
+  const [showProfileMenu, setShowProfileMenu] = useState(false); // Profile menu dropdown
   // ==================== EFFECTS ====================
 
   /**
-   * Load số lượng friend requests đang chờ khi user đăng nhập
+   * Load number of pending friend requests when user is logged in
    */
   useEffect(() => {
     if (user) {
@@ -70,7 +70,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
     }
   }, [user]);
 
-  // Load search history từ localStorage và server (nếu có) + đồng bộ đa tab
+  // Load search history from localStorage and server (if available) + sync across tabs
   useEffect(() => {
     let localItems = [];
     try {
@@ -87,7 +87,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         const res = await api('/api/search/history');
         const serverItems = Array.isArray(res.items) ? res.items : [];
         if (serverItems.length > 0) {
-          // Merge server + local theo query (ưu tiên server)
+          // Merge server + local by query (prioritize server)
           const map = new Map();
           for (const it of localItems) {
             if (it && it.query) map.set(it.query.toLowerCase(), it);
@@ -104,7 +104,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
       }
     })();
 
-    // Sync giữa các tab
+    // Sync across tabs
     const onStorage = (e) => {
       if (e.key === 'searchHistory') {
         try {
@@ -118,7 +118,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
   }, []);
 
   /**
-   * Lấy số lượng friend requests đang chờ phê duyệt
+   * Get number of pending friend requests
    */
   async function loadPendingRequests() {
     try {
@@ -132,40 +132,40 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
   // ==================== HELPER FUNCTIONS ====================
 
   /**
-   * Lấy thông tin preview media của bài viết (ưu tiên coverUrl → ảnh đầu tiên → video đầu tiên)
-   * @param {Object} post - Dữ liệu bài viết
-   * @returns {Object} Object chứa url và type của media preview
+   * Get preview media information of a post (prioritize coverUrl → first image → first video)
+   * @param {Object} post - Post data
+   * @returns {Object} Object containing url and type of preview media
    */
   function getPostPreviewMedia(post) {
     if (post.coverUrl) {
-      // Tìm type của coverUrl trong files
+      // Find type of coverUrl in files
       const found = Array.isArray(post.files)
         ? post.files.find(f => f.url === post.coverUrl)
         : null;
       return { url: post.coverUrl, type: found ? found.type : "image" };
     }
-    // Fallback về files nếu có
+    // Fallback to files if available
     if (Array.isArray(post.files) && post.files.length > 0) {
-      // Tìm file ảnh đầu tiên
+      // Find first image file
       const imageFile = post.files.find(f => f.type === 'image');
       if (imageFile) {
         return imageFile;
       }
-      // Nếu không có ảnh, tìm video đầu tiên
+      // If no image, find first video file
       const videoFile = post.files.find(f => f.type === 'video');
       if (videoFile) {
         return videoFile;
       }
-      // Fallback về file đầu tiên (bất kể loại)
+      // Fallback to first file (any type)
       return post.files[0];
     }
-    // Fallback cuối cùng: dùng logo/mark sẵn có để tránh ảnh bị vỡ
+    // Final fallback: use existing logo/mark to avoid broken image
     return { url: '/assets/posts.png', type: 'image' };
   }
 
   /**
-   * Render preview media component cho search results
-   * @param {Object} post - Dữ liệu bài viết
+   * Render preview media component for search results
+   * @param {Object} post - Post data
    * @param {string} className - CSS classes
    * @returns {JSX.Element} Media preview component
    */
@@ -180,7 +180,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           muted
           preload="metadata"
           onLoadedMetadata={(e) => {
-            // Tự động pause video ở frame đầu tiên để hiển thị thumbnail
+            // Automatically pause video at the first frame to display thumbnail
             e.target.currentTime = 0.1;
             e.target.pause();
           }}
@@ -192,8 +192,9 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
           src={media.url}
           alt={post.title}
           className={className}
+          loading="lazy"
           onError={(e) => {
-            // Fallback khi ảnh lỗi hoặc bài viết không có ảnh
+            // Fallback when image fails to load or post has no image
             e.currentTarget.onerror = null;
             e.currentTarget.src = '/assets/shiku-mark.svg';
           }}
@@ -216,17 +217,17 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
     try {
       if (action === 'add') {
         await api('/api/search/history', {
-      method: "POST",
-      body: payload
-    });
+          method: "POST",
+          body: payload
+        });
       } else if (action === 'delete') {
         await api(`/api/search/history/${payload.id}`, {
-      method: "DELETE"
-    });
+          method: "DELETE"
+        });
       } else if (action === 'clear') {
         await api('/api/search/history', {
-      method: "DELETE"
-    });
+          method: "DELETE"
+        });
       }
     } catch (_) {
       // optional sync
@@ -265,7 +266,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
   // ==================== HANDLERS ====================
 
   /**
-   * Xử lý tìm kiếm users và posts
+   * Handle search for users and posts
    * @param {Event} e - Form submit event
    */
   async function handleSearch(e) {
@@ -275,15 +276,15 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
     if (trimmedQuery && trimmedQuery.length <= 100) {
       setSearchLoading(true);
       try {
-        // Tìm users
+        // Search users
         const userRes = await api(`/api/users/search?q=${encodeURIComponent(trimmedQuery)}`);
         setSearchResults(userRes.users || []);
 
-        // Tìm bài viết
+        // Search posts 
         const postRes = await api(`/api/posts?q=${encodeURIComponent(trimmedQuery)}`);
         setSearchPosts(postRes.items || []);
 
-        // Lưu lịch sử
+        // Save history
         addToSearchHistory(trimmedQuery);
       } catch (err) {
         setSearchResults([]);
@@ -292,29 +293,29 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         setSearchLoading(false);
       }
     } else {
-      // Reset kết quả nếu query không hợp lệ
+      // Reset results if query is invalid
       setSearchResults([]);
       setSearchPosts([]);
     }
   }
 
   /**
-   * Xử lý đăng xuất user
+   * Handle user logout
    */
   async function logout() {
     try {
-      // Gọi API logout để invalidate session trên server
+      // Call logout API to invalidate session on server
       await api("/api/auth/logout", {
-      method: "POST",
-      body: {}
-    });
+        method: "POST",
+        body: {}
+      });
     } catch (err) {
       // Silent handling for logout error
     }
 
     // Cleanup all services with error handling
     const cleanupPromises = [];
-    
+
     // Socket cleanup
     cleanupPromises.push(
       (async () => {
@@ -328,7 +329,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         }
       })()
     );
-    
+
     // Heartbeat cleanup
     cleanupPromises.push(
       (async () => {
@@ -342,7 +343,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         }
       })()
     );
-    
+
     // Keepalive cleanup
     cleanupPromises.push(
       (async () => {
@@ -356,20 +357,20 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
         }
       })()
     );
-    
+
     // Wait for all cleanups to complete (with timeout)
     await Promise.race([
       Promise.allSettled(cleanupPromises),
       new Promise(resolve => setTimeout(resolve, 2000)) // 2s timeout
     ]);
 
-    // Xóa token khỏi localStorage
+    // Remove token from localStorage
     removeAuthToken();
     // Clear user cache
     invalidateUserCache();
     // Reset user state
     if (setUser) setUser(null);
-    // Redirect về trang chủ
+    // Redirect to homepage
     navigate("/");
   }
 
@@ -379,11 +380,11 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
     // Main navbar container - Monochrome Luxury Style
     <div className="fixed top-0 left-0 w-full z-50 bg-white/80 dark:bg-black/80 backdrop-blur-2xl border-b border-neutral-200/50 dark:border-neutral-800/50 transition-all duration-300">
       <div className="max-w-[1920px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
-        
+
         {/* LEFT ZONE: Logo & Search */}
         <div className="flex items-center gap-4 md:gap-8 flex-shrink-0">
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className="flex items-center gap-2 hover:opacity-80 transition-opacity group"
             onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           >
@@ -409,7 +410,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                   }
                 }, 200)}
               />
-              
+
               {/* Search Dropdown */}
               {(searchFocused || searchQuery.trim() || historyEditing) && (
                 (searchResults.length > 0 || searchPosts.length > 0 || searchHistory.length > 0) && (
@@ -419,8 +420,8 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                       <div className="py-2">
                         <div className="flex items-center justify-between px-4 py-2">
                           <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Gần đây</span>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onMouseDown={(e) => {
                               e.preventDefault();
                               if (historyEditing) {
@@ -430,7 +431,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                               } else {
                                 setHistoryEditing(true);
                               }
-                            }} 
+                            }}
                             className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400"
                           >
                             {historyEditing ? 'Xong' : 'Chỉnh sửa'}
@@ -440,8 +441,8 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                           .filter(h => !searchQuery.trim() || h.query.toLowerCase().includes(searchQuery.toLowerCase()))
                           .slice(0, 8)
                           .map((item) => (
-                            <div 
-                              key={item.id} 
+                            <div
+                              key={item.id}
                               className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer group transition-colors"
                               onMouseDown={() => { setSearchQuery(item.query); setTimeout(() => { (async () => { await handleSearch(new Event('submit')); })(); }, 0); }}
                             >
@@ -452,9 +453,9 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                                 <div className="font-medium text-neutral-900 dark:text-white text-sm truncate">{item.query}</div>
                               </div>
                               {historyEditing && (
-                                <button 
-                                  type="button" 
-                                  onMouseDown={(e) => { e.stopPropagation(); deleteHistoryItem(item.id); }} 
+                                <button
+                                  type="button"
+                                  onMouseDown={(e) => { e.stopPropagation(); deleteHistoryItem(item.id); }}
                                   className="p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
                                 >
                                   <X size={14} />
@@ -475,10 +476,11 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                             className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
                             onClick={() => navigate(`/user/${user._id}`)}
                           >
-                            <img
-                              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=000000&color=ffffff`}
-                              alt={user.name}
-                              className="w-9 h-9 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
+                            <UserAvatar 
+                              user={user}
+                              size={36}
+                              showFrame={true}
+                              showBadge={false}
                             />
                             <div className="flex-1 min-w-0">
                               <div className="font-bold text-neutral-900 dark:text-white text-sm truncate">
@@ -519,7 +521,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
 
         {/* RIGHT ZONE: Actions */}
         <div className="flex items-center justify-end gap-2 md:gap-3 flex-shrink-0">
-          
+
           {user ? (
             <>
               {/* Desktop Actions */}
@@ -532,13 +534,12 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                   {darkMode ? <Moon size={20} /> : <Sun size={20} />}
                 </button>
                 {/* Friends */}
-                <Link 
-                  to="/friends" 
-                  className={`p-2.5 rounded-full transition-all relative ${
-                    location.pathname === '/friends'
+                <Link
+                  to="/friends"
+                  className={`p-2.5 rounded-full transition-all relative ${location.pathname === '/friends'
                       ? "text-black dark:text-white bg-neutral-100 dark:bg-neutral-800"
                       : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white"
-                  }`}
+                    }`}
                   title="Bạn bè"
                 >
                   <Users size={20} />
@@ -549,20 +550,21 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
 
                 {/* Chat */}
                 <ChatDropdown onOpenChat={addChatPopup} />
-                
+
                 {/* Notifications */}
                 <NotificationBell user={user} />
-                
+
                 {/* Profile Menu */}
                 <div className="relative ml-2" onKeyDown={(e) => { if (e.key === 'Escape') setShowProfileMenu(false); }}>
                   <button
                     className="flex items-center gap-2 rounded-full p-1 pr-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700"
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                   >
-                    <img
-                      src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=000000&color=ffffff`}
-                      alt={user.name}
-                      className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
+                    <UserAvatar 
+                      user={user}
+                      size={32}
+                      showFrame={true}
+                      showBadge={false}
                     />
                     <span className="font-bold text-sm text-neutral-900 dark:text-white max-w-[100px] truncate hidden xl:block">
                       {user.name}
@@ -573,13 +575,14 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                   {showProfileMenu && (
                     <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-100 dark:border-neutral-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="fixed inset-0 z-[-1]" onClick={() => setShowProfileMenu(false)} />
-                      
+
                       <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50">
                         <div className="flex items-center gap-3">
-                          <img
-                            src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=000000&color=ffffff`}
-                            alt={user.name}
-                            className="w-12 h-12 rounded-full border-2 border-white dark:border-neutral-700 shadow-sm"
+                          <UserAvatar 
+                            user={user}
+                            size={48}
+                            showFrame={true}
+                            showBadge={false}
                           />
                           <div className="flex-1 min-w-0">
                             <div className="font-bold text-neutral-900 dark:text-white text-base truncate">
@@ -598,7 +601,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                             <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
                               <Crown size={16} />
                             </div>
-                            <span className="font-medium">Admin Dashboard</span>
+                            <span className="font-medium">Admin</span>
                           </Link>
                         )}
                         <Link to="/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors" onClick={() => setShowProfileMenu(false)}>
@@ -613,9 +616,9 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                           </div>
                           <span className="font-medium">Trợ giúp & Hỗ trợ</span>
                         </Link>
-                        
+
                         <div className="h-px bg-neutral-100 dark:bg-neutral-800 my-1" />
-                        
+
                         <button onClick={() => { setShowProfileMenu(false); logout(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors">
                           <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                             <LogOut size={16} />
@@ -636,7 +639,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                 >
                   <Search size={20} />
                 </button>
-                
+
                 <button
                   onClick={() => navigate('/chat')}
                   className="p-2 rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 relative"
@@ -673,7 +676,7 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
                 Đăng ký
               </Link>
               <div className="md:hidden">
-                 <MobileMenu user={user} setUser={setUser} />
+                <MobileMenu user={user} setUser={setUser} />
               </div>
             </div>
           )}
@@ -682,3 +685,12 @@ export default function Navbar({ user, setUser, darkMode, setDarkMode }) {
     </div>
   );
 }
+
+// Memoize component to optimize performance
+export default React.memo(Navbar, (prevProps, nextProps) => {
+  // Only re-render when user._id or darkMode changes
+  return prevProps.user?._id === nextProps.user?._id &&
+    prevProps.darkMode === nextProps.darkMode &&
+    prevProps.setUser === nextProps.setUser &&
+    prevProps.setDarkMode === nextProps.setDarkMode;
+});

@@ -2,8 +2,8 @@ import mongoose from "mongoose";
 import slugify from "slugify";
 
 /**
- * Emote Schema - Định nghĩa cấu trúc cho reactions/emotes trên posts
- * Mỗi emote bao gồm user và loại emote
+ * Emote Schema
+ * Cấu trúc cho các reaction (emote) trên bài viết: user + loại emote
  */
 const EmoteSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // User thực hiện emote
@@ -11,8 +11,8 @@ const EmoteSchema = new mongoose.Schema({
 }, { _id: false }); // Không tạo _id riêng cho emote
 
 /**
- * Post Schema - Định nghĩa cấu trúc dữ liệu cho blog posts
- * Bao gồm nội dung, media files, tags, emotes và tracking
+ * Post Schema
+ * Lưu thông tin bài viết: tác giả, tiêu đề, nội dung, media, tags, emotes và thống kê
  */
 const PostSchema = new mongoose.Schema({
   // ==================== THÔNG TIN CƠ BẢN ====================
@@ -36,13 +36,13 @@ const PostSchema = new mongoose.Schema({
   group: { type: mongoose.Schema.Types.ObjectId, ref: "Group", default: null }, // Nhóm (nếu bài viết thuộc nhóm)
   mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", index: true }], // Users được mention trong bài viết
   
-  // ==================== INTERACTIONS ====================
+  // ==================== INTERACTIONS (TƯƠNG TÁC) ====================
   emotes: [EmoteSchema], // Danh sách emotes/reactions
   views: { type: Number, default: 0 }, // Số lượt xem
   commentCount: { type: Number, default: 0 }, // Số lượng bình luận (denormalized)
   savedCount: { type: Number, default: 0 }, // Số lượng người đã lưu (denormalized)
 
-  // ==================== POLL ====================
+  // ==================== POLL (TÙY CHỌN) ====================
   hasPoll: { type: Boolean, default: false }, // Có chứa poll không
   
   // ==================== TRACKING ====================
@@ -51,25 +51,28 @@ const PostSchema = new mongoose.Schema({
   timestamps: true // Tự động thêm createdAt và updatedAt
 });
 
-// ==================== DATABASE INDEXES ====================
+// ==================== INDEX CƠ SỞ DỮ LIỆU ====================
+// Indexes phục vụ các truy vấn phổ biến: theo tác giả, trạng thái, nhóm, tags và tìm kiếm text
+PostSchema.index({ author: 1, status: 1, createdAt: -1 });
+PostSchema.index({ group: 1, status: 1, createdAt: -1 });
+PostSchema.index({ status: 1, createdAt: -1 });
+PostSchema.index({ tags: 1, status: 1 });
+PostSchema.index({ title: "text", content: "text" });
+PostSchema.index({ views: -1, status: 1 });
+PostSchema.index({ createdAt: -1, status: 1 });
 
-// Compound indexes for common queries
-PostSchema.index({ author: 1, status: 1, createdAt: -1 }); // User posts by status
-PostSchema.index({ group: 1, status: 1, createdAt: -1 }); // Group posts by status
-PostSchema.index({ status: 1, createdAt: -1 }); // All posts by status - CRITICAL for feed
-PostSchema.index({ tags: 1, status: 1 }); // Posts by tags
-PostSchema.index({ title: "text", content: "text" }); // Text search
-PostSchema.index({ views: -1, status: 1 }); // Popular posts
-PostSchema.index({ createdAt: -1, status: 1 }); // Recent posts
+// OPTIMIZATION: Compound index for homepage feed query (group=null, status=published, sorted by createdAt)
+// This is the most common query pattern
+PostSchema.index({ status: 1, group: 1, createdAt: -1 });
 
-// ✅ FIX MISSING INDEXES: Additional critical indexes
-PostSchema.index({ status: 1 }); // Fast status filtering
-PostSchema.index({ author: 1, createdAt: -1 }); // User posts timeline
+// Các index bổ sung
+PostSchema.index({ status: 1 });
+PostSchema.index({ author: 1, createdAt: -1 });
 
 // ==================== MIDDLEWARE/HOOKS ====================
 
 /**
- * Pre-save hook: Đánh dấu bài đã chỉnh sửa nếu không phải là bài mới
+ * Pre-save hook: nếu không phải bài mới, đánh dấu là đã chỉnh sửa
  */
 PostSchema.pre("save", function(next) {
   if (!this.isNew) {
@@ -79,7 +82,7 @@ PostSchema.pre("save", function(next) {
 });
 
 /**
- * Pre-validate hook: Tự động tạo slug từ title nếu chưa có
+ * Pre-validate hook: tạo `slug` tự động từ `title` nếu chưa có
  */
 PostSchema.pre("validate", function(next) {
   if (!this.slug && this.title) {

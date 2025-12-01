@@ -6,7 +6,7 @@ import Button from "../ui/Button";
 import { ANALYTICS_PERIODS, PROFILE_MESSAGES } from "../../constants/profile";
 
 /**
- * AnalyticsTab - Component hiển thị tab Phân tích
+ * AnalyticsTab - Component showing analytics overview for user's posts
  */
 export default function AnalyticsTab({
   analytics,

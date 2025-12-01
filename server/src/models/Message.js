@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
 
+/**
+ * Message Schema
+ * Lưu tin nhắn trong conversation
+ * Hỗ trợ nhiều loại: text, image, emote, system
+ */
 const messageSchema = new mongoose.Schema({
   content: {
     type: String,
@@ -68,15 +73,13 @@ const messageSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// ==================== DATABASE INDEXES ====================
-
-// Compound indexes for common queries
-messageSchema.index({ conversation: 1, createdAt: -1 }); // Messages by conversation
-messageSchema.index({ conversation: 1, isDeleted: 1, createdAt: -1 }); // Active messages by conversation
-messageSchema.index({ sender: 1, createdAt: -1 }); // Messages by sender
-messageSchema.index({ conversation: 1, 'readBy.user': 1 }); // Unread messages query
-messageSchema.index({ messageType: 1, createdAt: -1 }); // Messages by type
-messageSchema.index({ isDeleted: 1, createdAt: -1 }); // Active messages only
-messageSchema.index({ conversation: 1, 'reactions.user': 1 }); // Reactions query
+// Indexes cơ sở dữ liệu cho các truy vấn thường gặp
+messageSchema.index({ conversation: 1, createdAt: -1 }); // Tin nhắn theo conversation (mới nhất trước)
+messageSchema.index({ conversation: 1, isDeleted: 1, createdAt: -1 }); // Tin nhắn còn hoạt động theo conversation
+messageSchema.index({ sender: 1, createdAt: -1 }); // Tin nhắn theo sender
+messageSchema.index({ conversation: 1, 'readBy.user': 1 }); // Truy vấn tin nhắn chưa đọc
+messageSchema.index({ messageType: 1, createdAt: -1 }); // Tin nhắn theo loại
+messageSchema.index({ isDeleted: 1, createdAt: -1 }); // Chỉ tin nhắn chưa bị xóa
+messageSchema.index({ conversation: 1, 'reactions.user': 1 }); // Truy vấn reactions
 
 export default mongoose.model('Message', messageSchema);

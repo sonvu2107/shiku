@@ -18,7 +18,7 @@ import { useAPIMonitoring } from '../hooks/useAPIMonitoring';
 import '../styles-mobile-api-monitoring.css';
 
 /**
- * APIMonitoring - Component hiển thị thống kê API và rate limiting
+ * APIMonitoring - Component that displays API statistics and rate limiting
  * @returns {JSX.Element} Component API monitoring
  */
 export default function APIMonitoring() {

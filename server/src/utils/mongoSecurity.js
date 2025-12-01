@@ -2,18 +2,23 @@ import mongoose from "mongoose";
 
 /**
  * MongoDB Security Utilities
- * Các utility để bảo vệ khỏi NoSQL injection và cải thiện bảo mật database
+ * 
+ * Các utility để bảo vệ khỏi NoSQL injection và cải thiện bảo mật database:
+ * - Escape regex special characters
+ * - Sanitize input cho MongoDB queries
+ * - Tạo safe regex, text search, pagination queries
+ * - Validate ObjectId và query parameters
+ * 
+ * @module mongoSecurity
  */
 
 /**
  * Escape regex special characters để tránh NoSQL injection
  * @param {string} input - Input cần escape
- * @returns {string} - Input đã được escape
+ * @returns {string} Input đã được escape
  */
 export const escapeRegex = (input) => {
   if (typeof input !== 'string') return input;
-  
-  // Escape các ký tự đặc biệt trong regex
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 

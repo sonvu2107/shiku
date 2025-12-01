@@ -3,14 +3,14 @@ import ChatPopupManager from "./ChatPopupManager";
 import ChatDropdown from "./ChatDropdown";
 
 /**
- * Ví dụ sử dụng ChatPopupManager
- * Component này minh họa cách sử dụng ChatPopupManager để quản lý nhiều chat popup
+ * Usage examples ChatPopupManager
+ * This component demonstrates how to use ChatPopupManager to manage multiple chat popups
  */
 export default function ChatExample() {
   const [openConversations, setOpenConversations] = useState([]);
 
   const handleOpenChat = (conversation) => {
-    // Kiểm tra xem conversation đã mở chưa
+    // Check if the conversation is already open
     const isAlreadyOpen = openConversations.some(conv => conv._id === conversation._id);
     
     if (!isAlreadyOpen) {
@@ -24,10 +24,10 @@ export default function ChatExample() {
 
   return (
     <div className="relative">
-      {/* Chat Dropdown để mở conversations */}
+      {/* Chat Dropdown to open conversations */}
       <ChatDropdown onOpenChat={handleOpenChat} />
       
-      {/* Chat Popup Manager để quản lý các popup đã mở */}
+      {/* Chat Popup Manager to manage opened popups */}
       <ChatPopupManager 
         conversations={openConversations}
         onCloseConversation={handleCloseConversation}

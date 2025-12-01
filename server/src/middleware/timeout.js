@@ -1,11 +1,22 @@
 /**
- * Request timeout middleware to prevent hanging requests
+ * Timeout Middleware
+ * 
+ * Middleware timeout cho request để tránh các yêu cầu bị treo.
+ * Tự động log các request chậm và timeout.
+ * 
+ * @module timeout
+ */
+
+/**
+ * Request timeout middleware
+ * 
+ * @param {number} timeout - Thời gian timeout (ms), mặc định 30000ms
+ * @returns {Function} Express middleware
  */
 export const requestTimeout = (timeout = 30000) => {
   return (req, res, next) => {
     const startTime = Date.now();
     
-    // Set timeout for the request
     const timeoutId = setTimeout(() => {
       if (!res.headersSent) {
         const duration = Date.now() - startTime;
@@ -25,16 +36,14 @@ export const requestTimeout = (timeout = 30000) => {
       }
     }, timeout);
 
-    // Clear timeout when response is finished
     res.on('finish', () => {
       clearTimeout(timeoutId);
       const duration = Date.now() - startTime;
-      if (duration > 10000) { // Log slow requests (>10s)
+      if (duration > 10000) {
         console.warn(`[WARN][TIMEOUT] Slow request: ${req.method} ${req.path} took ${duration}ms`);
       }
     });
 
-    // Clear timeout when response is closed
     res.on('close', () => {
       clearTimeout(timeoutId);
     });
@@ -44,7 +53,12 @@ export const requestTimeout = (timeout = 30000) => {
 };
 
 /**
- * Async wrapper to catch errors in async route handlers
+ * Async handler wrapper
+ * 
+ * Bắt lỗi tự động trong các async route handlers.
+ * 
+ * @param {Function} fn - Async route handler
+ * @returns {Function} Wrapped handler
  */
 export const asyncHandler = (fn) => {
   return (req, res, next) => {

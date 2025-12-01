@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 
 /**
- * User Schema - Định nghĩa cấu trúc dữ liệu cho users
- * Bao gồm thông tin cá nhân, authentication, social features, và ban system
+ * User Schema
+ * Lưu thông tin người dùng: profile, xác thực, quyền, social features và ban system
  */
 const UserSchema = new mongoose.Schema({
   // ==================== THÔNG TIN CƠ BẢN ====================
@@ -47,7 +47,7 @@ const UserSchema = new mongoose.Schema({
   website: { type: String, default: "" }, // Website cá nhân
   phone: { type: String, default: "" }, // Số điện thoại
   
-  // ==================== PROFILE CUSTOMIZATION ====================
+  // ==================== TÙY CHỈNH HỒ SƠ (PROFILE) ====================
   profileTheme: { 
     type: String, 
     enum: ["default", "dark", "blue", "green", "purple", "pink", "orange"], 
@@ -68,16 +68,21 @@ const UserSchema = new mongoose.Schema({
   showFriends: { type: Boolean, default: true }, // Hiển thị danh sách bạn bè
   showPosts: { type: Boolean, default: true }, // Hiển thị bài đăng
   showEvents: { type: Boolean, default: true }, // Hiển thị sự kiện tham gia
+  displayBadgeType: { 
+    type: String, 
+    enum: ["role", "cultivation"], 
+    default: "role" 
+  }, // Hiển thị badge: role (vai trò) hoặc cultivation (cảnh giới tu tiên)
   
-  // ==================== SOCIAL FEATURES ====================
+  // ==================== TÍNH NĂNG MẠNG XÃ HỘI ====================
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Danh sách bạn bè
   blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Users bị block
   currentConversation: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation' }, // Chat hiện tại
   
-  // ==================== SAVED POSTS ====================
+  // ==================== BÀI VIẾT ĐÃ LƯU ====================
   savedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }], // Bài viết đã lưu
   
-  // ==================== POST INTEREST PREFERENCES ====================
+  // ==================== TÙY CHỌN THÍCH BÀI VIẾT ====================
   interestedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }], // Bài viết user quan tâm (sẽ thấy nhiều hơn)
   notInterestedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }], // Bài viết user không quan tâm (sẽ thấy ít hơn)
   
@@ -86,7 +91,7 @@ const UserSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false }, // Tài khoản đã verify
   lastSeen: { type: Date, default: Date.now }, // Lần cuối online
   
-  // ==================== BAN SYSTEM ====================
+  // ==================== HỆ THỐNG BAN (CẤM) ====================
   isBanned: { type: Boolean, default: false }, // Có bị ban không
   banReason: { type: String, default: "" }, // Lý do ban
   bannedAt: { type: Date }, // Thời điểm bị ban
@@ -95,46 +100,55 @@ const UserSchema = new mongoose.Schema({
   
   // ==================== RESET PASSWORD ====================
   resetPasswordToken: { type: String }, // Token reset password
-  resetPasswordExpires: { type: Date } // Thời hạn token reset
+  resetPasswordExpires: { type: Date }, // Thời hạn token reset
+  
+  // ==================== HỆ THỐNG TU TIÊN ====================
+  cultivation: { type: mongoose.Schema.Types.ObjectId, ref: 'Cultivation' }, // Tham chiếu đến thông tin tu tiên
+  cultivationCache: {
+    realmLevel: { type: Number, default: 1 },
+    realmName: { type: String, default: "Phàm Nhân" },
+    exp: { type: Number, default: 0 },
+    equipped: {
+      title: { type: String, default: null },
+      badge: { type: String, default: null },
+      avatarFrame: { type: String, default: null }
+    }
+  } // Cache cultivation info để hiển thị badge và trang bị nhanh
 }, { 
   timestamps: true // Tự động thêm createdAt và updatedAt
 });
 
-// ==================== DATABASE INDEXES ====================
+// ==================== INDEX CƠ SỞ DỮ LIỆU ====================
+// Các index đơn/ghép phục vụ tìm kiếm theo tên, role, trạng thái ban và hoạt động
+UserSchema.index({ name: 1 });
+UserSchema.index({ role: 1 });
+UserSchema.index({ isBanned: 1 });
+UserSchema.index({ isOnline: 1 });
+UserSchema.index({ lastSeen: -1 });
 
-// Single field indexes
-// Note: email index is automatically created by unique: true in schema
-UserSchema.index({ name: 1 }); // Name search
-UserSchema.index({ role: 1 }); // Role-based queries
-UserSchema.index({ isBanned: 1 }); // Ban status queries
-UserSchema.index({ isOnline: 1 }); // Online status queries
-UserSchema.index({ lastSeen: -1 }); // Recent activity
-
-// Compound indexes for common queries
-UserSchema.index({ role: 1, isBanned: 1 }); // Admin queries
-UserSchema.index({ isOnline: 1, lastSeen: -1 }); // Online users
-UserSchema.index({ name: "text", bio: "text" }); // Text search
+UserSchema.index({ role: 1, isBanned: 1 });
+UserSchema.index({ isOnline: 1, lastSeen: -1 });
+UserSchema.index({ name: "text", bio: "text" });
 
 // ==================== INSTANCE METHODS ====================
 
 /**
- * Kiểm tra user có đang bị ban không
- * @returns {boolean} true nếu đang bị ban
+ * Kiểm tra user có đang bị ban hay không
+ * @returns {boolean}
  */
 UserSchema.methods.isCurrentlyBanned = function () {
-  if (!this.isBanned) return false; // Không bị đánh dấu ban
+  if (!this.isBanned) return false;
   if (!this.banExpiresAt) return true; // Ban vĩnh viễn
-  return new Date() < this.banExpiresAt; // Kiểm tra thời hạn ban
+  return new Date() < this.banExpiresAt;
 };
 
 /**
- * Lấy thời gian ban còn lại tính bằng phút
- * @returns {number} Số phút còn lại, -1 nếu ban vĩnh viễn, 0 nếu không bị ban
+ * Trả về thời gian ban còn lại (phút)
+ * -1 = vĩnh viễn, 0 = không bị ban
  */
 UserSchema.methods.getRemainingBanTime = function () {
-  if (!this.isCurrentlyBanned()) return 0; // Không bị ban
-  if (!this.banExpiresAt) return -1; // Ban vĩnh viễn
-  // Tính số phút còn lại
+  if (!this.isCurrentlyBanned()) return 0;
+  if (!this.banExpiresAt) return -1;
   return Math.max(0, Math.ceil((this.banExpiresAt - new Date()) / (1000 * 60)));
 };
 

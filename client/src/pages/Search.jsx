@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { ArrowLeft, Search as SearchIcon, X, Clock, User, FileText } from 'lucide-react';
 import { api } from '../api';
 import UserName from '../components/UserName';
+import UserAvatar from '../components/UserAvatar';
 
 export default function Search({ user }) {
   const navigate = useNavigate();
@@ -259,10 +260,11 @@ export default function Search({ user }) {
                           to={`/user/${u._id}`}
                           className="flex items-center gap-3 p-3 -mx-3 rounded-xl hover:bg-white dark:hover:bg-gray-800 shadow-sm border border-transparent hover:border-gray-100 dark:hover:border-gray-700 transition-all"
                         >
-                          <img 
-                            src={u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}`} 
-                            alt={u.name}
-                            className="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+                          <UserAvatar 
+                            user={u}
+                            size={48}
+                            showFrame={true}
+                            showBadge={true}
                           />
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold text-base truncate">

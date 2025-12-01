@@ -3,8 +3,8 @@ import { api } from "../api";
 import { Upload, X, Image, Video, File, AlertCircle, CheckCircle } from "lucide-react";
 
 /**
- * MediaUpload - Component upload media files lên Cloudinary
- * Hỗ trợ upload hình ảnh, video và các file khác
+ * MediaUpload - Component for uploading media files to Cloudinary
+ * Supports images, video, and other file types
  */
 export default function MediaUpload({ onUploadSuccess, onClose }) {
   const [files, setFiles] = useState([]);

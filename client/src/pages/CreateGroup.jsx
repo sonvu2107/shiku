@@ -4,8 +4,8 @@ import GroupCreator from '../components/GroupCreator';
 import { PageLayout } from '../components/ui/DesignSystem';
 
 /**
- * CreateGroup Page - Trang tạo nhóm mới (Monochrome Luxury Style)
- * Sử dụng GroupCreator component trong full-screen mode
+ * CreateGroup Page - Page for creating a new group (Monochrome Luxury style)
+ * Uses the `GroupCreator` component in full-screen mode
  */
 const CreateGroup = () => {
   const navigate = useNavigate();

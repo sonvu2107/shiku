@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { parseMentions } from "../utils/mentions";
 
 /**
- * MarkdownWithMentions - Component kết hợp ReactMarkdown với @mentions
- * Renders markdown content nhưng thay thế mentions thành clickable links
+ * MarkdownWithMentions - Component combine ReactMarkdown with @mentions
+ * Renders markdown content but replaces mentions with clickable links
  * @param {string} content - Markdown content
  * @param {Array} mentionedUsers - Array of user objects with _id, name, avatarUrl
  */

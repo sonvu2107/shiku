@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const apiStatsSchema = new mongoose.Schema({
-  // Basic stats
+  // Thông số cơ bản
   totalRequests: {
     type: Number,
     default: 0
@@ -11,13 +11,13 @@ const apiStatsSchema = new mongoose.Schema({
     default: 0
   },
   
-  // Time tracking
+  // Theo dõi thời gian reset
   lastReset: {
     type: Date,
     default: Date.now
   },
   
-  // Hourly stats for historical data
+  // Thống kê hàng giờ cho dữ liệu lịch sử
   hourlyStats: [{
     hour: {
       type: Number,
@@ -47,7 +47,7 @@ const apiStatsSchema = new mongoose.Schema({
     }
   }],
   
-  // Current period stats (reset every hour)
+  // Thống kê cho khoảng thời gian hiện tại (reset mỗi giờ)
   currentPeriod: {
     requestsByEndpoint: {
       type: Map,
@@ -71,7 +71,7 @@ const apiStatsSchema = new mongoose.Schema({
     }
   },
   
-  // Daily top 10 stats (reset at midnight daily)
+  // Thống kê top 10 hàng ngày (reset vào nửa đêm hàng ngày)
   dailyTopStats: {
     topEndpoints: {
       type: Map,
@@ -85,7 +85,7 @@ const apiStatsSchema = new mongoose.Schema({
     }
   },
   
-  // Daily reset tracking (reset at midnight daily)
+  // Theo dõi reset hàng ngày (reset vào nửa đêm hàng ngày)
   dailyReset: {
     lastDailyReset: {
       type: Date,
@@ -97,7 +97,7 @@ const apiStatsSchema = new mongoose.Schema({
     }
   },
   
-  // Real-time updates (last 100 calls)
+  // Cập nhật thời gian thực (100 cuộc gọi gần nhất)
   realtimeUpdates: [{
     endpoint: {
       type: String,
@@ -138,13 +138,13 @@ const apiStatsSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for performance
+// Index cho hiệu năng
 apiStatsSchema.index({ createdAt: -1 });
 apiStatsSchema.index({ 'realtimeUpdates.timestamp': -1 });
 
-// Method to add real-time update
+// Phương thức thêm cập nhật thời gian thực
 apiStatsSchema.methods.addRealtimeUpdate = function(updateData) {
-  // Add to realtime updates array
+  // Thêm vào mảng cập nhật thời gian thực
   this.realtimeUpdates.unshift({
     endpoint: updateData.endpoint,
     method: updateData.method,
@@ -154,7 +154,7 @@ apiStatsSchema.methods.addRealtimeUpdate = function(updateData) {
     timestamp: new Date()
   });
   
-  // Keep only last 100 updates
+  // Giữ lại chỉ 100 cập nhật gần nhất
   if (this.realtimeUpdates.length > 100) {
     this.realtimeUpdates = this.realtimeUpdates.slice(0, 100);
   }
@@ -162,51 +162,51 @@ apiStatsSchema.methods.addRealtimeUpdate = function(updateData) {
   this.updatedAt = new Date();
 };
 
-// Method to increment endpoint count
+// Phương thức tăng số lượng endpoint
 apiStatsSchema.methods.incrementEndpoint = function(endpoint) {
-  // Increment current period stats
+  // Tăng thống kê cho khoảng thời gian hiện tại
   const current = this.currentPeriod.requestsByEndpoint.get(endpoint) || 0;
   this.currentPeriod.requestsByEndpoint.set(endpoint, current + 1);
   
-  // Also increment daily top stats
+  // Cũng tăng thống kê top hàng ngày
   const dailyCurrent = this.dailyTopStats.topEndpoints.get(endpoint) || 0;
   this.dailyTopStats.topEndpoints.set(endpoint, dailyCurrent + 1);
   
   this.updatedAt = new Date();
 };
 
-// Method to increment daily total requests
+// Phương thức tăng tổng số yêu cầu hàng ngày
 apiStatsSchema.methods.incrementDailyTotalRequests = function() {
   this.dailyReset.dailyTotalRequests++;
   this.updatedAt = new Date();
 };
 
-// Method to increment IP count
+// Phương thức tăng số lượng IP
 apiStatsSchema.methods.incrementIP = function(ip) {
-  // Encode IP address to avoid dots in Map keys (Mongoose doesn't allow dots in Map keys)
+  //Mã hóa địa chỉ IP để tránh dấu chấm trong Khóa bản đồ (Mongoose không cho phép dấu chấm trong Khóa bản đồ)
   const encodedIP = ip.replace(/\./g, '_');
   
-  // Increment current period stats
+  // Tăng thống kê cho khoảng thời gian hiện tại
   const current = this.currentPeriod.requestsByIP.get(encodedIP) || 0;
   this.currentPeriod.requestsByIP.set(encodedIP, current + 1);
   
-  // Also increment daily top stats
+  // Cũng tăng thống kê top hàng ngày
   const dailyCurrent = this.dailyTopStats.topIPs.get(encodedIP) || 0;
   this.dailyTopStats.topIPs.set(encodedIP, dailyCurrent + 1);
   
   this.updatedAt = new Date();
 };
 
-// Method to increment hour count
+// Phương thức tăng số giờ
 apiStatsSchema.methods.incrementHour = function(hour) {
-  // Convert hour to string since Mongoose Map only supports string keys
+  // Chuyển giờ thành chuỗi vì Mongoose Map chỉ hỗ trợ khóa chuỗi
   const hourKey = hour.toString();
   const current = this.currentPeriod.requestsByHour.get(hourKey) || 0;
   this.currentPeriod.requestsByHour.set(hourKey, current + 1);
   this.updatedAt = new Date();
 };
 
-// Method to increment rate limit hit
+// Phương thức tăng số lần giới hạn tốc độ
 apiStatsSchema.methods.incrementRateLimitHit = function(endpoint) {
   this.rateLimitHits++;
   const current = this.currentPeriod.rateLimitHitsByEndpoint.get(endpoint) || 0;
@@ -214,27 +214,27 @@ apiStatsSchema.methods.incrementRateLimitHit = function(endpoint) {
   this.updatedAt = new Date();
 };
 
-// Method to reset current period stats (every hour)
+// Phương thức đặt lại thống kê khoảng thời gian hiện tại (mỗi giờ)
 apiStatsSchema.methods.resetCurrentPeriod = function() {
   const now = new Date();
   const currentHour = now.getHours();
   
-  // Save current hour's stats to historical data
+  // Lưu thống kê giờ hiện tại vào dữ liệu lịch sử
   this.hourlyStats.push({
     hour: currentHour,
     totalRequests: this.totalRequests,
     rateLimitHits: this.rateLimitHits,
     requestsByEndpoint: new Map(this.currentPeriod.requestsByEndpoint),
-    requestsByIP: new Map(this.currentPeriod.requestsByIP), // IPs are already encoded
+    requestsByIP: new Map(this.currentPeriod.requestsByIP),
     timestamp: now
   });
   
-  // Keep only last 24 hours
+  // Giữ lại chỉ 24 giờ gần nhất
   if (this.hourlyStats.length > 24) {
     this.hourlyStats.shift();
   }
   
-  // Reset current period (but keep requestsByHour for daily analysis)
+  // Reset chu kỳ hiện tại (nhưng giữ requestsByHour cho phân tích hàng ngày)
   this.currentPeriod.requestsByEndpoint = new Map();
   this.currentPeriod.requestsByIP = new Map();
   this.currentPeriod.rateLimitHitsByEndpoint = new Map();
@@ -242,23 +242,23 @@ apiStatsSchema.methods.resetCurrentPeriod = function() {
   this.updatedAt = now;
 };
 
-// Method to reset hourly stats (daily at midnight)
+// Phương thức đặt lại thống kê hàng giờ (hàng ngày vào nửa đêm)  
 apiStatsSchema.methods.resetHourlyStats = function() {
-  // Reset hourly distribution for daily analysis
+  // Reset phân phối hàng giờ cho phân tích hàng ngày
   this.currentPeriod.requestsByHour = new Map();
   
-  // Reset daily top 10 stats
+  // Reset top 10 thông số hàng ngày
   this.dailyTopStats.topEndpoints = new Map();
   this.dailyTopStats.topIPs = new Map();
   
-  // Reset daily tracking
+  // Reset theo dõi hàng ngày
   this.dailyReset.lastDailyReset = new Date();
   this.dailyReset.dailyTotalRequests = 0;
   
   this.updatedAt = new Date();
 };
 
-// Static method to get or create stats document
+// Phương pháp tĩnh để lấy hoặc tạo tài liệu thống kê
 apiStatsSchema.statics.getOrCreateStats = async function() {
   let stats = await this.findOne().sort({ createdAt: -1 });
   
@@ -290,7 +290,7 @@ apiStatsSchema.statics.getOrCreateStats = async function() {
   return stats;
 };
 
-// Static method to clean old data (older than 7 days)
+  // Phương pháp tĩnh để làm sạch dữ liệu cũ (cũ hơn 7 ngày)
 apiStatsSchema.statics.cleanOldData = async function() {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -302,7 +302,7 @@ apiStatsSchema.statics.cleanOldData = async function() {
   console.log('[INFO][API-STATS] Cleaned old API stats data');
 };
 
-// Pre-save middleware to update updatedAt
+// Lưu trước phần mềm trung gian để cập nhật updatedAt
 apiStatsSchema.pre('save', function(next) {
   this.updatedAt = new Date();
   next();

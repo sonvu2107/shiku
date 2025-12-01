@@ -1,7 +1,7 @@
 import { cn } from "../../utils/cn";
 
 /**
- * Textarea component với consistent styling
+ * Textarea component with consistent styling
  */
 export default function Textarea({
   label,

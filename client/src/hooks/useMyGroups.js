@@ -2,28 +2,28 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api.js";
 
 /**
- * Hook để lấy danh sách groups của user hiện tại
- * Sử dụng React Query để cache và tự động refetch
+ * Hook to fetch the current user's groups
+ * Uses React Query for caching and automatic refetching
  */
 export function useMyGroups() {
   return useQuery({
     queryKey: ["myGroups"],
     queryFn: async () => {
       const response = await api("/api/groups/my-groups");
-      // Optional chaining để tránh crash nếu response không có data
+      // Optional chaining to avoid crash if response has no data
       return {
         ...response,
         data: response?.data ?? { groups: [] },
       };
     },
-    staleTime: 5 * 60 * 1000, // 5 phút
-    gcTime: 10 * 60 * 1000, // 10 phút
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 
 /**
- * Hook để tạo group mới
- * Tự động invalidate cache sau khi tạo thành công
+ * Hook to create a new group
+ * Automatically invalidates cache after successful creation
  */
 export function useCreateGroup() {
   const queryClient = useQueryClient();
@@ -37,15 +37,15 @@ export function useCreateGroup() {
       return response;
     },
     onSuccess: () => {
-      // Invalidate và refetch groups list
+      // Invalidate and refetch groups list
       queryClient.invalidateQueries({ queryKey: ["myGroups"] });
     },
   });
 }
 
 /**
- * Hook để join group
- * Tự động invalidate cache sau khi join thành công
+ * Hook to join a group
+ * Automatically invalidates cache after successful join
  */
 export function useJoinGroup() {
   const queryClient = useQueryClient();
@@ -64,8 +64,8 @@ export function useJoinGroup() {
 }
 
 /**
- * Hook để leave group
- * Tự động invalidate cache sau khi leave thành công
+ * Hook to leave a group
+ * Automatically invalidates cache after successful leave
  */
 export function useLeaveGroup() {
   const queryClient = useQueryClient();

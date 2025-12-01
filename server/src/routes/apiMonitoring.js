@@ -1,3 +1,15 @@
+/**
+ * API Monitoring Routes
+ * 
+ * Routes xử lý giám sát và thống kê API:
+ * - Theo dõi số lượng request theo endpoint
+ * - Thống kê hiệu năng API
+ * - Top endpoints, top users
+ * - Cleanup và maintenance
+ * 
+ * @module apiMonitoring
+ */
+
 import express from "express";
 import { authRequired } from "../middleware/auth.js";
 import ApiStats from "../models/ApiStats.js";

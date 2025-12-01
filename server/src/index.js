@@ -50,6 +50,8 @@ import pollRoutes from "./routes/polls.js"; // Polls routes
 import healthRoutes from "./routes/health.js"; // Health check routes
 import roleRoutes from "./routes/roles.js"; // Roles routes
 import chatbotRoutes from "./routes/chatbot.js"; // Chatbot AI routes
+import securityMonitoringRoutes from "./routes/securityMonitoring.js"; // Security monitoring routes
+import cultivationRoutes from "./routes/cultivation.js"; // Cultivation/Tu Tiên routes
 
 // Environment variables are loaded via `import 'dotenv/config'` at the top
 
@@ -278,14 +280,17 @@ app.get("/heartbeat", (req, res) => {
 
 // Preflight helper for all routes
 
-// CSRF token endpoint
+// CSRF token endpoint - optimized but respects csurf's secret management
+// NOTE: We cache based on the _csrf secret cookie to ensure token validity
+// The token is only valid when paired with its corresponding secret
 app.get("/api/csrf-token", (req, res) => {
   try {
-    const existingSecret = req.cookies._csrf;
-
-    // csurf will automatically:
-    // - Reuse secret if _csrf cookie exists
-    // - Create new secret if not present
+    // Get the existing secret from cookie (csurf uses this)
+    const existingSecret = req.cookies?._csrf;
+    
+    // Generate token - csurf will:
+    // - Reuse secret if _csrf cookie exists and is valid
+    // - Create new secret if not present (sets new cookie)
     const token = req.csrfToken();
 
     res.json({
@@ -294,6 +299,7 @@ app.get("/api/csrf-token", (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
+    console.error('[CSRF] Error generating token:', error.message);
     res.status(500).json({ error: "Failed to generate CSRF token" });
   }
 });
@@ -643,6 +649,8 @@ app.use("/api/polls", apiLimiter, pollRoutes); // Polls/Surveys with rate limiti
 app.use("/api/health", healthRoutes); // Health check endpoint
 app.use("/api/admin/roles", roleRoutes); // Roles routes
 app.use("/api/chatbot", apiLimiter, chatbotRoutes); // AI Chatbot with rate limiting
+app.use("/api/security", securityMonitoringRoutes); // Security monitoring routes (admin only)
+app.use("/api/cultivation", apiLimiter, cultivationRoutes); // Tu Tiên system routes
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);
@@ -1260,12 +1268,29 @@ if (process.env.DISABLE_SERVER_START === "true") {
 
   connectDB(process.env.MONGODB_URI).then(async () => {
 
+    // Setup database monitoring
+    try {
+      const { setupConnectionMonitoring } = await import("./utils/dbMonitor.js");
+      setupConnectionMonitoring();
+      console.log('[INFO][SERVER] Database monitoring enabled');
+    } catch (monitorError) {
+      console.warn('[WARN][SERVER] DB monitoring setup skipped:', monitorError.message);
+    }
+
     // Run API monitoring cleanup after DB connection
     await cleanupInvalidEnvKeys();
 
+    // Initialize Redis if enabled
+    try {
+      const { initializeRedis } = await import("./services/redisClient.js");
+      await initializeRedis();
+    } catch (redisError) {
+      console.warn('[WARN][SERVER] Redis initialization skipped:', redisError.message);
+    }
+
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`[INFO][SERVER] Server listening on http://localhost:${PORT}`);
-      console.log(`[INFO][SERVER] Network access: http://YOUR_IP:${PORT}`);
+      console.log(`[INFO][SERVER] Network accessible on port ${PORT}`);
       console.log('[INFO][SERVER] Socket.IO ready');
 
       // Log environment info

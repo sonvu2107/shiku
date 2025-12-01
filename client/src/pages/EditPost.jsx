@@ -16,17 +16,17 @@ import { cn } from "../utils/cn";
 export default function EditPost() {
   // ==================== ROUTER & NAVIGATION ====================
   
-  const { id } = useParams(); // ID bài viết từ URL
+  const { id } = useParams(); // Post ID from the URL
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   
   // ==================== STATE MANAGEMENT ====================
   
   // Post data
-  const [post, setPost] = useState(null); // Dữ liệu bài viết
+  const [post, setPost] = useState(null); // Post data
   const [err, setErr] = useState(""); // Error message
   const [loading, setLoading] = useState(true); // Loading state
-  const [uploading, setUploading] = useState(false); // Upload state
+  const [uploading, setUploading] = useState(false); // Uploading state
   const [saving, setSaving] = useState(false); // Saving state
 
   useEffect(() => { load(); }, [id]);
@@ -54,7 +54,7 @@ export default function EditPost() {
       const formData = new FormData();
       selectedFiles.forEach(f => formData.append("files", f));
       
-      // Upload files qua api helper với FormData
+      // Upload files via the API helper using FormData
       const data = await api("/api/uploads/media", {
         method: "POST",
         body: formData
@@ -63,7 +63,7 @@ export default function EditPost() {
       setPost(prev => {
         const updated = { ...prev };
         updated.files = [...(updated.files || []), ...data.files];
-        // Luôn set coverUrl là file đầu tiên trong files (bất kể loại)
+        // Always set coverUrl to the first file in `files` (regardless of type)
         if (updated.files.length > 0) {
           updated.coverUrl = updated.files[0].url;
         } else {

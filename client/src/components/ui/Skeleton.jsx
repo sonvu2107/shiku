@@ -24,7 +24,7 @@ export default function Skeleton({
 }
 
 /**
- * Skeleton cho Post Card
+ * Skeleton for Post Card
  */
 export function PostCardSkeleton() {
   return (
@@ -44,7 +44,7 @@ export function PostCardSkeleton() {
 }
 
 /**
- * Skeleton cho Friend Card
+ * Skeleton for Friend Card
  */
 export function FriendCardSkeleton() {
   return (
@@ -60,7 +60,7 @@ export function FriendCardSkeleton() {
 }
 
 /**
- * Skeleton cho Analytics Card
+ * Skeleton for Analytics Card
  */
 export function AnalyticsCardSkeleton() {
   return (

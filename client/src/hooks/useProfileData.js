@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 
 /**
- * Hook để quản lý việc lấy dữ liệu profile (bạn bè, bài đăng, phân tích, ảnh gần đây)
- * Refactored từ Profile cũ để đảm bảo logic giống hệt
+ * Hook to manage fetching profile data (friends, posts, analytics, recent images)
+ * Refactored from the old Profile to preserve identical logic
  */
 export function useProfileData(userId) {
   // ======= STATES =======
@@ -33,7 +33,7 @@ export function useProfileData(userId) {
     const allImages = [];
     
     posts.forEach(post => {
-      // Thêm coverUrl nếu có
+      // Add coverUrl if present
       if (post.coverUrl) {
         allImages.push({
           url: post.coverUrl,
@@ -43,7 +43,7 @@ export function useProfileData(userId) {
         });
       }
       
-      // Thêm ảnh từ files array
+      // Add images from the files array
       if (post.files && Array.isArray(post.files)) {
         post.files.forEach(file => {
           if (file.type === 'image' && file.url) {
@@ -58,13 +58,13 @@ export function useProfileData(userId) {
       }
     });
     
-    // Sắp xếp theo thời gian tạo (mới nhất trước) và lấy 12 ảnh đầu
+    // Sort by creation time (newest first) and take the first 12 images
     return allImages
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 12);
   }, []);
 
-  // ======= LOAD POSTS (từ Profile cũ) =======
+  // ======= LOAD POSTS (from old Profile) =======
   const loadPosts = useCallback(async () => {
     if (!userId) return;
 
@@ -72,16 +72,16 @@ export function useProfileData(userId) {
     setErrors(e => ({ ...e, posts: null }));
 
     try {
-      // Logic từ Profile cũ:
+      // Logic from the old Profile:
       // const userId = user._id || user.id;
       const [publicData, privateData] = await Promise.all([
         api(`/api/posts?author=${userId}&status=published&limit=50`),
         api(`/api/posts?author=${userId}&status=private&limit=50`),
       ]);
 
-      // Backend trả về { posts: [...], pagination: {...} } từ posts-secure.js
-      // Hoặc { items: [...], total, page, pages } từ posts.js
-      // Cần check cả "posts" và "items" để tương thích với cả 2 API
+      // Backend returns { posts: [...], pagination: {...} } from posts-secure.js
+      // Or { items: [...], total, page, pages } from posts.js
+      // Check both "posts" and "items" to be compatible with both APIs
       const privatePosts = privateData?.posts || privateData?.items || [];
       const publicPosts = publicData?.posts || publicData?.items || [];
       const allPosts = [...privatePosts, ...publicPosts];
@@ -94,7 +94,7 @@ export function useProfileData(userId) {
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
 
-      // Extract recent images từ posts
+      // Extract recent images from posts
       const images = extractRecentImages(sortedPosts);
 
       setData(d => ({
@@ -114,9 +114,9 @@ export function useProfileData(userId) {
     }
   }, [userId, extractRecentImages]);
 
-  // ======= LOAD FRIENDS (từ Profile cũ) =======
+  // ======= LOAD FRIENDS (from old Profile) =======
   const loadFriends = useCallback(async () => {
-    // API không cần userId, vì backend lấy từ token
+    // API does not require userId because the backend derives it from the token
     setLoading(l => ({ ...l, friends: true }));
     setErrors(e => ({ ...e, friends: null }));
 
@@ -139,7 +139,7 @@ export function useProfileData(userId) {
     }
   }, []);
 
-  // ======= LOAD ANALYTICS (từ Profile cũ) =======
+  // ======= LOAD ANALYTICS (from old Profile) =======
   const loadAnalytics = useCallback(
     async (period = "30d") => {
       if (!userId) return;
@@ -148,7 +148,7 @@ export function useProfileData(userId) {
       setErrors(e => ({ ...e, analytics: null }));
 
       try {
-        // Profile cũ: `/api/posts/analytics?period=${analyticsPeriod}`
+        // Old profile used: `/api/posts/analytics?period=${analyticsPeriod}`
         const response = await api(`/api/posts/analytics?period=${period}`);
         setData(d => ({
           ...d,
@@ -197,7 +197,7 @@ export function useProfileData(userId) {
   // ======= REFRESH ALL =======
   const refreshAll = useCallback(
     async (period = "30d") => {
-      // Load tất cả dữ liệu cùng lúc
+      // Load all data at once
       await Promise.all([
         loadPosts(),
         loadFriends(),
@@ -207,7 +207,7 @@ export function useProfileData(userId) {
     [loadPosts, loadFriends, loadAnalytics]
   );
 
-  // ======= AUTO LOAD POSTS KHI userId CÓ GIÁ TRỊ =======
+  // ======= AUTO LOAD POSTS WHEN userId EXISTS =======
   useEffect(() => {
     console.log("[useProfileData] useEffect triggered - userId:", userId);
     if (!userId) {
@@ -218,7 +218,7 @@ export function useProfileData(userId) {
     loadPosts();
   }, [userId, loadPosts]);
 
-  // Debug log khi return
+  // Debug log on return
   useEffect(() => {
     console.log("[useProfileData] Hook state:", {
       userId,

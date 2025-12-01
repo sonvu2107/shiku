@@ -8,7 +8,7 @@ import Button from "../ui/Button";
 import { GENDER_OPTIONS, VALIDATION_RULES } from "../../constants/profile";
 
 /**
- * ProfileEditForm - Form chỉnh sửa thông tin profile với SpotlightCard style
+ * ProfileEditForm - Profile information editing form with SpotlightCard style
  */
 export default function ProfileEditForm({
   editing,
@@ -62,7 +62,7 @@ export default function ProfileEditForm({
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Tiền xử lý trường trang web
+    // Preprocess website field
     const updateData = { ...form };
     if (updateData.website && updateData.website !== "" && !updateData.website.startsWith('http://') && !updateData.website.startsWith('https://')) {
       updateData.website = `https://${updateData.website}`;

@@ -1,3 +1,14 @@
+/**
+ * Search History Routes
+ * 
+ * Routes xử lý lịch sử tìm kiếm của user:
+ * - Lấy lịch sử tìm kiếm
+ * - Lưu/làm mới lịch sử tìm kiếm
+ * - Xóa lịch sử tìm kiếm (một mục hoặc tất cả)
+ * 
+ * @module searchHistory
+ */
+
 import express from "express";
 import SearchHistory from "../models/SearchHistory.js";
 import { authRequired } from "../middleware/auth.js";

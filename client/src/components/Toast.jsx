@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { CheckCircle, XCircle, AlertCircle, Info, X } from "lucide-react";
 
 /**
- * Toast - Component hiển thị thông báo toast
- * Hỗ trợ các loại: success, error, warning, info
+ * Toast - Component that displays a toast notification
+ * Supports types: 'success', 'error', 'warning', 'info'
  */
 export default function Toast({ 
   type = "info", 
@@ -86,7 +86,7 @@ export default function Toast({
 }
 
 /**
- * ToastContainer - Container quản lý nhiều toast
+ * ToastContainer - Container that manages multiple toast notifications
  */
 export function ToastContainer({ toasts, onRemove }) {
   return (
@@ -105,7 +105,7 @@ export function ToastContainer({ toasts, onRemove }) {
 }
 
 /**
- * useToast - Hook để sử dụng toast dễ dàng
+ * useToast - Hook to manage toast notifications (add/remove helpers)
  */
 export function useToast() {
   const [toasts, setToasts] = useState([]);

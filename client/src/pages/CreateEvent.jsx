@@ -8,8 +8,8 @@ import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSy
 import { motion } from "framer-motion";
 
 /**
- * CreateEvent - Trang tạo sự kiện mới (Monochrome Luxury Style)
- * Form để người dùng tạo sự kiện và lưu vào MongoDB
+ * CreateEvent - Page for creating a new event (Monochrome Luxury style)
+ * A form allowing users to create events and persist them to MongoDB
  */
 export default function CreateEvent() {
   const navigate = useNavigate();
@@ -228,9 +228,9 @@ export default function CreateEvent() {
               className="w-full h-48 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-3xl flex items-center justify-center hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors cursor-pointer"
             >
               <div className="text-center">
-                <Image className="mx-auto h-12 w-12 text-neutral-400 dark:text-neutral-600" />
-                <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400 font-medium">Tải lên ảnh bìa</p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-500">PNG, JPG, GIF (tối đa 10MB)</p>
+                <Image className="mx-auto h-12 w-12 text-neutral-400 dark:text-neutral-500" />
+                <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300 font-medium">Tải lên ảnh bìa</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">PNG, JPG, GIF (tối đa 10MB)</p>
               </div>
             </ImageUpload>
           )}

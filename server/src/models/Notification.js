@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
 
+/**
+ * Notification Schema
+ * Lưu thông báo gửi cho người dùng (recipient)
+ * `sender` có thể null cho thông báo hệ thống
+ */
 const notificationSchema = new mongoose.Schema({
   recipient: {
     type: mongoose.Schema.Types.ObjectId,
@@ -9,19 +14,19 @@ const notificationSchema = new mongoose.Schema({
   sender: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: false // null for system notifications
+    required: false // null cho thông báo hệ thống
   },
   type: {
     type: String,
     enum: [
-      "comment", // someone commented on your post
-      "reply", // someone replied to your comment  
-      "reaction", // someone reacted to your post
-      "mention", // someone mentioned you in a post or comment
-      "ban", // you were banned
-      "unban", // you were unbanned
-      "system", // system notifications (server updates, etc)
-      "admin_message" // admin broadcast message
+      "comment", // có người bình luận bài viết của bạn
+      "reply", // có người trả lời bình luận của bạn
+      "reaction", // có người tương tác (reaction) với bài viết
+      "mention", // có người mention bạn trong bài viết hoặc bình luận
+      "ban", // bạn bị cấm
+      "unban", // bạn được gỡ cấm
+      "system", // thông báo hệ thống
+      "admin_message" // thông báo broadcast từ admin
     ],
     required: true
   },
@@ -42,8 +47,8 @@ const notificationSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: "Comment"
     },
-    url: String, // link to relevant page
-    metadata: mongoose.Schema.Types.Mixed // additional data
+    url: String, // liên kết liên quan
+    metadata: mongoose.Schema.Types.Mixed // dữ liệu bổ sung
   },
   read: {
     type: Boolean,
@@ -55,12 +60,12 @@ const notificationSchema = new mongoose.Schema({
   }
 });
 
-// ✅ FIX MISSING INDEXES: Compound indexes for efficient queries
-notificationSchema.index({ recipient: 1, createdAt: -1 }); // Timeline
-notificationSchema.index({ recipient: 1, read: 1 }); // Filter by read status
-notificationSchema.index({ recipient: 1, read: 1, createdAt: -1 }); // Unread notifications sorted
+// Indexes: tối ưu truy vấn timeline và filter theo trạng thái read
+notificationSchema.index({ recipient: 1, createdAt: -1 });
+notificationSchema.index({ recipient: 1, read: 1 });
+notificationSchema.index({ recipient: 1, read: 1, createdAt: -1 });
 
-// PHASE 4: Lightweight unread counter
+// Trợ giúp: đếm thông báo chưa đọc (lightweight counter)
 notificationSchema.statics.countUnread = function(recipientId) {
   return this.countDocuments({ recipient: recipientId, read: false });
 };

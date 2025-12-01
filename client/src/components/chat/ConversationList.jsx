@@ -1,15 +1,15 @@
 import { Users, User, Bot } from "lucide-react";
 
 /**
- * ConversationList - Component danh sách cuộc trò chuyện
- * Hiển thị danh sách cuộc trò chuyện với avatar, tên, tin nhắn cuối và thời gian
- * @param {Array} conversations - Danh sách cuộc trò chuyện
- * @param {Object} selectedConversation - Cuộc trò chuyện đang chọn
- * @param {Function} onSelectConversation - Callback khi chọn cuộc trò chuyện
- * @param {Function} onOpenChatbot - Callback mở chatbot
- * @param {boolean} isChatbotActive - Trạng thái đang hiển thị chatbot
+ * ConversationList - Component for conversation list
+ * Displays a list of conversations with avatar, name, last message, and time
+ * @param {Array} conversations - List of conversations
+ * @param {Object} selectedConversation - Currently selected conversation
+ * @param {Function} onSelectConversation - Callback when selecting a conversation
+ * @param {Function} onOpenChatbot - Callback to open chatbot
+ * @param {boolean} isChatbotActive - Whether the chatbot is currently active
  * @param {boolean} loading - Loading state
- * @param {Object} currentUser - User hiện tại
+ * @param {Object} currentUser - Current user
  */
 export default function ConversationList({ 
   conversations, 
@@ -33,7 +33,7 @@ export default function ConversationList({
 
   const getConversationAvatar = (conversation) => {
     if (conversation.conversationType === 'chatbot') {
-      return null; // Chatbot không có avatar, sẽ hiển thị icon
+      return null; // Chatbot does not have an avatar, will display icon
     } else if (conversation.conversationType === 'group') {
       return conversation.groupAvatar || null;
     } else {
@@ -148,7 +148,7 @@ export default function ConversationList({
       </div>
 
       {conversations
-        .filter(conv => conv.conversationType !== 'chatbot') // Loại bỏ chatbot conversation khỏi danh sách
+        .filter(conv => conv.conversationType !== 'chatbot') // Exclude chatbot conversations from the list
         .map((conversation) => {
         const isSelected = selectedConversation?._id === conversation._id;
         const avatar = getConversationAvatar(conversation);

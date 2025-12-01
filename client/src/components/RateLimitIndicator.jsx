@@ -3,9 +3,9 @@ import { AlertTriangle, Clock, Zap } from 'lucide-react';
 import { getStoredRateLimitInfo, formatTimeUntilReset } from '../utils/rateLimitHandler.js';
 
 /**
- * RateLimitIndicator - Component hiển thị trạng thái rate limiting
- * @param {string} endpoint - API endpoint để check rate limit
- * @param {boolean} showWhenLow - Chỉ hiển thị khi rate limit thấp
+ * RateLimitIndicator - Component that displays API rate limit status
+ * @param {string} endpoint - API endpoint to check rate limit for
+ * @param {boolean} showWhenLow - Only show when rate limit is low
  */
 export default function RateLimitIndicator({ endpoint = '/api/posts', showWhenLow = true }) {
   const [rateLimitInfo, setRateLimitInfo] = useState(null);
@@ -78,7 +78,7 @@ export default function RateLimitIndicator({ endpoint = '/api/posts', showWhenLo
 }
 
 /**
- * RateLimitStatus - Component hiển thị chi tiết rate limit status
+ * RateLimitStatus - Component that displays detailed rate limit status
  */
 export function RateLimitStatus({ endpoint = '/api/posts' }) {
   const [rateLimitInfo, setRateLimitInfo] = useState(null);

@@ -13,9 +13,10 @@ import {
   ChevronUp
 } from "lucide-react";
 import UserName from "./UserName";
+import UserAvatar from "./UserAvatar";
 
 /**
- * Mapping các emote types với icon và màu sắc
+ * Mapping emote types with icons and colors
  */
 const emoteConfig = {
   like: { icon: ThumbsUp, color: "text-blue-500", bgColor: "bg-blue-50" },
@@ -26,14 +27,14 @@ const emoteConfig = {
 };
 
 /**
- * CommentItem - Component hiển thị một comment với like và emote
- * @param {Object} comment - Dữ liệu comment
- * @param {Object} user - User hiện tại
- * @param {Function} onReply - Callback khi reply
- * @param {Function} onEdit - Callback khi edit
- * @param {Function} onDelete - Callback khi delete
- * @param {boolean} isReply - Có phải là reply không
- * @param {boolean} showReplies - Có hiển thị replies không
+ * CommentItem - Component to display a comment with like and emote
+ * @param {Object} comment - Comment data
+ * @param {Object} user - Current user
+ * @param {Function} onReply - Callback when replying
+ * @param {Function} onEdit - Callback when editing
+ * @param {Function} onDelete - Callback when deleting  
+ * @param {boolean} isReply - Is it a reply
+ * @param {boolean} showReplies - Show replies or not
  * @param {Function} onToggleReplies - Callback toggle replies
  */
 export default function CommentItem({ 
@@ -58,7 +59,7 @@ export default function CommentItem({
   // ==================== EVENT HANDLERS ====================
 
   /**
-   * Xử lý like/unlike comment
+   * Handle like/unlike comment
    */
   const handleLike = async () => {
     if (!user) return;
@@ -79,7 +80,7 @@ export default function CommentItem({
   };
 
   /**
-   * Xử lý thêm/xóa emote
+   * Handle adding/removing emote for comment
    */
   const handleEmote = async (emoteType) => {
     if (!user) return;
@@ -101,7 +102,7 @@ export default function CommentItem({
   };
 
   /**
-   * Kiểm tra user đã emote loại nào
+   * Check which emote type the user has used on this comment
    */
   const getUserEmote = () => {
     if (!user || !comment.emotes) return null;
@@ -115,10 +116,11 @@ export default function CommentItem({
       {/* Comment Content */}
       <div className="flex gap-3">
         {/* Avatar */}
-        <img
-          src={comment.author?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author?.name || 'User')}&background=cccccc&color=222222&size=32`}
-          alt="avatar"
-          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+        <UserAvatar 
+          user={comment.author}
+          size={32}
+          showFrame={true}
+          showBadge={true}
         />
         
         {/* Comment Body */}

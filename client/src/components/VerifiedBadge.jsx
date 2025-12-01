@@ -3,21 +3,21 @@ import { createPortal } from "react-dom";
 import { loadRoles } from "../utils/roleCache";
 
 /**
- * Mapping các role với icon tương ứng (fallback cho role cũ)
- * Mỗi role có một huy hiệu riêng
+ * Mapping of roles to their corresponding icon files (fallback for legacy roles)
+ * Each role has a distinct badge icon used as a fallback when dynamic data isn't available
  */
 const defaultRoleIcons = {
-  sololeveling: "/assets/Sung-tick.png",  // Huy hiệu Solo Leveling
-  sybau: "/assets/Sybau-tick.png",        // Huy hiệu Sybau
-  moxumxue: "/assets/moxumxue.png",       // Huy hiệu Moxumxue
-  admin: "/assets/admin.jpg",             // Huy hiệu Admin
-  gay: "/assets/gay.png",                 // Huy hiệu Gay
-  special: "/assets/special-user.jpg",    // Huy hiệu Special
+  sololeveling: "/assets/Sung-tick.png",  // Solo Leveling badge (fallback)
+  sybau: "/assets/Sybau-tick.png",        // Sybau badge (fallback)
+  moxumxue: "/assets/moxumxue.png",       // Moxumxue badge (fallback)
+  admin: "/assets/admin.jpg",             // Admin badge (fallback)
+  gay: "/assets/gay.png",                 // Gay community badge (fallback)
+  special: "/assets/special-user.jpg",    // Special user badge (fallback)
 };
 
 /**
- * Mapping các role với tooltip tương ứng (fallback cho role cũ)
- * Mỗi role có một tooltip riêng biệt
+ * Mapping of default tooltips for legacy roles (fallback)
+ * These strings are shown when dynamic role metadata is not available
  */
 const defaultRoleTooltips = {
   sololeveling: "Solo Leveling",
@@ -29,14 +29,14 @@ const defaultRoleTooltips = {
 };
 
 /**
- * VerifiedBadge - Component hiển thị huy hiệu verify/role (HYBRID VERSION)
- * Hiển thị icon tương ứng với role và tooltip khi hover
- * Hỗ trợ cả role cũ (hardcoded) và role mới (dynamic từ database)
- * BACKWARD COMPATIBLE: Hoạt động với và không có availableRoles props
- * @param {string} role - Role của user (admin, sololeveling, sybau, moxumxue)
- * @param {boolean} isVerified - User có được verify không (hiện tại chưa dùng)
- * @param {Object} roleData - Thông tin role từ database (optional)
- * @param {Array} availableRoles - Danh sách roles từ parent (tối ưu performance cho admin)
+ * VerifiedBadge - Renders a role/verified badge (HYBRID VERSION)
+ * Displays an icon for a user's role and a tooltip on hover.
+ * Supports legacy hardcoded roles and dynamic roles loaded from the database.
+ * Backward compatible: works with or without `availableRoles` prop.
+ * @param {string} role - Role key or name (e.g., 'admin', 'sololeveling')
+ * @param {boolean} isVerified - Whether the user is verified (currently unused)
+ * @param {Object} roleData - Optional role metadata from the database
+ * @param {Array} availableRoles - Optional roles list provided by parent (admin dashboard optimization)
  */
 export default function VerifiedBadge({ role, isVerified, roleData, availableRoles = [] }) {
   const [dynamicRoles, setDynamicRoles] = useState({});
@@ -45,7 +45,7 @@ export default function VerifiedBadge({ role, isVerified, roleData, availableRol
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const badgeRef = useRef(null);
 
-  // Load dynamic roles từ cache/API khi không có availableRoles props
+  // Load dynamic roles from cache/API when `availableRoles` is not provided
   const loadDynamicRoles = async () => {
     // Skip nếu đã có availableRoles từ props (admin dashboard)
     if (availableRoles.length > 0) return;
@@ -55,7 +55,7 @@ export default function VerifiedBadge({ role, isVerified, roleData, availableRol
 
     try {
       setLoading(true);
-      // Sử dụng roleCache utility để load roles
+      // Use the role cache utility to fetch role metadata
       const rolesMap = await loadRoles();
       setDynamicRoles(rolesMap);
     } catch (error) {
@@ -65,17 +65,17 @@ export default function VerifiedBadge({ role, isVerified, roleData, availableRol
     }
   };
 
-  // Load roles khi component mount (chỉ khi không có availableRoles)
+  // Load roles on mount (only when `availableRoles` is not provided)
   useEffect(() => {
     if (availableRoles.length === 0) {
       loadDynamicRoles();
     }
   }, [availableRoles.length, roleData]); // Reload khi availableRoles hoặc roleData thay đổi
 
-  // Không hiển thị gì nếu không có role
+  // Return null if no role is provided
   if (!role) return null;
 
-  // Handle mouse events for tooltip positioning
+  // Handle mouse events to compute tooltip position
   const handleMouseEnter = (e) => {
     if (!badgeRef.current) return;
     
@@ -91,11 +91,11 @@ export default function VerifiedBadge({ role, isVerified, roleData, availableRol
     setShowTooltip(false);
   };
 
-  // Lấy thông tin role với priority order:
-  // 1. roleData props (nếu có)
-  // 2. availableRoles props (từ admin dashboard)
-  // 3. dynamicRoles (load từ cache/API)
-  // 4. defaultRoles (fallback)
+  // Resolve role metadata with the following priority:
+  // 1. `roleData` prop (if provided)
+  // 2. `availableRoles` prop (provided by parent/admin dashboard)
+  // 3. `dynamicRoles` loaded from cache/API
+  // 4. `defaultRoleIcons`/`defaultRoleTooltips` (fallback)
   let icon, tooltip, color;
   
   if (roleData && roleData.iconUrl) {
@@ -118,14 +118,14 @@ export default function VerifiedBadge({ role, isVerified, roleData, availableRol
     color = dynamicRoles[role].color;
   }
   
-  // Fallback về default roles nếu không tìm thấy
+  // Fallback to default role icons/tooltips if none found
   if (!icon) {
     icon = defaultRoleIcons[role];
     tooltip = defaultRoleTooltips[role];
     color = "#3B82F6"; // Default color
   }
   
-  // Không hiển thị gì nếu không có icon
+  // Return null if there is still no icon available
   if (!icon) return null;
 
   return (
@@ -136,7 +136,7 @@ export default function VerifiedBadge({ role, isVerified, roleData, availableRol
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Icon huy hiệu */}
+        {/* Badge icon */}
         <img 
           src={icon} 
           alt="Verified" 
@@ -145,7 +145,7 @@ export default function VerifiedBadge({ role, isVerified, roleData, availableRol
         />
       </div>
       
-      {/* Portal tooltip */}
+      {/* Tooltip rendered via portal */}
       {showTooltip && tooltip && createPortal(
         <div 
           className="fixed bg-black text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-[9999]"

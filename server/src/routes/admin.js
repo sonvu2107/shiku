@@ -270,7 +270,7 @@ router.get("/stats", adminRateLimit, statsCache, authRequired, adminRequired, as
       privatePosts,
       adminUsers
     ] = await Promise.all([
-      // ✅ FIX: Use estimatedDocumentCount for total counts (much faster)
+      // FIX: Use estimatedDocumentCount for total counts (much faster)
       Post.estimatedDocumentCount(),
       User.estimatedDocumentCount(),
       Comment.estimatedDocumentCount(),
@@ -691,7 +691,7 @@ router.delete("/users/:id", authRequired, adminRequired, async (req, res, next) 
 router.get("/online-users", adminRateLimit, noCache, authRequired, adminRequired, async (req, res, next) => {
   try {
     const onlineUsers = await User.find({ isOnline: true })
-      .select('name email avatarUrl role lastSeen isOnline')
+      .select('name email avatarUrl role lastSeen isOnline cultivationCache displayBadgeType')
       .sort({ lastSeen: -1 });
 
     res.json({ onlineUsers });
@@ -708,7 +708,7 @@ router.get("/online-users", adminRateLimit, noCache, authRequired, adminRequired
 router.get("/total-visitors", authRequired, adminRequired, async (req, res, next) => {
   try {
     // Tổng số users đã đăng ký
-    // ✅ FIX: Use estimatedDocumentCount for better performance
+    //  FIX: Use estimatedDocumentCount for better performance
     const totalUsers = await User.estimatedDocumentCount();
     
     // Số users đã từng online (có lastSeen)
@@ -759,12 +759,12 @@ router.get("/total-visitors", authRequired, adminRequired, async (req, res, next
  */
 router.post("/update-offline-users", authRequired, adminRequired, async (req, res, next) => {
   try {
-    // Tìm users online nhưng không hoạt động trong 5 phút (tăng từ 2 phút để tránh false positive)
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    // Tìm users online nhưng không hoạt động trong 2 phút
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
     const result = await User.updateMany(
       { 
         isOnline: true, 
-        lastSeen: { $lt: fiveMinutesAgo } 
+        lastSeen: { $lt: twoMinutesAgo } 
       },
       { 
         isOnline: false 

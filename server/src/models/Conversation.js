@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
 
+/**
+ * Conversation Schema
+ * Lưu thông tin cuộc trò chuyện giữa người dùng
+ * Bao gồm: participants, loại cuộc trò chuyện (private/group/chatbot), trạng thái và metadata
+ */
 const conversationSchema = new mongoose.Schema({
   participants: [{
     user: {
@@ -68,13 +73,16 @@ const conversationSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster queries
-conversationSchema.index({ participants: 1 });
-conversationSchema.index({ lastActivity: -1 });
-conversationSchema.index({ conversationType: 1 });
+// Indexes để tăng tốc truy vấn - OPTIMIZED
+conversationSchema.index({ 'participants.user': 1, isActive: 1 }); // User's active conversations
+conversationSchema.index({ 'participants.user': 1, 'participants.leftAt': 1, isActive: 1 }); // User's active conversations with leftAt check
+conversationSchema.index({ lastActivity: -1, isActive: 1 }); // Recent active conversations
+conversationSchema.index({ conversationType: 1, isActive: 1 }); // By type
+conversationSchema.index({ createdBy: 1, createdAt: -1 }); // Created by user
+conversationSchema.index({ 'participants.user': 1, conversationType: 1, isActive: 1 }); // User's conversations by type
 
-// Virtual for active participants
-conversationSchema.virtual('activeParticipants').get(function() {
+// Virtual: danh sách participants đang còn active (chưa rời)
+conversationSchema.virtual('activeParticipants').get(function () {
   return this.participants.filter(p => !p.leftAt);
 });
 

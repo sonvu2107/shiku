@@ -29,7 +29,7 @@ import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { cn } from "../utils/cn";
 
 /**
- * EventDetail - Trang chi tiết sự kiện (Redesigned)
+ * EventDetail - Event detail page (Redesigned)
  * Style: Monochrome Luxury
  */
 export default function EventDetail() {

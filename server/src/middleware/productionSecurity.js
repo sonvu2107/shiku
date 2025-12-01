@@ -1,13 +1,18 @@
 /**
  * Production Security Middleware
- * Enhanced security configurations for production environment
+ * 
+ * Cấu hình bảo mật nâng cao cho môi trường production.
+ * Bao gồm: Helmet, Rate Limiting, Security Headers.
+ * 
+ * @module productionSecurity
  */
+
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { isProduction } from '../config/env.js';
 
 /**
- * Enhanced Helmet configuration for production
+ * Cấu hình Helmet nâng cao cho môi trường production
  */
 export const productionHelmet = helmet({
   contentSecurityPolicy: {
@@ -31,7 +36,7 @@ export const productionHelmet = helmet({
 });
 
 /**
- * Production Rate Limiting
+ * Giới hạn tần suất (rate limiting) cho môi trường production
  */
 export const productionRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -43,13 +48,13 @@ export const productionRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip rate limiting for health checks
+    // Bỏ qua rate limiting cho health checks
     return req.path === '/health' || req.path === '/api/health';
   }
 });
 
 /**
- * API Rate Limiting for production
+ * Giới hạn tần suất cho API trong môi trường production
  */
 export const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -63,7 +68,7 @@ export const apiRateLimit = rateLimit({
 });
 
 /**
- * Authentication Rate Limiting
+ * Giới hạn tần suất cho xác thực (đăng nhập) 
  */
 export const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -78,7 +83,7 @@ export const authRateLimit = rateLimit({
 });
 
 /**
- * File Upload Rate Limiting
+ * Giới hạn tần suất cho việc upload file
  */
 export const uploadRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -92,19 +97,19 @@ export const uploadRateLimit = rateLimit({
 });
 
 /**
- * Security Headers Middleware
+ * Middleware thêm các header bảo mật
  */
 export const securityHeaders = (req, res, next) => {
-  // Remove server information
+  // Xóa thông tin server
   res.removeHeader('X-Powered-By');
   
-  // Add security headers
+  // Thêm các header bảo mật
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   
-  // Production-specific headers
+  // Header dành cho production
   if (isProduction()) {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
@@ -114,7 +119,7 @@ export const securityHeaders = (req, res, next) => {
 };
 
 /**
- * Request Logging for Production
+ * Ghi log request cho môi trường production
  */
 export const productionLogging = (req, res, next) => {
   if (isProduction()) {
@@ -132,7 +137,7 @@ export const productionLogging = (req, res, next) => {
         timestamp: new Date().toISOString()
       };
       
-      // Log only errors and slow requests in production
+      // Chỉ log lỗi và các request chậm trong production
       if (res.statusCode >= 400 || duration > 1000) {
         console.log(JSON.stringify(logData));
       }

@@ -1,22 +1,22 @@
 import { AlertTriangle, Clock } from "lucide-react";
 
 /**
- * BanNotification - Component hiển thị thông báo khi user bị ban
- * Hiển thị lý do ban, thời gian còn lại và thông tin chi tiết
- * @param {Object} banInfo - Thông tin ban từ server
- * @param {boolean} banInfo.isBanned - User có bị ban không
- * @param {string} banInfo.banReason - Lý do bị ban
- * @param {number} banInfo.remainingMinutes - Số phút còn lại (-1 = vĩnh viễn)
- * @param {Function} onClose - Callback khi đóng notification
+ * BanNotification - Component show ban notification
+ * Displays ban reason, remaining time, and detailed information
+ * @param {Object} banInfo - Ban information from server
+ * @param {boolean} banInfo.isBanned - Whether the user is banned
+ * @param {string} banInfo.banReason - Reason for the ban
+ * @param {number} banInfo.remainingMinutes - Remaining minutes (-1 = permanent ban)
+ * @param {Function} onClose - Callback when closing notification
  */
 export default function BanNotification({ banInfo, onClose }) {
-  // Không hiển thị nếu user không bị ban
+  // Do not display if user is not banned
   if (!banInfo || !banInfo.isBanned) return null;
 
   /**
-   * Format thời gian ban còn lại thành chuỗi dễ đọc
-   * @param {number} minutes - Số phút còn lại
-   * @returns {string} Chuỗi thời gian đã format
+   * Format remaining ban time into a readable string
+   * @param {number} minutes - Remaining minutes
+   * @returns {string} Formatted time string
    */
   const formatTime = (minutes) => {
     if (minutes === -1) return "vĩnh viễn";
@@ -26,24 +26,24 @@ export default function BanNotification({ banInfo, onClose }) {
   };
 
   return (
-    // Modal overlay - che phủ toàn màn hình với backdrop
+    // Modal overlay - covers the entire screen with a backdrop
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       {/* Modal content */}
       <div className="bg-white rounded-lg p-6 max-w-md w-full">
-        {/* Header với icon cảnh báo */}
+        {/* Header with warning icon */}
         <div className="flex items-center gap-3 mb-4">
           <AlertTriangle className="text-red-500" size={24} />
           <h3 className="text-lg font-semibold text-red-600">Tài khoản bị cấm</h3>
         </div>
 
-        {/* Thông tin chi tiết về ban */}
+        {/* Detailed ban information */}
         <div className="space-y-3 mb-6">
-          {/* Lý do bị ban */}
+          {/* Ban reason */}
           <p className="text-gray-700">
             <strong>Lý do:</strong> {banInfo.banReason}
           </p>
 
-          {/* Thời gian còn lại (nếu không phải ban vĩnh viễn) */}
+          {/*Time remaining (if not permanently banned) */}
           {banInfo.remainingMinutes !== -1 && (
             <div className="flex items-center gap-2 text-gray-700">
               <Clock size={16} />
@@ -53,20 +53,20 @@ export default function BanNotification({ banInfo, onClose }) {
             </div>
           )}
 
-          {/* Thông báo ban vĩnh viễn */}
+          {/* Permanent ban notification */}
           {banInfo.remainingMinutes === -1 && (
             <p className="text-red-600 font-medium">
               Tài khoản của bạn đã bị cấm vĩnh viễn.
             </p>
           )}
 
-          {/* Hướng dẫn cho user */}
+          {/* User guide */}
           <p className="text-sm text-gray-500">
             Vui lòng chờ hết thời gian cấm để có thể đăng bài và bình luận trở lại.
           </p>
         </div>
 
-        {/* Nút đóng */}
+        {/* Close button */}
         <div className="flex justify-center">
           <button
             onClick={onClose}

@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
-import { Edit3, Camera, Settings, MapPin, Phone, Calendar, Heart, Link as LinkIcon } from "lucide-react";
+import { Edit3, Camera, Settings, MapPin, Phone, Calendar, Heart, Link as LinkIcon, Sparkles } from "lucide-react";
 import { generateAvatarUrl, AVATAR_SIZES } from "../../utils/avatarUtils";
 import { SpotlightCard } from "../ui/SpotlightCard";
 import Button from "../ui/Button";
 import { PROFILE_MESSAGES } from "../../constants/profile";
+import UserAvatar, { UserTitle } from "../UserAvatar";
 
 /**
- * ProfileHeader - Component hiển thị header của profile
+ * ProfileHeader - Component display profile header with cover, avatar, name, and stats
  */
 export default function ProfileHeader({
   user,
@@ -72,15 +73,34 @@ export default function ProfileHeader({
             <motion.div 
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full border-4 md:border-[6px] border-white dark:border-black overflow-hidden bg-neutral-200 dark:bg-neutral-800 shadow-2xl relative z-10"
+              className="relative z-10"
             >
-              <img 
-                src={form.avatarUrl || generateAvatarUrl(form.name, AVATAR_SIZES.XLARGE)} 
-                alt={form.name}
-                className="w-full h-full object-cover"
+              <UserAvatar 
+                user={user}
+                size={160}
+                showFrame={true}
+                showBadge={true}
+                showTitle={false}
+                className="hidden md:block border-4 md:border-[6px] border-white dark:border-black rounded-full shadow-2xl"
+              />
+              <UserAvatar 
+                user={user}
+                size={128}
+                showFrame={true}
+                showBadge={true}
+                showTitle={false}
+                className="hidden sm:block md:hidden border-4 border-white dark:border-black rounded-full shadow-2xl"
+              />
+              <UserAvatar 
+                user={user}
+                size={112}
+                showFrame={true}
+                showBadge={true}
+                showTitle={false}
+                className="sm:hidden border-4 border-white dark:border-black rounded-full shadow-2xl"
               />
               {editing && (
-                <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer backdrop-blur-sm">
+                <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer backdrop-blur-sm rounded-full">
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
@@ -110,11 +130,26 @@ export default function ProfileHeader({
               >
                 {form.name}
               </motion.h1>
-              {user.role && user.role !== "user" && (
-                <span className="px-3 py-1 bg-neutral-900 dark:bg-white text-white dark:text-black text-xs font-bold rounded-full uppercase tracking-wider">
-                  {user.role}
-                </span>
+              {/* Hiển thị role hoặc cảnh giới tùy theo lựa chọn công khai */}
+              {user.displayBadgeType === 'cultivation' ? (
+                // Hiển thị cảnh giới tu tiên
+                user.cultivationCache?.realmName && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-full text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                    <Sparkles size={12} />
+                    {user.cultivationCache.realmName}
+                    {user.cultivationCache.realmLevel > 1 && ` T${user.cultivationCache.realmLevel}`}
+                  </span>
+                )
+              ) : (
+                // Hiển thị role (mặc định)
+                user.role && user.role !== "user" && (
+                  <span className="px-3 py-1 bg-neutral-900 dark:bg-white text-white dark:text-black text-xs font-bold rounded-full uppercase tracking-wider">
+                    {user.role}
+                  </span>
+                )
               )}
+              {/* Danh hiệu tu tiên */}
+              <UserTitle user={user} className="text-sm" />
             </div>
             <p className="text-neutral-500 dark:text-neutral-400 text-lg font-medium mb-4">
               {form.nickname || PROFILE_MESSAGES.NO_NICKNAME}

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, memo } from "react";
+import React, { useState, useRef, useEffect, memo, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Heart, Users, Bookmark, BookmarkCheck, MoreHorizontal, Edit, Trash2, BarChart3, Eye, Share2, Smile, Send, Paperclip, X, Plus, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,7 +13,7 @@ import Poll from "./Poll";
 import { useToast } from "./Toast";
 
 /**
- * Danh sách emoji để chọn trong comment
+ * List of emojis used by the comment emoji picker
  */
 const EMOJIS = [
   '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
@@ -32,16 +32,16 @@ const EMOJIS = [
 ];
 
 /**
- * PostCard - Component hiển thị preview của một blog post
- * Bao gồm media, title, metadata, emotes và action buttons
- * @param {Object} post - Dữ liệu bài viết
- * @param {string} post._id - ID của post
- * @param {string} post.title - Tiêu đề
+ * PostCard - Component that renders a preview of a blog post
+ * Includes media, title, metadata, reactions and action buttons
+ * @param {Object} post - Post data
+ * @param {string} post._id - Post ID
+ * @param {string} post.title - Title
  * @param {string} post.slug - URL slug
- * @param {Object} post.author - Thông tin tác giả
- * @param {Array} post.emotes - Danh sách emotes
- * @param {Array} post.files - Media files đính kèm
- * @param {string} post.status - Trạng thái (công khai/riêng tư)
+ * @param {Object} post.author - Author information
+ * @param {Array} post.emotes - List of emotes/reactions
+ * @param {Array} post.files - Attached media files
+ * @param {string} post.status - Visibility status (public/private)
  */
 function PostCard({
   post,
@@ -58,25 +58,25 @@ function PostCard({
   const navigate = useNavigate();
   // Note: User data should be passed as prop or obtained from context
   // const user = JSON.parse(localStorage.getItem("user") || "null"); // Deprecated
-  const [showEmotePopup, setShowEmotePopup] = useState(false); // Hiện popup emotes
-  const [showMainMenu, setShowMainMenu] = useState(false); // Hiện menu actions ở header
-  const [showOwnerMenu, setShowOwnerMenu] = useState(false); // Hiện menu actions cho owner/admin
-  const emotePopupTimeout = useRef(); // Timeout cho hover emote popup
-  const actionsMenuTimeout = useRef(); // Timeout cho actions menu
-  const mainMenuRef = useRef(null); // Ref cho menu dropdown ở header
-  const ownerMenuRef = useRef(null); // Ref cho menu dropdown ở cuối (owner/admin)
-  const mainMenuButtonRef = useRef(null); // Ref cho button mở menu ở header
+  const [showEmotePopup, setShowEmotePopup] = useState(false); // Show emote popup
+  const [showMainMenu, setShowMainMenu] = useState(false); // Toggle main actions menu in header
+  const [showOwnerMenu, setShowOwnerMenu] = useState(false); // Toggle owner/admin actions menu
+  const emotePopupTimeout = useRef(); // Timeout used for hover emote popup
+  const actionsMenuTimeout = useRef(); // Timeout used for actions menus
+  const mainMenuRef = useRef(null); // Ref for the header dropdown menu
+  const ownerMenuRef = useRef(null); // Ref for the owner/admin dropdown menu
+  const mainMenuButtonRef = useRef(null); // Ref for the header menu button
   const [commentInput, setCommentInput] = useState(""); // Comment input text
-  const [commentImages, setCommentImages] = useState([]); // Comment images
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Show emoji picker
-  const [commentLoading, setCommentLoading] = useState(false); // Comment loading state
-  const commentInputRef = useRef(null); // Ref for comment input
-  const emojiPickerRef = useRef(null); // Ref for emoji picker
-  const fileInputRef = useRef(null); // Ref for file input
+  const [commentImages, setCommentImages] = useState([]); // Selected comment images with previews
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Emoji picker visible
+  const [commentLoading, setCommentLoading] = useState(false); // Comment submission loading state
+  const commentInputRef = useRef(null); // Ref for comment input element
+  const emojiPickerRef = useRef(null); // Ref for emoji picker container
+  const fileInputRef = useRef(null); // Ref for file input element
 
   // ==================== CONSTANTS ====================
   
-  // Mapping emotes với file GIF tương ứng
+  // Mapping of emote emoji to corresponding GIF file names
   const emoteMap = {
     "👍": "like.gif",
     "❤️": "care.gif", 
@@ -90,7 +90,7 @@ function PostCard({
   // ==================== HELPER FUNCTIONS ====================
   
   /**
-   * Format thời gian chi tiết cho tooltip
+   * Format full date for tooltip display
    * @param {string} dateString - ISO date string
    * @returns {string} Formatted date string
    */
@@ -107,7 +107,7 @@ function PostCard({
   }
   
   /**
-   * Format thời gian dạng relative (x giờ trước, x ngày trước, etc.)
+   * Format a date into a relative time string (e.g., 'x hours ago')
    * @param {string} dateString - ISO date string
    * @returns {string} Relative time string
    */
@@ -129,8 +129,8 @@ function PostCard({
   }
   
   /**
-   * Lấy media để hiển thị (ưu tiên coverUrl → file đầu tiên)
-   * @returns {Object|null} Media object với url và type
+   * Get media to display for the post (prefer coverUrl, then first file)
+   * @returns {Object|null} Media object with url and type
    */
   const getDisplayMedia = () => {
     if (post.coverUrl) {
@@ -152,7 +152,7 @@ function PostCard({
   // ==================== EVENT HANDLERS ====================
   
   /**
-   * Xóa bài viết (chỉ owner hoặc admin)
+   * Delete the post (owner or admin only)
    */
   async function deletePost() {
     if (!window.confirm("Bạn có chắc muốn xóa bài này?")) return;
@@ -168,7 +168,7 @@ function PostCard({
   }
 
   /**
-   * Toggle trạng thái public/private của bài viết
+   * Toggle the post's public/private status
    */
   async function togglePostStatus() {
     const newStatus = post.status === 'private' ? 'published' : 'private';
@@ -207,10 +207,10 @@ function PostCard({
   // Sync emotesState when post.emotes changes (from parent updates)
   React.useEffect(() => {
     if (post.emotes) {
-      // Đảm bảo emotes là array và có cấu trúc đúng
+      // Ensure emotes is an array and normalize structure
       const normalizedEmotes = Array.isArray(post.emotes) 
         ? post.emotes.map(e => {
-            // Normalize emote structure - đảm bảo user có thể là object hoặc ID
+            // Normalize emote structure - user may be an object or an ID
             if (e && e.type) {
               return {
                 type: e.type,
@@ -238,7 +238,7 @@ function PostCard({
     }
   }, [post.savedCount, post._id]); // Thêm post._id để sync khi post object thay đổi
 
-  // Lấy cảm xúc user đã thả
+  // Compute the emote the current user has left (if any)
   const getUserEmote = React.useMemo(() => {
     // Kiểm tra user và user._id một cách chặt chẽ
     if (!user || typeof user !== 'object') return null;
@@ -257,7 +257,7 @@ function PostCard({
       return null;
     }
     
-    // Tìm emote của user hiện tại
+    // Find the current user's emote
     const userEmote = emotesState.find(e => {
       if (!e || !e.user || !e.type) return false;
       
@@ -265,22 +265,22 @@ function PostCard({
       let userId = null;
       
       if (typeof e.user === 'string') {
-        // Trường hợp 1: user là string ID
+        // Case 1: user is a string ID
         userId = e.user;
       } else if (typeof e.user === 'object' && e.user !== null) {
-        // Trường hợp 2: user là object
+        // Case 2: user is an object
         if (e.user._id) {
-          // Đã được populate - có _id
+          // Populated object - has _id
           if (typeof e.user._id === 'string') {
             userId = e.user._id;
           } else if (e.user._id.toString) {
             userId = e.user._id.toString();
           }
         } else if (e.user.toString && typeof e.user.toString === 'function') {
-          // Mongoose ObjectId chưa populate - có method toString()
+          // Mongoose ObjectId not populated - use toString()
           userId = e.user.toString();
         } else {
-          // Thử các cách khác
+          // Fallback to other possible fields
           userId = e.user.id || (e.user.toString ? e.user.toString() : null);
         }
       }
@@ -329,11 +329,11 @@ function PostCard({
   }, [post._id, savedPropProvided, skipSavedStatusFetch]);
 
   /**
-   * Thêm/xóa emote cho bài viết
-   * Logic: 
-   * - Nếu user đã có emote với type này -> xóa (toggle off)
-   * - Nếu user chưa có emote với type này -> xóa tất cả emotes cũ và thêm emote mới
-   * @param {string} emoteType - Loại emote (emoji: 👍, ❤️, 😂, 😮, 😢, 😡)
+   * Add or remove an emote for the post
+   * Logic:
+   * - If the user already has this emote -> remove it (toggle off)
+   * - If the user does not have this emote -> remove previous and add the new one
+   * @param {string} emoteType - Emote emoji (e.g., '👍', '❤️', '😂')
    */
   async function emote(emoteType) {
     // Trigger heart animation if liking (👍) or loving (❤️) and user didn't have this emote before
@@ -351,7 +351,7 @@ function PostCard({
       });
       
       if (res && res.emotes) {
-        // Cập nhật local state với cảm xúc mới từ server
+          // Update local state with the new emotes returned by the server
         setEmotesState(res.emotes);
         
         // Đóng popup sau khi thả cảm xúc
@@ -361,13 +361,13 @@ function PostCard({
         }
       }
     } catch (e) {
-      // Hiển thị lỗi nếu có
+      // Show error if adding emote fails
       const errorMessage = e?.message || 'Không thể thêm cảm xúc. Vui lòng thử lại.';
       alert(errorMessage);
     }
   }
 
-  async function toggleSave() {
+  const toggleSave = useCallback(async () => {
     try {
       const res = await api(`/api/posts/${post._id}/save`, {
         method: "POST",
@@ -376,7 +376,7 @@ function PostCard({
       const nextState = !!res.saved;
       setSaved(nextState);
       
-      // Update số lượng saved từ API response
+      // Update savedCount from API response
       if (typeof res.savedCount === 'number') {
         setSavedCount(res.savedCount);
         // Cập nhật savedCount trong post object từ parent nếu có callback
@@ -384,7 +384,7 @@ function PostCard({
           onPostUpdate(post._id, { savedCount: res.savedCount });
         }
       } else {
-        // Fallback: update local state nếu API không trả về savedCount
+        // Fallback: update local state if API doesn't return savedCount
         const newCount = nextState ? savedCount + 1 : Math.max(0, savedCount - 1);
         setSavedCount(newCount);
         // Cập nhật savedCount trong post object từ parent nếu có callback
@@ -399,12 +399,12 @@ function PostCard({
     } catch (e) {
       alert(e.message || "Không thể lưu bài viết");
     }
-  }
+  }, [post._id, savedCount, onPostUpdate, onSavedChange]);
 
   /**
-   * Xử lý submit comment - tái sử dụng logic từ CommentSection
+   * Handle comment submission - reuses logic from CommentSection - Memoized
    */
-  async function handleCommentSubmit(e) {
+  const handleCommentSubmit = useCallback(async (e) => {
     e.preventDefault();
     if ((!commentInput.trim() && commentImages.length === 0) || !user) return;
     
@@ -413,7 +413,7 @@ function PostCard({
       let requestBody;
       
       if (commentImages.length > 0) {
-        // Có ảnh - sử dụng FormData (giống CommentSection)
+        // Images present - use FormData (same as CommentSection)
         const formData = new FormData();
         formData.append('content', commentInput.trim());
         
@@ -424,7 +424,7 @@ function PostCard({
         
         requestBody = formData;
       } else {
-        // Không có ảnh - sử dụng JSON
+        // No images - send JSON
         requestBody = { content: commentInput.trim() };
       }
 
@@ -433,7 +433,7 @@ function PostCard({
         body: requestBody
       });
       
-      // Reset form
+      // Reset comment form
       setCommentInput("");
       commentImages.forEach(img => img.preview && URL.revokeObjectURL(img.preview));
       setCommentImages([]);
@@ -449,10 +449,10 @@ function PostCard({
     } finally {
       setCommentLoading(false);
     }
-  }
+  }, [commentInput, commentImages, user, post._id, post.slug, navigate]);
 
   /**
-   * Chèn emoji vào comment input
+   * Insert an emoji into the comment input at the cursor position
    */
   function insertEmoji(emoji) {
     const input = commentInputRef.current;
@@ -474,7 +474,7 @@ function PostCard({
   }
 
   /**
-   * Xử lý chọn file ảnh - tái sử dụng logic từ CommentImageUpload
+   * Handle selecting image files for a comment - reuses CommentImageUpload logic
    */
   function handleImageSelect(e) {
     const files = e.target.files;
@@ -483,7 +483,7 @@ function PostCard({
     const maxImages = 5;
     const newFiles = Array.from(files).slice(0, maxImages - commentImages.length);
     
-    // Validate files (logic từ CommentImageUpload)
+      // Validate files (same logic as CommentImageUpload)
     const validFiles = newFiles.filter(file => {
       if (!file.type.startsWith('image/')) {
         alert(`File ${file.name} không phải là hình ảnh`);
@@ -501,7 +501,7 @@ function PostCard({
 
     if (validFiles.length === 0) return;
 
-    // Create preview URLs (logic từ CommentImageUpload)
+      // Create preview URLs (same as CommentImageUpload)
     const newImages = validFiles.map(file => ({
       file,
       preview: URL.createObjectURL(file),
@@ -512,7 +512,7 @@ function PostCard({
   }
 
   /**
-   * Xóa ảnh khỏi preview - tái sử dụng logic từ CommentImageUpload
+   * Remove an image from the preview list - reuses logic from CommentImageUpload
    */
   function removeImage(id) {
     const imageToRemove = commentImages.find(img => img.id === id);
@@ -591,7 +591,7 @@ function PostCard({
   }, [showEmotePopup]);
 
   // State for interest status
-  const [interestStatus, setInterestStatus] = useState(null); // null = chưa biết, true = quan tâm, false = không quan tâm
+  const [interestStatus, setInterestStatus] = useState(null); // null = unknown, true = interested, false = not interested
   const [interestLoading, setInterestLoading] = useState(false);
 
   // Fetch interest status on mount
@@ -617,15 +617,15 @@ function PostCard({
   }, [post._id, user, post.author?._id]);
 
   /**
-   * Handle "Quan tâm" / "Không quan tâm" functionality
+   * Handle "Interested" / "Not interested" functionality - Memoized
    */
-  const handleInterested = async (interested) => {
+  const handleInterested = useCallback(async (interested) => {
     if (!user || !user._id) {
       showError('Vui lòng đăng nhập để sử dụng tính năng này');
       return;
     }
 
-    // Không cho phép đánh dấu bài viết của chính mình
+    // Do not allow marking your own post
     if (user._id === post.author?._id) {
       showError('Bạn không thể đánh dấu quan tâm/không quan tâm bài viết của chính mình');
       return;
@@ -649,7 +649,7 @@ function PostCard({
     } finally {
       setInterestLoading(false);
     }
-  };
+  }, [user, post._id, post.author?._id, showError, showSuccess]);
 
   // Cleanup preview URLs on unmount
   useEffect(() => {
@@ -662,7 +662,7 @@ function PostCard({
   }, []);
 
   /**
-   * Lấy role/title để hiển thị dưới username
+   * Get the author's role/title to display under the username
    */
   function getAuthorRole() {
     const author = post.author;
@@ -687,17 +687,17 @@ function PostCard({
   }
 
   /**
-   * Đếm số lượng từng loại emote
-   * @returns {Object} Object với key là emote và value là số lượng
+   * Count each type of emote
+   * @returns {Object} Object where keys are emotes and values are counts
    */
   function countEmotes() {
     const counts = {};
     if (!emotesState) return counts;
     
-    // Khởi tạo counts cho tất cả emotes
+    // Initialize counts for all known emotes
     for (const emo of emotes) counts[emo] = 0;
     
-    // Đếm emotes từ state
+    // Count emotes from state
     for (const e of emotesState) {
       if (counts[e.type] !== undefined) counts[e.type]++;
     }
@@ -728,7 +728,6 @@ function PostCard({
           <div className="min-w-0">
             <div className="flex items-center gap-1 font-semibold text-gray-900 dark:text-gray-100 leading-tight">
               <UserName user={post.author} maxLength={20} />
-              <VerifiedBadge user={post.author} />
             </div>
             {/* Hiển thị thời gian + icon privacy ngoài Home, role trong group */}
             {!post.groupId ? (

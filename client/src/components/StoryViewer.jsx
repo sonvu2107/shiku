@@ -6,7 +6,7 @@ import VerifiedBadge from './VerifiedBadge';
 
 /**
  * StoryViewer - Component xem stories fullscreen
- * Tự động chuyển story, progress bar, reactions
+ * Automatically switch stories, progress bars, and reactions
  */
 export default function StoryViewer({ 
   storiesGroup, // { _id: userId, stories: [], latestStory: {}, storyCount: N }
@@ -37,22 +37,22 @@ export default function StoryViewer({
   const safeClose = () => setTimeout(onClose, 0);
   const safeDelete = (storyId) => setTimeout(() => onDelete?.(storyId), 0);
   
-  // Story duration (giây) - Tăng thời gian hiển thị
+  // Story duration (seconds) - Increase display time for videos
   const getDuration = () => {
     if (currentStory?.mediaType === 'video' && videoRef.current) {
-      return videoRef.current.duration || 30; // 30s cho video
+      return videoRef.current.duration || 30; // 30s for videos
     }
-    return currentStory?.duration || 10; // 10s cho ảnh
+    return currentStory?.duration || 10; // 10s for images
   };
 
   /**
-   * Tự động chuyển story và progress bar
+   * Automatically switch stories and progress bar
    */
   useEffect(() => {
     if (!currentStory || isPaused) return;
 
     const duration = getDuration();
-    const interval = 50; // Update mỗi 50ms
+    const interval = 50; // Update every 50ms
     const increment = (interval / 1000) / duration * 100;
 
     progressInterval.current = setInterval(() => {
@@ -73,7 +73,7 @@ export default function StoryViewer({
   }, [currentIndex, isPaused, currentStory]);
 
   /**
-   * Control video playback khi pause/play
+   * Control video playback when paused/played
    */
   useEffect(() => {
     if (videoRef.current && currentStory?.mediaType === 'video') {
@@ -231,7 +231,7 @@ export default function StoryViewer({
     <div 
       className="story-viewer fixed inset-0 bg-black z-[9999] flex items-center justify-center"
       onClick={(e) => {
-        // Click outside để đóng (chỉ trên desktop)
+        // Click outside to close (only on desktop)
         if (e.target === e.currentTarget && window.innerWidth >= 768) {
           safeClose();
         }

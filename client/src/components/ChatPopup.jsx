@@ -25,7 +25,7 @@ if (typeof document !== 'undefined') {
 }
 
 /**
- * Danh sách emoji để chọn trong chat
+ * List of emojis to choose from in chat popup
  */
 const EMOTES = [
   '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
@@ -47,21 +47,21 @@ const EMOTES = [
 ];
 
 /**
- * ChatPopup - Popup chat window với khả năng gọi video/voice
- * Hiển thị cuộc trò chuyện trong popup với các tính năng gọi và gửi tin nhắn
+ * ChatPopup - Popup chat window with video/voice call capability
+ * Displays the conversation in a popup with call and messaging features
  * @param {Object} props - Component props
- * @param {Object} props.conversation - Dữ liệu cuộc trò chuyện
- * @param {Function} props.onClose - Callback đóng popup
- * @param {Function} props.setCallOpen - Callback mở modal gọi
- * @param {Function} props.setIsVideoCall - Callback set loại cuộc gọi
- * @param {Function} props.onShowInfo - Callback hiển thị thông báo
- * @returns {JSX.Element} Component chat popup
+ * @param {Object} props.conversation - Conversation data
+ * @param {Function} props.onClose - Callback to close the popup
+ * @param {Function} props.setCallOpen - Callback to open the call modal
+ * @param {Function} props.setIsVideoCall - Callback to set the call type
+ * @param {Function} props.onShowInfo - Callback to show information
+ * @returns {JSX.Element} Chat popup component
  */
 export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVideoCall, index = 0, onShowInfo }) {
   const isChatbot = conversation?.conversationType === "chatbot";
   // ==================== EFFECTS ====================
-  
-  // Join conversation khi có conversationId
+
+  // Join conversation when conversationId is available
   useEffect(() => {
     const joinConversation = async () => {
       if (conversation?._id && !isChatbot) {
@@ -74,7 +74,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   // Listen for real-time messages
   useEffect(() => {
     if (!conversation?._id || !socketService.socket || isChatbot) return;
-    
+
     const handleNewMessage = (message) => {
       // Check if message belongs to current conversation
       if (message.conversationId === conversation._id || message.conversation === conversation._id) {
@@ -95,7 +95,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       setMessages(prev => prev.map(m => m._id === data.messageId ? { ...m, reactions: data.reactions } : m));
     };
     socketService.socket.on('message-reactions-updated', handleReactionsUpdated);
-    
+
     return () => {
       socketService.socket.off('new-message', handleNewMessage);
       socketService.socket.off('message-reactions-updated', handleReactionsUpdated);
@@ -103,38 +103,38 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   }, [conversation?._id]);
 
   // ==================== STATE MANAGEMENT ====================
-  
-  // UI states
-  const [minimized, setMinimized] = useState(false); // Trạng thái thu nhỏ popup
-  const [uploading, setUploading] = useState(false); // Trạng thái upload ảnh
-  const [imageViewer, setImageViewer] = useState({ isOpen: false, imageUrl: null, alt: "" }); // Image viewer state
-  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true); // Kiểm soát scroll
-  
-  // Message states
-  const [messages, setMessages] = useState([]); // Danh sách tin nhắn
-  const [input, setInput] = useState(""); // Nội dung tin nhắn đang nhập
-  const [showEmotePicker, setShowEmotePicker] = useState(false); // Hiện emoji picker
-  
-  // Edit/Delete states
-  const [editingMessageId, setEditingMessageId] = useState(null); // ID của tin nhắn đang edit
-  const [editContent, setEditContent] = useState(""); // Nội dung edit
-  const [showOptionsMenu, setShowOptionsMenu] = useState(null); // ID của tin nhắn đang hiển thị menu
-  const [hoveredMessageId, setHoveredMessageId] = useState(null); // ID của tin nhắn đang hover
-  
-  // Refs
-  const messagesEndRef = useRef(null); // Ref để scroll xuống cuối tin nhắn
-  
-  // User info
-  const me = getUserInfo()?.id || getUserInfo()?._id || conversation.me; // ID của user hiện tại
 
-  // tải tin nhắn
+  // UI states
+  const [minimized, setMinimized] = useState(false); // Popup minimized state
+  const [uploading, setUploading] = useState(false); // Image upload state
+  const [imageViewer, setImageViewer] = useState({ isOpen: false, imageUrl: null, alt: "" }); // Image viewer state
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true); // Scroll control
+
+  // Message states
+  const [messages, setMessages] = useState([]); // List of messages
+  const [input, setInput] = useState(""); // Message input content
+  const [showEmotePicker, setShowEmotePicker] = useState(false); // Show emoji picker
+
+  // Edit/Delete states
+  const [editingMessageId, setEditingMessageId] = useState(null); // ID of the message being edited
+  const [editContent, setEditContent] = useState(""); // Edit content
+  const [showOptionsMenu, setShowOptionsMenu] = useState(null); // ID of the message showing options menu
+  const [hoveredMessageId, setHoveredMessageId] = useState(null); // ID of the message being hovered
+
+  // Refs
+  const messagesEndRef = useRef(null); // Ref to scroll to the bottom of messages
+
+  // User info
+  const me = getUserInfo()?.id || getUserInfo()?._id || conversation.me; // ID of the current user
+
+  // Load messages when conversation changes
   useEffect(() => {
     if (isChatbot) return;
     async function fetchMessages() {
       try {
         const res = await api(`/api/messages/conversations/${conversation._id}/messages?limit=50`);
         setMessages(res.messages || []);
-        setShouldScrollToBottom(true); // Scroll to bottom khi load messages lần đầu
+        setShouldScrollToBottom(true); // Scroll to bottom when loading messages for the first time
       } catch {
         setMessages([]);
       }
@@ -158,17 +158,17 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
   const handleSend = async () => {
     if (isChatbot || !input.trim()) return;
-    
+
     const messageContent = input;
     setInput(""); // Clear input immediately for better UX
     setShouldScrollToBottom(true); // Scroll to bottom khi gửi tin nhắn
-    
+
     try {
       const response = await api(`/api/messages/conversations/${conversation._id}/messages`, {
         method: "POST",
         body: { content: messageContent },
       });
-      
+
       // Add the sent message to the list immediately (optimistic update)
       if (response.message) {
         setMessages(prev => [...prev, response.message]);
@@ -204,20 +204,20 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
   const handleSaveEdit = async (messageId) => {
     if (isChatbot || !editContent.trim()) return;
-    
+
     try {
       await api(`/api/messages/conversations/${conversation._id}/messages/${messageId}`, {
         method: 'PUT',
         body: { content: editContent }
       });
-      
+
       // Update message locally
-      setMessages(prev => prev.map(m => 
-        m._id === messageId 
+      setMessages(prev => prev.map(m =>
+        m._id === messageId
           ? { ...m, content: editContent, isEdited: true }
           : m
       ));
-      
+
       setEditingMessageId(null);
       setEditContent("");
     } catch (error) {
@@ -233,19 +233,19 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   const handleDeleteMessage = async (messageId) => {
     if (isChatbot) return;
     if (!confirm('Bạn có chắc muốn thu hồi tin nhắn này?')) return;
-    
+
     try {
       await api(`/api/messages/conversations/${conversation._id}/messages/${messageId}`, {
         method: 'DELETE'
       });
-      
+
       // Update message locally
-      setMessages(prev => prev.map(m => 
-        m._id === messageId 
+      setMessages(prev => prev.map(m =>
+        m._id === messageId
           ? { ...m, isDeleted: true, content: 'Tin nhắn đã được thu hồi' }
           : m
       ));
-      
+
       setShowOptionsMenu(null);
     } catch (error) {
       alert('Không thể thu hồi tin nhắn');
@@ -261,7 +261,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
         setHoveredMessageId(null);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showOptionsMenu]);
@@ -281,19 +281,18 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
   const getOtherUserOnlineStatus = () => {
     if (isGroup || isChatbot) return isChatbot ? true : false;
-    
+
     const otherParticipant = conversation.otherParticipants?.[0];
     const user = otherParticipant?.user || otherParticipant;
     return user?.isOnline || false;
   };
 
   return (
-    <div 
-      className={`bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col chat-popup-mobile transition-all duration-300 ${
-        minimized 
-          ? `w-12 h-12 rounded-full hover:scale-110 hover:shadow-3xl cursor-pointer minimized relative group` 
+    <div
+      className={`bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col chat-popup-mobile transition-all duration-300 ${minimized
+          ? `w-12 h-12 rounded-full hover:scale-110 hover:shadow-3xl cursor-pointer minimized relative group`
           : 'w-72 sm:w-80 rounded-xl h-[450px]'
-      }`} 
+        }`}
       onClick={minimized ? () => setMinimized(false) : undefined}
     >
       {/* Close button cho minimized state - chỉ hiển thị khi hover */}
@@ -309,22 +308,19 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
           <X size={12} />
         </button>
       )}
-      
+
       {/* Header */}
-      <div className={`flex items-center gap-1 sm:gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 ${
-        minimized ? 'border-b-0 rounded-full h-full w-full justify-center p-0' : 'px-2 sm:px-4 py-2 rounded-t-xl'
-      }`}>
+      <div className={`flex items-center gap-1 sm:gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 ${minimized ? 'border-b-0 rounded-full h-full w-full justify-center p-0' : 'px-2 sm:px-4 py-2 rounded-t-xl'
+        }`}>
         <div className="relative flex-shrink-0">
           {isChatbot ? (
-            <div className={`rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center ${
-              minimized ? 'w-12 h-12' : 'w-7 h-7 sm:w-9 sm:h-9'
-            }`}>
+            <div className={`rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center ${minimized ? 'w-12 h-12' : 'w-7 h-7 sm:w-9 sm:h-9'
+              }`}>
               <Bot size={minimized ? 22 : 16} />
             </div>
           ) : (
-            <img src={avatar} alt={name} className={`rounded-full object-cover ${
-              minimized ? 'w-12 h-12' : 'w-7 h-7 sm:w-9 sm:h-9'
-            }`} />
+            <img src={avatar} alt={name} className={`rounded-full object-cover ${minimized ? 'w-12 h-12' : 'w-7 h-7 sm:w-9 sm:h-9'
+              }`} />
           )}
           {/* Online status indicator for private conversations */}
           {!isGroup && !isChatbot && getOtherUserOnlineStatus() && !minimized && (
@@ -384,8 +380,8 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
             {!isGroup && !isChatbot && getOtherUserOnlineStatus() && (
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
             )}
-            
-            {/* Hiển thị số tin nhắn chưa đọc nếu có */}
+
+            {/* Show number of unread messages if any */}
             {!isChatbot && conversation.unreadCount > 0 && (
               <div className="absolute -top-1 left-8 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
@@ -395,7 +391,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
         )}
       </div>
 
-      {/* Nội dung chat */}
+      {/* Chat content */}
       {!minimized && (
         <>
           <div className={`flex-1 ${isChatbot ? 'overflow-hidden px-0 py-0 flex flex-col' : 'overflow-y-auto px-4 py-2'} bg-white dark:bg-gray-900`}>
@@ -422,18 +418,18 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                     </div>
                   );
                 }
-                // Chuẩn hóa sender
+                // Normalize sender
                 const senderId = typeof msg.sender === 'string' ? msg.sender : (msg.sender?._id || msg.sender?.id);
-                
-                // Tìm participant để lấy nickname
-                const senderParticipant = conversation.participants?.find(p => 
+
+                // Find participant to get nickname
+                const senderParticipant = conversation.participants?.find(p =>
                   (p.user?._id || p.user?.id) === senderId
                 );
-                
-                const senderName = typeof msg.sender === 'object' 
+
+                const senderName = typeof msg.sender === 'object'
                   ? (senderParticipant?.nickname || msg.sender?.name || "Không tên")
                   : (senderParticipant?.nickname || conversation.otherParticipants?.[0]?.user?.name || "Không tên");
-                
+
                 const senderAvatar = getUserAvatarUrl(
                   typeof msg.sender === 'object' ? msg.sender : conversation.otherParticipants?.[0]?.user,
                   AVATAR_SIZES.SMALL
@@ -441,8 +437,8 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
                 if (senderId === me) {
                   return (
-                    <div 
-                      key={msg._id || idx} 
+                    <div
+                      key={msg._id || idx}
                       className="mb-2 flex justify-end"
                       onMouseEnter={() => setHoveredMessageId(msg._id)}
                       onMouseLeave={() => {
@@ -464,10 +460,10 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                               >
                                 <MoreHorizontal size={14} className="text-gray-600 dark:text-gray-300" />
                               </button>
-                              
+
                               {/* Dropdown menu */}
                               {showOptionsMenu === msg._id && (
-                                <div 
+                                <div
                                   className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px] z-50 message-options-menu"
                                   onMouseEnter={() => setHoveredMessageId(msg._id)}
                                 >
@@ -492,7 +488,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             </div>
                           </div>
                         )}
-                        
+
                         {editingMessageId === msg._id ? (
                           // Edit mode
                           <div className="bg-white dark:bg-gray-800 rounded-lg p-2 min-w-[200px] mb-1">
@@ -539,10 +535,10 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             {msg.content}
                           </div>
                         ) : msg.messageType === "image" ? (
-                          <img 
-                            src={msg.imageUrl} 
-                            alt="Ảnh" 
-                            className="max-w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity" 
+                          <img
+                            src={msg.imageUrl}
+                            alt="Ảnh"
+                            className="max-w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() => setImageViewer({ isOpen: true, imageUrl: msg.imageUrl, alt: "Ảnh" })}
                           />
                         ) : msg.messageType === "emote" ? (
@@ -554,14 +550,14 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             {msg.content}
                           </div>
                         )}
-                        
+
                         {/* Edited indicator */}
                         {msg.isEdited && !msg.isDeleted && editingMessageId !== msg._id && (
                           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic text-right">
                             Đã chỉnh sửa
                           </p>
                         )}
-                        
+
                         {/* Reactions row */}
                         {!msg.isDeleted && editingMessageId !== msg._id && (
                           <div className="mt-1 flex items-center gap-1">
@@ -580,10 +576,10 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                                   <button key={type} onClick={async () => {
                                     try {
                                       await api(`/api/messages/conversations/${conversation._id}/messages/${msg._id}/react`, {
-        method: "POST",
-        body: { type }
-      });
-                                    } catch (e) {}
+                                        method: "POST",
+                                        body: { type }
+                                      });
+                                    } catch (e) { }
                                   }} className={`p-1 ${color}`} title={type}>
                                     <Icon size={16} />
                                   </button>
@@ -592,7 +588,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             </div>
                             {!!msg.reactions?.length && (
                               <div className="flex flex-wrap gap-1">
-                                {['like','love','laugh','angry','sad'].map((type) => {
+                                {['like', 'love', 'laugh', 'angry', 'sad'].map((type) => {
                                   const map = { like: ThumbsUp, love: Heart, laugh: Laugh, angry: Angry, sad: Frown };
                                   const color = { like: 'text-blue-500', love: 'text-red-500', laugh: 'text-yellow-500', angry: 'text-orange-500', sad: 'text-gray-500' };
                                   const count = (msg.reactions || []).filter(r => r.type === type).length;
@@ -607,8 +603,8 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                         <div className="text-xs text-gray-400 mt-1">
                           {msg.createdAt
                             ? new Date(msg.createdAt).toLocaleTimeString() +
-                              " " +
-                              new Date(msg.createdAt).toLocaleDateString()
+                            " " +
+                            new Date(msg.createdAt).toLocaleDateString()
                             : ""}
                         </div>
                       </div>
@@ -628,10 +624,10 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           {senderName}
                         </div>
                         {msg.messageType === "image" ? (
-                          <img 
-                            src={msg.imageUrl} 
-                            alt="Ảnh" 
-                            className="max-w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity" 
+                          <img
+                            src={msg.imageUrl}
+                            alt="Ảnh"
+                            className="max-w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() => setImageViewer({ isOpen: true, imageUrl: msg.imageUrl, alt: "Ảnh" })}
                           />
                         ) : msg.messageType === "emote" ? (
@@ -660,10 +656,10 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                                 <button key={type} onClick={async () => {
                                   try {
                                     await api(`/api/messages/conversations/${conversation._id}/messages/${msg._id}/react`, {
-      method: "POST",
-      body: { type }
-    });
-                                  } catch (e) {}
+                                      method: "POST",
+                                      body: { type }
+                                    });
+                                  } catch (e) { }
                                 }} className={`p-1 ${color}`} title={type}>
                                   <Icon size={16} />
                                 </button>
@@ -672,7 +668,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           </div>
                           {!!msg.reactions?.length && (
                             <div className="flex flex-wrap gap-1">
-                              {['like','love','laugh','angry','sad'].map((type) => {
+                              {['like', 'love', 'laugh', 'angry', 'sad'].map((type) => {
                                 const map = { like: ThumbsUp, love: Heart, laugh: Laugh, angry: Angry, sad: Frown };
                                 const color = { like: 'text-blue-500', love: 'text-red-500', laugh: 'text-yellow-500', angry: 'text-orange-500', sad: 'text-gray-500' };
                                 const count = (msg.reactions || []).filter(r => r.type === type).length;
@@ -686,8 +682,8 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                         <div className="text-xs text-gray-400 mt-1">
                           {msg.createdAt
                             ? new Date(msg.createdAt).toLocaleTimeString() +
-                              " " +
-                              new Date(msg.createdAt).toLocaleDateString()
+                            " " +
+                            new Date(msg.createdAt).toLocaleDateString()
                             : ""}
                         </div>
                       </div>
@@ -733,7 +729,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           method: "POST",
                           body: { image: reader.result },
                         });
-                        
+
                         // Add the sent image message to the list immediately (optimistic update)
                         if (response.message) {
                           setMessages(prev => [...prev, response.message]);
@@ -747,7 +743,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                   }}
                 />
               </label>
-              
+
               {/* Emote picker */}
               {showEmotePicker && (
                 <div className="absolute bottom-full left-2 right-2 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-4 max-h-48 overflow-y-auto z-10">
@@ -764,20 +760,19 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                   </div>
                 </div>
               )}
-              
+
               <button
                 type="button"
                 onClick={() => setShowEmotePicker(!showEmotePicker)}
-                className={`p-2 rounded-full transition-colors touch-target ${
-                  showEmotePicker 
-                    ? 'text-blue-600 bg-blue-50' 
+                className={`p-2 rounded-full transition-colors touch-target ${showEmotePicker
+                    ? 'text-blue-600 bg-blue-50'
                     : 'text-blue-500 hover:bg-blue-50 active:bg-blue-100'
-                }`}
+                  }`}
                 title="Chọn emote"
               >
                 <Smile size={20} />
               </button>
-              
+
               <input
                 className="flex-1 px-3 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring"
                 value={input}
@@ -811,7 +806,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   );
 }
 
-// Wrapper để quản lý CallModal + CallIncomingModal
+// Wrapper to manage CallModal + CallIncomingModal
 export function ChatPopupWithCallModal(props) {
   const isChatbot = props.conversation?.conversationType === "chatbot";
   if (isChatbot) {
@@ -828,7 +823,7 @@ export function ChatPopupWithCallModal(props) {
       const myId = getUserInfo()?.id;
       const mySocketId = socketService.socket?.id;
 
-      // Bỏ qua nếu chính mình là caller (kiểm tra cả user ID và socket ID)
+      // Ignore if the caller is myself (check both user ID and socket ID)
       if (caller === myId || callerSocketId === mySocketId) {
         return;
       }
@@ -838,11 +833,11 @@ export function ChatPopupWithCallModal(props) {
         return;
       }
 
-      // Chỉ hiển thị incoming call nếu là conversation của popup này
+      // Only show incoming call if the conversation belongs to this popup
       if (conversationId === props.conversation._id) {
         const incomingCallData = {
           offer,
-          conversationId, // Thêm conversationId để tracking
+          conversationId, // Add conversationId for tracking
           caller: callerInfo || { name: "Người dùng" },
           isVideo: isVideo || false
         };
@@ -850,7 +845,7 @@ export function ChatPopupWithCallModal(props) {
       }
     };
 
-    // Sử dụng global call manager thay vì socket trực tiếp
+    // Use global call manager instead of direct socket
     callManager.addListener(handleOffer);
 
     return () => {
@@ -870,7 +865,7 @@ export function ChatPopupWithCallModal(props) {
   const handleRejectCall = async () => {
     if (!incomingCall) return;
 
-    // Gửi signal từ chối cuộc gọi về conversation tương ứng
+    // Send call rejection signal to corresponding conversation
     const conversationId = incomingCall.conversationId || props.conversation._id;
     if (conversationId) {
       await socketService.emitCallEnd(conversationId);

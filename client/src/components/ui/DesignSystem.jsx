@@ -1,8 +1,8 @@
 import { SpotlightCard } from "./SpotlightCard";
 
 /**
- * PageLayout - Layout wrapper cho các trang với background và padding chuẩn
- * Tự động thêm padding-bottom để tránh FloatingDock che nội dung
+ * PageLayout - Layout wrapper for pages with standard background and padding
+ * Automatically adds padding-bottom to avoid FloatingDock covering content
  */
 export function PageLayout({ children, className = "" }) {
   return (
@@ -15,7 +15,7 @@ export function PageLayout({ children, className = "" }) {
 }
 
 /**
- * PageHeader - Header section cho trang với title, subtitle và action button
+ * PageHeader - Header section for pages with title, subtitle, and action button
  */
 export function PageHeader({ title, subtitle, action, className = "" }) {
   return (

@@ -1,3 +1,15 @@
+/**
+ * Messages Routes
+ * 
+ * Routes xử lý các thao tác liên quan đến tin nhắn (messages):
+ * - Quản lý conversations (1-1, group, chatbot)
+ * - Gửi, nhận, đọc tin nhắn
+ * - Upload file/ảnh trong tin nhắn
+ * - Unread count tracking
+ * 
+ * @module messages
+ */
+
 import express from "express";
 import mongoose from "mongoose";
 import { authRequired } from "../middleware/auth.js";
@@ -1145,7 +1157,7 @@ router.get("/users/search", authRequired, async (req, res) => {
         }
       ]
     })
-    .select('name email avatarUrl')
+    .select('name email avatarUrl cultivationCache displayBadgeType')
     .limit(20);
 
     res.json(users);

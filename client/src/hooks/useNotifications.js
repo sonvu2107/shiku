@@ -2,43 +2,43 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api.js";
 
 /**
- * Hook để lấy danh sách notifications
- * Sử dụng React Query để cache và tự động refetch
+ * Hook to fetch the notifications list
+ * Uses React Query for caching and automatic refetching
  */
 export function useNotifications() {
   return useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
       const response = await api("/api/notifications");
-      // API trả về { notifications, total, unreadCount, page, pages }
+      // API returns { notifications, total, unreadCount, page, pages }
       return response;
     },
-    staleTime: 2 * 60 * 1000, // 2 phút
-    gcTime: 5 * 60 * 1000, // 5 phút
-    refetchInterval: 3 * 60 * 1000, // Auto refetch mỗi 3 phút
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 3 * 60 * 1000, // Auto refetch every 3 minutes
   });
 }
 
 /**
- * Hook để đếm số notifications chưa đọc
- * Refetch thường xuyên hơn để cập nhật badge
+ * Hook to fetch unread notifications count
+ * Refetch more frequently to keep the UI badge updated
  */
 export function useUnreadNotificationsCount() {
   return useQuery({
     queryKey: ["unreadNotificationsCount"],
     queryFn: async () => {
       const response = await api("/api/notifications/unread-count");
-      // API trả về { unreadCount }
+      // API returns { unreadCount }
       return response;
     },
-    staleTime: 1 * 60 * 1000, // 1 phút
-    gcTime: 3 * 60 * 1000, // 3 phút
-    refetchInterval: 2 * 60 * 1000, // Auto refetch mỗi 2 phút
+    staleTime: 1 * 60 * 1000, // 1 minute
+    gcTime: 3 * 60 * 1000, // 3 minutes
+    refetchInterval: 2 * 60 * 1000, // Auto refetch every 2 minutes
   });
 }
 
 /**
- * Hook để mark notification as read
+ * Hook to mark a notification as read
  */
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
@@ -58,7 +58,7 @@ export function useMarkNotificationRead() {
 }
 
 /**
- * Hook để mark all notifications as read
+ * Hook to mark all notifications as read
  */
 export function useMarkAllNotificationsRead() {
   const queryClient = useQueryClient();
@@ -78,7 +78,7 @@ export function useMarkAllNotificationsRead() {
 }
 
 /**
- * Hook để delete notification
+ * Hook to delete a notification
  */
 export function useDeleteNotification() {
   const queryClient = useQueryClient();

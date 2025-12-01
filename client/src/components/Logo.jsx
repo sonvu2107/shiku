@@ -1,7 +1,7 @@
 /**
- * Logo - Component hiển thị logo của ứng dụng
- * @param {string} size - Kích thước logo ('small', 'medium', 'large')
- * @param {boolean} invert - Invert màu logo (dùng cho dark background)
+ * Logo - Component show logo image
+ * @param {string} size - Size logo ('small', 'medium', 'large')
+ * @param {boolean} invert - Invert logo's color (used for dark background)
  */
 export default function Logo({ size = "small", invert = false }) {
   // Mapping sizes cho logo image

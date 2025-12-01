@@ -1,9 +1,25 @@
+/**
+ * Error Handler Middleware
+ * 
+ * Xử lý các lỗi trong ứng dụng và trả về response phù hợp.
+ * Không leak thông tin nhạy cảm trong production.
+ * 
+ * @module errorHandler
+ */
+
 import { getClientAgent } from "../utils/clientAgent.js";
 
+/**
+ * 404 Not Found handler
+ */
 export function notFound(req, res) {
   res.status(404).json({ error: "Không tìm thấy trang yêu cầu" });
 }
 
+/**
+ * Global error handler
+ * Xử lý các loại lỗi: MongoDB, JWT, Rate Limiting, v.v.
+ */
 export function errorHandler(err, req, res, next) {
   console.error("Error:", {
     message: err.message,

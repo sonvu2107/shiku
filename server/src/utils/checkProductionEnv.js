@@ -1,6 +1,10 @@
 /**
  * Production Environment Checker
- * Kiểm tra các environment variables cần thiết cho production
+ * 
+ * Kiểm tra các environment variables cần thiết cho production.
+ * Tự động chạy khi NODE_ENV=production.
+ * 
+ * @module checkProductionEnv
  */
 
 export function checkProductionEnvironment() {
@@ -50,7 +54,7 @@ export function checkProductionEnvironment() {
 
   // Check cookie domain for production
   if (isProduction && !process.env.COOKIE_DOMAIN) {
-    warnings.push("COOKIE_DOMAIN not set - using default .shiku.click");
+    warnings.push("COOKIE_DOMAIN not set - cookies may not work across subdomains");
   }
 
   // Check CORS origins
@@ -84,8 +88,8 @@ export function checkProductionEnvironment() {
     warnings,
     environment: {
       nodeEnv: process.env.NODE_ENV,
-      cookieDomain: process.env.COOKIE_DOMAIN || ".shiku.click",
-      corsOrigin: process.env.CORS_ORIGIN || "default",
+      hasCookieDomain: !!process.env.COOKIE_DOMAIN,
+      corsOrigin: process.env.CORS_ORIGIN ? "configured" : "default",
       hasJwtSecret: !!process.env.JWT_SECRET,
       hasRefreshSecret: !!process.env.REFRESH_TOKEN_SECRET,
       secretsMatch: process.env.JWT_SECRET === process.env.REFRESH_TOKEN_SECRET

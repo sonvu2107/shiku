@@ -1,3 +1,15 @@
+/**
+ * Users Routes
+ * 
+ * Routes xử lý các thao tác liên quan đến người dùng (users):
+ * - Lấy thông tin user, profile
+ * - Tìm kiếm users
+ * - User suggestions cho mentions
+ * - Batch get users
+ * 
+ * @module users
+ */
+
 import express from 'express';
 import User from '../models/User.js';
 import { authRequired } from '../middleware/auth.js';
@@ -54,7 +66,7 @@ router.get('/', authRequired, async (req, res) => {
     }
 
     const users = await User.find(query)
-      .select('_id name email avatarUrl bio role isOnline lastSeen isBanned createdAt')
+      .select('_id name email avatarUrl bio role isOnline lastSeen isBanned createdAt displayBadgeType cultivationCache')
       .populate('role') // Populate the role field
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -109,7 +121,7 @@ router.get('/search', authRequired, async (req, res) => {
           { email: { $regex: escapedQ, $options: 'i' } }
         ]
       })
-        .select('_id name avatarUrl bio isOnline lastSeen')
+        .select('_id name avatarUrl bio isOnline lastSeen email role displayBadgeType cultivationCache')
         .limit(10);
     }, 2 * 60 * 1000); // 2 minutes cache
     

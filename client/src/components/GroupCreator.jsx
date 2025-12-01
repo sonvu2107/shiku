@@ -16,12 +16,12 @@ import {
 import { api } from '../api';
 
 /**
- * GroupCreator Component - Modal/Form để tạo nhóm mới
- * Bao gồm form nhập thông tin, upload ảnh, cài đặt quyền hạn
+ * GroupCreator Component - Modal/Form to create a new group
+ * Includes form input, image upload, and permission settings
  * 
- * @param {boolean} isOpen - Modal có mở không
- * @param {Function} onClose - Callback khi đóng modal
- * @param {Function} onSuccess - Callback khi tạo thành công
+ * @param {boolean} isOpen - Modal open state
+ * @param {Function} onClose - Callback when modal is closed
+ * @param {Function} onSuccess - Callback when creation is successful
  */
 const GroupCreator = ({ isOpen, onClose, onSuccess }) => {
   const navigate = useNavigate();

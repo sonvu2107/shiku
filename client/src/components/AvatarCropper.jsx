@@ -2,11 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, ZoomIn, ZoomOut, Move, RotateCw, Check, Loader2 } from 'lucide-react';
 
 /**
- * AvatarCropper - Component để crop và điều chỉnh vị trí avatar
- * @param {File} imageFile - File ảnh được chọn
- * @param {Function} onCropComplete - Callback khi crop hoàn thành, nhận blob của ảnh đã crop
- * @param {Function} onCancel - Callback khi hủy
- * @returns {JSX.Element} Component AvatarCropper
+ * AvatarCropper - Component to crop and adjust avatar position
+ * @param {File} imageFile - Selected image file
+ * @param {Function} onCropComplete - Callback when cropping is complete, receives the cropped image blob
+ * @param {Function} onCancel - Callback when canceling
+ * @returns {JSX.Element} AvatarCropper component
  */
 export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
   const [imageSrc, setImageSrc] = useState(null);
@@ -16,7 +16,7 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const containerRef = useRef(null);
@@ -35,20 +35,20 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
         setContainerSize(400);
       }
     };
-    
+
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
-  // Load image khi file thay đổi
+  // Load image when file changes
   useEffect(() => {
     if (imageFile) {
       const reader = new FileReader();
       reader.onload = (e) => {
         setImageSrc(e.target.result);
-        // Reset về trạng thái mặc định
-        // Scale = 1 nghĩa là ảnh hiển thị với kích thước container (đã được objectFit: cover)
+        // Reset to default state
+        // Scale = 1 means the image is displayed at the container size (with objectFit: cover)
         setScale(1);
         setPosition({ x: 0, y: 0 });
         setRotation(0);
@@ -65,7 +65,7 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
     return { x: e.clientX, y: e.clientY };
   };
 
-  // Handle mouse/touch drag để di chuyển ảnh
+  // Handle mouse/touch drag to move the image
   const handleStart = (e) => {
     e.preventDefault();
     setIsDragging(true);
@@ -79,12 +79,12 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
   const handleMove = (e) => {
     if (!isDragging) return;
     e.preventDefault();
-    
+
     const coords = getEventCoordinates(e);
     const newX = coords.x - dragStart.x;
     const newY = coords.y - dragStart.y;
-    
-    // Giới hạn di chuyển trong một phạm vi hợp lý
+
+    // Limit movement within a reasonable range
     const maxOffset = containerSize * 2;
     setPosition({
       x: Math.max(-maxOffset, Math.min(maxOffset, newX)),
@@ -106,25 +106,25 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
     setRotation(prev => (prev + 90) % 360);
   };
 
-  // Crop ảnh và tạo blob
+  // Crop image and create blob
   const handleCrop = async () => {
     if (!imageSrc || !canvasRef.current || !containerRef.current) return;
 
     setIsProcessing(true);
-    
+
     try {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       const img = new Image();
-      
+
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
         img.src = imageSrc;
       });
 
-      // Set canvas size với high DPR để đảm bảo chất lượng
-      const dpr = Math.min(window.devicePixelRatio || 1, 2); // Limit DPR để tránh canvas quá lớn
+      // Set canvas size with high DPR to ensure quality
+      const dpr = Math.min(window.devicePixelRatio || 1, 2); // Limit DPR to avoid too large canvas
       const outputSize = cropSize;
       canvas.width = outputSize * dpr;
       canvas.height = outputSize * dpr;
@@ -142,201 +142,201 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, outputSize, outputSize);
 
-      // Tính toán chính xác để khớp với preview
-      // Preview: ảnh hiển thị trong container containerSize*2 với objectFit: cover
-      // Crop area: containerSize x containerSize ở giữa preview container
-      // objectFit: cover sẽ scale ảnh để fill preview container, giữ aspect ratio
-      // Phần được hiển thị trong crop area là phần center của ảnh đã được scale
-      
+      // Calculate exact match with preview
+      // Preview: image displayed in container containerSize*2 with objectFit: cover
+      // Crop area: containerSize x containerSize in the center of preview container
+      // objectFit: cover will scale the image to fill the preview container, maintaining aspect ratio
+      // The part displayed in the crop area is the center of the scaled image
+
       const previewContainerSize = containerSize * 2;
-      const cropAreaSize = containerSize; // Kích thước vùng crop
+      const cropAreaSize = containerSize; // Crop area size
       const imgAspect = img.width / img.height;
       const containerAspect = 1; // Square container
-      
-      // Tính toán scale factor để ảnh fill preview container với objectFit: cover
-      // objectFit: cover sẽ scale ảnh để fill container, crop phần thừa
+
+      // Calculate scale factor to cover preview container with objectFit: cover
+      // objectFit: cover will scale image to fill container, cropping excess
       let coverScale;
       if (imgAspect > containerAspect) {
-        // Ảnh rộng hơn: scale để fit height của preview container
+        // Image is wider: scale to fit height of preview container
         coverScale = previewContainerSize / img.height;
       } else {
-        // Ảnh cao hơn hoặc bằng: scale để fit width của preview container
+        // Image is taller or equal: scale to fit width of preview container
         coverScale = previewContainerSize / img.width;
       }
-      
-      // Kích thước ảnh sau khi scale để cover preview container
+
+      // Scaled image size to cover preview container
       const scaledImgWidth = img.width * coverScale;
       const scaledImgHeight = img.height * coverScale;
-      
-      // Tính toán chính xác phần ảnh được hiển thị trong crop area
+
+      // Calculate exact part of the image displayed in the crop area
       // 
       // Preview container: previewContainerSize x previewContainerSize (containerSize * 2)
-      // Crop area: cropAreaSize x cropAreaSize (containerSize) ở center
+      // Crop area: cropAreaSize x cropAreaSize (containerSize) in the center
       // 
-      // Ảnh được hiển thị với objectFit: cover trong preview container
-      // Sau đó được scale với user scale (scale)
+      // Image is displayed with objectFit: cover in preview container
+      // Then scaled with user scale (scale)
       // 
-      // Để tính phần ảnh gốc tương ứng với crop area:
-      // 1. Tính phần ảnh gốc được hiển thị trong preview container (với coverScale)
-      // 2. Tính phần ảnh trong crop area (center của preview container)
-      // 3. Điều chỉnh theo user scale
-      
-      // Bước 1: Phần ảnh gốc được hiển thị trong preview container (khi scale = 1)
-      // Với objectFit: cover, ảnh được scale để fill container, giữ aspect ratio
-      // Phần được hiển thị là center của ảnh
+      // To calculate the original image part corresponding to the crop area:
+      // 1. Calculate the original image part displayed in the preview container (with coverScale)
+      // 2. Calculate the image part in the crop area (center of preview container)
+      // 3. Adjust according to user scale
+
+      // Step 1: Original image part displayed in the preview container (when scale = 1)
+      // With objectFit: cover, image is scaled to fill container, maintaining aspect ratio
+      // The displayed part is the center of the image
       let sourcePreviewWidth, sourcePreviewHeight, sourcePreviewX, sourcePreviewY;
-      
+
       if (imgAspect > containerAspect) {
-        // Ảnh rộng hơn: scale để fit height
-        // Chiều cao được hiển thị = toàn bộ img.height
+        // Image is wider: scale to fit height
+        // Displayed height = full img.height
         sourcePreviewHeight = img.height;
-        // Chiều rộng được hiển thị = previewContainerSize (container là hình vuông)
+        // Displayed width = previewContainerSize (container is square)
         sourcePreviewWidth = previewContainerSize / coverScale;
-        // Center crop theo width
+        // Center crop by width
         sourcePreviewX = (img.width - sourcePreviewWidth) / 2;
         sourcePreviewY = 0;
       } else {
-        // Ảnh cao hơn hoặc bằng: scale để fit width
-        // Chiều rộng được hiển thị = toàn bộ img.width
+        // Image is taller or equal: scale to fit width
+        // Displayed width = full img.width
         sourcePreviewWidth = img.width;
-        // Chiều cao được hiển thị = previewContainerSize
+        // Displayed height = previewContainerSize
         sourcePreviewHeight = previewContainerSize / coverScale;
-        // Center crop theo height
+        // Center crop by  height
         sourcePreviewX = 0;
         sourcePreviewY = (img.height - sourcePreviewHeight) / 2;
       }
-      
-      // Bước 2: Crop area ở center của preview container
-      // Crop area chiếm tỷ lệ: cropAreaSize / previewContainerSize = 0.5
-      // Nhưng cần tính trong không gian ảnh đã scale với user scale
-      
-      // Khi user scale = 1: ảnh fill preview container
-      // Khi user scale = 0.5: ảnh chỉ fill 50% preview container (nhỏ hơn)
-      // Khi user scale = 2: ảnh lớn gấp đôi preview container (zoom in)
-      
-      // Trong preview, sau user scale:
-      // - Ảnh có kích thước thực tế: previewContainerSize * scale
-      // - Preview container vẫn: previewContainerSize x previewContainerSize
-      // - Crop area vẫn: cropAreaSize x cropAreaSize ở center
-      // 
-      // Phần ảnh được hiển thị trong crop area phụ thuộc vào scale:
-      // - scale = 1: crop area hiển thị 1/4 của ảnh (vì cropAreaSize = previewContainerSize / 2)
-      // - scale = 0.5: crop area hiển thị 1/2 của ảnh (vì ảnh nhỏ hơn)
-      // - scale = 2: crop area hiển thị 1/8 của ảnh (vì ảnh lớn hơn)
-      
-      // Tính phần ảnh gốc tương ứng với crop area
-      // 
-      // Trong preview:
+
+      // Step 2: Crop area in the center of the preview container
+      // Crop area occupies the ratio: cropAreaSize / previewContainerSize = 0.5
+      // But need to calculate in the image space scaled with user scale
+
+      // When user scale = 1: image fills preview container
+      // When user scale = 0.5: image only fills 50% preview container (smaller)
+      // When user scale = 2: image is twice as large as preview container (zoom in)
+
+      // In preview, after user scale:
+      // - Image has actual size: previewContainerSize * scale
+      // - Preview container is still: previewContainerSize x previewContainerSize
+      // - Crop area is still: cropAreaSize x cropAreaSize in center
+      //
+      // The part of the image displayed in the crop area depends on the scale:
+      // - scale = 1: crop area displays 1/4 of the image (because cropAreaSize = previewContainerSize / 2)
+      // - scale = 0.5: crop area displays 1/2 of the image (because the image is smaller)
+      // - scale = 2: crop area displays 1/8 of the image (because the image is larger)
+
+      // Calculate the original image part corresponding to the crop area
+      //
+      // In preview:
       // - Preview container: previewContainerSize x previewContainerSize
-      // - Ảnh được hiển thị với objectFit: cover, fill container
-      // - User scale: ảnh được scale lên/xuống
-      // - Crop area: cropAreaSize x cropAreaSize ở center
+      // - Image is displayed with objectFit: cover, fill container
+      // - User scale: image is scaled up/down
+      // - Crop area: cropAreaSize x cropAreaSize in the center
       //
-      // Khi scale = 1: ảnh fill preview container
-      //   - Crop area hiển thị phần center của ảnh
-      //   - Tỷ lệ: cropAreaSize / previewContainerSize = 0.5
-      //   - Vậy crop area hiển thị 0.5 x 0.5 = 0.25 (1/4) của ảnh trong preview container
+      // When scale = 1: image fills preview container
+      // - Crop area displays the center of the image
+      // - Ratio: cropAreaSize / previewContainerSize = 0.5
+      // - So crop area displays 0.5 x 0.5 = 0.25 (1/4) of the image in the preview container
       //
-      // Khi scale = 0.5: ảnh chỉ fill 50% preview container
-      //   - Ảnh có kích thước: previewContainerSize * 0.5
-      //   - Crop area vẫn: cropAreaSize
-      //   - Tỷ lệ: cropAreaSize / (previewContainerSize * 0.5) = 1.0
-      //   - Vậy crop area hiển thị toàn bộ ảnh (vì ảnh nhỏ hơn crop area)
+      // When scale = 0.5: image only fills 50% of preview container
+      // - Image has size: previewContainerSize * 0.5
+      // - Crop area still: cropAreaSize
+      // - Ratio: cropAreaSize / (previewContainerSize * 0.5) = 1.0
+      // - So crop area displays the entire image (because the image is smaller than crop area)
       //
-      // Cách tính đúng:
-      // 1. Ảnh trong preview container sau user scale có kích thước hiệu dụng: previewContainerSize * scale
-      // 2. Crop area có kích thước: cropAreaSize
-      // 3. Tỷ lệ phần ảnh trong crop area: cropAreaSize / (previewContainerSize * scale)
-      // 4. Trong không gian ảnh gốc: phần này = sourcePreviewWidth * (cropAreaSize / (previewContainerSize * scale))
-      
+      // Correct calculation:
+      // 1. Image in preview container after user scale has effective size: previewContainerSize * scale
+      // 2. Crop area has size: cropAreaSize
+      // 3. Ratio of image part in crop area: cropAreaSize / (previewContainerSize * scale)
+      // 4. In original image space: this part = sourcePreviewWidth * (cropAreaSize / (previewContainerSize * scale))
+
       const effectiveScale = scale;
-      
-      // Tỷ lệ crop area so với ảnh đã scale trong preview container
-      // Khi scale = 1: cropAreaSize / previewContainerSize = 0.5 (crop area = 1/2 preview container)
-      // Khi scale = 0.5: cropAreaSize / (previewContainerSize * 0.5) = 1.0 (crop area = toàn bộ ảnh)
+
+      // Crop area ratio compared to scaled image in preview container
+      // When scale = 1: cropAreaSize / previewContainerSize = 0.5 (crop area = 1/2 preview container)
+      // When scale = 0.5: cropAreaSize / (previewContainerSize * 0.5) = 1.0 (crop area = entire image)
       const cropToImageRatio = cropAreaSize / (previewContainerSize * effectiveScale);
-      
-      // Giới hạn tỷ lệ để không vượt quá 1.0 (không crop phần ngoài ảnh)
+
+      // Clamp ratio to not exceed 1.0 (do not crop outside the image)
       const clampedRatio = Math.min(cropToImageRatio, 1.0);
-      
-      // Phần ảnh gốc tương ứng với crop area
+
+      // Original image part corresponding to crop area
       const adjustedSourceWidth = sourcePreviewWidth * clampedRatio;
       const adjustedSourceHeight = sourcePreviewHeight * clampedRatio;
-      
-      // Vị trí center của crop area trong ảnh gốc
-      // Crop area luôn ở center của preview container
+
+      // Center position of crop area in original image
+      // Crop area is always at the center of preview container
       const adjustedSourceX = sourcePreviewX + (sourcePreviewWidth - adjustedSourceWidth) / 2;
       const adjustedSourceY = sourcePreviewY + (sourcePreviewHeight - adjustedSourceHeight) / 2;
-      
-      // Áp dụng position offset (di chuyển ảnh)
-      // Position là pixel offset trong preview container space
-      // Cần convert sang ảnh gốc space
-      // Tỷ lệ: 1 pixel preview = sourcePreviewWidth / previewContainerSize pixel ảnh gốc
-      // Sau user scale, ảnh được scale, nên offset cũng cần scale
+
+      // Apply position offset (move image)
+      // Position is pixel offset in preview container space
+      // Need to convert to original image space
+      // Ratio: 1 pixel in preview = sourcePreviewWidth / previewContainerSize pixels in original image
+      // After user scale, image is scaled, so offset also needs to be scaled
       const pixelToSourceRatio = sourcePreviewWidth / previewContainerSize;
       const positionOffsetX = (position.x * pixelToSourceRatio) / effectiveScale;
       const positionOffsetY = (position.y * pixelToSourceRatio) / effectiveScale;
-      
+
       const finalSourceX = adjustedSourceX - positionOffsetX;
       const finalSourceY = adjustedSourceY - positionOffsetY;
 
-      // Scale ratio từ crop area sang output canvas
+      // Scale ratio from crop area to output canvas
       const scaleRatio = outputSize / cropAreaSize;
-      
-      // Kích thước ảnh trên output canvas
-      // Crop area có kích thước cropAreaSize, scale lên outputSize
+
+      // Image size on output canvas
+      // Crop area has size cropAreaSize, scaled up to outputSize
       const outputImageSize = cropAreaSize * scaleRatio;
 
-      // Center của output canvas
+      // Center of output canvas
       const centerX = outputSize / 2;
       const centerY = outputSize / 2;
-      
-      // Position offset từ preview space sang canvas space
-      // Position là pixel offset trong preview container space
-      // Cần scale sang output canvas space
+
+      // Position offset from preview space to canvas space
+      // Position is pixel offset in preview container space
+      // Need to scale to output canvas space
       const offsetX = position.x * scaleRatio;
       const offsetY = position.y * scaleRatio;
 
-      // Save context để apply transforms
+      // Save context to apply transforms
       ctx.save();
-      
-      // Apply transforms theo thứ tự ngược với CSS để khớp với preview:
+
+      // Apply transforms in reverse order of CSS to match preview:
       // CSS transform: translate(position) scale(scale) rotate(rotation)
-      // Thứ tự trong CSS (từ trái sang phải): translate -> scale -> rotate
-      // Trong canvas, cần reverse: rotate -> scale -> translate
-      
-      // 1. Translate về center của canvas
+      // Order in CSS (left to right): translate -> scale -> rotate
+      // In canvas, need to reverse: rotate -> scale -> translate
+
+      // 1. Translate to center of canvas
       ctx.translate(centerX, centerY);
-      
-      // 2. Apply rotation (nếu có)
+
+      // 2. Apply rotation (if any)
       if (rotation !== 0) {
         ctx.rotate((rotation * Math.PI) / 180);
       }
-      
-      // 3. Apply user scale (scale đã được tính vào outputImageSize, nhưng cần apply transform)
-      // Thực ra outputImageSize đã bao gồm scale rồi, nhưng để đúng với CSS transform order,
-      // chúng ta cần apply scale transform ở đây
-      // Nhưng vì đã tính vào outputImageSize, chỉ cần translate
-      
-      // 4. Translate với position offset
+
+      // 3. Apply user scale (scale has been included in outputImageSize, but need to apply transform)
+      // Actually outputImageSize already includes scale, but to match CSS transform order,
+      // we need to apply scale transform here
+      // But since it's already included in outputImageSize, only need to translate
+
+      // 4. Translate with position offset
       ctx.translate(offsetX, offsetY);
-      
-      // Vẽ ảnh từ center
-      // Source: phần ảnh gốc tương ứng với crop area (đã điều chỉnh theo user scale)
-      // Destination: vẽ với kích thước crop area scale lên output size
+
+      // Draw image from center
+      // Source: part of the original image corresponding to the crop area (adjusted for user scale)
+      // Destination: draw with size of crop area scaled up to output size
       const drawX = -outputImageSize / 2;
       const drawY = -outputImageSize / 2;
-      
+
       ctx.drawImage(
         img,
-        finalSourceX, finalSourceY, adjustedSourceWidth, adjustedSourceHeight, // Source: phần ảnh gốc tương ứng với crop area
-        drawX, drawY, outputImageSize, outputImageSize // Destination: vẽ với kích thước output
+        finalSourceX, finalSourceY, adjustedSourceWidth, adjustedSourceHeight, // Source: the original image part corresponding to the crop area
+        drawX, drawY, outputImageSize, outputImageSize // Destination: draw with size of output
       );
-      
+
       // Restore context
       ctx.restore();
 
-      // Convert canvas to blob với chất lượng tốt
+      // Convert canvas to blob with quality
       canvas.toBlob((blob) => {
         if (blob) {
           onCropComplete(blob);
@@ -354,7 +354,7 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
 
   if (!imageSrc) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div data-profile-customization-modal className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
           <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-600 dark:text-gray-400" />
         </div>
@@ -363,7 +363,7 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+    <div data-profile-customization-modal className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
@@ -435,7 +435,7 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
               />
             </div>
 
-            {/* Crop Overlay - Circular mask với grid guide */}
+            {/* Crop Overlay - Circular mask with grid guide */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -524,7 +524,7 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
             <RotateCw className="w-4 h-4" />
             <span>Xoay</span>
           </button>
-          
+
           <div className="flex items-center gap-3">
             <button
               onClick={onCancel}

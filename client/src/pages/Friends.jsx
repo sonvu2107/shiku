@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { cn } from '../utils/cn';
 import { SpotlightCard } from '../components/ui/SpotlightCard';
+import { PageLayout } from '../components/ui/DesignSystem';
 import { generateAvatarUrl } from '../utils/avatarUtils';
 import {
   Users, UserPlus, UserCheck, UserX, Search, Clock, 
@@ -277,18 +278,17 @@ export default function Friends() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-white transition-colors duration-300 font-sans relative overflow-x-hidden pb-20">
+    <PageLayout className="relative overflow-x-hidden bg-white dark:bg-black">
       <GridPattern />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24">
-        
+
+      <div className="pt-24">
         {/* --- HEADER --- */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
            <div>
               <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-2">Bạn bè</h1>
               <p className="text-neutral-500 dark:text-neutral-300 text-lg">Quản lý các kết nối của bạn</p>
            </div>
-           
+
            {/* Search Box */}
             <div className="relative w-full md:w-96 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" size={20} />
@@ -385,6 +385,6 @@ export default function Friends() {
         </div>
 
       </div>
-    </div>
+    </PageLayout>
   );
 }

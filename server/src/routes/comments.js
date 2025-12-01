@@ -1,3 +1,15 @@
+/**
+ * Comments Routes
+ * 
+ * Routes xử lý các thao tác liên quan đến bình luận (comments):
+ * - Tạo, sửa, xóa bình luận
+ * - Lấy danh sách bình luận cho bài viết
+ * - Upload ảnh trong bình luận
+ * - Lọc bình luận theo blocked users
+ * 
+ * @module comments
+ */
+
 import express from "express";
 import Comment from "../models/Comment.js";
 import Post from "../models/Post.js";
@@ -8,6 +20,7 @@ import { checkBanStatus } from "../middleware/banCheck.js";
 import NotificationService from "../services/NotificationService.js";
 import { uploadMultiple, uploadMultipleOptional, uploadToCloudinary, validateFile } from "../middleware/fileUpload.js";
 import multer from "multer";
+import { addExpForAction, addExpForReceiver } from "../services/cultivationService.js";
 
 const router = express.Router();
 
@@ -98,7 +111,7 @@ router.get("/post/:postId", authOptional, async (req, res, next) => {
   try {
     // OPTIMIZATION: Run queries in parallel
     const postQuery = Comment.find({ post: req.params.postId })
-      .populate("author", "name nickname avatarUrl role") // Removed blockedUsers
+      .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache") // Removed blockedUsers
       .populate("parent", "content author createdAt") // Only get essential fields
       .populate("likes", "name avatarUrl") // Optimized
       .populate("emotes.user", "name avatarUrl")
@@ -302,6 +315,18 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
       }
     } catch (notifError) {
       console.error("[ERROR][COMMENTS] Error creating notification:", notifError);
+    }
+
+    // Cộng exp cho việc bình luận
+    try {
+      // Cộng exp cho người bình luận
+      await addExpForAction(req.user._id, 'comment', { description: 'Bình luận bài viết' });
+      // Cộng exp cho tác giả bài viết nếu không phải self-comment
+      if (post.author.toString() !== req.user._id.toString()) {
+        await addExpForReceiver(post.author, 'comment');
+      }
+    } catch (expError) {
+      console.error('[COMMENTS] Error adding exp:', expError);
     }
 
     res.json({ comment: c });

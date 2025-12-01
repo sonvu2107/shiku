@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api";
 import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp, Smile, Frown, Laugh, Angry, Image, X } from "lucide-react";
 import MediaViewer from "./MediaViewer";
 import BanNotification from "./BanNotification";
 import UserName from "./UserName";
+import UserAvatar from "./UserAvatar";
 import { Link } from "react-router-dom";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
 import CommentImageUpload from "./CommentImageUpload";
@@ -11,7 +12,7 @@ import MentionText from "./MentionText";
 import MentionAutocomplete from "./MentionAutocomplete";
 
 /**
- * Mapping các role với icon tương ứng (hiện tại chưa sử dụng)
+ * Mapping roles with their respective icons (currently unused)
  */
 const roleIcons = {
   solo: "/assets/Sung-tick.png",
@@ -20,7 +21,7 @@ const roleIcons = {
 };
 
 /**
- * Mapping các emote types với icon và màu sắc
+ * Mapping emote types with their respective icons and colors
  */
 const emoteConfig = {
   like: { icon: ThumbsUp, color: "text-blue-500", bgColor: "bg-blue-50" },
@@ -31,7 +32,7 @@ const emoteConfig = {
 };
 
 /**
- * Danh sách emoji phổ biến
+ * List of popular emojis
  */
 const emojiList = [
   '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
@@ -57,51 +58,51 @@ const emojiList = [
 ];
 
 /**
- * CommentSection - Component hiển thị và quản lý bình luận
- * Hỗ trợ nested comments, reply, edit, delete với tree structure
- * @param {string} postId - ID của bài viết
- * @param {Array} initialComments - Danh sách comments ban đầu (optional)
- * @param {Object} user - Thông tin user hiện tại
+ * CommentSection - Component to display and manage comments
+ * Supports nested comments, reply, edit, delete with tree structure
+ * @param {string} postId - ID of the post
+ * @param {Array} initialComments - Initial list of comments (optional)
+ * @param {Object} user - Current user information
  */
-export default function CommentSection({ postId, initialComments = [], user }) {
+function CommentSection({ postId, initialComments = [], user }) {
   // ==================== STATE MANAGEMENT ====================
   
   // Comments data
-  const [comments, setComments] = useState([]); // Danh sách comments đã organize
-  const [newComment, setNewComment] = useState(""); // Nội dung comment mới
-  const [newCommentImages, setNewCommentImages] = useState([]); // Ảnh comment mới
-  const [showCommentForm, setShowCommentForm] = useState(true); // Hiển thị form nhập bình luận
-  const [newCommentCursorPosition, setNewCommentCursorPosition] = useState(0); // Vị trí cursor trong newComment
-  const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false); // Hiển thị mention autocomplete
-  const newCommentTextareaRef = useRef(null); // Ref cho textarea newComment
+  const [comments, setComments] = useState([]); // Organized list of comments
+  const [newComment, setNewComment] = useState(""); // New comment content
+  const [newCommentImages, setNewCommentImages] = useState([]); // New comment images
+  const [showCommentForm, setShowCommentForm] = useState(true); // Show comment input form
+  const [newCommentCursorPosition, setNewCommentCursorPosition] = useState(0); // Cursor position in newComment
+  const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false); // Show mention autocomplete
+  const newCommentTextareaRef = useRef(null); // Ref for newComment textarea
   
   // Reply system
-  const [replyingTo, setReplyingTo] = useState(null); // ID comment đang reply
-  const [replyContent, setReplyContent] = useState(""); // Nội dung reply
-  const [replyImages, setReplyImages] = useState([]); // Ảnh reply
-  const [expandedReplies, setExpandedReplies] = useState(new Set()); // Set các comment đã expand replies
+  const [replyingTo, setReplyingTo] = useState(null); // ID comment being replied to
+  const [replyContent, setReplyContent] = useState(""); // Reply content
+  const [replyImages, setReplyImages] = useState([]); // Reply images
+  const [expandedReplies, setExpandedReplies] = useState(new Set()); // Set of comments with expanded replies
   
   // UI states
   const [loading, setLoading] = useState(false); // Loading state
-  const [showBanNotification, setShowBanNotification] = useState(false); // Hiện ban notification
-  const [banInfo, setBanInfo] = useState(null); // Thông tin ban
+  const [showBanNotification, setShowBanNotification] = useState(false); // Show ban notification
+  const [banInfo, setBanInfo] = useState(null); // Ban information
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxGallery, setLightboxGallery] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   
   // Edit system
-  const [editingComment, setEditingComment] = useState(null); // ID comment đang edit
-  const [editContent, setEditContent] = useState(""); // Nội dung edit
-  const [editImages, setEditImages] = useState([]); // Ảnh edit
-  const [showDropdown, setShowDropdown] = useState(null); // ID comment đang hiện dropdown
+  const [editingComment, setEditingComment] = useState(null); // ID comment being edited
+  const [editContent, setEditContent] = useState(""); // Edit content
+  const [editImages, setEditImages] = useState([]); // Edit images
+  const [showDropdown, setShowDropdown] = useState(null); // ID comment showing dropdown
   
   // Emote system
-  const [showEmotePicker, setShowEmotePicker] = useState(null); // ID comment đang hiện emote picker
+  const [showEmotePicker, setShowEmotePicker] = useState(null); // ID comment showing emote picker
   
   // Emoji picker system
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Hiển thị emoji picker cho comment mới
-  const [showReplyEmojiPicker, setShowReplyEmojiPicker] = useState(null); // ID comment đang hiện emoji picker cho reply
-  const [showEditEmojiPicker, setShowEditEmojiPicker] = useState(null); // ID comment đang hiện emoji picker cho edit
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Show emoji picker for new comment
+  const [showReplyEmojiPicker, setShowReplyEmojiPicker] = useState(null); // ID comment showing emoji picker for reply
+  const [showEditEmojiPicker, setShowEditEmojiPicker] = useState(null); // ID comment showing emoji picker for edit
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -127,26 +128,28 @@ export default function CommentSection({ postId, initialComments = [], user }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showDropdown, showEmotePicker, showEmojiPicker, showReplyEmojiPicker, showEditEmojiPicker]);
 
-  useEffect(() => {
-    const organizeComments = (commentList) => {
-      const commentMap = {};
-      const rootComments = [];
-      commentList.forEach((comment) => {
-        commentMap[comment._id] = { ...comment, replies: [] };
-      });
-      commentList.forEach((comment) => {
-        if (comment.parent) {
-          if (commentMap[comment.parent._id || comment.parent]) {
-            commentMap[comment.parent._id || comment.parent].replies.push(
-              commentMap[comment._id]
-            );
-          }
-        } else {
-          rootComments.push(commentMap[comment._id]);
+  // Organize comments into tree structure - Memoized
+  const organizeComments = useCallback((commentList) => {
+    const commentMap = {};
+    const rootComments = [];
+    commentList.forEach((comment) => {
+      commentMap[comment._id] = { ...comment, replies: [] };
+    });
+    commentList.forEach((comment) => {
+      if (comment.parent) {
+        if (commentMap[comment.parent._id || comment.parent]) {
+          commentMap[comment.parent._id || comment.parent].replies.push(
+            commentMap[comment._id]
+          );
         }
-      });
-      return rootComments;
-    };
+      } else {
+        rootComments.push(commentMap[comment._id]);
+      }
+    });
+    return rootComments;
+  }, []);
+
+  useEffect(() => {
     const fetchComments = async () => {
       try {
         const res = await api(`/api/comments/post/${postId}`);
@@ -156,7 +159,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       }
     };
     fetchComments();
-  }, [postId]);
+  }, [postId, organizeComments]);
 
   // Handle mention autocomplete
   const handleMentionSelect = (user, startPosition, endPosition) => {
@@ -232,7 +235,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       let requestBody;
       
       if (newCommentImages.length > 0) {
-        // Có ảnh - sử dụng FormData
+        // With image - use FormData
         const formData = new FormData();
         formData.append('content', newComment);
         
@@ -243,7 +246,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         
         requestBody = formData;
       } else {
-        // Không có ảnh - sử dụng JSON
+        // Without image - use JSON
         requestBody = { content: newComment };
       }
 
@@ -260,12 +263,12 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       setNewComment("");
       setNewCommentCursorPosition(0);
       setShowMentionAutocomplete(false);
-      // Reset ảnh và file input
+      // Reset images and file input
       newCommentImages.forEach(img => img.preview && URL.revokeObjectURL(img.preview));
       setNewCommentImages([]);
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = "";
-      // Ẩn form nhập bình luận
+      // Hide comment input form
       setShowCommentForm(false);
     } catch (error) {
       const errorMessage = error?.message || "Lỗi hệ thống";
@@ -310,7 +313,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       setReplyImages([]);
       setReplyingTo(null);
 
-      // Auto expand replies để hiển thị luôn
+      // Auto expand replies to show them immediately
       setExpandedReplies((prev) => new Set([...prev, parentId]));
     } catch (error) {
       const errorMessage = error?.message || "Lỗi hệ thống";
@@ -338,7 +341,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
       let requestBody;
       
       if (editImages.length > 0) {
-        // Có ảnh - sử dụng FormData
+        // With image - use FormData
         const formData = new FormData();
         formData.append('content', editContent);
         
@@ -349,7 +352,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         
         requestBody = formData;
       } else {
-        // Không có ảnh - sử dụng JSON
+        // Without image - use JSON
         requestBody = { content: editContent };
       }
 
@@ -460,7 +463,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   }
 
   /**
-   * Xử lý like/unlike comment
+   * Handle like/unlike comment
    */
   async function handleLikeComment(commentId) {
     if (!user) return;
@@ -471,7 +474,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         method: "POST"
       });
       
-      // Cập nhật comment trong state
+      // Update comment in state
       setComments(prev =>
         prev.map((comment) =>
           updateCommentInTree(comment, commentId, {
@@ -489,7 +492,7 @@ export default function CommentSection({ postId, initialComments = [], user }) {
   }
 
   /**
-   * Xử lý thêm/xóa emote cho comment
+   * Handle adding/removing emote for comment
    */
   async function handleEmoteComment(commentId, emoteType) {
     if (!user) return;
@@ -502,12 +505,12 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         body: JSON.stringify({ type: emoteType })
       });
       
-      // Cập nhật comment trong state
+      // Update comment in state
       setComments(prev =>
         prev.map((comment) =>
           updateCommentInTree(comment, commentId, {
             emotes: res.comment.emotes || 
-              // Fallback: xóa emote cũ của user và thêm emote mới
+              // Fallback: remove old emote of user and add new emote
               comment.emotes
                 .filter(emote => emote.user._id !== user._id)
                 .concat([{ user: { _id: user._id }, type: emoteType }]),
@@ -568,15 +571,19 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         {/* Main Comment */}
         <div className="flex gap-2 sm:gap-3 py-1.5 group/comment">
           <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="focus:outline-none flex-shrink-0">
-            <img
-              src={
-                comment.author?.avatarUrl ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  comment.author?.name || "User"
-                )}&background=000000&color=ffffff&size=40`
-              }
-              alt={comment.author?.name}
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border border-neutral-200 dark:border-neutral-800"
+            <UserAvatar 
+              user={comment.author}
+              size={40}
+              showFrame={true}
+              showBadge={true}
+              className="hidden sm:block"
+            />
+            <UserAvatar 
+              user={comment.author}
+              size={32}
+              showFrame={true}
+              showBadge={true}
+              className="sm:hidden"
             />
           </Link>
           <div className="flex-1 min-w-0">
@@ -765,10 +772,11 @@ export default function CommentSection({ postId, initialComments = [], user }) {
             {replyingTo === comment._id && user && (
               <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
                 <form onSubmit={(e) => handleSubmitReply(e, comment._id, comment.author)} className="flex gap-3">
-                  <img
-                    src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "User")}&background=000000&color=ffffff&size=32`}
-                    alt={user?.name}
-                    className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-neutral-800"
+                  <UserAvatar 
+                    user={user}
+                    size={32}
+                    showFrame={true}
+                    showBadge={false}
                   />
                   <div className="flex-1">
                     <div className="relative">
@@ -888,15 +896,11 @@ export default function CommentSection({ postId, initialComments = [], user }) {
         
         {/* Comment Input */}
         <div className="mb-8 flex gap-4">
-          <img
-            src={
-              user?.avatarUrl ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                user?.name || "User"
-              )}&background=000000&color=ffffff&size=40`
-            }
-            alt={user?.name}
-            className="w-10 h-10 rounded-full object-cover border border-neutral-200 dark:border-neutral-800 flex-shrink-0"
+          <UserAvatar 
+            user={user}
+            size={40}
+            showFrame={true}
+            showBadge={true}
           />
           <div className="flex-1">
             <form onSubmit={handleSubmitComment} className="relative group/input">
@@ -1013,3 +1017,11 @@ export default function CommentSection({ postId, initialComments = [], user }) {
     </ComponentErrorBoundary>
   );
 }
+
+// Memoize component để tối ưu performance
+export default React.memo(CommentSection, (prevProps, nextProps) => {
+  // Re-render chỉ khi postId, initialComments hoặc user._id thay đổi
+  return prevProps.postId === nextProps.postId &&
+         prevProps.user?._id === nextProps.user?._id &&
+         prevProps.initialComments === nextProps.initialComments;
+});

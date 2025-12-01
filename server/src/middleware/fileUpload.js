@@ -1,13 +1,17 @@
+/**
+ * File Upload Middleware
+ * 
+ * Middleware bảo mật cho file upload.
+ * Kiểm tra magic bytes, kích thước, và loại file để chống upload file độc hại.
+ * 
+ * @module fileUpload
+ */
+
 import multer from "multer";
 import { Readable } from "stream";
 import { fileTypeFromBuffer } from "file-type";
 import { v2 as cloudinary } from "cloudinary";
 import { createReadStream } from "streamifier";
-
-/**
- * Middleware bảo mật cho file upload
- * Kiểm tra magic bytes, kích thước, và loại file
- */
 
 // Cấu hình multer với memory storage
 const storage = multer.memoryStorage();

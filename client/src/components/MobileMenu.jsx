@@ -25,9 +25,10 @@ import {
 import { removeAuthToken } from "../utils/auth.js";
 import { api } from "../api.js";
 import { cn } from "../utils/cn";
+import UserAvatar from "./UserAvatar";
 
 /**
- * MobileMenu - Component menu hamburger cho mobile (Redesigned)
+ * MobileMenu - Hamburger menu component for mobile (redesigned)
  * Style: Monochrome Luxury & Glassmorphism
  */
 export default function MobileMenu({ user, setUser }) {
@@ -102,6 +103,7 @@ export default function MobileMenu({ user, setUser }) {
   const menuItems = user ? [
     { icon: Home, label: "Trang chủ", path: "/", show: true },
     { icon: Compass, label: "Khám phá", path: "/explore", show: true },
+    { icon: Sparkles, label: "Tu Tiên", path: "/cultivation", show: true, highlight: true },
     { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
     { icon: Image, label: "Media", path: "/media", show: true },
     { icon: Bookmark, label: "Bài đã lưu", path: "/saved", show: true },
@@ -112,7 +114,7 @@ export default function MobileMenu({ user, setUser }) {
     { icon: User, label: "Trang cá nhân", path: "/profile", show: true },
     { icon: Settings, label: "Cài đặt", path: "/settings", show: true },
     { icon: LifeBuoy, label: "Trợ giúp", path: "/support", show: true },
-    { icon: Crown, label: "Admin Dashboard", path: "/admin", show: user.role === "admin", isAdmin: true },
+    { icon: Crown, label: "Admin", path: "/admin", show: user.role === "admin", isAdmin: true },
   ] : [
     { icon: Home, label: "Trang chủ", path: "/", show: true },
     { icon: Compass, label: "Khám phá", path: "/explore", show: true },
@@ -161,10 +163,11 @@ export default function MobileMenu({ user, setUser }) {
 
               {user ? (
                 <div className="bg-neutral-100/80 dark:bg-neutral-800/50 p-3 rounded-2xl border border-neutral-200 dark:border-neutral-700/50 flex items-center gap-3" onClick={() => { navigate('/profile'); setIsOpen(false); }}>
-                  <img
-                    src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&length=2&background=000000&color=ffffff`}
-                    alt={user.name}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-neutral-700 shadow-sm"
+                  <UserAvatar 
+                    user={user}
+                    size={40}
+                    showFrame={true}
+                    showBadge={true}
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-neutral-900 dark:text-white truncate text-sm">{user.name}</h3>

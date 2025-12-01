@@ -4,19 +4,19 @@ import { chatAPI } from "../chatAPI";
 import { useNavigate } from "react-router-dom";
 
 /**
- * MessageButton - Nút nhắn tin cho user
- * Tạo cuộc trò chuyện riêng tư hoặc chuyển đến cuộc trò chuyện hiện có
+ * MessageButton - Message button for a user
+ * Creates a private conversation or navigates to an existing one
  * @param {Object} props - Component props
- * @param {Object} props.user - Thông tin user cần nhắn tin
- * @param {string} props.user._id - ID của user
- * @param {string} props.user.conversationId - ID cuộc trò chuyện hiện có (nếu có)
- * @param {string} props.className - CSS classes bổ sung
- * @returns {JSX.Element} Component message button
+ * @param {Object} props.user - Target user information
+ * @param {string} props.user._id - User ID
+ * @param {string} props.user.conversationId - Existing conversation ID (if any)
+ * @param {string} props.className - Additional CSS classes
+ * @returns {JSX.Element} Message button component
  */
 export default function MessageButton({ user, className = "" }) {
   // ==================== STATE MANAGEMENT ====================
   
-  const [isLoading, setIsLoading] = useState(false); // Loading state khi tạo conversation
+  const [isLoading, setIsLoading] = useState(false); // Loading state while creating a conversation
   const navigate = useNavigate();
 
   const handleMessage = async () => {
@@ -27,7 +27,7 @@ export default function MessageButton({ user, className = "" }) {
 
     try {
       setIsLoading(true);
-      // Nếu user đã có conversationId, chuyển thẳng đến cuộc trò chuyện
+      // If conversation already exists, navigate to it
       if (user.conversationId) {
         navigate('/chat', {
           state: {
@@ -36,7 +36,7 @@ export default function MessageButton({ user, className = "" }) {
         });
         return;
       }
-      // Tạo cuộc trò chuyện riêng tư nếu chưa có
+      // Create a private conversation if none exists
       const conversation = await chatAPI.createPrivateConversation(user._id);
       navigate('/chat', {
         state: {

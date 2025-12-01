@@ -1,3 +1,15 @@
+/**
+ * Support Routes
+ * 
+ * Routes xử lý các thao tác hỗ trợ người dùng:
+ * - FAQ (Câu hỏi thường gặp)
+ * - Feedback/Contact form
+ * - Bug reports
+ * - Help articles
+ * 
+ * @module support
+ */
+
 import express from "express";
 import mongoose from "mongoose";
 import { authRequired, authOptional } from "../middleware/auth.js";

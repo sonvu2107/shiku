@@ -43,14 +43,14 @@ export default function Chatbot({ variant = 'floating', onClose, allowMinimize, 
     }
   }, [isEmbedded]);
 
-  // Load chat history khi component mount hoặc khi mở chatbot
+  // Load chat history when the component mounts or when the chatbot opens
   useEffect(() => {
     let isMounted = true;
     let timeoutId = null;
     
     const loadChatHistory = async () => {
-      // Với variant popup hoặc embedded, luôn load history khi component mount
-      // Với variant floating, chỉ load khi mở và không minimized
+      // For 'popup' or 'embedded' variants, always load history on mount
+      // For 'floating' variant, only load when opened and not minimized
       const shouldLoad = (variant === 'popup' || variant === 'embedded') 
         ? true 
         : (variant === 'floating' && isOpen && !isMinimized);
@@ -64,11 +64,11 @@ export default function Chatbot({ variant = 'floating', onClose, allowMinimize, 
         setIsLoadingHistory(true);
         const response = await chatbotAPI.getHistory();
         
-        if (!isMounted) return; // Component đã unmount, không cập nhật state
+        if (!isMounted) return; // Component unmounted — do not update state
         
         if (response.success && response.data.messages && response.data.messages.length > 0) {
-          // Chuyển đổi messages từ database sang format của component
-          // Sử dụng timestamp để tạo unique ID, đảm bảo ID ổn định khi reload
+          // Convert messages from the database into the component format
+          // Use the timestamp to create a unique ID so IDs remain stable across reloads
           const loadedMessages = response.data.messages.map((msg, index) => ({
             id: msg.timestamp ? new Date(msg.timestamp).getTime() + index : Date.now() + index,
             text: msg.content,
@@ -77,7 +77,7 @@ export default function Chatbot({ variant = 'floating', onClose, allowMinimize, 
           }));
           setMessages(loadedMessages);
         } else {
-          // Nếu không có lịch sử, hiển thị message chào mừng
+          // If there is no history, display the default welcome message
           setMessages([
             {
               id: Date.now(),
@@ -91,7 +91,7 @@ export default function Chatbot({ variant = 'floating', onClose, allowMinimize, 
         console.error('Error loading chat history:', error);
         if (!isMounted) return;
         
-        // Nếu có lỗi, hiển thị message chào mừng mặc định
+      // If an error occurs, fall back to the default welcome message
         setMessages([
           {
             id: Date.now(),
@@ -107,9 +107,9 @@ export default function Chatbot({ variant = 'floating', onClose, allowMinimize, 
       }
     };
 
-    // Load history ngay khi điều kiện thỏa mãn
-    // Với popup/embedded, load ngay khi mount
-    // Với floating, load khi mở
+    // Trigger history loading when conditions are met
+    // For popup/embedded: load immediately on mount
+    // For floating: load when the floating chatbot is opened
     if (variant === 'popup' || variant === 'embedded') {
       // Load ngay khi component mount
       timeoutId = setTimeout(() => {

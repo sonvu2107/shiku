@@ -4,13 +4,13 @@ import { chatAPI } from "../../chatAPI";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../../utils/avatarUtils";
 
 /**
- * GroupMembersModal - Modal để quản lý thành viên và biệt danh trong nhóm chat
+ * GroupMembersModal - Modal to manage members and nicknames in group chats
  * @param {Object} props - Component props
- * @param {boolean} props.isOpen - Trạng thái mở/đóng modal
- * @param {Function} props.onClose - Callback đóng modal
- * @param {Object} props.conversation - Dữ liệu cuộc trò chuyện
- * @param {Object} props.currentUser - User hiện tại
- * @param {Function} props.onMembersUpdated - Callback khi thành viên được cập nhật
+ * @param {boolean} props.isOpen - Modal open/close state
+ * @param {Function} props.onClose - Callback to close modal
+ * @param {Object} props.conversation - Conversation data
+ * @param {Object} props.currentUser - Current user
+ * @param {Function} props.onMembersUpdated - Callback when members are updated
  * @returns {JSX.Element} Component group members modal
  */
 export default function GroupMembersModal({ 
@@ -22,9 +22,9 @@ export default function GroupMembersModal({
 }) {
   // ==================== STATE MANAGEMENT ====================
   
-  const [members, setMembers] = useState([]); // Danh sách thành viên
-  const [editingMember, setEditingMember] = useState(null); // Thành viên đang chỉnh sửa biệt danh
-  const [newNickname, setNewNickname] = useState(""); // Biệt danh mới
+  const [members, setMembers] = useState([]); // List of members
+  const [editingMember, setEditingMember] = useState(null); // Member currently editing nickname
+  const [newNickname, setNewNickname] = useState(""); // New nickname input
   const [loading, setLoading] = useState(false); // Loading state
   const [error, setError] = useState(""); // Error message
 
@@ -67,7 +67,7 @@ export default function GroupMembersModal({
   };
 
   const canEditNickname = (member) => {
-    // Chỉ có thể đặt biệt danh cho người khác, không phải chính mình
+    // Can only set nickname for others, not oneself
     return !isCurrentUser(member);
   };
 

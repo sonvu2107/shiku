@@ -5,10 +5,10 @@ import StoryCreator from './StoryCreator';
 import StoryViewer from './StoryViewer';
 
 /**
- * Stories - Component hiển thị stories như Instagram/Facebook
- * Stories tự động xóa sau 24h, có view count và reactions
+ * Stories - Component displaying stories feed
+ * Stories automatically delete after 24h, with view count and reactions
  */
-export default function Stories({ user }) {
+function Stories({ user }) {
   const [storiesGroups, setStoriesGroups] = useState([]); 
   const [myStories, setMyStories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +23,7 @@ export default function Stories({ user }) {
   }, [user]);
 
   /**
-   * Load stories feed (của bạn bè và chính mình)
+   * Load stories feed (from friends and self)
    */
   const loadStories = async () => {
     try {
@@ -35,7 +35,7 @@ export default function Stories({ user }) {
         setStoriesGroups(feedResponse.storiesGroups);
       }
       
-      // Load my stories riêng để hiển thị
+      // Load my stories separately for display
       const myResponse = await api('/api/stories/my/all');
       if (myResponse.stories) {
         setMyStories(myResponse.stories);
@@ -48,18 +48,18 @@ export default function Stories({ user }) {
   };
 
   /**
-   * Callback khi tạo story thành công
+   * Callback when story is created successfully
    */
   const handleStoryCreated = (newStory) => {
-    // Thêm vào my stories
+    // Add to my stories
     setMyStories(prev => [newStory, ...prev]);
     
-    // Reload để cập nhật feed
+    // Reload to update feed
     loadStories();
   };
 
   /**
-   * Xem story group
+   * View story group
    */
   const handleViewStory = (storyGroup, startIndex = 0) => {
     setSelectedStoryGroup(storyGroup);
@@ -67,7 +67,7 @@ export default function Stories({ user }) {
   };
 
   /**
-   * Xóa story - Safe callback để tránh state update trong render
+   * Delete story - Safe callback to avoid state update during render
    */
   const handleStoryDeleted = (storyId) => {
     // Defer all state updates to avoid React warnings
@@ -129,7 +129,7 @@ export default function Stories({ user }) {
     );
   }
 
-  // Luôn hiển thị Stories section nếu user đã đăng nhập
+  // Always show Stories section if user is logged in
   if (!user) {
     return null;
   }
@@ -141,11 +141,11 @@ export default function Stories({ user }) {
       hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
       transition-all duration-500 border border-transparent dark:border-white/5">
         <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-          {/* My Story - Tạo story mới hoặc xem story của mình */}
+          {/* My Story - Create new story or view my story */}
           {user && (
             <div className="flex-shrink-0 relative">
               {myStories.length === 0 ? (
-                // Chưa có story - hiển thị nút tạo với design tròn
+                // No story yet - show create button with round design
                 <>
                   <button
                     onClick={() => setShowStoryCreator(true)}
@@ -157,13 +157,13 @@ export default function Stories({ user }) {
                       className="w-full h-full object-cover"
                     />
                   </button>
-                  {/* Plus Icon Circle - Ra ngoài viền */}
+                  {/* Plus Icon Circle - Outside the border */}
                   <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-800 shadow-lg z-10">
                     <Plus size={14} className="text-white" />
                   </div>
                 </>
               ) : (
-                // Đã có story - hiển thị preview với style tròn
+                // Has story - show preview with round style
                 <button
                   onClick={() => {
                     const myStoryGroup = {
@@ -195,7 +195,7 @@ export default function Stories({ user }) {
             </div>
           )}
 
-          {/* Stories của bạn bè */}
+          {/* Friends' Stories */}
           {storiesGroups.length === 0 && myStories.length === 0 && (
             <div className="flex-1 text-center py-8">
               <p className="text-gray-500 text-sm">Chưa có tin nào. Hãy tạo tin đầu tiên!</p>
@@ -203,7 +203,7 @@ export default function Stories({ user }) {
           )}
           
           {storiesGroups.map((storyGroup, index) => {
-            // Skip nếu là stories của chính mình (đã hiển thị ở trên)
+            // Skip if story group is the user's own (already shown above)
             if (!storyGroup._id || !user) return null;
             if (storyGroup._id._id === user._id || storyGroup._id === user._id) {
               return null;
@@ -213,7 +213,7 @@ export default function Stories({ user }) {
             const latestStory = storyGroup.latestStory;
             const viewed = hasViewedAll(storyGroup);
             
-            // Skip nếu không có author hoặc latestStory
+            // Skip if no author or latestStory
             if (!author || !latestStory) return null;
             
             return (
@@ -245,7 +245,7 @@ export default function Stories({ user }) {
                     </>
                   )}
                   
-                  {/* User Avatar with Ring - Nhỏ hơn */}
+                  {/* User Avatar with Ring */}
                   <div className="absolute top-1 left-1">
                     <div className={`w-6 h-6 rounded-full ring-2 ${viewed ? 'ring-gray-400' : 'ring-blue-500'} ring-offset-1 ring-offset-transparent overflow-hidden`}>
                       <img
@@ -256,7 +256,7 @@ export default function Stories({ user }) {
                     </div>
                   </div>
                   
-                  {/* Story Count Badge - Nhỏ hơn */}
+                  {/* Story Count Badge */}
                   {storyGroup.storyCount > 1 && (
                     <div className="absolute top-1 right-1 bg-black/60 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
                       {storyGroup.storyCount}
@@ -291,3 +291,9 @@ export default function Stories({ user }) {
     </>
   );
 }
+
+// Memoize component để tối ưu performance
+export default React.memo(Stories, (prevProps, nextProps) => {
+  // Re-render chỉ khi user._id thay đổi
+  return prevProps.user?._id === nextProps.user?._id;
+});

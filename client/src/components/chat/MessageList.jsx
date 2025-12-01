@@ -4,15 +4,15 @@ import { api } from "../../api";
 import ImageViewer from "../ImageViewer";
 
 /**
- * MessageList - Component hiển thị danh sách tin nhắn
- * Hỗ trợ infinite scroll, auto-scroll và hiển thị tin nhắn theo nhóm
+ * MessageList - Component for display message list in chat
+ * Supports infinite scroll, auto-scroll, and grouped message display
  * @param {Object} props - Component props
- * @param {Array} props.messages - Danh sách tin nhắn
- * @param {Object} props.currentUser - Thông tin user hiện tại
- * @param {boolean} props.loading - Trạng thái loading
- * @param {boolean} props.hasMore - Có thêm tin nhắn để load
- * @param {Function} props.onLoadMore - Callback load thêm tin nhắn
- * @param {Object} props.conversation - Dữ liệu cuộc trò chuyện
+ * @param {Array} props.messages - List of messages
+ * @param {Object} props.currentUser - Current user information
+ * @param {boolean} props.loading - Loading state
+ * @param {boolean} props.hasMore - Whether there are more messages to load
+ * @param {Function} props.onLoadMore - Callback to load more messages
+ * @param {Object} props.conversation - Conversation data
  * @returns {JSX.Element} Component message list
  */
 export default function MessageList({ 
@@ -27,19 +27,19 @@ export default function MessageList({
 }) {
   // ==================== STATE MANAGEMENT ====================
   
-  const [showScrollButton, setShowScrollButton] = useState(false); // Hiển thị nút scroll to bottom
+  const [showScrollButton, setShowScrollButton] = useState(false); // Show scroll to bottom button
   const [imageViewer, setImageViewer] = useState({ isOpen: false, imageUrl: null, alt: "" }); // Image viewer state
-  const [editingMessageId, setEditingMessageId] = useState(null); // ID của tin nhắn đang edit
-  const [editContent, setEditContent] = useState(""); // Nội dung edit
-  const [showOptionsMenu, setShowOptionsMenu] = useState(null); // ID của tin nhắn đang hiển thị menu
-  const [hoveredMessageId, setHoveredMessageId] = useState(null); // ID của tin nhắn đang hover
+  const [editingMessageId, setEditingMessageId] = useState(null); // ID of the message being edited
+  const [editContent, setEditContent] = useState(""); // Edit content
+  const [showOptionsMenu, setShowOptionsMenu] = useState(null); // ID of the message showing options menu
+  const [hoveredMessageId, setHoveredMessageId] = useState(null); // ID of the message being hovered
   
   // ==================== REFS ====================
   
-  const messagesContainerRef = useRef(null); // Ref container tin nhắn
-  const topRef = useRef(null); // Ref top của container
-  const prevMessagesLength = useRef(messages.length); // Số lượng tin nhắn trước đó
-  const prevScrollHeight = useRef(0); // Chiều cao scroll trước đó
+  const messagesContainerRef = useRef(null); // Ref for messages container
+  const topRef = useRef(null); // Ref for top of the container
+  const prevMessagesLength = useRef(messages.length); // Previous number of messages
+  const prevScrollHeight = useRef(0); // Previous scroll height
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -49,7 +49,7 @@ export default function MessageList({
       const { scrollTop, scrollHeight, clientHeight } = container;
       setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100);
       if (scrollTop === 0 && hasMore && !loading) {
-        // Lưu scrollHeight trước khi load thêm
+        // Save scrollHeight before loading more
         prevScrollHeight.current = container.scrollHeight;
         prevMessagesLength.current = messages.length;
         onLoadMore();
@@ -60,11 +60,11 @@ export default function MessageList({
     return () => container.removeEventListener('scroll', handleScroll);
   }, [hasMore, loading, onLoadMore, messages.length]);
 
-  // Khi load thêm tin nhắn cũ, giữ nguyên vị trí scroll
+  // When loading more old messages, maintain scroll position
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-    // Nếu số lượng messages tăng lên (load thêm cũ), giữ vị trí scroll
+    // If the number of messages increases (loading more old messages), maintain scroll position
     if (messages.length > prevMessagesLength.current) {
       const addedHeight = container.scrollHeight - prevScrollHeight.current;
       container.scrollTop = addedHeight;
@@ -73,11 +73,11 @@ export default function MessageList({
     prevScrollHeight.current = container.scrollHeight;
   }, [messages]);
 
-  // Khi có tin nhắn mới (gửi/nhận), auto-scroll xuống cuối
+  // When there is a new message (sent/received), auto-scroll to bottom
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container || !messages.length) return;
-    // Nếu tin nhắn mới nhất là của mình hoặc là tin nhắn mới, scroll xuống cuối
+    // If the newest message is from the current user or is a new message, scroll to bottom
     container.scrollTop = container.scrollHeight;
   }, [messages[messages.length - 1]?._id]);
 
@@ -288,7 +288,7 @@ export default function MessageList({
           className={`max-w-xs lg:max-w-md xl:max-lg relative ${isOwn ? 'ml-12' : 'mr-12'} min-w-0`}
           onMouseEnter={() => setHoveredMessageId(message._id)}
           onMouseLeave={() => {
-            // Chỉ ẩn nếu menu không đang mở
+            // Hide if menu is not open
             if (showOptionsMenu !== message._id) {
               setHoveredMessageId(null);
             }
@@ -301,7 +301,7 @@ export default function MessageList({
             </div>
           )}
           
-          {/* Message options menu - chỉ hiện khi hover và là tin nhắn của mình */}
+          {/* Message options menu - only show when hovered and it's own message */}
           {isOwn && !message.isDeleted && message.messageType !== 'system' && (hoveredMessageId === message._id || showOptionsMenu === message._id) && (
             <div className="absolute top-1 -left-8 z-10 message-options-menu">
               <div className="relative">
@@ -356,7 +356,7 @@ export default function MessageList({
           >
             {/* Message content */}
             {editingMessageId === message._id ? (
-              // Edit mode - giống input chat
+              // Edit mode
               <div className="bg-white dark:bg-gray-800 rounded-lg p-2 min-w-[250px]">
                 <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
                   <span>Chỉnh sửa tin nhắn</span>
@@ -404,7 +404,7 @@ export default function MessageList({
                 </div>
               </div>
             ) : message.isDeleted ? (
-              // Deleted message - tăng contrast
+              // Deleted message
               <p className="text-sm leading-relaxed italic text-gray-600 dark:text-gray-300">
                 {message.content}
               </p>
@@ -436,7 +436,7 @@ export default function MessageList({
             )}
           </div>
           
-          {/* Edited indicator - bên ngoài bubble */}
+          {/* Edited indicator */}
           {message.isEdited && !message.isDeleted && editingMessageId !== message._id && (
             <p className={`text-xs text-gray-400 dark:text-gray-500 mt-1 italic px-2 ${
               isOwn ? 'text-right' : 'text-left'
@@ -487,7 +487,7 @@ export default function MessageList({
           </div>
         </div>
 
-        {/* Avatar for sent messages (optional, Facebook style) */}
+        {/* Avatar for sent messages */}
         {isOwn && showSenderInfo && (
           <div className="flex-shrink-0 ml-2">
             {currentUser.avatarUrl ? (

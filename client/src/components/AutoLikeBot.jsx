@@ -7,13 +7,13 @@ export default function AutoLikeBot() {
   const [loading, setLoading] = useState(false);
   const [testUsers, setTestUsers] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
-  const [botMode, setBotMode] = useState("like"); // "like" hoặc "view"
+  const [botMode, setBotMode] = useState("like");
   const [config, setConfig] = useState({
     maxPostsPerUser: 4,
     likeProbability: 1,
     emoteTypes: ["👍", "❤️", "😂", "😮", "😢", "😡"],
     maxViewsPerUser: 8,
-    forceOverride: false, // Option để ghi đè reactions cũ
+    forceOverride: false, // Option to override old reactions
   });
   const [results, setResults] = useState(null);
   const [error, setError] = useState("");
@@ -54,7 +54,7 @@ export default function AutoLikeBot() {
           likeProbability: config.likeProbability,
           selectedUsers,
           emoteTypes: config.emoteTypes,
-          enableAutoView: false, // Chỉ like, không view
+          enableAutoView: false, // Only like, no view
           maxViewsPerUser: 0,
           forceOverride: config.forceOverride, 
         },
@@ -176,7 +176,7 @@ export default function AutoLikeBot() {
 
         {/* Layout - Mobile First */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
-          {/* Cấu hình Bot - Mobile Responsive */}
+          {/* Bot Configuration - Mobile Responsive */}
           <div className="space-y-4 md:space-y-6">
             <div className="flex items-center gap-2 mb-1">
               <Settings className="w-4 h-4 md:w-5 md:h-5 text-gray-800 dark:text-gray-200" />
@@ -296,7 +296,7 @@ export default function AutoLikeBot() {
             </div>
           </div>
 
-          {/* Danh sách User - Mobile Responsive */}
+          {/* User list - Mobile Responsive */}
           <div className="space-y-3 md:space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -370,7 +370,7 @@ export default function AutoLikeBot() {
           </div>
         </div>
 
-        {/* Nút chạy bot - Mobile Responsive */}
+        {/* Run Bot Button - Mobile Responsive */}
         <div className="mt-6 md:mt-8">
           {botMode === "like" ? (
             <button
@@ -419,14 +419,14 @@ export default function AutoLikeBot() {
           )}
         </div>
 
-        {/* Hiển thị lỗi - Mobile Responsive */}
+        {/* Display Error - Mobile Responsive */}
         {error && (
           <div className="mt-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg p-3 md:p-4 text-sm md:text-base">
             {error}
           </div>
         )}
 
-        {/* Kết quả - Mobile Responsive */}
+        {/* Results - Mobile Responsive */}
         {results && (
           <div className="mt-6 md:mt-10 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-4 md:p-6">
             <div className="flex items-center gap-2 mb-4">

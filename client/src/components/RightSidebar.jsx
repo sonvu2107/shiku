@@ -1,27 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, ArrowRight, TrendingUp, Hash, Loader2, Check } from 'lucide-react';
+import { Plus, ArrowRight, TrendingUp, Hash, Loader2, Check, ExternalLink } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api';
 import UserName from './UserName';
+import UserAvatar from './UserAvatar';
+import { useTrendingTags } from '../hooks/useTrendingTags';
 
 /**
- * RightSidebar - Sidebar phải với Friend Suggestions, Trending Tags
+ * RightSidebar - Right sidebar with friend suggestions and trending tags
  */
-export default function RightSidebar({ user }) {
+function RightSidebar({ user }) {
   const [friendSuggestions, setFriendSuggestions] = useState([]);
-  const [trendingTags, setTrendingTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sendingRequests, setSendingRequests] = useState(new Set()); // Track which requests are being sent
   const [sentRequests, setSentRequests] = useState(new Set()); // Track which requests were sent successfully
   const navigate = useNavigate();
+  
+  // OPTIMIZATION: Sử dụng React Query hook với caching tự động
+  const { data: trendingTags, isLoading: tagsLoading } = useTrendingTags(3);
+  
+  // Fallback nếu chưa có data
+  const displayTags = trendingTags || [];
 
-  useEffect(() => {
-    if (user) {
-      loadData();
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
     }
-  }, [user]);
+  };
 
-  const loadData = async () => {
+  const itemVariants = {
+    hidden: { opacity: 0, x: 20 },
+    visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
+  // Memoized loadData function - chỉ load friend suggestions
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -32,80 +51,52 @@ export default function RightSidebar({ user }) {
       } catch (error) {
         // Silent fail
       }
-
-      // Load trending tags
-      loadTrendingTags();
     } catch (error) {
       // Silent fail
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadTrendingTags = async () => {
-    try {
-      // Gọi API để lấy các bài viết và đếm tags
-      const response = await api('/api/posts?limit=100&status=published');
-      
-      // Đếm tần suất xuất hiện của mỗi tag
-      const tagCount = {};
-      response.items?.forEach(post => {
-        if (post.tags && Array.isArray(post.tags)) {
-          post.tags.forEach(tag => {
-            if (tag && tag.trim()) {
-              const normalizedTag = tag.trim().toLowerCase();
-              tagCount[normalizedTag] = (tagCount[normalizedTag] || 0) + 1;
-            }
-          });
-        }
-      });
-
-      // Chuyển thành array và sắp xếp theo tần suất
-      const sortedTags = Object.entries(tagCount)
-        .map(([tag, count]) => ({ tag, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 3); // Top 3 tags
-
-      setTrendingTags(sortedTags);
-    } catch (error) {
-      // Silent fail
-      setTrendingTags([]);
+  useEffect(() => {
+    if (user) {
+      loadData();
     }
-  };
+  }, [user, loadData]);
 
   const handleTagClick = (tag) => {
     navigate(`/explore?q=${encodeURIComponent(tag)}`);
   };
 
   /**
-   * Gửi lời mời kết bạn - Tái sử dụng logic từ Friends.jsx
-   * @param {string} userId - ID của user nhận lời mời
+   * Send a friend request - reuses logic from Friends.jsx
+   * @param {string} userId - ID of the user to send the request to
    */
   const handleAddFriend = async (userId) => {
     try {
-      // Đánh dấu đang gửi request
+      // Mark request as sending
       setSendingRequests(prev => new Set(prev).add(userId));
 
-      // Gửi request sử dụng endpoint đúng - tái sử dụng logic từ Friends.jsx
+      // Send request using the appropriate endpoint (reused logic)
       await api('/api/friends/send-request', {
         method: 'POST',
         body: { to: userId }
       });
 
-      // Đánh dấu đã gửi thành công
+      // Mark as sent successfully
       setSentRequests(prev => new Set(prev).add(userId));
 
-      // Reload suggestions để cập nhật danh sách (người đã gửi lời mời sẽ không còn trong suggestions)
+      // Reload suggestions to update the list (sent user will be removed)
       try {
         const suggestionsResponse = await api('/api/friends/suggestions?limit=5');
-        // Cập nhật danh sách với suggestions mới (loại trừ user đã gửi lời mời)
+        // Update the list with new suggestions
         setFriendSuggestions(suggestionsResponse.suggestions || []);
       } catch (error) {
-        // Nếu reload thất bại, chỉ xóa user đã gửi lời mời khỏi danh sách hiện tại
+        // If reload fails, remove the sent user from the current list
         setFriendSuggestions(prev => prev.filter(f => f._id !== userId));
       }
 
-      // Xóa trạng thái "đã gửi" sau 1 giây để reset UI
+      // Clear the "sent" state after 1 second to reset the UI
       setTimeout(() => {
         setSentRequests(prev => {
           const newSet = new Set(prev);
@@ -114,10 +105,10 @@ export default function RightSidebar({ user }) {
         });
       }, 1000);
     } catch (error) {
-      // Hiển thị thông báo lỗi - tái sử dụng logic từ Friends.jsx
+      // Show error alert (reusing logic from Friends.jsx)
       alert(error.message || 'Có lỗi xảy ra khi gửi lời mời kết bạn');
     } finally {
-      // Xóa trạng thái đang gửi
+      // Clear sending state
       setSendingRequests(prev => {
         const newSet = new Set(prev);
         newSet.delete(userId);
@@ -151,14 +142,19 @@ export default function RightSidebar({ user }) {
   }
 
   return (
-    <div className="space-y-6 max-h-[calc(100vh-5rem)] overflow-y-auto scrollbar-hide">
+    <div className="space-y-6 max-h-[calc(100vh-5rem)] overflow-y-auto scrollbar-hide pb-20">
       {/* Friend Suggestions */}
-      <div className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
-          <h3 className="font-bold text-gray-900 dark:text-white">Gợi ý kết bạn</h3>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-neutral-800">
+          <h3 className="font-bold text-neutral-900 dark:text-white">Gợi ý kết bạn</h3>
           <Link
             to="/friends?tab=suggestions"
-            className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors"
+            className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center gap-1 transition-colors"
           >
             Xem tất cả
             <ArrowRight size={14} />
@@ -166,108 +162,160 @@ export default function RightSidebar({ user }) {
         </div>
         <div className="p-5">
           {friendSuggestions.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center py-4">
               Không có gợi ý bạn bè
             </p>
           ) : (
-            <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2"
+            >
               {friendSuggestions.slice(0, 4).map((friend) => {
               const isSending = sendingRequests.has(friend._id);
               const isSent = sentRequests.has(friend._id);
 
               return (
-                <div key={friend._id} className="flex items-center gap-3">
-                  <Link to={`/user/${friend._id}`} className="flex-shrink-0">
-                    <img
-                      src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&length=2&background=cccccc&color=222222&size=40`}
-                      alt={friend.name}
-                      className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-neutral-600"
+                <motion.div 
+                  key={friend._id} 
+                  variants={itemVariants}
+                  className="flex items-center gap-3 group"
+                >
+                  <Link to={`/user/${friend._id}`} className="flex-shrink-0 relative">
+                    <UserAvatar 
+                      user={friend}
+                      size={40}
+                      showFrame={true}
+                      showBadge={true}
                     />
                   </Link>
                   <div className="flex-1 min-w-0">
                     <Link
                       to={`/user/${friend._id}`}
-                      className="block text-sm font-medium text-gray-900 dark:text-white hover:underline truncate"
+                      className="block text-sm font-bold text-neutral-900 dark:text-white hover:underline truncate"
                     >
                       <UserName user={friend} />
                     </Link>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
                       @{friend.name.toLowerCase().replace(/\s+/g, '')}
                     </p>
                   </div>
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => handleAddFriend(friend._id)}
                     disabled={isSending || isSent}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 shadow-sm hover:shadow-md ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 shadow-sm ${
                       isSent
                         ? 'bg-green-500 dark:bg-green-600 text-white cursor-default'
                         : isSending
-                        ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-wait'
-                        : 'bg-gray-900 dark:bg-gray-700 text-white dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-600 active:scale-95 border border-gray-800 dark:border-gray-600'
+                        ? 'bg-neutral-400 dark:bg-neutral-600 text-white cursor-wait'
+                        : 'bg-black dark:bg-neutral-800 text-white dark:text-white hover:bg-neutral-800 dark:hover:bg-neutral-700'
                     }`}
                     title={isSent ? 'Đã gửi lời mời' : isSending ? 'Đang gửi...' : 'Gửi lời mời kết bạn'}
                   >
                     {isSent ? (
-                      <Check size={18} strokeWidth={2.5} />
+                      <Check size={16} strokeWidth={2.5} />
                     ) : isSending ? (
-                      <Loader2 size={18} className="animate-spin" strokeWidth={2.5} />
+                      <Loader2 size={16} className="animate-spin" strokeWidth={2.5} />
                     ) : (
-                      <Plus size={18} strokeWidth={2.5} />
+                      <Plus size={16} strokeWidth={2.5} />
                     )}
-                  </button>
-                </div>
+                  </motion.button>
+                </motion.div>
               );
               })}
-            </div>
+            </motion.div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Trending Tags */}
-      <div className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-neutral-800">
           <div className="flex items-center gap-2">
-            <TrendingUp size={18} className="text-gray-900 dark:text-white" />
-            <h3 className="font-bold text-gray-900 dark:text-white">Tags xu hướng</h3>
+            <TrendingUp size={18} className="text-neutral-900 dark:text-white" />
+            <h3 className="font-bold text-neutral-900 dark:text-white">Tags xu hướng</h3>
           </div>
           <Link
             to="/explore"
-            className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors"
+            className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center gap-1 transition-colors"
           >
             Xem thêm
             <ArrowRight size={14} />
           </Link>
         </div>
         <div className="p-5 space-y-2">
-          {trendingTags.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+          {tagsLoading ? (
+            <div className="text-center py-4">
+              <Loader2 size={20} className="animate-spin text-neutral-400 mx-auto" />
+            </div>
+          ) : displayTags.length === 0 ? (
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center py-4">
               Chưa có tag xu hướng
             </p>
           ) : (
-            trendingTags.map(({ tag, count }, index) => (
-              <div
-                key={tag}
-                onClick={() => handleTagClick(tag)}
-                className="flex items-center justify-between p-2.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer transition-colors group"
-              >
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
-                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{index + 1}</span>
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-1"
+            >
+              {displayTags.map(({ tag, count }, index) => (
+                <motion.div
+                  key={tag}
+                  variants={itemVariants}
+                  onClick={() => handleTagClick(tag)}
+                  className="flex items-center justify-between p-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-all group"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 group-hover:bg-white dark:group-hover:bg-black border border-transparent group-hover:border-neutral-200 dark:group-hover:border-neutral-700 flex items-center justify-center transition-all">
+                      <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 group-hover:text-black dark:group-hover:text-white">#{index + 1}</span>
+                    </div>
+                    <span className="font-medium text-neutral-700 dark:text-neutral-200 truncate group-hover:text-black dark:group-hover:text-white transition-colors">
+                      {tag}
+                    </span>
                   </div>
-                  <Hash size={14} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                  <span className="font-medium text-gray-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    {tag}
+                  <span className="text-xs text-neutral-400 dark:text-neutral-500 font-medium ml-2 flex-shrink-0 bg-neutral-50 dark:bg-neutral-900 px-2 py-1 rounded-md">
+                    {count}
                   </span>
-                </div>
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium ml-2 flex-shrink-0">
-                  {count} bài
-                </span>
-              </div>
-            ))
+                </motion.div>
+              ))}
+            </motion.div>
           )}
         </div>
-      </div>
+      </motion.div>
+
+      {/* Footer Links */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="px-4 py-2"
+      >
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-neutral-400 dark:text-neutral-500 justify-center">
+          <Link to="/about" className="hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors">Giới thiệu</Link>
+          <Link to="/help" className="hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors">Hỗ trợ</Link>
+          <Link to="/terms" className="hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors">Điều khoản</Link>
+          <Link to="/privacy" className="hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors">Quyền riêng tư</Link>
+        </div>
+        <div className="mt-4 text-center text-[10px] text-neutral-300 dark:text-neutral-600 font-medium">
+          © 2025 SHIKU SOCIAL
+        </div>
+      </motion.div>
     </div>
   );
 }
+
+// Memoize component để tối ưu performance
+export default React.memo(RightSidebar, (prevProps, nextProps) => {
+  // Re-render chỉ khi user._id thay đổi
+  return prevProps.user?._id === nextProps.user?._id;
+});
 

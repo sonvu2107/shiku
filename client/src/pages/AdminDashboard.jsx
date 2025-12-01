@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 
 /**
- * AdminDashboard - Trang quản trị admin (Redesigned)
+ * AdminDashboard - Admin dashboard page (Redesigned)
  * Style: Monochrome Luxury
  */
 export default function AdminDashboard() {
@@ -229,10 +229,10 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* --- LEFT SIDEBAR --- */}
+      {/* --- LEFT SIDEBAR --- */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl rounded-2xl p-2 border border-neutral-200/80 dark:border-neutral-800/80 shadow-sm sticky top-24 overflow-y-auto max-h-[calc(100vh-8rem)] custom-scrollbar">
-            {menuItems.map((item) => (
+               <div className="bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl rounded-2xl p-2 border border-neutral-200/80 dark:border-neutral-800/80 shadow-sm sticky top-24 overflow-y-auto max-h-[calc(100vh-8rem)] custom-scrollbar">
+                  {menuItems.map((item) => (
             <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
@@ -253,7 +253,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-        {/* --- RIGHT CONTENT --- */}
+      {/* --- RIGHT CONTENT --- */}
         <div className="lg:col-span-9 min-h-[500px]">
           <AnimatePresence mode="wait">
             
@@ -266,7 +266,7 @@ export default function AdminDashboard() {
                     <>
                        {/* Overview Cards */}
                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {/* Bài viết */}
+                {/* Posts */}
                           <SpotlightCard className="p-4 bg-blue-50/50 dark:bg-blue-900/10">
                   <div className="flex items-center gap-2 mb-2">
                                 <FileText className="text-blue-600 dark:text-blue-400" size={24} />
@@ -288,7 +288,7 @@ export default function AdminDashboard() {
                   )}
                           </SpotlightCard>
 
-                {/* Lượt xem */}
+                {/* Views */}
                           <SpotlightCard className="p-4 bg-green-50/50 dark:bg-green-900/10">
                   <div className="flex items-center gap-2 mb-2">
                                 <Eye className="text-green-600 dark:text-green-400" size={24} />
@@ -310,7 +310,7 @@ export default function AdminDashboard() {
                   )}
                           </SpotlightCard>
 
-                {/* Bình luận */}
+                {/* Comments */}
                           <SpotlightCard className="p-4 bg-purple-50/50 dark:bg-purple-900/10">
                   <div className="flex items-center gap-2 mb-2">
                                 <MessageCircle className="text-purple-600 dark:text-purple-400" size={24} />
@@ -332,7 +332,7 @@ export default function AdminDashboard() {
                   )}
                           </SpotlightCard>
 
-                {/* Emotes */}
+                {/* Reactions */}
                           <SpotlightCard className="p-4 bg-red-50/50 dark:bg-red-900/10">
                   <div className="flex items-center gap-2 mb-2">
                                 <Heart className="text-red-600 dark:text-red-400" size={24} />
@@ -354,7 +354,7 @@ export default function AdminDashboard() {
                   )}
                           </SpotlightCard>
 
-                {/* Người dùng */}
+                {/* Users */}
                           <SpotlightCard className="p-4 bg-yellow-50/50 dark:bg-yellow-900/10">
                   <div className="flex items-center gap-2 mb-2">
                                 <Users className="text-yellow-600 dark:text-yellow-400" size={24} />
@@ -376,7 +376,7 @@ export default function AdminDashboard() {
                   )}
                           </SpotlightCard>
 
-                          {/* Bài đã đăng */}
+                          {/* Published posts */}
                           <SpotlightCard className="p-4 bg-indigo-50/50 dark:bg-indigo-900/10">
                   <div className="flex items-center gap-2 mb-2">
                                 <FileText className="text-indigo-600 dark:text-indigo-400" size={24} />
@@ -398,7 +398,7 @@ export default function AdminDashboard() {
                   )}
                           </SpotlightCard>
 
-                {/* Bài riêng tư */}
+                {/* Draft posts */}
                           <SpotlightCard className="p-4 bg-gray-50/50 dark:bg-gray-800/50">
                   <div className="flex items-center gap-2 mb-2">
                                 <Edit className="text-gray-600 dark:text-gray-400" size={24} />
@@ -420,7 +420,7 @@ export default function AdminDashboard() {
                   )}
                           </SpotlightCard>
 
-                {/* Admin */}
+                          {/* Admin */}
                           <SpotlightCard className="p-4 bg-pink-50/50 dark:bg-pink-900/10">
                   <div className="flex items-center gap-2 mb-2">
                                 <Crown className="text-pink-600 dark:text-pink-400" size={24} />
@@ -442,7 +442,7 @@ export default function AdminDashboard() {
                   )}
                           </SpotlightCard>
 
-                {/* Người online */}
+                {/* Online users */}
                           <SpotlightCard className="p-4 bg-emerald-50/50 dark:bg-emerald-900/10">
                   <div className="flex items-center gap-2 mb-2">
                                 <Wifi className="text-emerald-600 dark:text-emerald-400" size={24} />
@@ -459,7 +459,7 @@ export default function AdminDashboard() {
                     </div>
                           </SpotlightCard>
 
-                {/* Tổng lượt truy cập */}
+                {/* Total visitors */}
                           <SpotlightCard className="p-4 bg-cyan-50/50 dark:bg-cyan-900/10">
                   <div className="flex items-center gap-2 mb-2">
                                 <UserCheck className="text-cyan-600 dark:text-cyan-400" size={24} />

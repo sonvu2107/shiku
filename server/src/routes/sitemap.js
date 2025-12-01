@@ -1,3 +1,14 @@
+/**
+ * Sitemap Routes
+ * 
+ * Routes tạo sitemap.xml động cho SEO:
+ * - Generate sitemap với tất cả nội dung từ database
+ * - Bao gồm: posts, users, groups, events
+ * - Hỗ trợ pagination cho sitemap lớn
+ * 
+ * @module sitemap
+ */
+
 import express from 'express';
 import Post from '../models/Post.js';
 import User from '../models/User.js';
@@ -5,11 +16,6 @@ import Group from '../models/Group.js';
 import Event from '../models/Event.js';
 
 const router = express.Router();
-
-/**
- * Sitemap Routes - API routes cho sitemap tổng
- * Generate sitemap.xml với tất cả nội dung từ database
- */
 
 // Generate dynamic sitemap
 router.get('/', async (req, res) => {

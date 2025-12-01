@@ -4,9 +4,9 @@ import { BarChart3, Users, Clock, CheckCircle2, Plus, X } from "lucide-react";
 import { useSocket } from "../hooks/useSocket";
 
 /**
- * Poll Component - Hiển thị poll/survey với realtime voting
- * @param {Object} post - Post object chứa poll
- * @param {Object} user - Người dùng hiện tại
+ * Poll Component - Show poll/survey with realtime voting
+ * @param {Object} post - Post object containing poll
+ * @param {Object} user - Current user object
  */
 export default function Poll({ post, user }) {
   const [pollData, setPollData] = useState(null);
@@ -18,7 +18,7 @@ export default function Poll({ post, user }) {
   const [addingOptions, setAddingOptions] = useState(false);
   const socket = useSocket();
 
-  // Tải dữ liệu cuộc bình chọn
+  // Load poll data
   useEffect(() => {
     const loadPoll = async () => {
       try {
@@ -42,13 +42,13 @@ export default function Poll({ post, user }) {
   useEffect(() => {
     if (!socket || !pollData) return;
 
-    // Tham gia vào phòng bình chọn
+    // Join poll room
     socket.emit("join-poll", pollData._id);
 
-    // Lắng nghe các cập nhật bình chọn
+    // Listen for poll updates
     const handlePollUpdate = (data) => {
       if (data.pollId?.toString() === pollData._id?.toString()) {
-        // Cập nhật kết quả
+        // Update results
         setPollData(prev => ({
           ...prev,
           results: data.results,
@@ -59,14 +59,14 @@ export default function Poll({ post, user }) {
 
     socket.on("poll-update", handlePollUpdate);
 
-    // Dọn dẹp
+    // Cleanup
     return () => {
       socket.off("poll-update", handlePollUpdate);
       socket.emit("leave-poll", pollData._id);
     };
   }, [socket, pollData]);
 
-  // Xử lý phiếu bầu
+  // Handle vote
   const handleVote = async (optionIndex) => {
     if (!user) {
       alert("Vui lòng đăng nhập để bình chọn");
@@ -78,7 +78,7 @@ export default function Poll({ post, user }) {
       return;
     }
 
-    // Kiểm tra hết hạn
+    // Check if poll expired
     if (pollData.expiresAt && new Date() >= new Date(pollData.expiresAt)) {
       alert("Bình chọn đã hết hạn");
       return;
@@ -91,7 +91,7 @@ export default function Poll({ post, user }) {
         body: { optionIndex }
       });
 
-      // Cập nhật dữ liệu bình chọn sau khi bầu
+      // Update poll data after voting
       setPollData(response.poll);
     } catch (error) {
       console.error("Error voting:", error);

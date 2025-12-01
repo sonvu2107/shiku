@@ -10,7 +10,7 @@ import User from "../models/User.js";
  */
 export async function authRequired(req, res, next) {
   // Lấy token từ cookie trước
-  let token = req.cookies?.token;
+  let token = req.cookies?.accessToken;
   
   // Nếu không có trong cookie, kiểm tra Authorization header
   if (!token) {
@@ -46,7 +46,7 @@ export async function authRequired(req, res, next) {
  */
 export async function authOptional(req, res, next) {
   // Lấy token từ cookie hoặc header
-  let token = req.cookies?.token;
+  let token = req.cookies?.accessToken;
   if (!token) {
     const header = req.headers.authorization || "";
     token = header.startsWith("Bearer ") ? header.slice(7) : null;

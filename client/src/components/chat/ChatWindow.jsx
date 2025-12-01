@@ -6,22 +6,22 @@ import ChatHeader from "./ChatHeader";
 import ComponentErrorBoundary from "../ComponentErrorBoundary";
 
 /**
- * ChatWindow - Component cửa sổ chat chính
- * Bao gồm header, danh sách tin nhắn và input để gửi tin nhắn
- * @param {Object} conversation - Cuộc trò chuyện hiện tại
- * @param {Object} currentUserd - User hiện tại
- * @param {Array} messages - Danh sách tin nhắn
- * @param {boolean} isLoadingMessages - Loading state cho tin nhắn
- * @param {boolean} hasMoreMessages - Có thêm tin nhắn để load
- * @param {Function} onSendMessage - Callback gửi tin nhắn
- * @param {Function} onLoadMoreMessages - Callback load thêm tin nhắn
- * @param {Function} onUpdateConversation - Callback cập nhật cuộc trò chuyện
- * @param {Function} onLeaveConversation - Callback rời cuộc trò chuyện
- * @param {Function} onDeleteConversation - Callback xóa cuộc trò chuyện
- * @param {Function} onAddMembers - Callback thêm thành viên
- * @param {Function} onVideoCall - Callback gọi video
- * @param {Function} onVoiceCall - Callback gọi thoại
- * @param {Function} onBack - Callback quay lại danh sách (mobile)
+ * ChatWindow - Component for main chat window
+ * Includes header, message list, and input for sending messages
+ * @param {Object} conversation - Current conversation
+ * @param {Object} currentUser - Current user
+ * @param {Array} messages - List of messages
+ * @param {boolean} isLoadingMessages - Loading state for messages
+ * @param {boolean} hasMoreMessages - Whether there are more messages to load
+ * @param {Function} onSendMessage - Callback to send a message
+ * @param {Function} onLoadMoreMessages - Callback to load more messages
+ * @param {Function} onUpdateConversation - Callback to update conversation
+ * @param {Function} onLeaveConversation - Callback to leave conversation
+ * @param {Function} onDeleteConversation - Callback to delete conversation
+ * @param {Function} onAddMembers - Callback to add members
+ * @param {Function} onVideoCall - Callback to start video call
+ * @param {Function} onVoiceCall - Callback to start voice call
+ * @param {Function} onBack - Callback to go back to the list (mobile)
  */
 export default function ChatWindow({ 
   conversation, 
@@ -40,8 +40,8 @@ export default function ChatWindow({
   onBack
 }) {
   // ==================== REFS ====================
-  const messagesEndRef = useRef(null); // Ref để scroll xuống cuối tin nhắn
-  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true); // Kiểm soát scroll
+  const messagesEndRef = useRef(null); // Ref to scroll to the bottom of the messages
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true); // Control scroll
 
   // Scroll to bottom when conversation changes (first load)
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function ChatWindow({
   };
 
   const handleSendMessage = async (content, messageType = 'text', emote = null, image = null) => {
-    setShouldScrollToBottom(true); // Scroll to bottom khi gửi tin nhắn
+    setShouldScrollToBottom(true); // Scroll to bottom when sending a message
     if (onSendMessage) {
       await onSendMessage(content, messageType, emote, image);
     }

@@ -1,3 +1,15 @@
+/**
+ * Posts Secure Routes
+ * 
+ * Routes xử lý bài viết với các biện pháp bảo mật nâng cao:
+ * - Input validation và sanitization
+ * - Security logging
+ * - MongoDB injection protection
+ * - JWT authentication
+ * 
+ * @module posts-secure
+ */
+
 import express from "express";
 import mongoose from "mongoose";
 import Post from "../models/Post.js";
@@ -98,7 +110,7 @@ router.get("/",
 
       // Thực hiện query với timeout
       const posts = await Post.find(filter)
-        .populate("author", "name nickname avatarUrl role")
+        .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache")
         .sort(pagination.sort)
         .skip(pagination.skip)
         .limit(pagination.limit)
@@ -152,7 +164,7 @@ router.get("/:id",
       }
 
       let post = await Post.findById(id)
-        .populate("author", "name nickname avatarUrl role");
+        .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache");
 
       // Kiểm tra quyền truy cập cho bài viết private
       if (post && post.status === "private") {
@@ -173,13 +185,13 @@ router.get("/:id",
 
       // Lấy comments
       const comments = await Comment.find({ post: post._id })
-        .populate("author", "name nickname avatarUrl role")
+        .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache")
         .populate("parent", "_id")
         .sort({ createdAt: -1 })
         .maxTimeMS(3000);
 
       // Populate emotes
-      await post.populate("emotes.user", "name avatarUrl role");
+      await post.populate("emotes.user", "name avatarUrl role displayBadgeType");
 
       res.json({ 
         post: { 
@@ -692,7 +704,7 @@ router.get("/saved/list", authRequired, async (req, res, next) => {
     if (allEmoteUserIds.size > 0) {
       const uniqueUserIds = Array.from(allEmoteUserIds);
       const users = await User.find({ _id: { $in: uniqueUserIds } })
-        .select("name nickname avatarUrl role")
+        .select("name nickname avatarUrl role cultivationCache displayBadgeType")
         .lean();
       
       users.forEach(u => userMap.set(u._id.toString(), u));
