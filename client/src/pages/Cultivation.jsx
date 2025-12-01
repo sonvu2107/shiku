@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { CultivationProvider, useCultivation } from '../hooks/useCultivation.jsx';
 import { CULTIVATION_REALMS, formatNumber } from '../services/cultivationAPI.js';
+import { getCSRFToken } from '../utils/csrfToken.js';
+import { api } from '../api';
 
 // ==================== LOG MESSAGES ====================
 const LOG_MESSAGES = [
@@ -1069,12 +1071,38 @@ const InventoryTab = memo(function InventoryTab() {
 });
 
 // ==================== LEADERBOARD TAB ====================
-const LeaderboardTab = memo(function LeaderboardTab() {
+const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
   const { leaderboard, loadLeaderboard, loading } = useCultivation();
+  const [fixing, setFixing] = useState(false);
 
   useEffect(() => {
     loadLeaderboard('exp', 20);
   }, [loadLeaderboard]);
+
+  const handleFixRealms = async () => {
+    if (!window.confirm('Bạn có chắc muốn fix lại tất cả cảnh giới dựa trên exp?')) return;
+    setFixing(true);
+    try {
+      // Lấy CSRF token
+      const csrfToken = await getCSRFToken();
+      
+      const res = await fetch('/api/cultivation/fix-realms', { 
+        method: 'POST',
+        credentials: 'include',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken || ''
+        }
+      });
+      const data = await res.json();
+      alert(data.message || 'Đã fix xong!');
+      loadLeaderboard('exp', 20); // Reload leaderboard
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+    } finally {
+      setFixing(false);
+    }
+  };
 
   if (loading || !leaderboard) {
     return <LoadingSkeleton />;
@@ -1082,7 +1110,18 @@ const LeaderboardTab = memo(function LeaderboardTab() {
 
   return (
     <div className="space-y-3 pb-2">
-      <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">BẢNG XẾP HẠNG</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">BẢNG XẾP HẠNG</h3>
+        {isAdmin && (
+          <button
+            onClick={handleFixRealms}
+            disabled={fixing}
+            className="text-xs px-3 py-1 bg-amber-600/20 border border-amber-500/30 rounded-lg text-amber-400 hover:bg-amber-600/30 disabled:opacity-50"
+          >
+            {fixing ? 'Đang fix...' : 'Fix BXH'}
+          </button>
+        )}
+      </div>
       
       {leaderboard.leaderboard?.map((entry, idx) => (
         <motion.div
@@ -1123,6 +1162,22 @@ const LeaderboardTab = memo(function LeaderboardTab() {
 const CultivationContent = memo(function CultivationContent() {
   const { cultivation, checkIn, loading, addExp, collectPassiveExp, loadPassiveExpStatus, notification, clearNotification } = useCultivation();
   
+  // Get user from API to check admin
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const data = await api('/api/auth/me');
+        if (data.user) {
+          setIsAdmin(data.user.role === 'admin');
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    };
+    checkAdmin();
+  }, []);
+  
   // States
   const [activeTab, setActiveTab] = useState('dashboard');
   const [logs, setLogs] = useState([{ id: 0, text: "-- Bắt đầu bước vào con đường tu tiên --", type: 'normal' }]);
@@ -1154,7 +1209,7 @@ const CultivationContent = memo(function CultivationContent() {
           setPassiveExpStatus(status);
         }
       } catch (err) {
-        console.error('[Cultivation] Error loading passive exp status:', err);
+        // Silent fail
       }
     };
 
@@ -1411,7 +1466,7 @@ const CultivationContent = memo(function CultivationContent() {
           {activeTab === 'quests' && <QuestsTab />}
           {activeTab === 'shop' && <ShopTab />}
           {activeTab === 'inventory' && <InventoryTab />}
-          {activeTab === 'leaderboard' && <LeaderboardTab />}
+          {activeTab === 'leaderboard' && <LeaderboardTab isAdmin={isAdmin} />}
         </div>
       </div>
 

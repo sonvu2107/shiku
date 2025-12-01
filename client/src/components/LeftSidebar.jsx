@@ -25,6 +25,7 @@ import { api } from '../api';
 import { getCachedRole, loadRoles } from '../utils/roleCache';
 import { useUserStats } from '../hooks/useUserStats';
 import UserAvatar from './UserAvatar';
+import CultivationBadge from './CultivationBadge';
 
 /**
  * LeftSidebar - Lefit sidebar component
@@ -381,18 +382,29 @@ function LeftSidebar({ user, setUser }) {
               />
               <div className="flex-1 min-w-0">
                 <p className="text-white font-medium text-sm truncate">{user.name}</p>
-                {/* Hiển thị role hoặc cảnh giới tùy theo lựa chọn */}
-                {user.displayBadgeType === 'cultivation' ? (
-                  user.cultivationCache?.realmName && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-400">
-                      <Sparkles size={10} />
-                      {user.cultivationCache.realmName}
-                      {user.cultivationCache.realmLevel > 1 && ` T${user.cultivationCache.realmLevel}`}
+                {/* Hiển thị theo displayBadgeType: none=role, realm/both=cảnh giới, title=danh hiệu */}
+                <div className="flex items-center gap-1 flex-wrap">
+                  {/* Role label - chỉ hiển thị khi displayBadgeType = 'none' hoặc 'role' */}
+                  {(!user.displayBadgeType || user.displayBadgeType === 'none' || user.displayBadgeType === 'role') && (
+                    <span className="text-neutral-400 text-xs truncate">{roleLabel}</span>
+                  )}
+                  {/* Cảnh giới tu tiên - hiển thị nếu displayBadgeType là realm hoặc both */}
+                  {(user.displayBadgeType === 'realm' || user.displayBadgeType === 'both' || user.displayBadgeType === 'cultivation') && 
+                   user.cultivationCache?.realmName && (
+                    <CultivationBadge 
+                      cultivation={user.cultivationCache} 
+                      size="sm" 
+                      variant="gradient" 
+                    />
+                  )}
+                  {/* Danh hiệu tu tiên - hiển thị nếu displayBadgeType là title hoặc both */}
+                  {(user.displayBadgeType === 'title' || user.displayBadgeType === 'both') && 
+                   user.cultivationCache?.equipped?.title && (
+                    <span className="text-amber-400 text-xs truncate">
+                      {user.cultivationCache.equipped.title.replace('title_', '').replace(/_/g, ' ')}
                     </span>
-                  )
-                ) : (
-                  <p className="text-neutral-400 text-xs truncate">{roleLabel}</p>
-                )}
+                  )}
+                </div>
               </div>
               <button
                 onClick={handleLogout}

@@ -162,7 +162,7 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
               localField: "emotes.user",
               foreignField: "_id",
               as: "emotes.user",
-              pipeline: [{ $project: { name: 1, nickname: 1, avatarUrl: 1, role: 1 } }]
+              pipeline: [{ $project: { name: 1, nickname: 1, avatarUrl: 1, role: 1, displayBadgeType: 1, cultivationCache: 1 } }]
             }
           },
           {
@@ -824,7 +824,7 @@ router.get("/", authOptional, async (req, res, next) => {
           foreignField: "_id",
           as: "authorData",
           pipeline: [
-            { $project: { _id: 1, name: 1, nickname: 1, avatarUrl: 1, role: 1 } }
+            { $project: { _id: 1, name: 1, nickname: 1, avatarUrl: 1, role: 1, displayBadgeType: 1, cultivationCache: 1 } }
           ]
         }
       },

@@ -70,9 +70,9 @@ const UserSchema = new mongoose.Schema({
   showEvents: { type: Boolean, default: true }, // Hiển thị sự kiện tham gia
   displayBadgeType: { 
     type: String, 
-    enum: ["role", "cultivation"], 
-    default: "role" 
-  }, // Hiển thị badge: role (vai trò) hoặc cultivation (cảnh giới tu tiên)
+    enum: ["realm", "title", "both", "none", "role", "cultivation"], 
+    default: "none" 
+  }, // Hiển thị badge tu tiên: realm (cảnh giới), title (danh hiệu), both (cả hai), none (không hiển thị - chỉ tick xanh)
   
   // ==================== TÍNH NĂNG MẠNG XÃ HỘI ====================
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Danh sách bạn bè

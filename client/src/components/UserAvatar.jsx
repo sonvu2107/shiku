@@ -345,7 +345,7 @@ const UserAvatar = memo(function UserAvatar({
 });
 
 /**
- * Component hiển thị chỉ danh hiệu (inline)
+ * Component hiển thị chỉ danh hiệu (inline) - không icon
  */
 export const UserTitle = memo(function UserTitle({ user, cultivation, className = '' }) {
   const equipped = useMemo(() => {
@@ -361,15 +361,14 @@ export const UserTitle = memo(function UserTitle({ user, cultivation, className 
 
   return (
     <span
-      className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${className}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${className}`}
       style={{
-        backgroundColor: `${titleConfig.color}20`,
+        backgroundColor: `${titleConfig.color}15`,
         color: titleConfig.color,
-        border: `1px solid ${titleConfig.color}40`
+        border: `1px solid ${titleConfig.color}25`
       }}
       title={titleConfig.name}
     >
-      <span className="mr-0.5">{titleConfig.icon}</span>
       {titleConfig.name}
     </span>
   );

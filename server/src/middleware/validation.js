@@ -269,10 +269,10 @@ export const updateProfileSchema = Joi.object({
   showPosts: Joi.boolean().optional(),
   showEvents: Joi.boolean().optional(),
   displayBadgeType: Joi.string()
-    .valid('role', 'cultivation')
+    .valid('realm', 'title', 'both', 'none', 'role', 'cultivation')
     .optional()
     .messages({
-      'any.only': 'Loại badge phải là role hoặc cultivation'
+      'any.only': 'Loại badge phải là realm, title, both hoặc none'
     })
 });
 

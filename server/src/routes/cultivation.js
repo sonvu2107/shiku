@@ -710,6 +710,14 @@ router.get("/leaderboard", async (req, res, next) => {
     
     const leaderboard = await Cultivation.getLeaderboard(type, parseInt(limit));
     
+    // Debug log
+    console.log("[LEADERBOARD] Raw data sample:", leaderboard.slice(0, 3).map(e => ({
+      userName: e.user?.name,
+      realmLevel: e.realmLevel,
+      realmName: e.realmName,
+      exp: e.exp
+    })));
+    
     // Tìm vị trí của user hiện tại
     const userCultivation = await Cultivation.findOne({ user: userId });
     let userRank = null;
@@ -961,6 +969,67 @@ router.get("/stats", async (req, res, next) => {
     });
   } catch (error) {
     console.error("[CULTIVATION] Error getting stats:", error);
+    next(error);
+  }
+});
+
+/**
+ * POST /api/cultivation/fix-realms
+ * Admin: Fix realm levels cho tất cả users dựa trên exp
+ */
+router.post("/fix-realms", async (req, res, next) => {
+  try {
+    // Lấy tất cả cultivation records
+    const cultivations = await Cultivation.find().populate('user', 'name');
+    let fixed = 0;
+    const details = [];
+    
+    console.log(`[FIX-REALMS] Found ${cultivations.length} cultivation records`);
+    console.log(`[FIX-REALMS] CULTIVATION_REALMS:`, CULTIVATION_REALMS.map(r => ({ level: r.level, name: r.name, minExp: r.minExp })));
+    
+    for (const cult of cultivations) {
+      // Debug: tính realm thủ công
+      let correctRealm = CULTIVATION_REALMS[0];
+      for (let i = CULTIVATION_REALMS.length - 1; i >= 0; i--) {
+        if (cult.exp >= CULTIVATION_REALMS[i].minExp) {
+          correctRealm = CULTIVATION_REALMS[i];
+          break;
+        }
+      }
+      
+      const needsFix = cult.realmLevel !== correctRealm.level || cult.realmName !== correctRealm.name;
+      
+      console.log(`[FIX-REALMS] User ${cult.user?.name}: exp=${cult.exp}, current=${cult.realmLevel}/${cult.realmName}, correct=${correctRealm.level}/${correctRealm.name}, needsFix=${needsFix}`);
+      
+      details.push({
+        userName: cult.user?.name || 'Unknown',
+        exp: cult.exp,
+        currentLevel: cult.realmLevel,
+        currentName: cult.realmName,
+        correctLevel: correctRealm.level,
+        correctName: correctRealm.name,
+        needsFix
+      });
+      
+      if (needsFix) {
+        const oldName = cult.realmName;
+        cult.realmLevel = correctRealm.level;
+        cult.realmName = correctRealm.name;
+        await cult.save(); 
+        fixed++;
+        console.log(`[FIX-REALMS] [SUCCEEDED] Fixed ${cult.user?.name}: exp=${cult.exp}, ${oldName} -> ${correctRealm.name}`);
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Đã sửa ${fixed}/${cultivations.length} bản ghi`,
+      fixed,
+      total: cultivations.length,
+      details
+    });
+  } catch (error) {
+    console.error("[CULTIVATION] Error fixing realms:", error);
     next(error);
   }
 });

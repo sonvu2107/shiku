@@ -6,6 +6,7 @@ import Button from "../ui/Button";
 import { PROFILE_MESSAGES } from "../../constants/profile";
 import UserAvatar, { UserTitle } from "../UserAvatar";
 import ProfileEffect from "../ProfileEffect";
+import CultivationBadge from "../CultivationBadge";
 import { useRef } from "react";
 
 /**
@@ -144,26 +145,26 @@ export default function ProfileHeader({
               >
                 {form.name}
               </motion.h1>
-              {/* Hiển thị role hoặc cảnh giới tùy theo lựa chọn công khai */}
-              {user.displayBadgeType === 'cultivation' ? (
-                // Hiển thị cảnh giới tu tiên
-                user.cultivationCache?.realmName && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-full text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                    <Sparkles size={12} />
-                    {user.cultivationCache.realmName}
-                    {user.cultivationCache.realmLevel > 1 && ` T${user.cultivationCache.realmLevel}`}
-                  </span>
-                )
-              ) : (
-                // Hiển thị role (mặc định)
-                user.role && user.role !== "user" && (
-                  <span className="px-3 py-1 bg-neutral-900 dark:bg-white text-white dark:text-black text-xs font-bold rounded-full uppercase tracking-wider">
-                    {user.role}
-                  </span>
-                )
+              {/* Role badge - chỉ hiển thị khi displayBadgeType = 'none' hoặc 'role' */}
+              {(!user.displayBadgeType || user.displayBadgeType === 'none' || user.displayBadgeType === 'role') && 
+               user.role && user.role !== "user" && (
+                <span className="px-3 py-1 bg-neutral-900 dark:bg-white text-white dark:text-black text-xs font-bold rounded-full uppercase tracking-wider">
+                  {user.role}
+                </span>
               )}
-              {/* Danh hiệu tu tiên */}
-              <UserTitle user={user} className="text-sm" />
+              {/* Hiển thị cảnh giới tu tiên - nếu chọn realm hoặc both */}
+              {(user.displayBadgeType === 'realm' || user.displayBadgeType === 'both' || user.displayBadgeType === 'cultivation') && 
+               user.cultivationCache?.realmName && (
+                <CultivationBadge 
+                  cultivation={user.cultivationCache} 
+                  size="md" 
+                  variant="gradient" 
+                />
+              )}
+              {/* Danh hiệu tu tiên - nếu chọn title hoặc both */}
+              {(user.displayBadgeType === 'title' || user.displayBadgeType === 'both') && (
+                <UserTitle user={user} className="text-sm" />
+              )}
             </div>
             <p className="text-neutral-500 dark:text-neutral-400 text-lg font-medium mb-4">
               {form.nickname || PROFILE_MESSAGES.NO_NICKNAME}

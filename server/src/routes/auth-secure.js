@@ -667,7 +667,7 @@ router.get("/me",
           showFriends: req.user.showFriends,
           showPosts: req.user.showPosts,
           showEvents: req.user.showEvents,
-          displayBadgeType: req.user.displayBadgeType || 'role',
+          displayBadgeType: req.user.displayBadgeType || 'none',
           cultivation: cultivationInfo,
           cultivationCache: cultivationCache,
           isOnline: req.user.isOnline,
@@ -828,7 +828,7 @@ router.put("/update-profile",
           showFriends: req.user.showFriends,
           showPosts: req.user.showPosts,
           showEvents: req.user.showEvents,
-          displayBadgeType: req.user.displayBadgeType || 'role',
+          displayBadgeType: req.user.displayBadgeType || 'none',
           cultivationCache: req.user.cultivationCache
         }
       });

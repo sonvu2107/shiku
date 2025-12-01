@@ -120,7 +120,7 @@ export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds =
           localField: "author",
           foreignField: "_id",
           as: "author",
-          pipeline: [{ $project: { name: 1, nickname: 1, avatarUrl: 1, role: 1 } }]
+          pipeline: [{ $project: { name: 1, nickname: 1, avatarUrl: 1, role: 1, displayBadgeType: 1, cultivationCache: 1 } }]
         }
       },
       { $unwind: { path: "$author", preserveNullAndEmptyArrays: true } },
@@ -220,7 +220,7 @@ export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, 
           localField: "author",
           foreignField: "_id",
           as: "author",
-          pipeline: [{ $project: { name: 1, nickname: 1, avatarUrl: 1, role: 1 } }]
+          pipeline: [{ $project: { name: 1, nickname: 1, avatarUrl: 1, role: 1, displayBadgeType: 1, cultivationCache: 1 } }]
         }
       },
       { $unwind: { path: "$author", preserveNullAndEmptyArrays: true } },

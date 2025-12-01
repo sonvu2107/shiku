@@ -170,7 +170,7 @@ function RightSidebar({ user }) {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2"
+              className="space-y-4"
             >
               {friendSuggestions.slice(0, 4).map((friend) => {
               const isSending = sendingRequests.has(friend._id);
@@ -186,8 +186,8 @@ function RightSidebar({ user }) {
                     <UserAvatar 
                       user={friend}
                       size={40}
-                      showFrame={true}
-                      showBadge={true}
+                      showFrame={false}
+                      showBadge={false}
                     />
                   </Link>
                   <div className="flex-1 min-w-0">

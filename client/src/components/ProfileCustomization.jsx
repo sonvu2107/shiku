@@ -22,7 +22,8 @@ import {
   Image as ImageIcon,
   Settings,
   Sparkles,
-  Shield
+  Shield,
+  Crown
 } from "lucide-react";
 import { cn } from "../utils/cn";
 
@@ -94,14 +95,26 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
     showPosts: true
   });
   
-  // Display badge type state (role or cultivation)
-  const [displayBadgeType, setDisplayBadgeType] = useState("role");
+  // Display badge type state (realm, title, both, none) - controls cultivation badges only
+  // VerifiedBadge (role tick) is always shown
+  const [displayBadgeType, setDisplayBadgeType] = useState("none");
   
   // Upload states
   const [uploadingCover, setUploadingCover] = useState(false);
   const [previewCover, setPreviewCover] = useState("");
 
   // ==================== EFFECTS ====================
+
+  // Migrate old displayBadgeType values to new ones
+  const migrateDisplayBadgeType = (value) => {
+    if (!value) return "none"; // Default: only show VerifiedBadge
+    // Migrate from old values
+    if (value === "role") return "none"; // role -> none (only VerifiedBadge)
+    if (value === "cultivation") return "realm"; // cultivation -> realm
+    // Keep new values
+    if (["realm", "title", "both", "none"].includes(value)) return value;
+    return "none";
+  };
   
   useEffect(() => {
     if (user) {
@@ -123,7 +136,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
         showPosts: user.showPosts !== false
       });
       
-      setDisplayBadgeType(user.displayBadgeType || "role");
+      setDisplayBadgeType(migrateDisplayBadgeType(user.displayBadgeType));
       setPreviewCover(user.coverUrl || "");
     }
   }, [user]);
@@ -544,59 +557,19 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                   </div>
                 </SpotlightCard>
 
-                {/* Badge Display Type */}
+                {/* Badge Display Type - Tu Tiên */}
                 <SpotlightCard>
-                  <h3 className="font-bold text-neutral-900 dark:text-white mb-2">Hiển thị danh hiệu</h3>
+                  <h3 className="font-bold text-neutral-900 dark:text-white mb-2">Hiển thị Tu Tiên</h3>
                   <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
-                    Chọn loại danh hiệu hiển thị bên cạnh tên của bạn
+                    Chọn thông tin tu tiên hiển thị bên cạnh tên của bạn
                   </p>
                   <div className="grid grid-cols-2 gap-3">
-                    {/* Role option */}
+                    {/* Realm option - Cảnh giới */}
                     <button
-                      onClick={() => setDisplayBadgeType("role")}
+                      onClick={() => setDisplayBadgeType("realm")}
                       className={cn(
                         "relative p-4 rounded-xl border-2 transition-all duration-200",
-                        displayBadgeType === "role"
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
-                      )}
-                    >
-                      <div className="flex flex-col items-center gap-2">
-                        <div className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center",
-                          displayBadgeType === "role"
-                            ? "bg-blue-500 text-white"
-                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
-                        )}>
-                          <Shield className="w-5 h-5" />
-                        </div>
-                        <span className={cn(
-                          "font-bold text-sm",
-                          displayBadgeType === "role"
-                            ? "text-blue-600 dark:text-blue-400"
-                            : "text-neutral-700 dark:text-neutral-300"
-                        )}>
-                          Vai trò
-                        </span>
-                        <span className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
-                          Hiển thị Admin, Mod, User...
-                        </span>
-                      </div>
-                      {displayBadgeType === "role" && (
-                        <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                      )}
-                    </button>
-
-                    {/* Cultivation option */}
-                    <button
-                      onClick={() => setDisplayBadgeType("cultivation")}
-                      className={cn(
-                        "relative p-4 rounded-xl border-2 transition-all duration-200",
-                        displayBadgeType === "cultivation"
+                        displayBadgeType === "realm"
                           ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
                           : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
                       )}
@@ -604,26 +577,146 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                       <div className="flex flex-col items-center gap-2">
                         <div className={cn(
                           "w-10 h-10 rounded-full flex items-center justify-center",
-                          displayBadgeType === "cultivation"
-                            ? "bg-gradient-to-br from-purple-500 to-amber-500 text-white"
+                          displayBadgeType === "realm"
+                            ? "bg-gradient-to-br from-purple-500 to-indigo-600 text-white"
                             : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
                         )}>
                           <Sparkles className="w-5 h-5" />
                         </div>
                         <span className={cn(
                           "font-bold text-sm",
-                          displayBadgeType === "cultivation"
+                          displayBadgeType === "realm"
                             ? "text-purple-600 dark:text-purple-400"
                             : "text-neutral-700 dark:text-neutral-300"
                         )}>
                           Cảnh giới
                         </span>
                         <span className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
-                          Hiển thị Tu Tiên cảnh giới
+                          Luyện Khí, Kim Đan...
                         </span>
                       </div>
-                      {displayBadgeType === "cultivation" && (
+                      {displayBadgeType === "realm" && (
                         <div className="absolute top-2 right-2 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Title option - Danh hiệu */}
+                    <button
+                      onClick={() => setDisplayBadgeType("title")}
+                      className={cn(
+                        "relative p-4 rounded-xl border-2 transition-all duration-200",
+                        displayBadgeType === "title"
+                          ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                          : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
+                      )}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <div className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center",
+                          displayBadgeType === "title"
+                            ? "bg-gradient-to-br from-amber-500 to-orange-600 text-white"
+                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
+                        )}>
+                          <Shield className="w-5 h-5" />
+                        </div>
+                        <span className={cn(
+                          "font-bold text-sm",
+                          displayBadgeType === "title"
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-neutral-700 dark:text-neutral-300"
+                        )}>
+                          Danh hiệu
+                        </span>
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                          Kiếm Khách, Tiên Nhân...
+                        </span>
+                      </div>
+                      {displayBadgeType === "title" && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Both option - Cả hai */}
+                    <button
+                      onClick={() => setDisplayBadgeType("both")}
+                      className={cn(
+                        "relative p-4 rounded-xl border-2 transition-all duration-200",
+                        displayBadgeType === "both"
+                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
+                          : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
+                      )}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <div className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center",
+                          displayBadgeType === "both"
+                            ? "bg-gradient-to-br from-purple-500 via-pink-500 to-amber-500 text-white"
+                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
+                        )}>
+                          <Crown className="w-5 h-5" />
+                        </div>
+                        <span className={cn(
+                          "font-bold text-sm",
+                          displayBadgeType === "both"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-neutral-700 dark:text-neutral-300"
+                        )}>
+                          Cả hai
+                        </span>
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                          Cảnh giới + Danh hiệu
+                        </span>
+                      </div>
+                      {displayBadgeType === "both" && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+
+                    {/* None option - Không hiển thị */}
+                    <button
+                      onClick={() => setDisplayBadgeType("none")}
+                      className={cn(
+                        "relative p-4 rounded-xl border-2 transition-all duration-200",
+                        displayBadgeType === "none"
+                          ? "border-neutral-500 bg-neutral-100 dark:bg-neutral-800"
+                          : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
+                      )}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <div className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center",
+                          displayBadgeType === "none"
+                            ? "bg-neutral-500 text-white"
+                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
+                        )}>
+                          <X className="w-5 h-5" />
+                        </div>
+                        <span className={cn(
+                          "font-bold text-sm",
+                          displayBadgeType === "none"
+                            ? "text-neutral-700 dark:text-neutral-300"
+                            : "text-neutral-700 dark:text-neutral-300"
+                        )}>
+                          Ẩn
+                        </span>
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                          Không hiển thị
+                        </span>
+                      </div>
+                      {displayBadgeType === "none" && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-neutral-500 rounded-full flex items-center justify-center">
                           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                           </svg>

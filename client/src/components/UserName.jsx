@@ -1,20 +1,22 @@
+import CultivationBadge from "./CultivationBadge";
 import VerifiedBadge from "./VerifiedBadge";
-import { Sparkles } from "lucide-react";
+import { TITLES } from "./UserAvatar";
 
 /**
- * UserName - Component that renders a user's display name with an optional verified badge
- * Shows the nickname (preferred) or the display name, and a role badge when available
+ * UserName - Component that renders a user's display name with badges
+ * Shows the nickname (preferred) or the display name
+ * Always shows VerifiedBadge (role tick) for system roles unless showBadges=false
+ * Shows realm and/or title based on displayBadgeType setting
  * @param {Object} user - User object
  * @param {string} user.name - The user's display name
  * @param {string} user.nickname - The user's nickname (optional)
- * @param {string|Object} user.role - User role key or role object (e.g., 'admin', 'sololeveling')
- * @param {boolean} user.isVerified - Whether the user is verified
- * @param {string} user.displayBadgeType - Type of badge to display: 'role' or 'cultivation'
- * @param {Object} user.cultivation - User's cultivation data (for cultivation badge)
- * @param {Object} user.cultivationCache - Cached cultivation data (for cultivation badge when full cultivation not available)
+ * @param {string|Object} user.role - User role for VerifiedBadge
+ * @param {string} user.displayBadgeType - Type of cultivation badge: 'realm', 'title', 'both', or 'none'
+ * @param {Object} user.cultivationCache - Cached cultivation data (realmName, equipped.title)
  * @param {string} className - Additional CSS classes to apply
+ * @param {boolean} showBadges - Whether to show any badges (default: true)
  */
-export default function UserName({ user, className = "", maxLength = 50, showTooltip = true, isMobile = false }) {
+export default function UserName({ user, className = "", maxLength = 50, showTooltip = true, isMobile = false, showBadges = true }) {
 	// Return nothing if `user` is not provided
 	if (!user) return null;
 	
@@ -28,11 +30,45 @@ export default function UserName({ user, className = "", maxLength = 50, showToo
 		? displayName.substring(0, maxLength) + '...'
 		: displayName;
 
-	// Determine which badge type to show
-	const badgeType = user.displayBadgeType || 'role';
+	// If badges are disabled, just show the name
+	if (!showBadges) {
+		return (
+			<span 
+				className={`inline-flex items-center gap-1 ${className}`}
+				title={showTooltip && displayName.length > maxLength ? displayName : undefined}
+			>
+				<span className="whitespace-nowrap">{truncatedName}</span>
+				{user.nickname && user.nickname.trim() && user.name && (
+					<span className="text-gray-500 text-sm font-normal">
+						({user.name})
+					</span>
+				)}
+			</span>
+		);
+	}
+
+	// Determine which cultivation badge type to show (realm, title, both, none)
+	// Handle legacy values: "role" -> show nothing (only VerifiedBadge), "cultivation" -> "realm"
+	let badgeType = user.displayBadgeType || 'none';
+	if (badgeType === 'role') {
+		badgeType = 'none'; // Legacy: only show VerifiedBadge
+	} else if (badgeType === 'cultivation') {
+		badgeType = 'realm'; // Legacy: show realm
+	}
 	
 	// Get cultivation data from cultivationCache
 	const cultivationData = user.cultivationCache;
+	
+	// Check if should show realm badge (Cảnh giới: Luyện Khí, Kim Đan...)
+	const showRealm = (badgeType === 'realm' || badgeType === 'both') && cultivationData?.realmName;
+	
+	// Check if should show title badge (Danh hiệu: Kiếm Khách, Tiên Nhân...)
+	const equippedTitle = cultivationData?.equipped?.title;
+	const titleConfig = equippedTitle ? TITLES[equippedTitle] : null;
+	const showTitle = (badgeType === 'title' || badgeType === 'both') && titleConfig;
+	
+	// Only show VerifiedBadge when user chose 'none' (no cultivation badges)
+	const showVerifiedBadge = badgeType === 'none';
 	
 	return (
 		<span 
@@ -49,22 +85,38 @@ export default function UserName({ user, className = "", maxLength = 50, showToo
 				</span>
 			)}
 			
-			{/* Render badge based on displayBadgeType */}
-			{badgeType === 'cultivation' && cultivationData?.realmName ? (
-				<span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded text-[10px] font-bold text-amber-600 dark:text-amber-400">
-					<Sparkles size={10} />
-					{cultivationData.realmName}
-					{cultivationData.realmLevel > 1 && ` T${cultivationData.realmLevel}`}
+			{/* VerifiedBadge - Chỉ hiển thị khi user chọn 'none' (không hiển thị cảnh giới/danh hiệu) */}
+			{showVerifiedBadge && user.role && (
+				<VerifiedBadge 
+					role={typeof user.role === 'string' ? user.role : user.role.name} 
+					isVerified={user.isVerified}
+					roleData={typeof user.role === 'object' ? user.role : null}
+				/>
+			)}
+			
+			{/* Realm badge - Cảnh giới tu tiên */}
+			{showRealm && (
+				<CultivationBadge 
+					cultivation={cultivationData} 
+					size="sm" 
+					variant="gradient" 
+				/>
+			)}
+			
+			{/* Title badge - Danh hiệu tu tiên */}
+			{showTitle && (
+				<span 
+					className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium"
+					style={{ 
+						background: `linear-gradient(135deg, ${titleConfig.color}20, ${titleConfig.color}40)`,
+						color: titleConfig.color,
+						border: `1px solid ${titleConfig.color}50`
+					}}
+					title={titleConfig.name}
+				>
+					<span>{titleConfig.icon}</span>
+					<span className="hidden sm:inline">{titleConfig.name}</span>
 				</span>
-			) : (
-				/* Default: Show role badge when a role is present */
-				user.role && (
-					<VerifiedBadge 
-						role={typeof user.role === 'string' ? user.role : user.role.name} 
-						isVerified={user.isVerified}
-						roleData={typeof user.role === 'object' ? user.role : null}
-					/>
-				)
 			)}
 		</span>
 	);

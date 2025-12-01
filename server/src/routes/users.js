@@ -182,9 +182,9 @@ router.get('/:id', authRequired, async (req, res) => {
     const { id } = req.params;
     
     const user = await User.findById(id)
-      .select('-password -email') 
+      .select('-password -email')
       .populate('role') // Populate the role field
-      .populate('friends', 'name nickname avatarUrl isOnline lastSeen role');
+      .populate('friends', 'name nickname avatarUrl isOnline lastSeen role displayBadgeType cultivationCache');
 
     if (!user) {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });

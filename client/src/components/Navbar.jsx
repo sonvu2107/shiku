@@ -586,7 +586,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
                           />
                           <div className="flex-1 min-w-0">
                             <div className="font-bold text-neutral-900 dark:text-white text-base truncate">
-                              <UserName user={user} maxLength={18} />
+                              <UserName user={user} maxLength={18} showBadges={false} />
                             </div>
                             <Link to="/profile" className="text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline" onClick={() => setShowProfileMenu(false)}>
                               Xem trang cá nhân

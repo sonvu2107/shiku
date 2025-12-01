@@ -9,8 +9,7 @@ import { vi } from "date-fns/locale";
 import { cn } from "../utils/cn";
 import { api } from "../api";
 import UserName from "./UserName";
-import VerifiedBadge from "./VerifiedBadge";
-import UserAvatar, { UserTitle } from "./UserAvatar";
+import UserAvatar from "./UserAvatar";
 import ReactMarkdown from "react-markdown";
 import Poll from "./Poll";
 
@@ -460,7 +459,6 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               >
                 <UserName user={post.author} maxLength={20} />
               </Link>
-              <UserTitle user={post.author} />
             </div>
             <div className="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1 md:gap-1.5 mt-0.5">
               {timeAgo && <span className="truncate max-w-[120px] md:max-w-none">{timeAgo}</span>}
@@ -562,14 +560,17 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
 
       {/* 4. Media */}
       {displayMedia && (
-        <div className="rounded-xl md:rounded-3xl overflow-hidden bg-gray-100 dark:bg-black mb-3 md:mb-4 relative group/media">
+        <div className={`rounded-xl md:rounded-3xl overflow-hidden bg-gray-100 dark:bg-black mb-3 md:mb-4 relative ${displayMedia.type !== 'video' ? 'group/media' : ''}`}>
           {displayMedia.type === 'video' ? (
             <video 
               src={displayMedia.url} 
-              className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
-              controls={false}
-              muted
+              className="w-full max-h-[500px] object-contain bg-black"
+              controls
+              controlsList="nodownload"
               playsInline
+              preload="metadata"
+              poster={displayMedia.thumbnail || undefined}
+              onClick={(e) => e.stopPropagation()}
             />
           ) : (
             <LazyImage

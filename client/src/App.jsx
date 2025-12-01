@@ -89,6 +89,8 @@ export default function App() {
   });
   // Kiểm tra xem StoryViewer có đang mở không
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
+  // Kiểm tra xem video có đang phát không (trong PostDetail)
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   // Hook để lấy thông tin location hiện tại
   const location = useLocation();
   // Toast notifications
@@ -310,6 +312,50 @@ export default function App() {
     return () => observer.disconnect();
   }, []);
 
+  // Effect để theo dõi video đang phát (trong PostDetail)
+  useEffect(() => {
+    const handleVideoPlay = () => setIsVideoPlaying(true);
+    const handleVideoPause = () => setIsVideoPlaying(false);
+    const handleVideoEnded = () => setIsVideoPlaying(false);
+
+    // Lắng nghe sự kiện play/pause/ended từ tất cả video elements
+    const addVideoListeners = () => {
+      const videos = document.querySelectorAll('video');
+      videos.forEach(video => {
+        video.addEventListener('play', handleVideoPlay);
+        video.addEventListener('pause', handleVideoPause);
+        video.addEventListener('ended', handleVideoEnded);
+      });
+    };
+
+    const removeVideoListeners = () => {
+      const videos = document.querySelectorAll('video');
+      videos.forEach(video => {
+        video.removeEventListener('play', handleVideoPlay);
+        video.removeEventListener('pause', handleVideoPause);
+        video.removeEventListener('ended', handleVideoEnded);
+      });
+    };
+
+    // Kiểm tra ngay lập tức
+    addVideoListeners();
+
+    // Sử dụng MutationObserver để theo dõi video mới được thêm vào DOM
+    const observer = new MutationObserver(() => {
+      removeVideoListeners();
+      addVideoListeners();
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    return () => {
+      removeVideoListeners();
+      observer.disconnect();
+    };
+  }, []);
+
   // Hiển thị loading screen khi app đang khởi tạo
   if (loading) {
     return (
@@ -356,8 +402,8 @@ export default function App() {
           <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
         )}
 
-        {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat/cultivation, và không có story viewer đang mở */}
-        {user && !shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/cultivation" && !isStoryViewerOpen && (
+        {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat/cultivation, không có story viewer đang mở, và không có video đang phát */}
+        {user && !shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/cultivation" && !isStoryViewerOpen && !isVideoPlaying && (
           <FloatingDock />
         )}
 
