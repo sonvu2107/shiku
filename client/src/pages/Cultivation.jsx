@@ -1083,7 +1083,7 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
     if (!window.confirm('Bạn có chắc muốn fix lại tất cả cảnh giới dựa trên exp?')) return;
     setFixing(true);
     try {
-      const data = await api.post('/api/cultivation/fix-realms');
+      const data = await api('/api/cultivation/fix-realms', { method: 'POST' });
       alert(data.message || 'Đã fix xong!');
       loadLeaderboard('exp', 20); // Reload leaderboard
     } catch (err) {
