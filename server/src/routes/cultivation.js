@@ -604,6 +604,102 @@ router.post("/inventory/:itemId/use", async (req, res, next) => {
 });
 
 /**
+ * POST /api/cultivation/collect-passive-exp
+ * Thu thập tu vi tích lũy theo thời gian
+ * Tu vi tăng dần 1 exp/phút, có thể x2/x3 với đan dược
+ */
+router.post("/collect-passive-exp", async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const cultivation = await Cultivation.getOrCreate(userId);
+    
+    const result = cultivation.collectPassiveExp();
+    
+    if (!result.collected) {
+      return res.json({
+        success: true,
+        data: result
+      });
+    }
+    
+    await cultivation.save();
+    
+    res.json({
+      success: true,
+      message: result.multiplier > 1 
+        ? `Thu thập ${result.expEarned} tu vi (x${result.multiplier} đan dược)!` 
+        : `Thu thập ${result.expEarned} tu vi!`,
+      data: {
+        ...result,
+        cultivation: formatCultivationResponse(cultivation)
+      }
+    });
+  } catch (error) {
+    console.error("[CULTIVATION] Error collecting passive exp:", error);
+    next(error);
+  }
+});
+
+/**
+ * GET /api/cultivation/passive-exp-status
+ * Kiểm tra trạng thái passive exp (pending exp, multiplier, etc.)
+ */
+router.get("/passive-exp-status", async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const cultivation = await Cultivation.getOrCreate(userId);
+    
+    const now = new Date();
+    const lastCollected = cultivation.lastPassiveExpCollected || now;
+    const elapsedMs = now.getTime() - new Date(lastCollected).getTime();
+    const elapsedMinutes = Math.floor(elapsedMs / (1000 * 60));
+    
+    // Tính exp đang chờ thu thập
+    const maxMinutes = 1440;
+    const effectiveMinutes = Math.min(elapsedMinutes, maxMinutes);
+    
+    // Base exp theo cảnh giới
+    const expPerMinuteByRealm = {
+      1: 2, 2: 4, 3: 8, 4: 15, 5: 25, 6: 40, 7: 60, 8: 100, 9: 150, 10: 250
+    };
+    const baseExpPerMinute = expPerMinuteByRealm[cultivation.realmLevel] || 2;
+    const baseExp = effectiveMinutes * baseExpPerMinute;
+    
+    // Tính multiplier
+    let multiplier = 1;
+    const activeBoosts = cultivation.activeBoosts.filter(b => b.expiresAt > now);
+    for (const boost of activeBoosts) {
+      if (boost.type === 'exp' || boost.type === 'exp_boost') {
+        multiplier = Math.max(multiplier, boost.multiplier);
+      }
+    }
+    
+    const pendingExp = Math.floor(baseExp * multiplier);
+    
+    res.json({
+      success: true,
+      data: {
+        pendingExp,
+        baseExp,
+        multiplier,
+        expPerMinute: baseExpPerMinute,
+        minutesElapsed: effectiveMinutes,
+        lastCollected,
+        realmLevel: cultivation.realmLevel,
+        activeBoosts: activeBoosts.map(b => ({
+          type: b.type,
+          multiplier: b.multiplier,
+          expiresAt: b.expiresAt
+        }))
+      }
+    });
+  } catch (error) {
+    console.error("[CULTIVATION] Error getting passive exp status:", error);
+    next(error);
+  }
+});
+
+/**
  * GET /api/cultivation/leaderboard
  * Bảng xếp hạng
  */

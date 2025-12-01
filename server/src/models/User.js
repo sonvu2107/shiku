@@ -111,7 +111,8 @@ const UserSchema = new mongoose.Schema({
     equipped: {
       title: { type: String, default: null },
       badge: { type: String, default: null },
-      avatarFrame: { type: String, default: null }
+      avatarFrame: { type: String, default: null },
+      profileEffect: { type: String, default: null }
     }
   } // Cache cultivation info để hiển thị badge và trang bị nhanh
 }, { 

@@ -15,7 +15,9 @@ import {
   getLeaderboard,
   getRealms,
   getExpLog,
-  addExpFromActivity
+  addExpFromActivity,
+  collectPassiveExp as collectPassiveExpAPI,
+  getPassiveExpStatus
 } from '../services/cultivationAPI.js';
 
 // Context cho Cultivation
@@ -354,6 +356,57 @@ export function CultivationProvider({ children }) {
   }, []);
 
   /**
+   * Thu thập passive exp (tu vi tăng dần theo thời gian)
+   */
+  const collectPassiveExp = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await collectPassiveExpAPI();
+      
+      if (response.success && response.data.collected) {
+        setCultivation(response.data.cultivation);
+        
+        // Show notification với thông tin chi tiết
+        const { expEarned, multiplier, minutesElapsed, leveledUp, newRealm } = response.data;
+        
+        setNotification({
+          type: leveledUp ? 'success' : 'info',
+          title: leveledUp ? 'Đột phá cảnh giới!' : 'Thu thập tu vi',
+          message: leveledUp 
+            ? `Chúc mừng! Bạn đã đột phá đến ${newRealm?.name}!`
+            : multiplier > 1 
+              ? `+${expEarned} Tu Vi (x${multiplier} đan dược, ${minutesElapsed} phút tu luyện)`
+              : `+${expEarned} Tu Vi (${minutesElapsed} phút tu luyện)`,
+          levelUp: leveledUp,
+          newRealm: newRealm
+        });
+        
+        return response.data;
+      }
+      
+      return response.data;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }, []);
+
+  /**
+   * Lấy trạng thái passive exp đang chờ
+   */
+  const loadPassiveExpStatus = useCallback(async () => {
+    try {
+      const response = await getPassiveExpStatus();
+      if (response.success) {
+        return response.data;
+      }
+    } catch (err) {
+      console.error('[Cultivation] Error loading passive exp status:', err);
+      throw err;
+    }
+  }, []);
+
+  /**
    * Clear notification
    */
   const clearNotification = useCallback(() => {
@@ -396,6 +449,8 @@ export function CultivationProvider({ children }) {
     loadRealms,
     loadExpLog,
     addExp,
+    collectPassiveExp,
+    loadPassiveExpStatus,
     clearNotification,
     refresh
   };

@@ -251,6 +251,9 @@ const DashboardTab = memo(function DashboardTab({
   onYinYangClick,
   onCheckIn,
   onBreakthrough,
+  onCollectPassiveExp,
+  passiveExpStatus,
+  collectingPassiveExp,
   checkingIn,
   clickCooldown,
   isBreakingThrough,
@@ -324,10 +327,13 @@ const DashboardTab = memo(function DashboardTab({
             <motion.div 
               className="yinyang"
               onClick={onYinYangClick}
+              onMouseDown={(e) => e.preventDefault()}
+              tabIndex={-1}
               whileTap={{ scale: 0.9 }}
               style={{ 
                 animationPlayState: checkingIn || isBreakingThrough ? 'paused' : 'running',
-                opacity: clickCooldown ? 0.7 : 1
+                opacity: clickCooldown ? 0.7 : 1,
+                outline: 'none'
               }}
             />
           </div>
@@ -459,6 +465,56 @@ const DashboardTab = memo(function DashboardTab({
           </div>
         </div>
       )}
+
+      {/* Passive Exp - Tu Vi Tích Lũy */}
+      <div className="spirit-tablet rounded-xl p-5 lg:p-6 border border-emerald-500/20">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-emerald-400 font-title tracking-wide text-lg flex items-center gap-2">
+            <span className="text-2xl"></span>
+            TU VI TÍCH LŨY
+          </h3>
+          {passiveExpStatus?.multiplier > 1 && (
+            <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full border border-amber-500/30">
+              x{passiveExpStatus.multiplier} Đan Dược
+            </span>
+          )}
+        </div>
+        
+        <div className="mb-4">
+          <div className="flex items-baseline gap-2 mb-2">
+            <span className="text-3xl font-bold text-emerald-400 font-mono">
+              +{passiveExpStatus?.pendingExp || 0}
+            </span>
+            <span className="text-slate-400 text-sm">Tu Vi</span>
+          </div>
+          <p className="text-slate-500 text-sm">
+            {passiveExpStatus?.minutesElapsed || 0} phút tu luyện
+            {passiveExpStatus?.multiplier > 1 && (
+              <span className="text-amber-400 ml-1">
+                (Base: {passiveExpStatus?.baseExp || 0} × {passiveExpStatus?.multiplier})
+              </span>
+            )}
+          </p>
+        </div>
+
+        <motion.button
+          onClick={onCollectPassiveExp}
+          disabled={collectingPassiveExp || (passiveExpStatus?.pendingExp || 0) < 1}
+          className={`w-full py-3 px-4 rounded-xl font-bold uppercase tracking-wide transition-all ${
+            (passiveExpStatus?.pendingExp || 0) >= 1
+              ? 'bg-gradient-to-r from-emerald-700 to-emerald-900 text-emerald-100 border border-emerald-500/30 hover:from-emerald-600 hover:to-emerald-800 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+              : 'bg-slate-900/50 text-slate-600 border border-slate-800 cursor-not-allowed'
+          }`}
+          whileHover={!collectingPassiveExp && (passiveExpStatus?.pendingExp || 0) >= 1 ? { scale: 1.02 } : {}}
+          whileTap={!collectingPassiveExp && (passiveExpStatus?.pendingExp || 0) >= 1 ? { scale: 0.98 } : {}}
+        >
+          {collectingPassiveExp ? ' Đang thu thập...' : ' Thu Thập Tu Vi'}
+        </motion.button>
+
+        <p className="text-center text-xs text-slate-500 mt-3">
+          Tu vi tăng <span className="text-emerald-400 font-bold">{passiveExpStatus?.expPerMinute || 2} exp/phút</span> • Tối đa 24h • Đan dược có hiệu lực
+        </p>
+      </div>
 
       {/* Realms Progress */}
       <div className="spirit-tablet rounded-xl p-5 lg:p-6">
@@ -686,14 +742,14 @@ const RARITY_COLORS = {
 };
 
 const ITEM_TYPE_LABELS = {
-  title: { label: '📜 Danh Hiệu', color: 'text-amber-300' },
-  badge: { label: '🎖️ Huy Hiệu', color: 'text-cyan-300' },
-  avatar_frame: { label: '🖼️ Khung Avatar', color: 'text-purple-300' },
-  profile_effect: { label: '✨ Hiệu Ứng', color: 'text-pink-300' },
-  exp_boost: { label: '💊 Đan Dược', color: 'text-green-300' },
-  consumable: { label: '🎁 Vật Phẩm', color: 'text-orange-300' },
-  pet: { label: '🐾 Linh Thú', color: 'text-rose-300' },
-  mount: { label: '🐲 Tọa Kỵ', color: 'text-yellow-300' }
+  title: { label: ' Danh Hiệu', color: 'text-amber-300' },
+  badge: { label: ' Huy Hiệu', color: 'text-cyan-300' },
+  avatar_frame: { label: ' Khung Avatar', color: 'text-purple-300' },
+  profile_effect: { label: ' Hiệu Ứng', color: 'text-pink-300' },
+  exp_boost: { label: ' Đan Dược', color: 'text-green-300' },
+  consumable: { label: ' Vật Phẩm', color: 'text-orange-300' },
+  pet: { label: ' Linh Thú', color: 'text-rose-300' },
+  mount: { label: ' Tọa Kỵ', color: 'text-yellow-300' }
 };
 
 // ==================== SHOP TAB ====================
@@ -872,6 +928,7 @@ const InventoryTab = memo(function InventoryTab() {
     if (item.type === 'title') return equipped.title === item.itemId;
     if (item.type === 'badge') return equipped.badge === item.itemId;
     if (item.type === 'avatar_frame') return equipped.avatarFrame === item.itemId;
+    if (item.type === 'profile_effect') return equipped.profileEffect === item.itemId;
     return item.equipped;
   };
 
@@ -888,7 +945,7 @@ const InventoryTab = memo(function InventoryTab() {
       </div>
       
       {/* Equipped Items Summary */}
-      {(equipped.title || equipped.badge || equipped.avatarFrame) && (
+      {(equipped.title || equipped.badge || equipped.avatarFrame || equipped.profileEffect) && (
         <div className="bg-gradient-to-r from-emerald-900/20 to-teal-900/20 border border-emerald-500/30 rounded-xl p-3">
           <p className="text-xs text-emerald-400 mb-2 uppercase tracking-wider">Đang trang bị</p>
           <div className="flex flex-wrap gap-2">
@@ -905,6 +962,11 @@ const InventoryTab = memo(function InventoryTab() {
             {equipped.avatarFrame && (
               <span className="px-2 py-1 bg-purple-900/30 border border-purple-500/30 rounded text-xs text-purple-300">
                  {inventory.find(i => i.itemId === equipped.avatarFrame)?.name || equipped.avatarFrame}
+              </span>
+            )}
+            {equipped.profileEffect && (
+              <span className="px-2 py-1 bg-pink-900/30 border border-pink-500/30 rounded text-xs text-pink-300">
+                 {inventory.find(i => i.itemId === equipped.profileEffect)?.name || equipped.profileEffect}
               </span>
             )}
           </div>
@@ -1059,7 +1121,7 @@ const LeaderboardTab = memo(function LeaderboardTab() {
 
 // ==================== MAIN CULTIVATION CONTENT ====================
 const CultivationContent = memo(function CultivationContent() {
-  const { cultivation, checkIn, loading, addExp, notification, clearNotification } = useCultivation();
+  const { cultivation, checkIn, loading, addExp, collectPassiveExp, loadPassiveExpStatus, notification, clearNotification } = useCultivation();
   
   // States
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -1067,6 +1129,10 @@ const CultivationContent = memo(function CultivationContent() {
   const [particles, setParticles] = useState([]);
   const [clickCooldown, setClickCooldown] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
+  
+  // Passive Exp States
+  const [passiveExpStatus, setPassiveExpStatus] = useState({ pendingExp: 0, multiplier: 1, minutesElapsed: 0 });
+  const [collectingPassiveExp, setCollectingPassiveExp] = useState(false);
   
   // Breakthrough States
   const [isShaking, setIsShaking] = useState(false);
@@ -1079,10 +1145,32 @@ const CultivationContent = memo(function CultivationContent() {
   // Refs
   const logEndRef = useRef(null);
 
-  // Auto-scroll logs
+  // Load passive exp status
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [logs]);
+    const fetchPassiveStatus = async () => {
+      try {
+        const status = await loadPassiveExpStatus();
+        if (status) {
+          setPassiveExpStatus(status);
+        }
+      } catch (err) {
+        console.error('[Cultivation] Error loading passive exp status:', err);
+      }
+    };
+
+    fetchPassiveStatus();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchPassiveStatus, 30000);
+    return () => clearInterval(interval);
+  }, [loadPassiveExpStatus]);
+
+  // Auto-scroll logs - chỉ scroll trong container log, không scroll page
+  useEffect(() => {
+    if (logExpanded && logEndRef.current) {
+      logEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [logs, logExpanded]);
 
   // Show notification from context
   useEffect(() => {
@@ -1134,6 +1222,9 @@ const CultivationContent = memo(function CultivationContent() {
 
   // Handle yin-yang click for exp gain
   const handleYinYangClick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (clickCooldown || checkingIn || isBreakingThrough) return;
     
     setClickCooldown(true);
@@ -1179,6 +1270,37 @@ const CultivationContent = memo(function CultivationContent() {
       addLog(`Điểm danh thất bại: ${err.message}`, 'danger');
     } finally {
       setCheckingIn(false);
+    }
+  };
+
+  // Handle collect passive exp
+  const handleCollectPassiveExp = async () => {
+    if (collectingPassiveExp || isBreakingThrough) return;
+    
+    setCollectingPassiveExp(true);
+    addLog('Đang thu thập tu vi tích lũy...');
+    
+    try {
+      const result = await collectPassiveExp();
+      
+      if (result?.collected) {
+        const { expEarned, multiplier, minutesElapsed } = result;
+        addLog(
+          multiplier > 1 
+            ? `Thu thập ${expEarned} Tu Vi (x${multiplier} đan dược, ${minutesElapsed} phút)`
+            : `Thu thập ${expEarned} Tu Vi (${minutesElapsed} phút tu luyện)`,
+          'gain'
+        );
+        
+        // Reset passive exp status
+        setPassiveExpStatus({ pendingExp: 0, multiplier: 1, minutesElapsed: 0, baseExp: 0 });
+      } else if (result?.nextCollectIn) {
+        addLog(`Chưa đủ thời gian. Chờ thêm ${result.nextCollectIn}s`, 'normal');
+      }
+    } catch (err) {
+      addLog(`Thu thập thất bại: ${err.message}`, 'danger');
+    } finally {
+      setCollectingPassiveExp(false);
     }
   };
 
@@ -1273,6 +1395,9 @@ const CultivationContent = memo(function CultivationContent() {
               onYinYangClick={handleYinYangClick}
               onCheckIn={handleCheckIn}
               onBreakthrough={() => triggerBreakthroughEffect(nextRealm?.name || "Cảnh giới mới")}
+              onCollectPassiveExp={handleCollectPassiveExp}
+              passiveExpStatus={passiveExpStatus}
+              collectingPassiveExp={collectingPassiveExp}
               checkingIn={checkingIn}
               clickCooldown={clickCooldown}
               isBreakingThrough={isBreakingThrough}

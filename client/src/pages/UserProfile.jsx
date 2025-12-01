@@ -6,6 +6,7 @@ import ModernPostCard from "../components/ModernPostCard";
 import { useSavedPosts } from "../hooks/useSavedPosts";
 import { generateAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import UserAvatar, { UserTitle, UserBadge } from "../components/UserAvatar";
+import ProfileEffect from "../components/ProfileEffect";
 import { cn } from "../utils/cn";
 import {
   MapPin, Link as LinkIcon, Calendar as CalendarIcon, Heart, Users, FileText,
@@ -299,7 +300,10 @@ export default function UserProfile() {
       {/* --- 1. HEADER SECTION --- */}
       <div className="relative">
         {/* Cover Image */}
-        <div className="h-64 md:h-80 lg:h-96 w-full relative overflow-hidden group">
+        <div className="h-64 md:h-80 lg:h-96 w-full relative overflow-hidden group" ref={(el) => {
+          // Store ref for ProfileEffect
+          if (el) el._profileEffectRef = el;
+        }} id="userProfileCover">
           {user.coverUrl && user.useCoverImage !== false ? (
             <motion.img
               initial={{ scale: 1.1 }}
@@ -313,6 +317,14 @@ export default function UserProfile() {
             <div className="w-full h-full bg-gradient-to-br from-neutral-200 to-neutral-400 dark:from-neutral-800 dark:to-neutral-900" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent dark:from-black dark:via-transparent dark:to-transparent opacity-90" />
+          
+          {/* Profile Effect Overlay */}
+          {user.cultivationCache?.equipped?.profileEffect && (
+            <ProfileEffect 
+              effectId={user.cultivationCache.equipped.profileEffect}
+              className="z-10"
+            />
+          )}
       </div>
 
         {/* Info Container */}

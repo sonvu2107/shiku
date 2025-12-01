@@ -5,6 +5,8 @@ import { SpotlightCard } from "../ui/SpotlightCard";
 import Button from "../ui/Button";
 import { PROFILE_MESSAGES } from "../../constants/profile";
 import UserAvatar, { UserTitle } from "../UserAvatar";
+import ProfileEffect from "../ProfileEffect";
+import { useRef } from "react";
 
 /**
  * ProfileHeader - Component display profile header with cover, avatar, name, and stats
@@ -23,6 +25,9 @@ export default function ProfileHeader({
   onCoverChange,
   onAvatarClick,
 }) {
+  const coverRef = useRef(null);
+  const profileEffect = user?.cultivationCache?.equipped?.profileEffect;
+  
   const formatGender = (gender) => {
     if (gender === 'male') return 'Nam';
     if (gender === 'female') return 'Nữ';
@@ -33,7 +38,7 @@ export default function ProfileHeader({
   return (
     <div className="relative">
       {/* Cover Image Container */}
-      <div className="h-64 md:h-80 lg:h-96 w-full relative overflow-hidden group">
+      <div ref={coverRef} className="h-64 md:h-80 lg:h-96 w-full relative overflow-hidden group">
         {form.coverUrl && user.useCoverImage !== false ? (
           <motion.img
             initial={{ scale: 1.1 }}
@@ -46,6 +51,15 @@ export default function ProfileHeader({
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-neutral-200 to-neutral-400 dark:from-neutral-800 dark:to-neutral-900" />
         )}
+        
+        {/* Profile Effect Overlay */}
+        {profileEffect && (
+          <ProfileEffect 
+            effectId={profileEffect} 
+            containerRef={coverRef}
+          />
+        )}
+        
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent dark:from-black dark:via-transparent dark:to-transparent opacity-90" />
         

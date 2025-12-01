@@ -270,6 +270,9 @@ const CultivationSchema = new mongoose.Schema({
   loginStreak: { type: Number, default: 0 }, // Số ngày đăng nhập liên tục
   lastLoginDate: { type: Date }, // Ngày đăng nhập cuối
   longestStreak: { type: Number, default: 0 }, // Streak dài nhất
+  
+  // ==================== PASSIVE EXP ====================
+  lastPassiveExpCollected: { type: Date, default: Date.now }, // Lần cuối thu thập passive exp
 
   // ==================== NHIỆM VỤ ====================
   dailyQuests: [QuestProgressSchema], // Nhiệm vụ hàng ngày
@@ -299,7 +302,8 @@ const CultivationSchema = new mongoose.Schema({
   equipped: {
     title: { type: String, default: null }, // Danh hiệu đang dùng
     badge: { type: String, default: null }, // Huy hiệu đang dùng
-    avatarFrame: { type: String, default: null } // Khung avatar
+    avatarFrame: { type: String, default: null }, // Khung avatar
+    profileEffect: { type: String, default: null } // Hiệu ứng profile
   },
 
   // ==================== BUFF/BOOST ĐANG HOẠT ĐỘNG ====================
@@ -428,6 +432,117 @@ CultivationSchema.methods.addSpiritStones = function(amount, source) {
   this.spiritStones += amount;
   this.totalSpiritStonesEarned += amount;
   return this.spiritStones;
+};
+
+/**
+ * Thu thập passive exp (tu vi tăng dần theo thời gian)
+ * @returns {Object} Kết quả thu thập
+ */
+CultivationSchema.methods.collectPassiveExp = function() {
+  const now = new Date();
+  const lastCollected = this.lastPassiveExpCollected || now;
+  
+  // Tính thời gian đã trôi qua (giây)
+  const elapsedMs = now.getTime() - new Date(lastCollected).getTime();
+  const elapsedMinutes = Math.floor(elapsedMs / (1000 * 60));
+  
+  // Giới hạn tối đa 24h = 1440 phút (để tránh tích lũy quá nhiều khi offline lâu)
+  const maxMinutes = 1440;
+  const effectiveMinutes = Math.min(elapsedMinutes, maxMinutes);
+  
+  // Tối thiểu 1 phút mới có exp
+  if (effectiveMinutes < 1) {
+    return {
+      collected: false,
+      message: "Chưa đủ thời gian để thu thập tu vi",
+      nextCollectIn: 60 - Math.floor((elapsedMs / 1000) % 60)
+    };
+  }
+  
+  // Base passive exp theo cảnh giới (tu vi cao = nhận nhiều hơn)
+  // Phàm Nhân (1): 2 exp/phút
+  // Luyện Khí (2): 4 exp/phút
+  // Trúc Cơ (3): 8 exp/phút
+  // Kim Đan (4): 15 exp/phút
+  // Nguyên Anh (5): 25 exp/phút
+  // Hóa Thần (6): 40 exp/phút
+  // Luyện Hư (7): 60 exp/phút
+  // Đại Thừa (8): 100 exp/phút
+  // Độ Kiếp (9): 150 exp/phút
+  // Tiên Nhân (10): 250 exp/phút
+  const expPerMinuteByRealm = {
+    1: 2,    // Phàm Nhân
+    2: 4,    // Luyện Khí
+    3: 8,    // Trúc Cơ
+    4: 15,   // Kim Đan
+    5: 25,   // Nguyên Anh
+    6: 40,   // Hóa Thần
+    7: 60,   // Luyện Hư
+    8: 100,  // Đại Thừa
+    9: 150,  // Độ Kiếp
+    10: 250  // Tiên Nhân
+  };
+  
+  const baseExpPerMinute = expPerMinuteByRealm[this.realmLevel] || 2;
+  const baseExp = effectiveMinutes * baseExpPerMinute;
+  
+  // Tính multiplier từ active boosts (đan dược x2, x3, etc.)
+  let multiplier = 1;
+  this.activeBoosts = this.activeBoosts.filter(boost => boost.expiresAt > now);
+  for (const boost of this.activeBoosts) {
+    if (boost.type === 'exp' || boost.type === 'exp_boost') {
+      multiplier = Math.max(multiplier, boost.multiplier);
+    }
+  }
+  
+  // Áp dụng multiplier từ đan dược
+  const finalExp = Math.floor(baseExp * multiplier);
+  
+  // Cộng exp
+  const oldRealmLevel = this.realmLevel;
+  this.exp += finalExp;
+  
+  // Cập nhật cảnh giới
+  const newRealm = this.getRealmFromExp();
+  this.realmLevel = newRealm.level;
+  this.realmName = newRealm.name;
+  
+  // Cập nhật sub-level
+  const progressPercent = this.getRealmProgress();
+  this.subLevel = Math.max(1, Math.ceil(progressPercent / 10));
+  
+  // Log exp
+  if (!this.expLog) this.expLog = [];
+  this.expLog.push({
+    amount: finalExp,
+    source: 'passive',
+    description: multiplier > 1 
+      ? `Tu luyện ${effectiveMinutes} phút (x${multiplier} đan dược)`
+      : `Tu luyện ${effectiveMinutes} phút`,
+    timestamp: now
+  });
+  if (this.expLog.length > 100) {
+    this.expLog = this.expLog.slice(-100);
+  }
+  
+  // Cập nhật thời gian thu thập
+  this.lastPassiveExpCollected = now;
+  
+  return {
+    collected: true,
+    expEarned: finalExp,
+    baseExp,
+    multiplier,
+    minutesElapsed: effectiveMinutes,
+    totalExp: this.exp,
+    leveledUp: newRealm.level > oldRealmLevel,
+    newRealm: newRealm.level > oldRealmLevel ? newRealm : null,
+    activeBoosts: this.activeBoosts.map(b => ({
+      type: b.type,
+      multiplier: b.multiplier,
+      expiresAt: b.expiresAt
+    }))
+  };
 };
 
 /**
@@ -743,6 +858,9 @@ CultivationSchema.methods.equipItem = function(itemId) {
     case ITEM_TYPES.AVATAR_FRAME:
       this.equipped.avatarFrame = item.itemId;
       break;
+    case ITEM_TYPES.PROFILE_EFFECT:
+      this.equipped.profileEffect = item.itemId;
+      break;
   }
 
   return item;
@@ -768,6 +886,9 @@ CultivationSchema.methods.unequipItem = function(itemId) {
       break;
     case ITEM_TYPES.AVATAR_FRAME:
       this.equipped.avatarFrame = null;
+      break;
+    case ITEM_TYPES.PROFILE_EFFECT:
+      this.equipped.profileEffect = null;
       break;
   }
 
@@ -880,7 +1001,8 @@ CultivationSchema.post('save', async function(doc) {
         'cultivationCache.equipped': {
           title: doc.equipped?.title || null,
           badge: doc.equipped?.badge || null,
-          avatarFrame: doc.equipped?.avatarFrame || null
+          avatarFrame: doc.equipped?.avatarFrame || null,
+          profileEffect: doc.equipped?.profileEffect || null
         }
       }
     });

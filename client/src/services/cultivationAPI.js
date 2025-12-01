@@ -144,6 +144,24 @@ export async function addExpFromActivity(amount, source = 'activity') {
   });
 }
 
+// ==================== PASSIVE EXP ====================
+
+/**
+ * Thu thập passive exp (tu vi tăng dần theo thời gian)
+ * Tu vi tăng 1 exp/phút, áp dụng multiplier từ đan dược
+ */
+export async function collectPassiveExp() {
+  return api('/api/cultivation/collect-passive-exp', { method: 'POST' });
+}
+
+/**
+ * Lấy trạng thái passive exp đang chờ thu thập
+ * @returns {Promise<Object>} { pendingExp, multiplier, minutesElapsed, activeBoosts }
+ */
+export async function getPassiveExpStatus() {
+  return api('/api/cultivation/passive-exp-status');
+}
+
 // ==================== CONSTANTS ====================
 
 /**
