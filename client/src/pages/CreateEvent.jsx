@@ -34,7 +34,7 @@ export default function CreateEvent() {
       ...prev,
       [name]: type === "checkbox" ? checked : value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -88,7 +88,7 @@ export default function CreateEvent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -97,7 +97,7 @@ export default function CreateEvent() {
     try {
       // Combine date and time
       const eventDateTime = new Date(`${formData.date}T${formData.time || "00:00"}`);
-      
+
       // Prepare tags array
       const tags = formData.tags
         ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
@@ -146,14 +146,14 @@ export default function CreateEvent() {
       </button>
 
       {/* Header */}
-      <PageHeader 
-        title="Tạo sự kiện mới" 
+      <PageHeader
+        title="Tạo sự kiện mới"
         subtitle="Tạo sự kiện để mời mọi người tham gia"
       />
 
       {/* Form */}
-      <motion.form 
-        onSubmit={handleSubmit} 
+      <motion.form
+        onSubmit={handleSubmit}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-3xl mx-auto space-y-6"
@@ -169,9 +169,8 @@ export default function CreateEvent() {
             name="title"
             value={formData.title}
             onChange={handleChange}
-            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${
-              errors.title ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
-            } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
+            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${errors.title ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
+              } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
             placeholder="Nhập tiêu đề sự kiện"
           />
           {errors.title && (
@@ -190,9 +189,8 @@ export default function CreateEvent() {
             value={formData.description}
             onChange={handleChange}
             rows={6}
-            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all resize-none ${
-              errors.description ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
-            } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
+            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all resize-none ${errors.description ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
+              } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
             placeholder="Mô tả chi tiết về sự kiện..."
           />
           {errors.description && (
@@ -250,9 +248,8 @@ export default function CreateEvent() {
               value={formData.date}
               onChange={handleChange}
               min={new Date().toISOString().split('T')[0]}
-              className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${
-                errors.date ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
-              } text-neutral-900 dark:text-white`}
+              className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${errors.date ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
+                } text-neutral-900 dark:text-white`}
             />
             {errors.date && (
               <p className="mt-2 text-sm text-red-500">{errors.date}</p>
@@ -305,9 +302,8 @@ export default function CreateEvent() {
             value={formData.maxAttendees}
             onChange={handleChange}
             min="1"
-            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${
-              errors.maxAttendees ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
-            } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
+            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${errors.maxAttendees ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
+              } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
             placeholder="Để trống nếu không giới hạn"
           />
           {errors.maxAttendees && (
@@ -351,7 +347,7 @@ export default function CreateEvent() {
                 <span>Sự kiện {formData.isPublic ? 'công khai' : 'riêng tư'}</span>
               </label>
               <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                {formData.isPublic 
+                {formData.isPublic
                   ? "Mọi người có thể tìm thấy và tham gia sự kiện này"
                   : "Chỉ những người được mời mới có thể tham gia"}
               </p>

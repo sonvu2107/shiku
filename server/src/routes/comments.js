@@ -293,6 +293,7 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
     await c.populate([
       { path: "author", select: "name avatarUrl role" },
       { path: "parent" },
+      { path: "mentions", select: "name nickname avatarUrl email _id" },
     ]);
 
     // Gửi thông báo
@@ -388,6 +389,7 @@ router.put("/:id", authRequired, handleCommentUpload, async (req, res, next) => 
     await c.populate([
       { path: "author", select: "name avatarUrl role" },
       { path: "parent" },
+      { path: "mentions", select: "name nickname avatarUrl email _id" },
     ]);
 
     res.json({ comment: c });

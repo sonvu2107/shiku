@@ -41,7 +41,7 @@ export default function EditEvent() {
       const response = await api(`/api/events/${id}`);
       if (response.success) {
         const eventData = response.event;
-        
+
         // Check edit permissions
         if (eventData.userRole !== 'creator') {
           showError("Bạn không có quyền chỉnh sửa sự kiện này");
@@ -50,12 +50,12 @@ export default function EditEvent() {
         }
 
         setEvent(eventData);
-        
+
         // Parse date and time
         const eventDate = new Date(eventData.date);
         const dateStr = eventDate.toISOString().split('T')[0];
         const timeStr = eventDate.toTimeString().split(' ')[0].substring(0, 5);
-        
+
         setFormData({
           title: eventData.title,
           description: eventData.description,
@@ -85,7 +85,7 @@ export default function EditEvent() {
       ...prev,
       [name]: type === "checkbox" ? checked : value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -139,7 +139,7 @@ export default function EditEvent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -148,7 +148,7 @@ export default function EditEvent() {
     try {
       // Combine date and time
       const eventDateTime = new Date(`${formData.date}T${formData.time || "00:00"}`);
-      
+
       // Prepare tags array
       const tags = formData.tags
         ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
@@ -205,14 +205,14 @@ export default function EditEvent() {
       </button>
 
       {/* Header */}
-      <PageHeader 
-        title="Chỉnh sửa sự kiện" 
+      <PageHeader
+        title="Chỉnh sửa sự kiện"
         subtitle="Cập nhật thông tin sự kiện của bạn"
       />
 
       {/* Form */}
-      <motion.form 
-        onSubmit={handleSubmit} 
+      <motion.form
+        onSubmit={handleSubmit}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-3xl mx-auto space-y-6"
@@ -228,9 +228,8 @@ export default function EditEvent() {
             name="title"
             value={formData.title}
             onChange={handleChange}
-            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${
-              errors.title ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
-            } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
+            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${errors.title ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
+              } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
             placeholder="Nhập tiêu đề sự kiện"
           />
           {errors.title && (
@@ -249,9 +248,8 @@ export default function EditEvent() {
             value={formData.description}
             onChange={handleChange}
             rows={6}
-            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all resize-none ${
-              errors.description ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
-            } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
+            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all resize-none ${errors.description ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
+              } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
             placeholder="Mô tả chi tiết về sự kiện..."
           />
           {errors.description && (
@@ -309,9 +307,8 @@ export default function EditEvent() {
               value={formData.date}
               onChange={handleChange}
               min={new Date().toISOString().split('T')[0]}
-              className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${
-                errors.date ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
-              } text-neutral-900 dark:text-white`}
+              className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${errors.date ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
+                } text-neutral-900 dark:text-white`}
             />
             {errors.date && (
               <p className="mt-2 text-sm text-red-500">{errors.date}</p>
@@ -364,9 +361,8 @@ export default function EditEvent() {
             value={formData.maxAttendees}
             onChange={handleChange}
             min="1"
-            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${
-              errors.maxAttendees ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
-            } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
+            className={`w-full px-4 py-3 bg-transparent border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all ${errors.maxAttendees ? "border-red-500" : "border-neutral-200 dark:border-neutral-800"
+              } text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500`}
             placeholder="Để trống nếu không giới hạn"
           />
           {errors.maxAttendees && (
@@ -410,7 +406,7 @@ export default function EditEvent() {
                 <span>Sự kiện {formData.isPublic ? 'công khai' : 'riêng tư'}</span>
               </label>
               <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                {formData.isPublic 
+                {formData.isPublic
                   ? "Mọi người có thể tìm thấy và tham gia sự kiện này"
                   : "Chỉ những người được mời mới có thể tham gia"}
               </p>

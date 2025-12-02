@@ -428,7 +428,13 @@ const CultivationSchema = new mongoose.Schema({
     totalLikesReceived: { type: Number, default: 0 },
     totalQuestsCompleted: { type: Number, default: 0 },
     totalDaysActive: { type: Number, default: 0 }
-  }
+  },
+
+  // ==================== ĐỘ KIẾP (BREAKTHROUGH) ====================
+  breakthroughSuccessRate: { type: Number, default: 30, min: 0, max: 100 }, // Tỷ lệ thành công (%)
+  breakthroughFailureCount: { type: Number, default: 0, min: 0 }, // Số lần thất bại liên tiếp
+  lastBreakthroughAttempt: { type: Date }, // Lần cuối thử độ kiếp
+  breakthroughCooldownUntil: { type: Date } // Thời gian chờ để độ kiếp lại (sau khi thất bại)
 }, {
   timestamps: true
 });
@@ -457,16 +463,16 @@ CultivationSchema.methods.calculateCombatStats = function () {
 
   // Base stats theo cảnh giới
   const baseStatsByRealm = {
-    1: { attack: 10, defense: 5, qiBlood: 100, zhenYuan: 50, speed: 10, criticalRate: 5, criticalDamage: 150, accuracy: 80, dodge: 5, penetration: 0, resistance: 0, lifesteal: 0, regeneration: 1, luck: 5 },
-    2: { attack: 25, defense: 12, qiBlood: 250, zhenYuan: 120, speed: 15, criticalRate: 8, criticalDamage: 160, accuracy: 85, dodge: 8, penetration: 2, resistance: 2, lifesteal: 1, regeneration: 2, luck: 8 },
-    3: { attack: 50, defense: 25, qiBlood: 500, zhenYuan: 250, speed: 20, criticalRate: 10, criticalDamage: 170, accuracy: 88, dodge: 10, penetration: 5, resistance: 5, lifesteal: 2, regeneration: 3, luck: 10 },
-    4: { attack: 100, defense: 50, qiBlood: 1000, zhenYuan: 500, speed: 25, criticalRate: 12, criticalDamage: 180, accuracy: 90, dodge: 12, penetration: 8, resistance: 8, lifesteal: 3, regeneration: 5, luck: 12 },
-    5: { attack: 200, defense: 100, qiBlood: 2000, zhenYuan: 1000, speed: 30, criticalRate: 15, criticalDamage: 190, accuracy: 92, dodge: 15, penetration: 12, resistance: 12, lifesteal: 5, regeneration: 8, luck: 15 },
-    6: { attack: 400, defense: 200, qiBlood: 4000, zhenYuan: 2000, speed: 35, criticalRate: 18, criticalDamage: 200, accuracy: 94, dodge: 18, penetration: 15, resistance: 15, lifesteal: 7, regeneration: 12, luck: 18 },
-    7: { attack: 800, defense: 400, qiBlood: 8000, zhenYuan: 4000, speed: 40, criticalRate: 20, criticalDamage: 210, accuracy: 96, dodge: 20, penetration: 18, resistance: 18, lifesteal: 10, regeneration: 15, luck: 20 },
-    8: { attack: 1600, defense: 800, qiBlood: 16000, zhenYuan: 8000, speed: 45, criticalRate: 22, criticalDamage: 220, accuracy: 97, dodge: 22, penetration: 20, resistance: 20, lifesteal: 12, regeneration: 20, luck: 22 },
-    9: { attack: 3200, defense: 1600, qiBlood: 32000, zhenYuan: 16000, speed: 50, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 25, luck: 25 },
-    10: { attack: 6400, defense: 3200, qiBlood: 64000, zhenYuan: 32000, speed: 60, criticalRate: 30, criticalDamage: 250, accuracy: 99, dodge: 30, penetration: 25, resistance: 25, lifesteal: 20, regeneration: 30, luck: 30 }
+    1: { attack: 10, defense: 5, qiBlood: 100, zhenYuan: 50, speed: 10, criticalRate: 5, criticalDamage: 150, accuracy: 80, dodge: 5, penetration: 0, resistance: 0, lifesteal: 0, regeneration: 0.5, luck: 5 },
+    2: { attack: 25, defense: 12, qiBlood: 250, zhenYuan: 120, speed: 15, criticalRate: 8, criticalDamage: 160, accuracy: 85, dodge: 8, penetration: 2, resistance: 2, lifesteal: 1, regeneration: 1, luck: 8 },
+    3: { attack: 50, defense: 25, qiBlood: 500, zhenYuan: 250, speed: 20, criticalRate: 10, criticalDamage: 170, accuracy: 88, dodge: 10, penetration: 5, resistance: 5, lifesteal: 2, regeneration: 1.5, luck: 10 },
+    4: { attack: 100, defense: 50, qiBlood: 1000, zhenYuan: 500, speed: 25, criticalRate: 12, criticalDamage: 180, accuracy: 90, dodge: 12, penetration: 8, resistance: 8, lifesteal: 3, regeneration: 2, luck: 12 },
+    5: { attack: 200, defense: 100, qiBlood: 2000, zhenYuan: 1000, speed: 30, criticalRate: 15, criticalDamage: 190, accuracy: 92, dodge: 15, penetration: 12, resistance: 12, lifesteal: 5, regeneration: 3, luck: 15 },
+    6: { attack: 400, defense: 200, qiBlood: 4000, zhenYuan: 2000, speed: 35, criticalRate: 18, criticalDamage: 200, accuracy: 94, dodge: 18, penetration: 15, resistance: 15, lifesteal: 7, regeneration: 4, luck: 18 },
+    7: { attack: 800, defense: 400, qiBlood: 8000, zhenYuan: 4000, speed: 40, criticalRate: 20, criticalDamage: 210, accuracy: 96, dodge: 20, penetration: 18, resistance: 18, lifesteal: 10, regeneration: 5, luck: 20 },
+    8: { attack: 1600, defense: 800, qiBlood: 16000, zhenYuan: 8000, speed: 45, criticalRate: 22, criticalDamage: 220, accuracy: 97, dodge: 22, penetration: 20, resistance: 20, lifesteal: 12, regeneration: 6, luck: 22 },
+    9: { attack: 3200, defense: 1600, qiBlood: 32000, zhenYuan: 16000, speed: 50, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 7, luck: 25 },
+    10: { attack: 6400, defense: 3200, qiBlood: 64000, zhenYuan: 32000, speed: 60, criticalRate: 30, criticalDamage: 250, accuracy: 99, dodge: 30, penetration: 25, resistance: 25, lifesteal: 20, regeneration: 8, luck: 30 }
   };
 
   const baseStats = baseStatsByRealm[realmLevel] || baseStatsByRealm[1];
@@ -618,12 +624,16 @@ CultivationSchema.methods.getExpToNextRealm = function () {
 
 /**
  * Tính phần trăm tiến độ cảnh giới hiện tại
+ * Dựa trên realmLevel hiện tại, không phải realm từ exp
  */
 CultivationSchema.methods.getRealmProgress = function () {
-  const realm = this.getRealmFromExp();
-  if (realm.level >= 10) return 100;
-  const progressInRealm = this.exp - realm.minExp;
-  const realmRange = realm.maxExp - realm.minExp + 1;
+  // Dùng realmLevel hiện tại thay vì tính từ exp
+  const currentRealm = CULTIVATION_REALMS.find(r => r.level === this.realmLevel) || CULTIVATION_REALMS[0];
+  if (currentRealm.level >= 10) return 100;
+  
+  // Tính progress trong realm hiện tại
+  const progressInRealm = this.exp - currentRealm.minExp;
+  const realmRange = currentRealm.maxExp - currentRealm.minExp + 1;
   return Math.min(100, Math.floor((progressInRealm / realmRange) * 100));
 };
 
@@ -645,17 +655,17 @@ CultivationSchema.methods.addExp = function (amount, source, description = "") {
   }
 
   const finalAmount = Math.floor(amount * multiplier);
+  const oldExp = this.exp;
   this.exp += finalAmount;
 
-  // Cập nhật cảnh giới
-  const newRealm = this.getRealmFromExp();
-  const oldRealmLevel = this.realmLevel;
-  this.realmLevel = newRealm.level;
-  this.realmName = newRealm.name;
-
-  // Tính sub-level (1-10 trong mỗi cảnh giới)
+  // KHÔNG tự động cập nhật cảnh giới - người chơi phải bấm nút breakthrough
+  // Chỉ cập nhật sub-level dựa trên progress trong realm hiện tại
   const progressPercent = this.getRealmProgress();
   this.subLevel = Math.max(1, Math.ceil(progressPercent / 10));
+
+  // Kiểm tra xem có đủ exp để breakthrough không (chỉ để thông báo, không tự động)
+  const newRealmFromExp = this.getRealmFromExp();
+  const canBreakthrough = newRealmFromExp.level > this.realmLevel;
 
   // Log exp (giới hạn 100 entries gần nhất)
   if (!this.expLog) this.expLog = [];
@@ -673,8 +683,9 @@ CultivationSchema.methods.addExp = function (amount, source, description = "") {
     addedExp: finalAmount,
     totalExp: this.exp,
     multiplier,
-    leveledUp: newRealm.level > oldRealmLevel,
-    newRealm: newRealm.level > oldRealmLevel ? newRealm : null
+    leveledUp: false, // Không tự động lên cấp nữa
+    newRealm: null, // Không tự động lên realm
+    canBreakthrough: canBreakthrough // Thông báo có thể breakthrough
   };
 };
 
@@ -752,15 +763,10 @@ CultivationSchema.methods.collectPassiveExp = function () {
   const finalExp = Math.floor(baseExp * multiplier);
 
   // Cộng exp
-  const oldRealmLevel = this.realmLevel;
   this.exp += finalExp;
 
-  // Cập nhật cảnh giới
-  const newRealm = this.getRealmFromExp();
-  this.realmLevel = newRealm.level;
-  this.realmName = newRealm.name;
-
-  // Cập nhật sub-level
+  // KHÔNG tự động cập nhật cảnh giới - người chơi phải bấm nút breakthrough
+  // Chỉ cập nhật sub-level dựa trên progress trong realm hiện tại
   const progressPercent = this.getRealmProgress();
   this.subLevel = Math.max(1, Math.ceil(progressPercent / 10));
 
@@ -781,6 +787,11 @@ CultivationSchema.methods.collectPassiveExp = function () {
   // Cập nhật thời gian thu thập
   this.lastPassiveExpCollected = now;
 
+  // Tính realm có thể đạt được từ exp (để thông báo, không tự động lên cấp)
+  const potentialRealm = this.getRealmFromExp();
+  const currentRealm = CULTIVATION_REALMS.find(r => r.level === this.realmLevel) || CULTIVATION_REALMS[0];
+  const canBreakthrough = potentialRealm.level > this.realmLevel;
+
   return {
     collected: true,
     expEarned: finalExp,
@@ -788,8 +799,10 @@ CultivationSchema.methods.collectPassiveExp = function () {
     multiplier,
     minutesElapsed: effectiveMinutes,
     totalExp: this.exp,
-    leveledUp: newRealm.level > oldRealmLevel,
-    newRealm: newRealm.level > oldRealmLevel ? newRealm : null,
+    leveledUp: false, // Không tự động lên cấp nữa
+    newRealm: null, // Không tự động lên realm
+    canBreakthrough: canBreakthrough, // Thông báo có thể breakthrough
+    potentialRealm: canBreakthrough ? potentialRealm : null,
     activeBoosts: this.activeBoosts.map(b => ({
       type: b.type,
       multiplier: b.multiplier,

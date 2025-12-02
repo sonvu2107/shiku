@@ -13,17 +13,17 @@ import { cn } from "../utils/cn";
  */
 export default function NotificationHistory() {
   // ==================== STATE MANAGEMENT ====================
-  
+
   // Notifications data
   const [notifications, setNotifications] = useState([]); // Danh sách thông báo
   const [loading, setLoading] = useState(true); // Loading state
   const [page, setPage] = useState(1); // Trang hiện tại
   const [hasMore, setHasMore] = useState(true); // Có thêm thông báo để load
-  
+
   // Filter & Selection
   const [filter, setFilter] = useState("all"); // Bộ lọc: tất cả, chưa đọc, đã đọc
   const [selectedNotifications, setSelectedNotifications] = useState([]); // Thông báo đã chọn
-  
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,13 +35,13 @@ export default function NotificationHistory() {
       setLoading(pageNum === 1);
       const filterParam = filter !== "all" ? `&filter=${filter}` : "";
       const data = await api(`/api/notifications?page=${pageNum}&limit=20${filterParam}`);
-      
+
       if (reset) {
         setNotifications(data.notifications);
       } else {
         setNotifications(prev => [...prev, ...data.notifications]);
       }
-      
+
       setHasMore(data.notifications.length === 20);
       setPage(pageNum);
     } catch (error) {
@@ -60,10 +60,10 @@ export default function NotificationHistory() {
   const markAsRead = async (notificationId) => {
     try {
       await api(`/api/notifications/${notificationId}/read`, {
-      method: "PUT",
-      body: {}
-    });
-      setNotifications(prev => 
+        method: "PUT",
+        body: {}
+      });
+      setNotifications(prev =>
         prev.map(n => n._id === notificationId ? { ...n, read: true } : n)
       );
     } catch (error) {
@@ -74,9 +74,9 @@ export default function NotificationHistory() {
   const markAllAsRead = async () => {
     try {
       await api("/api/notifications/mark-all-read", {
-      method: "PUT",
-      body: {}
-    });
+        method: "PUT",
+        body: {}
+      });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setSelectedNotifications([]);
     } catch (error) {
@@ -87,8 +87,8 @@ export default function NotificationHistory() {
   const deleteNotification = async (notificationId) => {
     try {
       await api(`/api/notifications/${notificationId}`, {
-      method: "DELETE"
-    });
+        method: "DELETE"
+      });
       setNotifications(prev => prev.filter(n => n._id !== notificationId));
       setSelectedNotifications(prev => prev.filter(id => id !== notificationId));
     } catch (error) {
@@ -98,15 +98,15 @@ export default function NotificationHistory() {
 
   const deleteSelected = async () => {
     if (selectedNotifications.length === 0) return;
-    
+
     try {
       await Promise.all(
-        selectedNotifications.map(id => 
+        selectedNotifications.map(id =>
           api(`/api/notifications/${id}`, { method: "DELETE" })
         )
       );
-      
-      setNotifications(prev => 
+
+      setNotifications(prev =>
         prev.filter(n => !selectedNotifications.includes(n._id))
       );
       setSelectedNotifications([]);
@@ -116,7 +116,7 @@ export default function NotificationHistory() {
   };
 
   const toggleSelectNotification = (notificationId) => {
-    setSelectedNotifications(prev => 
+    setSelectedNotifications(prev =>
       prev.includes(notificationId)
         ? prev.filter(id => id !== notificationId)
         : [...prev, notificationId]
@@ -155,7 +155,7 @@ export default function NotificationHistory() {
     const now = new Date();
     const date = new Date(dateString);
     const diffInSeconds = Math.floor((now - date) / 1000);
-    
+
     if (diffInSeconds < 60) return "Vừa xong";
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} phút trước`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
@@ -166,7 +166,7 @@ export default function NotificationHistory() {
     if (!notification.read) {
       markAsRead(notification._id);
     }
-    
+
     // Điều hướng đến trang có liên quan nếu URL được cung cấp
     if (notification.data?.url) {
       navigate(notification.data.url);
@@ -189,8 +189,8 @@ export default function NotificationHistory() {
       </button>
 
       {/* Header */}
-      <PageHeader 
-        title="Lịch sử thông báo" 
+      <PageHeader
+        title="Lịch sử thông báo"
         subtitle="Quản lý và theo dõi tất cả thông báo của bạn"
         action={
           <div className="flex flex-wrap gap-3">
@@ -203,7 +203,7 @@ export default function NotificationHistory() {
                 <span>Đánh dấu tất cả đã đọc ({unreadCount})</span>
               </button>
             )}
-            
+
             {selectedNotifications.length > 0 && (
               <button
                 onClick={deleteSelected}
@@ -292,14 +292,14 @@ export default function NotificationHistory() {
                 <Bell className="w-8 h-8 text-neutral-400" />
               </div>
               <div className="text-neutral-900 dark:text-white text-lg mb-2 font-bold">
-                {filter === "all" ? "Chưa có thông báo nào" : 
-                 filter === "unread" ? "Không có thông báo chưa đọc" : 
-                 "Không có thông báo đã đọc"}
+                {filter === "all" ? "Chưa có thông báo nào" :
+                  filter === "unread" ? "Không có thông báo chưa đọc" :
+                    "Không có thông báo đã đọc"}
               </div>
               <div className="text-neutral-500 dark:text-neutral-400 text-sm">
-                {filter === "all" ? "Thông báo sẽ xuất hiện ở đây khi có hoạt động mới" : 
-                 filter === "unread" ? "Tất cả thông báo đã được đọc" : 
-                 "Chưa có thông báo nào được đánh dấu đã đọc"}
+                {filter === "all" ? "Thông báo sẽ xuất hiện ở đây khi có hoạt động mới" :
+                  filter === "unread" ? "Tất cả thông báo đã được đọc" :
+                    "Chưa có thông báo nào được đánh dấu đã đọc"}
               </div>
             </div>
           </SpotlightCard>
@@ -311,7 +311,7 @@ export default function NotificationHistory() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <SpotlightCard 
+              <SpotlightCard
                 className={cn(
                   "cursor-pointer transition-all",
                   !notification.read && "ring-2 ring-neutral-200 dark:ring-neutral-800"
@@ -336,19 +336,19 @@ export default function NotificationHistory() {
                       </div>
                     )}
                   </div>
-                  
+
                   {!(notification.type === 'system' || notification.type === 'admin_message') && (
                     <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 rounded-2xl">
                       {getNotificationIcon(notification.type)}
                     </div>
                   )}
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-3">
                       <h3 className={cn(
                         "font-bold leading-tight text-base truncate pr-2",
-                        !notification.read 
-                          ? "text-neutral-900 dark:text-white" 
+                        !notification.read
+                          ? "text-neutral-900 dark:text-white"
                           : "text-neutral-600 dark:text-neutral-400"
                       )}>
                         {notification.title}
@@ -378,11 +378,11 @@ export default function NotificationHistory() {
                         </button>
                       </div>
                     </div>
-                    
+
                     <p className="text-neutral-600 dark:text-neutral-400 mb-4 leading-relaxed text-sm line-clamp-2">
                       {notification.message}
                     </p>
-                    
+
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-neutral-500 dark:text-neutral-500 font-medium bg-neutral-100 dark:bg-neutral-800 px-3 py-1 rounded-full">
                         {getTimeAgo(notification.createdAt)}

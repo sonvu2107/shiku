@@ -76,6 +76,11 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
     const attackerSkills = currentAttacker === 'challenger' ? challengerSkills : opponentSkills;
     const attackerCooldowns = currentAttacker === 'challenger' ? challengerSkillCooldowns : opponentSkillCooldowns;
 
+    // Reduce cooldowns TRƯỚC khi check skill (để tránh giảm cooldown vừa set)
+    Object.keys(attackerCooldowns).forEach(key => {
+      if (attackerCooldowns[key] > 0) attackerCooldowns[key]--;
+    });
+
     // Check if can use skill
     let usedSkill = null;
     let skillDamageBonus = 0;
@@ -89,11 +94,6 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
       }
     }
 
-    // Reduce cooldowns
-    Object.keys(attackerCooldowns).forEach(key => {
-      if (attackerCooldowns[key] > 0) attackerCooldowns[key]--;
-    });
-
     // Tính toán né tránh
     const hitChance = (attacker.accuracy - defender.dodge) / 100;
     const isDodged = Math.random() > Math.max(0.1, hitChance);
@@ -104,6 +104,14 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
     let regenerationHealed = 0;
     let description = '';
     let skillUsed = usedSkill ? usedSkill.name : null;
+
+    // Regeneration: Hồi máu nhẹ mỗi turn (không quá imba)
+    // Giới hạn max 5% HP/turn để tránh trận đấu kéo dài vô tận
+    if (attacker.regeneration > 0) {
+      const maxHp = currentAttacker === 'challenger' ? challengerMaxHp : opponentMaxHp;
+      const regenRate = Math.min(attacker.regeneration, 5); // Max 5%
+      regenerationHealed = Math.floor(maxHp * regenRate / 100);
+    }
 
     if (!isDodged) {
       // Tính sát thương cơ bản: Attack - (Defense * (1 - Penetration/100))
@@ -128,15 +136,9 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
       damage = Math.floor(damage * (0.9 + Math.random() * 0.2));
       damage = Math.max(1, damage);
 
-      // Lifesteal
+      // Lifesteal (chỉ hoạt động khi tấn công thành công)
       if (attacker.lifesteal > 0) {
         lifestealHealed = Math.floor(damage * attacker.lifesteal / 100);
-      }
-
-      // Regeneration
-      if (attacker.regeneration > 0) {
-        const maxHp = currentAttacker === 'challenger' ? challengerMaxHp : opponentMaxHp;
-        regenerationHealed = Math.floor(maxHp * attacker.regeneration / 100);
       }
     }
 
@@ -154,15 +156,20 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
     // Tạo mô tả
     if (isDodged) {
       description = `Đòn đánh bị né tránh!`;
+      // Hiển thị regeneration nếu có
+      if (regenerationHealed > 0) description += ` Hồi ${regenerationHealed} máu`;
     } else if (usedSkill) {
       description = `Sử dụng [${usedSkill.name}]! ${isCritical ? 'Chí mạng! ' : ''}Gây ${damage} sát thương`;
       if (lifestealHealed > 0) description += `, hút ${lifestealHealed} máu`;
+      if (regenerationHealed > 0) description += `, hồi ${regenerationHealed} máu`;
     } else if (isCritical) {
       description = `Chí mạng! Gây ${damage} sát thương`;
       if (lifestealHealed > 0) description += `, hút ${lifestealHealed} máu`;
+      if (regenerationHealed > 0) description += `, hồi ${regenerationHealed} máu`;
     } else {
       description = `Gây ${damage} sát thương`;
       if (lifestealHealed > 0) description += `, hút ${lifestealHealed} máu`;
+      if (regenerationHealed > 0) description += `, hồi ${regenerationHealed} máu`;
     }
 
     logs.push({
@@ -178,6 +185,11 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
       description,
       skillUsed
     });
+
+    // Kiểm tra xem có ai hết máu không - dừng ngay lập tức
+    if (challengerHp <= 0 || opponentHp <= 0) {
+      break; // Dừng trận đấu ngay khi có người hết máu
+    }
 
     // Chuyển lượt
     currentAttacker = currentAttacker === 'challenger' ? 'opponent' : 'challenger';

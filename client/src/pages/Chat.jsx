@@ -23,26 +23,26 @@ import { useToast } from "../components/Toast";
  */
 export default function Chat() {
   // ==================== ROUTER & LOCATION ====================
-  
+
   const location = useLocation(); // To handle state passed from `MessageButton`
   const { showInfo } = useToast();
-  
+
   // ==================== STATE MANAGEMENT ====================
-  
+
   // Conversations
   const [conversations, setConversations] = useState([]); // List of conversations
   const [selectedConversation, setSelectedConversation] = useState(null); // Currently selected conversation
-  
+
   // Messages
   const [messages, setMessages] = useState([]); // Messages for the current conversation
   const [isLoadingMessages, setIsLoadingMessages] = useState(false); // Loading messages flag
   const [hasMoreMessages, setHasMoreMessages] = useState(false); // Whether more messages are available to load
   const [currentPage, setCurrentPage] = useState(1); // Current page number for pagination
-  
+
   // Modals
   const [showNewConversationModal, setShowNewConversationModal] = useState(false); // New conversation modal
   const [showAddMembersModal, setShowAddMembersModal] = useState(false); // Add members modal
-  
+
   // Call states
   const [callOpen, setCallOpen] = useState(false); // Is a call modal open
   const [isVideoCall, setIsVideoCall] = useState(true); // Call type: video or voice
@@ -51,14 +51,14 @@ export default function Chat() {
   const [remoteUser, setRemoteUser] = useState(null); // Remote user's info (1-1 call)
   const [groupParticipants, setGroupParticipants] = useState([]); // Participants in a group call
   const [isGroupCall, setIsGroupCall] = useState(false); // Whether it's a group call
-  
+
   // Online status tracking
   const [userOnlineStatus, setUserOnlineStatus] = useState({}); // Map: user ID -> online status
-  
+
   // User & Loading
   const [currentUser, setCurrentUser] = useState(null); // Current logged-in user
   const [isLoading, setIsLoading] = useState(true); // Loading state for conversations
-  
+
   // Mobile view state
   const [showChatWindow, setShowChatWindow] = useState(false); // Whether to show chat window on mobile
 
@@ -122,7 +122,7 @@ export default function Chat() {
       socketRef = socketService.socket;
       if (!socketRef) return;
 
-      handleConversationJoined = () => {};
+      handleConversationJoined = () => { };
       socketRef.on("conversation-joined", handleConversationJoined);
     };
 
@@ -284,16 +284,16 @@ export default function Chat() {
     try {
       const user = await api("/api/auth/me");
       setCurrentUser(user);
-      
+
       // Connect to Socket.IO when user is loaded
       const socket = socketService.connect(user);
-      
+
       // Setup global message listener for conversation list updates (only once)
       socketService.onNewMessage((message) => {
         // Update conversation list with new last message
-        setConversations(prev => 
-          prev.map(conv => 
-            conv._id === (message.conversationId || message.conversation) 
+        setConversations(prev =>
+          prev.map(conv =>
+            conv._id === (message.conversationId || message.conversation)
               ? { ...conv, lastMessage: message, lastActivity: message.createdAt }
               : conv
           ).sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity))
@@ -308,7 +308,7 @@ export default function Chat() {
           }
         });
       }
-      
+
     } catch (error) {
       // Handle error silently
     }
@@ -319,20 +319,20 @@ export default function Chat() {
     if (location.state?.openConversation && conversations.length > 0) {
       const conversationId = location.state.openConversation;
       const conversationData = location.state.conversationData;
-      
+
       // Tìm conversation trong danh sách hiện có
       let conversation = conversations.find(conv => conv._id === conversationId);
-      
+
       // Nếu không tìm thấy, thêm conversation mới vào danh sách
       if (!conversation && conversationData) {
         conversation = conversationData;
         setConversations(prev => [conversation, ...prev]);
       }
-      
+
       if (conversation) {
         setSelectedConversation(conversation);
       }
-      
+
       // Clear state để tránh re-trigger
       window.history.replaceState({}, document.title);
     }
@@ -343,7 +343,7 @@ export default function Chat() {
       if (selectedConversation) {
         try {
           console.log('Loading conversation:', selectedConversation._id, selectedConversation.conversationType);
-          
+
           // Với chatbot conversation, Chatbot component tự quản lý messages
           // Không cần load messages ở đây vì Chatbot component sẽ tự load từ chatbotAPI.getHistory()
           if (selectedConversation.conversationType === 'chatbot') {
@@ -367,7 +367,7 @@ export default function Chat() {
     };
 
     handleConversationChange();
-    
+
     return () => {
       // Leave conversation khi conversation thay đổi (trừ chatbot)
       if (selectedConversation && selectedConversation.conversationType !== 'chatbot') {
@@ -417,7 +417,7 @@ export default function Chat() {
       setIsLoadingMessages(false);
       return [];
     }
-    
+
     try {
       setIsLoadingMessages(true);
       const data = await chatAPI.getMessages(conversationId, page);
@@ -429,10 +429,10 @@ export default function Chat() {
         setCurrentPage(page);
       }
       // Use pagination info if available, otherwise fall back to length check
-      const hasMore = data.pagination?.hasMore !== undefined 
-        ? data.pagination.hasMore 
+      const hasMore = data.pagination?.hasMore !== undefined
+        ? data.pagination.hasMore
         : (page === 1 ? (data.messages || []).length > 0 : (data.messages || []).length === 50);
-        
+
       setHasMoreMessages(hasMore);
       return data.messages || [];
     } catch (error) {
@@ -469,15 +469,15 @@ export default function Chat() {
     try {
       // Ensure user is in conversation room before sending message
       await socketService.joinConversation(selectedConversation._id);
-      
+
       let newMessage;
-      
+
       if (image) {
         newMessage = await chatAPI.sendImageMessage(selectedConversation._id, image, content);
       } else {
         newMessage = await chatAPI.sendMessage(selectedConversation._id, content, type, emote);
       }
-      
+
       // Add message to local state immediately for better UX
       if (newMessage) {
         setMessages(prev => {
@@ -488,17 +488,17 @@ export default function Chat() {
           }
           return [...prev, newMessage];
         });
-        
+
         // Update conversation list with new last message
-        setConversations(prev => 
-          prev.map(conv => 
+        setConversations(prev =>
+          prev.map(conv =>
             conv._id === selectedConversation._id
               ? { ...conv, lastMessage: newMessage, lastActivity: newMessage.createdAt }
               : conv
           ).sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity))
         );
       }
-      
+
     } catch (error) {
       alert('Có lỗi xảy ra khi gửi tin nhắn');
     }
@@ -507,11 +507,11 @@ export default function Chat() {
   const handleCreateConversation = async (conversationData) => {
     try {
       let newConversation;
-      
+
       // Nếu có existingConversation, sử dụng nó thay vì tạo mới
       if (conversationData.existingConversation) {
         newConversation = conversationData.existingConversation;
-        
+
         // Kiểm tra xem conversation đã có trong danh sách chưa
         const existingInList = conversations.find(conv => conv._id === newConversation._id);
         if (!existingInList) {
@@ -523,12 +523,12 @@ export default function Chat() {
         newConversation = await chatAPI.createConversation(conversationData);
         setConversations(prev => [newConversation, ...prev]);
       }
-      
+
       setSelectedConversation(newConversation);
-      
+
       // Lưu conversation hiện tại
       await saveCurrentConversation(newConversation._id);
-      
+
     } catch (error) {
       throw error;
     }
@@ -555,7 +555,7 @@ export default function Chat() {
   const handleLeaveConversation = async (conversationId) => {
     try {
       await chatAPI.leaveConversation(conversationId);
-      
+
       // Clear selected conversation immediately if it's the one being left
       if (selectedConversation?._id === conversationId) {
         setSelectedConversation(null);
@@ -563,10 +563,10 @@ export default function Chat() {
         // Clear current conversation in backend too
         await chatAPI.setCurrentConversation(null);
       }
-      
+
       // Reload conversations to get updated data
       await loadConversations();
-      
+
     } catch (error) {
       alert('Có lỗi xảy ra khi rời cuộc trò chuyện');
     }
@@ -575,10 +575,10 @@ export default function Chat() {
   const handleDeleteConversation = async (conversationId) => {
     try {
       await chatAPI.deleteConversation(conversationId);
-      
+
       // Remove conversation from list
       setConversations(prev => prev.filter(conv => conv._id !== conversationId));
-      
+
       // Clear selected conversation if it's the one being deleted
       if (selectedConversation?._id === conversationId) {
         setSelectedConversation(null);
@@ -624,7 +624,7 @@ export default function Chat() {
 
     // Tạo conversation mới với online status được cập nhật
     const updatedConversation = { ...conversation };
-    
+
     // Cập nhật participants
     updatedConversation.participants = conversation.participants.map(p => {
       const participantId = p.user?._id || p.user?.id || p._id || p.id;
@@ -673,7 +673,7 @@ export default function Chat() {
   const handleRefreshConversation = async () => {
     // Reload conversations list
     await loadConversations();
-    
+
     // Reload selected conversation details if any
     if (selectedConversation) {
       const updatedConversations = await chatAPI.getConversations();
@@ -686,7 +686,7 @@ export default function Chat() {
 
   const handleLoadMoreMessages = async () => {
     if (!selectedConversation || !hasMoreMessages || isLoadingMessages) return;
-    
+
     const nextPage = currentPage + 1;
     await loadMessages(selectedConversation._id, nextPage);
   };
@@ -706,7 +706,7 @@ export default function Chat() {
     // Save current conversation
     saveCurrentConversation(conversation._id);
   };
- 
+
   const handleBackToList = () => {
     setShowChatWindow(false); // Quay lại danh sách trên mobile
     setSelectedConversation(null);
@@ -734,33 +734,33 @@ export default function Chat() {
   };
 
   // ==================== CALL HANDLERS ====================
-  
+
   const handleVideoCall = async (conversationId) => {
     if (!selectedConversation) return;
-    
+
     const isGroup = selectedConversation.conversationType === 'group';
-    
+
     // Kiểm tra nếu là group chat - hiển thị thông báo và không thực hiện call
     if (isGroup) {
       showInfo("Tính năng chưa khả dụng, sẽ cập nhật trong tương lai");
       return;
     }
-    
+
     // Join conversation room
     await socketService.joinConversation(conversationId);
-    
+
     const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
-    
+
     // 1-1 call
     const otherParticipant = selectedConversation.participants?.find(p => {
       const participantId = p.user?._id || p.user?.id || p._id || p.id;
       return participantId !== currentUserId;
     });
-    
+
     setRemoteUser(otherParticipant?.user || otherParticipant || { name: "Người dùng" });
     setIsGroupCall(false);
     setGroupParticipants([]); // Clear for 1-1 call
-    
+
     setIsVideoCall(true);
     setCallOpen(true);
 
@@ -770,30 +770,30 @@ export default function Chat() {
 
   const handleVoiceCall = async (conversationId) => {
     if (!selectedConversation) return;
-    
+
     const isGroup = selectedConversation.conversationType === 'group';
-    
+
     // Kiểm tra nếu là group chat - hiển thị thông báo và không thực hiện call
     if (isGroup) {
       showInfo("Tính năng chưa khả dụng, sẽ cập nhật trong tương lai");
       return;
     }
-    
+
     // Join conversation room
     await socketService.joinConversation(conversationId);
-    
+
     const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
-    
+
     // 1-1 call
     const otherParticipant = selectedConversation.participants?.find(p => {
       const participantId = p.user?._id || p.user?.id || p._id || p.id;
       return participantId !== currentUserId;
     });
-    
+
     setRemoteUser(otherParticipant?.user || otherParticipant || { name: "Người dùng" });
     setIsGroupCall(false);
     setGroupParticipants([]); // Clear for 1-1 call
-    
+
     setIsVideoCall(false);
     setCallOpen(true);
 
@@ -870,7 +870,7 @@ export default function Chat() {
   };
 
   return (
-  <div className="h-full bg-white dark:bg-gray-900 pt-16 sm:pt-20">
+    <div className="h-full bg-white dark:bg-gray-900 pt-16 sm:pt-20">
       <div className="h-full flex flex-col sm:flex-row chat-mobile">
         {/* Sidebar - Ẩn khi showChatWindow = true trên mobile */}
         <div className={`w-full sm:w-72 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800 chat-sidebar-mobile ${showChatWindow ? 'hidden sm:flex' : 'flex'}`}>
@@ -895,23 +895,23 @@ export default function Chat() {
               onSelectConversation={handleSelectConversation}
               loading={isLoading}
               currentUser={currentUser}
-            onOpenChatbot={handleOpenChatbotPanel}
-            isChatbotActive={selectedConversation?.conversationType === 'chatbot'}
+              onOpenChatbot={handleOpenChatbotPanel}
+              isChatbotActive={selectedConversation?.conversationType === 'chatbot'}
             />
           </div>
         </div>
         {/* Chat Window - Hiển thị khi showChatWindow = true trên mobile hoặc luôn luôn trên desktop khi có selectedConversation */}
         <div className={`flex-1 bg-gray-50 dark:bg-gray-900 flex flex-col chat-window-mobile min-h-0 ${selectedConversation ? (showChatWindow ? 'flex' : 'hidden sm:flex') : 'hidden sm:flex'}`}>
-        {selectedConversation && selectedConversation.conversationType === 'chatbot' ? (
-          <div className="flex-1 flex flex-col min-h-0 h-full w-full">
-            <Chatbot 
-              key={`chatbot-${selectedConversation._id}`}
-              variant="embedded" 
-              onClose={handleBackToList}
-              showHeader={true}
-            />
-          </div>
-        ) : selectedConversation ? (
+          {selectedConversation && selectedConversation.conversationType === 'chatbot' ? (
+            <div className="flex-1 flex flex-col min-h-0 h-full w-full">
+              <Chatbot
+                key={`chatbot-${selectedConversation._id}`}
+                variant="embedded"
+                onClose={handleBackToList}
+                showHeader={true}
+              />
+            </div>
+          ) : selectedConversation ? (
             <ChatWindow
               conversation={mergeOnlineStatusToConversation(selectedConversation)}
               currentUser={currentUser}

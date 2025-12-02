@@ -15,9 +15,15 @@ router.use(authRequired);
  * Format cultivation data cho response
  */
 const formatCultivationResponse = (cultivation) => {
-  const realm = cultivation.getRealmFromExp();
+  // Dùng realmLevel từ database (realm hiện tại của người chơi)
+  const currentRealm = CULTIVATION_REALMS.find(r => r.level === cultivation.realmLevel) || CULTIVATION_REALMS[0];
+  // Tính realm có thể đạt được từ exp (để hiển thị progress)
+  const potentialRealm = cultivation.getRealmFromExp();
   const progress = cultivation.getRealmProgress();
-  const expToNext = cultivation.getExpToNextRealm();
+  
+  // Tính exp cần cho realm tiếp theo (dựa trên realm hiện tại)
+  const nextRealm = CULTIVATION_REALMS.find(r => r.level === currentRealm.level + 1);
+  const expToNext = nextRealm ? Math.max(0, nextRealm.minExp - cultivation.exp) : 0;
 
   return {
     _id: cultivation._id,
@@ -26,15 +32,17 @@ const formatCultivationResponse = (cultivation) => {
     // Tu vi & Cảnh giới
     exp: cultivation.exp,
     realm: {
-      level: realm.level,
-      name: realm.name,
-      description: realm.description,
-      color: realm.color,
-      icon: realm.icon
+      level: currentRealm.level, // Dùng realmLevel từ database
+      name: currentRealm.name,
+      description: currentRealm.description,
+      color: currentRealm.color,
+      icon: currentRealm.icon
     },
     subLevel: cultivation.subLevel,
     progress: progress,
     expToNextRealm: expToNext,
+    // Thêm thông tin về realm có thể đạt được (để hiển thị progress bar)
+    canBreakthrough: potentialRealm.level > currentRealm.level,
     
     // Linh thạch
     spiritStones: cultivation.spiritStones,
@@ -85,6 +93,12 @@ const formatCultivationResponse = (cultivation) => {
     
     // Thông số chiến đấu
     combatStats: cultivation.calculateCombatStats(),
+    
+    // Độ kiếp (Breakthrough)
+    breakthroughSuccessRate: cultivation.breakthroughSuccessRate || 30,
+    breakthroughFailureCount: cultivation.breakthroughFailureCount || 0,
+    lastBreakthroughAttempt: cultivation.lastBreakthroughAttempt,
+    breakthroughCooldownUntil: cultivation.breakthroughCooldownUntil,
     
     // Timestamps
     createdAt: cultivation.createdAt,
@@ -559,12 +573,7 @@ router.post("/inventory/:itemId/use", async (req, res, next) => {
         // Handle different consumable items
         if (itemData.expReward) {
           cultivation.exp += itemData.expReward;
-          // Update realm if needed
-          const newRealm = cultivation.getRealmFromExp();
-          if (newRealm && newRealm.level !== cultivation.realmLevel) {
-            cultivation.realmLevel = newRealm.level;
-            cultivation.realmName = newRealm.name;
-          }
+          // KHÔNG tự động cập nhật realm - người chơi phải bấm nút breakthrough
           message = `Đã sử dụng ${item.name}! Nhận được ${itemData.expReward} tu vi`;
           reward = { type: 'exp', amount: itemData.expReward };
         } else if (itemData.spiritStoneReward) {
@@ -1073,6 +1082,126 @@ router.post("/practice-technique", async (req, res, next) => {
     });
   } catch (error) {
     console.error("[CULTIVATION] Error practicing technique:", error);
+    next(error);
+  }
+});
+
+/**
+ * POST /api/cultivation/breakthrough
+ * Thử độ kiếp (breakthrough) - có thể thất bại
+ */
+router.post("/breakthrough", async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const cultivation = await Cultivation.getOrCreate(userId);
+    
+    // Dùng realmLevel từ database (realm hiện tại của người chơi)
+    const currentRealm = CULTIVATION_REALMS.find(r => r.level === cultivation.realmLevel) || CULTIVATION_REALMS[0];
+    const nextRealm = CULTIVATION_REALMS.find(r => r.level === currentRealm.level + 1);
+    
+    if (!nextRealm) {
+      return res.status(400).json({
+        success: false,
+        message: "Bạn đã đạt cảnh giới tối đa!"
+      });
+    }
+    
+    // Kiểm tra exp có đủ không
+    if (cultivation.exp < nextRealm.minExp) {
+      return res.status(400).json({
+        success: false,
+        message: `Cần ${nextRealm.minExp.toLocaleString()} Tu Vi để độ kiếp lên ${nextRealm.name}`
+      });
+    }
+    
+    // Kiểm tra cooldown (nếu đã thất bại trước đó)
+    const now = new Date();
+    if (cultivation.breakthroughCooldownUntil && cultivation.breakthroughCooldownUntil > now) {
+      const remainingMs = cultivation.breakthroughCooldownUntil - now;
+      const remainingMinutes = Math.ceil(remainingMs / (1000 * 60));
+      return res.status(400).json({
+        success: false,
+        message: `Sau lần thất bại, bạn cần chờ ${remainingMinutes} phút nữa mới có thể độ kiếp lại`,
+        cooldownRemaining: remainingMs
+      });
+    }
+    
+    // Tính tỷ lệ thành công
+    // Base rate: 30%, mỗi lần thất bại +10% (max 100%)
+    const baseSuccessRate = 30;
+    const bonusPerFailure = 10;
+    const currentSuccessRate = Math.min(100, 
+      (cultivation.breakthroughSuccessRate || baseSuccessRate) + 
+      (cultivation.breakthroughFailureCount || 0) * bonusPerFailure
+    );
+    
+    // Roll để xem thành công hay thất bại
+    const roll = Math.random() * 100;
+    const success = roll < currentSuccessRate;
+    
+    // Cập nhật thời gian thử độ kiếp
+    cultivation.lastBreakthroughAttempt = now;
+    
+    if (success) {
+      // THÀNH CÔNG: Lên cảnh giới mới
+      const oldRealm = currentRealm;
+      cultivation.realmLevel = nextRealm.level;
+      cultivation.realmName = nextRealm.name;
+      
+      // Reset failure count và success rate về base
+      cultivation.breakthroughFailureCount = 0;
+      cultivation.breakthroughSuccessRate = baseSuccessRate;
+      cultivation.breakthroughCooldownUntil = null;
+      
+      await cultivation.save();
+      
+      res.json({
+        success: true,
+        breakthroughSuccess: true,
+        message: `Chúc mừng! Bạn đã độ kiếp thành công, đạt cảnh giới ${nextRealm.name}!`,
+        data: {
+          oldRealm: oldRealm.name,
+          newRealm: nextRealm,
+          successRate: currentSuccessRate,
+          cultivation: formatCultivationResponse(cultivation)
+        }
+      });
+    } else {
+      // THẤT BẠI: Tăng failure count và set cooldown
+      cultivation.breakthroughFailureCount = (cultivation.breakthroughFailureCount || 0) + 1;
+      
+      // Cooldown: 1 giờ sau khi thất bại
+      const cooldownHours = 1;
+      cultivation.breakthroughCooldownUntil = new Date(now.getTime() + cooldownHours * 60 * 60 * 1000);
+      
+      // Cập nhật success rate (tăng 10% mỗi lần thất bại)
+      cultivation.breakthroughSuccessRate = Math.min(100, 
+        (cultivation.breakthroughSuccessRate || baseSuccessRate) + bonusPerFailure
+      );
+      
+      await cultivation.save();
+      
+      const nextSuccessRate = Math.min(100, 
+        cultivation.breakthroughSuccessRate + cultivation.breakthroughFailureCount * bonusPerFailure
+      );
+      
+      res.json({
+        success: true,
+        breakthroughSuccess: false,
+        message: `Độ kiếp thất bại! Tỷ lệ thành công lần sau: ${nextSuccessRate}%`,
+        data: {
+          currentRealm: currentRealm.name,
+          targetRealm: nextRealm.name,
+          failureCount: cultivation.breakthroughFailureCount,
+          nextSuccessRate: nextSuccessRate,
+          cooldownUntil: cultivation.breakthroughCooldownUntil,
+          cooldownRemaining: cooldownHours * 60 * 60 * 1000,
+          cultivation: formatCultivationResponse(cultivation)
+        }
+      });
+    }
+  } catch (error) {
+    console.error("[CULTIVATION] Error attempting breakthrough:", error);
     next(error);
   }
 });

@@ -53,7 +53,7 @@ export default function ForgotPassword() {
         method: "POST",
         body: { email: email.toLowerCase().trim() }
       });
-      
+
       setSuccess(true);
     } catch (err) {
       setError(err.message || "Có lỗi xảy ra. Vui lòng thử lại sau.");
@@ -64,19 +64,19 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-black text-white relative overflow-hidden font-sans selection:bg-white/20">
-      
+
       {/* Background Effects */}
       <GridPattern />
 
       {/* Main Card */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md relative z-10 p-3 sm:p-4"
       >
         <div className="relative bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl overflow-hidden">
-          
+
           {/* Header */}
           <div className="text-center mb-6 sm:mb-8 md:mb-10">
             <Link to="/" className="inline-flex items-center mb-4 sm:mb-6 hover:scale-105 transition-transform duration-300">
@@ -84,8 +84,8 @@ export default function ForgotPassword() {
             </Link>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">Quên mật khẩu?</h1>
             <p className="text-neutral-400 text-xs sm:text-sm">
-              {success 
-                ? "Chúng tôi đã gửi email hướng dẫn đặt lại mật khẩu" 
+              {success
+                ? "Chúng tôi đã gửi email hướng dẫn đặt lại mật khẩu"
                 : "Nhập email của bạn để nhận link đặt lại mật khẩu"}
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function ForgotPassword() {
             /* Form State */
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
               {error && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 text-red-400 text-xs sm:text-sm"
@@ -147,11 +147,11 @@ export default function ForgotPassword() {
                 </motion.div>
               )}
 
-              <InputGroup 
+              <InputGroup
                 icon={Mail}
-                type="email" 
-                placeholder="Email của bạn" 
-                value={email} 
+                type="email"
+                placeholder="Email của bạn"
+                value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 required

@@ -3,13 +3,13 @@
  */
 
 import { useState, useEffect, useCallback, useContext, createContext } from 'react';
-import { 
-  getCultivation, 
-  dailyLogin, 
-  claimQuestReward, 
-  getShop, 
-  buyItem, 
-  equipItem, 
+import {
+  getCultivation,
+  dailyLogin,
+  claimQuestReward,
+  getShop,
+  buyItem,
+  equipItem,
   unequipItem,
   useItem as useItemAPI,
   getLeaderboard,
@@ -18,7 +18,8 @@ import {
   addExpFromActivity,
   collectPassiveExp as collectPassiveExpAPI,
   getPassiveExpStatus,
-  practiceTechnique as practiceTechniqueAPI
+  practiceTechnique as practiceTechniqueAPI,
+  attemptBreakthrough as attemptBreakthroughAPI
 } from '../services/cultivationAPI.js';
 
 // Context cho Cultivation
@@ -35,7 +36,7 @@ export function CultivationProvider({ children }) {
   const [leaderboard, setLeaderboard] = useState(null);
   const [realms, setRealms] = useState(null);
   const [expLog, setExpLog] = useState([]);
-  
+
   // Notification state cho level up, rewards, etc.
   const [notification, setNotification] = useState(null);
 
@@ -65,7 +66,7 @@ export function CultivationProvider({ children }) {
     try {
       setError(null);
       const response = await dailyLogin();
-      
+
       if (response.success) {
         if (response.data.alreadyLoggedIn) {
           setNotification({
@@ -75,19 +76,19 @@ export function CultivationProvider({ children }) {
           });
         } else {
           setCultivation(response.data.cultivation);
-          
+
           // Show notification
           setNotification({
             type: 'success',
             title: response.data.leveledUp ? 'Đột phá cảnh giới!' : 'Điểm danh thành công!',
-            message: response.data.leveledUp 
+            message: response.data.leveledUp
               ? `Chúc mừng! Bạn đã đột phá đến ${response.data.newRealm?.name}!`
               : `+${response.data.expEarned} Tu Vi, +${response.data.stonesEarned} Linh Thạch. Streak: ${response.data.streak} ngày`,
             levelUp: response.data.leveledUp,
             newRealm: response.data.newRealm
           });
         }
-        
+
         return response.data;
       }
     } catch (err) {
@@ -108,20 +109,20 @@ export function CultivationProvider({ children }) {
     try {
       setError(null);
       const response = await claimQuestReward(questId);
-      
+
       if (response.success) {
         setCultivation(response.data.cultivation);
-        
+
         setNotification({
           type: 'success',
           title: response.data.leveledUp ? 'Đột phá cảnh giới!' : 'Nhận thưởng thành công!',
-          message: response.data.leveledUp 
+          message: response.data.leveledUp
             ? `Chúc mừng! Bạn đã đột phá đến ${response.data.newRealm?.name}!`
             : `+${response.data.expEarned} Tu Vi, +${response.data.stonesEarned} Linh Thạch`,
           levelUp: response.data.leveledUp,
           newRealm: response.data.newRealm
         });
-        
+
         return response.data;
       }
     } catch (err) {
@@ -158,14 +159,14 @@ export function CultivationProvider({ children }) {
     try {
       setError(null);
       const response = await buyItem(itemId);
-      
+
       if (response.success) {
         // Update cultivation with new inventory and spirit stones
         const updateData = {
           spiritStones: response.data.spiritStones,
           inventory: response.data.inventory
         };
-        
+
         // Nếu là công pháp, cập nhật learnedTechniques
         if (response.data.learnedTechnique) {
           updateData.learnedTechniques = [
@@ -173,21 +174,21 @@ export function CultivationProvider({ children }) {
             response.data.learnedTechnique
           ];
         }
-        
+
         setCultivation(prev => ({
           ...prev,
           ...updateData
         }));
-        
+
         // Update shop
         await loadShop();
-        
+
         setNotification({
           type: 'success',
           title: response.data.learnedTechnique ? 'Học công pháp thành công!' : 'Mua thành công!',
           message: response.message
         });
-        
+
         return response.data;
       }
     } catch (err) {
@@ -208,20 +209,20 @@ export function CultivationProvider({ children }) {
     try {
       setError(null);
       const response = await equipItem(itemId);
-      
+
       if (response.success) {
         setCultivation(prev => ({
           ...prev,
           equipped: response.data.equipped,
           inventory: response.data.inventory
         }));
-        
+
         setNotification({
           type: 'success',
           title: 'Trang bị thành công!',
           message: response.message
         });
-        
+
         return response.data;
       }
     } catch (err) {
@@ -242,14 +243,14 @@ export function CultivationProvider({ children }) {
     try {
       setError(null);
       const response = await unequipItem(itemId);
-      
+
       if (response.success) {
         setCultivation(prev => ({
           ...prev,
           equipped: response.data.equipped,
           inventory: response.data.inventory
         }));
-        
+
         return response.data;
       }
     } catch (err) {
@@ -265,7 +266,7 @@ export function CultivationProvider({ children }) {
     try {
       setError(null);
       const response = await useItemAPI(itemId);
-      
+
       if (response.success) {
         // Update cultivation state với thông tin mới
         setCultivation(prev => ({
@@ -273,7 +274,7 @@ export function CultivationProvider({ children }) {
           ...response.data.cultivation,
           inventory: response.data.inventory || prev.inventory
         }));
-        
+
         // Hiển thị thông báo nếu có
         if (response.data.message) {
           setNotification({
@@ -282,7 +283,7 @@ export function CultivationProvider({ children }) {
             reward: response.data.reward
           });
         }
-        
+
         return response.data;
       }
     } catch (err) {
@@ -346,10 +347,10 @@ export function CultivationProvider({ children }) {
     try {
       setError(null);
       const response = await addExpFromActivity(amount, source);
-      
+
       if (response.success) {
         setCultivation(response.data.cultivation);
-        
+
         if (response.data.leveledUp) {
           setNotification({
             type: 'success',
@@ -359,7 +360,7 @@ export function CultivationProvider({ children }) {
             newRealm: response.data.newRealm
           });
         }
-        
+
         return response.data;
       }
     } catch (err) {
@@ -375,7 +376,7 @@ export function CultivationProvider({ children }) {
     try {
       setError(null);
       const response = await practiceTechniqueAPI(techniqueId, expGain);
-      
+
       if (response.success) {
         // Cập nhật learnedTechniques local để tránh reload cả trang (giữ nguyên scroll)
         const { newLevel, currentExp } = response.data || {};
@@ -384,27 +385,27 @@ export function CultivationProvider({ children }) {
             if (!prev || !prev.learnedTechniques) return prev;
             const updatedTechniques = prev.learnedTechniques.map(t =>
               t.techniqueId === techniqueId
-                ? { 
-                    ...t, 
-                    level: newLevel, 
-                    exp: currentExp, 
-                    lastPracticedAt: new Date().toISOString() 
-                  }
+                ? {
+                  ...t,
+                  level: newLevel,
+                  exp: currentExp,
+                  lastPracticedAt: new Date().toISOString()
+                }
                 : t
             );
-            return { 
-              ...prev, 
-              learnedTechniques: updatedTechniques 
+            return {
+              ...prev,
+              learnedTechniques: updatedTechniques
             };
           });
         }
-        
+
         setNotification({
           type: response.data?.leveledUp ? 'success' : 'info',
           title: response.data?.leveledUp ? 'Công pháp lên cấp!' : 'Luyện công pháp thành công!',
           message: response.message
         });
-        
+
         return response.data;
       }
     } catch (err) {
@@ -425,28 +426,28 @@ export function CultivationProvider({ children }) {
     try {
       setError(null);
       const response = await collectPassiveExpAPI();
-      
+
       if (response.success && response.data.collected) {
         setCultivation(response.data.cultivation);
-        
+
         // Show notification với thông tin chi tiết
         const { expEarned, multiplier, minutesElapsed, leveledUp, newRealm } = response.data;
-        
+
         setNotification({
           type: leveledUp ? 'success' : 'info',
           title: leveledUp ? 'Đột phá cảnh giới!' : 'Thu thập tu vi',
-          message: leveledUp 
+          message: leveledUp
             ? `Chúc mừng! Bạn đã đột phá đến ${newRealm?.name}!`
-            : multiplier > 1 
+            : multiplier > 1
               ? `+${expEarned} Tu Vi (x${multiplier} đan dược, ${minutesElapsed} phút tu luyện)`
               : `+${expEarned} Tu Vi (${minutesElapsed} phút tu luyện)`,
           levelUp: leveledUp,
           newRealm: newRealm
         });
-        
+
         return response.data;
       }
-      
+
       return response.data;
     } catch (err) {
       setError(err.message);
@@ -468,6 +469,41 @@ export function CultivationProvider({ children }) {
       throw err;
     }
   }, []);
+
+  /**
+   * Thử độ kiếp (breakthrough) - có thể thất bại
+   */
+  const attemptBreakthrough = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await attemptBreakthroughAPI();
+
+      if (response.success) {
+        // Reload cultivation để cập nhật realm và breakthrough info
+        await loadCultivation();
+
+        setNotification({
+          type: response.data?.breakthroughSuccess ? 'success' : 'error',
+          title: response.data?.breakthroughSuccess ? 'Độ kiếp thành công!' : 'Độ kiếp thất bại!',
+          message: response.message,
+          breakthroughSuccess: response.data?.breakthroughSuccess,
+          newRealm: response.data?.newRealm,
+          nextSuccessRate: response.data?.nextSuccessRate,
+          cooldownUntil: response.data?.cooldownUntil
+        });
+
+        return response.data;
+      }
+    } catch (err) {
+      setError(err.message);
+      setNotification({
+        type: 'error',
+        title: 'Lỗi',
+        message: err.message
+      });
+      throw err;
+    }
+  }, [loadCultivation]);
 
   /**
    * Clear notification
@@ -498,7 +534,7 @@ export function CultivationProvider({ children }) {
     realms,
     expLog,
     notification,
-    
+
     // Actions
     loadCultivation,
     checkIn,
@@ -516,7 +552,8 @@ export function CultivationProvider({ children }) {
     loadPassiveExpStatus,
     clearNotification,
     refresh,
-    practiceTechnique
+    practiceTechnique,
+    attemptBreakthrough
   };
 
   return (
@@ -549,10 +586,10 @@ export function useCultivationData(userId = null) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = userId 
+        const response = userId
           ? await import('../services/cultivationAPI.js').then(m => m.getUserCultivation(userId))
           : await getCultivation();
-        
+
         if (response.success) {
           setData(response.data);
         }

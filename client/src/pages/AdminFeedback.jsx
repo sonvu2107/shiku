@@ -34,9 +34,9 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
             <h3 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
               {ticket.subject}
               <span className={`text-xs px-2 py-1 rounded-full ${ticket.status === 'Mở' ? 'bg-blue-100 text-blue-700' :
-                  ticket.status === 'Đang xử lý' ? 'bg-yellow-100 text-yellow-700' :
-                    ticket.status === 'Đã giải quyết' ? 'bg-green-100 text-green-700' :
-                      'bg-gray-100 text-gray-700'
+                ticket.status === 'Đang xử lý' ? 'bg-yellow-100 text-yellow-700' :
+                  ticket.status === 'Đã giải quyết' ? 'bg-green-100 text-green-700' :
+                    'bg-gray-100 text-gray-700'
                 }`}>
                 {ticket.status}
               </span>
@@ -88,8 +88,8 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
               </div>
               <div className={`flex-1 flex flex-col ${reply.isStaff ? 'items-end' : 'items-start'}`}>
                 <div className={`p-4 rounded-2xl shadow-sm inline-block max-w-[90%] ${reply.isStaff
-                    ? 'bg-blue-600 text-white rounded-tr-none'
-                    : 'bg-white dark:bg-neutral-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-200 dark:border-gray-700/50'
+                  ? 'bg-blue-600 text-white rounded-tr-none'
+                  : 'bg-white dark:bg-neutral-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-200 dark:border-gray-700/50'
                   }`}>
                   <p className="whitespace-pre-wrap">{reply.message}</p>
                 </div>
@@ -323,8 +323,8 @@ export default function AdminFeedback() {
             <button
               onClick={() => setActiveTab("tickets")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "tickets"
-                  ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800"
+                ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800"
                 }`}
             >
               Tickets
@@ -332,8 +332,8 @@ export default function AdminFeedback() {
             <button
               onClick={() => setActiveTab("faqs")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "faqs"
-                  ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800"
+                ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800"
                 }`}
             >
               FAQs
@@ -371,18 +371,18 @@ export default function AdminFeedback() {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-bold ${ticket.status === 'Mở' ? 'bg-blue-100 text-blue-700' :
-                            ticket.status === 'Đang xử lý' ? 'bg-yellow-100 text-yellow-700' :
-                              ticket.status === 'Đã giải quyết' ? 'bg-green-100 text-green-700' :
-                                'bg-gray-100 text-gray-700'
+                          ticket.status === 'Đang xử lý' ? 'bg-yellow-100 text-yellow-700' :
+                            ticket.status === 'Đã giải quyết' ? 'bg-green-100 text-green-700' :
+                              'bg-gray-100 text-gray-700'
                           }`}>
                           {ticket.status}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-bold ${ticket.priority === 'Cấp bách' ? 'bg-red-100 text-red-700' :
-                            ticket.priority === 'Cao' ? 'bg-orange-100 text-orange-700' :
-                              ticket.priority === 'Trung bình' ? 'bg-blue-100 text-blue-700' :
-                                'bg-gray-100 text-gray-700'
+                          ticket.priority === 'Cao' ? 'bg-orange-100 text-orange-700' :
+                            ticket.priority === 'Trung bình' ? 'bg-blue-100 text-blue-700' :
+                              'bg-gray-100 text-gray-700'
                           }`}>
                           {ticket.priority}
                         </span>

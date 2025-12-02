@@ -8,38 +8,10 @@ import Logo from "../components/Logo";
 import { saveTokens } from "../utils/tokenManager";
 import { getCSRFToken, clearCSRFToken } from "../utils/csrfToken";
 import { useSEO } from "../utils/useSEO";
+import BackgroundWrapper from "../components/BackgroundWrapper";
+import BackgroundControls from "../components/BackgroundControls";
 
 // --- UI COMPONENTS (Tái sử dụng style để đồng bộ) ---
-
-const GridPattern = () => (
-  <div className="absolute inset-0 -z-10 h-full w-full bg-neutral-950 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]">
-    {/* Spotlight trung tâm */}
-    <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-neutral-400 opacity-10 blur-[100px]"></div>
-  </div>
-);
-
-const Meteors = ({ number = 20 }) => {
-  const meteors = new Array(number || 20).fill(true);
-  return (
-    <>
-      {meteors.map((el, idx) => (
-        <span
-          key={"meteor" + idx}
-          className={cn(
-            "animate-meteor absolute top-1/2 left-1/2 h-0.5 w-0.5 rounded-[9999px] bg-white shadow-[0_0_0_1px_#ffffff10] rotate-[215deg]",
-            "before:content-[''] before:absolute before:top-1/2 before:transform before:-translate-y-[50%] before:w-[50px] before:h-[1px] before:bg-gradient-to-r before:from-neutral-400 before:to-transparent"
-          )}
-          style={{
-            top: 0,
-            left: Math.floor(Math.random() * (400 - -400) + -400) + "px",
-            animationDelay: Math.random() * (0.8 - 0.2) + 0.2 + "s",
-            animationDuration: Math.floor(Math.random() * (10 - 2) + 2) + "s",
-          }}
-        ></span>
-      ))}
-    </>
-  );
-};
 
 // Input Field Custom
 const InputGroup = ({ icon: Icon, ...props }) => (
@@ -61,6 +33,44 @@ export default function Login({ setUser }) {
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const navigate = useNavigate();
+
+  const [backgroundConfig, setBackgroundConfig] = useState({
+    type: 'galaxy',
+    galaxy: {
+      mouseInteraction: true,
+      mouseRepulsion: true,
+      density: 0.1,
+      glowIntensity: 0.5,
+      saturation: 0,
+      hueShift: 100,
+      twinkleIntensity: 0.3,
+      rotationSpeed: 0.1,
+      repulsionStrength: 2,
+      autoCenterRepulsion: 0,
+      starSpeed: 0.5,
+      speed: 1
+    },
+    gridscan: {
+      gridScale: 0.1,
+      lineThickness: 1,
+      scanOpacity: 0.4,
+      bloomIntensity: 0.5,
+      scanDuration: 2,
+      noiseIntensity: 0.01,
+      linesColor: '#ffffff',
+      scanColor: '#ffffff'
+    },
+    lightrays: {
+      raysSpeed: 1,
+      lightSpread: 1,
+      rayLength: 2,
+      pulsating: false,
+      mouseInfluence: 0.1,
+      saturation: 1,
+      followMouse: true,
+      raysColor: '#ffffff'
+    }
+  });
 
   // SEO
   useSEO({
@@ -115,14 +125,14 @@ export default function Login({ setUser }) {
       }
 
       // Gọi API đăng nhập với CSRF token
-      const data = await api("/api/auth-token/login-token", { 
-        method: "POST", 
+      const data = await api("/api/auth-token/login-token", {
+        method: "POST",
         body: { email, password },
         headers: {
           'X-CSRF-Token': csrfToken
         }
       });
-      
+
       // Xử lý phản hồi - kiểm tra cả trường accessToken và token
       if (data && data.accessToken) {
         saveTokens(data.accessToken, data.refreshToken);
@@ -132,18 +142,18 @@ export default function Login({ setUser }) {
       } else {
         throw new Error("Không nhận được token từ server");
       }
-      
+
       // Xác thực dữ liệu người dùng
       if (!data.user) {
         throw new Error("Không nhận được thông tin người dùng từ server");
       }
-      
+
       // Tạo CSRF token mới sau khi login để đồng bộ với sessionID
       await getCSRFToken(true);
-      
+
       // Cập nhật user state toàn cục
       setUser(data.user);
-      
+
       // Redirect đến trang chủ (replace để không quay lại được trang login)
       navigate("/", { replace: true });
     } catch (err) {
@@ -168,22 +178,23 @@ export default function Login({ setUser }) {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-black text-white relative overflow-hidden font-sans selection:bg-white/20">
-      
+
       {/* Background Effects */}
-      <GridPattern />
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-         <Meteors number={20} />
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <BackgroundWrapper config={backgroundConfig} />
       </div>
 
+      <BackgroundControls config={backgroundConfig} onChange={setBackgroundConfig} />
+
       {/* Main Card */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md relative z-10 p-3 sm:p-4"
       >
         <div className="relative bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl overflow-hidden">
-          
+
           {/* Header */}
           <div className="text-center mb-6 sm:mb-8 md:mb-10">
             <Link to="/" className="inline-flex items-center mb-4 sm:mb-6 hover:scale-105 transition-transform duration-300">
@@ -196,7 +207,7 @@ export default function Login({ setUser }) {
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
             {error && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 text-red-400 text-xs sm:text-sm"
@@ -206,22 +217,22 @@ export default function Login({ setUser }) {
               </motion.div>
             )}
 
-            <InputGroup 
+            <InputGroup
               icon={Mail}
-              type="email" 
-              placeholder="Email của bạn" 
-              value={email} 
+              type="email"
+              placeholder="Email của bạn"
+              value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               required
             />
-            
+
             <div>
-              <InputGroup 
+              <InputGroup
                 icon={Lock}
-                type="password" 
-                placeholder="Mật khẩu" 
-                value={password} 
+                type="password"
+                placeholder="Mật khẩu"
+                value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
                 required
@@ -240,7 +251,7 @@ export default function Login({ setUser }) {
             >
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
               <span className="relative flex items-center justify-center gap-2">
-                {loading ? <Loader2 className="animate-spin w-4 h-4 sm:w-[18px] sm:h-[18px]" /> : "Đăng nhập"} 
+                {loading ? <Loader2 className="animate-spin w-4 h-4 sm:w-[18px] sm:h-[18px]" /> : "Đăng nhập"}
                 {!loading && <ArrowRight className="w-4 h-4 sm:w-[18px] sm:h-[18px] group-hover:translate-x-1 transition-transform" />}
               </span>
             </button>

@@ -15,13 +15,13 @@ import { cn } from "../utils/cn";
  */
 export default function EditPost() {
   // ==================== ROUTER & NAVIGATION ====================
-  
+
   const { id } = useParams(); // Post ID from the URL
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
-  
+
   // ==================== STATE MANAGEMENT ====================
-  
+
   // Post data
   const [post, setPost] = useState(null); // Post data
   const [err, setErr] = useState(""); // Error message
@@ -53,7 +53,7 @@ export default function EditPost() {
     try {
       const formData = new FormData();
       selectedFiles.forEach(f => formData.append("files", f));
-      
+
       // Upload files via the API helper using FormData
       const data = await api("/api/uploads/media", {
         method: "POST",
@@ -86,7 +86,7 @@ export default function EditPost() {
       await api(`/api/posts/${id}`, { method: "PUT", body: post });
       showSuccess("Cập nhật bài viết thành công!");
       navigate(`/post/${post.slug}`);
-    } catch (e) { 
+    } catch (e) {
       setErr(e.message);
       showError(e.message || "Có lỗi xảy ra khi cập nhật bài viết");
     } finally {
@@ -148,14 +148,14 @@ export default function EditPost() {
       </button>
 
       {/* Header */}
-      <PageHeader 
-        title="Chỉnh sửa bài viết" 
+      <PageHeader
+        title="Chỉnh sửa bài viết"
         subtitle="Cập nhật nội dung bài viết của bạn"
       />
 
       {/* Form */}
-      <motion.form 
-        onSubmit={save} 
+      <motion.form
+        onSubmit={save}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-4xl mx-auto space-y-6"
@@ -230,7 +230,7 @@ export default function EditPost() {
           <label className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
             Ảnh/Video
           </label>
-          
+
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {/* Upload Button */}
             <label className="aspect-square flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-all cursor-pointer group">
@@ -258,19 +258,19 @@ export default function EditPost() {
             {post.files && post.files.map((file, idx) => (
               <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900">
                 {file.type === "image" ? (
-                  <img 
-                    src={file.url} 
-                    alt="preview" 
+                  <img
+                    src={file.url}
+                    alt="preview"
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <video 
-                    src={file.url} 
+                  <video
+                    src={file.url}
                     className="w-full h-full object-cover"
                     controls
                   />
                 )}
-                
+
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <button

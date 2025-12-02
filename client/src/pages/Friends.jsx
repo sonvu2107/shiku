@@ -6,7 +6,7 @@ import { SpotlightCard } from '../components/ui/SpotlightCard';
 import { PageLayout } from '../components/ui/DesignSystem';
 import { generateAvatarUrl } from '../utils/avatarUtils';
 import {
-  Users, UserPlus, UserCheck, UserX, Search, Clock, 
+  Users, UserPlus, UserCheck, UserX, Search, Clock,
   Send, UserMinus, MessageCircle, Zap
 } from 'lucide-react';
 
@@ -20,7 +20,7 @@ const GridPattern = () => (
 export default function Friends() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   // State
   const [activeTab, setActiveTab] = useState('friends');
   const [friends, setFriends] = useState([]);
@@ -67,22 +67,22 @@ export default function Friends() {
   };
 
   const loadFriends = async () => {
-    try { const res = await api('/api/friends/list'); setFriends(res.friends || []); } catch (_) {}
+    try { const res = await api('/api/friends/list'); setFriends(res.friends || []); } catch (_) { }
   };
   const loadRequests = async () => {
-    try { const res = await api('/api/friends/requests'); setRequests(res.requests || []); } catch (_) {}
+    try { const res = await api('/api/friends/requests'); setRequests(res.requests || []); } catch (_) { }
   };
   const loadSentRequests = async () => {
-    try { const res = await api('/api/friends/sent-requests'); setSentRequests(res.requests || []); } catch (_) {}
+    try { const res = await api('/api/friends/sent-requests'); setSentRequests(res.requests || []); } catch (_) { }
   };
   const loadSuggestions = async () => {
-    try { const res = await api('/api/friends/suggestions'); setSuggestions(res.suggestions || []); } catch (_) {}
+    try { const res = await api('/api/friends/suggestions'); setSuggestions(res.suggestions || []); } catch (_) { }
   };
   const searchUsers = async () => {
     try {
       const res = await api(`/api/friends/search?q=${encodeURIComponent(searchQuery)}`);
       setSearchResults(res.users || []);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   // Helper function to format last seen time (same as FriendCard)
@@ -106,7 +106,7 @@ export default function Friends() {
     if (diffMins < 60) return `${diffMins} phút trước`;
     if (diffHours < 24) return `${diffHours} giờ trước`;
     if (diffDays < 7) return `${diffDays} ngày trước`;
-    
+
     // Nếu quá 7 ngày, hiển thị ngày tháng
     return `Hoạt động ${lastSeenDate.toLocaleDateString('vi-VN')}`;
   };
@@ -116,7 +116,7 @@ export default function Friends() {
     const actionKey = `${action}-${id}`;
     try {
       setProcessingIds(prev => new Set([...prev, actionKey]));
-      
+
       if (action === 'accept') {
         await api(`/api/friends/accept-request/${id}`, { method: 'POST' });
         setRequests(prev => prev.filter(r => r._id !== id));
@@ -125,22 +125,22 @@ export default function Friends() {
         await api(`/api/friends/reject-request/${id}`, { method: 'POST' });
         setRequests(prev => prev.filter(r => r._id !== id));
       } else if (action === 'cancel') {
-        if(confirm('Hủy lời mời?')) {
-           await api(`/api/friends/cancel-request/${id}`, { method: 'DELETE' });
-           setSentRequests(prev => prev.filter(r => r.to._id !== id));
+        if (confirm('Hủy lời mời?')) {
+          await api(`/api/friends/cancel-request/${id}`, { method: 'DELETE' });
+          setSentRequests(prev => prev.filter(r => r.to._id !== id));
         }
       } else if (action === 'remove') {
-        if(confirm('Xóa bạn bè?')) {
-           await api(`/api/friends/remove/${id}`, { method: 'DELETE' });
-           setFriends(prev => prev.filter(f => f._id !== id));
+        if (confirm('Xóa bạn bè?')) {
+          await api(`/api/friends/remove/${id}`, { method: 'DELETE' });
+          setFriends(prev => prev.filter(f => f._id !== id));
         }
       } else if (action === 'add') {
         await api('/api/friends/send-request', { method: 'POST', body: { to: id } });
         setSuggestions(prev => prev.filter(u => u._id !== id)); // Remove from suggestions UI
         alert('Đã gửi lời mời!');
       }
-    } catch (err) { 
-      alert(err.message); 
+    } catch (err) {
+      alert(err.message);
     } finally {
       setProcessingIds(prev => {
         const newSet = new Set(prev);
@@ -155,13 +155,13 @@ export default function Friends() {
     // Normalize data structure based on type
     const userData = type === 'request' ? user.from : (type === 'sent' ? user.to : user);
     const requestId = type === 'request' ? user._id : null; // request object has _id
-    
+
     return (
       <SpotlightCard key={userData._id} className="p-4">
         <div className="flex items-center gap-4 mb-3">
-          <img 
-            src={userData.avatarUrl || generateAvatarUrl(userData.name)} 
-            className="w-12 h-12 rounded-full bg-neutral-200 cursor-pointer hover:opacity-80 transition-opacity" 
+          <img
+            src={userData.avatarUrl || generateAvatarUrl(userData.name)}
+            className="w-12 h-12 rounded-full bg-neutral-200 cursor-pointer hover:opacity-80 transition-opacity"
             alt=""
             onClick={(e) => {
               e.stopPropagation();
@@ -169,7 +169,7 @@ export default function Friends() {
             }}
           />
           <div className="flex-1 min-w-0">
-            <div 
+            <div
               className="font-bold cursor-pointer hover:text-blue-500 transition-colors truncate"
               onClick={(e) => {
                 e.stopPropagation();
@@ -181,100 +181,100 @@ export default function Friends() {
             <div className={cn(
               "text-xs truncate",
               type === 'friend' || type === 'suggestion' || type === 'sent' || type === 'request'
-                ? (userData.isOnline 
+                ? (userData.isOnline
                   ? "text-green-600 dark:text-green-400 uppercase font-bold tracking-wider"
                   : "text-neutral-500 dark:text-neutral-400 uppercase font-bold tracking-wider")
                 : "text-neutral-500 dark:text-neutral-400"
             )}>
               {type === 'request' ? `Đã gửi ${new Date(user.createdAt).toLocaleDateString('vi-VN')}` :
-               type === 'sent' ? `Gửi ${new Date(user.createdAt).toLocaleDateString('vi-VN')}` :
-               type === 'friend' ? (userData.isOnline ? 'Online' : getLastSeenText(userData.lastSeen, userData.isOnline)) :
-               type === 'suggestion' ? (userData.isOnline ? 'Online' : getLastSeenText(userData.lastSeen, userData.isOnline)) :
-               'User'}
+                type === 'sent' ? `Gửi ${new Date(user.createdAt).toLocaleDateString('vi-VN')}` :
+                  type === 'friend' ? (userData.isOnline ? 'Online' : getLastSeenText(userData.lastSeen, userData.isOnline)) :
+                    type === 'suggestion' ? (userData.isOnline ? 'Online' : getLastSeenText(userData.lastSeen, userData.isOnline)) :
+                      'User'}
             </div>
           </div>
         </div>
 
         {/* Actions Buttons */}
         <div className="flex gap-2">
-           {type === 'friend' && (
-              <>
-                <button 
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    if (window.confirm(`Bạn có chắc muốn hủy kết bạn với ${userData.name}?`)) {
-                      await handleFriendAction('remove', userData._id);
-                    }
-                  }}
-                  className="flex-1 px-3 md:px-4 py-2 rounded-full bg-green-600 text-white font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:bg-green-700 active:bg-green-800 transition-colors min-h-[44px] touch-manipulation"
-                >
-                  <UserCheck size={14} className="md:w-4 md:h-4" /> <span className="hidden sm:inline">Đã kết bạn</span><span className="sm:hidden">Bạn bè</span>
-                </button>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/chat?user=${userData._id}`);
-                  }}
-                  className="px-3 md:px-4 py-2 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white font-medium text-xs md:text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors flex items-center justify-center min-w-[44px] min-h-[44px] touch-manipulation"
-                >
-                  <MessageCircle size={14} className="md:w-4 md:h-4" />
-                </button>
-              </>
-           )}
-
-           {type === 'request' && (
-              <>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleFriendAction('accept', requestId);
-                  }}
-                  disabled={processingIds.has(`accept-${requestId}`)}
-                  className="flex-1 px-3 md:px-4 py-2 rounded-full bg-green-600 text-white font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
-                >
-                  <UserCheck size={14} className="md:w-4 md:h-4" /> 
-                  <span className="truncate">{processingIds.has(`accept-${requestId}`) ? 'Đang xử lý...' : 'Chấp nhận'}</span>
-                </button>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleFriendAction('reject', requestId);
-                  }}
-                  disabled={processingIds.has(`reject-${requestId}`)}
-                  className="flex-1 px-3 md:px-4 py-2 rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:bg-neutral-300 dark:hover:bg-neutral-700 active:bg-neutral-400 dark:active:bg-neutral-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
-                >
-                  <UserX size={14} className="md:w-4 md:h-4" /> 
-                  <span className="truncate">{processingIds.has(`reject-${requestId}`) ? 'Đang xử lý...' : 'Từ chối'}</span>
-                </button>
-              </>
-           )}
-
-           {type === 'sent' && (
-              <button 
+          {type === 'friend' && (
+            <>
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (window.confirm(`Bạn có chắc muốn hủy kết bạn với ${userData.name}?`)) {
+                    await handleFriendAction('remove', userData._id);
+                  }
+                }}
+                className="flex-1 px-3 md:px-4 py-2 rounded-full bg-green-600 text-white font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:bg-green-700 active:bg-green-800 transition-colors min-h-[44px] touch-manipulation"
+              >
+                <UserCheck size={14} className="md:w-4 md:h-4" /> <span className="hidden sm:inline">Đã kết bạn</span><span className="sm:hidden">Bạn bè</span>
+              </button>
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleFriendAction('cancel', userData._id);
+                  navigate(`/chat?user=${userData._id}`);
                 }}
-                className="flex-1 px-3 md:px-4 py-2 rounded-full border border-red-200 dark:border-red-800 bg-white dark:bg-neutral-900 text-red-600 dark:text-red-400 font-medium text-xs md:text-sm hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 dark:active:bg-red-900/30 transition-colors min-h-[44px] touch-manipulation"
+                className="px-3 md:px-4 py-2 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white font-medium text-xs md:text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors flex items-center justify-center min-w-[44px] min-h-[44px] touch-manipulation"
               >
-                <span className="whitespace-nowrap">Hủy lời mời</span>
+                <MessageCircle size={14} className="md:w-4 md:h-4" />
               </button>
-           )}
+            </>
+          )}
 
-           {type === 'suggestion' && (
-              <button 
+          {type === 'request' && (
+            <>
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleFriendAction('add', userData._id);
+                  handleFriendAction('accept', requestId);
                 }}
-                className="flex-1 px-3 md:px-4 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:scale-105 active:scale-95 transition-transform min-h-[44px] touch-manipulation"
+                disabled={processingIds.has(`accept-${requestId}`)}
+                className="flex-1 px-3 md:px-4 py-2 rounded-full bg-green-600 text-white font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
               >
-                <UserPlus size={14} className="md:w-4 md:h-4" /> <span className="whitespace-nowrap">Kết bạn</span>
+                <UserCheck size={14} className="md:w-4 md:h-4" />
+                <span className="truncate">{processingIds.has(`accept-${requestId}`) ? 'Đang xử lý...' : 'Chấp nhận'}</span>
               </button>
-            )}
-          </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFriendAction('reject', requestId);
+                }}
+                disabled={processingIds.has(`reject-${requestId}`)}
+                className="flex-1 px-3 md:px-4 py-2 rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:bg-neutral-300 dark:hover:bg-neutral-700 active:bg-neutral-400 dark:active:bg-neutral-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
+              >
+                <UserX size={14} className="md:w-4 md:h-4" />
+                <span className="truncate">{processingIds.has(`reject-${requestId}`) ? 'Đang xử lý...' : 'Từ chối'}</span>
+              </button>
+            </>
+          )}
+
+          {type === 'sent' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleFriendAction('cancel', userData._id);
+              }}
+              className="flex-1 px-3 md:px-4 py-2 rounded-full border border-red-200 dark:border-red-800 bg-white dark:bg-neutral-900 text-red-600 dark:text-red-400 font-medium text-xs md:text-sm hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 dark:active:bg-red-900/30 transition-colors min-h-[44px] touch-manipulation"
+            >
+              <span className="whitespace-nowrap">Hủy lời mời</span>
+            </button>
+          )}
+
+          {type === 'suggestion' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleFriendAction('add', userData._id);
+              }}
+              className="flex-1 px-3 md:px-4 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:scale-105 active:scale-95 transition-transform min-h-[44px] touch-manipulation"
+            >
+              <UserPlus size={14} className="md:w-4 md:h-4" /> <span className="whitespace-nowrap">Kết bạn</span>
+            </button>
+          )}
+        </div>
       </SpotlightCard>
-  );
+    );
   };
 
   return (
@@ -284,20 +284,20 @@ export default function Friends() {
       <div className="pt-24">
         {/* --- HEADER --- */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-           <div>
-              <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-2">Bạn bè</h1>
-              <p className="text-neutral-500 dark:text-neutral-300 text-lg">Quản lý các kết nối của bạn</p>
-           </div>
+          <div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-2">Bạn bè</h1>
+            <p className="text-neutral-500 dark:text-neutral-300 text-lg">Quản lý các kết nối của bạn</p>
+          </div>
 
-           {/* Search Box */}
-            <div className="relative w-full md:w-96 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" size={20} />
+          {/* Search Box */}
+          <div className="relative w-full md:w-96 group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" size={20} />
             <input
               type="text"
-                 placeholder="Tìm bạn bè, người dùng..." 
+              placeholder="Tìm bạn bè, người dùng..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-                 className="w-full bg-neutral-100 dark:bg-neutral-900 border border-transparent focus:bg-white dark:focus:bg-black focus:border-neutral-300 dark:focus:border-neutral-700 rounded-2xl py-3 pl-12 pr-4 outline-none transition-all shadow-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+              className="w-full bg-neutral-100 dark:bg-neutral-900 border border-transparent focus:bg-white dark:focus:bg-black focus:border-neutral-300 dark:focus:border-neutral-700 rounded-2xl py-3 pl-12 pr-4 outline-none transition-all shadow-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
             />
           </div>
         </div>
@@ -308,7 +308,7 @@ export default function Friends() {
             {/* Gradient indicators for mobile scroll */}
             <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white dark:from-black to-transparent z-10 pointer-events-none md:hidden"></div>
             <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white dark:from-black to-transparent z-10 pointer-events-none md:hidden"></div>
-            
+
             <div className="bg-white/80 dark:bg-black/80 backdrop-blur-xl rounded-2xl p-1 md:p-1.5 border border-neutral-200 dark:border-neutral-800 w-full overflow-x-auto scrollbar-hide">
               <div className="flex gap-1.5 md:gap-2 min-w-max md:min-w-full md:inline-flex">
                 {[
@@ -322,8 +322,8 @@ export default function Friends() {
                     onClick={() => setActiveTab(tab.id)}
                     className={cn(
                       "flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all whitespace-nowrap min-h-[44px] touch-manipulation text-neutral-500 dark:text-neutral-300",
-                      activeTab === tab.id 
-                        ? "bg-black dark:bg-white text-white dark:text-black shadow-md" 
+                      activeTab === tab.id
+                        ? "bg-black dark:bg-white text-white dark:text-black shadow-md"
                         : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 active:bg-neutral-200 dark:active:bg-neutral-800"
                     )}
                   >
@@ -348,37 +348,37 @@ export default function Friends() {
 
         {/* --- CONTENT GRID --- */}
         <div className="min-h-[400px]">
-           {searchQuery.trim() ? (
-              // Search Results
-              <div>
-                 <h3 className="text-xl font-bold mb-6">Kết quả tìm kiếm ({searchResults.length})</h3>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {searchResults.map(user => renderUserCard(user, 'suggestion'))}
-                  </div>
-                 {searchResults.length === 0 && <div className="text-neutral-500 dark:text-neutral-400">Không tìm thấy kết quả nào.</div>}
-              </div>
-           ) : (
-              // Tab Content
+          {searchQuery.trim() ? (
+            // Search Results
+            <div>
+              <h3 className="text-xl font-bold mb-6">Kết quả tìm kiếm ({searchResults.length})</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                 
-                 {activeTab === 'friends' && (
-                    friends.length > 0 ? friends.map(f => renderUserCard(f, 'friend')) 
-                    : <div className="col-span-full text-center py-20 text-neutral-500 dark:text-neutral-400">Chưa có bạn bè nào.</div>
-          )}
+                {searchResults.map(user => renderUserCard(user, 'suggestion'))}
+              </div>
+              {searchResults.length === 0 && <div className="text-neutral-500 dark:text-neutral-400">Không tìm thấy kết quả nào.</div>}
+            </div>
+          ) : (
+            // Tab Content
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
-          {activeTab === 'requests' && (
-                    requests.length > 0 ? requests.map(r => renderUserCard(r, 'request'))
-                    : <div className="col-span-full text-center py-20 text-neutral-500 dark:text-neutral-400">Không có lời mời nào.</div>
-          )}
+              {activeTab === 'friends' && (
+                friends.length > 0 ? friends.map(f => renderUserCard(f, 'friend'))
+                  : <div className="col-span-full text-center py-20 text-neutral-500 dark:text-neutral-400">Chưa có bạn bè nào.</div>
+              )}
 
-          {activeTab === 'sent' && (
-                    sentRequests.length > 0 ? sentRequests.map(r => renderUserCard(r, 'sent'))
-                    : <div className="col-span-full text-center py-20 text-neutral-500 dark:text-neutral-400">Chưa gửi lời mời nào.</div>
-          )}
+              {activeTab === 'requests' && (
+                requests.length > 0 ? requests.map(r => renderUserCard(r, 'request'))
+                  : <div className="col-span-full text-center py-20 text-neutral-500 dark:text-neutral-400">Không có lời mời nào.</div>
+              )}
 
-          {activeTab === 'suggestions' && (
-                    suggestions.length > 0 ? suggestions.map(u => renderUserCard(u, 'suggestion'))
-                    : <div className="col-span-full text-center py-20 text-neutral-500 dark:text-neutral-400">Không có gợi ý nào.</div>
+              {activeTab === 'sent' && (
+                sentRequests.length > 0 ? sentRequests.map(r => renderUserCard(r, 'sent'))
+                  : <div className="col-span-full text-center py-20 text-neutral-500 dark:text-neutral-400">Chưa gửi lời mời nào.</div>
+              )}
+
+              {activeTab === 'suggestions' && (
+                suggestions.length > 0 ? suggestions.map(u => renderUserCard(u, 'suggestion'))
+                  : <div className="col-span-full text-center py-20 text-neutral-500 dark:text-neutral-400">Không có gợi ý nào.</div>
               )}
             </div>
           )}

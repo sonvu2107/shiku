@@ -35,7 +35,7 @@ export async function getUserCultivation(userId) {
  */
 export async function getCultivationBatch(userIds) {
   if (!userIds || userIds.length === 0) return {};
-  return api('/api/cultivation/batch', { 
+  return api('/api/cultivation/batch', {
     method: 'POST',
     body: { userIds }
   });
@@ -106,6 +106,13 @@ export async function practiceTechnique(techniqueId, expGain = 10) {
   });
 }
 
+/**
+ * Thử độ kiếp (breakthrough) - có thể thất bại
+ */
+export async function attemptBreakthrough() {
+  return api('/api/cultivation/breakthrough', { method: 'POST' });
+}
+
 // ==================== LEADERBOARD ====================
 
 /**
@@ -148,7 +155,7 @@ export async function getExpLog() {
  * @param {string} source - Nguồn exp: 'yinyang_click', 'activity'
  */
 export async function addExpFromActivity(amount, source = 'activity') {
-  return api('/api/cultivation/add-exp', { 
+  return api('/api/cultivation/add-exp', {
     method: 'POST',
     body: JSON.stringify({ amount, source })
   });
@@ -175,19 +182,19 @@ export async function getPassiveExpStatus() {
 // ==================== CONSTANTS ====================
 
 /**
- * Danh sách cảnh giới tu luyện (đồng bộ với backend)
+ * Danh sách cảnh giới tu luyện 
  */
 export const CULTIVATION_REALMS = [
-  { level: 1, name: "Phàm Nhân", minExp: 0, maxExp: 99, color: "#9CA3AF", icon: "👤" },
-  { level: 2, name: "Luyện Khí", minExp: 100, maxExp: 999, color: "#10B981", icon: "🌱" },
-  { level: 3, name: "Trúc Cơ", minExp: 1000, maxExp: 4999, color: "#3B82F6", icon: "🏛️" },
-  { level: 4, name: "Kim Đan", minExp: 5000, maxExp: 14999, color: "#F59E0B", icon: "🔮" },
-  { level: 5, name: "Nguyên Anh", minExp: 15000, maxExp: 39999, color: "#8B5CF6", icon: "👶" },
-  { level: 6, name: "Hóa Thần", minExp: 40000, maxExp: 99999, color: "#EC4899", icon: "✨" },
-  { level: 7, name: "Luyện Hư", minExp: 100000, maxExp: 249999, color: "#14B8A6", icon: "🌀" },
-  { level: 8, name: "Đại Thừa", minExp: 250000, maxExp: 499999, color: "#F97316", icon: "🌟" },
-  { level: 9, name: "Độ Kiếp", minExp: 500000, maxExp: 999999, color: "#EF4444", icon: "⚡" },
-  { level: 10, name: "Tiên Nhân", minExp: 1000000, maxExp: Infinity, color: "#FFD700", icon: "🏆" }
+  { level: 1, name: "Phàm Nhân", minExp: 0, maxExp: 99, color: "#9CA3AF", icon: "" },
+  { level: 2, name: "Luyện Khí", minExp: 100, maxExp: 999, color: "#10B981", icon: "" },
+  { level: 3, name: "Trúc Cơ", minExp: 1000, maxExp: 4999, color: "#3B82F6", icon: "" },
+  { level: 4, name: "Kim Đan", minExp: 5000, maxExp: 14999, color: "#F59E0B", icon: "" },
+  { level: 5, name: "Nguyên Anh", minExp: 15000, maxExp: 39999, color: "#8B5CF6", icon: "" },
+  { level: 6, name: "Hóa Thần", minExp: 40000, maxExp: 99999, color: "#EC4899", icon: "" },
+  { level: 7, name: "Luyện Hư", minExp: 100000, maxExp: 249999, color: "#14B8A6", icon: "" },
+  { level: 8, name: "Đại Thừa", minExp: 250000, maxExp: 499999, color: "#F97316", icon: "" },
+  { level: 9, name: "Độ Kiếp", minExp: 500000, maxExp: 999999, color: "#EF4444", icon: "" },
+  { level: 10, name: "Tiên Nhân", minExp: 1000000, maxExp: Infinity, color: "#FFD700", icon: "" }
 ];
 
 /**

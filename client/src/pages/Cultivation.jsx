@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { 
+import {
   MoreVertical, X, GitCompare, Sword, Shield, Zap, Flame, Droplet, Wind, BookOpen,
   Scroll, Medal, Frame, Sparkles, Pill, Package, PawPrint, Bird, CircleDot, Feather, Ghost, Crown, Gem,
   Mountain, Wand2, Skull, FlaskConical, Cloud, Moon, Snowflake, Sun, Tornado, Coins, Clover, RefreshCw,
@@ -114,6 +114,47 @@ const CustomStyles = () => (
       100% { transform: translate(-20px, 40px) scale(1.1); opacity: 0.3; }
     }
 
+    /* Impact Burst */
+    .impact-burst {
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,200,0,0.6) 30%, transparent 70%);
+      border-radius: 50%;
+      animation: burst 0.4s ease-out forwards;
+      pointer-events: none;
+      z-index: 100;
+      mix-blend-mode: screen;
+    }
+    @keyframes burst {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+    }
+
+    /* Hit Flash */
+    @keyframes hitFlash {
+      0% { filter: brightness(1); }
+      25% { filter: brightness(2) sepia(1) hue-rotate(-50deg) saturate(5); } 
+      100% { filter: brightness(1); }
+    }
+    .animate-hit {
+      animation: hitFlash 0.3s ease-out;
+    }
+
+    /* Skill Aura */
+    .skill-aura {
+      position: absolute;
+      inset: -20px;
+      border-radius: 50%;
+      background: radial-gradient(circle, transparent 50%, rgba(245, 158, 11, 0.4) 70%, transparent 80%);
+      animation: gatherEnergy 0.5s ease-in forwards;
+      z-index: -1;
+    }
+    @keyframes gatherEnergy {
+      0% { transform: scale(2); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
     /* Battle Shake Animation */
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
@@ -136,16 +177,26 @@ const CustomStyles = () => (
       100% { transform: translateX(-50px) rotate(-30deg) scale(0.8); opacity: 0; }
     }
 
-    /* Spirit Tablet Glass Panel */
+    /* Spirit Tablet Glass Panel - Enhanced */
     .spirit-tablet {
-      background: rgba(15, 23, 42, 0.7);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(245, 158, 11, 0.15);
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 2px solid rgba(245, 158, 11, 0.2);
       box-shadow: 
-        0 4px 30px rgba(0, 0, 0, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05),
-        0 0 40px rgba(168, 85, 247, 0.1);
+        0 8px 32px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 0 60px rgba(168, 85, 247, 0.15),
+        0 0 120px rgba(245, 158, 11, 0.1);
+      transition: all 0.3s ease;
+    }
+    .spirit-tablet:hover {
+      border-color: rgba(245, 158, 11, 0.3);
+      box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 0 80px rgba(168, 85, 247, 0.2),
+        0 0 150px rgba(245, 158, 11, 0.15);
     }
 
     .spirit-tablet-jade {
@@ -190,27 +241,22 @@ const CustomStyles = () => (
     .yinyang {
       width: 160px;
       height: 160px;
-      background: linear-gradient(to bottom, #f1f5f9 50%, #0f172a 50%);
       border-radius: 50%;
-      border: 2px solid #475569;
       position: relative;
       animation: spin 12s linear infinite;
       box-shadow: 0 0 15px rgba(255,255,255,0.1);
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.3s;
+      transition: transform 0.2s, box-shadow 0.3s, filter 0.3s;
       z-index: 10;
+      object-fit: contain;
+      user-select: none;
+      -webkit-user-drag: none;
     }
     .yinyang:active { transform: scale(0.95); }
     .yinyang:hover { 
       box-shadow: 0 0 30px rgba(168, 85, 247, 0.5); 
-      border-color: #a855f7; 
+      filter: brightness(1.1) drop-shadow(0 0 10px rgba(168, 85, 247, 0.6));
     }
-    .yinyang::before, .yinyang::after {
-      content: ''; position: absolute; left: 50%; transform: translateX(-50%);
-      width: 80px; height: 80px; border-radius: 50%;
-    }
-    .yinyang::before { top: 0; background: #f1f5f9; border: 24px solid #0f172a; box-sizing: border-box; }
-    .yinyang::after { bottom: 0; background: #0f172a; border: 24px solid #f1f5f9; box-sizing: border-box; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
     @keyframes pulseGlow {
       0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
@@ -247,6 +293,80 @@ const CustomStyles = () => (
     @keyframes shimmer {
       100% { transform: translateX(200%); }
     }
+
+    /* Floating Qi Particles */
+    .qi-particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.8), transparent);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: floatQi 8s infinite ease-in-out;
+    }
+    @keyframes floatQi {
+      0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+      10% { opacity: 1; }
+      50% { transform: translate(20px, -30px) scale(1); opacity: 0.8; }
+      100% { transform: translate(40px, -60px) scale(0.3); opacity: 0; }
+    }
+
+    /* Realm Name Glow Animation */
+    @keyframes realmGlow {
+      0%, 100% { text-shadow: 0 0 10px rgba(245, 158, 11, 0.5), 0 0 20px rgba(245, 158, 11, 0.3); }
+      50% { text-shadow: 0 0 20px rgba(245, 158, 11, 0.8), 0 0 40px rgba(245, 158, 11, 0.5), 0 0 60px rgba(168, 85, 247, 0.3); }
+    }
+    .realm-name-glow {
+      animation: realmGlow 3s ease-in-out infinite;
+    }
+
+    /* Floating Chinese Characters */
+    .floating-char {
+      position: absolute;
+      font-family: 'Noto Serif SC', serif;
+      font-size: 14px;
+      color: rgba(245, 158, 11, 0.3);
+      pointer-events: none;
+      animation: floatChar 15s infinite ease-in-out;
+    }
+    @keyframes floatChar {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+      10% { opacity: 0.5; }
+      50% { transform: translateY(-30px) rotate(180deg); opacity: 0.8; }
+      100% { transform: translateY(-60px) rotate(360deg); opacity: 0; }
+    }
+
+    /* Cloud Decoration */
+    .cloud-decoration {
+      position: absolute;
+      width: 100px;
+      height: 40px;
+      background: radial-gradient(ellipse, rgba(245, 158, 11, 0.1), transparent);
+      border-radius: 50px;
+      filter: blur(20px);
+      animation: floatCloud 20s infinite ease-in-out;
+      pointer-events: none;
+    }
+    @keyframes floatCloud {
+      0%, 100% { transform: translateX(0) scale(1); opacity: 0.3; }
+      50% { transform: translateX(30px) scale(1.2); opacity: 0.6; }
+    }
+
+    /* Qi Flow Animation */
+    @keyframes qiFlow {
+      0% { transform: translateX(-100%) translateY(0); opacity: 0; }
+      50% { opacity: 0.6; }
+      100% { transform: translateX(100%) translateY(-20px); opacity: 0; }
+    }
+    .qi-flow {
+      position: absolute;
+      width: 2px;
+      height: 60px;
+      background: linear-gradient(to bottom, transparent, rgba(245, 158, 11, 0.4), transparent);
+      animation: qiFlow 4s infinite;
+      pointer-events: none;
+    }
+
 
     /* Scrollbar Styling */
     .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -344,8 +464,8 @@ const IdentityHeader = memo(function IdentityHeader({ cultivation, currentRealm 
       <div className="relative">
         <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-slate-800 border-2 border-amber-500/50 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.2)] overflow-hidden">
           {avatarUrl ? (
-            <img 
-              src={avatarUrl} 
+            <img
+              src={avatarUrl}
               alt={displayName}
               className="w-full h-full object-cover"
             />
@@ -471,19 +591,17 @@ const IdentityHeader = memo(function IdentityHeader({ cultivation, currentRealm 
 });
 
 // ==================== DASHBOARD TAB ====================
-const DashboardTab = memo(function DashboardTab({ 
-  cultivation, 
-  currentRealm, 
-  nextRealm, 
-  progressPercent, 
+const DashboardTab = memo(function DashboardTab({
+  cultivation,
+  currentRealm,
+  nextRealm,
+  progressPercent,
   isBreakthroughReady,
   onYinYangClick,
-  onCheckIn,
   onBreakthrough,
   onCollectPassiveExp,
   passiveExpStatus,
   collectingPassiveExp,
-  checkingIn,
   clickCooldown,
   isBreakingThrough,
   particles,
@@ -492,16 +610,34 @@ const DashboardTab = memo(function DashboardTab({
   setLogExpanded,
   logEndRef
 }) {
+  // Tính tỷ lệ thành công cho độ kiếp
+  const baseSuccessRate = 30;
+  const bonusPerFailure = 10;
+  const failureCount = cultivation.breakthroughFailureCount || 0;
+  const currentSuccessRate = Math.min(100,
+    (cultivation.breakthroughSuccessRate || baseSuccessRate) +
+    failureCount * bonusPerFailure
+  );
+
+  // Kiểm tra cooldown
+  const now = new Date();
+  const cooldownUntil = cultivation.breakthroughCooldownUntil ? new Date(cultivation.breakthroughCooldownUntil) : null;
+  const isOnCooldown = cooldownUntil && cooldownUntil > now;
+  const cooldownRemaining = isOnCooldown ? Math.ceil((cooldownUntil - now) / (1000 * 60)) : 0;
+
+  // Có thể độ kiếp không? (đủ exp và không trong cooldown)
+  const canBreakthrough = isBreakthroughReady && !isOnCooldown;
+
   return (
-    <div className="space-y-6 font-cultivation">
+    <div className="space-y-6 md:space-y-8 font-cultivation">
       {/* Particles */}
       {particles.map(p => (
-        <div 
-          key={p.id} 
+        <div
+          key={p.id}
           className={`particle text-xl font-title tracking-wider ${p.color === 'gold' ? 'text-amber-400' :
-            p.color === 'red' ? 'text-red-400' : 
-            'text-emerald-400'
-          }`}
+            p.color === 'red' ? 'text-red-400' :
+              'text-emerald-400'
+            }`}
           style={{ left: p.x, top: p.y }}
         >
           {p.text}
@@ -509,133 +645,125 @@ const DashboardTab = memo(function DashboardTab({
       ))}
 
       {/* Main Cultivation Card - Spirit Tablet Design */}
-      <div className="spirit-tablet rounded-2xl p-6 lg:p-10 relative overflow-hidden">
+      <div className="spirit-tablet rounded-3xl p-6 md:p-8 lg:p-10 relative overflow-hidden">
         {/* Decorative Corners */}
         <div className="spirit-corner spirit-corner-tl border-amber-500/40"></div>
         <div className="spirit-corner spirit-corner-tr border-amber-500/40"></div>
         <div className="spirit-corner spirit-corner-bl border-amber-500/40"></div>
         <div className="spirit-corner spirit-corner-br border-amber-500/40"></div>
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h2 className="text-4xl lg:text-5xl font-title text-gold tracking-widest mb-3">
+        {/* Header - Enhanced with Tiên Hiệp Effects */}
+        <div className="text-center mb-8 relative">
+          {/* Floating Qi Particles around header */}
+          <div className="qi-particle" style={{ top: '10%', left: '15%', animationDelay: '0s' }}></div>
+          <div className="qi-particle" style={{ top: '20%', right: '20%', animationDelay: '1s' }}></div>
+          <div className="qi-particle" style={{ bottom: '10%', left: '25%', animationDelay: '2s' }}></div>
+          <div className="qi-particle" style={{ bottom: '15%', right: '15%', animationDelay: '1.5s' }}></div>
+
+          {/* Cloud decorations */}
+          <div className="cloud-decoration" style={{ top: '-20px', left: '10%' }}></div>
+          <div className="cloud-decoration" style={{ top: '-15px', right: '15%', animationDelay: '2s' }}></div>
+
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-title text-gold tracking-widest mb-3 realm-name-glow relative">
             {currentRealm.name.toUpperCase()}
+            {/* Qi flow effects */}
+            <div className="qi-flow" style={{ top: '50%', left: '10%', animationDelay: '0s' }}></div>
+            <div className="qi-flow" style={{ top: '50%', right: '10%', animationDelay: '2s' }}></div>
           </h2>
-          <div className="h-[1px] w-48 mx-auto bg-gradient-to-r from-transparent via-amber-500/50 to-transparent"></div>
-          <p className="text-slate-400 text-sm uppercase tracking-widest mt-3">
+
+          <div className="h-[1px] w-32 sm:w-40 md:w-48 mx-auto bg-gradient-to-r from-transparent via-amber-500/50 to-transparent relative">
+            {/* Animated dots on line */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+          </div>
+
+          <p className="text-slate-400 text-sm uppercase tracking-widest mt-3 relative">
+            <span className="floating-char" style={{ left: '10%', top: '-10px', animationDelay: '0s' }}>道</span>
+            <span className="floating-char" style={{ right: '15%', top: '-15px', animationDelay: '1s' }}>仙</span>
             Cảnh Giới Hiện Tại
           </p>
         </div>
 
-        {/* Ngọc Giản Định Danh - Thông Số Chiến Đấu */}
-        <div className="relative mb-6">
-          {/* Background với gradient và viền ánh kim */}
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-[#1e293b]/80 to-slate-900/80 rounded-xl border border-amber-500/30 shadow-[0_0_15px_rgba(0,0,0,0.5)]"></div>
 
-          {/* Họa tiết viền rồng/mây - Decorative Corners */}
-          <div className="absolute -top-[1px] -left-[1px] w-4 h-4 border-t-2 border-l-2 border-amber-500 rounded-tl-lg"></div>
-          <div className="absolute -top-[1px] -right-[1px] w-4 h-4 border-t-2 border-r-2 border-amber-500 rounded-tr-lg"></div>
-          <div className="absolute -bottom-[1px] -left-[1px] w-4 h-4 border-b-2 border-l-2 border-amber-500 rounded-bl-lg"></div>
-          <div className="absolute -bottom-[1px] -right-[1px] w-4 h-4 border-b-2 border-r-2 border-amber-500 rounded-br-lg"></div>
+        {/* Yin Yang Click for Tu Vi - Enhanced Tiên Hiệp */}
+        <div className="flex flex-col items-center justify-center py-12 lg:py-12 relative">
+          {/* Floating Qi particles around yin yang */}
+          <div className="qi-particle" style={{ top: '20%', left: '20%', animationDelay: '0s' }}></div>
+          <div className="qi-particle" style={{ top: '25%', right: '25%', animationDelay: '0.5s' }}></div>
+          <div className="qi-particle" style={{ bottom: '20%', left: '30%', animationDelay: '1s' }}></div>
+          <div className="qi-particle" style={{ bottom: '25%', right: '20%', animationDelay: '1.5s' }}></div>
+          <div className="qi-particle" style={{ top: '50%', left: '5%', animationDelay: '2s' }}></div>
+          <div className="qi-particle" style={{ top: '50%', right: '5%', animationDelay: '2.5s' }}></div>
 
-          {/* Hiệu ứng ánh kim trên nền */}
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-amber-500/5 rounded-xl pointer-events-none"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(245,158,11,0.1),transparent_70%)] rounded-xl pointer-events-none"></div>
+          {/* Cloud decorations */}
+          <div className="cloud-decoration" style={{ top: '10%', left: '5%', width: '80px', height: '30px' }}></div>
+          <div className="cloud-decoration" style={{ bottom: '10%', right: '5%', width: '80px', height: '30px', animationDelay: '3s' }}></div>
 
-          <div className="relative p-4 lg:p-5">
-            {/* Header */}
-            <div className="text-center mb-4">
-              <h3 className="text-sm lg:text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-400 font-title tracking-wider mb-2">
-                NGỌC GIẢN ĐỊNH DANH
-              </h3>
-              <div className="h-[1px] w-32 mx-auto bg-gradient-to-r from-transparent via-amber-500/50 to-transparent"></div>
-          </div>
-          
-            {/* Avatar & Tên Người Dùng */}
-            <IdentityHeader cultivation={cultivation} currentRealm={currentRealm} />
+          <div className="yinyang-container relative">
+            {/* Qi flow rings */}
+            <div className="absolute inset-0 border-2 border-amber-500/20 rounded-full animate-spin" style={{ animationDuration: '20s' }}></div>
+            <div className="absolute inset-0 border border-purple-500/20 rounded-full animate-spin" style={{ animationDuration: '15s', animationDirection: 'reverse' }}></div>
 
-            {/* Thông Số Chiến Đấu - Grid 2x2 */}
-            <div className="grid grid-cols-2 gap-3 lg:gap-4">
-              {/* Tấn Công */}
-              <div className="bg-black/40 border border-red-500/20 p-3 lg:p-4 rounded-xl text-center group/stat hover:border-red-500/40 transition-all">
-                <p className="text-xs text-red-300/70 uppercase tracking-widest mb-2">Tấn Công</p>
-                <h3 className="text-lg lg:text-xl font-bold text-red-100 font-mono">
-                  {getCombatStats(cultivation).attack.toLocaleString()}
-                </h3>
-          </div>
-          
-              {/* Phòng Thủ */}
-              <div className="bg-black/40 border border-blue-500/20 p-3 lg:p-4 rounded-xl text-center group/stat hover:border-blue-500/40 transition-all">
-                <p className="text-xs text-blue-300/70 uppercase tracking-widest mb-2">Phòng Thủ</p>
-                <h3 className="text-lg lg:text-xl font-bold text-blue-100 font-mono">
-                  {getCombatStats(cultivation).defense.toLocaleString()}
-                </h3>
-              </div>
-
-              {/* Khí Huyết */}
-              <div className="bg-black/40 border border-pink-500/20 p-3 lg:p-4 rounded-xl text-center group/stat hover:border-pink-500/40 transition-all">
-                <p className="text-xs text-pink-300/70 uppercase tracking-widest mb-2">Khí Huyết</p>
-                <h3 className="text-lg lg:text-xl font-bold text-pink-100 font-mono">
-                  {getCombatStats(cultivation).qiBlood.toLocaleString()}
-                </h3>
-              </div>
-
-              {/* Chân Nguyên */}
-              <div className="bg-black/40 border border-purple-500/20 p-3 lg:p-4 rounded-xl text-center group/stat hover:border-purple-500/40 transition-all">
-                <p className="text-xs text-purple-300/70 uppercase tracking-widest mb-2">Chân Nguyên</p>
-                <h3 className="text-lg lg:text-xl font-bold text-purple-100 font-mono">
-                  {getCombatStats(cultivation).zhenYuan.toLocaleString()}
-                </h3>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Yin Yang Click for Tu Vi */}
-        <div className="flex flex-col items-center justify-center py-12 lg:py-12">
-          <div className="yinyang-container">
             <div className="yinyang-glow"></div>
-            <motion.div 
+            <motion.img
+              src="/assets/yinyang.png"
+              alt="Âm Dương"
               className="yinyang"
               onClick={onYinYangClick}
               onMouseDown={(e) => e.preventDefault()}
               tabIndex={-1}
               whileTap={{ scale: 0.9 }}
-              style={{ 
-                animationPlayState: checkingIn || isBreakingThrough ? 'paused' : 'running',
+              style={{
+                animationPlayState: isBreakingThrough ? 'paused' : 'running',
                 opacity: clickCooldown ? 0.1 : 1,
                 outline: 'none'
               }}
             />
           </div>
-          <p className="mt-4 text-slate-400/80 text-xs uppercase tracking-wider animate-pulse text-center">
+
+          {/* Floating Chinese characters */}
+          <span className="floating-char" style={{ left: '15%', top: '30%', animationDelay: '0s' }}>氣</span>
+          <span className="floating-char" style={{ right: '18%', top: '35%', animationDelay: '1s' }}>靈</span>
+          <span className="floating-char" style={{ left: '20%', bottom: '25%', animationDelay: '2s' }}>元</span>
+          <span className="floating-char" style={{ right: '22%', bottom: '30%', animationDelay: '1.5s' }}>精</span>
+
+          <p className="mt-4 text-slate-400/80 text-xs uppercase tracking-wider animate-pulse text-center relative">
             Hấp thu thiên địa linh khí <br />
             <span className="text-[10px] text-amber-500/70">(Có xác suất nhận Linh Thạch)</span>
           </p>
         </div>
 
-        {/* Log Panel inside Spirit Tablet */}
-        <div className="mb-6">
-          <button 
+        {/* Log Panel inside Spirit Tablet - Enhanced Tiên Hiệp */}
+        <div className="mb-6 relative">
+          {/* Decorative elements */}
+          <div className="qi-particle" style={{ top: '5px', left: '5%', animationDelay: '0s' }}></div>
+          <div className="qi-particle" style={{ top: '5px', right: '5%', animationDelay: '1s' }}></div>
+
+          <button
             onClick={() => setLogExpanded(!logExpanded)}
-            className="flex items-center gap-2 w-full text-left mb-2 group"
+            className="flex items-center gap-2 w-full text-left mb-2 group relative"
           >
             <span className={`text-slate-400 text-xs transition-transform duration-200 ${logExpanded ? 'rotate-180' : ''}`}>
               ▼
             </span>
-            <h4 className="text-xs font-bold text-jade uppercase tracking-wider group-hover:text-cyan-300 transition-colors">Nhật Ký Tu Luyện</h4>
+            <h4 className="text-xs font-bold text-jade uppercase tracking-wider group-hover:text-cyan-300 transition-colors flex items-center gap-2">
+              <span className="floating-char" style={{ position: 'relative', left: '0', top: '0', animation: 'none', opacity: '0.6', fontSize: '10px' }}>錄</span>
+              Nhật Ký Tu Luyện
+            </h4>
           </button>
-          <div 
-            className={`bg-black/50 rounded-xl border border-cyan-500/10 p-3 overflow-y-auto custom-scrollbar font-mono text-[11px] leading-5 transition-all duration-300 ${logExpanded ? 'h-40' : 'h-16'}`}
+          <div
+            className={`bg-black/50 rounded-xl border-2 border-cyan-500/10 p-3 overflow-y-auto custom-scrollbar font-mono text-[11px] leading-5 transition-all duration-300 relative ${logExpanded ? 'h-40' : 'h-16'}`}
+            style={{
+              backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.05) 0%, transparent 50%)'
+            }}
           >
             {logs.map((log) => (
-              <div 
-                key={log.id} 
+              <div
+                key={log.id}
                 className={`mb-0.5 ${log.type === 'gain' ? 'text-emerald-400' :
-                  log.type === 'danger' ? 'text-red-400 font-bold' : 
-                  log.type === 'success' ? 'text-amber-300 font-bold' : 
-                  'text-slate-500'
-                }`}
+                  log.type === 'danger' ? 'text-red-400 font-bold' :
+                    log.type === 'success' ? 'text-amber-300 font-bold' :
+                      'text-slate-500'
+                  }`}
               >
                 &gt; {log.text}
               </div>
@@ -644,76 +772,96 @@ const DashboardTab = memo(function DashboardTab({
           </div>
         </div>
 
-        {/* Progress Bar (Spirit Vein Style) */}
-        <div className="mb-6">
+        {/* Progress Bar (Spirit Vein Style) - Enhanced */}
+        <div className="mb-6 md:mb-8 relative">
+          {/* Qi particles around progress bar */}
+          <div className="qi-particle" style={{ top: '-10px', left: '10%', animationDelay: '0s' }}></div>
+          <div className="qi-particle" style={{ top: '-10px', right: '15%', animationDelay: '1s' }}></div>
+
           <div className="flex justify-between text-xs text-slate-500 mb-3 uppercase tracking-wider font-semibold">
-            <span>Tiến độ đột phá</span>
+            <span className="flex items-center gap-2">
+              <span className="floating-char" style={{ position: 'relative', left: '0', top: '0', animation: 'none', opacity: '0.5', fontSize: '12px' }}>修</span>
+              Tiến độ đột phá
+            </span>
             <span className="font-mono">
               {cultivation.exp?.toLocaleString()} / {nextRealm?.minExp?.toLocaleString() || '∞'}
             </span>
           </div>
-          <div className="w-full bg-slate-900/80 rounded-full h-4 lg:h-5 border border-slate-700/50 relative overflow-hidden shadow-inner">
-            <motion.div 
-              className={`absolute top-0 left-0 h-full transition-all duration-500 ease-out ${isBreakthroughReady
-                  ? 'bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-200 shadow-[0_0_15px_rgba(251,191,36,0.5)]' 
-                  : 'bg-gradient-to-r from-purple-900 via-purple-600 to-violet-400'
-              }`}
+          <div className="w-full bg-slate-900/80 rounded-full h-4 lg:h-5 border-2 border-slate-700/50 relative overflow-hidden shadow-inner">
+            {/* Background glow */}
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 via-violet-900/20 to-purple-900/20 rounded-full"></div>
+
+            <motion.div
+              className={`absolute top-0 left-0 h-full transition-all duration-500 ease-out relative ${isBreakthroughReady
+                ? 'bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-200 shadow-[0_0_15px_rgba(251,191,36,0.5)]'
+                : 'bg-gradient-to-r from-purple-900 via-purple-600 to-violet-400'
+                }`}
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
             >
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_2s_infinite]" 
+              {/* Shimmer effect */}
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_2s_infinite]"
                 style={{ transform: 'translateX(-100%)' }}
               ></div>
+
+              {/* Qi flow particles inside progress */}
+              {progressPercent > 10 && (
+                <>
+                  <div className="qi-particle" style={{ top: '20%', left: '20%', width: '3px', height: '3px', animationDelay: '0s' }}></div>
+                  <div className="qi-particle" style={{ top: '60%', left: '50%', width: '3px', height: '3px', animationDelay: '1s' }}></div>
+                  <div className="qi-particle" style={{ top: '30%', left: '80%', width: '3px', height: '3px', animationDelay: '2s' }}></div>
+                </>
+              )}
             </motion.div>
+
+            {/* Glow effect when ready */}
+            {isBreakthroughReady && (
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-400/30 via-yellow-400/30 to-amber-400/30 animate-pulse"></div>
+            )}
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-4 lg:gap-6 mb-6">
-          <motion.button
-            onClick={onCheckIn}
-            disabled={checkingIn || isBreakingThrough}
-            className="flex items-center justify-center gap-2 py-4 px-6 bg-slate-800/40 border border-slate-700 rounded-xl text-slate-300 text-sm font-bold uppercase tracking-wide hover:bg-slate-800 hover:text-slate-100 transition-all disabled:opacity-50"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {checkingIn ? 'Đang điểm danh...' : 'Điểm Danh'}
-          </motion.button>
-
+        <div className="grid grid-cols-1 gap-4 md:gap-5 lg:gap-6 mb-6 md:mb-8">
           {isBreakthroughReady ? (
-            <motion.button 
-              onClick={onBreakthrough}
-              disabled={isBreakingThrough}
-              className="flex items-center justify-center gap-2 py-4 px-6 bg-gradient-to-br from-amber-700 to-amber-900 border border-amber-500/50 rounded-xl text-amber-100 text-sm font-bold uppercase tracking-wide shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse hover:scale-[1.02] active:scale-95 transition-transform"
-              whileHover={{ scale: 1.02 }}
-            >
-              ĐỘ KIẾP
-            </motion.button>
+            <div className="flex flex-col gap-2">
+              <motion.button
+                onClick={onBreakthrough}
+                disabled={isBreakingThrough || isOnCooldown}
+                className={`flex flex-col items-center justify-center gap-1 py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wide transition-transform ${isOnCooldown
+                  ? 'bg-slate-900/50 border border-slate-800 text-slate-600 cursor-not-allowed'
+                  : 'bg-gradient-to-br from-amber-700 to-amber-900 border border-amber-500/50 text-amber-100 shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse hover:scale-[1.02] active:scale-95'
+                  }`}
+                whileHover={!isOnCooldown ? { scale: 1.02 } : {}}
+              >
+                <span>ĐỘ KIẾP</span>
+                {!isOnCooldown && (
+                  <span className="text-xs font-normal opacity-80">
+                    Tỷ lệ: {currentSuccessRate}%
+                  </span>
+                )}
+                {isOnCooldown && (
+                  <span className="text-xs font-normal">
+                    Chờ {cooldownRemaining} phút
+                  </span>
+                )}
+              </motion.button>
+              {failureCount > 0 && !isOnCooldown && (
+                <p className="text-xs text-center text-amber-400/70">
+                  Đã thất bại {failureCount} lần (+{failureCount * bonusPerFailure}% tỷ lệ)
+                </p>
+              )}
+            </div>
           ) : (
-            <button 
-              disabled 
+            <button
+              disabled
               className="flex items-center justify-center gap-2 py-4 px-6 bg-slate-900/50 border border-slate-800 rounded-xl text-slate-600 text-sm font-bold uppercase tracking-wide cursor-not-allowed"
             >
               Bình Cảnh
             </button>
           )}
         </div>
-
-        {/* Streak Info */}
-        <div className="text-center text-base text-slate-400">
-          <span className="text-amber-400">Streak: {cultivation.loginStreak || 0} ngày</span>
-          <span className="mx-3">|</span>
-          <span>Kỷ lục: {cultivation.longestStreak || 0} ngày</span>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-4">
-        <StatBox label="Bài viết" value={cultivation.stats?.totalPostsCreated || 0} />
-        <StatBox label="Bình luận" value={cultivation.stats?.totalCommentsCreated || 0} />
-        <StatBox label="Đã thích" value={cultivation.stats?.totalLikesGiven || 0} />
-        <StatBox label="Nhiệm vụ" value={cultivation.stats?.totalQuestsCompleted || 0} />
       </div>
 
       {/* Active Boosts */}
@@ -748,7 +896,7 @@ const DashboardTab = memo(function DashboardTab({
             </span>
           )}
         </div>
-        
+
         <div className="mb-4">
           <div className="flex items-baseline gap-2 mb-2">
             <span className="text-3xl font-bold text-emerald-400 font-mono">
@@ -770,9 +918,9 @@ const DashboardTab = memo(function DashboardTab({
           onClick={onCollectPassiveExp}
           disabled={collectingPassiveExp || (passiveExpStatus?.pendingExp || 0) < 1}
           className={`w-full py-3 px-4 rounded-xl font-bold uppercase tracking-wide transition-all ${(passiveExpStatus?.pendingExp || 0) >= 1
-              ? 'bg-gradient-to-r from-emerald-700 to-emerald-900 text-emerald-100 border border-emerald-500/30 hover:from-emerald-600 hover:to-emerald-800 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-              : 'bg-slate-900/50 text-slate-600 border border-slate-800 cursor-not-allowed'
-          }`}
+            ? 'bg-gradient-to-r from-emerald-700 to-emerald-900 text-emerald-100 border border-emerald-500/30 hover:from-emerald-600 hover:to-emerald-800 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+            : 'bg-slate-900/50 text-slate-600 border border-slate-800 cursor-not-allowed'
+            }`}
           whileHover={!collectingPassiveExp && (passiveExpStatus?.pendingExp || 0) >= 1 ? { scale: 1.02 } : {}}
           whileTap={!collectingPassiveExp && (passiveExpStatus?.pendingExp || 0) >= 1 ? { scale: 0.98 } : {}}
         >
@@ -793,22 +941,22 @@ const DashboardTab = memo(function DashboardTab({
           {CULTIVATION_REALMS.map((realm) => {
             const isCurrent = cultivation.realm?.level === realm.level;
             const isUnlocked = cultivation.exp >= realm.minExp;
-            
+
             return (
-              <motion.div 
+              <motion.div
                 key={realm.level}
                 className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${isCurrent
-                    ? 'bg-purple-900/30 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.2)]' 
-                    : isUnlocked 
-                      ? 'bg-black/20 border-white/10 opacity-80' 
-                      : 'bg-black/10 border-white/5 opacity-40'
-                }`}
+                  ? 'bg-purple-900/30 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.2)]'
+                  : isUnlocked
+                    ? 'bg-black/20 border-white/10 opacity-80'
+                    : 'bg-black/10 border-white/5 opacity-40'
+                  }`}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: isCurrent ? 1 : isUnlocked ? 0.8 : 0.4, x: 0 }}
               >
 
                 <div className="flex-1">
-                  <div 
+                  <div
                     className="font-medium font-title tracking-wide"
                     style={{ color: isUnlocked ? realm.color : '#6b7280' }}
                   >
@@ -840,9 +988,9 @@ const QuestItem = memo(function QuestItem({ quest, onClaim, claiming }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={`spirit-tablet rounded-xl p-4 transition-all ${quest.completed && !quest.claimed
-          ? 'border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
-          : quest.claimed ? 'opacity-50' : ''
-      }`}
+        ? 'border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+        : quest.claimed ? 'opacity-50' : ''
+        }`}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
@@ -863,11 +1011,11 @@ const QuestItem = memo(function QuestItem({ quest, onClaim, claiming }) {
       <div className="flex items-center justify-between gap-3">
         <div className="flex-1">
           <div className="w-full bg-slate-900/80 rounded-full h-2 overflow-hidden">
-            <div 
+            <div
               className={`h-full transition-all ${quest.completed
-                  ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' 
-                  : 'bg-gradient-to-r from-purple-600 to-violet-400'
-              }`}
+                ? 'bg-gradient-to-r from-emerald-600 to-emerald-400'
+                : 'bg-gradient-to-r from-purple-600 to-violet-400'
+                }`}
               style={{ width: `${quest.progressPercent || 0}%` }}
             />
           </div>
@@ -898,9 +1046,10 @@ const QuestItem = memo(function QuestItem({ quest, onClaim, claiming }) {
 });
 
 // ==================== QUESTS TAB ====================
-const QuestsTab = memo(function QuestsTab() {
+const QuestsTab = memo(function QuestsTab({ onCheckIn, checkingIn }) {
   const { cultivation, claimReward, loading } = useCultivation();
   const [claiming, setClaiming] = useState(null);
+  const [claimingAll, setClaimingAll] = useState(false);
 
   const handleClaim = async (questId) => {
     setClaiming(questId);
@@ -908,6 +1057,24 @@ const QuestsTab = memo(function QuestsTab() {
       await claimReward(questId);
     } finally {
       setClaiming(null);
+    }
+  };
+
+  const handleClaimAll = async () => {
+    const pendingRewards = [...(cultivation.dailyQuests || []), ...(cultivation.weeklyQuests || [])]
+      .filter(q => q.completed && !q.claimed);
+
+    if (pendingRewards.length === 0) return;
+
+    setClaimingAll(true);
+    try {
+      // Claim từng nhiệm vụ một, có delay nhỏ để animation mượt
+      for (const quest of pendingRewards) {
+        await claimReward(quest.questId);
+        await new Promise(resolve => setTimeout(resolve, 200)); // Delay 200ms giữa mỗi claim
+      }
+    } finally {
+      setClaimingAll(false);
     }
   };
 
@@ -924,8 +1091,134 @@ const QuestsTab = memo(function QuestsTab() {
   const totalPendingExp = pendingRewards.reduce((sum, q) => sum + (q.expReward || 0), 0);
   const totalPendingStones = pendingRewards.reduce((sum, q) => sum + (q.spiritStoneReward || 0), 0);
 
+  // Tính toán lịch điểm danh 7 ngày
+  const getCheckInCalendar = () => {
+    const days = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset về đầu ngày
+
+    const lastLoginDate = cultivation.lastLoginDate ? new Date(cultivation.lastLoginDate) : null;
+    if (lastLoginDate) {
+      lastLoginDate.setHours(0, 0, 0, 0);
+    }
+
+    const loginStreak = cultivation.loginStreak || 0;
+
+    // Tên các ngày trong tuần
+    const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+    // Tính 7 ngày gần nhất (từ 6 ngày trước đến hôm nay)
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      // Kiểm tra xem ngày này đã điểm danh chưa
+      let isChecked = false;
+      if (lastLoginDate && loginStreak > 0) {
+        const lastLoginStr = lastLoginDate.toISOString().split('T')[0];
+
+        // Tính số ngày từ ngày này đến lastLoginDate
+        const daysFromDate = Math.floor((lastLoginDate - date) / (1000 * 60 * 60 * 24));
+
+        // Nếu lastLoginDate >= ngày này và nằm trong streak
+        // Ví dụ: streak = 5, lastLoginDate = hôm nay
+        // -> các ngày: hôm nay (0 ngày), hôm qua (1 ngày), ... đến 4 ngày trước (4 ngày) đều đã điểm danh
+        if (daysFromDate >= 0 && daysFromDate < loginStreak) {
+          isChecked = true;
+        }
+      }
+
+      // Kiểm tra xem có phải hôm nay không
+      const isToday = i === 0;
+
+      days.push({
+        date,
+        dateStr,
+        dayName: dayNames[date.getDay()],
+        dayNumber: date.getDate(),
+        isChecked,
+        isToday
+      });
+    }
+
+    return days;
+  };
+
+  const checkInDays = getCheckInCalendar();
+  const todayChecked = checkInDays[6]?.isChecked || false; // Ngày cuối cùng là hôm nay
+
   return (
     <div className="space-y-6 pb-2">
+      {/* Stats Grid - Hiển thị số bài viết, bình luận, đã thích, nhiệm vụ */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 mb-6">
+        <StatBox label="Bài viết" value={cultivation.stats?.totalPostsCreated || 0} />
+        <StatBox label="Bình luận" value={cultivation.stats?.totalCommentsCreated || 0} />
+        <StatBox label="Đã thích" value={cultivation.stats?.totalLikesGiven || 0} />
+        <StatBox label="Nhiệm vụ" value={cultivation.stats?.totalQuestsCompleted || 0} />
+      </div>
+
+      {/* Lịch Điểm Danh 7 Ngày */}
+      <div className="spirit-tablet rounded-xl p-5 lg:p-6 border border-amber-500/30">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-gold font-title tracking-wide text-lg lg:text-xl">ĐIỂM DANH HÀNG NGÀY</h3>
+          <div className="flex items-center gap-3 text-sm">
+            <span className="text-amber-400">Streak: {cultivation.loginStreak || 0} ngày</span>
+            <span className="text-slate-500">|</span>
+            <span className="text-slate-400">Kỷ lục: {cultivation.longestStreak || 0} ngày</span>
+          </div>
+        </div>
+
+        {/* Lịch 7 ngày */}
+        <div className="grid grid-cols-7 gap-2 md:gap-3 mb-4">
+          {checkInDays.map((day, idx) => (
+            <div
+              key={idx}
+              className={`flex flex-col items-center p-2 md:p-3 rounded-lg border-2 transition-all ${day.isChecked
+                ? 'bg-gradient-to-br from-amber-600/30 to-amber-800/30 border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                : day.isToday
+                  ? 'bg-slate-800/50 border-amber-500/30'
+                  : 'bg-slate-900/30 border-slate-700/30 opacity-60'
+                }`}
+            >
+              <p className={`text-xs mb-1 ${day.isChecked ? 'text-amber-300' : 'text-slate-400'}`}>
+                {day.dayName}
+              </p>
+              <p className={`text-lg font-bold ${day.isChecked ? 'text-amber-200' : day.isToday ? 'text-slate-200' : 'text-slate-500'}`}>
+                {day.dayNumber}
+              </p>
+              {day.isChecked && (
+                <div className="mt-1 w-2 h-2 bg-amber-400 rounded-full"></div>
+              )}
+              {day.isToday && !day.isChecked && (
+                <div className="mt-1 w-2 h-2 bg-amber-500/50 rounded-full animate-pulse"></div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Nút Điểm Danh */}
+        <motion.button
+          onClick={onCheckIn}
+          disabled={checkingIn || todayChecked}
+          className={`w-full py-3 px-4 rounded-xl font-bold uppercase tracking-wide transition-all ${todayChecked
+            ? 'bg-slate-800/50 text-slate-600 border border-slate-700 cursor-not-allowed'
+            : 'bg-gradient-to-r from-amber-700 to-amber-900 text-amber-100 border border-amber-500/30 hover:from-amber-600 hover:to-amber-800 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+            }`}
+          whileHover={!todayChecked && !checkingIn ? { scale: 1.02 } : {}}
+          whileTap={!todayChecked && !checkingIn ? { scale: 0.98 } : {}}
+        >
+          {checkingIn ? 'Đang điểm danh...' : todayChecked ? 'Đã điểm danh hôm nay' : 'Điểm Danh'}
+        </motion.button>
+
+        {/* Thông tin phần thưởng */}
+        {!todayChecked && (
+          <div className="mt-3 text-center text-xs text-slate-400">
+            <p>Phần thưởng: +{20 + Math.min((cultivation.loginStreak || 0) * 5, 50)} Tu Vi, +{10 + Math.min((cultivation.loginStreak || 0) * 2, 20)} Linh Thạch</p>
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">NHIỆM VỤ TU LUYỆN</h3>
         {pendingRewards.length > 0 && (
@@ -945,9 +1238,18 @@ const QuestsTab = memo(function QuestsTab() {
               <span className="text-emerald-400 font-bold">+{totalPendingStones.toLocaleString()} Linh Thạch</span>
             </div>
           </div>
+          <motion.button
+            onClick={handleClaimAll}
+            disabled={claimingAll}
+            className="px-4 py-2 bg-gradient-to-r from-amber-700 to-amber-800 border border-amber-500/30 rounded-lg text-amber-100 text-xs font-bold uppercase tracking-wide shadow-lg hover:from-amber-600 hover:to-amber-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            whileHover={!claimingAll ? { scale: 1.05 } : {}}
+            whileTap={!claimingAll ? { scale: 0.95 } : {}}
+          >
+            {claimingAll ? 'Đang nhận...' : 'Nhận Tất Cả'}
+          </motion.button>
         </div>
       )}
-      
+
       {hasNoQuests ? (
         <div className="h-48 flex flex-col items-center justify-center text-slate-500 opacity-50">
           <p className="text-xs uppercase tracking-widest">Chưa có nhiệm vụ</p>
@@ -963,11 +1265,11 @@ const QuestsTab = memo(function QuestsTab() {
                 <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
               </div>
               {dailyQuests.map((quest) => (
-                <QuestItem 
-                  key={quest.questId} 
-                  quest={quest} 
-                  onClaim={handleClaim} 
-                  claiming={claiming} 
+                <QuestItem
+                  key={quest.questId}
+                  quest={quest}
+                  onClaim={handleClaim}
+                  claiming={claiming}
                 />
               ))}
             </div>
@@ -982,17 +1284,137 @@ const QuestsTab = memo(function QuestsTab() {
                 <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-purple-500/30 to-transparent"></div>
               </div>
               {weeklyQuests.map((quest) => (
-                <QuestItem 
-                  key={quest.questId} 
-                  quest={quest} 
-                  onClaim={handleClaim} 
-                  claiming={claiming} 
+                <QuestItem
+                  key={quest.questId}
+                  quest={quest}
+                  onClaim={handleClaim}
+                  claiming={claiming}
                 />
               ))}
             </div>
           )}
         </>
       )}
+    </div>
+  );
+});
+
+// ==================== STATS TAB ====================
+const StatsTab = memo(function StatsTab() {
+  const { cultivation, loading } = useCultivation();
+
+  if (loading || !cultivation) {
+    return <LoadingSkeleton />;
+  }
+
+  const currentRealm = CULTIVATION_REALMS.find(r => r.level === cultivation.realm?.level) || CULTIVATION_REALMS[0];
+
+  return (
+    <div className="space-y-6 pb-2">
+      <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">THÔNG SỐ TU LUYỆN</h3>
+
+      {/* Ngọc Giản Định Danh - Thông Số Chiến Đấu */}
+      <div className="relative">
+        {/* Background với gradient và viền ánh kim - Enhanced */}
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-[#1e293b]/80 to-slate-900/80 rounded-xl border-2 border-amber-500/30 shadow-[0_0_20px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(245,158,11,0.1)] transition-all hover:border-amber-500/40 hover:shadow-[0_0_25px_rgba(0,0,0,0.7),0_0_40px_rgba(245,158,11,0.15)]"></div>
+
+        {/* Họa tiết viền rồng/mây - Decorative Corners */}
+        <div className="absolute -top-[1px] -left-[1px] w-4 h-4 border-t-2 border-l-2 border-amber-500 rounded-tl-lg"></div>
+        <div className="absolute -top-[1px] -right-[1px] w-4 h-4 border-t-2 border-r-2 border-amber-500 rounded-tr-lg"></div>
+        <div className="absolute -bottom-[1px] -left-[1px] w-4 h-4 border-b-2 border-l-2 border-amber-500 rounded-bl-lg"></div>
+        <div className="absolute -bottom-[1px] -right-[1px] w-4 h-4 border-b-2 border-r-2 border-amber-500 rounded-br-lg"></div>
+
+        {/* Hiệu ứng ánh kim trên nền */}
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-amber-500/5 rounded-xl pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(245,158,11,0.1),transparent_70%)] rounded-xl pointer-events-none"></div>
+
+        <div className="relative p-4 md:p-5 lg:p-6">
+          {/* Header */}
+          <div className="text-center mb-4 md:mb-6">
+            <h3 className="text-sm lg:text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-400 font-title tracking-wider mb-2">
+              NGỌC GIẢN ĐỊNH DANH
+            </h3>
+            <div className="h-[1px] w-32 mx-auto bg-gradient-to-r from-transparent via-amber-500/50 to-transparent"></div>
+          </div>
+
+          {/* Avatar & Tên Người Dùng */}
+          <IdentityHeader cultivation={cultivation} currentRealm={currentRealm} />
+
+          {/* Thông Số Chiến Đấu - Grid 2x2 */}
+          <div className="grid grid-cols-2 gap-3 md:gap-4 lg:gap-5 mt-6">
+            {/* Tấn Công */}
+            <div className="bg-black/40 border-2 border-red-500/20 p-3 md:p-4 lg:p-5 rounded-xl text-center group/stat hover:border-red-500/50 hover:bg-black/50 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all duration-300">
+              <p className="text-xs text-red-300/70 uppercase tracking-widest mb-2">Tấn Công</p>
+              <h3 className="text-lg lg:text-xl font-bold text-red-100 font-mono">
+                {getCombatStats(cultivation).attack.toLocaleString()}
+              </h3>
+            </div>
+
+            {/* Phòng Thủ */}
+            <div className="bg-black/40 border-2 border-blue-500/20 p-3 md:p-4 lg:p-5 rounded-xl text-center group/stat hover:border-blue-500/50 hover:bg-black/50 hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all duration-300">
+              <p className="text-xs text-blue-300/70 uppercase tracking-widest mb-2">Phòng Thủ</p>
+              <h3 className="text-lg lg:text-xl font-bold text-blue-100 font-mono">
+                {getCombatStats(cultivation).defense.toLocaleString()}
+              </h3>
+            </div>
+
+            {/* Khí Huyết */}
+            <div className="bg-black/40 border-2 border-pink-500/20 p-3 md:p-4 lg:p-5 rounded-xl text-center group/stat hover:border-pink-500/50 hover:bg-black/50 hover:shadow-[0_0_15px_rgba(236,72,153,0.3)] transition-all duration-300">
+              <p className="text-xs text-pink-300/70 uppercase tracking-widest mb-2">Khí Huyết</p>
+              <h3 className="text-lg lg:text-xl font-bold text-pink-100 font-mono">
+                {getCombatStats(cultivation).qiBlood.toLocaleString()}
+              </h3>
+            </div>
+
+            {/* Chân Nguyên */}
+            <div className="bg-black/40 border-2 border-purple-500/20 p-3 md:p-4 lg:p-5 rounded-xl text-center group/stat hover:border-purple-500/50 hover:bg-black/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-all duration-300">
+              <p className="text-xs text-purple-300/70 uppercase tracking-widest mb-2">Chân Nguyên</p>
+              <h3 className="text-lg lg:text-xl font-bold text-purple-100 font-mono">
+                {getCombatStats(cultivation).zhenYuan.toLocaleString()}
+              </h3>
+            </div>
+          </div>
+
+          {/* Thông Số Chi Tiết - Grid 3x3 cho các stats khác */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mt-6">
+            {/* Tốc Độ */}
+            <div className="bg-black/30 border border-cyan-500/20 p-3 rounded-lg text-center">
+              <p className="text-[10px] text-cyan-300/70 uppercase tracking-widest mb-1">Tốc Độ</p>
+              <p className="text-sm font-bold text-cyan-100 font-mono">{getCombatStats(cultivation).speed.toLocaleString()}</p>
+            </div>
+
+            {/* Chí Mạng */}
+            <div className="bg-black/30 border border-yellow-500/20 p-3 rounded-lg text-center">
+              <p className="text-[10px] text-yellow-300/70 uppercase tracking-widest mb-1">Chí Mạng</p>
+              <p className="text-sm font-bold text-yellow-100 font-mono">{getCombatStats(cultivation).criticalRate.toLocaleString()}%</p>
+            </div>
+
+            {/* Né Tránh */}
+            <div className="bg-black/30 border border-green-500/20 p-3 rounded-lg text-center">
+              <p className="text-[10px] text-green-300/70 uppercase tracking-widest mb-1">Né Tránh</p>
+              <p className="text-sm font-bold text-green-100 font-mono">{getCombatStats(cultivation).dodge.toLocaleString()}%</p>
+            </div>
+
+            {/* Xuyên Thấu */}
+            <div className="bg-black/30 border border-orange-500/20 p-3 rounded-lg text-center">
+              <p className="text-[10px] text-orange-300/70 uppercase tracking-widest mb-1">Xuyên Thấu</p>
+              <p className="text-sm font-bold text-orange-100 font-mono">{getCombatStats(cultivation).penetration.toLocaleString()}</p>
+            </div>
+
+            {/* Kháng Cự */}
+            <div className="bg-black/30 border border-teal-500/20 p-3 rounded-lg text-center">
+              <p className="text-[10px] text-teal-300/70 uppercase tracking-widest mb-1">Kháng Cự</p>
+              <p className="text-sm font-bold text-teal-100 font-mono">{getCombatStats(cultivation).resistance.toLocaleString()}</p>
+            </div>
+
+            {/* Vận Khí */}
+            <div className="bg-black/30 border border-indigo-500/20 p-3 rounded-lg text-center">
+              <p className="text-[10px] text-indigo-300/70 uppercase tracking-widest mb-1">Vận Khí</p>
+              <p className="text-sm font-bold text-indigo-100 font-mono">{getCombatStats(cultivation).luck.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 });
@@ -1047,16 +1469,16 @@ const getItemIcon = (item) => {
   if (item.type === 'technique' && TECHNIQUE_ICON_MAP[item.itemId || item.id]) {
     return TECHNIQUE_ICON_MAP[item.itemId || item.id];
   }
-  
+
   // Check by name (case insensitive partial match)
   const name = (item.name || '').toLowerCase();
-  
+
   // Weapons & Combat
   if (name.includes('kiếm')) return Sword;
   if (name.includes('đao')) return Sword;
   if (name.includes('giáp') || name.includes('áo')) return Shield;
   if (name.includes('hộ mệnh')) return Shield;
-  
+
   // Elements
   if (name.includes('lôi') || name.includes('sấm') || name.includes('điện')) return Zap;
   if (name.includes('hỏa') || name.includes('lửa') || name.includes('viêm') || name.includes('nhiệt')) return Flame;
@@ -1065,7 +1487,7 @@ const getItemIcon = (item) => {
   if (name.includes('thổ') || name.includes('đất') || name.includes('địa')) return Mountain;
   if (name.includes('mộc') || name.includes('cây') || name.includes('hoa') || name.includes('liên')) return Flower2;
   if (name.includes('kim') || name.includes('vàng')) return Coins;
-  
+
   // Celestial / Mystical
   if (name.includes('nhật') || name.includes('dương') || name.includes('mặt trời')) return Sun;
   if (name.includes('nguyệt') || name.includes('trăng') || name.includes('âm')) return Moon;
@@ -1075,7 +1497,7 @@ const getItemIcon = (item) => {
   if (name.includes('hỗn độn')) return Ghost;
   if (name.includes('tiên') || name.includes('thần')) return Crown;
   if (name.includes('ma') || name.includes('quỷ') || name.includes('diệt')) return Skull;
-  
+
   // Items
   if (name.includes('đan') || name.includes('thuốc')) return Pill;
   if (name.includes('thư') || name.includes('bí kíp') || name.includes('quyển') || name.includes('pháp')) return BookOpen;
@@ -1086,7 +1508,7 @@ const getItemIcon = (item) => {
   if (name.includes('hương')) return Flame;
   if (name.includes('túi')) return Package;
   if (name.includes('chìa')) return Key;
-  
+
   // Creatures
   if (name.includes('long') || name.includes('rồng')) return Flame; // Dragon fallback
   if (name.includes('phượng') || name.includes('chim') || name.includes('hạc') || name.includes('điểu')) return Bird;
@@ -1094,13 +1516,13 @@ const getItemIcon = (item) => {
   if (name.includes('thố') || name.includes('thỏ')) return Rabbit;
   if (name.includes('hồ') || name.includes('cáo')) return PawPrint;
   if (name.includes('quy') || name.includes('rùa')) return Shield;
-  
+
   // Roles
   if (name.includes('sư') || name.includes('giả') || name.includes('khách')) return Medal;
   if (name.includes('luyện đan')) return FlaskConical;
   if (name.includes('ẩn sĩ')) return Mountain;
   if (name.includes('hiền giả')) return Wand2;
-  
+
   // Fallback to type
   return SHOP_ICON_MAP[item.type] || Package;
 };
@@ -1142,14 +1564,14 @@ const ShopTab = memo(function ShopTab() {
     { id: 'mount', label: 'Tọa Kỵ', icon: '' }
   ];
 
-  const filteredItems = activeCategory === 'all' 
-    ? shop.items 
+  const filteredItems = activeCategory === 'all'
+    ? shop.items
     : shop.items?.filter(item => item.type === activeCategory);
 
   return (
     <div className="space-y-3 pb-2">
       <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">VẠN BẢO CÁC</h3>
-      
+
       {/* Category Filter */}
       <div className="flex flex-wrap gap-2 pb-2">
         {categories.map(cat => (
@@ -1157,16 +1579,16 @@ const ShopTab = memo(function ShopTab() {
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === cat.id
-                ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300'
-                : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
-            }`}
+              ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300'
+              : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
+              }`}
           >
             <span className="mr-1">{cat.icon}</span>
             {cat.label}
           </button>
         ))}
       </div>
-      
+
       {/* Items Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {filteredItems?.map((item) => {
@@ -1174,8 +1596,8 @@ const ShopTab = memo(function ShopTab() {
           const ItemIcon = getItemIcon(item);
 
           return (
-            <div 
-              key={item.id} 
+            <div
+              key={item.id}
               className={`rounded-xl p-4 flex justify-between items-center group transition-all border ${rarity.bg} ${rarity.border} hover:scale-[1.02]`}
             >
               <div className="flex items-start gap-3 flex-1 mr-3">
@@ -1194,15 +1616,15 @@ const ShopTab = memo(function ShopTab() {
                   <p className="text-xs text-slate-400 leading-tight">{item.description}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => handleBuy(item.id)}
                 disabled={buying === item.id || !item.canAfford || item.owned}
                 className={`flex flex-col items-center justify-center border rounded-lg px-4 py-2 min-w-[85px] transition-all ${item.owned
-                    ? 'bg-slate-800 border-slate-600 text-slate-500 cursor-not-allowed'
-                    : item.canAfford 
-                      ? 'bg-gradient-to-b from-amber-600/30 to-amber-800/30 hover:from-amber-500/40 hover:to-amber-700/40 border-amber-500/50' 
-                      : 'bg-slate-900 border-slate-700 opacity-50 cursor-not-allowed'
-                }`}
+                  ? 'bg-slate-800 border-slate-600 text-slate-500 cursor-not-allowed'
+                  : item.canAfford
+                    ? 'bg-gradient-to-b from-amber-600/30 to-amber-800/30 hover:from-amber-500/40 hover:to-amber-700/40 border-amber-500/50'
+                    : 'bg-slate-900 border-slate-700 opacity-50 cursor-not-allowed'
+                  }`}
               >
                 <span className="text-amber-400 font-mono text-sm font-bold flex items-center gap-1">
                   💎 {item.price}
@@ -1215,7 +1637,7 @@ const ShopTab = memo(function ShopTab() {
           );
         })}
       </div>
-      
+
       {filteredItems?.length === 0 && (
         <div className="h-48 flex flex-col items-center justify-center text-slate-500">
           <p className="text-xs uppercase tracking-widest">Không có vật phẩm</p>
@@ -1261,7 +1683,7 @@ const InventoryTab = memo(function InventoryTab() {
 
   const inventory = cultivation.inventory || [];
   const equipped = cultivation.equipped || {};
-  
+
   // Group items by type
   const categories = [
     { id: 'all', label: 'Tất cả', icon: '' },
@@ -1275,8 +1697,8 @@ const InventoryTab = memo(function InventoryTab() {
     { id: 'mount', label: 'Tọa Kỵ', icon: '' }
   ];
 
-  const filteredItems = activeCategory === 'all' 
-    ? inventory 
+  const filteredItems = activeCategory === 'all'
+    ? inventory
     : inventory.filter(item => item.type === activeCategory);
 
   // Check if item is equipped
@@ -1299,7 +1721,7 @@ const InventoryTab = memo(function InventoryTab() {
           {inventory.length} vật phẩm
         </span>
       </div>
-      
+
       {/* Equipped Items Summary */}
       {(equipped.title || equipped.badge || equipped.avatarFrame || equipped.profileEffect) && (
         <div className="bg-gradient-to-r from-emerald-900/20 to-teal-900/20 border border-emerald-500/30 rounded-xl p-3">
@@ -1307,22 +1729,22 @@ const InventoryTab = memo(function InventoryTab() {
           <div className="flex flex-wrap gap-2">
             {equipped.title && (
               <span className="px-2 py-1 bg-amber-900/30 border border-amber-500/30 rounded text-xs text-amber-300">
-                 {inventory.find(i => i.itemId === equipped.title)?.name || equipped.title}
+                {inventory.find(i => i.itemId === equipped.title)?.name || equipped.title}
               </span>
             )}
             {equipped.badge && (
               <span className="px-2 py-1 bg-cyan-900/30 border border-cyan-500/30 rounded text-xs text-cyan-300">
-                 {inventory.find(i => i.itemId === equipped.badge)?.name || equipped.badge}
+                {inventory.find(i => i.itemId === equipped.badge)?.name || equipped.badge}
               </span>
             )}
             {equipped.avatarFrame && (
               <span className="px-2 py-1 bg-purple-900/30 border border-purple-500/30 rounded text-xs text-purple-300">
-                 {inventory.find(i => i.itemId === equipped.avatarFrame)?.name || equipped.avatarFrame}
+                {inventory.find(i => i.itemId === equipped.avatarFrame)?.name || equipped.avatarFrame}
               </span>
             )}
             {equipped.profileEffect && (
               <span className="px-2 py-1 bg-pink-900/30 border border-pink-500/30 rounded text-xs text-pink-300">
-                 {inventory.find(i => i.itemId === equipped.profileEffect)?.name || equipped.profileEffect}
+                {inventory.find(i => i.itemId === equipped.profileEffect)?.name || equipped.profileEffect}
               </span>
             )}
           </div>
@@ -1339,9 +1761,9 @@ const InventoryTab = memo(function InventoryTab() {
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === cat.id
-                  ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300'
-                  : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
-              }`}
+                ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300'
+                : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
+                }`}
             >
               <span className="mr-1">{cat.icon}</span>
               {cat.label}
@@ -1350,7 +1772,7 @@ const InventoryTab = memo(function InventoryTab() {
           );
         })}
       </div>
-      
+
       {filteredItems.length === 0 ? (
         <div className="h-48 flex flex-col items-center justify-center text-slate-500 opacity-50">
           <span className="text-4xl mb-2"></span>
@@ -1366,14 +1788,14 @@ const InventoryTab = memo(function InventoryTab() {
             const equipped = isItemEquipped(item);
             const consumable = isConsumable(item.type);
             const ItemIcon = getItemIcon(item);
-            
+
             return (
-              <div 
-                key={item.itemId} 
+              <div
+                key={item.itemId}
                 className={`rounded-xl p-4 flex justify-between items-center transition-all border ${equipped
-                    ? 'bg-emerald-900/30 border-emerald-500/50 ring-1 ring-emerald-500/30' 
-                    : `${rarity.bg} ${rarity.border}`
-                } hover:scale-[1.02]`}
+                  ? 'bg-emerald-900/30 border-emerald-500/50 ring-1 ring-emerald-500/30'
+                  : `${rarity.bg} ${rarity.border}`
+                  } hover:scale-[1.02]`}
               >
                 <div className="flex items-start gap-3 flex-1 mr-3">
                   <div className="relative w-10 h-10 rounded-full bg-slate-900/70 border border-amber-500/40 flex items-center justify-center shadow-[0_0_8px_rgba(245,158,11,0.25)]">
@@ -1400,15 +1822,15 @@ const InventoryTab = memo(function InventoryTab() {
                     <p className={`text-[10px] mt-1 ${typeInfo.color}`}>{typeInfo.label}</p>
                   </div>
                 </div>
-                <motion.button 
+                <motion.button
                   onClick={() => consumable ? handleUse(item.itemId) : handleEquip(item.itemId, equipped)}
                   disabled={equipping === item.itemId}
                   className={`rounded-lg px-4 py-2 text-xs font-bold uppercase transition-all min-w-[70px] ${consumable
-                      ? 'bg-orange-900/30 hover:bg-orange-800/50 border border-orange-500/30 text-orange-300'
-                      : equipped
-                        ? 'bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 text-red-300'
-                        : 'bg-emerald-900/30 hover:bg-emerald-800/50 border border-emerald-500/30 text-emerald-300'
-                  }`}
+                    ? 'bg-orange-900/30 hover:bg-orange-800/50 border border-orange-500/30 text-orange-300'
+                    : equipped
+                      ? 'bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 text-red-300'
+                      : 'bg-emerald-900/30 hover:bg-emerald-800/50 border border-emerald-500/30 text-emerald-300'
+                    }`}
                   whileTap={{ scale: 0.95 }}
                 >
                   {equipping === item.itemId ? '...' : consumable ? 'Dùng' : equipped ? 'Tháo' : 'Trang bị'}
@@ -1423,13 +1845,13 @@ const InventoryTab = memo(function InventoryTab() {
 });
 
 // ==================== STATS COMPARISON MODAL ====================
-const StatsComparisonModal = memo(function StatsComparisonModal({ 
-  isOpen, 
-  onClose, 
-  currentUserStats, 
-  compareUserStats, 
-  currentUserName, 
-  compareUserName 
+const StatsComparisonModal = memo(function StatsComparisonModal({
+  isOpen,
+  onClose,
+  currentUserStats,
+  compareUserStats,
+  currentUserName,
+  compareUserName
 }) {
   if (!isOpen) return null;
 
@@ -1535,6 +1957,9 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
   const [practicing, setPracticing] = useState(null);
   const [expGain] = useState(10); // Exp mỗi lần luyện
   const [cooldowns, setCooldowns] = useState({}); // techniqueId -> remaining seconds
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterRarity, setFilterRarity] = useState('all'); // 'all', 'common', 'uncommon', 'rare', 'epic', 'legendary'
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'learned', 'notLearned'
 
   useEffect(() => {
     if (!Object.keys(cooldowns).length) return;
@@ -1573,9 +1998,39 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
     return { ...learned, technique };
   }).filter(t => t.technique);
 
-  const notLearned = allTechniques.filter(t => 
+  const notLearned = allTechniques.filter(t =>
     !learnedTechniques.some(l => l.techniqueId === t.id)
   );
+
+  // Filter functions
+  const filterBySearch = (items) => {
+    if (!searchQuery.trim()) return items;
+    const query = searchQuery.toLowerCase();
+    return items.filter(item => {
+      const technique = item.technique || item;
+      return technique.name?.toLowerCase().includes(query) ||
+        technique.description?.toLowerCase().includes(query);
+    });
+  };
+
+  const filterByRarity = (items) => {
+    if (filterRarity === 'all') return items;
+    return items.filter(item => {
+      const technique = item.technique || item;
+      return technique.rarity === filterRarity;
+    });
+  };
+
+  const filterByStatus = (learnedItems, notLearnedItems) => {
+    if (filterStatus === 'all') return { learned: learnedItems, notLearned: notLearnedItems };
+    if (filterStatus === 'learned') return { learned: learnedItems, notLearned: [] };
+    return { learned: [], notLearned: notLearnedItems };
+  };
+
+  // Apply filters
+  const filteredLearned = filterByRarity(filterBySearch(learned));
+  const filteredNotLearned = filterByRarity(filterBySearch(notLearned));
+  const { learned: finalLearned, notLearned: finalNotLearned } = filterByStatus(filteredLearned, filteredNotLearned);
 
   const getPracticeCooldown = (technique) => {
     // Ưu tiên dùng cooldown của skill nếu có (đơn vị giây, rút gọn để luyện)
@@ -1622,6 +2077,62 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
     <div className="space-y-6 pb-2">
       <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">LUYỆN CÔNG PHÁP</h3>
 
+      {/* Search & Filter Bar */}
+      <div className="spirit-tablet rounded-xl p-4 space-y-3">
+        {/* Search */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Tìm kiếm công pháp..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2">
+          {/* Rarity Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 uppercase tracking-wider">Độ hiếm:</span>
+            <select
+              value={filterRarity}
+              onChange={(e) => setFilterRarity(e.target.value)}
+              className="px-3 py-1.5 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-amber-500/50"
+            >
+              <option value="all">Tất cả</option>
+              <option value="common">Thường</option>
+              <option value="uncommon">Tinh</option>
+              <option value="rare">Hiếm</option>
+              <option value="epic">Sử Thi</option>
+              <option value="legendary">Huyền Thoại</option>
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 uppercase tracking-wider">Trạng thái:</span>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-1.5 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-amber-500/50"
+            >
+              <option value="all">Tất cả</option>
+              <option value="learned">Đã học</option>
+              <option value="notLearned">Chưa học</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Kỹ Năng Đã Học */}
       {skills.length > 0 && (
         <div className="spirit-tablet rounded-xl p-5">
@@ -1643,10 +2154,13 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
       )}
 
       {/* Công Pháp Đã Học */}
-      {learned.length > 0 && (
+      {finalLearned.length > 0 && (
         <div className="space-y-3">
-          <h4 className="text-lg font-bold text-emerald-400 font-title">CÔNG PHÁP ĐÃ HỌC</h4>
-          {learned.map((learnedItem) => {
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-bold text-emerald-400 font-title">CÔNG PHÁP ĐÃ HỌC</h4>
+            <span className="text-xs text-slate-500">({finalLearned.length} / {learned.length})</span>
+          </div>
+          {finalLearned.map((learnedItem) => {
             const { technique, level, exp } = learnedItem;
             const expNeeded = getExpNeeded(level);
             const progress = level >= 10 ? 100 : (exp / expNeeded) * 100;
@@ -1673,7 +2187,7 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                       </span>
                     </div>
                     <p className="text-xs text-slate-400 mb-3">{technique.description}</p>
-                    
+
                     {/* Progress Bar */}
                     {level < 10 && (
                       <div className="mb-3">
@@ -1737,15 +2251,14 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                       onClick={(e) => handlePractice(learnedItem.techniqueId, technique, e)}
                       type="button"
                       disabled={practicing === learnedItem.techniqueId || level >= 10 || remainingCd > 0}
-                      className={`w-full py-2 px-4 rounded-lg text-sm font-bold uppercase transition-all ${
-                        level >= 10
-                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                          : remainingCd > 0
-                            ? 'bg-slate-800 text-slate-400 cursor-not-allowed'
-                            : practicing === learnedItem.techniqueId
-                              ? 'bg-purple-800 text-purple-300'
-                              : 'bg-gradient-to-r from-purple-700 to-purple-900 text-purple-100 hover:from-purple-600 hover:to-purple-800'
-                      }`}
+                      className={`w-full py-2 px-4 rounded-lg text-sm font-bold uppercase transition-all ${level >= 10
+                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                        : remainingCd > 0
+                          ? 'bg-slate-800 text-slate-400 cursor-not-allowed'
+                          : practicing === learnedItem.techniqueId
+                            ? 'bg-purple-800 text-purple-300'
+                            : 'bg-gradient-to-r from-purple-700 to-purple-900 text-purple-100 hover:from-purple-600 hover:to-purple-800'
+                        }`}
                       whileHover={level < 10 && practicing !== learnedItem.techniqueId && remainingCd <= 0 ? { scale: 1.02 } : {}}
                       whileTap={level < 10 && practicing !== learnedItem.techniqueId && remainingCd <= 0 ? { scale: 0.98 } : {}}
                     >
@@ -1766,12 +2279,15 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
       )}
 
       {/* Công Pháp Chưa Học */}
-      {notLearned.length > 0 && (
+      {finalNotLearned.length > 0 && (
         <div className="space-y-3">
-          <h4 className="text-lg font-bold text-slate-400 font-title">CÔNG PHÁP CHƯA HỌC</h4>
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-bold text-slate-400 font-title">CÔNG PHÁP CHƯA HỌC</h4>
+            <span className="text-xs text-slate-500">({finalNotLearned.length} / {notLearned.length})</span>
+          </div>
           <p className="text-xs text-slate-500 mb-3">Mua công pháp trong cửa hàng để bắt đầu luyện</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {notLearned.map((technique) => {
+            {finalNotLearned.map((technique) => {
               const rarity = RARITY_COLORS[technique.rarity] || RARITY_COLORS.common;
               const TechniqueIcon = getItemIcon(technique);
               return (
@@ -1801,9 +2317,25 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
         </div>
       )}
 
-      {learned.length === 0 && notLearned.length === 0 && (
+      {finalLearned.length === 0 && finalNotLearned.length === 0 && (
         <div className="text-center text-slate-500 py-10">
-          <p className="text-sm">Chưa có công pháp nào</p>
+          <p className="text-sm">
+            {searchQuery || filterRarity !== 'all' || filterStatus !== 'all'
+              ? 'Không tìm thấy công pháp phù hợp'
+              : 'Chưa có công pháp nào'}
+          </p>
+          {(searchQuery || filterRarity !== 'all' || filterStatus !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setFilterRarity('all');
+                setFilterStatus('all');
+              }}
+              className="mt-3 text-xs text-amber-400 hover:text-amber-300 underline"
+            >
+              Xóa bộ lọc
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -1826,6 +2358,7 @@ const PKTab = memo(function PKTab() {
   const [currentLogIndex, setCurrentLogIndex] = useState(0);
   const [isShaking, setIsShaking] = useState(false);
   const [showSlash, setShowSlash] = useState(null); // 'left' or 'right'
+  const [hitEffect, setHitEffect] = useState(null); // { side: 'left'|'right', type: 'normal'|'crit'|'skill' }
   const [particles, setParticles] = useState([]);
   // HP tracking states - updated per log
   const [challengerCurrentHp, setChallengerCurrentHp] = useState(0);
@@ -1893,14 +2426,14 @@ const PKTab = memo(function PKTab() {
   // Challenge opponent
   const handleChallenge = async (opponentId, opponentName) => {
     if (challenging) return;
-    
+
     setChallenging(opponentId);
     try {
       const response = await api('/api/battle/challenge', {
         method: 'POST',
         body: { opponentId }
       });
-      
+
       if (response.success) {
         setBattleResult(response.data);
         setBattleLogs(response.data.battleLogs || []);
@@ -1939,15 +2472,23 @@ const PKTab = memo(function PKTab() {
   // Auto-play battle logs with effects - NEW IMPROVED VERSION
   useEffect(() => {
     if (battlePhase !== 'fighting' || !showBattleAnimation || battleLogs.length === 0) return;
-    
+
     if (currentLogIndex < battleLogs.length) {
       const currentLog = battleLogs[currentLogIndex];
       const isAttackerChallenger = currentLog.attacker === 'challenger';
-      
+
       // Show slash effect
       if (!currentLog.isDodged && currentLog.damage > 0) {
         setShowSlash(isAttackerChallenger ? 'right' : 'left');
-        
+
+        // Trigger Hit Effect on target (opposite side of attacker)
+        setTimeout(() => {
+          setHitEffect({
+            side: isAttackerChallenger ? 'right' : 'left',
+            type: currentLog.isCritical ? 'crit' : currentLog.skillUsed ? 'skill' : 'normal'
+          });
+        }, 150); // Sync with slash impact
+
         // Show damage number on the target side
         setTimeout(() => {
           setShowDamageNumber({
@@ -1956,33 +2497,29 @@ const PKTab = memo(function PKTab() {
             isCritical: currentLog.isCritical,
             isSkill: currentLog.skillUsed
           });
-          
-          // Update HP based on who got hit
-          if (isAttackerChallenger) {
-            // Challenger attacks -> Opponent loses HP
-            setOpponentCurrentHp(prev => Math.max(0, prev - currentLog.damage));
-          } else {
-            // Opponent attacks -> Challenger loses HP
-            setChallengerCurrentHp(prev => Math.max(0, prev - currentLog.damage));
-          }
+
+          // Update HP dựa trên log từ server (chính xác hơn)
+          setChallengerCurrentHp(currentLog.challengerHp);
+          setOpponentCurrentHp(currentLog.opponentHp);
         }, 200);
-        
+
         // Shake on critical
         if (currentLog.isCritical) {
           setIsShaking(true);
           // Create particles on critical hit
-          const newParticles = Array.from({ length: 10 }, (_, i) => ({
+          const newParticles = Array.from({ length: 15 }, (_, i) => ({
             id: Date.now() + i,
-            x: isAttackerChallenger ? 70 : 30,
+            x: isAttackerChallenger ? 75 : 25,
             y: 40 + Math.random() * 20,
             color: currentLog.skillUsed ? '#f59e0b' : currentLog.isCritical ? '#fbbf24' : '#ef4444'
           }));
           setParticles(prev => [...prev, ...newParticles]);
-          setTimeout(() => setIsShaking(false), 300);
+          setTimeout(() => setIsShaking(false), 400); // Longer shake
         }
-        
+
         setTimeout(() => setShowSlash(null), 400);
         setTimeout(() => setShowDamageNumber(null), 800);
+        setTimeout(() => setHitEffect(null), 500);
       } else if (currentLog.isDodged) {
         // Show dodge effect
         setShowDamageNumber({
@@ -1990,12 +2527,26 @@ const PKTab = memo(function PKTab() {
           damage: 0,
           isDodged: true
         });
+
+        // Update HP ngay cả khi dodge (HP không đổi nhưng cần sync với server)
+        setChallengerCurrentHp(currentLog.challengerHp);
+        setOpponentCurrentHp(currentLog.opponentHp);
+
         setTimeout(() => setShowDamageNumber(null), 800);
       }
-      
+
+      // Kiểm tra xem có ai hết máu không - dừng animation ngay
+      const shouldStop = currentLog.challengerHp <= 0 || currentLog.opponentHp <= 0;
+
       const timer = setTimeout(() => {
-        setCurrentLogIndex(prev => prev + 1);
-      }, 1000); // Slower for better viewing
+        if (shouldStop) {
+          // Nếu có người hết máu, chuyển sang result ngay
+          setBattlePhase('result');
+        } else {
+          // Tiếp tục log tiếp theo
+          setCurrentLogIndex(prev => prev + 1);
+        }
+      }, shouldStop ? 1500 : 1000); // Dừng lâu hơn nếu kết thúc
       return () => clearTimeout(timer);
     } else {
       // All logs finished -> show result
@@ -2042,11 +2593,10 @@ const PKTab = memo(function PKTab() {
           <button
             key={id}
             onClick={() => setActiveView(id)}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-              activeView === id
-                ? 'bg-red-900/50 text-red-300 border border-red-500/50'
-                : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeView === id
+              ? 'bg-red-900/50 text-red-300 border border-red-500/50'
+              : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300'
+              }`}
           >
             {label}
           </button>
@@ -2055,26 +2605,26 @@ const PKTab = memo(function PKTab() {
 
       {/* User Combat Stats Preview */}
       <div className="spirit-tablet rounded-xl p-4 mb-4 border border-amber-500/30">
-        <h4 className="text-sm font-bold text-amber-400 mb-3">Thông Số Chiến Đấu Của Bạn</h4>
+        <h4 className="text-sm font-bold text-amber-400 mb-3">Thông Số</h4>
         <div className="grid grid-cols-4 gap-2 text-xs">
           <div className="text-center p-2 bg-slate-800/50 rounded">
             <Sword size={14} className="mx-auto text-red-400 mb-1" />
-            <p className="text-slate-400">Công</p>
+            <p className="text-slate-400">Tấn Công</p>
             <p className="text-amber-300 font-bold">{currentUserStats.attack}</p>
           </div>
           <div className="text-center p-2 bg-slate-800/50 rounded">
             <Shield size={14} className="mx-auto text-blue-400 mb-1" />
-            <p className="text-slate-400">Thủ</p>
+            <p className="text-slate-400">Phòng Thủ</p>
             <p className="text-amber-300 font-bold">{currentUserStats.defense}</p>
           </div>
           <div className="text-center p-2 bg-slate-800/50 rounded">
             <Droplet size={14} className="mx-auto text-pink-400 mb-1" />
-            <p className="text-slate-400">HP</p>
+            <p className="text-slate-400">Khí Huyết</p>
             <p className="text-amber-300 font-bold">{currentUserStats.qiBlood}</p>
           </div>
           <div className="text-center p-2 bg-slate-800/50 rounded">
             <Zap size={14} className="mx-auto text-yellow-400 mb-1" />
-            <p className="text-slate-400">Tốc</p>
+            <p className="text-slate-400">Tốc Độ</p>
             <p className="text-amber-300 font-bold">{currentUserStats.speed}</p>
           </div>
         </div>
@@ -2121,11 +2671,10 @@ const PKTab = memo(function PKTab() {
                 <motion.button
                   onClick={() => handleChallenge(opponent.userId, opponent.username)}
                   disabled={challenging === opponent.userId}
-                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                    challenging === opponent.userId
-                      ? 'bg-slate-700 text-slate-400'
-                      : 'bg-gradient-to-r from-red-700 to-red-900 text-red-100 hover:from-red-600 hover:to-red-800'
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${challenging === opponent.userId
+                    ? 'bg-slate-700 text-slate-400'
+                    : 'bg-gradient-to-r from-red-700 to-red-900 text-red-100 hover:from-red-600 hover:to-red-800'
+                    }`}
                   whileHover={{ scale: challenging ? 1 : 1.05 }}
                   whileTap={{ scale: challenging ? 1 : 0.95 }}
                 >
@@ -2175,19 +2724,17 @@ const PKTab = memo(function PKTab() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className={`spirit-tablet rounded-xl p-4 ${
-                  battle.isDraw
-                    ? 'border-l-4 border-slate-500'
-                    : battle.isUserWinner
-                      ? 'border-l-4 border-green-500'
-                      : 'border-l-4 border-red-500'
-                }`}
+                className={`spirit-tablet rounded-xl p-4 ${battle.isDraw
+                  ? 'border-l-4 border-slate-500'
+                  : battle.isUserWinner
+                    ? 'border-l-4 border-green-500'
+                    : 'border-l-4 border-red-500'
+                  }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className={`text-sm font-bold ${
-                      battle.isDraw ? 'text-slate-400' : battle.isUserWinner ? 'text-green-400' : 'text-red-400'
-                    }`}>
+                    <span className={`text-sm font-bold ${battle.isDraw ? 'text-slate-400' : battle.isUserWinner ? 'text-green-400' : 'text-red-400'
+                      }`}>
                       {battle.isDraw ? 'HÒA' : battle.isUserWinner ? 'THẮNG' : 'THUA'}
                     </span>
                     <span className="text-xs text-slate-500">
@@ -2196,7 +2743,7 @@ const PKTab = memo(function PKTab() {
                   </div>
                   <span className="text-xs text-slate-500">{battle.totalTurns} lượt</span>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                   <div className="flex-1 text-center">
                     <p className={`font-bold text-sm ${battle.isUserChallenger ? 'text-amber-300' : 'text-slate-300'}`}>
@@ -2216,7 +2763,7 @@ const PKTab = memo(function PKTab() {
                 {battle.rewards && (
                   <div className="mt-2 pt-2 border-t border-slate-700/50 flex items-center justify-between">
                     <span className="text-xs text-slate-500">
-                      Phần thưởng: +{battle.isUserWinner ? battle.rewards.winnerExp : battle.rewards.loserExp} exp, 
+                      Phần thưởng: +{battle.isUserWinner ? battle.rewards.winnerExp : battle.rewards.loserExp} exp,
                       +{battle.isUserWinner ? battle.rewards.winnerSpiritStones : battle.rewards.loserSpiritStones} linh thạch
                     </span>
                     {/* Revenge Button - Only show if user lost */}
@@ -2260,12 +2807,11 @@ const PKTab = memo(function PKTab() {
                 transition={{ delay: idx * 0.03 }}
                 className="spirit-tablet rounded-xl p-4 flex items-center gap-4"
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                  idx === 0 ? 'bg-amber-500 text-black' :
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-amber-500 text-black' :
                   idx === 1 ? 'bg-slate-400 text-black' :
-                  idx === 2 ? 'bg-amber-700 text-white' :
-                  'bg-slate-700 text-slate-300'
-                }`}>
+                    idx === 2 ? 'bg-amber-700 text-white' :
+                      'bg-slate-700 text-slate-300'
+                  }`}>
                   {user.rank}
                 </div>
                 <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-amber-500/40 overflow-hidden">
@@ -2316,30 +2862,64 @@ const PKTab = memo(function PKTab() {
               </div>
             </div>
 
-            {/* Battle Particles */}
+            {/* Battle Particles - Enhanced (Mystical Sparks) */}
             {particles.map(particle => (
               <motion.div
                 key={particle.id}
-                className="absolute w-3 h-3 rounded-full pointer-events-none"
-                style={{ backgroundColor: particle.color, left: `${particle.x}%`, top: `${particle.y}%` }}
-                initial={{ scale: 1, opacity: 1 }}
-                animate={{
-                  x: (Math.random() - 0.5) * 300,
-                  y: (Math.random() - 0.5) * 300,
-                  scale: 0,
-                  opacity: 0
+                className="absolute w-1.5 h-1.5 rounded-full pointer-events-none"
+                style={{
+                  backgroundColor: particle.color,
+                  left: `${particle.x}%`,
+                  top: `${particle.y}%`,
+                  boxShadow: `0 0 8px ${particle.color}, 0 0 15px ${particle.color}`
                 }}
-                transition={{ duration: 1, ease: 'easeOut' }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{
+                  x: (Math.random() - 0.5) * 200,
+                  y: (Math.random() - 0.5) * 200 - 100, // Float up slightly
+                  scale: [0, 1.5, 0],
+                  opacity: [0, 1, 0]
+                }}
+                transition={{ duration: 1.5, ease: 'easeOut' }}
               />
             ))}
+
+            {/* Hit Effects - Shockwaves/Bursts (Tu Tien Style) */}
+            <AnimatePresence>
+              {hitEffect && (
+                <motion.div
+                  className={`absolute pointer-events-none z-[60] ${hitEffect.side === 'right' ? 'right-[20%]' : 'left-[20%]'
+                    }`}
+                  style={{ top: '35%' }}
+                  initial={{ opacity: 1, scale: 0 }}
+                  animate={{ opacity: 0, scale: hitEffect.type === 'crit' ? 2.5 : 1.5 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                  onAnimationComplete={() => setHitEffect(null)}
+                >
+                  {/* Core Burst */}
+                  <div className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${hitEffect.type === 'crit' ? 'bg-yellow-400' : hitEffect.type === 'skill' ? 'bg-amber-400' : 'bg-cyan-100'
+                    } blur-md w-20 h-20 opacity-80`} />
+
+                  {/* Shockwave Ring */}
+                  <div className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border-4 ${hitEffect.type === 'crit' ? 'border-yellow-500' : hitEffect.type === 'skill' ? 'border-amber-500' : 'border-cyan-400'
+                    } w-32 h-32 opacity-60`} />
+
+                  {/* Energy Rays for Crit/Skill */}
+                  {(hitEffect.type === 'crit' || hitEffect.type === 'skill') && (
+                    <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-gradient-radial ${hitEffect.type === 'crit' ? 'from-yellow-500/50' : 'from-amber-500/50'
+                      } to-transparent blur-xl`} />
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Damage Number Floating */}
             <AnimatePresence>
               {showDamageNumber && (
                 <motion.div
-                  className={`absolute z-[200] pointer-events-none ${
-                    showDamageNumber.side === 'right' ? 'right-[20%]' : 'left-[20%]'
-                  }`}
+                  className={`absolute z-[200] pointer-events-none ${showDamageNumber.side === 'right' ? 'right-[20%]' : 'left-[20%]'
+                    }`}
                   style={{ top: '35%' }}
                   initial={{ opacity: 0, y: 0, scale: 0.5 }}
                   animate={{ opacity: 1, y: -30, scale: showDamageNumber.isCritical ? 1.5 : 1.2 }}
@@ -2347,98 +2927,112 @@ const PKTab = memo(function PKTab() {
                   transition={{ duration: 0.5 }}
                 >
                   {showDamageNumber.isDodged ? (
-                    <span className="text-2xl font-bold text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]">
-                      MISS!
-                    </span>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xl sm:text-2xl md:text-3xl font-bold text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.9)] font-title tracking-wider">
+                        NÉ TRÁNH!
+                      </span>
+                      <div className="h-0.5 w-12 sm:w-16 bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
+                    </div>
                   ) : (
-                    <span className={`text-3xl font-bold drop-shadow-lg ${
-                      showDamageNumber.isCritical 
-                        ? 'text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]' 
+                    <div className="flex flex-col items-center gap-1">
+                      <span className={`text-2xl sm:text-3xl md:text-4xl font-bold drop-shadow-lg font-mono ${showDamageNumber.isCritical
+                        ? 'text-yellow-300 drop-shadow-[0_0_20px_rgba(250,204,21,1)] animate-pulse'
                         : showDamageNumber.isSkill
-                          ? 'text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.8)]'
-                          : 'text-red-400 drop-shadow-[0_0_10px_rgba(248,113,113,0.8)]'
-                    }`}>
-                      {showDamageNumber.isCritical && '💥'}-{showDamageNumber.damage}
-                    </span>
+                          ? 'text-amber-300 drop-shadow-[0_0_15px_rgba(251,191,36,0.9)]'
+                          : 'text-red-300 drop-shadow-[0_0_12px_rgba(248,113,113,0.9)]'
+                        }`}>
+                        -{showDamageNumber.damage}
+                      </span>
+                      {showDamageNumber.isCritical && (
+                        <span className="text-xs font-bold text-yellow-400 bg-yellow-500/30 px-2 py-0.5 rounded-full border border-yellow-400/50 animate-pulse">
+                          CHÍ MẠNG!
+                        </span>
+                      )}
+                      {showDamageNumber.isSkill && !showDamageNumber.isCritical && (
+                        <span className="text-xs font-bold text-amber-400 bg-amber-500/30 px-2 py-0.5 rounded-full border border-amber-400/50">
+                          CÔNG PHÁP
+                        </span>
+                      )}
+                    </div>
                   )}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Slash Effects - Enhanced */}
+            {/* Slash Effects - Sword Qi (Kiem Khi) */}
             <AnimatePresence>
               {showSlash === 'right' && (
                 <motion.div
                   className="absolute right-[25%] top-1/2 -translate-y-1/2 pointer-events-none z-50"
-                  initial={{ opacity: 0, scale: 0.3, rotate: -60, x: -100 }}
-                  animate={{ opacity: 1, scale: 1.8, rotate: 30, x: 0 }}
-                  exit={{ opacity: 0, scale: 2.5, x: 100 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  initial={{ opacity: 0, scale: 0.5, rotate: -45, x: -50 }}
+                  animate={{ opacity: [0, 1, 0], scale: 2, x: 50 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
                 >
-                  <Sword size={100} className="text-blue-400 drop-shadow-[0_0_30px_rgba(96,165,250,0.9)]" />
+                  {/* Sword Beam */}
+                  <div className="relative w-64 h-3 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_rgba(34,211,238,0.8)] rounded-full blur-[1px]"></div>
+                  <div className="absolute top-0 left-0 w-64 h-3 bg-white/60 rounded-full blur-[0.5px] mix-blend-overlay"></div>
                 </motion.div>
               )}
               {showSlash === 'left' && (
                 <motion.div
                   className="absolute left-[25%] top-1/2 -translate-y-1/2 pointer-events-none z-50"
-                  initial={{ opacity: 0, scale: 0.3, rotate: 60, x: 100 }}
-                  animate={{ opacity: 1, scale: 1.8, rotate: -30, x: 0 }}
-                  exit={{ opacity: 0, scale: 2.5, x: -100 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  initial={{ opacity: 0, scale: 0.5, rotate: 45, x: 50 }}
+                  animate={{ opacity: [0, 1, 0], scale: 2, x: -50 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
                 >
-                  <Sword size={100} className="text-red-400 drop-shadow-[0_0_30px_rgba(248,113,113,0.9)]" />
+                  {/* Sword Beam */}
+                  <div className="relative w-64 h-3 bg-gradient-to-l from-transparent via-red-500 to-transparent shadow-[0_0_15px_rgba(239,68,68,0.8)] rounded-full blur-[1px]"></div>
+                  <div className="absolute top-0 left-0 w-64 h-3 bg-white/60 rounded-full blur-[0.5px] mix-blend-overlay"></div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Main Battle Card - Wider Layout */}
+            {/* Main Battle Card - Optimized for Mobile */}
             <motion.div
-              className="relative w-full max-w-5xl mx-4 bg-gradient-to-b from-[#0f172a] to-[#1e1b4b] border-2 border-red-600/50 rounded-2xl p-5 shadow-[0_0_100px_rgba(220,38,38,0.3)] max-h-[85vh] overflow-hidden"
+              className="relative w-full max-w-5xl mx-1 sm:mx-2 md:mx-4 bg-gradient-to-b from-[#0f172a] to-[#1e1b4b] border-2 border-red-600/50 rounded-lg sm:rounded-xl md:rounded-2xl p-2 sm:p-3 md:p-4 lg:p-5 shadow-[0_0_100px_rgba(220,38,38,0.3)] max-h-[95vh] sm:max-h-[90vh] md:max-h-[85vh] overflow-hidden"
               initial={{ scale: 0.8, opacity: 0, y: 50 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.8, opacity: 0, y: 50 }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Battle Header */}
-              <motion.div 
-                className="text-center mb-4"
+              <motion.div
+                className="text-center mb-2 sm:mb-3 md:mb-4"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-400 to-red-400 font-title tracking-wider">
-                  {battlePhase === 'intro' ? 'LUẬN KIẾM ĐÀI' : 
-                   battlePhase === 'fighting' ? `LƯỢT ${currentLogIndex + 1}/${battleLogs.length}` :
-                   'KẾT QUẢ'}
+                <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-400 to-red-400 font-title tracking-wide sm:tracking-wider">
+                  {battlePhase === 'intro' ? 'LUẬN KIẾM ĐÀI' :
+                    battlePhase === 'fighting' ? `LƯỢT ${currentLogIndex + 1}/${battleLogs.length}` :
+                      'KẾT QUẢ'}
                 </h3>
               </motion.div>
 
-              {/* Main Content - Horizontal Layout */}
-              <div className="flex gap-4">
+              {/* Main Content - Optimized Layout */}
+              <div className="flex flex-col md:flex-row gap-2 sm:gap-3 md:gap-4">
                 {/* Left Side - Combatants */}
-                <div className="flex-shrink-0 w-72">
-                  {/* Combatants Arena - Vertical Stack */}
-                  <div className="flex flex-col gap-2">
+                <div className="flex-shrink-0 w-full md:w-72 order-2 md:order-1">
+                  {/* Combatants Arena - Compact on Mobile */}
+                  <div className="flex flex-col gap-1.5 sm:gap-2">
                     {/* Challenger */}
-                    <motion.div 
-                      className={`p-3 rounded-xl bg-gradient-to-br from-blue-900/40 to-slate-900/40 border ${
-                        battlePhase === 'result' && battleResult.winner === 'challenger' 
-                          ? 'border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]' 
-                          : 'border-blue-500/30'
-                      }`}
+                    <motion.div
+                      className={`p-1.5 sm:p-2 md:p-3 rounded-md sm:rounded-lg md:rounded-xl bg-gradient-to-br from-blue-900/40 to-slate-900/40 border ${battlePhase === 'result' && battleResult.winner === 'challenger'
+                        ? 'border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]'
+                        : 'border-blue-500/30'
+                        }`}
                       animate={battlePhase === 'fighting' && battleLogs[currentLogIndex]?.attacker === 'challenger' ? {
                         scale: [1, 1.02, 1],
                         boxShadow: ['0 0 0px rgba(59,130,246,0)', '0 0 20px rgba(59,130,246,0.5)', '0 0 0px rgba(59,130,246,0)']
                       } : {}}
                       transition={{ duration: 0.3 }}
                     >
-                      <div className="flex items-center gap-3">
-                        <motion.div 
-                          className={`w-12 h-12 rounded-full border-2 overflow-hidden flex-shrink-0 ${
-                            battlePhase === 'result' && battleResult.winner === 'challenger' 
-                              ? 'border-green-400 ring-2 ring-green-400/30' 
-                              : 'border-blue-400'
-                          }`}
+                      <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
+                        <motion.div
+                          className={`w-9 h-9 sm:w-10 md:w-12 sm:h-10 md:h-12 rounded-full border-2 overflow-hidden flex-shrink-0 ${battlePhase === 'result' && battleResult.winner === 'challenger'
+                            ? 'border-green-400 ring-2 ring-green-400/30'
+                            : 'border-blue-400'
+                            }`}
                           animate={battlePhase === 'intro' ? { scale: [0.8, 1.1, 1] } : {}}
                           transition={{ duration: 0.5, delay: 0.5 }}
                         >
@@ -2451,38 +3045,38 @@ const PKTab = memo(function PKTab() {
                           )}
                         </motion.div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-blue-200 text-sm truncate">{battleResult.challenger.username}</p>
+                          <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 flex-wrap">
+                            <p className="font-bold text-blue-200 text-[10px] sm:text-xs md:text-sm truncate">{battleResult.challenger.username}</p>
                             {battlePhase === 'result' && battleResult.winner === 'challenger' && (
-                              <span className="text-green-400 text-[10px] font-bold bg-green-500/20 px-1.5 py-0.5 rounded">THẮNG</span>
+                              <span className="text-green-400 text-[8px] sm:text-[9px] md:text-[10px] font-bold bg-green-500/20 px-1 py-0.5 rounded">THẮNG</span>
                             )}
                           </div>
-                          <p className="text-[10px] text-slate-400">{battleResult.challenger.stats.realmName}</p>
-                          <div className="relative h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-600 mt-1">
+                          <p className="text-[8px] sm:text-[9px] md:text-[10px] text-slate-400 truncate">{battleResult.challenger.stats.realmName}</p>
+                          <div className="relative h-2 sm:h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-600 mt-0.5 sm:mt-1">
                             <motion.div
                               className="absolute inset-0 bg-gradient-to-r from-green-600 to-green-400"
                               initial={{ width: '100%' }}
-                              animate={{ 
+                              animate={{
                                 width: `${Math.max(0, (challengerCurrentHp / battleResult.challenger.stats.qiBlood) * 100)}%`,
-                                backgroundColor: challengerCurrentHp / battleResult.challenger.stats.qiBlood > 0.5 
-                                  ? ['#22c55e', '#22c55e'] 
-                                  : challengerCurrentHp / battleResult.challenger.stats.qiBlood > 0.25 
-                                    ? ['#eab308', '#eab308'] 
+                                backgroundColor: challengerCurrentHp / battleResult.challenger.stats.qiBlood > 0.5
+                                  ? ['#22c55e', '#22c55e']
+                                  : challengerCurrentHp / battleResult.challenger.stats.qiBlood > 0.25
+                                    ? ['#eab308', '#eab308']
                                     : ['#ef4444', '#ef4444']
                               }}
                               transition={{ duration: 0.3 }}
                             />
                           </div>
-                          <p className="text-[9px] text-slate-500 mt-0.5">{Math.round(challengerCurrentHp)} / {battleResult.challenger.stats.qiBlood}</p>
+                          <p className="text-[7px] sm:text-[8px] md:text-[9px] text-slate-500 mt-0.5 font-mono">{Math.round(challengerCurrentHp)} / {battleResult.challenger.stats.qiBlood}</p>
                         </div>
                       </div>
                     </motion.div>
 
                     {/* VS Divider */}
-                    <div className="flex items-center justify-center py-1">
+                    <div className="flex items-center justify-center py-0.5 sm:py-1">
                       <motion.div
-                        className="text-xl font-bold text-red-500"
-                        animate={battlePhase === 'fighting' ? { 
+                        className="text-base sm:text-lg md:text-xl font-bold text-red-500"
+                        animate={battlePhase === 'fighting' ? {
                           scale: [1, 1.2, 1],
                           textShadow: ['0 0 0px #ef4444', '0 0 20px #ef4444', '0 0 0px #ef4444']
                         } : {}}
@@ -2493,12 +3087,11 @@ const PKTab = memo(function PKTab() {
                     </div>
 
                     {/* Opponent */}
-                    <motion.div 
-                      className={`p-3 rounded-xl bg-gradient-to-br from-red-900/40 to-slate-900/40 border ${
-                        battlePhase === 'result' && battleResult.winner === 'opponent' 
-                          ? 'border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]' 
-                          : 'border-red-500/30'
-                      }`}
+                    <motion.div
+                      className={`p-3 rounded-xl bg-gradient-to-br from-red-900/40 to-slate-900/40 border ${battlePhase === 'result' && battleResult.winner === 'opponent'
+                        ? 'border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]'
+                        : 'border-red-500/30'
+                        }`}
                       animate={battlePhase === 'fighting' && battleLogs[currentLogIndex]?.attacker === 'opponent' ? {
                         scale: [1, 1.02, 1],
                         boxShadow: ['0 0 0px rgba(239,68,68,0)', '0 0 20px rgba(239,68,68,0.5)', '0 0 0px rgba(239,68,68,0)']
@@ -2506,12 +3099,11 @@ const PKTab = memo(function PKTab() {
                       transition={{ duration: 0.3 }}
                     >
                       <div className="flex items-center gap-3">
-                        <motion.div 
-                          className={`w-12 h-12 rounded-full border-2 overflow-hidden flex-shrink-0 ${
-                            battlePhase === 'result' && battleResult.winner === 'opponent' 
-                              ? 'border-green-400 ring-2 ring-green-400/30' 
-                              : 'border-red-400'
-                          }`}
+                        <motion.div
+                          className={`w-12 h-12 rounded-full border-2 overflow-hidden flex-shrink-0 ${battlePhase === 'result' && battleResult.winner === 'opponent'
+                            ? 'border-green-400 ring-2 ring-green-400/30'
+                            : 'border-red-400'
+                            }`}
                           animate={battlePhase === 'intro' ? { scale: [0.8, 1.1, 1] } : {}}
                           transition={{ duration: 0.5, delay: 0.7 }}
                         >
@@ -2535,12 +3127,12 @@ const PKTab = memo(function PKTab() {
                             <motion.div
                               className="absolute inset-0 bg-gradient-to-r from-green-600 to-green-400"
                               initial={{ width: '100%' }}
-                              animate={{ 
+                              animate={{
                                 width: `${Math.max(0, (opponentCurrentHp / battleResult.opponent.stats.qiBlood) * 100)}%`,
-                                backgroundColor: opponentCurrentHp / battleResult.opponent.stats.qiBlood > 0.5 
-                                  ? ['#22c55e', '#22c55e'] 
-                                  : opponentCurrentHp / battleResult.opponent.stats.qiBlood > 0.25 
-                                    ? ['#eab308', '#eab308'] 
+                                backgroundColor: opponentCurrentHp / battleResult.opponent.stats.qiBlood > 0.5
+                                  ? ['#22c55e', '#22c55e']
+                                  : opponentCurrentHp / battleResult.opponent.stats.qiBlood > 0.25
+                                    ? ['#eab308', '#eab308']
                                     : ['#ef4444', '#ef4444']
                               }}
                               transition={{ duration: 0.3 }}
@@ -2552,25 +3144,23 @@ const PKTab = memo(function PKTab() {
                     </motion.div>
                   </div>
 
-                  {/* Result Banner */}
+                  {/* Result Banner - Mobile Optimized */}
                   <AnimatePresence>
                     {battlePhase === 'result' && (
                       <motion.div
-                        className={`text-center py-2 rounded-xl mt-3 ${
-                          battleResult.isDraw 
-                            ? 'bg-gradient-to-r from-slate-700/50 to-slate-700/50 border border-slate-500/50' 
-                            : battleResult.winner === 'challenger'
-                              ? 'bg-gradient-to-r from-green-900/50 to-green-900/50 border border-green-500/50'
-                              : 'bg-gradient-to-r from-red-900/50 to-red-900/50 border border-red-500/50'
-                        }`}
+                        className={`text-center py-1.5 sm:py-2 rounded-lg sm:rounded-xl mt-2 sm:mt-3 ${battleResult.isDraw
+                          ? 'bg-gradient-to-r from-slate-700/50 to-slate-700/50 border border-slate-500/50'
+                          : battleResult.winner === 'challenger'
+                            ? 'bg-gradient-to-r from-green-900/50 to-green-900/50 border border-green-500/50'
+                            : 'bg-gradient-to-r from-red-900/50 to-red-900/50 border border-red-500/50'
+                          }`}
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ type: 'spring', duration: 0.5 }}
                       >
-                        <motion.p 
-                          className={`text-lg font-bold font-title ${
-                            battleResult.isDraw ? 'text-slate-300' : battleResult.winner === 'challenger' ? 'text-green-400' : 'text-red-400'
-                          }`}
+                        <motion.p
+                          className={`text-sm sm:text-base md:text-lg font-bold font-title ${battleResult.isDraw ? 'text-slate-300' : battleResult.winner === 'challenger' ? 'text-green-400' : 'text-red-400'
+                            }`}
                           animate={{ scale: [1, 1.05, 1] }}
                           transition={{ duration: 0.5, repeat: 2 }}
                         >
@@ -2580,20 +3170,20 @@ const PKTab = memo(function PKTab() {
                     )}
                   </AnimatePresence>
 
-                  {/* Rewards */}
+                  {/* Rewards - Mobile Optimized */}
                   <AnimatePresence>
                     {battlePhase === 'result' && (
                       <motion.div
-                        className="text-center py-2 bg-slate-800/50 rounded-xl border border-amber-500/30 mt-2"
+                        className="text-center py-1.5 sm:py-2 bg-slate-800/50 rounded-lg sm:rounded-xl border border-amber-500/30 mt-1.5 sm:mt-2"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
                       >
-                        <p className="text-[10px] text-slate-400 mb-1">Phần thưởng:</p>
-                        <div className="flex items-center justify-center gap-2 text-xs">
+                        <p className="text-[9px] sm:text-[10px] text-slate-400 mb-0.5 sm:mb-1">Phần thưởng:</p>
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-[10px] sm:text-xs">
                           <span className="text-amber-400 font-bold">
-                            +{battleResult.winner === 'challenger' || battleResult.isDraw 
-                              ? battleResult.rewards.winnerExp 
+                            +{battleResult.winner === 'challenger' || battleResult.isDraw
+                              ? battleResult.rewards.winnerExp
                               : battleResult.rewards.loserExp} EXP
                           </span>
                           {(battleResult.winner === 'challenger' || battleResult.isDraw) && battleResult.rewards.winnerSpiritStones > 0 && (
@@ -2607,54 +3197,56 @@ const PKTab = memo(function PKTab() {
                   </AnimatePresence>
                 </div>
 
-                {/* Right Side - Battle Log */}
-                <div className="flex-1 flex flex-col min-w-0">
-                  <div className="bg-slate-900/70 rounded-xl p-3 flex-1 overflow-hidden border border-slate-700/50 flex flex-col">
-                    <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Diễn Biến Trận Đấu</p>
-                      <p className="text-xs text-amber-400">{currentLogIndex}/{battleLogs.length} lượt</p>
+                {/* Right Side - Battle Log - Optimized */}
+                <div className="flex-1 flex flex-col min-w-0 order-1 md:order-2">
+                  <div className="bg-slate-900/70 rounded-md sm:rounded-lg md:rounded-xl p-1.5 sm:p-2 md:p-3 flex-1 overflow-hidden border border-slate-700/50 flex flex-col">
+                    <div className="flex items-center justify-between mb-1.5 sm:mb-2 flex-shrink-0">
+                      <p className="text-[9px] sm:text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-tight sm:tracking-wider">Diễn Biến</p>
+                      <p className="text-[9px] sm:text-[10px] md:text-xs text-amber-400 font-mono">{currentLogIndex}/{battleLogs.length}</p>
                     </div>
-                    <div className="space-y-1.5 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-600 pr-1" style={{ maxHeight: '260px' }}>
+                    <div className="space-y-1 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-600 pr-0.5 sm:pr-1" style={{ maxHeight: '180px' }}>
                       {battleLogs.slice(0, currentLogIndex).map((log, idx) => (
                         <motion.div
                           key={idx}
                           initial={{ opacity: 0, x: log.attacker === 'challenger' ? -15 : 15, scale: 0.95 }}
                           animate={{ opacity: 1, x: 0, scale: 1 }}
-                          className={`text-[11px] p-2 rounded-lg flex items-center gap-1.5 ${
-                            log.isDodged 
-                              ? 'bg-cyan-900/30 text-cyan-300 border border-cyan-500/30'
-                              : log.skillUsed 
-                                ? 'bg-amber-900/40 text-amber-200 border border-amber-500/40'
-                                : log.isCritical 
-                                  ? 'bg-yellow-900/40 text-yellow-200 border border-yellow-500/40'
-                                  : log.attacker === 'challenger' 
-                                    ? 'bg-blue-900/30 text-blue-200 border border-blue-500/20' 
-                                    : 'bg-red-900/30 text-red-200 border border-red-500/20'
-                          }`}
+                          className={`text-[10px] sm:text-[11px] p-1.5 sm:p-2 rounded-md sm:rounded-lg flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 ${log.isDodged
+                            ? 'bg-cyan-900/30 text-cyan-300 border border-cyan-500/30'
+                            : log.skillUsed
+                              ? 'bg-amber-900/40 text-amber-200 border border-amber-500/40'
+                              : log.isCritical
+                                ? 'bg-yellow-900/40 text-yellow-200 border border-yellow-500/40'
+                                : log.attacker === 'challenger'
+                                  ? 'bg-blue-900/30 text-blue-200 border border-blue-500/20'
+                                  : 'bg-red-900/30 text-red-200 border border-red-500/20'
+                            }`}
                         >
-                          <span className="text-slate-500 font-mono w-5 flex-shrink-0 text-[10px]">#{idx + 1}</span>
-                          <span className={`font-bold flex-shrink-0 ${log.attacker === 'challenger' ? 'text-blue-300' : 'text-red-300'}`}>
-                            {log.attacker === 'challenger' ? battleResult.challenger.username : battleResult.opponent.username}:
-                          </span>
-                          <span className="flex-1 truncate">{log.description}</span>
-                          {log.isCritical && !log.isDodged && (
-                            <span className="text-yellow-400 text-[9px] font-bold flex-shrink-0 bg-yellow-500/20 px-1 rounded">CRT</span>
-                          )}
-                          {log.skillUsed && (
-                            <span className="text-amber-400 text-[9px] font-bold flex-shrink-0 bg-amber-500/20 px-1 rounded">SKILL</span>
-                          )}
-                          {!log.isDodged ? (
-                            <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${
-                              log.isCritical ? 'bg-yellow-500/40 text-yellow-200' : 'bg-slate-700/70 text-slate-300'
-                            }`}>
-                              -{log.damage}
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            <span className="text-slate-500 font-mono w-4 sm:w-5 flex-shrink-0 text-[9px] sm:text-[10px]">#{idx + 1}</span>
+                            <span className={`font-bold flex-shrink-0 text-[10px] sm:text-xs ${log.attacker === 'challenger' ? 'text-blue-300' : 'text-red-300'}`}>
+                              {log.attacker === 'challenger' ? battleResult.challenger.username : battleResult.opponent.username}:
                             </span>
-                          ) : (
-                            <span className="text-cyan-400 text-[10px] font-bold flex-shrink-0 bg-cyan-500/20 px-1 rounded">MISS</span>
-                          )}
+                            <span className="flex-1 truncate text-[10px] sm:text-[11px]">{log.description}</span>
+                          </div>
+                          <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                            {log.isCritical && !log.isDodged && (
+                              <span className="text-yellow-400 text-[8px] sm:text-[9px] font-bold flex-shrink-0 bg-yellow-500/20 px-1 rounded">CRT</span>
+                            )}
+                            {log.skillUsed && (
+                              <span className="text-amber-400 text-[8px] sm:text-[9px] font-bold flex-shrink-0 bg-amber-500/20 px-1 rounded">SKILL</span>
+                            )}
+                            {!log.isDodged ? (
+                              <span className={`font-mono text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded flex-shrink-0 ${log.isCritical ? 'bg-yellow-500/40 text-yellow-200' : 'bg-slate-700/70 text-slate-300'
+                                }`}>
+                                -{log.damage}
+                              </span>
+                            ) : (
+                              <span className="text-cyan-400 text-[9px] sm:text-[10px] font-bold flex-shrink-0 bg-cyan-500/20 px-1 rounded">MISS</span>
+                            )}
+                          </div>
                         </motion.div>
                       ))}
-                      
+
                       {battlePhase === 'fighting' && currentLogIndex < battleLogs.length && (
                         <div className="flex items-center justify-center gap-2 py-2 text-slate-400">
                           <motion.div
@@ -2668,10 +3260,10 @@ const PKTab = memo(function PKTab() {
                     </div>
                   </div>
 
-                  {/* Close Button */}
+                  {/* Close Button - Mobile Optimized */}
                   <motion.button
                     onClick={closeBattleResult}
-                    className="w-full py-2 mt-3 bg-gradient-to-r from-red-700 via-red-600 to-red-700 text-white rounded-xl font-bold text-sm hover:from-red-600 hover:via-red-500 hover:to-red-600 transition-all shadow-lg"
+                    className="w-full py-2 sm:py-2.5 md:py-3 mt-2 sm:mt-3 bg-gradient-to-r from-red-700 via-red-600 to-red-700 text-white rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:from-red-600 hover:via-red-500 hover:to-red-600 transition-all shadow-lg active:scale-95"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: battlePhase === 'result' ? 0.8 : 0 }}
@@ -2718,10 +3310,10 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
 
   const handleCompare = async (userId, userName) => {
     if (!cultivation) return;
-    
+
     setComparingUserId(userId);
     setLoadingCompare(true);
-    
+
     try {
       const response = await api(`/api/cultivation/combat-stats/${userId}`);
       if (response.success && response.data) {
@@ -2763,7 +3355,7 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
       {leaderboard.leaderboard?.map((entry, idx) => {
         const userId = entry.user?._id || entry.user?.id;
         const isComparing = comparingUserId === userId;
-        
+
         return (
           <motion.div
             key={userId || idx}
@@ -2774,9 +3366,9 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
               }`}
           >
             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-amber-500 text-black' :
-                idx === 1 ? 'bg-slate-400 text-black' :
-                  idx === 2 ? 'bg-amber-700 text-white' :
-                    'bg-slate-700 text-slate-300'
+              idx === 1 ? 'bg-slate-400 text-black' :
+                idx === 2 ? 'bg-amber-700 text-white' :
+                  'bg-slate-700 text-slate-300'
               }`}>
               {idx + 1}
             </div>
@@ -2827,8 +3419,8 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
 
 // ==================== MAIN CULTIVATION CONTENT ====================
 const CultivationContent = memo(function CultivationContent() {
-  const { cultivation, checkIn, loading, addExp, collectPassiveExp, loadPassiveExpStatus, notification, clearNotification, practiceTechnique } = useCultivation();
-  
+  const { cultivation, checkIn, loading, addExp, collectPassiveExp, loadPassiveExpStatus, notification, clearNotification, practiceTechnique, attemptBreakthrough } = useCultivation();
+
   // Get user from API to check admin
   const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => {
@@ -2844,18 +3436,18 @@ const CultivationContent = memo(function CultivationContent() {
     };
     checkAdmin();
   }, []);
-  
+
   // States
   const [activeTab, setActiveTab] = useState('dashboard');
   const [logs, setLogs] = useState([{ id: 0, text: "-- Bắt đầu bước vào con đường tu tiên --", type: 'normal' }]);
   const [particles, setParticles] = useState([]);
   const [clickCooldown, setClickCooldown] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
-  
+
   // Passive Exp States
   const [passiveExpStatus, setPassiveExpStatus] = useState({ pendingExp: 0, multiplier: 1, minutesElapsed: 0 });
   const [collectingPassiveExp, setCollectingPassiveExp] = useState(false);
-  
+
   // Breakthrough States
   const [isShaking, setIsShaking] = useState(false);
   const [flashOpacity, setFlashOpacity] = useState(0);
@@ -2863,7 +3455,7 @@ const CultivationContent = memo(function CultivationContent() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMsg, setModalMsg] = useState("");
   const [logExpanded, setLogExpanded] = useState(false);
-  
+
   // Refs
   const logEndRef = useRef(null);
 
@@ -2881,7 +3473,7 @@ const CultivationContent = memo(function CultivationContent() {
     };
 
     fetchPassiveStatus();
-    
+
     // Refresh every 30 seconds
     const interval = setInterval(fetchPassiveStatus, 30000);
     return () => clearInterval(interval);
@@ -2897,10 +3489,25 @@ const CultivationContent = memo(function CultivationContent() {
   // Show notification from context
   useEffect(() => {
     if (notification) {
-      if (notification.levelUp) {
+      if (notification.breakthroughSuccess) {
+        // Thành công: hiển thị animation
+        triggerBreakthroughEffect(notification.newRealm?.name || "Cảnh giới mới");
+      } else if (notification.breakthroughSuccess === false) {
+        // Thất bại: hiển thị thông báo thất bại
+        addLog(notification.message, 'danger');
+        if (notification.cooldownUntil) {
+          const cooldownDate = new Date(notification.cooldownUntil);
+          const now = new Date();
+          const remainingMs = cooldownDate - now;
+          const remainingMinutes = Math.ceil(remainingMs / (1000 * 60));
+          addLog(`Cần chờ ${remainingMinutes} phút nữa mới có thể độ kiếp lại`, 'danger');
+        }
+      } else if (notification.levelUp) {
         triggerBreakthroughEffect(notification.newRealm?.name || "Cảnh giới mới");
       }
-      addLog(notification.message, notification.type === 'success' ? 'success' : notification.type === 'error' ? 'danger' : 'normal');
+      if (notification.breakthroughSuccess === undefined || notification.breakthroughSuccess === null) {
+        addLog(notification.message, notification.type === 'success' ? 'success' : notification.type === 'error' ? 'danger' : 'normal');
+      }
       clearNotification();
     }
   }, [notification, clearNotification]);
@@ -2934,7 +3541,7 @@ const CultivationContent = memo(function CultivationContent() {
         setFlashOpacity(0);
         setIsShaking(false);
         setIsBreakingThrough(false);
-        
+
         setModalMsg(`Thiên địa chúc phúc! Đạo hữu đã bước chân vào cảnh giới ${realmName}!`);
         setModalOpen(true);
         addLog(`ĐỘT PHÁ THÀNH CÔNG! Đạt ${realmName}!`, 'success');
@@ -2946,15 +3553,15 @@ const CultivationContent = memo(function CultivationContent() {
   const handleYinYangClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (clickCooldown || checkingIn || isBreakingThrough) return;
-    
+
     setClickCooldown(true);
     const expGain = Math.floor(Math.random() * 5) + 1;
-    
+
     const rect = e.currentTarget.getBoundingClientRect();
     spawnParticle(rect.left + rect.width / 2, rect.top, `+${expGain} Tu Vi`, 'cyan');
-    
+
     if (Math.random() < 0.1) {
       const stoneDrop = Math.floor(Math.random() * 3) + 1;
       setTimeout(() => {
@@ -2962,10 +3569,10 @@ const CultivationContent = memo(function CultivationContent() {
       }, 200);
       addLog(`Nhặt được ${stoneDrop} Linh Thạch!`, 'gain');
     }
-    
+
     try {
       await addExp(expGain, 'yinyang_click');
-      
+
       if (Math.random() < 0.2) {
         addLog(LOG_MESSAGES[Math.floor(Math.random() * LOG_MESSAGES.length)]);
       }
@@ -2976,16 +3583,16 @@ const CultivationContent = memo(function CultivationContent() {
         addLog(` ${err.message}`, 'danger');
       }
     }
-    
+
     setTimeout(() => setClickCooldown(false), 500);
   };
 
   const handleCheckIn = async () => {
     if (checkingIn || isBreakingThrough) return;
-    
+
     setCheckingIn(true);
     addLog('Đang điểm danh tu luyện...');
-    
+
     try {
       await checkIn();
     } catch (err) {
@@ -2998,22 +3605,22 @@ const CultivationContent = memo(function CultivationContent() {
   // Handle collect passive exp
   const handleCollectPassiveExp = async () => {
     if (collectingPassiveExp || isBreakingThrough) return;
-    
+
     setCollectingPassiveExp(true);
     addLog('Đang thu thập tu vi tích lũy...');
-    
+
     try {
       const result = await collectPassiveExp();
-      
+
       if (result?.collected) {
         const { expEarned, multiplier, minutesElapsed } = result;
         addLog(
-          multiplier > 1 
+          multiplier > 1
             ? `Thu thập ${expEarned} Tu Vi (x${multiplier} đan dược, ${minutesElapsed} phút)`
             : `Thu thập ${expEarned} Tu Vi (${minutesElapsed} phút tu luyện)`,
           'gain'
         );
-        
+
         // Reset passive exp status
         setPassiveExpStatus({ pendingExp: 0, multiplier: 1, minutesElapsed: 0, baseExp: 0 });
       } else if (result?.nextCollectIn) {
@@ -3023,6 +3630,46 @@ const CultivationContent = memo(function CultivationContent() {
       addLog(`Thu thập thất bại: ${err.message}`, 'danger');
     } finally {
       setCollectingPassiveExp(false);
+    }
+  };
+
+  // Handle breakthrough attempt
+  const handleBreakthrough = async () => {
+    if (isBreakingThrough || checkingIn) return;
+
+    setIsBreakingThrough(true);
+    addLog('⚡ BẮT ĐẦU ĐỘ KIẾP!', 'danger');
+    addLog('Thiên lôi đang tụ lại...', 'danger');
+    setIsShaking(true);
+
+    // Start animation
+    let count = 0;
+    const flashInterval = setInterval(() => {
+      setFlashOpacity(Math.random() > 0.5 ? 0.8 : 0);
+      count++;
+      if (count > 10) {
+        clearInterval(flashInterval);
+        setFlashOpacity(0);
+        setIsShaking(false);
+      }
+    }, 100);
+
+    try {
+      const result = await attemptBreakthrough();
+
+      // Animation sẽ được xử lý trong notification effect
+      if (result?.breakthroughSuccess) {
+        // Thành công - animation đã chạy
+        setTimeout(() => {
+          setIsBreakingThrough(false);
+        }, 1500);
+      } else {
+        // Thất bại
+        setIsBreakingThrough(false);
+      }
+    } catch (err) {
+      setIsBreakingThrough(false);
+      addLog(`Độ kiếp thất bại: ${err.message}`, 'danger');
     }
   };
 
@@ -3037,25 +3684,26 @@ const CultivationContent = memo(function CultivationContent() {
 
   const currentRealm = CULTIVATION_REALMS.find(r => r.level === cultivation.realm?.level) || CULTIVATION_REALMS[0];
   const nextRealm = CULTIVATION_REALMS.find(r => r.level === (cultivation.realm?.level || 0) + 1);
-  const progressPercent = nextRealm 
+  const progressPercent = nextRealm
     ? Math.min(((cultivation.exp - currentRealm.minExp) / (nextRealm.minExp - currentRealm.minExp)) * 100, 100)
     : 100;
   const isBreakthroughReady = progressPercent >= 100 && nextRealm;
 
   const tabs = [
     { id: 'dashboard', label: 'Tổng Quan' },
+    { id: 'stats', label: 'Thông Số' },
     { id: 'quests', label: 'Nhiệm Vụ' },
     { id: 'shop', label: 'Cửa Hàng' },
     { id: 'inventory', label: 'Túi Đồ' },
     { id: 'techniques', label: 'Công Pháp' },
-    { id: 'pk', label: 'PK' },
+    { id: 'pk', label: 'Luận Võ' },
     { id: 'leaderboard', label: 'Xếp Hạng' }
   ];
 
   return (
     <div className={`min-h-screen bg-[#050511] font-cultivation text-slate-200 overflow-x-hidden relative select-none ${isShaking ? 'shake' : ''}`}>
       <CustomStyles />
-      
+
       {/* Background */}
       <div className="fixed inset-0 -z-30 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#2e1065] via-[#0b051d] to-[#000000]"></div>
       <div className="fixed inset-0 -z-20 stars opacity-40"></div>
@@ -3064,64 +3712,80 @@ const CultivationContent = memo(function CultivationContent() {
         <div className="mist mist-2 w-[500px] h-[500px] bottom-[-50px] right-[-100px]"></div>
         <div className="mist mist-3 w-[400px] h-[400px] top-[30%] right-[10%]"></div>
       </div>
-      
+
       {/* Lightning Flash Overlay */}
-      <div 
-        className="fixed inset-0 bg-white pointer-events-none z-50 transition-opacity duration-100 mix-blend-overlay" 
+      <div
+        className="fixed inset-0 bg-white pointer-events-none z-50 transition-opacity duration-100 mix-blend-overlay"
         style={{ opacity: flashOpacity }}
       ></div>
 
       {/* Main Content */}
-      <div className="relative z-10 w-full px-4 md:px-8 lg:px-12 py-6">
-        {/* Back Button & Header */}
-        <div className="flex items-center justify-between mb-6">
-          <Link 
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6">
+        {/* Back Button & Header - Responsive */}
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <Link
             to="/"
-            className="inline-flex items-center gap-2 text-slate-400 hover:text-amber-400 transition-colors text-sm"
+            className="inline-flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-amber-400 transition-colors text-xs sm:text-sm"
           >
             <span>←</span>
-            <span>Trở về</span>
+            <span className="hidden sm:inline">Trở về</span>
           </Link>
-          
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-title text-transparent bg-clip-text bg-gradient-to-b from-amber-200 to-amber-600 tracking-[0.15em] drop-shadow-sm">
+
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-title text-transparent bg-clip-text bg-gradient-to-b from-amber-200 to-amber-600 tracking-[0.1em] sm:tracking-[0.15em] drop-shadow-sm text-center">
             THIÊN ĐẠO CÁC
           </h1>
-          
-          <div className="w-16"></div>
+
+          <div className="w-8 sm:w-16"></div>
         </div>
 
-        {/* Tabs Navigation */}
-        <div className="flex justify-center gap-3 mb-8 flex-wrap">
-          {tabs.map((tab) => (
-            <button 
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-5 py-3 rounded-xl text-sm font-bold uppercase tracking-wide transition-all ${activeTab === tab.id
-                  ? 'bg-purple-900/50 text-purple-300 border border-purple-500/50' 
+        {/* Tabs Navigation - Optimized for Mobile */}
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          {/* Mobile: Grid 2 rows */}
+          <div className="grid grid-cols-4 gap-2 sm:hidden">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-tight transition-all ${activeTab === tab.id
+                  ? 'bg-purple-900/50 text-purple-300 border border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.3)]'
+                  : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 active:bg-slate-800/50'
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          {/* Desktop: Horizontal scroll */}
+          <div className="hidden sm:flex justify-center gap-2 md:gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2.5 md:px-5 md:py-3 rounded-xl text-xs md:text-sm font-bold uppercase tracking-wide transition-all whitespace-nowrap flex-shrink-0 snap-start ${activeTab === tab.id
+                  ? 'bg-purple-900/50 text-purple-300 border border-purple-500/50'
                   : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300 hover:bg-slate-800/50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Tab Content */}
         <div className="min-h-[60vh]">
           {activeTab === 'dashboard' && (
-            <DashboardTab 
+            <DashboardTab
               cultivation={cultivation}
               currentRealm={currentRealm}
               nextRealm={nextRealm}
               progressPercent={progressPercent}
               isBreakthroughReady={isBreakthroughReady}
               onYinYangClick={handleYinYangClick}
-              onCheckIn={handleCheckIn}
-              onBreakthrough={() => triggerBreakthroughEffect(nextRealm?.name || "Cảnh giới mới")}
+              onBreakthrough={handleBreakthrough}
               onCollectPassiveExp={handleCollectPassiveExp}
               passiveExpStatus={passiveExpStatus}
               collectingPassiveExp={collectingPassiveExp}
-              checkingIn={checkingIn}
               clickCooldown={clickCooldown}
               isBreakingThrough={isBreakingThrough}
               particles={particles}
@@ -3131,7 +3795,8 @@ const CultivationContent = memo(function CultivationContent() {
               logEndRef={logEndRef}
             />
           )}
-          {activeTab === 'quests' && <QuestsTab />}
+          {activeTab === 'stats' && <StatsTab />}
+          {activeTab === 'quests' && <QuestsTab onCheckIn={handleCheckIn} checkingIn={checkingIn} />}
           {activeTab === 'shop' && <ShopTab />}
           {activeTab === 'inventory' && <InventoryTab />}
           {activeTab === 'techniques' && <TechniquesTab practiceTechnique={practiceTechnique} />}
@@ -3143,13 +3808,13 @@ const CultivationContent = memo(function CultivationContent() {
       {/* Breakthrough Success Modal */}
       <AnimatePresence>
         {modalOpen && (
-          <motion.div 
+          <motion.div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <motion.div 
+            <motion.div
               className="relative bg-[#0f172a] border-y-2 border-amber-600 p-8 max-w-sm text-center shadow-[0_0_100px_rgba(217,119,6,0.3)]"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -3160,8 +3825,8 @@ const CultivationContent = memo(function CultivationContent() {
               </div>
               <h3 className="text-2xl font-bold text-amber-500 mb-4 font-title mt-4 tracking-wider">ĐỘ KIẾP THÀNH CÔNG</h3>
               <p className="text-slate-300 mb-8 font-serif text-sm leading-relaxed">{modalMsg}</p>
-              <motion.button 
-                onClick={() => setModalOpen(false)} 
+              <motion.button
+                onClick={() => setModalOpen(false)}
                 className="px-8 py-3 bg-gradient-to-r from-amber-800 to-amber-700 hover:from-amber-700 hover:to-amber-600 text-amber-100 rounded-lg border border-amber-600 font-bold uppercase text-xs tracking-wider shadow-lg"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

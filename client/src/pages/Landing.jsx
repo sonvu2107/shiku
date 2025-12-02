@@ -143,7 +143,7 @@ const LampContainer = ({ children, className }) => {
           <div className="absolute w-[100%] left-0 bg-white dark:bg-black h-32 md:h-40 bottom-0 z-20 [mask-image:linear-gradient(to_top,white,transparent)]" />
           <div className="absolute w-24 md:w-40 h-[100%] left-0 bg-white dark:bg-black bottom-0 z-20 [mask-image:linear-gradient(to_right,white,transparent)]" />
         </motion.div>
-        
+
         {/* Luồng sáng phải */}
         <motion.div
           initial={{ opacity: 0.5, width: "15rem" }}
@@ -160,7 +160,7 @@ const LampContainer = ({ children, className }) => {
         <div className="absolute top-1/2 h-32 md:h-48 w-full translate-y-12 scale-x-100 md:scale-x-150 bg-neutral-200 dark:bg-neutral-950 blur-xl md:blur-2xl"></div>
         <div className="absolute top-1/2 z-50 h-32 md:h-48 w-full bg-transparent opacity-5 md:opacity-10 backdrop-blur-sm md:backdrop-blur-md"></div>
         <div className="absolute inset-auto z-50 h-24 md:h-36 w-[20rem] md:w-[28rem] -translate-y-1/2 rounded-full bg-neutral-300 dark:bg-white opacity-30 md:opacity-40 blur-2xl md:blur-3xl"></div>
-        
+
         <motion.div
           initial={{ width: "6rem" }}
           whileInView={{ width: "12rem" }}
@@ -192,7 +192,7 @@ const MagicButton = ({ children, to }) => {
 export default function Landing() {
   return (
     <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-white transition-colors duration-500 overflow-x-hidden font-sans selection:bg-neutral-200 dark:selection:bg-neutral-800 relative">
-      
+
       <NoiseOverlay />
 
       {/* NAVBAR */}
@@ -235,7 +235,7 @@ export default function Landing() {
             <div className="mb-0">
               <TextReveal text="KẾT NỐI KHÔNG GIỚI HẠN" />
             </div>
-            <motion.span 
+            <motion.span
               initial={{ opacity: 0, filter: "blur(10px)" }}
               animate={{ opacity: 1, filter: "blur(0px)" }}
               transition={{ delay: 1.2, duration: 1 }}
@@ -254,19 +254,19 @@ export default function Landing() {
             <MagicButton to="/register">
               BẮT ĐẦU NGAY <ArrowRight className="ml-2 w-4 h-4" />
             </MagicButton>
-            
-            <Link 
-              to="/tour" 
+
+            <Link
+              to="/tour"
               className="text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white font-medium flex items-center gap-1 transition-colors group px-4 md:px-6 py-2 md:py-3"
             >
               Dạo một vòng <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         </motion.div>
-        
+
         {/* Sao băng bay nền - Tối ưu mobile: ít meteors hơn */}
         <div className="absolute inset-0 h-full w-full pointer-events-none opacity-10 md:opacity-20 z-0 top-40">
-           <Meteors number={20} />
+          <Meteors number={20} />
         </div>
       </LampContainer>
 
@@ -274,14 +274,14 @@ export default function Landing() {
       <div className="py-8 md:py-12 bg-white dark:bg-black border-y border-neutral-200 dark:border-neutral-800 overflow-hidden relative z-20">
         <div className="absolute inset-0 bg-gradient-to-r from-white via-transparent to-white dark:from-black dark:to-black z-10 pointer-events-none"></div>
         <div className="flex gap-12 md:gap-20 animate-infinite-scroll whitespace-nowrap items-center opacity-70 md:opacity-80">
-           {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex gap-12 md:gap-20 items-center">
-                 <span className="text-xl md:text-3xl font-black tracking-widest text-neutral-900 dark:text-white">SHIKU</span>
-                 <span className="text-xl md:text-3xl font-black tracking-widest stroke-text dark:stroke-text-white">FAST</span>
-                 <span className="text-xl md:text-3xl font-black tracking-widest text-neutral-900 dark:text-white">SECURE</span>
-                 <span className="text-xl md:text-3xl font-black tracking-widest stroke-text dark:stroke-text-white">GLOBAL</span>
-              </div>
-           ))}
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex gap-12 md:gap-20 items-center">
+              <span className="text-xl md:text-3xl font-black tracking-widest text-neutral-900 dark:text-white">SHIKU</span>
+              <span className="text-xl md:text-3xl font-black tracking-widest stroke-text dark:stroke-text-white">FAST</span>
+              <span className="text-xl md:text-3xl font-black tracking-widest text-neutral-900 dark:text-white">SECURE</span>
+              <span className="text-xl md:text-3xl font-black tracking-widest stroke-text dark:stroke-text-white">GLOBAL</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -313,16 +313,16 @@ export default function Landing() {
                   </div>
                   {/* Thanh loading Monochrome */}
                   <div className="mt-12 w-full h-1 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
-            <motion.div 
-                          initial={{ width: "0%" }}
-                          whileInView={{ width: "100%" }}
-                          transition={{ duration: 1.5, ease: "circOut", repeat: Infinity, repeatDelay: 2 }}
-                          className="h-full bg-black dark:bg-white"
-                      />
+                    <motion.div
+                      initial={{ width: "0%" }}
+                      whileInView={{ width: "100%" }}
+                      transition={{ duration: 1.5, ease: "circOut", repeat: Infinity, repeatDelay: 2 }}
+                      className="h-full bg-black dark:bg-white"
+                    />
                   </div>
                 </div>
               </SpotlightCard>
-              </div>
+            </div>
 
             {/* Card 2: Privacy */}
             <SpotlightCard>
@@ -337,7 +337,7 @@ export default function Landing() {
 
             {/* Card 3: Open Source */}
             <SpotlightCard>
-               <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-black dark:text-white mb-4 md:mb-6 border border-neutral-200 dark:border-neutral-800">
+              <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-black dark:text-white mb-4 md:mb-6 border border-neutral-200 dark:border-neutral-800">
                 <Terminal className="w-6 h-6 md:w-7 md:h-7" strokeWidth={1.5} />
               </div>
               <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-3 text-neutral-900 dark:text-white">Mã nguồn mở</h3>
@@ -349,7 +349,7 @@ export default function Landing() {
             {/* Card 4: Interactive */}
             <div className="md:col-span-2">
               <SpotlightCard className="h-full group relative overflow-hidden">
-              <div className="relative z-10">
+                <div className="relative z-10">
                   <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-black dark:text-white mb-4 md:mb-6 border border-neutral-200 dark:border-neutral-800">
                     <Heart className="w-6 h-6 md:w-7 md:h-7" strokeWidth={1.5} />
                   </div>
@@ -360,10 +360,10 @@ export default function Landing() {
                 </div>
                 {/* Decor Icon Monochrome - Ẩn trên mobile */}
                 <div className="hidden md:block absolute right-0 bottom-0 opacity-5 dark:opacity-10 rotate-12 group-hover:rotate-0 group-hover:scale-110 transition-all duration-700">
-                    <Heart size={200} className="text-black dark:text-white" />
+                  <Heart size={200} className="text-black dark:text-white" />
                 </div>
               </SpotlightCard>
-              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -371,10 +371,10 @@ export default function Landing() {
       {/* CTA & Footer */}
       <section className="py-20 md:py-32 bg-black text-white dark:bg-white dark:text-black relative overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center opacity-5 md:opacity-10 pointer-events-none">
-           <div className="w-[400px] md:w-[800px] h-[400px] md:h-[800px] border border-current rounded-full animate-ping [animation-duration:3s]"></div>
+          <div className="w-[400px] md:w-[800px] h-[400px] md:h-[800px] border border-current rounded-full animate-ping [animation-duration:3s]"></div>
         </div>
-        
-        <motion.div 
+
+        <motion.div
           className="max-w-4xl mx-auto px-4 text-center relative z-10"
           initial={{ opacity: 0, scale: 0.9 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -387,7 +387,7 @@ export default function Landing() {
           <p className="text-neutral-400 dark:text-neutral-600 text-base md:text-lg lg:text-xl mb-8 md:mb-12 max-w-xl mx-auto px-2">
             Tham gia ngay hôm nay để trải nghiệm mạng xã hội của tương lai.
           </p>
-          <Link 
+          <Link
             to="/register"
             className="inline-flex items-center gap-2 md:gap-3 px-8 md:px-12 py-3 md:py-5 rounded-full bg-white text-black dark:bg-black dark:text-white font-bold text-lg md:text-xl hover:scale-105 transition-transform"
           >
@@ -400,8 +400,8 @@ export default function Landing() {
       <footer className="bg-white dark:bg-black py-12 border-t border-neutral-200 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-             <Logo size="small" />
-             <span className="font-bold text-neutral-900 dark:text-white">Copyright © 2025</span>
+            <Logo size="small" />
+            <span className="font-bold text-neutral-900 dark:text-white">Copyright © 2025</span>
           </div>
           <div className="flex gap-8 text-neutral-500 text-sm font-medium">
             <Link to="/about" className="hover:text-black dark:hover:text-white transition-colors">Về chúng tôi</Link>

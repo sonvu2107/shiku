@@ -8,36 +8,10 @@ import Logo from "../components/Logo";
 import { saveTokens } from "../utils/tokenManager";
 import { getCSRFToken, clearCSRFToken } from "../utils/csrfToken";
 import { useSEO } from "../utils/useSEO";
+import BackgroundWrapper from "../components/BackgroundWrapper";
+import BackgroundControls from "../components/BackgroundControls";
 
 // --- TÁI SỬ DỤNG UI COMPONENTS ---
-const GridPattern = () => (
-  <div className="absolute inset-0 -z-10 h-full w-full bg-neutral-950 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]">
-    <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-neutral-400 opacity-10 blur-[100px]"></div>
-  </div>
-);
-
-const Meteors = ({ number = 20 }) => {
-  const meteors = new Array(number || 20).fill(true);
-  return (
-    <>
-      {meteors.map((el, idx) => (
-        <span
-          key={"meteor" + idx}
-          className={cn(
-            "animate-meteor absolute top-1/2 left-1/2 h-0.5 w-0.5 rounded-[9999px] bg-white shadow-[0_0_0_1px_#ffffff10] rotate-[215deg]",
-            "before:content-[''] before:absolute before:top-1/2 before:transform before:-translate-y-[50%] before:w-[50px] before:h-[1px] before:bg-gradient-to-r before:from-neutral-400 before:to-transparent"
-          )}
-          style={{
-            top: 0,
-            left: Math.floor(Math.random() * (400 - -400) + -400) + "px",
-            animationDelay: Math.random() * (0.8 - 0.2) + 0.2 + "s",
-            animationDuration: Math.floor(Math.random() * (10 - 2) + 2) + "s",
-          }}
-        ></span>
-      ))}
-    </>
-  );
-};
 
 const InputGroup = ({ icon: Icon, type = "text", showPasswordToggle = false, passwordVisible = false, onTogglePassword, ...props }) => (
   <div className="relative group">
@@ -72,6 +46,44 @@ export default function Register({ setUser }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const [backgroundConfig, setBackgroundConfig] = useState({
+    type: 'galaxy',
+    galaxy: {
+      mouseInteraction: true,
+      mouseRepulsion: true,
+      density: 0.1,
+      glowIntensity: 0.5,
+      saturation: 0,
+      hueShift: 100,
+      twinkleIntensity: 0.3,
+      rotationSpeed: 0.1,
+      repulsionStrength: 2,
+      autoCenterRepulsion: 0,
+      starSpeed: 0.5,
+      speed: 1
+    },
+    gridscan: {
+      gridScale: 0.1,
+      lineThickness: 1,
+      scanOpacity: 0.4,
+      bloomIntensity: 0.5,
+      scanDuration: 2,
+      noiseIntensity: 0.01,
+      linesColor: '#ffffff',
+      scanColor: '#ffffff'
+    },
+    lightrays: {
+      raysSpeed: 1,
+      lightSpread: 1,
+      rayLength: 2,
+      pulsating: false,
+      mouseInfluence: 0.1,
+      saturation: 1,
+      followMouse: true,
+      raysColor: '#ffffff'
+    }
+  });
 
   // Refs để đo chiều cao
   const step1Ref = useRef(null);
@@ -234,8 +246,8 @@ export default function Register({ setUser }) {
         requestBody.dateOfBirth = dateOfBirth.trim();
       }
 
-      const data = await api("/api/auth-token/register-token", { 
-        method: "POST", 
+      const data = await api("/api/auth-token/register-token", {
+        method: "POST",
         body: requestBody,
         headers: { 'X-CSRF-Token': csrfToken }
       });
@@ -276,20 +288,21 @@ export default function Register({ setUser }) {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-black text-white relative overflow-hidden font-sans selection:bg-white/20">
-      
-      <GridPattern />
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-         <Meteors number={20} />
+
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <BackgroundWrapper config={backgroundConfig} />
       </div>
 
-      <motion.div 
+      <BackgroundControls config={backgroundConfig} onChange={setBackgroundConfig} />
+
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md relative z-10 p-3 sm:p-4"
       >
         <div className="relative bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl overflow-hidden">
-          
+
           <div className="text-center mb-6 sm:mb-8">
             <Link to="/" className="inline-flex items-center mb-4 sm:mb-6 hover:scale-105 transition-transform duration-300">
               <span className="font-bold text-xl sm:text-2xl tracking-tighter text-white">Shiku</span>
@@ -301,7 +314,7 @@ export default function Register({ setUser }) {
 
           {/* Flip Card Container */}
           <div className="relative" style={{ perspective: '1000px', height: containerHeight, minHeight: '350px' }}>
-            <div 
+            <div
               className="relative w-full transition-all duration-500 ease-in-out"
               style={{
                 transformStyle: 'preserve-3d',
@@ -310,7 +323,7 @@ export default function Register({ setUser }) {
               }}
             >
               {/* Step 1: Name & Date of Birth */}
-              <div 
+              <div
                 ref={step1Ref}
                 className="absolute inset-0 w-full"
                 style={{
@@ -321,11 +334,11 @@ export default function Register({ setUser }) {
                 }}
               >
                 <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className="space-y-4">
-                  <InputGroup 
+                  <InputGroup
                     icon={User}
-                    type="text" 
-                    placeholder="Tên hiển thị" 
-                    value={name} 
+                    type="text"
+                    placeholder="Tên hiển thị"
+                    value={name}
                     onChange={(e) => { setName(e.target.value); setError(""); }}
                     required
                   />
@@ -346,7 +359,7 @@ export default function Register({ setUser }) {
                   <p className="text-xs text-neutral-500">Bạn phải ít nhất 13 tuổi để đăng ký</p>
 
                   {error && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 text-red-400 text-xs sm:text-sm"
@@ -368,7 +381,7 @@ export default function Register({ setUser }) {
               </div>
 
               {/* Step 2: Email & Password */}
-              <div 
+              <div
                 ref={step2Ref}
                 className="absolute inset-0 w-full"
                 style={{
@@ -379,24 +392,24 @@ export default function Register({ setUser }) {
                 }}
               >
                 <form onSubmit={handleRegister} className="space-y-4">
-                  <InputGroup 
+                  <InputGroup
                     icon={Mail}
-                    type="email" 
-                    placeholder="Email" 
-                    value={email} 
+                    type="email"
+                    placeholder="Email"
+                    value={email}
                     onChange={(e) => { setEmail(e.target.value); setError(""); }}
                     autoComplete="email"
                     required
                   />
-                  
+
                   <div>
-                    <InputGroup 
+                    <InputGroup
                       icon={Lock}
                       showPasswordToggle={true}
                       passwordVisible={showPassword}
                       onTogglePassword={() => setShowPassword(!showPassword)}
-                      placeholder="Mật khẩu" 
-                      value={password} 
+                      placeholder="Mật khẩu"
+                      value={password}
                       onChange={(e) => {
                         const newValue = e.target.value;
                         setPassword(newValue);
@@ -407,7 +420,7 @@ export default function Register({ setUser }) {
                       required
                       minLength="8"
                     />
-                    
+
                     {password && (
                       <div className="mt-3 space-y-2">
                         <div className="flex justify-between items-center text-xs">
@@ -417,7 +430,7 @@ export default function Register({ setUser }) {
                           </span>
                         </div>
                         <div className="w-full bg-neutral-800 rounded-full h-2">
-                          <div 
+                          <div
                             className={cn("h-2 rounded-full transition-all duration-300", getPasswordStrengthInfo(passwordStrength).bgColor)}
                             style={{ width: `${getPasswordStrengthInfo(passwordStrength).percentage}%` }}
                           ></div>
@@ -427,7 +440,7 @@ export default function Register({ setUser }) {
                   </div>
 
                   {error && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 text-red-400 text-xs sm:text-sm"
@@ -454,7 +467,7 @@ export default function Register({ setUser }) {
                     >
                       <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                       <span className="relative flex items-center justify-center gap-2">
-                        {loading ? <Loader2 className="animate-spin w-4 h-4 sm:w-[18px] sm:h-[18px]" /> : <><span className="hidden sm:inline">Đăng ký ngay</span><span className="sm:hidden">Đăng ký</span></>} 
+                        {loading ? <Loader2 className="animate-spin w-4 h-4 sm:w-[18px] sm:h-[18px]" /> : <><span className="hidden sm:inline">Đăng ký ngay</span><span className="sm:hidden">Đăng ký</span></>}
                         {!loading && <ArrowRight className="w-4 h-4 sm:w-[18px] sm:h-[18px] group-hover:translate-x-1 transition-transform" />}
                       </span>
                     </button>
