@@ -26,7 +26,9 @@ const notificationSchema = new mongoose.Schema({
       "ban", // bạn bị cấm
       "unban", // bạn được gỡ cấm
       "system", // thông báo hệ thống
-      "admin_message" // thông báo broadcast từ admin
+      "admin_message", // thông báo broadcast từ admin
+      "pk_challenge", // bị thách đấu PK
+      "pk_result" // kết quả trận đấu PK
     ],
     required: true
   },

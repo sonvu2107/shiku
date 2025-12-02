@@ -7,91 +7,91 @@ import mongoose from "mongoose";
 
 // ==================== CẢNH GIỚI TU LUYỆN ====================
 export const CULTIVATION_REALMS = [
-  { 
-    level: 1, 
-    name: "Phàm Nhân", 
-    minExp: 0, 
+  {
+    level: 1,
+    name: "Phàm Nhân",
+    minExp: 0,
     maxExp: 99,
     description: "Người thường chưa bước vào con đường tu tiên",
     color: "#9CA3AF", // gray
     icon: "👤"
   },
-  { 
-    level: 2, 
-    name: "Luyện Khí", 
-    minExp: 100, 
+  {
+    level: 2,
+    name: "Luyện Khí",
+    minExp: 100,
     maxExp: 999,
     description: "Bắt đầu cảm nhận linh khí trời đất",
     color: "#10B981", // green
     icon: "🌱"
   },
-  { 
-    level: 3, 
-    name: "Trúc Cơ", 
-    minExp: 1000, 
+  {
+    level: 3,
+    name: "Trúc Cơ",
+    minExp: 1000,
     maxExp: 4999,
     description: "Xây dựng nền tảng tu luyện vững chắc",
     color: "#3B82F6", // blue
     icon: "🏛️"
   },
-  { 
-    level: 4, 
-    name: "Kim Đan", 
-    minExp: 5000, 
+  {
+    level: 4,
+    name: "Kim Đan",
+    minExp: 5000,
     maxExp: 14999,
     description: "Ngưng tụ Kim Đan trong đan điền",
     color: "#F59E0B", // amber
     icon: "🔮"
   },
-  { 
-    level: 5, 
-    name: "Nguyên Anh", 
-    minExp: 15000, 
+  {
+    level: 5,
+    name: "Nguyên Anh",
+    minExp: 15000,
     maxExp: 39999,
     description: "Nguyên Anh hình thành, thọ mệnh tăng mạnh",
     color: "#8B5CF6", // purple
     icon: "👶"
   },
-  { 
-    level: 6, 
-    name: "Hóa Thần", 
-    minExp: 40000, 
+  {
+    level: 6,
+    name: "Hóa Thần",
+    minExp: 40000,
     maxExp: 99999,
     description: "Thần thức mạnh mẽ, có thể xuất khiếu",
     color: "#EC4899", // pink
     icon: "✨"
   },
-  { 
-    level: 7, 
-    name: "Luyện Hư", 
-    minExp: 100000, 
+  {
+    level: 7,
+    name: "Luyện Hư",
+    minExp: 100000,
     maxExp: 249999,
     description: "Luyện hóa hư không, gần đạt đến đạo",
     color: "#14B8A6", // teal
     icon: "🌀"
   },
-  { 
-    level: 8, 
-    name: "Đại Thừa", 
-    minExp: 250000, 
+  {
+    level: 8,
+    name: "Đại Thừa",
+    minExp: 250000,
     maxExp: 499999,
     description: "Đại đạo viên mãn, chuẩn bị độ kiếp",
     color: "#F97316", // orange
     icon: "🌟"
   },
-  { 
-    level: 9, 
-    name: "Độ Kiếp", 
-    minExp: 500000, 
+  {
+    level: 9,
+    name: "Độ Kiếp",
+    minExp: 500000,
     maxExp: 999999,
     description: "Đối mặt thiên kiếp, vượt qua sẽ thành tiên",
     color: "#EF4444", // red
     icon: "⚡"
   },
-  { 
-    level: 10, 
-    name: "Tiên Nhân", 
-    minExp: 1000000, 
+  {
+    level: 10,
+    name: "Tiên Nhân",
+    minExp: 1000000,
     maxExp: Infinity,
     description: "Đạt đến cảnh giới bất tử, siêu thoát luân hồi",
     color: "#FFD700", // gold
@@ -132,7 +132,8 @@ export const ITEM_TYPES = {
   EXP_BOOST: "exp_boost",   // Tăng exp
   CONSUMABLE: "consumable", // Vật phẩm tiêu hao
   PET: "pet",               // Linh thú
-  MOUNT: "mount"            // Linh thú cưỡi
+  MOUNT: "mount",           // Linh thú cưỡi
+  TECHNIQUE: "technique"    // Công pháp
 };
 
 export const SHOP_ITEMS = [
@@ -212,7 +213,97 @@ export const SHOP_ITEMS = [
   { id: "mount_lotus", name: "Liên Hoa Đài", type: ITEM_TYPES.MOUNT, price: 800, description: "Đài sen thần tiên", icon: "🪷", rarity: "rare" },
   { id: "mount_tiger", name: "Bạch Hổ", type: ITEM_TYPES.MOUNT, price: 1500, description: "Bạch hổ thần thú", icon: "🐅", rarity: "legendary" },
   { id: "mount_dragon", name: "Thanh Long", type: ITEM_TYPES.MOUNT, price: 2000, description: "Thanh long uy nghiêm", icon: "🐲", rarity: "legendary" },
-  { id: "mount_phoenix", name: "Chu Tước", type: ITEM_TYPES.MOUNT, price: 2000, description: "Chu tước lửa thiêng", icon: "🔥", rarity: "legendary" }
+  { id: "mount_phoenix", name: "Chu Tước", type: ITEM_TYPES.MOUNT, price: 2000, description: "Chu tước lửa thiêng", icon: "🔥", rarity: "legendary" },
+
+  // ==================== CÔNG PHÁP (TECHNIQUE) ====================
+  {
+    id: "technique_basic_qi",
+    name: "Cơ Bản Tụ Khí Pháp",
+    type: ITEM_TYPES.TECHNIQUE,
+    price: 500,
+    description: "Công pháp cơ bản, tăng 5% Tấn Công và Phòng Thủ",
+    icon: "📖",
+    rarity: "common",
+    stats: { attack: 0.05, defense: 0.05 },
+    skill: { name: "Tụ Khí", description: "Tăng 10% Khí Huyết trong 5 giây", cooldown: 30 }
+  },
+  {
+    id: "technique_sword_heart",
+    name: "Kiếm Tâm Quyết",
+    type: ITEM_TYPES.TECHNIQUE,
+    price: 1000,
+    description: "Công pháp kiếm thuật, tăng 10% Tấn Công và 5% Chí Mạng",
+    icon: "⚔️",
+    rarity: "uncommon",
+    stats: { attack: 0.10, criticalRate: 0.05 },
+    skill: { name: "Kiếm Khí", description: "Gây sát thương bằng 150% Tấn Công", cooldown: 20 }
+  },
+  {
+    id: "technique_iron_body",
+    name: "Thiết Bốc Công",
+    type: ITEM_TYPES.TECHNIQUE,
+    price: 1000,
+    description: "Công pháp luyện thể, tăng 10% Phòng Thủ và 5% Khí Huyết",
+    icon: "🛡️",
+    rarity: "uncommon",
+    stats: { defense: 0.10, qiBlood: 0.05 },
+    skill: { name: "Thiết Bốc", description: "Giảm 30% sát thương nhận trong 5 giây", cooldown: 25 }
+  },
+  {
+    id: "technique_lightning_step",
+    name: "Lôi Điện Bộ",
+    type: ITEM_TYPES.TECHNIQUE,
+    price: 1500,
+    description: "Công pháp thân pháp, tăng 15% Tốc Độ và 10% Né Tránh",
+    icon: "⚡",
+    rarity: "rare",
+    stats: { speed: 0.15, dodge: 0.10 },
+    skill: { name: "Lôi Điện", description: "Tăng 50% Tốc Độ trong 8 giây", cooldown: 40 }
+  },
+  {
+    id: "technique_dragon_breath",
+    name: "Long Tức Công",
+    type: ITEM_TYPES.TECHNIQUE,
+    price: 2000,
+    description: "Công pháp hô hấp, tăng 10% Chân Nguyên và 5% Hồi Phục",
+    icon: "🐉",
+    rarity: "rare",
+    stats: { zhenYuan: 0.10, regeneration: 0.05 },
+    skill: { name: "Long Tức", description: "Hồi 20% Chân Nguyên", cooldown: 30 }
+  },
+  {
+    id: "technique_phoenix_rebirth",
+    name: "Phượng Hoàng Tái Sinh",
+    type: ITEM_TYPES.TECHNIQUE,
+    price: 3000,
+    description: "Công pháp huyền thoại, tăng 15% tất cả thông số",
+    icon: "🔥",
+    rarity: "legendary",
+    stats: { attack: 0.15, defense: 0.15, qiBlood: 0.15, zhenYuan: 0.15, speed: 0.15, criticalRate: 0.15 },
+    skill: { name: "Tái Sinh", description: "Hồi 50% Khí Huyết và Chân Nguyên", cooldown: 60 }
+  },
+  {
+    id: "technique_void_walk",
+    name: "Hư Không Bộ",
+    type: ITEM_TYPES.TECHNIQUE,
+    price: 2500,
+    description: "Công pháp không gian, tăng 20% Xuyên Thấu và Kháng Cự",
+    icon: "🌀",
+    rarity: "epic",
+    stats: { penetration: 0.20, resistance: 0.20 },
+    skill: { name: "Hư Không", description: "Miễn dịch sát thương trong 2 giây", cooldown: 45 }
+  },
+  {
+    id: "technique_blood_drain",
+    name: "Hấp Huyết Đại Pháp",
+    type: ITEM_TYPES.TECHNIQUE,
+    price: 1800,
+    description: "Công pháp tà đạo, tăng 15% Hấp Huyết",
+    icon: "🩸",
+    rarity: "epic",
+    stats: { lifesteal: 0.15 },
+    skill: { name: "Hấp Huyết", description: "Gây sát thương và hồi 30% sát thương gây ra", cooldown: 35 }
+  }
 ];
 
 // ==================== QUEST PROGRESS SCHEMA ====================
@@ -270,7 +361,7 @@ const CultivationSchema = new mongoose.Schema({
   loginStreak: { type: Number, default: 0 }, // Số ngày đăng nhập liên tục
   lastLoginDate: { type: Date }, // Ngày đăng nhập cuối
   longestStreak: { type: Number, default: 0 }, // Streak dài nhất
-  
+
   // ==================== PASSIVE EXP ====================
   lastPassiveExpCollected: { type: Date, default: Date.now }, // Lần cuối thu thập passive exp
 
@@ -305,6 +396,15 @@ const CultivationSchema = new mongoose.Schema({
     avatarFrame: { type: String, default: null }, // Khung avatar
     profileEffect: { type: String, default: null } // Hiệu ứng profile
   },
+
+  // ==================== CÔNG PHÁP ĐÃ HỌC ====================
+  learnedTechniques: [{
+    techniqueId: { type: String, required: true }, // ID công pháp
+    level: { type: Number, default: 1, min: 1, max: 10 }, // Cấp độ luyện (1-10)
+    exp: { type: Number, default: 0 }, // Exp luyện công pháp
+    learnedAt: { type: Date, default: Date.now }, // Thời gian học
+    lastPracticedAt: { type: Date } // Lần cuối luyện
+  }],
 
   // ==================== BUFF/BOOST ĐANG HOẠT ĐỘNG ====================
   activeBoosts: [{
@@ -342,9 +442,162 @@ CultivationSchema.index({ loginStreak: -1 });
 // ==================== INSTANCE METHODS ====================
 
 /**
+ * Tính toán thông số chiến đấu dựa trên cảnh giới và tu vi
+ * @returns {Object} Thông số chiến đấu
+ */
+CultivationSchema.methods.calculateCombatStats = function () {
+  const realmLevel = this.realmLevel || 1;
+  const currentExp = this.exp || 0;
+  const realm = CULTIVATION_REALMS.find(r => r.level === realmLevel) || CULTIVATION_REALMS[0];
+
+  // Tính progress trong cảnh giới (0-1)
+  const expProgress = realm.maxExp !== Infinity
+    ? Math.min(1, Math.max(0, (currentExp - realm.minExp) / (realm.maxExp - realm.minExp)))
+    : Math.min(1, (currentExp - realm.minExp) / 100000); // Fallback cho Tiên Nhân
+
+  // Base stats theo cảnh giới
+  const baseStatsByRealm = {
+    1: { attack: 10, defense: 5, qiBlood: 100, zhenYuan: 50, speed: 10, criticalRate: 5, criticalDamage: 150, accuracy: 80, dodge: 5, penetration: 0, resistance: 0, lifesteal: 0, regeneration: 1, luck: 5 },
+    2: { attack: 25, defense: 12, qiBlood: 250, zhenYuan: 120, speed: 15, criticalRate: 8, criticalDamage: 160, accuracy: 85, dodge: 8, penetration: 2, resistance: 2, lifesteal: 1, regeneration: 2, luck: 8 },
+    3: { attack: 50, defense: 25, qiBlood: 500, zhenYuan: 250, speed: 20, criticalRate: 10, criticalDamage: 170, accuracy: 88, dodge: 10, penetration: 5, resistance: 5, lifesteal: 2, regeneration: 3, luck: 10 },
+    4: { attack: 100, defense: 50, qiBlood: 1000, zhenYuan: 500, speed: 25, criticalRate: 12, criticalDamage: 180, accuracy: 90, dodge: 12, penetration: 8, resistance: 8, lifesteal: 3, regeneration: 5, luck: 12 },
+    5: { attack: 200, defense: 100, qiBlood: 2000, zhenYuan: 1000, speed: 30, criticalRate: 15, criticalDamage: 190, accuracy: 92, dodge: 15, penetration: 12, resistance: 12, lifesteal: 5, regeneration: 8, luck: 15 },
+    6: { attack: 400, defense: 200, qiBlood: 4000, zhenYuan: 2000, speed: 35, criticalRate: 18, criticalDamage: 200, accuracy: 94, dodge: 18, penetration: 15, resistance: 15, lifesteal: 7, regeneration: 12, luck: 18 },
+    7: { attack: 800, defense: 400, qiBlood: 8000, zhenYuan: 4000, speed: 40, criticalRate: 20, criticalDamage: 210, accuracy: 96, dodge: 20, penetration: 18, resistance: 18, lifesteal: 10, regeneration: 15, luck: 20 },
+    8: { attack: 1600, defense: 800, qiBlood: 16000, zhenYuan: 8000, speed: 45, criticalRate: 22, criticalDamage: 220, accuracy: 97, dodge: 22, penetration: 20, resistance: 20, lifesteal: 12, regeneration: 20, luck: 22 },
+    9: { attack: 3200, defense: 1600, qiBlood: 32000, zhenYuan: 16000, speed: 50, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 25, luck: 25 },
+    10: { attack: 6400, defense: 3200, qiBlood: 64000, zhenYuan: 32000, speed: 60, criticalRate: 30, criticalDamage: 250, accuracy: 99, dodge: 30, penetration: 25, resistance: 25, lifesteal: 20, regeneration: 30, luck: 30 }
+  };
+
+  const baseStats = baseStatsByRealm[realmLevel] || baseStatsByRealm[1];
+
+  // Exp bonus (tăng dần trong cảnh giới, 10 levels)
+  const expBonusMultiplier = {
+    1: { attack: 0.5, defense: 0.25, qiBlood: 5, zhenYuan: 2.5 },
+    2: { attack: 1.2, defense: 0.6, qiBlood: 12, zhenYuan: 6 },
+    3: { attack: 2.5, defense: 1.25, qiBlood: 25, zhenYuan: 12.5 },
+    4: { attack: 5, defense: 2.5, qiBlood: 50, zhenYuan: 25 },
+    5: { attack: 10, defense: 5, qiBlood: 100, zhenYuan: 50 },
+    6: { attack: 20, defense: 10, qiBlood: 200, zhenYuan: 100 },
+    7: { attack: 40, defense: 20, qiBlood: 400, zhenYuan: 200 },
+    8: { attack: 80, defense: 40, qiBlood: 800, zhenYuan: 400 },
+    9: { attack: 160, defense: 80, qiBlood: 1600, zhenYuan: 800 },
+    10: { attack: 320, defense: 160, qiBlood: 3200, zhenYuan: 1600 }
+  };
+
+  const bonus = expBonusMultiplier[realmLevel] || expBonusMultiplier[1];
+  const expLevel = Math.floor(expProgress * 10); // 0-10 levels trong cảnh giới
+
+  // Tính base stats
+  let finalStats = {
+    attack: Math.floor(baseStats.attack + (bonus.attack * expLevel)),
+    defense: Math.floor(baseStats.defense + (bonus.defense * expLevel)),
+    qiBlood: Math.floor(baseStats.qiBlood + (bonus.qiBlood * expLevel)),
+    zhenYuan: Math.floor(baseStats.zhenYuan + (bonus.zhenYuan * expLevel)),
+    speed: baseStats.speed,
+    criticalRate: baseStats.criticalRate,
+    criticalDamage: baseStats.criticalDamage,
+    dodge: baseStats.dodge,
+    accuracy: baseStats.accuracy,
+    penetration: baseStats.penetration,
+    resistance: baseStats.resistance,
+    lifesteal: baseStats.lifesteal,
+    regeneration: baseStats.regeneration,
+    luck: baseStats.luck
+  };
+
+  // Thêm bonus từ công pháp đã học
+  if (this.learnedTechniques && this.learnedTechniques.length > 0) {
+    this.learnedTechniques.forEach(learned => {
+      const technique = SHOP_ITEMS.find(t => t.id === learned.techniqueId && t.type === ITEM_TYPES.TECHNIQUE);
+      if (technique && technique.stats) {
+        // Bonus tăng theo cấp độ công pháp (level 1 = 100%, level 10 = 200%)
+        const levelMultiplier = 1 + (learned.level - 1) * 0.1;
+
+        Object.keys(technique.stats).forEach(statKey => {
+          const bonusPercent = technique.stats[statKey];
+          if (finalStats[statKey] !== undefined) {
+            if (statKey === 'attack' || statKey === 'defense' || statKey === 'qiBlood' || statKey === 'zhenYuan') {
+              // Tăng theo phần trăm của giá trị hiện tại
+              finalStats[statKey] = Math.floor(finalStats[statKey] * (1 + bonusPercent * levelMultiplier));
+            } else if (statKey === 'speed' || statKey === 'penetration' || statKey === 'resistance' || statKey === 'luck') {
+              // Tăng cộng dồn
+              finalStats[statKey] = Math.floor(finalStats[statKey] + (baseStats[statKey] * bonusPercent * levelMultiplier));
+            } else {
+              // Tăng theo phần trăm (criticalRate, dodge, accuracy, lifesteal, regeneration)
+              finalStats[statKey] = Math.min(100, finalStats[statKey] + (bonusPercent * 100 * levelMultiplier));
+            }
+          }
+        });
+      }
+    });
+  }
+
+  return finalStats;
+};
+
+/**
+ * Luyện công pháp (tăng exp và level)
+ * @param {string} techniqueId - ID công pháp
+ * @param {number} expGain - Exp nhận được khi luyện
+ */
+CultivationSchema.methods.practiceTechnique = function (techniqueId, expGain = 10) {
+  const learned = this.learnedTechniques?.find(t => t.techniqueId === techniqueId);
+  if (!learned) {
+    throw new Error("Bạn chưa học công pháp này");
+  }
+
+  // Exp cần để lên cấp: level * 100
+  const expNeeded = learned.level * 100;
+
+  learned.exp += expGain;
+  learned.lastPracticedAt = new Date();
+
+  // Kiểm tra lên cấp
+  let leveledUp = false;
+  while (learned.exp >= expNeeded && learned.level < 10) {
+    learned.exp -= expNeeded;
+    learned.level += 1;
+    leveledUp = true;
+  }
+
+  // Giới hạn exp ở level 10
+  if (learned.level >= 10) {
+    learned.exp = Math.min(learned.exp, expNeeded - 1);
+  }
+
+  return { leveledUp, newLevel: learned.level, currentExp: learned.exp, expNeeded };
+};
+
+/**
+ * Lấy danh sách kỹ năng từ công pháp đã học
+ * @returns {Array} Danh sách kỹ năng
+ */
+CultivationSchema.methods.getSkills = function () {
+  if (!this.learnedTechniques || this.learnedTechniques.length === 0) {
+    return [];
+  }
+
+  return this.learnedTechniques.map(learned => {
+    const technique = SHOP_ITEMS.find(t => t.id === learned.techniqueId && t.type === ITEM_TYPES.TECHNIQUE);
+    if (technique && technique.skill) {
+      return {
+        techniqueId: learned.techniqueId,
+        techniqueName: technique.name,
+        skillName: technique.skill.name,
+        skillDescription: technique.skill.description,
+        cooldown: technique.skill.cooldown,
+        level: learned.level
+      };
+    }
+    return null;
+  }).filter(Boolean);
+};
+
+/**
  * Lấy thông tin cảnh giới từ exp
  */
-CultivationSchema.methods.getRealmFromExp = function() {
+CultivationSchema.methods.getRealmFromExp = function () {
   const exp = this.exp;
   for (let i = CULTIVATION_REALMS.length - 1; i >= 0; i--) {
     if (exp >= CULTIVATION_REALMS[i].minExp) {
@@ -357,7 +610,7 @@ CultivationSchema.methods.getRealmFromExp = function() {
 /**
  * Tính exp cần cho cảnh giới tiếp theo
  */
-CultivationSchema.methods.getExpToNextRealm = function() {
+CultivationSchema.methods.getExpToNextRealm = function () {
   const currentRealm = this.getRealmFromExp();
   if (currentRealm.level >= 10) return 0; // Đã max
   return currentRealm.maxExp - this.exp + 1;
@@ -366,7 +619,7 @@ CultivationSchema.methods.getExpToNextRealm = function() {
 /**
  * Tính phần trăm tiến độ cảnh giới hiện tại
  */
-CultivationSchema.methods.getRealmProgress = function() {
+CultivationSchema.methods.getRealmProgress = function () {
   const realm = this.getRealmFromExp();
   if (realm.level >= 10) return 100;
   const progressInRealm = this.exp - realm.minExp;
@@ -380,7 +633,7 @@ CultivationSchema.methods.getRealmProgress = function() {
  * @param {string} source - Nguồn exp
  * @param {string} description - Mô tả
  */
-CultivationSchema.methods.addExp = function(amount, source, description = "") {
+CultivationSchema.methods.addExp = function (amount, source, description = "") {
   // Tính multiplier từ active boosts
   let multiplier = 1;
   const now = new Date();
@@ -428,7 +681,7 @@ CultivationSchema.methods.addExp = function(amount, source, description = "") {
 /**
  * Cộng linh thạch
  */
-CultivationSchema.methods.addSpiritStones = function(amount, source) {
+CultivationSchema.methods.addSpiritStones = function (amount, source) {
   this.spiritStones += amount;
   this.totalSpiritStonesEarned += amount;
   return this.spiritStones;
@@ -438,18 +691,18 @@ CultivationSchema.methods.addSpiritStones = function(amount, source) {
  * Thu thập passive exp (tu vi tăng dần theo thời gian)
  * @returns {Object} Kết quả thu thập
  */
-CultivationSchema.methods.collectPassiveExp = function() {
+CultivationSchema.methods.collectPassiveExp = function () {
   const now = new Date();
   const lastCollected = this.lastPassiveExpCollected || now;
-  
+
   // Tính thời gian đã trôi qua (giây)
   const elapsedMs = now.getTime() - new Date(lastCollected).getTime();
   const elapsedMinutes = Math.floor(elapsedMs / (1000 * 60));
-  
+
   // Giới hạn tối đa 24h = 1440 phút (để tránh tích lũy quá nhiều khi offline lâu)
   const maxMinutes = 1440;
   const effectiveMinutes = Math.min(elapsedMinutes, maxMinutes);
-  
+
   // Tối thiểu 1 phút mới có exp
   if (effectiveMinutes < 1) {
     return {
@@ -458,7 +711,7 @@ CultivationSchema.methods.collectPassiveExp = function() {
       nextCollectIn: 60 - Math.floor((elapsedMs / 1000) % 60)
     };
   }
-  
+
   // Base passive exp theo cảnh giới (tu vi cao = nhận nhiều hơn)
   // Phàm Nhân (1): 2 exp/phút
   // Luyện Khí (2): 4 exp/phút
@@ -482,10 +735,10 @@ CultivationSchema.methods.collectPassiveExp = function() {
     9: 150,  // Độ Kiếp
     10: 250  // Tiên Nhân
   };
-  
+
   const baseExpPerMinute = expPerMinuteByRealm[this.realmLevel] || 2;
   const baseExp = effectiveMinutes * baseExpPerMinute;
-  
+
   // Tính multiplier từ active boosts (đan dược x2, x3, etc.)
   let multiplier = 1;
   this.activeBoosts = this.activeBoosts.filter(boost => boost.expiresAt > now);
@@ -494,29 +747,29 @@ CultivationSchema.methods.collectPassiveExp = function() {
       multiplier = Math.max(multiplier, boost.multiplier);
     }
   }
-  
+
   // Áp dụng multiplier từ đan dược
   const finalExp = Math.floor(baseExp * multiplier);
-  
+
   // Cộng exp
   const oldRealmLevel = this.realmLevel;
   this.exp += finalExp;
-  
+
   // Cập nhật cảnh giới
   const newRealm = this.getRealmFromExp();
   this.realmLevel = newRealm.level;
   this.realmName = newRealm.name;
-  
+
   // Cập nhật sub-level
   const progressPercent = this.getRealmProgress();
   this.subLevel = Math.max(1, Math.ceil(progressPercent / 10));
-  
+
   // Log exp
   if (!this.expLog) this.expLog = [];
   this.expLog.push({
     amount: finalExp,
     source: 'passive',
-    description: multiplier > 1 
+    description: multiplier > 1
       ? `Tu luyện ${effectiveMinutes} phút (x${multiplier} đan dược)`
       : `Tu luyện ${effectiveMinutes} phút`,
     timestamp: now
@@ -524,10 +777,10 @@ CultivationSchema.methods.collectPassiveExp = function() {
   if (this.expLog.length > 100) {
     this.expLog = this.expLog.slice(-100);
   }
-  
+
   // Cập nhật thời gian thu thập
   this.lastPassiveExpCollected = now;
-  
+
   return {
     collected: true,
     expEarned: finalExp,
@@ -548,7 +801,7 @@ CultivationSchema.methods.collectPassiveExp = function() {
 /**
  * Trừ linh thạch (mua đồ)
  */
-CultivationSchema.methods.spendSpiritStones = function(amount) {
+CultivationSchema.methods.spendSpiritStones = function (amount) {
   if (this.spiritStones < amount) {
     throw new Error("Không đủ linh thạch");
   }
@@ -559,16 +812,16 @@ CultivationSchema.methods.spendSpiritStones = function(amount) {
 /**
  * Xử lý đăng nhập hàng ngày
  */
-CultivationSchema.methods.processLogin = function() {
+CultivationSchema.methods.processLogin = function () {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
+
   if (this.lastLoginDate) {
     const lastLogin = new Date(this.lastLoginDate);
     const lastLoginDay = new Date(lastLogin.getFullYear(), lastLogin.getMonth(), lastLogin.getDate());
-    
+
     const diffDays = Math.floor((today - lastLoginDay) / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) {
       // Đã đăng nhập hôm nay rồi
       return { alreadyLoggedIn: true, streak: this.loginStreak };
@@ -609,7 +862,7 @@ CultivationSchema.methods.processLogin = function() {
 /**
  * Reset nhiệm vụ hàng ngày
  */
-CultivationSchema.methods.resetDailyQuests = function() {
+CultivationSchema.methods.resetDailyQuests = function () {
   const now = new Date();
   const lastReset = this.dailyProgress.lastReset;
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -640,10 +893,10 @@ CultivationSchema.methods.resetDailyQuests = function() {
 /**
  * Reset nhiệm vụ hàng tuần
  */
-CultivationSchema.methods.resetWeeklyQuests = function() {
+CultivationSchema.methods.resetWeeklyQuests = function () {
   const now = new Date();
   const lastReset = this.weeklyProgress.lastReset;
-  
+
   // Tính tuần hiện tại và tuần của lần reset cuối
   const getWeekNumber = (date) => {
     const d = new Date(date);
@@ -678,17 +931,17 @@ CultivationSchema.methods.resetWeeklyQuests = function() {
 /**
  * Cập nhật tiến độ nhiệm vụ
  */
-CultivationSchema.methods.updateQuestProgress = function(action, count = 1) {
+CultivationSchema.methods.updateQuestProgress = function (action, count = 1) {
   const results = [];
 
   // Helper function để cập nhật quest
   const updateQuest = (quests, templates) => {
     for (const quest of quests) {
       if (quest.completed) continue;
-      
+
       const template = templates.find(t => t.id === quest.questId);
       if (!template || !template.requirement) continue;
-      
+
       if (template.requirement.action === action) {
         quest.progress = Math.min(quest.progress + count, template.requirement.count);
         if (quest.progress >= template.requirement.count && !quest.completed) {
@@ -702,10 +955,10 @@ CultivationSchema.methods.updateQuestProgress = function(action, count = 1) {
 
   // Cập nhật daily quests
   updateQuest(this.dailyQuests, QUEST_TEMPLATES.daily);
-  
+
   // Cập nhật weekly quests
   updateQuest(this.weeklyQuests, QUEST_TEMPLATES.weekly);
-  
+
   // Cập nhật achievements
   updateQuest(this.achievements, QUEST_TEMPLATES.achievement);
 
@@ -738,7 +991,7 @@ CultivationSchema.methods.updateQuestProgress = function(action, count = 1) {
 /**
  * Claim phần thưởng nhiệm vụ
  */
-CultivationSchema.methods.claimQuestReward = function(questId) {
+CultivationSchema.methods.claimQuestReward = function (questId) {
   // Tìm quest trong tất cả các loại
   let quest = this.dailyQuests.find(q => q.questId === questId);
   let template = QUEST_TEMPLATES.daily.find(t => t.id === questId);
@@ -784,22 +1037,46 @@ CultivationSchema.methods.claimQuestReward = function(questId) {
 /**
  * Mua vật phẩm
  */
-CultivationSchema.methods.buyItem = function(itemId) {
+CultivationSchema.methods.buyItem = function (itemId) {
   const item = SHOP_ITEMS.find(i => i.id === itemId);
   if (!item) {
     throw new Error("Vật phẩm không tồn tại");
   }
 
-  // Kiểm tra đã có chưa (trừ consumable items)
-  if (item.type !== ITEM_TYPES.EXP_BOOST) {
-    const existing = this.inventory.find(i => i.itemId === itemId);
-    if (existing) {
-      throw new Error("Bạn đã sở hữu vật phẩm này");
+  // Kiểm tra đã có chưa (trừ consumable items và exp boost)
+  if (item.type !== ITEM_TYPES.EXP_BOOST && item.type !== ITEM_TYPES.CONSUMABLE) {
+    // Với công pháp, kiểm tra đã học chưa
+    if (item.type === ITEM_TYPES.TECHNIQUE) {
+      const alreadyLearned = this.learnedTechniques?.some(t => t.techniqueId === itemId);
+      if (alreadyLearned) {
+        throw new Error("Bạn đã học công pháp này rồi");
+      }
+    } else {
+      const existing = this.inventory.find(i => i.itemId === itemId);
+      if (existing) {
+        throw new Error("Bạn đã sở hữu vật phẩm này");
+      }
     }
   }
 
   // Trừ linh thạch
   this.spendSpiritStones(item.price);
+
+  // Xử lý công pháp: tự động học khi mua
+  if (item.type === ITEM_TYPES.TECHNIQUE) {
+    if (!this.learnedTechniques) {
+      this.learnedTechniques = [];
+    }
+    const learnedTechnique = {
+      techniqueId: item.id,
+      level: 1,
+      exp: 0,
+      learnedAt: new Date(),
+      lastPracticedAt: null
+    };
+    this.learnedTechniques.push(learnedTechnique);
+    return { type: 'technique', learnedTechnique, name: item.name }; // Trả về thông tin công pháp đã học
+  }
 
   // Thêm vào inventory
   const inventoryItem = {
@@ -831,7 +1108,7 @@ CultivationSchema.methods.buyItem = function(itemId) {
 /**
  * Trang bị vật phẩm
  */
-CultivationSchema.methods.equipItem = function(itemId) {
+CultivationSchema.methods.equipItem = function (itemId) {
   const item = this.inventory.find(i => i.itemId === itemId);
   if (!item) {
     throw new Error("Bạn không sở hữu vật phẩm này");
@@ -869,7 +1146,7 @@ CultivationSchema.methods.equipItem = function(itemId) {
 /**
  * Bỏ trang bị vật phẩm
  */
-CultivationSchema.methods.unequipItem = function(itemId) {
+CultivationSchema.methods.unequipItem = function (itemId) {
   const item = this.inventory.find(i => i.itemId === itemId);
   if (!item) {
     throw new Error("Bạn không sở hữu vật phẩm này");
@@ -900,10 +1177,10 @@ CultivationSchema.methods.unequipItem = function(itemId) {
 /**
  * Lấy hoặc tạo cultivation cho user
  */
-CultivationSchema.statics.getOrCreate = async function(userId) {
+CultivationSchema.statics.getOrCreate = async function (userId) {
   let cultivation = await this.findOne({ user: userId });
   let needsSave = false;
-  
+
   if (!cultivation) {
     cultivation = new this({
       user: userId,
@@ -960,7 +1237,7 @@ CultivationSchema.statics.getOrCreate = async function(userId) {
 /**
  * Leaderboard
  */
-CultivationSchema.statics.getLeaderboard = async function(type = 'exp', limit = 50) {
+CultivationSchema.statics.getLeaderboard = async function (type = 'exp', limit = 50) {
   let sortField;
   switch (type) {
     case 'exp':
@@ -990,7 +1267,7 @@ CultivationSchema.statics.getLeaderboard = async function(type = 'exp', limit = 
 /**
  * Sync cultivation cache to User after save
  */
-CultivationSchema.post('save', async function(doc) {
+CultivationSchema.post('save', async function (doc) {
   try {
     const User = mongoose.model('User');
     await User.findByIdAndUpdate(doc.user, {

@@ -52,6 +52,7 @@ import roleRoutes from "./routes/roles.js"; // Roles routes
 import chatbotRoutes from "./routes/chatbot.js"; // Chatbot AI routes
 import securityMonitoringRoutes from "./routes/securityMonitoring.js"; // Security monitoring routes
 import cultivationRoutes from "./routes/cultivation.js"; // Cultivation/Tu Tiên routes
+import battleRoutes from "./routes/battle.js"; // Battle/PK routes
 
 // Environment variables are loaded via `import 'dotenv/config'` at the top
 
@@ -651,6 +652,7 @@ app.use("/api/admin/roles", roleRoutes); // Roles routes
 app.use("/api/chatbot", apiLimiter, chatbotRoutes); // AI Chatbot with rate limiting
 app.use("/api/security", securityMonitoringRoutes); // Security monitoring routes (admin only)
 app.use("/api/cultivation", apiLimiter, cultivationRoutes); // Tu Tiên system routes
+app.use("/api/battle", apiLimiter, battleRoutes); // Battle/PK routes
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);

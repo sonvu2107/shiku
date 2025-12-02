@@ -18,7 +18,7 @@ export const CultivationBadgeInline = memo(function CultivationBadgeInline({
   className = '' 
 }) {
   const realm = getRealmByLevel(realmLevel);
-   x  
+  
   return (
     <span 
       className={`inline-flex items-center gap-0.5 text-xs ${className}`}
@@ -173,22 +173,22 @@ export const CultivationCard = memo(function CultivationCard({
         <div className="flex-1 min-w-0">
           <div className="grid grid-cols-2 gap-3">
             <StatItem 
-              icon="" 
+              icon="⚡" 
               label="Tu Vi" 
               value={cultivation.exp?.toLocaleString() || 0}
             />
             <StatItem 
-              icon="" 
+              icon="💎" 
               label="Linh Thạch" 
               value={cultivation.spiritStones?.toLocaleString() || 0}
             />
             <StatItem 
-              icon="" 
+              icon="🔥" 
               label="Streak" 
               value={`${cultivation.loginStreak || 0} ngày`}
             />
             <StatItem 
-              icon="" 
+              icon="📊" 
               label="Tiểu cấp" 
               value={`Tầng ${cultivation.subLevel || 1}`}
             />
@@ -296,7 +296,7 @@ export const LevelUpNotification = memo(function LevelUpNotification({
           </motion.div>
           
           <h2 className="text-2xl font-bold text-white mb-2">
-             Đột Phá Thành Công!
+            🎉 Đột Phá Thành Công!
           </h2>
           
           <p 

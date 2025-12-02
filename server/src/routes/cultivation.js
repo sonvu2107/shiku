@@ -76,8 +76,15 @@ const formatCultivationResponse = (cultivation) => {
     equipped: cultivation.equipped,
     activeBoosts: cultivation.activeBoosts.filter(b => new Date(b.expiresAt) > new Date()),
     
+    // Công pháp đã học
+    learnedTechniques: cultivation.learnedTechniques || [],
+    skills: cultivation.getSkills(),
+    
     // Thống kê
     stats: cultivation.stats,
+    
+    // Thông số chiến đấu
+    combatStats: cultivation.calculateCombatStats(),
     
     // Timestamps
     createdAt: cultivation.createdAt,
@@ -223,7 +230,7 @@ router.get("/user/:userId", async (req, res, next) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "Không tìm thấy người dùng"
+        message: "Không tìm thấy vị đạo hữu này"
       });
     }
     
@@ -385,17 +392,31 @@ router.post("/shop/buy/:itemId", async (req, res, next) => {
     const cultivation = await Cultivation.getOrCreate(userId);
     
     try {
-      const item = cultivation.buyItem(itemId);
+      const result = cultivation.buyItem(itemId);
       await cultivation.save();
+      
+      // Nếu là công pháp, trả về thông tin công pháp đã học
+      const responseData = {
+        spiritStones: cultivation.spiritStones,
+        inventory: cultivation.inventory
+      };
+      
+      if (result && result.type === 'technique') {
+        responseData.learnedTechnique = result.learnedTechnique;
+        const techniqueItem = SHOP_ITEMS.find(t => t.id === itemId && t.type === 'technique');
+        if (techniqueItem) {
+          responseData.skill = techniqueItem.skill;
+        }
+      } else {
+        responseData.item = result;
+      }
       
       res.json({
         success: true,
-        message: `Đã mua ${item.name}!`,
-        data: {
-          item,
-          spiritStones: cultivation.spiritStones,
-          inventory: cultivation.inventory
-        }
+        message: result && result.type === 'technique' 
+          ? `Đã học công pháp ${result.name}!` 
+          : `Đã mua ${result?.name || 'vật phẩm'}!`,
+        data: responseData
       });
     } catch (buyError) {
       return res.status(400).json({
@@ -969,6 +990,89 @@ router.get("/stats", async (req, res, next) => {
     });
   } catch (error) {
     console.error("[CULTIVATION] Error getting stats:", error);
+    next(error);
+  }
+});
+
+/**
+ * GET /api/cultivation/combat-stats
+ * Lấy thông số chiến đấu của user hiện tại
+ */
+router.get("/combat-stats", async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const cultivation = await Cultivation.getOrCreate(userId);
+    
+    const combatStats = cultivation.calculateCombatStats();
+    
+    res.json({
+      success: true,
+      data: combatStats
+    });
+  } catch (error) {
+    console.error("[CULTIVATION] Error getting combat stats:", error);
+    next(error);
+  }
+});
+
+/**
+ * GET /api/cultivation/combat-stats/:userId
+ * Lấy thông số chiến đấu của user khác (để so sánh)
+ */
+router.get("/combat-stats/:userId", async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const cultivation = await Cultivation.findOne({ user: userId });
+    
+    if (!cultivation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy thông tin tu tiên của vị đạo hữu này'
+      });
+    }
+    
+    const combatStats = cultivation.calculateCombatStats();
+    
+    res.json({
+      success: true,
+      data: combatStats
+    });
+  } catch (error) {
+    console.error("[CULTIVATION] Error getting combat stats for user:", error);
+    next(error);
+  }
+});
+
+/**
+ * POST /api/cultivation/practice-technique
+ * Luyện công pháp (tăng exp và level)
+ */
+router.post("/practice-technique", async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { techniqueId, expGain } = req.body;
+    
+    if (!techniqueId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng chọn công pháp để luyện'
+      });
+    }
+    
+    const cultivation = await Cultivation.getOrCreate(userId);
+    const result = cultivation.practiceTechnique(techniqueId, expGain || 10);
+    
+    await cultivation.save();
+    
+    res.json({
+      success: true,
+      message: result.leveledUp 
+        ? `Công pháp đã lên cấp ${result.newLevel}!` 
+        : `Luyện công pháp thành công! (+${expGain || 10} exp)`,
+      data: result
+    });
+  } catch (error) {
+    console.error("[CULTIVATION] Error practicing technique:", error);
     next(error);
   }
 });

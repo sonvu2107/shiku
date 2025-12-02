@@ -96,6 +96,16 @@ export async function useItem(itemId) {
   return api(`/api/cultivation/inventory/${itemId}/use`, { method: 'POST' });
 }
 
+/**
+ * Luyện công pháp (tăng exp và level)
+ */
+export async function practiceTechnique(techniqueId, expGain = 10) {
+  return api('/api/cultivation/practice-technique', {
+    method: 'POST',
+    body: JSON.stringify({ techniqueId, expGain })
+  });
+}
+
 // ==================== LEADERBOARD ====================
 
 /**

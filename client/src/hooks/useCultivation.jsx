@@ -17,7 +17,8 @@ import {
   getExpLog,
   addExpFromActivity,
   collectPassiveExp as collectPassiveExpAPI,
-  getPassiveExpStatus
+  getPassiveExpStatus,
+  practiceTechnique as practiceTechniqueAPI
 } from '../services/cultivationAPI.js';
 
 // Context cho Cultivation
@@ -160,10 +161,22 @@ export function CultivationProvider({ children }) {
       
       if (response.success) {
         // Update cultivation with new inventory and spirit stones
-        setCultivation(prev => ({
-          ...prev,
+        const updateData = {
           spiritStones: response.data.spiritStones,
           inventory: response.data.inventory
+        };
+        
+        // Nếu là công pháp, cập nhật learnedTechniques
+        if (response.data.learnedTechnique) {
+          updateData.learnedTechniques = [
+            ...(cultivation?.learnedTechniques || []),
+            response.data.learnedTechnique
+          ];
+        }
+        
+        setCultivation(prev => ({
+          ...prev,
+          ...updateData
         }));
         
         // Update shop
@@ -171,7 +184,7 @@ export function CultivationProvider({ children }) {
         
         setNotification({
           type: 'success',
-          title: 'Mua thành công!',
+          title: response.data.learnedTechnique ? 'Học công pháp thành công!' : 'Mua thành công!',
           message: response.message
         });
         
@@ -356,6 +369,56 @@ export function CultivationProvider({ children }) {
   }, []);
 
   /**
+   * Luyện công pháp
+   */
+  const practiceTechnique = useCallback(async (techniqueId, expGain = 10) => {
+    try {
+      setError(null);
+      const response = await practiceTechniqueAPI(techniqueId, expGain);
+      
+      if (response.success) {
+        // Cập nhật learnedTechniques local để tránh reload cả trang (giữ nguyên scroll)
+        const { newLevel, currentExp } = response.data || {};
+        if (typeof newLevel === 'number' && typeof currentExp === 'number') {
+          setCultivation(prev => {
+            if (!prev || !prev.learnedTechniques) return prev;
+            const updatedTechniques = prev.learnedTechniques.map(t =>
+              t.techniqueId === techniqueId
+                ? { 
+                    ...t, 
+                    level: newLevel, 
+                    exp: currentExp, 
+                    lastPracticedAt: new Date().toISOString() 
+                  }
+                : t
+            );
+            return { 
+              ...prev, 
+              learnedTechniques: updatedTechniques 
+            };
+          });
+        }
+        
+        setNotification({
+          type: response.data?.leveledUp ? 'success' : 'info',
+          title: response.data?.leveledUp ? 'Công pháp lên cấp!' : 'Luyện công pháp thành công!',
+          message: response.message
+        });
+        
+        return response.data;
+      }
+    } catch (err) {
+      setError(err.message);
+      setNotification({
+        type: 'error',
+        title: 'Lỗi',
+        message: err.message
+      });
+      throw err;
+    }
+  }, []);
+
+  /**
    * Thu thập passive exp (tu vi tăng dần theo thời gian)
    */
   const collectPassiveExp = useCallback(async () => {
@@ -452,7 +515,8 @@ export function CultivationProvider({ children }) {
     collectPassiveExp,
     loadPassiveExpStatus,
     clearNotification,
-    refresh
+    refresh,
+    practiceTechnique
   };
 
   return (
