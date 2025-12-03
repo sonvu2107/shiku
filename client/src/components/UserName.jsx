@@ -114,8 +114,7 @@ export default function UserName({ user, className = "", maxLength = 50, showToo
 					}}
 					title={titleConfig.name}
 				>
-					<span>{titleConfig.icon}</span>
-					<span className="hidden sm:inline">{titleConfig.name}</span>
+					<span>{titleConfig.name}</span>
 				</span>
 			)}
 		</span>

@@ -40,7 +40,8 @@ import {
    UserX,
    ChevronRight,
    Ban,
-   X
+   X,
+   Sword
 } from "lucide-react";
 
 /**
@@ -202,6 +203,7 @@ export default function AdminDashboard() {
       { id: 'bans', label: 'Cấm N.Dùng', icon: Ban },
       { id: 'notifications', label: 'Thông báo', icon: Bell },
       { id: 'feedback', label: 'Phản hồi', icon: MessageCircle },
+      { id: 'equipment', label: 'Trang Bị', icon: Sword, external: true, path: '/admin/equipment' },
       { id: 'api-monitoring', label: 'API Monitor', icon: Code },
       { id: 'auto-like', label: 'Auto Bot', icon: Heart },
    ];
@@ -234,24 +236,44 @@ export default function AdminDashboard() {
             {/* --- LEFT SIDEBAR --- */}
             <div className="lg:col-span-3 space-y-6">
                <div className="bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl rounded-2xl p-2 border border-neutral-200/80 dark:border-neutral-800/80 shadow-sm sticky top-24 overflow-y-auto max-h-[calc(100vh-8rem)] custom-scrollbar">
-                  {menuItems.map((item) => (
-                     <button
-                        key={item.id}
-                        onClick={() => setActiveTab(item.id)}
-                        className={cn(
-                           "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all mb-1 last:mb-0",
-                           activeTab === item.id
-                              ? "bg-black dark:bg-white text-white dark:text-black shadow-md"
-                              : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-200"
-                        )}
-                     >
-                        <div className="flex items-center gap-3">
-                           <item.icon size={18} />
-                           {item.label}
-                        </div>
-                        {activeTab === item.id && <ChevronRight size={16} />}
-                     </button>
-                  ))}
+                  {menuItems.map((item) => {
+                     if (item.external) {
+                        return (
+                           <button
+                              key={item.id}
+                              onClick={() => navigate(item.path)}
+                              className={cn(
+                                 "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all mb-1 last:mb-0",
+                                 "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-200"
+                              )}
+                           >
+                              <div className="flex items-center gap-3">
+                                 <item.icon size={18} />
+                                 {item.label}
+                              </div>
+                              <ChevronRight size={16} />
+                           </button>
+                        );
+                     }
+                     return (
+                        <button
+                           key={item.id}
+                           onClick={() => setActiveTab(item.id)}
+                           className={cn(
+                              "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all mb-1 last:mb-0",
+                              activeTab === item.id
+                                 ? "bg-black dark:bg-white text-white dark:text-black shadow-md"
+                                 : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-200"
+                           )}
+                        >
+                           <div className="flex items-center gap-3">
+                              <item.icon size={18} />
+                              {item.label}
+                           </div>
+                           {activeTab === item.id && <ChevronRight size={16} />}
+                        </button>
+                     );
+                  })}
                </div>
             </div>
 

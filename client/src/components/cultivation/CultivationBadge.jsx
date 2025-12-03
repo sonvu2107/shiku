@@ -147,7 +147,7 @@ export const CultivationCard = memo(function CultivationCard({
         </div>
         <div className="text-right">
           <div className="flex items-center gap-1 text-amber-500">
-            <span>💎</span>
+            <span></span>
             <span className="font-medium">{cultivation.spiritStones?.toLocaleString() || 0}</span>
           </div>
         </div>
@@ -173,22 +173,22 @@ export const CultivationCard = memo(function CultivationCard({
         <div className="flex-1 min-w-0">
           <div className="grid grid-cols-2 gap-3">
             <StatItem 
-              icon="⚡" 
+              icon="" 
               label="Tu Vi" 
               value={cultivation.exp?.toLocaleString() || 0}
             />
             <StatItem 
-              icon="💎" 
+              icon="" 
               label="Linh Thạch" 
               value={cultivation.spiritStones?.toLocaleString() || 0}
             />
             <StatItem 
-              icon="🔥" 
+              icon="" 
               label="Streak" 
               value={`${cultivation.loginStreak || 0} ngày`}
             />
             <StatItem 
-              icon="📊" 
+              icon="" 
               label="Tiểu cấp" 
               value={`Tầng ${cultivation.subLevel || 1}`}
             />

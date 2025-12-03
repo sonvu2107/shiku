@@ -54,6 +54,7 @@ const Saved = lazy(() => import("./pages/Saved.jsx"));
 // Admin & Support (heavy pages - lazy load)
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard.jsx"));
 const AdminFeedback = lazy(() => import("./pages/AdminFeedback.jsx"));
+const EquipmentManagement = lazy(() => import("./pages/admin/EquipmentManagement.jsx"));
 const Support = lazy(() => import("./pages/Support.jsx"));
 
 // Tu Tiên System
@@ -397,13 +398,13 @@ export default function App() {
         
         {/* Mobile CSRF Debug Component */}
         
-        {/* Hiển thị navbar cho tất cả trang trừ login/register/landing (khi chưa đăng nhập), chat, home và cultivation */}
-        {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && location.pathname !== "/home" && location.pathname !== "/feed" && location.pathname !== "/search" && location.pathname !== "/cultivation" && (
+        {/* Hiển thị navbar cho tất cả trang trừ login/register/landing (khi chưa đăng nhập), chat, home, cultivation và admin/equipment */}
+        {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && location.pathname !== "/home" && location.pathname !== "/feed" && location.pathname !== "/search" && location.pathname !== "/cultivation" && location.pathname !== "/admin/equipment" && (
           <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
         )}
 
-        {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat/cultivation, không có story viewer đang mở, và không có video đang phát */}
-        {user && !shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/cultivation" && !isStoryViewerOpen && !isVideoPlaying && (
+        {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat/cultivation/admin/equipment, không có story viewer đang mở, và không có video đang phát */}
+        {user && !shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/cultivation" && location.pathname !== "/admin/equipment" && !isStoryViewerOpen && !isVideoPlaying && (
           <FloatingDock />
         )}
 
@@ -484,6 +485,7 @@ export default function App() {
               {/* Trang admin */}
               <Route path="/admin" element={<ProtectedRoute user={user}><AdminDashboard /></ProtectedRoute>} />
               <Route path="/admin/feedback" element={<ProtectedRoute user={user}><AdminFeedback /></ProtectedRoute>} />
+              <Route path="/admin/equipment" element={<ProtectedRoute user={user}><EquipmentManagement /></ProtectedRoute>} />
               
               {/* Tu Tiên System */}
               <Route path="/cultivation" element={<ProtectedRoute user={user}><Cultivation /></ProtectedRoute>} />

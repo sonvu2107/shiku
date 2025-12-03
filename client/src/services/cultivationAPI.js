@@ -90,6 +90,23 @@ export async function unequipItem(itemId) {
 }
 
 /**
+ * Trang bị equipment (vũ khí, giáp, trang sức)
+ */
+export async function equipEquipment(equipmentId, slot) {
+  return api(`/api/cultivation/equipment/${equipmentId}/equip`, {
+    method: 'POST',
+    body: JSON.stringify({ slot })
+  });
+}
+
+/**
+ * Bỏ trang bị equipment
+ */
+export async function unequipEquipment(slot) {
+  return api(`/api/cultivation/equipment/${slot}/unequip`, { method: 'POST' });
+}
+
+/**
  * Sử dụng vật phẩm tiêu hao (đan dược, consumable)
  */
 export async function useItem(itemId) {

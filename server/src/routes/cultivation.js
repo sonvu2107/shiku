@@ -1,5 +1,7 @@
 import express from "express";
+import mongoose from "mongoose";
 import Cultivation, { CULTIVATION_REALMS, QUEST_TEMPLATES, SHOP_ITEMS, ITEM_TYPES } from "../models/Cultivation.js";
+import Equipment from "../models/Equipment.js";
 import User from "../models/User.js";
 import { authRequired } from "../middleware/auth.js";
 
@@ -94,6 +96,9 @@ const formatCultivationResponse = (cultivation) => {
     // Thông số chiến đấu
     combatStats: cultivation.calculateCombatStats(),
     
+    // Equipment stats (sẽ được load async nếu cần)
+    equipmentStats: null, // Sẽ được populate nếu cần
+    
     // Độ kiếp (Breakthrough)
     breakthroughSuccessRate: cultivation.breakthroughSuccessRate || 30,
     breakthroughFailureCount: cultivation.breakthroughFailureCount || 0,
@@ -130,9 +135,20 @@ router.get("/", async (req, res, next) => {
       console.error("[CULTIVATION] Error syncing cache:", syncErr);
     }
     
+    // Load equipment stats
+    let equipmentStats = null;
+    try {
+      equipmentStats = await cultivation.getEquipmentStats();
+    } catch (equipErr) {
+      console.error("[CULTIVATION] Error loading equipment stats:", equipErr);
+    }
+    
+    const response = formatCultivationResponse(cultivation);
+    response.equipmentStats = equipmentStats;
+    
     res.json({
       success: true,
-      data: formatCultivationResponse(cultivation)
+      data: response
     });
   } catch (error) {
     console.error("[CULTIVATION] Error getting cultivation:", error);
@@ -381,10 +397,57 @@ router.get("/shop", async (req, res, next) => {
       canAfford: cultivation.spiritStones >= item.price
     }));
     
+    // Lấy equipment có giá bán (price > 0) và is_active = true
+    const availableEquipment = await Equipment.find({
+      is_active: true,
+      price: { $gt: 0 },
+      level_required: { $lte: cultivation.realmLevel }
+    }).lean();
+    
+    // Format equipment để tương thích với shop items
+    const equipmentItems = availableEquipment.map(eq => {
+      // Convert Map to Object nếu cần
+      let elementalDamage = {};
+      if (eq.stats?.elemental_damage instanceof Map) {
+        elementalDamage = Object.fromEntries(eq.stats.elemental_damage);
+      } else if (eq.stats?.elemental_damage) {
+        elementalDamage = eq.stats.elemental_damage;
+      }
+      
+      return {
+        id: eq._id.toString(),
+        name: eq.name,
+        type: `equipment_${eq.type}`, // equipment_weapon, equipment_armor, etc.
+        equipmentType: eq.type, // weapon, armor, etc.
+        subtype: eq.subtype || null,
+        rarity: eq.rarity,
+        price: eq.price,
+        img: eq.img,
+        description: eq.description,
+        level_required: eq.level_required,
+        stats: {
+          ...eq.stats,
+          elemental_damage: elementalDamage
+        },
+        special_effect: eq.special_effect,
+        skill_bonus: eq.skill_bonus,
+        energy_regen: eq.energy_regen,
+        lifesteal: eq.lifesteal,
+        true_damage: eq.true_damage,
+        buff_duration: eq.buff_duration,
+        owned: false, // Equipment không nằm trong inventory, sẽ check riêng
+        canAfford: cultivation.spiritStones >= eq.price,
+        canUse: cultivation.realmLevel >= eq.level_required
+      };
+    });
+    
+    // Combine shop items và equipment
+    const allItems = [...shopItems, ...equipmentItems];
+    
     res.json({
       success: true,
       data: {
-        items: shopItems,
+        items: allItems,
         spiritStones: cultivation.spiritStones
       }
     });
@@ -405,6 +468,104 @@ router.post("/shop/buy/:itemId", async (req, res, next) => {
     
     const cultivation = await Cultivation.getOrCreate(userId);
     
+    // Kiểm tra nếu là equipment (ObjectId hợp lệ)
+    if (mongoose.Types.ObjectId.isValid(itemId)) {
+      const equipment = await Equipment.findById(itemId);
+      
+      if (!equipment) {
+        return res.status(400).json({
+          success: false,
+          message: "Trang bị không tồn tại"
+        });
+      }
+      
+      if (!equipment.is_active) {
+        return res.status(400).json({
+          success: false,
+          message: "Trang bị này đã bị vô hiệu hóa"
+        });
+      }
+      
+      if (equipment.price <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Trang bị này không được bán"
+        });
+      }
+      
+      // Kiểm tra level requirement
+      if (cultivation.realmLevel < equipment.level_required) {
+        return res.status(400).json({
+          success: false,
+          message: `Cần đạt cảnh giới cấp ${equipment.level_required} để mua trang bị này`
+        });
+      }
+      
+      // Kiểm tra đã sở hữu chưa (check trong inventory)
+      const alreadyOwned = cultivation.inventory.some(i => 
+        i.itemId === itemId.toString() || 
+        (i.metadata && i.metadata._id && i.metadata._id.toString() === itemId)
+      );
+      
+      if (alreadyOwned) {
+        return res.status(400).json({
+          success: false,
+          message: "Bạn đã sở hữu trang bị này rồi"
+        });
+      }
+      
+      // Kiểm tra đủ linh thạch
+      if (cultivation.spiritStones < equipment.price) {
+        return res.status(400).json({
+          success: false,
+          message: "Không đủ linh thạch để mua"
+        });
+      }
+      
+      // Trừ linh thạch
+      cultivation.spendSpiritStones(equipment.price);
+      
+      // Thêm equipment vào inventory
+      const inventoryItem = {
+        itemId: equipment._id.toString(),
+        name: equipment.name,
+        type: `equipment_${equipment.type}`,
+        quantity: 1,
+        equipped: false,
+        acquiredAt: new Date(),
+        metadata: {
+          _id: equipment._id,
+          equipmentType: equipment.type,
+          subtype: equipment.subtype,
+          rarity: equipment.rarity,
+          level_required: equipment.level_required,
+          stats: equipment.stats,
+          special_effect: equipment.special_effect,
+          skill_bonus: equipment.skill_bonus,
+          energy_regen: equipment.energy_regen,
+          lifesteal: equipment.lifesteal,
+          true_damage: equipment.true_damage,
+          buff_duration: equipment.buff_duration,
+          img: equipment.img,
+          description: equipment.description
+        }
+      };
+      
+      cultivation.inventory.push(inventoryItem);
+      await cultivation.save();
+      
+      return res.json({
+        success: true,
+        message: `Đã mua ${equipment.name}!`,
+        data: {
+          spiritStones: cultivation.spiritStones,
+          inventory: cultivation.inventory,
+          item: inventoryItem
+        }
+      });
+    }
+    
+    // Xử lý mua item thông thường
     try {
       const result = cultivation.buyItem(itemId);
       await cultivation.save();
@@ -461,7 +622,6 @@ router.post("/inventory/:itemId/equip", async (req, res, next) => {
       
       res.json({
         success: true,
-        message: `Đã trang bị ${item.name}!`,
         data: {
           equipped: cultivation.equipped,
           inventory: cultivation.inventory
@@ -474,7 +634,6 @@ router.post("/inventory/:itemId/equip", async (req, res, next) => {
       });
     }
   } catch (error) {
-    console.error("[CULTIVATION] Error equipping item:", error);
     next(error);
   }
 });
@@ -496,7 +655,6 @@ router.post("/inventory/:itemId/unequip", async (req, res, next) => {
       
       res.json({
         success: true,
-        message: `Đã bỏ trang bị ${item.name}!`,
         data: {
           equipped: cultivation.equipped,
           inventory: cultivation.inventory
@@ -509,7 +667,106 @@ router.post("/inventory/:itemId/unequip", async (req, res, next) => {
       });
     }
   } catch (error) {
-    console.error("[CULTIVATION] Error unequipping item:", error);
+    next(error);
+  }
+});
+
+/**
+ * POST /api/cultivation/equipment/:equipmentId/equip
+ * Trang bị equipment (vũ khí, giáp, trang sức)
+ */
+router.post("/equipment/:equipmentId/equip", async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { equipmentId } = req.params;
+    const { slot } = req.body; // Optional: auto-detect nếu không có
+    
+    const cultivation = await Cultivation.getOrCreate(userId);
+    
+    try {
+      const equipment = await cultivation.equipEquipment(equipmentId, slot);
+      await cultivation.save();
+      
+      // Recalculate combat stats after equipping
+      const combatStats = await cultivation.calculateCombatStats();
+      
+      res.json({
+        success: true,
+        data: {
+          equipment,
+          equipped: cultivation.equipped,
+          inventory: cultivation.inventory,
+          combatStats: combatStats
+        }
+      });
+    } catch (equipError) {
+      return res.status(400).json({
+        success: false,
+        message: equipError.message
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/cultivation/equipment/:slot/unequip
+ * Bỏ trang bị equipment
+ */
+router.post("/equipment/:slot/unequip", async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { slot } = req.params;
+    
+    const cultivation = await Cultivation.getOrCreate(userId);
+    
+    try {
+      cultivation.unequipEquipment(slot);
+      await cultivation.save();
+      
+      // Load equipment stats
+      const equipmentStats = await cultivation.getEquipmentStats();
+      
+      // Recalculate combat stats after unequipping
+      const combatStats = await cultivation.calculateCombatStats();
+      
+      res.json({
+        success: true,
+        data: {
+          equipped: cultivation.equipped,
+          inventory: cultivation.inventory,
+          combatStats: combatStats
+        }
+      });
+    } catch (unequipError) {
+      return res.status(400).json({
+        success: false,
+        message: unequipError.message
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/cultivation/equipment/stats
+ * Lấy tổng stats từ tất cả equipment đang trang bị
+ */
+router.get("/equipment/stats", async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const cultivation = await Cultivation.getOrCreate(userId);
+    
+    const equipmentStats = await cultivation.getEquipmentStats();
+    
+    res.json({
+      success: true,
+      data: equipmentStats
+    });
+  } catch (error) {
+    console.error("[CULTIVATION] Error getting equipment stats:", error);
     next(error);
   }
 });

@@ -1,0 +1,181 @@
+/**
+ * Identity Header Component - Display user info and cultivation stats
+ */
+import { useState, useEffect, memo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MoreVertical, X } from 'lucide-react';
+import { getUserAvatarUrl } from '../../../utils/avatarUtils.js';
+import { loadUser } from '../../../utils/userCache.js';
+import { getCombatStats } from '../utils/helpers.js';
+
+const IdentityHeader = memo(function IdentityHeader({ cultivation, currentRealm }) {
+  const [user, setUser] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const userData = await loadUser();
+        if (userData) {
+          setUser(userData);
+        }
+      } catch (err) {
+        console.error('Error loading user:', err);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const displayName = user?.nickname?.trim() || user?.name || cultivation.user?.name || cultivation.user?.nickname || 'Đạo Hữu Vô Danh';
+  const avatarUrl = user ? getUserAvatarUrl(user, 80) : null;
+  const stats = getCombatStats(cultivation);
+
+  // Đóng menu khi click outside
+  useEffect(() => {
+    if (!showDetails) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.stats-details-menu')) {
+        setShowDetails(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showDetails]);
+
+  return (
+    <div className="flex items-center gap-5 border-b-2 border-amber-500/20 pb-5 mb-6 relative">
+      {/* Decorative line */}
+      <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent"></div>
+      
+      {/* Avatar */}
+      <div className="relative">
+        <div className="w-18 h-18 lg:w-20 lg:h-20 rounded-full bg-slate-800 border-2 border-amber-500/50 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.2)] overflow-hidden ring-2 ring-amber-500/20" style={{ width: '4.5rem', height: '4.5rem' }}>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-3xl lg:text-4xl">{currentRealm?.icon || '👤'}</span>
+          )}
+        </div>
+        <div className="absolute -bottom-1 -right-1 bg-slate-950 border-2 border-amber-500/60 text-[9px] lg:text-[10px] text-amber-500 px-2 py-1 rounded font-bold uppercase tracking-[0.1em] shadow-lg">
+          Lv.{currentRealm?.level || 1}
+        </div>
+      </div>
+
+      {/* Tên & Cảnh Giới */}
+      <div className="flex-1 min-w-0">
+        <h3 className="text-lg lg:text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-200 to-amber-100 font-title tracking-[0.05em] mb-2 leading-tight">
+          {displayName}
+        </h3>
+        <p className="text-xs lg:text-sm text-slate-400 font-cultivation italic flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_4px_rgba(16,185,129,0.6)]"></span>
+          <span className="tracking-wide">{currentRealm?.name || 'Phàm Nhân'}</span>
+        </p>
+      </div>
+
+      {/* Thông Số Tu Vi & Linh Thạch - Bên phải, không có ô */}
+      <div className="flex flex-col gap-3 text-right">
+        <div className="flex items-center gap-3 justify-end">
+          <p className="text-[11px] text-emerald-300/80 uppercase tracking-[0.15em] font-semibold">Tu Vi:</p>
+          <h3 className="text-base lg:text-lg font-bold text-emerald-100 font-mono tabular-nums">
+            {cultivation.exp?.toLocaleString() || 0}
+          </h3>
+        </div>
+        <div className="flex items-center gap-3 justify-end">
+          <p className="text-[11px] text-amber-300/80 uppercase tracking-[0.15em] font-semibold">Linh Thạch:</p>
+          <h3 className="text-base lg:text-lg font-bold text-amber-100 font-mono tabular-nums">
+            {cultivation.spiritStones?.toLocaleString() || 0}
+          </h3>
+        </div>
+      </div>
+
+      {/* Nút Menu Chi Tiết */}
+      <div className="relative stats-details-menu">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowDetails(!showDetails);
+          }}
+          className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-amber-400"
+          title="Xem chi tiết thông số"
+        >
+          <MoreVertical size={18} />
+        </button>
+
+        {/* Dropdown Menu Chi Tiết */}
+        <AnimatePresence>
+          {showDetails && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="absolute right-0 top-full mt-2 w-64 bg-slate-900 border border-amber-500/30 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.5)] z-50 overflow-hidden"
+            >
+              <div className="p-3 border-b border-white/5 flex items-center justify-between">
+                <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider">Thông Số Chi Tiết</h4>
+                <button
+                  onClick={() => setShowDetails(false)}
+                  className="text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="p-3 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                {/* Advanced Stats */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Tốc Độ:</span>
+                    <span className="text-cyan-300 font-mono font-bold">{stats.speed}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Chí Mạng:</span>
+                    <span className="text-purple-300 font-mono font-bold">{stats.criticalRate}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Sát Thương Chí Mạng:</span>
+                    <span className="text-red-300 font-mono font-bold">{stats.criticalDamage}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Chính Xác:</span>
+                    <span className="text-blue-300 font-mono font-bold">{stats.accuracy}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Né Tránh:</span>
+                    <span className="text-green-300 font-mono font-bold">{stats.dodge}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Xuyên Thấu:</span>
+                    <span className="text-orange-300 font-mono font-bold">{stats.penetration}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Kháng Cự:</span>
+                    <span className="text-yellow-300 font-mono font-bold">{stats.resistance}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Hấp Huyết:</span>
+                    <span className="text-pink-300 font-mono font-bold">{stats.lifesteal}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Hồi Phục:</span>
+                    <span className="text-teal-300 font-mono font-bold">{stats.regeneration}/s</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Vận Khí:</span>
+                    <span className="text-indigo-300 font-mono font-bold">{stats.luck}</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+});
+
+export default IdentityHeader;
+

@@ -336,7 +336,6 @@ const UserAvatar = memo(function UserAvatar({
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <span className="mr-1">{titleConfig.icon}</span>
           {titleConfig.name}
         </motion.div>
       )}

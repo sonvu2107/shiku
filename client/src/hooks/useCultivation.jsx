@@ -11,6 +11,8 @@ import {
   buyItem,
   equipItem,
   unequipItem,
+  equipEquipment as equipEquipmentAPI,
+  unequipEquipment as unequipEquipmentAPI,
   useItem as useItemAPI,
   getLeaderboard,
   getRealms,
@@ -217,12 +219,6 @@ export function CultivationProvider({ children }) {
           inventory: response.data.inventory
         }));
 
-        setNotification({
-          type: 'success',
-          title: 'Trang bị thành công!',
-          message: response.message
-        });
-
         return response.data;
       }
     } catch (err) {
@@ -258,6 +254,70 @@ export function CultivationProvider({ children }) {
       throw err;
     }
   }, []);
+
+  /**
+   * Trang bị equipment (vũ khí, giáp, trang sức)
+   */
+  const equipEquipment = useCallback(async (equipmentId, slot) => {
+    try {
+      setError(null);
+      const response = await equipEquipmentAPI(equipmentId, slot);
+
+      if (response.success) {
+        setCultivation(prev => ({
+          ...prev,
+          equipped: response.data.equipped,
+          inventory: response.data.inventory,
+          combatStats: response.data.combatStats || prev.combatStats
+        }));
+
+        // Reload cultivation để cập nhật combat stats
+        await loadCultivation();
+
+        return response.data;
+      }
+    } catch (err) {
+      setError(err.message);
+      setNotification({
+        type: 'error',
+        title: 'Lỗi',
+        message: err.message
+      });
+      throw err;
+    }
+  }, [loadCultivation]);
+
+  /**
+   * Bỏ trang bị equipment
+   */
+  const unequipEquipment = useCallback(async (slot) => {
+    try {
+      setError(null);
+      const response = await unequipEquipmentAPI(slot);
+
+      if (response.success) {
+        setCultivation(prev => ({
+          ...prev,
+          equipped: response.data.equipped,
+          inventory: response.data.inventory,
+          combatStats: response.data.combatStats || prev.combatStats
+        }));
+
+        // Reload cultivation để cập nhật combat stats
+        await loadCultivation();
+
+        return response.data;
+      }
+    } catch (err) {
+      setError(err.message);
+      setNotification({
+        type: 'error',
+        title: 'Lỗi',
+        message: err.message
+      });
+      throw err;
+    }
+  }, [loadCultivation]);
 
   /**
    * Sử dụng vật phẩm tiêu hao (đan dược, consumable)
@@ -543,6 +603,8 @@ export function CultivationProvider({ children }) {
     purchaseItem,
     equip,
     unequip,
+    equipEquipment,
+    unequipEquipment,
     useItem,
     loadLeaderboard,
     loadRealms,

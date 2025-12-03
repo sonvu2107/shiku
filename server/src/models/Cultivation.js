@@ -320,7 +320,18 @@ const QuestProgressSchema = new mongoose.Schema({
 const InventoryItemSchema = new mongoose.Schema({
   itemId: { type: String, required: true },
   name: { type: String, required: true },
-  type: { type: String, enum: Object.values(ITEM_TYPES), required: true },
+  type: { 
+    type: String, 
+    required: true,
+    // Cho phép cả ITEM_TYPES và equipment types (equipment_weapon, equipment_armor, etc.)
+    validate: {
+      validator: function(v) {
+        const validTypes = Object.values(ITEM_TYPES);
+        return validTypes.includes(v) || v.startsWith('equipment_');
+      },
+      message: 'Type phải là một trong ITEM_TYPES hoặc bắt đầu bằng "equipment_"'
+    }
+  },
   quantity: { type: Number, default: 1 },
   equipped: { type: Boolean, default: false },
   acquiredAt: { type: Date, default: Date.now },
@@ -394,7 +405,21 @@ const CultivationSchema = new mongoose.Schema({
     title: { type: String, default: null }, // Danh hiệu đang dùng
     badge: { type: String, default: null }, // Huy hiệu đang dùng
     avatarFrame: { type: String, default: null }, // Khung avatar
-    profileEffect: { type: String, default: null } // Hiệu ứng profile
+    profileEffect: { type: String, default: null }, // Hiệu ứng profile
+    // Equipment slots (vũ khí, giáp, trang sức)
+    weapon: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null },
+    magicTreasure: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null },
+    helmet: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null },
+    chest: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null },
+    shoulder: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null },
+    gloves: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null },
+    boots: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null },
+    belt: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null },
+    ring: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null },
+    necklace: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null },
+    earring: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null },
+    bracelet: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null },
+    powerItem: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', default: null }
   },
 
   // ==================== CÔNG PHÁP ĐÃ HỌC ====================
@@ -539,6 +564,9 @@ CultivationSchema.methods.calculateCombatStats = function () {
     });
   }
 
+  // Tích hợp equipment stats (async - sẽ được gọi riêng nếu cần)
+  // Equipment stats sẽ được tính riêng qua getEquipmentStats() và merge ở route level
+  
   return finalStats;
 };
 
@@ -1183,6 +1211,164 @@ CultivationSchema.methods.unequipItem = function (itemId) {
   }
 
   return item;
+};
+
+/**
+ * Trang bị equipment (vũ khí, giáp, trang sức)
+ * @param {mongoose.Types.ObjectId} equipmentId - ID của equipment
+ * @param {string} slot - Slot để trang bị (weapon, helmet, chest, etc.)
+ */
+CultivationSchema.methods.equipEquipment = async function (equipmentId, slot) {
+  const Equipment = mongoose.model('Equipment');
+  const equipment = await Equipment.findById(equipmentId);
+  
+  if (!equipment || !equipment.is_active) {
+    throw new Error("Equipment không tồn tại hoặc đã bị vô hiệu hóa");
+  }
+  
+  // Kiểm tra level requirement
+  if (this.realmLevel < equipment.level_required) {
+    throw new Error(`Cần đạt cảnh giới cấp ${equipment.level_required} để trang bị`);
+  }
+  
+  // Auto-detect slot nếu không chỉ định
+  if (!slot) {
+    if (equipment.type === 'weapon') slot = 'weapon';
+    else if (equipment.type === 'magic_treasure') slot = 'magicTreasure';
+    else if (equipment.type === 'armor') {
+      if (equipment.subtype === 'helmet') slot = 'helmet';
+      else if (equipment.subtype === 'chest') slot = 'chest';
+      else if (equipment.subtype === 'shoulder') slot = 'shoulder';
+      else if (equipment.subtype === 'gloves') slot = 'gloves';
+      else if (equipment.subtype === 'boots') slot = 'boots';
+      else if (equipment.subtype === 'belt') slot = 'belt';
+      else throw new Error("Cần chỉ định slot cho armor");
+    }
+    else if (equipment.type === 'accessory') {
+      // Default to ring if not specified
+      slot = 'ring';
+    }
+    else if (equipment.type === 'power_item') slot = 'powerItem';
+    else throw new Error("Không thể xác định slot cho equipment này");
+  }
+  
+  // Kiểm tra slot có hợp lệ không
+  if (!this.equipped.hasOwnProperty(slot)) {
+    throw new Error(`Slot ${slot} không hợp lệ`);
+  }
+  
+  // Bỏ trang bị equipment cũ ở slot này (nếu có)
+  const oldEquipmentId = this.equipped[slot];
+  if (oldEquipmentId) {
+    this.equipped[slot] = null;
+  }
+  
+  // Trang bị equipment mới
+  this.equipped[slot] = equipmentId;
+  
+  return equipment;
+};
+
+/**
+ * Bỏ trang bị equipment
+ * @param {string} slot - Slot cần bỏ trang bị
+ */
+CultivationSchema.methods.unequipEquipment = function (slot) {
+  if (!this.equipped.hasOwnProperty(slot)) {
+    throw new Error(`Slot ${slot} không hợp lệ`);
+  }
+  
+  if (!this.equipped[slot]) {
+    throw new Error(`Slot ${slot} không có equipment nào được trang bị`);
+  }
+  
+  this.equipped[slot] = null;
+  
+  return { slot, unequipped: true };
+};
+
+/**
+ * Tính tổng stats từ tất cả equipment đang trang bị
+ */
+CultivationSchema.methods.getEquipmentStats = async function () {
+  const Equipment = mongoose.model('Equipment');
+  const equipmentIds = Object.values(this.equipped).filter(id => 
+    id && mongoose.Types.ObjectId.isValid(id)
+  );
+  
+  if (equipmentIds.length === 0) {
+    return {
+      attack: 0,
+      defense: 0,
+      hp: 0,
+      crit_rate: 0,
+      crit_damage: 0,
+      penetration: 0,
+      speed: 0,
+      evasion: 0,
+      hit_rate: 0,
+      elemental_damage: {},
+      skill_bonus: 0,
+      energy_regen: 0,
+      lifesteal: 0,
+      true_damage: 0,
+      buff_duration: 0
+    };
+  }
+  
+  const equipments = await Equipment.find({ _id: { $in: equipmentIds }, is_active: true });
+  
+  const totalStats = {
+    attack: 0,
+    defense: 0,
+    hp: 0,
+    crit_rate: 0,
+    crit_damage: 0,
+    penetration: 0,
+    speed: 0,
+    evasion: 0,
+    hit_rate: 0,
+    elemental_damage: {},
+    skill_bonus: 0,
+    energy_regen: 0,
+    lifesteal: 0,
+    true_damage: 0,
+    buff_duration: 0
+  };
+  
+  equipments.forEach(eq => {
+    const stats = eq.getTotalStats();
+    totalStats.attack += stats.attack || 0;
+    totalStats.defense += stats.defense || 0;
+    totalStats.hp += stats.hp || 0;
+    totalStats.crit_rate += stats.crit_rate || 0;
+    totalStats.crit_damage += stats.crit_damage || 0;
+    totalStats.penetration += stats.penetration || 0;
+    totalStats.speed += stats.speed || 0;
+    totalStats.evasion += stats.evasion || 0;
+    totalStats.hit_rate += stats.hit_rate || 0;
+    totalStats.skill_bonus += stats.skill_bonus || 0;
+    totalStats.energy_regen += stats.energy_regen || 0;
+    totalStats.lifesteal += stats.lifesteal || 0;
+    totalStats.true_damage += stats.true_damage || 0;
+    totalStats.buff_duration += stats.buff_duration || 0;
+    
+    // Merge elemental damage
+    if (stats.elemental_damage) {
+      Object.entries(stats.elemental_damage).forEach(([element, damage]) => {
+        totalStats.elemental_damage[element] = (totalStats.elemental_damage[element] || 0) + damage;
+      });
+    }
+  });
+  
+  // Cap percentages at 1.0 (100%)
+  totalStats.crit_rate = Math.min(totalStats.crit_rate, 1.0);
+  totalStats.crit_damage = Math.min(totalStats.crit_damage, 1.0);
+  totalStats.evasion = Math.min(totalStats.evasion, 1.0);
+  totalStats.hit_rate = Math.min(totalStats.hit_rate, 1.0);
+  totalStats.lifesteal = Math.min(totalStats.lifesteal, 1.0);
+  
+  return totalStats;
 };
 
 // ==================== STATIC METHODS ====================
