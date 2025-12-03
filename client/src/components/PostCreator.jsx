@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { Globe, Lock, Image, Users, BarChart3, Plus, X } from "lucide-react";
+import { Globe, Lock, Image, Users, BarChart3, Plus, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BanNotification from "./BanNotification";
 import MarkdownEditor from "./MarkdownEditor";
 import UserAvatar from "./UserAvatar";
+import { useToast } from "../contexts/ToastContext";
 
 /**
  * PostCreator - Component for creating a new post
@@ -18,6 +19,7 @@ import UserAvatar from "./UserAvatar";
  */
 const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hideTrigger = false }, ref) {
   // ==================== STATE MANAGEMENT ====================
+  const { showSuccess, showError } = useToast();
 
   // Modal and form states
   const [showModal, setShowModal] = useState(false); // Whether the create-post modal is visible
@@ -89,12 +91,14 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
     // Validate required fields
     if (!title.trim()) {
       setErr("Vui lòng nhập tiêu đề");
+      showError("Vui lòng nhập tiêu đề");
       return;
     }
     
     // Content is optional if poll is present
     if (!hasPoll && !content.trim()) {
       setErr("Vui lòng nhập nội dung hoặc tạo poll");
+      showError("Vui lòng nhập nội dung hoặc tạo poll");
       return;
     }
 
@@ -102,15 +106,18 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
     if (hasPoll) {
       if (!pollQuestion.trim()) {
         setErr("Vui lòng nhập câu hỏi poll");
+        showError("Vui lòng nhập câu hỏi poll");
         return;
       }
       const validOptions = pollOptions.filter(opt => opt.trim());
       if (validOptions.length < 2) {
         setErr("Poll phải có ít nhất 2 lựa chọn");
+        showError("Poll phải có ít nhất 2 lựa chọn");
         return;
       }
       if (validOptions.length > 10) {
         setErr("Poll chỉ có thể có tối đa 10 lựa chọn");
+        showError("Poll chỉ có thể có tối đa 10 lựa chọn");
         return;
       }
     }
@@ -163,11 +170,12 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
       setShowModal(false);
       resetForm();
 
-      // Navigate based on post status
+      // Show success message
       if (status === "private") {
+        showSuccess("Bài viết riêng tư đã được lưu thành công!");
         navigate("/");
-        alert("Bài viết riêng tư đã được lưu");
       } else {
+        showSuccess("Bài viết đã được đăng thành công!");
         navigate(`/post/${post.post.slug}`); // Redirect đến bài viết mới
       }
     } catch (error) {
@@ -176,7 +184,9 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
         setBanInfo(error.banInfo);
         setShowBanNotification(true);
       } else {
-        setErr(error.message);
+        const errorMessage = error.message || "Có lỗi xảy ra khi tạo bài viết";
+        setErr(errorMessage);
+        showError(errorMessage);
       }
     } finally {
       setLoading(false);

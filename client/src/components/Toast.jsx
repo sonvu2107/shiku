@@ -59,7 +59,7 @@ export default function Toast({
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 max-w-sm w-full bg-white border rounded-lg shadow-lg transform transition-all duration-300 ${
+      className={`w-full max-w-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-2xl transform transition-all duration-300 ${
         visible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
       }`}
     >
@@ -68,13 +68,13 @@ export default function Toast({
           <div className="flex-shrink-0">
             {getIcon()}
           </div>
-          <div className="ml-3 flex-1">
-            <p className="text-sm font-medium">{message}</p>
+          <div className="ml-3 flex-1 min-w-0">
+            <p className="text-sm font-medium break-words dark:text-neutral-200">{message}</p>
           </div>
           <div className="ml-4 flex-shrink-0">
             <button
               onClick={handleClose}
-              className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none"
+              className="inline-flex text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none touch-manipulation min-w-[32px] min-h-[32px] items-center justify-center"
             >
               <X size={16} />
             </button>
@@ -89,16 +89,19 @@ export default function Toast({
  * ToastContainer - Container that manages multiple toast notifications
  */
 export function ToastContainer({ toasts, onRemove }) {
+  if (!toasts || toasts.length === 0) return null;
+  
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          type={toast.type}
-          message={toast.message}
-          duration={toast.duration}
-          onClose={() => onRemove(toast.id)}
-        />
+    <div className="fixed top-4 right-4 z-[9999] space-y-2 pointer-events-none max-w-sm w-[calc(100vw-2rem)] sm:w-full">
+      {toasts.map((toast, index) => (
+        <div key={toast.id} className="pointer-events-auto" style={{ marginTop: index > 0 ? '0.5rem' : '0' }}>
+          <Toast
+            type={toast.type}
+            message={toast.message}
+            duration={toast.duration}
+            onClose={() => onRemove(toast.id)}
+          />
+        </div>
       ))}
     </div>
   );

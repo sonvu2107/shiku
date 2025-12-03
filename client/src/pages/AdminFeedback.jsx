@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
+import { useToast } from "../contexts/ToastContext";
 
 // --- SUB-COMPONENTS ---
 
@@ -213,6 +214,7 @@ const FAQModal = ({ faq, onClose, onSave, loading }) => {
 };
 
 export default function AdminFeedback() {
+  const { showError } = useToast();
   const [activeTab, setActiveTab] = useState("tickets");
   const [tickets, setTickets] = useState([]);
   const [faqs, setFaqs] = useState([]);
@@ -263,7 +265,7 @@ export default function AdminFeedback() {
         setTickets(prev => prev.map(t => t._id === ticketId ? res.ticket : t));
       }
     } catch (err) {
-      alert(err.message);
+      showError(err.message || 'Lỗi khi trả lời ticket');
     }
   };
 
@@ -278,7 +280,7 @@ export default function AdminFeedback() {
         setSelectedTicket(prev => ({ ...prev, status }));
       }
     } catch (err) {
-      alert(err.message);
+      showError(err.message || 'Lỗi khi thay đổi trạng thái');
     }
   };
 
@@ -300,7 +302,7 @@ export default function AdminFeedback() {
       setEditingFaq(null);
       fetchFaqs();
     } catch (err) {
-      alert(err.message);
+      showError(err.message || 'Lỗi khi lưu FAQ');
     }
   };
 
@@ -310,7 +312,7 @@ export default function AdminFeedback() {
       await api(`/api/support/admin/faqs/${id}`, { method: "DELETE" });
       fetchFaqs();
     } catch (err) {
-      alert(err.message);
+      showError(err.message || 'Lỗi khi xóa FAQ');
     }
   };
 

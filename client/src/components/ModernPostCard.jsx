@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, memo, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Plus, Minus, Star, X, Smile, Image as ImageIcon, Send } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Plus, Minus, Star, X, Smile, Image as ImageIcon, Send, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getOptimizedImageUrl } from "../utils/imageOptimization";
 import LazyImage from "./LazyImageSimple";
@@ -12,6 +12,7 @@ import UserName from "./UserName";
 import UserAvatar from "./UserAvatar";
 import ReactMarkdown from "react-markdown";
 import Poll from "./Poll";
+import { useToast } from "../contexts/ToastContext";
 
 // Mapping of emotes to corresponding GIF filenames
 const emoteMap = {
@@ -26,6 +27,7 @@ const emotes = Object.keys(emoteMap);
 
 const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedChange, hideActionsMenu = false }) => {
   const navigate = useNavigate();
+  const { showSuccess, showError, showInfo } = useToast();
   
   // ==================== STATE & REFS ====================
   const [showEmotePopup, setShowEmotePopup] = useState(false);
@@ -35,6 +37,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   const mainMenuButtonRef = useRef(null);
   const [interestStatus, setInterestStatus] = useState(null);
   const [interestLoading, setInterestLoading] = useState(false);
+  const [savingPost, setSavingPost] = useState(false);
+  const [emotingPost, setEmotingPost] = useState(false);
   const [emotesState, setEmotesState] = useState(() => {
     if (post.emotes && Array.isArray(post.emotes)) {
       return post.emotes.map(e => ({
@@ -110,12 +114,12 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   // Handle interest - Memoized
   const handleInterested = useCallback(async (interested) => {
     if (!user || !user._id) {
-      alert('Vui lòng đăng nhập để sử dụng tính năng này');
+      showInfo('Vui lòng đăng nhập để sử dụng tính năng này');
       return;
     }
 
     if (user._id === post.author?._id) {
-      alert('Bạn không thể đánh dấu quan tâm/không quan tâm bài viết của chính mình');
+      showInfo('Bạn không thể đánh dấu quan tâm/không quan tâm bài viết của chính mình');
       return;
     }
 
@@ -128,15 +132,15 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
 
       if (response.success) {
         setInterestStatus(interested);
-        alert(response.message || (interested ? 'Đã đánh dấu quan tâm bài viết này' : 'Đã đánh dấu không quan tâm bài viết này'));
+        showSuccess(response.message || (interested ? 'Đã đánh dấu quan tâm bài viết này' : 'Đã đánh dấu không quan tâm bài viết này'));
       }
     } catch (error) {
       console.error('Error updating interest:', error);
-      alert(error.message || 'Có lỗi xảy ra khi cập nhật');
+      showError(error.message || 'Có lỗi xảy ra khi cập nhật');
     } finally {
       setInterestLoading(false);
     }
-  }, [user, post._id, post.author?._id]);
+  }, [user, post._id, post.author?._id, showSuccess, showError, showInfo]);
 
   // Close main menu when clicking outside
   useEffect(() => {
@@ -223,9 +227,41 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     [counts]
   );
 
-  // Add/remove emote for the post - Memoized
+  // Add/remove emote for the post - Memoized with optimistic update
   const handleEmote = useCallback(async (emoteType) => {
+    if (emotingPost) return;
+    
     const hadEmote = !!uiUserEmote;
+    const previousEmotes = [...emotesState];
+    const previousUserEmote = uiUserEmote;
+    
+    // Optimistic update
+    setEmotingPost(true);
+    if (hadEmote && previousUserEmote === emoteType) {
+      // Remove emote
+      const newEmotes = emotesState.filter(e => {
+        const userId = e.user?._id || e.user;
+        const currentUserId = user?._id || user?.id;
+        return !(userId && currentUserId && String(userId) === String(currentUserId));
+      });
+      setEmotesState(newEmotes);
+      setLocalUserEmote(null);
+    } else {
+      // Add/change emote
+      const filteredEmotes = emotesState.filter(e => {
+        const userId = e.user?._id || e.user;
+        const currentUserId = user?._id || user?.id;
+        return !(userId && currentUserId && String(userId) === String(currentUserId));
+      });
+      const newEmote = {
+        type: emoteType,
+        user: user?._id || user?.id || user,
+        createdAt: new Date().toISOString()
+      };
+      setEmotesState([...filteredEmotes, newEmote]);
+      setLocalUserEmote(emoteType);
+    }
+    
     if ((emoteType === '👍' || emoteType === '❤️') && !hadEmote) {
       heartAnimationKey.current += 1;
       setShowHeartAnimation(true);
@@ -254,17 +290,30 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         // Không gọi onUpdate để tránh reload
       }
     } catch (e) {
-      alert(e?.message || 'Không thể thêm cảm xúc. Vui lòng thử lại.');
+      // Revert optimistic update
+      setEmotesState(previousEmotes);
+      setLocalUserEmote(previousUserEmote);
+      showError(e?.message || 'Không thể thêm cảm xúc. Vui lòng thử lại.');
+    } finally {
+      setEmotingPost(false);
     }
-  }, [post._id, uiUserEmote]);
+  }, [post._id, uiUserEmote, emotesState, user, emotingPost, showError]);
 
-  // Handle save (toggle saved state) - Memoized
+  // Handle save (toggle saved state) - Memoized with optimistic update
   const handleSave = useCallback(async (e) => {
     e.stopPropagation();
     if (!user) {
       navigate('/login');
       return;
     }
+
+    if (savingPost) return;
+    
+    // Optimistic update
+    const previousSaved = saved;
+    setSavingPost(true);
+    setSaved(!saved);
+    if (onSavedChange) onSavedChange(post._id, !saved);
 
     try {
       const res = await api(`/api/posts/${post._id}/save`, {
@@ -274,10 +323,21 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       const actualSaved = !!res.saved;
       setSaved(actualSaved);
       if (onSavedChange) onSavedChange(post._id, actualSaved);
+      
+      if (actualSaved) {
+        showSuccess("Đã lưu bài viết");
+      } else {
+        showSuccess("Đã bỏ lưu bài viết");
+      }
     } catch (error) {
-      alert(error?.message || "Không thể lưu bài viết");
+      // Revert optimistic update
+      setSaved(previousSaved);
+      if (onSavedChange) onSavedChange(post._id, previousSaved);
+      showError(error?.message || "Không thể lưu bài viết");
+    } finally {
+      setSavingPost(false);
     }
-  }, [user, navigate, post._id, onSavedChange]);
+  }, [user, navigate, post._id, onSavedChange, saved, savingPost, showSuccess, showError]);
 
   // Format time
   const timeAgo = post.createdAt 
@@ -414,14 +474,17 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         onUpdate();
       }
       
+      // Show success message
+      showSuccess("Bình luận đã được đăng thành công!");
+      
       // Navigate to post to see the new comment
       navigate(`/post/${post.slug || post._id}`);
     } catch (error) {
-      alert(error?.message || "Lỗi khi đăng bình luận");
+      showError(error?.message || "Lỗi khi đăng bình luận");
     } finally {
       setSubmittingComment(false);
     }
-  }, [commentContent, commentImages, user, navigate, post._id, post.slug, onUpdate]);
+  }, [commentContent, commentImages, user, navigate, post._id, post.slug, onUpdate, showSuccess, showError]);
 
   return (
     <div 
@@ -786,9 +849,9 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               e.stopPropagation();
               const url = `${window.location.origin}/post/${post.slug || post._id}`;
               navigator.clipboard.writeText(url).then(() => {
-                alert("Đã sao chép liên kết!");
+                showSuccess("Đã sao chép liên kết!");
               }).catch(() => {
-                alert("Không thể sao chép liên kết");
+                showError("Không thể sao chép liên kết");
               });
             }}
             className="flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2 md:py-2.5 rounded-full hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/20 dark:hover:text-green-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90 touch-manipulation"
@@ -895,11 +958,11 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               <button
                 type="submit"
                 disabled={(!commentContent.trim() && commentImages.length === 0) || submittingComment}
-                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 title="Gửi"
               >
                 {submittingComment ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-blue-500"></div>
+                  <Loader2 size={18} className="text-blue-500 animate-spin" />
                 ) : (
                   <Send size={18} className="text-blue-500" />
                 )}

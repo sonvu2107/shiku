@@ -11,9 +11,11 @@ import {
   AlertCircle, Loader2, LogOut, UserX, ChevronRight, User, FileText
 } from "lucide-react";
 import { cn } from "../utils/cn";
+import { useToast } from "../contexts/ToastContext";
 
 export default function Settings() {
   const navigate = useNavigate();
+  const { showError } = useToast();
   
   // ==================== STATE MANAGEMENT ====================
   const [activeTab, setActiveTab] = useState("privacy"); // Mặc định vào tab bảo mật
@@ -64,7 +66,7 @@ export default function Settings() {
       await api(`/api/users/unblock/${userId}`, { method: "POST" });
       await refreshBlockedUsers();
     } catch (err) {
-      alert("Lỗi khi gỡ chặn: " + (err.message || "Lỗi hệ thống"));
+      showError("Lỗi khi gỡ chặn: " + (err.message || "Lỗi hệ thống"));
     }
   };
 

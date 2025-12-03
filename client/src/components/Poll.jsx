@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { api } from "../api";
 import { BarChart3, Users, Clock, CheckCircle2, Plus, X } from "lucide-react";
 import { useSocket } from "../hooks/useSocket";
+import { useToast } from "../contexts/ToastContext";
 
 /**
  * Poll Component - Show poll/survey with realtime voting
@@ -9,6 +10,7 @@ import { useSocket } from "../hooks/useSocket";
  * @param {Object} user - Current user object
  */
 export default function Poll({ post, user }) {
+  const { showError } = useToast();
   const [pollData, setPollData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
@@ -69,18 +71,18 @@ export default function Poll({ post, user }) {
   // Handle vote
   const handleVote = async (optionIndex) => {
     if (!user) {
-      alert("Vui lòng đăng nhập để bình chọn");
+      showError("Vui lòng đăng nhập để bình chọn");
       return;
     }
 
     if (!pollData.isActive) {
-      alert("Bình chọn đã đóng");
+      showError("Bình chọn đã đóng");
       return;
     }
 
     // Check if poll expired
     if (pollData.expiresAt && new Date() >= new Date(pollData.expiresAt)) {
-      alert("Bình chọn đã hết hạn");
+      showError("Bình chọn đã hết hạn");
       return;
     }
 
@@ -95,7 +97,7 @@ export default function Poll({ post, user }) {
       setPollData(response.poll);
     } catch (error) {
       console.error("Error voting:", error);
-      alert(error.message || "Lỗi khi lựa chọn");
+      showError(error.message || "Lỗi khi lựa chọn");
     } finally {
       setVoting(false);
     }
@@ -104,18 +106,18 @@ export default function Poll({ post, user }) {
   // Handle add options
   const handleAddOptions = async () => {
     if (!user) {
-      alert("Vui lòng đăng nhập để thêm lựa chọn");
+      showError("Vui lòng đăng nhập để thêm lựa chọn");
       return;
     }
 
     const validOptions = newOptions.filter(opt => opt.trim());
     if (validOptions.length === 0) {
-      alert("Vui lòng nhập ít nhất một lựa chọn");
+      showError("Vui lòng nhập ít nhất một lựa chọn");
       return;
     }
 
     if (!pollData || !pollData._id) {
-      alert("Không tìm thấy thông tin bình chọn");
+      showError("Không tìm thấy thông tin bình chọn");
       return;
     }
 
@@ -132,7 +134,7 @@ export default function Poll({ post, user }) {
       setNewOptions([""]);
     } catch (error) {
       console.error("Error adding options:", error);
-      alert(error.message || "Lỗi khi thêm lựa chọn");
+      showError(error.message || "Lỗi khi thêm lựa chọn");
     } finally {
       setAddingOptions(false);
     }

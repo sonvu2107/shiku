@@ -16,7 +16,7 @@ import UserAvatar from "../components/UserAvatar";
 import Navbar from "../components/Navbar";
 import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2, Sparkles, Search, Bell, MessageCircle, Plus, X, Moon, Sun, Users, ArrowUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useToast } from "../components/Toast";
+import { useToast } from "../contexts/ToastContext";
 import { useChat } from "../contexts/ChatContext";
 
 // --- VISUAL COMPONENTS FROM LANDING PAGE ---
@@ -117,6 +117,40 @@ function Home({ user, setUser }) {
   const observer = useRef();
   const loadingRef = useRef(false);
   const navigate = useNavigate();
+
+  // ==================== KEYBOARD SHORTCUTS ====================
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ignore if user is typing in an input, textarea, or contenteditable
+      if (
+        e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Focus search with "/" key
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+          setSearchFocused(true);
+        }
+      }
+
+      // Escape to blur search
+      if (e.key === 'Escape' && searchFocused) {
+        if (searchInputRef.current) {
+          searchInputRef.current.blur();
+          setSearchFocused(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [searchFocused]);
 
   // Scroll to top button logic
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -583,33 +617,55 @@ function Home({ user, setUser }) {
   const LoadingSkeleton = useCallback(() => (
     <div className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden transition-colors duration-300">
       <div className="p-5">
-        {/* Header skeleton */}
+        {/* Header skeleton with shimmer */}
         <div className="flex items-center space-x-3 mb-4 px-1">
-          <div className="w-12 h-12 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
+          <div className="relative w-12 h-12 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+          </div>
           <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-32"></div>
-            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-24"></div>
+            <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden w-32">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+            </div>
+            <div className="relative h-3 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden w-24">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+            </div>
           </div>
         </div>
 
-        {/* Content skeleton */}
+        {/* Content skeleton with shimmer */}
         <div className="space-y-2 mb-4 px-1">
-          <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-4/5"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-3/5"></div>
+          <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+          </div>
+          <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden w-4/5">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+          </div>
+          <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden w-3/5">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+          </div>
         </div>
 
-        {/* Image skeleton */}
-        <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-3xl animate-pulse mb-5"></div>
+        {/* Image skeleton with shimmer */}
+        <div className="relative h-64 bg-gray-200 dark:bg-gray-800 rounded-3xl overflow-hidden mb-5">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+        </div>
 
-        {/* Actions skeleton */}
+        {/* Actions skeleton with shimmer */}
         <div className="flex items-center justify-between px-1">
           <div className="flex space-x-1">
-            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-20"></div>
-            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-20"></div>
-            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-16"></div>
+            <div className="relative h-10 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden w-20">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+            </div>
+            <div className="relative h-10 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden w-20">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+            </div>
+            <div className="relative h-10 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden w-16">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+            </div>
           </div>
-          <div className="h-10 w-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
+          <div className="relative h-10 w-10 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -961,20 +1017,36 @@ function Home({ user, setUser }) {
                     ))}
                   </div>
                 ) : error ? (
-                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-2xl p-6 md:p-8 text-center transition-colors duration-300 shadow-md">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-2xl p-6 md:p-8 text-center transition-colors duration-300 shadow-md"
+                  >
                     <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-800/50 rounded-full flex items-center justify-center">
-                      <TrendingUp size={24} className="text-red-400" />
+                      <AlertCircle size={24} className="text-red-500 dark:text-red-400" />
                     </div>
                     <h3 className="text-lg font-bold text-red-900 dark:text-red-300 mb-2">Có lỗi xảy ra</h3>
                     <p className="text-base text-red-600 dark:text-red-400 mb-6 break-words px-2">{error}</p>
-                    <button
-                      onClick={loadInitial}
-                      className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-base hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-lg"
-                      aria-label="Thử tải lại bài viết"
-                    >
-                      Thử lại
-                    </button>
-                  </div>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <button
+                        onClick={loadInitial}
+                        className="px-6 py-3 bg-red-600 dark:bg-red-700 text-white rounded-xl font-semibold text-base hover:bg-red-700 dark:hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                        aria-label="Thử tải lại bài viết"
+                      >
+                        Thử lại
+                      </button>
+                      <button
+                        onClick={() => {
+                          setError(null);
+                          navigate(0);
+                        }}
+                        className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl font-semibold text-base hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
+                      >
+                        Tải lại trang
+                      </button>
+                    </div>
+                  </motion.div>
                 ) : items.length > 0 ? (
                   <div className="space-y-6">
                     {items.map((post, index) => {
@@ -1024,13 +1096,27 @@ function Home({ user, setUser }) {
                     )}
                   </div>
                 ) : (
-                  <div className="bg-white dark:bg-[#111] rounded-2xl shadow-md dark:shadow-lg border border-transparent dark:border-white/5 p-12 text-center transition-colors duration-300">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                      <TrendingUp size={24} className="text-gray-400 dark:text-gray-400" />
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="bg-white dark:bg-[#111] rounded-2xl shadow-md dark:shadow-lg border border-transparent dark:border-white/5 p-12 text-center transition-colors duration-300"
+                  >
+                    <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center">
+                      <Sparkles size={32} className="text-blue-500 dark:text-blue-400" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Chưa có bài viết nào</h3>
-                    <p className="text-base text-gray-600 dark:text-gray-300">Hãy là người đầu tiên chia sẻ điều gì đó thú vị!</p>
-                  </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Chưa có bài viết nào</h3>
+                    <p className="text-base text-gray-600 dark:text-gray-300 mb-6">Hãy là người đầu tiên chia sẻ điều gì đó thú vị!</p>
+                    {user && (
+                      <Link
+                        to="/create-post"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:scale-105 transition-transform shadow-lg"
+                      >
+                        <Plus size={18} />
+                        Tạo bài viết đầu tiên
+                      </Link>
+                    )}
+                  </motion.div>
                 )}
               </div>
 

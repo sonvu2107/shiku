@@ -27,6 +27,7 @@ import {
 import { PageLayout, SpotlightCard } from "../components/ui/DesignSystem";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { cn } from "../utils/cn";
+import { useToast } from "../contexts/ToastContext";
 
 /**
  * EventDetail - Event detail page (Redesigned)
@@ -35,6 +36,7 @@ import { cn } from "../utils/cn";
 export default function EventDetail() {
    const { id } = useParams();
    const navigate = useNavigate();
+   const { showError } = useToast();
    const [event, setEvent] = useState(null);
    const [loading, setLoading] = useState(true);
    const [actionLoading, setActionLoading] = useState(false);
@@ -118,7 +120,7 @@ export default function EventDetail() {
          }
 
       } catch (error) {
-         alert(error.message || "Có lỗi xảy ra");
+         showError(error.message || "Có lỗi xảy ra");
       } finally {
          setActionLoading(false);
          setShowMenu(false);

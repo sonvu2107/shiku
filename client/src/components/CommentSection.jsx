@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api";
-import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp, Smile, Frown, Laugh, Angry, Image, X } from "lucide-react";
+import { Heart, MessageCircle, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp, Smile, Frown, Laugh, Angry, Image, X, Loader2 } from "lucide-react";
 import MediaViewer from "./MediaViewer";
 import BanNotification from "./BanNotification";
 import UserName from "./UserName";
@@ -10,6 +10,7 @@ import ComponentErrorBoundary from "./ComponentErrorBoundary";
 import CommentImageUpload from "./CommentImageUpload";
 import MentionText from "./MentionText";
 import MentionAutocomplete from "./MentionAutocomplete";
+import { useToast } from "../contexts/ToastContext";
 
 /**
  * Mapping roles with their respective icons (currently unused)
@@ -67,6 +68,9 @@ const emojiList = [
 function CommentSection({ postId, initialComments = [], user }) {
   // ==================== STATE MANAGEMENT ====================
   
+  // Toast notifications
+  const { showSuccess, showError } = useToast();
+  
   // Comments data
   const [comments, setComments] = useState([]); // Organized list of comments
   const [newComment, setNewComment] = useState(""); // New comment content
@@ -75,6 +79,7 @@ function CommentSection({ postId, initialComments = [], user }) {
   const [newCommentCursorPosition, setNewCommentCursorPosition] = useState(0); // Cursor position in newComment
   const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false); // Show mention autocomplete
   const newCommentTextareaRef = useRef(null); // Ref for newComment textarea
+  const commentsContainerRef = useRef(null); // Ref for comments container (for scrolling)
   
   // Reply system
   const [replyingTo, setReplyingTo] = useState(null); // ID comment being replied to
@@ -85,13 +90,19 @@ function CommentSection({ postId, initialComments = [], user }) {
   const [showReplyMentionAutocomplete, setShowReplyMentionAutocomplete] = useState(false); // Show mention autocomplete for reply
   const replyTextareaRef = useRef(null); // Ref for reply textarea
   
-  // UI states
-  const [loading, setLoading] = useState(false); // Loading state
+  // UI states - Separate loading states for better UX
+  const [loading, setLoading] = useState(false); // General loading state
+  const [submittingComment, setSubmittingComment] = useState(false); // Submitting new comment
+  const [submittingReply, setSubmittingReply] = useState(new Map()); // Submitting replies (Map<commentId, boolean>)
+  const [updatingComment, setUpdatingComment] = useState(new Map()); // Updating comments (Map<commentId, boolean>)
+  const [likingComments, setLikingComments] = useState(new Set()); // Liking comments (Set<commentId>)
+  const [deletingComments, setDeletingComments] = useState(new Set()); // Deleting comments (Set<commentId>)
   const [showBanNotification, setShowBanNotification] = useState(false); // Show ban notification
   const [banInfo, setBanInfo] = useState(null); // Ban information
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxGallery, setLightboxGallery] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [fetchingComments, setFetchingComments] = useState(true); // Fetching comments
   
   // Edit system
   const [editingComment, setEditingComment] = useState(null); // ID comment being edited
@@ -106,6 +117,9 @@ function CommentSection({ postId, initialComments = [], user }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Show emoji picker for new comment
   const [showReplyEmojiPicker, setShowReplyEmojiPicker] = useState(null); // ID comment showing emoji picker for reply
   const [showEditEmojiPicker, setShowEditEmojiPicker] = useState(null); // ID comment showing emoji picker for edit
+  
+  // Debounce timer for mention autocomplete
+  const mentionDebounceTimer = useRef(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -131,6 +145,15 @@ function CommentSection({ postId, initialComments = [], user }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showDropdown, showEmotePicker, showEmojiPicker, showReplyEmojiPicker, showEditEmojiPicker]);
 
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (mentionDebounceTimer.current) {
+        clearTimeout(mentionDebounceTimer.current);
+      }
+    };
+  }, []);
+
   // Organize comments into tree structure - Memoized
   const organizeComments = useCallback((commentList) => {
     const commentMap = {};
@@ -154,11 +177,15 @@ function CommentSection({ postId, initialComments = [], user }) {
 
   useEffect(() => {
     const fetchComments = async () => {
+      setFetchingComments(true);
       try {
         const res = await api(`/api/comments/post/${postId}`);
         setComments(organizeComments(res.items));
       } catch (err) {
         // Silent handling for comments loading error
+        console.error("Error fetching comments:", err);
+      } finally {
+        setFetchingComments(false);
       }
     };
     fetchComments();
@@ -188,7 +215,7 @@ function CommentSection({ postId, initialComments = [], user }) {
     setShowMentionAutocomplete(false);
   };
 
-  // Handle textarea change and cursor position
+  // Handle textarea change and cursor position with debouncing
   const handleNewCommentChange = (e) => {
     const value = e.target.value;
     const cursorPos = e.target.selectionStart;
@@ -196,23 +223,31 @@ function CommentSection({ postId, initialComments = [], user }) {
     setNewComment(value);
     setNewCommentCursorPosition(cursorPos);
     
-    // Check if we should show autocomplete (user typed @)
-    const textBeforeCursor = value.substring(0, cursorPos);
-    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-    
-    if (lastAtIndex !== -1) {
-      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
-      // Show autocomplete if @ is followed by valid characters or empty
-      if (textAfterAt.length === 0 || /^[\p{L}\p{N}_\s]*$/u.test(textAfterAt)) {
-        const spaceAfter = textAfterAt.includes(' ');
-        if (!spaceAfter || textAfterAt.match(/^[\p{L}\p{N}_]+\s+[\p{L}\p{N}_]*$/u)) {
-          setShowMentionAutocomplete(true);
-          return;
-        }
-      }
+    // Clear previous debounce timer
+    if (mentionDebounceTimer.current) {
+      clearTimeout(mentionDebounceTimer.current);
     }
     
-    setShowMentionAutocomplete(false);
+    // Debounce mention autocomplete check
+    mentionDebounceTimer.current = setTimeout(() => {
+      // Check if we should show autocomplete (user typed @)
+      const textBeforeCursor = value.substring(0, cursorPos);
+      const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+      
+      if (lastAtIndex !== -1) {
+        const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+        // Show autocomplete if @ is followed by valid characters or empty
+        if (textAfterAt.length === 0 || /^[\p{L}\p{N}_\s]*$/u.test(textAfterAt)) {
+          const spaceAfter = textAfterAt.includes(' ');
+          if (!spaceAfter || textAfterAt.match(/^[\p{L}\p{N}_]+\s+[\p{L}\p{N}_]*$/u)) {
+            setShowMentionAutocomplete(true);
+            return;
+          }
+        }
+      }
+      
+      setShowMentionAutocomplete(false);
+    }, 150); // 150ms debounce
   };
 
   // Handle textarea key events
@@ -222,7 +257,16 @@ function CommentSection({ postId, initialComments = [], user }) {
       return;
     }
     
-    // Close autocomplete on Escape or when typing space after non-mention text
+    // Keyboard shortcut: Cmd/Ctrl + Enter to submit
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      if (!submittingComment && (newComment.trim() || newCommentImages.length > 0)) {
+        handleSubmitComment(e);
+      }
+      return;
+    }
+    
+    // Close autocomplete on Escape
     if (e.key === "Escape") {
       setShowMentionAutocomplete(false);
     }
@@ -286,6 +330,21 @@ function CommentSection({ postId, initialComments = [], user }) {
       return;
     }
     
+    // Keyboard shortcut: Cmd/Ctrl + Enter to submit
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && replyingTo) {
+      e.preventDefault();
+      const parentComment = comments.find(c => c._id === replyingTo) || 
+        comments.reduce((found, c) => {
+          if (found) return found;
+          const reply = c.replies?.find(r => r._id === replyingTo);
+          return reply ? c : null;
+        }, null);
+      if (parentComment && !submittingReply.get(replyingTo) && (replyContent.trim() || replyImages.length > 0)) {
+        handleSubmitReply(e, replyingTo, parentComment.author);
+      }
+      return;
+    }
+    
     // Close autocomplete on Escape
     if (e.key === "Escape") {
       setShowReplyMentionAutocomplete(false);
@@ -294,10 +353,15 @@ function CommentSection({ postId, initialComments = [], user }) {
 
   const handleSubmitComment = async (e) => {
     e.preventDefault();
-    if ((!newComment.trim() && newCommentImages.length === 0) || !user) return;
+    if ((!newComment.trim() && newCommentImages.length === 0) || !user || submittingComment) return;
 
     setShowMentionAutocomplete(false); // Close autocomplete when submitting
-    setLoading(true);
+    setSubmittingComment(true);
+    
+    // Store content for optimistic update
+    const commentContent = newComment;
+    const commentImages = [...newCommentImages];
+    
     try {
       let requestBody;
       
@@ -327,30 +391,50 @@ function CommentSection({ postId, initialComments = [], user }) {
         { ...response.comment, replies: [] },
         ...prev
       ]);
+      
+      // Clear form
       setNewComment("");
       setNewCommentCursorPosition(0);
       setShowMentionAutocomplete(false);
       // Reset images and file input
-      newCommentImages.forEach(img => img.preview && URL.revokeObjectURL(img.preview));
+      commentImages.forEach(img => img.preview && URL.revokeObjectURL(img.preview));
       setNewCommentImages([]);
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = "";
-      // Hide comment input form
-      setShowCommentForm(false);
+      
+      // Show success message
+      showSuccess("Bình luận đã được đăng thành công!");
+      
+      // Scroll to new comment after a short delay
+      setTimeout(() => {
+        if (commentsContainerRef.current) {
+          const firstComment = commentsContainerRef.current.querySelector('[data-comment-id]');
+          if (firstComment) {
+            firstComment.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+      }, 100);
+      
+      // Focus back to textarea
+      setTimeout(() => {
+        if (newCommentTextareaRef.current) {
+          newCommentTextareaRef.current.focus();
+        }
+      }, 200);
     } catch (error) {
       const errorMessage = error?.message || "Lỗi hệ thống";
-      alert("Lỗi khi đăng bình luận: " + errorMessage);
+      showError("Lỗi khi đăng bình luận: " + errorMessage);
     } finally {
-      setLoading(false);
+      setSubmittingComment(false);
     }
   };
 
   // ==================== Reply Comment ====================
   const handleSubmitReply = async (e, parentId, parentAuthor) => {
     e.preventDefault();
-    if ((!replyContent.trim() && replyImages.length === 0) || !user) return;
+    if ((!replyContent.trim() && replyImages.length === 0) || !user || submittingReply.get(parentId)) return;
 
-    setLoading(true);
+    setSubmittingReply(prev => new Map(prev).set(parentId, true));
     try {
       let requestBody;
 
@@ -384,11 +468,18 @@ function CommentSection({ postId, initialComments = [], user }) {
 
       // Auto expand replies to show them immediately
       setExpandedReplies((prev) => new Set([...prev, parentId]));
+      
+      // Show success message
+      showSuccess("Phản hồi đã được đăng thành công!");
     } catch (error) {
       const errorMessage = error?.message || "Lỗi hệ thống";
-      alert("Lỗi khi trả lời: " + errorMessage);
+      showError("Lỗi khi trả lời: " + errorMessage);
     } finally {
-      setLoading(false);
+      setSubmittingReply(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(parentId);
+        return newMap;
+      });
     }
   };
 
@@ -401,11 +492,13 @@ function CommentSection({ postId, initialComments = [], user }) {
 
   const handleUpdateComment = async (commentId) => {
     if (!editContent.trim() && editImages.length === 0) {
-      alert("Vui lòng nhập nội dung hoặc đính kèm ảnh!");
+      showError("Vui lòng nhập nội dung hoặc đính kèm ảnh!");
       return;
     }
 
-    setLoading(true);
+    if (updatingComment.get(commentId)) return;
+    
+    setUpdatingComment(prev => new Map(prev).set(commentId, true));
     try {
       let requestBody;
       
@@ -440,11 +533,17 @@ function CommentSection({ postId, initialComments = [], user }) {
       setEditingComment(null);
       setEditContent("");
       setEditImages([]);
+      
+      showSuccess("Bình luận đã được cập nhật!");
     } catch (error) {
       const errorMessage = error?.message || "Lỗi hệ thống";
-      alert("Lỗi khi cập nhật: " + errorMessage);
+      showError("Lỗi khi cập nhật: " + errorMessage);
     } finally {
-      setLoading(false);
+      setUpdatingComment(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(commentId);
+        return newMap;
+      });
     }
   };
 
@@ -517,33 +616,70 @@ function CommentSection({ postId, initialComments = [], user }) {
   }
 
   async function handleDeleteComment(commentId) {
-    setLoading(true);
+    if (deletingComments.has(commentId)) return;
+    
+    setDeletingComments(prev => new Set([...prev, commentId]));
     try {
       await api(`/api/comments/${commentId}`, {
         method: "DELETE"
       });
       setComments((prev) => removeCommentFromTree(prev, commentId));
+      showSuccess("Bình luận đã được xóa!");
     } catch (error) {
       const errorMessage = error?.message || "Lỗi hệ thống";
-      alert("Lỗi khi xóa bình luận: " + errorMessage);
+      showError("Lỗi khi xóa bình luận: " + errorMessage);
     } finally {
-      setLoading(false);
+      setDeletingComments(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(commentId);
+        return newSet;
+      });
     }
   }
 
   /**
-   * Handle like/unlike comment
+   * Handle like/unlike comment with optimistic update
    */
   async function handleLikeComment(commentId) {
-    if (!user) return;
+    if (!user || likingComments.has(commentId)) return;
     
-    setLoading(true);
+    // Find current comment for optimistic update
+    const findComment = (comments) => {
+      for (const comment of comments) {
+        if (comment._id === commentId) return comment;
+        if (comment.replies?.length > 0) {
+          const found = findComment(comment.replies);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    
+    const currentComment = findComment(comments);
+    if (!currentComment) return;
+    
+    const isLiked = currentComment.likes?.some(like => like._id === user._id || like.user?._id === user._id);
+    const currentLikeCount = currentComment.likeCount || 0;
+    
+    // Optimistic update
+    setLikingComments(prev => new Set([...prev, commentId]));
+    setComments(prev =>
+      prev.map((comment) =>
+        updateCommentInTree(comment, commentId, {
+          likes: isLiked 
+            ? (currentComment.likes || []).filter(like => like._id !== user._id && like.user?._id !== user._id)
+            : [...(currentComment.likes || []), { _id: user._id, user: { _id: user._id } }],
+          likeCount: isLiked ? Math.max(0, currentLikeCount - 1) : currentLikeCount + 1
+        })
+      )
+    );
+    
     try {
       const res = await api(`/api/comments/${commentId}/like`, {
         method: "POST"
       });
       
-      // Update comment in state
+      // Update with server response
       setComments(prev =>
         prev.map((comment) =>
           updateCommentInTree(comment, commentId, {
@@ -553,10 +689,24 @@ function CommentSection({ postId, initialComments = [], user }) {
         )
       );
     } catch (error) {
+      // Revert optimistic update on error
+      setComments(prev =>
+        prev.map((comment) =>
+          updateCommentInTree(comment, commentId, {
+            likes: currentComment.likes,
+            likeCount: currentLikeCount
+          })
+        )
+      );
       const errorMessage = error?.message || "Lỗi hệ thống";
       console.error("Like comment error:", errorMessage);
+      showError("Lỗi khi thích bình luận");
     } finally {
-      setLoading(false);
+      setLikingComments(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(commentId);
+        return newSet;
+      });
     }
   }
 
@@ -592,7 +742,7 @@ function CommentSection({ postId, initialComments = [], user }) {
     } catch (error) {
       const errorMessage = error?.message || "Lỗi hệ thống";
       console.error('Emote error:', errorMessage);
-      alert('Lỗi khi thêm cảm xúc: ' + errorMessage);
+      showError('Lỗi khi thêm cảm xúc: ' + errorMessage);
     } finally {
       setLoading(false);
     }
@@ -634,9 +784,13 @@ function CommentSection({ postId, initialComments = [], user }) {
   const renderComment = (comment, level = 0) => {
     const isExpanded = expandedReplies.has(comment._id);
     const hasReplies = comment.replies && comment.replies.length > 0;
+    const isLiking = likingComments.has(comment._id);
+    const isDeleting = deletingComments.has(comment._id);
+    const isUpdating = updatingComment.get(comment._id);
+    const isSubmittingReply = submittingReply.get(comment._id);
 
     return (
-      <div key={comment._id} className={`${level > 0 ? "ml-1 sm:ml-4 md:ml-6 lg:ml-8 pl-2 sm:pl-4 border-l-2 border-neutral-100 dark:border-neutral-800" : ""}`}>
+      <div key={comment._id} data-comment-id={comment._id} className={`${level > 0 ? "ml-1 sm:ml-4 md:ml-6 lg:ml-8 pl-2 sm:pl-4 border-l-2 border-neutral-100 dark:border-neutral-800" : ""}`}>
         {/* Main Comment */}
         <div className="flex gap-2 sm:gap-3 py-2 sm:py-1.5 group/comment">
           <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="focus:outline-none flex-shrink-0 touch-manipulation">
@@ -730,10 +884,17 @@ function CommentSection({ postId, initialComments = [], user }) {
                     </button>
                     <button
                       onClick={() => handleUpdateComment(comment._id)}
-                      disabled={(!editContent.trim() && editImages.length === 0) || loading}
-                      className="px-5 py-2.5 sm:px-4 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-black dark:bg-white text-white dark:text-black text-xs sm:text-xs font-bold rounded-full active:opacity-80 hover:opacity-80 disabled:opacity-50 transition-all touch-manipulation"
+                      disabled={(!editContent.trim() && editImages.length === 0) || isUpdating}
+                      className="px-5 py-2.5 sm:px-4 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-black dark:bg-white text-white dark:text-black text-xs sm:text-xs font-bold rounded-full active:opacity-80 hover:opacity-80 disabled:opacity-50 transition-all touch-manipulation flex items-center gap-2"
                     >
-                      {loading ? 'Đang lưu...' : 'Lưu'}
+                      {isUpdating ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          <span>Đang lưu...</span>
+                        </>
+                      ) : (
+                        'Lưu'
+                      )}
                     </button>
                   </div>
                 </div>
@@ -771,18 +932,23 @@ function CommentSection({ postId, initialComments = [], user }) {
               {/* Like Button */}
               <button
                 onClick={() => handleLikeComment(comment._id)}
-                className={`flex items-center gap-1.5 sm:gap-1.5 text-xs font-bold transition-colors min-h-[44px] sm:min-h-0 px-2 sm:px-0 -ml-2 sm:ml-0 touch-manipulation ${
-                  comment.likes?.some(like => like._id === user?._id) 
+                disabled={isLiking}
+                className={`flex items-center gap-1.5 sm:gap-1.5 text-xs font-bold transition-colors min-h-[44px] sm:min-h-0 px-2 sm:px-0 -ml-2 sm:ml-0 touch-manipulation disabled:opacity-50 ${
+                  comment.likes?.some(like => like._id === user?._id || like.user?._id === user?._id) 
                     ? 'text-red-600 dark:text-red-500' 
                     : 'text-neutral-500 active:text-neutral-900 dark:active:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-300'
                 }`}
               >
-                <Heart 
-                  size={16} 
-                  className={`sm:w-3.5 sm:h-3.5 ${comment.likes?.some(like => like._id === user?._id) ? 'fill-current' : ''}`} 
-                />
+                {isLiking ? (
+                  <Loader2 size={16} className="sm:w-3.5 sm:h-3.5 animate-spin" />
+                ) : (
+                  <Heart 
+                    size={16} 
+                    className={`sm:w-3.5 sm:h-3.5 ${comment.likes?.some(like => like._id === user?._id || like.user?._id === user?._id) ? 'fill-current' : ''}`} 
+                  />
+                )}
                 {comment.likeCount > 0 && <span className="text-xs sm:text-xs">{comment.likeCount}</span>}
-                <span className="hidden sm:inline ml-0.5">{comment.likes?.some(like => like._id === user?._id) ? 'Đã thích' : 'Thích'}</span>
+                <span className="hidden sm:inline ml-0.5">{comment.likes?.some(like => like._id === user?._id || like.user?._id === user?._id) ? 'Đã thích' : 'Thích'}</span>
               </button>
 
               {/* Reply Button */}
@@ -824,8 +990,8 @@ function CommentSection({ postId, initialComments = [], user }) {
                           onClick={() => {
                             if (window.confirm("Bạn có chắc muốn xóa bình luận này?")) {
                               handleDeleteComment(comment._id);
+                              setShowDropdown(null);
                             }
-                            setShowDropdown(null);
                           }}
                           className="w-full px-5 py-4 sm:px-4 sm:py-2.5 text-left text-sm sm:text-xs font-bold text-red-600 active:bg-red-50 dark:active:bg-red-900/20 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors touch-manipulation min-h-[56px] sm:min-h-0"
                         >
@@ -935,10 +1101,17 @@ function CommentSection({ postId, initialComments = [], user }) {
                       </button>
                       <button
                         type="submit"
-                        disabled={(!replyContent.trim() && replyImages.length === 0) || loading}
-                        className="px-5 py-2.5 sm:px-4 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-black dark:bg-white text-white dark:text-black text-xs sm:text-xs font-bold rounded-full active:opacity-90 hover:opacity-90 disabled:opacity-50 transition-all touch-manipulation"
+                        disabled={(!replyContent.trim() && replyImages.length === 0) || isSubmittingReply}
+                        className="px-5 py-2.5 sm:px-4 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-black dark:bg-white text-white dark:text-black text-xs sm:text-xs font-bold rounded-full active:opacity-90 hover:opacity-90 disabled:opacity-50 transition-all touch-manipulation flex items-center gap-2"
                       >
-                        {loading ? "..." : "Gửi"}
+                        {isSubmittingReply ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            <span>Đang gửi...</span>
+                          </>
+                        ) : (
+                          "Gửi"
+                        )}
                       </button>
                     </div>
                   </div>
@@ -1061,10 +1234,17 @@ function CommentSection({ postId, initialComments = [], user }) {
                   </div>
                   <button
                     type="submit"
-                    disabled={(!newComment.trim() && newCommentImages.length === 0) || loading}
-                    className="px-5 py-2.5 sm:px-4 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-black dark:bg-white text-white dark:text-black text-sm sm:text-sm font-bold rounded-full active:opacity-90 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm touch-manipulation"
+                    disabled={(!newComment.trim() && newCommentImages.length === 0) || submittingComment}
+                    className="px-5 py-2.5 sm:px-4 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-black dark:bg-white text-white dark:text-black text-sm sm:text-sm font-bold rounded-full active:opacity-90 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm touch-manipulation flex items-center gap-2"
                   >
-                    {loading ? "..." : "Gửi"}
+                    {submittingComment ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Đang gửi...</span>
+                      </>
+                    ) : (
+                      "Gửi"
+                    )}
                   </button>
                 </div>
               </div>
@@ -1089,8 +1269,13 @@ function CommentSection({ postId, initialComments = [], user }) {
         </div>
 
         {/* Comments List */}
-        <div className="space-y-3 sm:space-y-2">
-          {comments.length > 0 ? (
+        <div ref={commentsContainerRef} className="space-y-3 sm:space-y-2">
+          {fetchingComments ? (
+            <div className="text-center py-12">
+              <Loader2 size={24} className="animate-spin text-neutral-400 mx-auto" />
+              <p className="text-neutral-500 text-sm mt-2">Đang tải bình luận...</p>
+            </div>
+          ) : comments.length > 0 ? (
             comments.map((comment) => renderComment(comment))
           ) : (
             <div className="text-center py-10 sm:py-12 bg-neutral-50 dark:bg-neutral-900/30 rounded-2xl sm:rounded-3xl border border-dashed border-neutral-200 dark:border-neutral-800 px-4 sm:px-0">

@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { api } from "../api";
-import { Upload, X, Image } from "lucide-react";
+import { Upload, X, Image, Loader2 } from "lucide-react";
+import { useToast } from "../contexts/ToastContext";
 
 /**
  * ImageUpload - Component upload image
@@ -9,20 +10,21 @@ import { Upload, X, Image } from "lucide-react";
 export default function ImageUpload({ onUpload, accept = "image/*", className = "", children }) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const { showError, showSuccess } = useToast();
 
   const handleFileSelect = async (file) => {
     if (!file) return;
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Vui lòng chọn file hình ảnh');
+      showError('Vui lòng chọn file hình ảnh');
       return;
     }
 
     // Validate file size (10MB max)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-      alert('File quá lớn. Kích thước tối đa là 10MB');
+      showError('File quá lớn. Kích thước tối đa là 10MB');
       return;
     }
 
@@ -38,12 +40,12 @@ export default function ImageUpload({ onUpload, accept = "image/*", className = 
 
       if (response.success && response.url) {
         onUpload(response.url);
+        showSuccess('Ảnh đã được tải lên thành công!');
       } else {
         throw new Error(response.message || 'Tải lên thất bại');
       }
     } catch (error) {
-      // Silent handling for upload error
-      alert('Có lỗi xảy ra khi tải lên ảnh: ' + error.message);
+      showError('Có lỗi xảy ra khi tải lên ảnh: ' + (error.message || 'Vui lòng thử lại'));
     } finally {
       setUploading(false);
     }
@@ -90,8 +92,8 @@ export default function ImageUpload({ onUpload, accept = "image/*", className = 
       
       {uploading ? (
         <div className="flex flex-col items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-          <p className="text-sm text-gray-600">Đang tải lên...</p>
+          <Loader2 size={32} className="animate-spin text-blue-600 mb-2" />
+          <p className="text-sm text-gray-600 dark:text-gray-400">Đang tải lên...</p>
         </div>
       ) : (
         children

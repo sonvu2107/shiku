@@ -521,6 +521,15 @@ select.appearance-none {
     animation: registerFadeIn 0.3s ease-in-out;
   }
   
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
   @keyframes registerFadeIn {
     from {
       opacity: 0;

@@ -9,6 +9,8 @@ import UserAvatar, { UserTitle, UserBadge } from "../components/UserAvatar";
 import ProfileEffect from "../components/ProfileEffect";
 import CultivationBadge from "../components/CultivationBadge";
 import { cn } from "../utils/cn";
+import { useToast } from "../contexts/ToastContext";
+import { Loader2 } from "lucide-react";
 import {
   MapPin, Link as LinkIcon, Calendar as CalendarIcon, Heart, Users, FileText,
   MessageCircle, UserPlus, UserMinus, UserCheck, MoreHorizontal, Phone, Ban, Shield, Sparkles
@@ -67,6 +69,7 @@ const SpotlightCard = ({ children, className = "", onClick }) => {
 export default function UserProfile() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
 
   // ==================== STATE ====================
   const [user, setUser] = useState(null);
@@ -247,12 +250,13 @@ export default function UserProfile() {
         if(window.confirm("Bạn có chắc muốn hủy kết bạn?")) {
            await api(`/api/friends/remove/${user._id}`, { method: "DELETE" });
            setFriendStatus('none');
+           showSuccess("Đã hủy kết bạn.");
            // Reload friends list
            await loadFriends();
         }
       }
     } catch (e) {
-      alert(e.message || "Có lỗi xảy ra");
+      showError(e.message || "Có lỗi xảy ra");
     } finally {
       setLoadingAction(false);
     }
@@ -276,23 +280,53 @@ export default function UserProfile() {
         // Bỏ chặn
         await api(`/api/users/unblock/${user._id}`, { method: "POST" });
         setIsBlocked(false);
+        showSuccess("Đã bỏ chặn người dùng.");
       } else {
         // Chặn
         await api(`/api/users/block/${user._id}`, { method: "POST" });
         setIsBlocked(true);
+        showSuccess("Đã chặn người dùng.");
         // Reset friend status khi block
         setFriendStatus('none');
       }
       setShowMenu(false);
     } catch (e) {
-      alert(e.message || "Có lỗi xảy ra");
+      showError(e.message || "Có lỗi xảy ra");
     } finally {
       setLoadingBlock(false);
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-white"></div></div>;
-  if (error || !user) return <div className="min-h-screen bg-black flex items-center justify-center text-white">{error || "Người dùng không tồn tại"}</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={32} className="animate-spin text-gray-600 dark:text-gray-300" />
+          <p className="text-gray-600 dark:text-gray-300">Đang tải thông tin...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (error || !user) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+            <Ban size={24} className="text-red-600 dark:text-red-400" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Không tìm thấy người dùng</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">{error || "Người dùng không tồn tại"}</p>
+          <button
+            onClick={() => navigate(-1)}
+            className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+          >
+            Quay lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
       return (
     <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-white transition-colors duration-300 font-sans relative overflow-x-hidden">
@@ -425,10 +459,13 @@ export default function UserProfile() {
                         friendStatus === 'friend' ? "bg-green-600 text-white" : 
                         friendStatus === 'pending_sent' ? "bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300" :
                         friendStatus === 'pending_received' ? "bg-blue-600 text-white" :
-                        "bg-neutral-900 dark:bg-white text-white dark:text-black"
+                        "bg-neutral-900 dark:bg-white text-white dark:text-black",
+                        loadingAction && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    {loadingAction ? "..." : (
+                    {loadingAction ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
                         <>
                             {friendStatus === 'none' && <><UserPlus size={16} className="md:w-[18px] md:h-[18px]" /> <span className="whitespace-nowrap">Kết bạn</span></>}
                             {friendStatus === 'friend' && <><UserCheck size={16} className="md:w-[18px] md:h-[18px]" /> <span className="whitespace-nowrap">Bạn bè</span></>}
@@ -686,11 +723,12 @@ export default function UserProfile() {
                                          e.stopPropagation();
                                          try {
                                             await api("/api/friends/send-request", { method: "POST", body: { to: friend._id } });
+                                            showSuccess("Đã gửi lời mời kết bạn.");
                                             // Reload currentUser friends để update status
                                             const friendsRes = await api("/api/friends/list");
                                             setCurrentUserFriends(friendsRes.friends || []);
                                          } catch (err) {
-                                            alert(err.message || "Có lỗi xảy ra");
+                                            showError(err.message || "Có lỗi xảy ra");
                                          }
                                       }}
                                       className="flex-1 px-4 py-2 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-black font-bold text-sm hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2"
@@ -704,13 +742,14 @@ export default function UserProfile() {
                                          if (window.confirm(`Bạn có chắc muốn hủy kết bạn với ${friend.name}?`)) {
                                             try {
                                                await api(`/api/friends/remove/${friend._id}`, { method: "DELETE" });
+                                               showSuccess("Đã hủy kết bạn.");
                                                // Reload currentUser friends để update status
                                                const friendsRes = await api("/api/friends/list");
                                                setCurrentUserFriends(friendsRes.friends || []);
                                                // Reload friends của user profile
                                                await loadFriends();
                                             } catch (err) {
-                                               alert(err.message || "Có lỗi xảy ra");
+                                               showError(err.message || "Có lỗi xảy ra");
                                             }
                                          }
                                       }}

@@ -9,6 +9,7 @@ import socketService from "../socket";
 import callManager from "../utils/callManager";
 import { X, Phone, Video, ChevronDown, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Edit2, Trash2, Bot } from "lucide-react";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
+import { useToast } from "../contexts/ToastContext";
 
 // Custom CSS for enhanced shadows
 const customStyles = `
@@ -58,6 +59,7 @@ const EMOTES = [
  * @returns {JSX.Element} Chat popup component
  */
 export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVideoCall, index = 0, onShowInfo }) {
+  const { showError } = useToast();
   const isChatbot = conversation?.conversationType === "chatbot";
   // ==================== EFFECTS ====================
 
@@ -190,7 +192,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
         setMessages(prev => [...prev, response.message]);
       }
     } catch (error) {
-      alert("Không thể gửi emote: " + error.message);
+      showError("Không thể gửi emote: " + error.message);
     }
     setShowEmotePicker(false);
   };
@@ -221,7 +223,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       setEditingMessageId(null);
       setEditContent("");
     } catch (error) {
-      alert('Không thể sửa tin nhắn');
+      showError('Không thể sửa tin nhắn');
     }
   };
 
@@ -248,7 +250,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
       setShowOptionsMenu(null);
     } catch (error) {
-      alert('Không thể thu hồi tin nhắn');
+      showError('Không thể thu hồi tin nhắn');
     }
   };
 

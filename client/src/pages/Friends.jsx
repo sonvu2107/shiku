@@ -5,6 +5,8 @@ import { cn } from '../utils/cn';
 import { SpotlightCard } from '../components/ui/SpotlightCard';
 import { PageLayout } from '../components/ui/DesignSystem';
 import { generateAvatarUrl } from '../utils/avatarUtils';
+import { useToast } from '../contexts/ToastContext';
+import { motion } from 'framer-motion';
 import {
   Users, UserPlus, UserCheck, UserX, Search, Clock,
   Send, UserMinus, MessageCircle, Zap
@@ -20,6 +22,7 @@ const GridPattern = () => (
 export default function Friends() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { showSuccess, showError } = useToast();
 
   // State
   const [activeTab, setActiveTab] = useState('friends');
@@ -137,10 +140,10 @@ export default function Friends() {
       } else if (action === 'add') {
         await api('/api/friends/send-request', { method: 'POST', body: { to: id } });
         setSuggestions(prev => prev.filter(u => u._id !== id)); // Remove from suggestions UI
-        alert('Đã gửi lời mời!');
+        showSuccess('Đã gửi lời mời!');
       }
     } catch (err) {
-      alert(err.message);
+      showError(err.message || 'Có lỗi xảy ra');
     } finally {
       setProcessingIds(prev => {
         const newSet = new Set(prev);
@@ -368,17 +371,62 @@ export default function Friends() {
 
               {activeTab === 'requests' && (
                 requests.length > 0 ? requests.map(r => renderUserCard(r, 'request'))
-                  : <div className="col-span-full text-center py-20 text-neutral-500 dark:text-neutral-400">Không có lời mời nào.</div>
+                  : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="col-span-full text-center py-20"
+                    >
+                      <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center shadow-inner">
+                        <UserCheck size={40} className="text-blue-500 dark:text-blue-400" />
+                      </div>
+                      <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Không có lời mời nào</h3>
+                      <p className="text-neutral-500 dark:text-neutral-400">Bạn sẽ thấy lời mời kết bạn ở đây khi có người gửi cho bạn</p>
+                    </motion.div>
+                  )
               )}
 
               {activeTab === 'sent' && (
                 sentRequests.length > 0 ? sentRequests.map(r => renderUserCard(r, 'sent'))
-                  : <div className="col-span-full text-center py-20 text-neutral-500 dark:text-neutral-400">Chưa gửi lời mời nào.</div>
+                  : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="col-span-full text-center py-20"
+                    >
+                      <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-full flex items-center justify-center shadow-inner">
+                        <Clock size={40} className="text-yellow-500 dark:text-yellow-400" />
+                      </div>
+                      <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Chưa gửi lời mời nào</h3>
+                      <p className="text-neutral-500 dark:text-neutral-400">Các lời mời kết bạn bạn đã gửi sẽ hiển thị ở đây</p>
+                    </motion.div>
+                  )
               )}
 
               {activeTab === 'suggestions' && (
                 suggestions.length > 0 ? suggestions.map(u => renderUserCard(u, 'suggestion'))
-                  : <div className="col-span-full text-center py-20 text-neutral-500 dark:text-neutral-400">Không có gợi ý nào.</div>
+                  : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="col-span-full text-center py-20"
+                    >
+                      <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-green-100 to-blue-100 dark:from-green-900/30 dark:to-blue-900/30 rounded-full flex items-center justify-center shadow-inner">
+                        <Zap size={40} className="text-green-500 dark:text-green-400" />
+                      </div>
+                      <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Không có gợi ý nào</h3>
+                      <p className="text-neutral-500 dark:text-neutral-400 mb-6">Chúng tôi sẽ đề xuất bạn bè dựa trên hoạt động của bạn</p>
+                      <button
+                        onClick={() => loadSuggestions()}
+                        className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:scale-105 transition-transform shadow-lg"
+                      >
+                        Tải lại
+                      </button>
+                    </motion.div>
+                  )
               )}
             </div>
           )}

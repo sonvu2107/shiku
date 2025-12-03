@@ -9,6 +9,7 @@ import { useSEO } from '../utils/useSEO';
 import { motion } from 'framer-motion';
 import { cn } from '../utils/cn';
 import { getUserAvatarUrl, AVATAR_SIZES } from '../utils/avatarUtils';
+import { useToast } from '../contexts/ToastContext';
 
 // --- UI COMPONENTS (Đồng bộ Design System) ---
 
@@ -189,6 +190,7 @@ const SpotlightGroupCard = ({ group, onJoin, onLeave, userRole, isJoining, isLea
 
 export default function Groups() {
    const navigate = useNavigate();
+   const { showError } = useToast();
 
    // State
    const [groups, setGroups] = useState([]);
@@ -262,7 +264,7 @@ export default function Groups() {
             if (activeTab === 'discover') await loadGroups(currentPage, true);
             await loadMyGroups();
          }
-      } catch (err) { alert(err.message); }
+      } catch (err) { showError(err.message || 'Không thể tham gia nhóm'); }
       finally { setIsJoining(prev => ({ ...prev, [groupId]: false })); }
    };
 
@@ -275,7 +277,7 @@ export default function Groups() {
             if (activeTab === 'discover') await loadGroups(currentPage, true);
             await loadMyGroups();
          }
-      } catch (err) { alert(err.message); }
+      } catch (err) { showError(err.message || 'Không thể rời nhóm'); }
       finally { setIsLeaving(prev => ({ ...prev, [groupId]: false })); }
    };
 
@@ -369,7 +371,18 @@ export default function Groups() {
                            ))}
                         </div>
                      ) : (
-                        <div className="text-center py-20 text-neutral-500">Không tìm thấy nhóm nào.</div>
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4 }}
+                          className="text-center py-20"
+                        >
+                          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 rounded-full flex items-center justify-center shadow-inner">
+                            <Users size={40} className="text-neutral-400 dark:text-neutral-500" />
+                          </div>
+                          <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Không tìm thấy nhóm nào</h3>
+                          <p className="text-neutral-500 dark:text-neutral-400 mb-6">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
+                        </motion.div>
                      )}
 
                      {/* Load More */}
@@ -399,12 +412,24 @@ export default function Groups() {
                         ))}
                      </div>
                   ) : (
-                     <div className="text-center py-20 bg-neutral-50 dark:bg-neutral-900 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800">
-                        <Users size={40} className="mx-auto text-neutral-400 mb-4" />
-                        <h3 className="font-bold text-lg">Bạn chưa tham gia nhóm nào</h3>
-                        <p className="text-neutral-500 mb-6">Khám phá các cộng đồng thú vị ngay!</p>
-                        <button onClick={() => setActiveTab('discover')} className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg font-bold">Khám phá ngay</button>
-                     </div>
+                     <motion.div
+                       initial={{ opacity: 0, y: 20 }}
+                       animate={{ opacity: 1, y: 0 }}
+                       transition={{ duration: 0.4 }}
+                       className="text-center py-20 bg-neutral-50 dark:bg-neutral-900 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800"
+                     >
+                        <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center shadow-inner">
+                          <Users size={40} className="text-blue-500 dark:text-blue-400" />
+                        </div>
+                        <h3 className="font-bold text-xl text-neutral-900 dark:text-white mb-2">Bạn chưa tham gia nhóm nào</h3>
+                        <p className="text-neutral-500 dark:text-neutral-400 mb-6">Khám phá các cộng đồng thú vị ngay!</p>
+                        <button
+                          onClick={() => setActiveTab('discover')}
+                          className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold hover:scale-105 transition-transform shadow-lg"
+                        >
+                          Khám phá ngay
+                        </button>
+                     </motion.div>
                   )
                )}
             </div>

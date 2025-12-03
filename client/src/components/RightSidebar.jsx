@@ -6,11 +6,13 @@ import { api } from '../api';
 import UserName from './UserName';
 import UserAvatar from './UserAvatar';
 import { useTrendingTags } from '../hooks/useTrendingTags';
+import { useToast } from '../contexts/ToastContext';
 
 /**
  * RightSidebar - Right sidebar with friend suggestions and trending tags
  */
 function RightSidebar({ user }) {
+  const { showError } = useToast();
   const [friendSuggestions, setFriendSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sendingRequests, setSendingRequests] = useState(new Set()); // Track which requests are being sent
@@ -105,8 +107,8 @@ function RightSidebar({ user }) {
         });
       }, 1000);
     } catch (error) {
-      // Show error alert (reusing logic from Friends.jsx)
-      alert(error.message || 'Có lỗi xảy ra khi gửi lời mời kết bạn');
+      // Show error toast
+      showError(error.message || 'Có lỗi xảy ra khi gửi lời mời kết bạn');
     } finally {
       // Clear sending state
       setSendingRequests(prev => {

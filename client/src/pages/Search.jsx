@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { ArrowLeft, Search as SearchIcon, X, Clock, User, FileText } from 'lucide-react';
+import { ArrowLeft, Search as SearchIcon, X, Clock, User, FileText, Loader2 } from 'lucide-react';
 import { api } from '../api';
 import UserName from '../components/UserName';
 import UserAvatar from '../components/UserAvatar';
+import { motion } from 'framer-motion';
 
 export default function Search({ user }) {
   const navigate = useNavigate();
@@ -165,6 +166,7 @@ export default function Search({ user }) {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Tìm kiếm trên Shiku..."
               className="w-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-full py-2.5 pl-10 pr-10 outline-none focus:ring-2 focus:ring-blue-500/50"
+              aria-label="Tìm kiếm bạn bè, nhóm, bài viết"
             />
             <SearchIcon size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
             {query && (
@@ -206,8 +208,37 @@ export default function Search({ user }) {
 
       <div className="max-w-2xl mx-auto pb-20">
         {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="p-4 space-y-6">
+            {/* Loading skeleton for users */}
+            <div className="space-y-4">
+              <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-24 animate-pulse"></div>
+              <div className="space-y-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse">
+                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Loading skeleton for posts */}
+            <div className="space-y-4">
+              <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-24 animate-pulse"></div>
+              <div className="space-y-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex gap-3 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse">
+                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           <>
@@ -305,10 +336,29 @@ export default function Search({ user }) {
                 )}
 
                 {results.users.length === 0 && results.posts.length === 0 && (
-                  <div className="text-center py-12 text-gray-500">
-                    <SearchIcon size={48} className="mx-auto mb-4 opacity-20" />
-                    <p>Không tìm thấy kết quả nào cho "{searchParams.get('q')}"</p>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="text-center py-20 px-4"
+                  >
+                    <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-full flex items-center justify-center shadow-inner">
+                      <SearchIcon size={48} className="text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Không tìm thấy kết quả</h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-1">Không có kết quả nào cho</p>
+                    <p className="text-gray-900 dark:text-white font-semibold text-lg mb-6">"{searchParams.get('q')}"</p>
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Thử tìm kiếm với từ khóa khác hoặc</p>
+                      <Link
+                        to="/"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:scale-105 transition-transform shadow-lg"
+                      >
+                        <ArrowLeft size={18} />
+                        Quay về trang chủ
+                      </Link>
+                    </div>
+                  </motion.div>
                 )}
               </div>
             )}

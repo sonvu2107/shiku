@@ -3,6 +3,7 @@ import { X, UserPlus, UserMinus, Crown, Camera, Users, Edit3 } from 'lucide-reac
 import { chatAPI } from '../../chatAPI';
 import { uploadImage } from '../../api';
 import GroupMembersModal from './GroupMembersModal';
+import { useToast } from '../../contexts/ToastContext';
 
 /**
  * GroupSettingsModal - Modal group chat settings
@@ -22,6 +23,7 @@ const GroupSettingsModal = ({
   onClose, 
   onUpdateConversation 
 }) => {
+  const { showError } = useToast();
   // ==================== STATE MANAGEMENT ====================
   
   // UI states
@@ -58,7 +60,7 @@ const GroupSettingsModal = ({
         // No need to call onUpdateConversation since the system message will update UI
         // onUpdateConversation?.(conversation._id);
       } catch (error) {
-        alert('Có lỗi xảy ra khi xóa thành viên');
+        showError('Có lỗi xảy ra khi xóa thành viên');
       }
     }
   };
@@ -75,7 +77,7 @@ const GroupSettingsModal = ({
       await loadConversationDetails();
       if (onUpdateConversation) onUpdateConversation(conversation._id);
     } catch (error) {
-      alert('Lỗi khi cập nhật avatar nhóm: ' + error.message);
+      showError('Lỗi khi cập nhật avatar nhóm: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -87,7 +89,7 @@ const GroupSettingsModal = ({
       await loadConversationDetails();
       // onUpdateConversation?.();
     } catch (error) {
-      alert(`Có lỗi xảy ra: ${error.message}`);
+      showError(`Có lỗi xảy ra: ${error.message}`);
     }
   };
 
@@ -98,7 +100,7 @@ const GroupSettingsModal = ({
       await loadConversationDetails();
       // onUpdateConversation?.();
     } catch (error) {
-      alert(`Có lỗi xảy ra: ${error.message}`);
+      showError(`Có lỗi xảy ra: ${error.message}`);
     }
   };
 
@@ -110,7 +112,7 @@ const GroupSettingsModal = ({
         onUpdateConversation(conversation._id);
       }
     } catch (error) {
-      alert(`Có lỗi xảy ra: ${error.message}`);
+      showError(`Có lỗi xảy ra: ${error.message}`);
     }
   };
 

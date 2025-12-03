@@ -32,6 +32,8 @@ export default function Login({ setUser }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const navigate = useNavigate();
 
   const [backgroundConfig, setBackgroundConfig] = useState({
@@ -112,10 +114,12 @@ export default function Login({ setUser }) {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) return;
+    if (!email.trim() || !password.trim() || emailError || passwordError) return;
 
     setLoading(true);
     setError(null);
+    setEmailError("");
+    setPasswordError("");
 
     try {
       // Lấy CSRF token trước khi đăng nhập
@@ -217,15 +221,42 @@ export default function Login({ setUser }) {
               </motion.div>
             )}
 
-            <InputGroup
-              icon={Mail}
-              type="email"
-              placeholder="Email của bạn"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
+            <div>
+              <InputGroup
+                icon={Mail}
+                type="email"
+                placeholder="Email của bạn"
+                value={email}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setEmail(value);
+                  setError(null);
+                  // Real-time email validation
+                  if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                    setEmailError("Email không hợp lệ");
+                  } else {
+                    setEmailError("");
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = e.target.value;
+                  if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                    setEmailError("Email không hợp lệ");
+                  } else {
+                    setEmailError("");
+                  }
+                }}
+                autoComplete="email"
+                required
+                className={emailError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+              />
+              {emailError && (
+                <p className="mt-1 text-xs text-red-400 flex items-center gap-1">
+                  <AlertCircle size={12} />
+                  {emailError}
+                </p>
+              )}
+            </div>
 
             <div>
               <InputGroup
@@ -233,20 +264,40 @@ export default function Login({ setUser }) {
                 type="password"
                 placeholder="Mật khẩu"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError(null);
+                  setPasswordError("");
+                }}
+                onBlur={(e) => {
+                  if (e.target.value && e.target.value.length < 6) {
+                    setPasswordError("Mật khẩu phải có ít nhất 6 ký tự");
+                  } else {
+                    setPasswordError("");
+                  }
+                }}
                 autoComplete="current-password"
                 required
+                className={passwordError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
               />
-              <div className="flex justify-end mt-2">
-                <Link to="/forgot-password" className="text-xs text-neutral-500 hover:text-white transition-colors">
-                  Quên mật khẩu?
-                </Link>
+              <div className="flex justify-between items-center mt-2">
+                {passwordError && (
+                  <p className="text-xs text-red-400 flex items-center gap-1">
+                    <AlertCircle size={12} />
+                    {passwordError}
+                  </p>
+                )}
+                <div className={passwordError ? "" : "ml-auto"}>
+                  <Link to="/forgot-password" className="text-xs text-neutral-500 hover:text-white transition-colors">
+                    Quên mật khẩu?
+                  </Link>
+                </div>
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !email.trim() || !password.trim() || !!emailError || !!passwordError}
               className="group w-full relative overflow-hidden rounded-xl bg-white text-black font-bold py-3 sm:py-4 text-sm sm:text-base shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.5)] transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed min-h-[48px] touch-manipulation"
             >
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>

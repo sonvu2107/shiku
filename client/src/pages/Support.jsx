@@ -9,6 +9,7 @@ import { PageLayout, SpotlightCard } from "../components/ui/DesignSystem";
 import { api } from "../api";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
+import { useToast } from "../contexts/ToastContext";
 
 // (Categories removed - simplified UI)
 
@@ -291,6 +292,7 @@ const TicketDetail = ({ ticket, onClose, onReply, loading }) => {
 };
 
 export default function Support({ user }) {
+  const { showError } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [openFaqIndex, setOpenFaqIndex] = useState(null);
   const [activeTab, setActiveTab] = useState("faq"); // 'faq', 'tickets', 'create'
@@ -349,7 +351,7 @@ export default function Support({ user }) {
       setActiveTab('tickets');
       fetchTickets();
     } catch (err) {
-      alert(err.message || "Có lỗi xảy ra khi tạo ticket");
+      showError(err.message || "Có lỗi xảy ra khi tạo ticket");
     } finally {
       setLoading(false);
     }
@@ -370,7 +372,7 @@ export default function Support({ user }) {
         setTickets(prev => prev.map(t => t._id === ticketId ? res.ticket : t));
       }
     } catch (err) {
-      alert(err.message || "Có lỗi xảy ra khi gửi tin nhắn");
+      showError(err.message || "Có lỗi xảy ra khi gửi tin nhắn");
     } finally {
       setLoading(false);
     }

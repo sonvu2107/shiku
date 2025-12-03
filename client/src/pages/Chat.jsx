@@ -14,7 +14,7 @@ import socketService from "../socket";
 import callManager from "../utils/callManager";
 import { getUserInfo } from "../utils/auth";
 import { chatbotAPI } from "../services/chatbotAPI";
-import { useToast } from "../components/Toast";
+import { useToast } from "../contexts/ToastContext";
 
 /**
  * Chat - Main chat page with real-time messaging
@@ -25,7 +25,7 @@ export default function Chat() {
   // ==================== ROUTER & LOCATION ====================
 
   const location = useLocation(); // To handle state passed from `MessageButton`
-  const { showInfo } = useToast();
+  const { showInfo, showError } = useToast();
 
   // ==================== STATE MANAGEMENT ====================
 
@@ -460,7 +460,7 @@ export default function Chat() {
           await loadConversations();
         }
       } catch (error) {
-        alert('Có lỗi xảy ra khi gửi tin nhắn đến chatbot');
+        showError('Có lỗi xảy ra khi gửi tin nhắn đến chatbot');
       }
       return;
     }
@@ -500,7 +500,7 @@ export default function Chat() {
       }
 
     } catch (error) {
-      alert('Có lỗi xảy ra khi gửi tin nhắn');
+      showError('Có lỗi xảy ra khi gửi tin nhắn');
     }
   };
 
@@ -548,7 +548,7 @@ export default function Chat() {
         setSelectedConversation(updatedConv);
       }
     } catch (error) {
-      alert('Có lỗi xảy ra khi cập nhật cuộc trò chuyện');
+      showError('Có lỗi xảy ra khi cập nhật cuộc trò chuyện');
     }
   };
 
@@ -568,7 +568,7 @@ export default function Chat() {
       await loadConversations();
 
     } catch (error) {
-      alert('Có lỗi xảy ra khi rời cuộc trò chuyện');
+      showError('Có lỗi xảy ra khi rời cuộc trò chuyện');
     }
   };
 
@@ -585,7 +585,7 @@ export default function Chat() {
         setMessages([]);
       }
     } catch (error) {
-      alert('Có lỗi xảy ra khi xóa cuộc trò chuyện');
+      showError('Có lỗi xảy ra khi xóa cuộc trò chuyện');
     }
   };
 

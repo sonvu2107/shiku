@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { User, Users, ChevronUp, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Edit2, Trash2, X } from "lucide-react";
 import { api } from "../../api";
 import ImageViewer from "../ImageViewer";
+import { useToast } from "../../contexts/ToastContext";
 
 /**
  * MessageList - Component for display message list in chat
@@ -25,6 +26,7 @@ export default function MessageList({
   onEditMessage,
   onDeleteMessage
 }) {
+  const { showError } = useToast();
   // ==================== STATE MANAGEMENT ====================
   
   const [showScrollButton, setShowScrollButton] = useState(false); // Show scroll to bottom button
@@ -164,7 +166,7 @@ export default function MessageList({
         onEditMessage(messageId, editContent);
       }
     } catch (error) {
-      alert('Không thể sửa tin nhắn');
+      showError('Không thể sửa tin nhắn');
     }
   };
 
@@ -195,7 +197,7 @@ export default function MessageList({
         onDeleteMessage(messageId);
       }
     } catch (error) {
-      alert('Không thể thu hồi tin nhắn');
+      showError('Không thể thu hồi tin nhắn');
     }
   };
 

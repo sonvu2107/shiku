@@ -12,6 +12,7 @@ import { useAdminActions } from "../hooks/useAdminActions";
 import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../utils/cn";
+import { useToast } from "../contexts/ToastContext";
 import {
    BarChart3,
    Users,
@@ -95,6 +96,7 @@ export default function AdminDashboard() {
    const [userRoleFilter, setUserRoleFilter] = useState("");
 
    const navigate = useNavigate();
+   const { showError, showSuccess } = useToast();
 
    useEffect(() => {
       checkAdmin();
@@ -127,13 +129,13 @@ export default function AdminDashboard() {
       try {
          const res = await api("/api/auth/me");
          if (res.user.role !== "admin") {
-            alert("Bạn không có quyền truy cập trang này!");
+            showError("Bạn không có quyền truy cập trang này!");
             navigate("/");
             return;
          }
          setUser(res.user);
       } catch (e) {
-         alert("Lỗi xác thực!");
+         showError("Lỗi xác thực!");
          navigate("/login");
       }
    }
@@ -160,7 +162,7 @@ export default function AdminDashboard() {
          }
       } catch (err) {
          setUsers(originalUsers);
-         alert("Lỗi khi cập nhật role: " + err.message);
+         showError("Lỗi khi cập nhật role: " + err.message);
       } finally {
          setUpdatingRoles(prev => {
             const newSet = new Set(prev);
@@ -177,9 +179,9 @@ export default function AdminDashboard() {
             method: "DELETE"
          });
          await refreshAllData();
-         alert("Đã xóa người dùng!");
+         showSuccess("Đã xóa người dùng!");
       } catch (e) {
-         alert("Lỗi: " + e.message);
+         showError("Lỗi: " + e.message);
       }
    }
 

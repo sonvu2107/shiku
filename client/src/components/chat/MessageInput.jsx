@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Send, Image, Smile, X } from "lucide-react";
+import { useToast } from "../../contexts/ToastContext";
 
 /**
  * List of emojis to choose from in chat message input
@@ -29,6 +30,7 @@ const EMOTES = [
  * @param {Function} onSendMessage - Callback when sending a message
  */
 export default function MessageInput({ onSendMessage }) {
+  const { showError } = useToast();
   // ==================== STATE MANAGEMENT ====================
   
   // Message states
@@ -67,13 +69,13 @@ export default function MessageInput({ onSendMessage }) {
 
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Kích thước file không được vượt quá 5MB');
+      showError('Kích thước file không được vượt quá 5MB');
       return;
     }
 
     // Check file type
     if (!file.type.startsWith('image/')) {
-      alert('Chỉ chấp nhận file hình ảnh');
+      showError('Chỉ chấp nhận file hình ảnh');
       return;
     }
 

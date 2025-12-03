@@ -5,7 +5,7 @@
   import ReactMarkdown from "react-markdown";
 import MarkdownWithMentions from "../components/MarkdownWithMentions";
   import CommentSection from "../components/CommentSection";
-  import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
+  import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck, MessageCircle, Share2, MoreHorizontal, Loader2 } from "lucide-react";
   import UserName from "../components/UserName";
   import UserAvatar from "../components/UserAvatar";
   import VerifiedBadge from "../components/VerifiedBadge";
@@ -16,6 +16,7 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
   import { formatDistanceToNow } from "date-fns";
   import { vi } from "date-fns/locale";
   import { cn } from "../utils/cn";
+  import { useToast } from "../contexts/ToastContext";
 
 
   /**
@@ -66,8 +67,13 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
     }
     const { slug } = useParams();
     const navigate = useNavigate();
+    const { showSuccess, showError } = useToast();
     const [data, setDataRaw] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [deleting, setDeleting] = useState(false);
+    const [emoting, setEmoting] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [togglingStatus, setTogglingStatus] = useState(false);
 
     // ==================== SEO ====================
     // Trang chi tiết bài viết là public → index, follow
@@ -160,45 +166,102 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
     }, [data?.comments]);
 
     async function load() {
+      setLoading(true);
       try {
         const res = await api(`/api/posts/slug/${slug}`);
         setData(res);
-      } catch (e) { }
+        // Load saved status
+        if (user) {
+          try {
+            const savedRes = await api(`/api/posts/${res.post._id}/save`);
+            setSaved(!!savedRes.saved);
+          } catch (_) {}
+        }
+      } catch (e) {
+        showError("Không thể tải bài viết. Vui lòng thử lại.");
+      } finally {
+        setLoading(false);
+      }
     }
 
     async function deletePost() {
       if (!window.confirm("Bạn có chắc muốn xóa bài này?")) return;
+      setDeleting(true);
       try {
         await api(`/api/posts/${data.post._id}`, { method: "DELETE" });
-        alert("Đã xóa bài viết.");
-        navigate("/");
+        showSuccess("Đã xóa bài viết.");
+        setTimeout(() => navigate("/"), 500);
       } catch (e) {
-        alert(e.message);
+        showError(e.message || "Không thể xóa bài viết.");
+        setDeleting(false);
       }
     }
 
-    async function emote(emote) {
+    async function emote(emoteType) {
+      if (emoting) return;
+      setEmoting(true);
+      // Optimistic update
+      const previousEmotes = [...emotesState];
+      const currentUserId = user?.id || user?._id;
+      const existingEmoteIndex = emotesState.findIndex(e => {
+        const emoteUserId = e.user?._id || e.user;
+        return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
+      });
+      
+      if (existingEmoteIndex >= 0) {
+        if (emotesState[existingEmoteIndex].type === emoteType) {
+          // Remove emote
+          const newEmotes = emotesState.filter((_, idx) => idx !== existingEmoteIndex);
+          setEmotesState(newEmotes);
+        } else {
+          // Change emote
+          const newEmotes = [...emotesState];
+          newEmotes[existingEmoteIndex] = { ...newEmotes[existingEmoteIndex], type: emoteType };
+          setEmotesState(newEmotes);
+        }
+      } else {
+        // Add emote
+        setEmotesState([...emotesState, { type: emoteType, user: user }]);
+      }
+      
       try {
         const res = await api(`/api/posts/${data.post._id}/emote`, {
           method: "POST",
-          body: { emote }
+          body: { emote: emoteType }
         });
-        // Update local state immediately
         if (res && res.emotes) {
           setEmotesState(res.emotes);
         }
-        await load();
       } catch (e) {
-        alert(e.message);
+        // Rollback on error
+        setEmotesState(previousEmotes);
+        showError(e.message || "Không thể thả cảm xúc.");
+      } finally {
+        setEmoting(false);
       }
     }
 
     async function toggleSave() {
+      if (saving) return;
+      setSaving(true);
+      const previousSaved = saved;
+      // Optimistic update
+      setSaved(!saved);
+      
       try {
         const res = await api(`/api/posts/${data.post._id}/save`, { method: "POST" });
         setSaved(!!res.saved);
+        if (res.saved) {
+          showSuccess("Đã lưu bài viết.");
+        } else {
+          showSuccess("Đã bỏ lưu bài viết.");
+        }
       } catch (e) {
-        alert(e.message || "Không thể lưu bài viết");
+        // Rollback on error
+        setSaved(previousSaved);
+        showError(e.message || "Không thể lưu bài viết");
+      } finally {
+        setSaving(false);
       }
     }
 
@@ -211,24 +274,33 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
           : "Bạn có chắc muốn công khai bài viết này?";
       if (!window.confirm(confirmMessage)) return;
 
+      setTogglingStatus(true);
+      // Optimistic update
+      setData((prev) => ({
+        ...prev,
+        post: { ...prev.post, status: newStatus }
+      }));
+
       try {
         await api(`/api/posts/${data.post._id}`, {
           method: "PUT",
           body: { status: newStatus }
         });
 
-        setData((prev) => ({
-          ...prev,
-          post: { ...prev.post, status: newStatus }
-        }));
-
-        alert(
+        showSuccess(
           newStatus === "private"
             ? "Đã chuyển trạng thái thành riêng tư"
             : "Đã chuyển thành trạng thái công khai"
         );
       } catch (e) {
-        alert(e.message);
+        // Rollback on error
+        setData((prev) => ({
+          ...prev,
+          post: { ...prev.post, status: currentStatus }
+        }));
+        showError(e.message || "Không thể thay đổi trạng thái");
+      } finally {
+        setTogglingStatus(false);
       }
     }
 
@@ -242,7 +314,33 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
       return counts;
     }
 
-    if (loading || !data) return <div className="card">Đang tải...</div>;
+    // Loading skeleton
+    if (loading || !data) {
+      return (
+        <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pt-16 sm:pt-20 pb-20 sm:pb-32">
+          <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+            <div className="bg-white dark:bg-[#111] rounded-2xl sm:rounded-[32px] px-3 sm:px-5 pt-3 sm:pt-4 pb-4 sm:pb-6 mb-4 sm:mb-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-32"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-24"></div>
+                </div>
+              </div>
+              <div className="space-y-2 mb-4">
+                <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+                <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-4/5"></div>
+              </div>
+              <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-3xl animate-pulse mb-4"></div>
+              <div className="flex items-center gap-2">
+                <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-20"></div>
+                <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-20"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
     const p = data.post;
     const counts = countEmotes();
 
@@ -621,14 +719,18 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                           emote('👍');
                         }
                       }}
+                      disabled={emoting}
                       className={cn(
                         "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full transition-all active:scale-90 touch-manipulation min-h-[44px]",
                         myEmote 
                           ? "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-500" 
-                          : "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400"
+                          : "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400",
+                        emoting && "opacity-50 cursor-not-allowed"
                       )}
                     >
-                      {myEmote ? (
+                      {emoting ? (
+                        <Loader2 size={20} className="sm:w-[22px] sm:h-[22px] flex-shrink-0 animate-spin" />
+                      ) : myEmote ? (
                         <>
                           <img src={`/assets/${emoteMap[myEmote.type]}`} alt={myEmote.type} className="w-5 h-5 sm:w-[22px] sm:h-[22px] flex-shrink-0" />
                           <span className="font-bold text-xs sm:text-sm whitespace-nowrap hidden sm:inline">
@@ -715,9 +817,9 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                 onClick={() => {
                   const url = window.location.href;
                   navigator.clipboard.writeText(url).then(() => {
-                    alert("Đã sao chép liên kết!");
+                    showSuccess("Đã sao chép liên kết!");
                   }).catch(() => {
-                    alert("Không thể sao chép liên kết");
+                    showError("Không thể sao chép liên kết");
                   });
                 }}
                 aria-label="Chia sẻ"
@@ -729,15 +831,21 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
             {/* Save */}
             <button
               onClick={toggleSave}
+              disabled={saving}
               className={cn(
                 "p-2.5 sm:p-3 rounded-full transition-all active:scale-90 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0",
                 saved
                   ? "bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-500"
-                  : "hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-500/20 dark:hover:text-yellow-500 text-gray-400"
+                  : "hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-500/20 dark:hover:text-yellow-500 text-gray-400",
+                saving && "opacity-50 cursor-not-allowed"
               )}
               aria-label={saved ? "Bỏ lưu" : "Lưu bài viết"}
             >
-              <Bookmark size={20} className={cn("sm:w-[22px] sm:h-[22px]", saved ? "fill-current" : "")} strokeWidth={saved ? 0 : 2} />
+              {saving ? (
+                <Loader2 size={20} className="sm:w-[22px] sm:h-[22px] animate-spin" />
+              ) : (
+                <Bookmark size={20} className={cn("sm:w-[22px] sm:h-[22px]", saved ? "fill-current" : "")} strokeWidth={saved ? 0 : 2} />
+              )}
             </button>
           </div>
         </div>

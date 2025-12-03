@@ -6,6 +6,7 @@ import Textarea from "../ui/Textarea";
 import Select from "../ui/Select";
 import Button from "../ui/Button";
 import { GENDER_OPTIONS, VALIDATION_RULES } from "../../constants/profile";
+import { useToast } from "../../contexts/ToastContext";
 
 /**
  * ProfileEditForm - Profile information editing form with SpotlightCard style
@@ -17,6 +18,8 @@ export default function ProfileEditForm({
   onSubmit,
   loading = false,
 }) {
+  const { showError } = useToast();
+  
   if (!editing) return null;
 
   const validateForm = (data) => {
@@ -30,7 +33,7 @@ export default function ProfileEditForm({
       const hasSpecial = PASSWORD.specialChars.test(data.password);
       
       if (!hasMinLength || !hasLower || !hasUpper || !hasDigit || !hasSpecial) {
-        alert("Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt (@$!%*?&)");
+        showError("Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt (@$!%*?&)");
         return false;
       }
     }
@@ -38,12 +41,12 @@ export default function ProfileEditForm({
     // Validate birthday
     if (data.birthday && data.birthday !== "") {
       if (!VALIDATION_RULES.BIRTHDAY.test(data.birthday)) {
-        alert("Định dạng ngày sinh không hợp lệ (YYYY-MM-DD)");
+        showError("Định dạng ngày sinh không hợp lệ (YYYY-MM-DD)");
         return false;
       }
       const year = parseInt(data.birthday.split('-')[0]);
       if (year < VALIDATION_RULES.BIRTHDAY_YEAR_MIN || year > new Date().getFullYear()) {
-        alert("Năm sinh không hợp lệ");
+        showError("Năm sinh không hợp lệ");
         return false;
       }
     }
@@ -51,7 +54,7 @@ export default function ProfileEditForm({
     // Validate phone
     if (data.phone && data.phone !== "") {
       if (!VALIDATION_RULES.PHONE.test(data.phone)) {
-        alert("Số điện thoại không hợp lệ");
+        showError("Số điện thoại không hợp lệ");
         return false;
       }
     }

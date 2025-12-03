@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { chatAPI } from '../../chatAPI';
 import { getUserAvatarUrl, AVATAR_SIZES } from '../../utils/avatarUtils';
+import { useToast } from '../../contexts/ToastContext';
 
 /**
  * AddMembersModal - Modal add member to group chat
@@ -19,6 +20,7 @@ const AddMembersModal = ({
   onClose, 
   onUpdateConversation 
 }) => {
+  const { showError } = useToast();
   // ==================== STATE MANAGEMENT ====================
   
   // UI states
@@ -77,7 +79,7 @@ const AddMembersModal = ({
       
       onClose();
     } catch (error) {
-      alert(`Có lỗi xảy ra khi thêm thành viên: ${error.message}`);
+      showError(`Có lỗi xảy ra khi thêm thành viên: ${error.message}`);
     }
   };
 

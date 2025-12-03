@@ -392,15 +392,28 @@ export default function Register({ setUser }) {
                 }}
               >
                 <form onSubmit={handleRegister} className="space-y-4">
-                  <InputGroup
-                    icon={Mail}
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); setError(""); }}
-                    autoComplete="email"
-                    required
-                  />
+                  <div>
+                    <InputGroup
+                      icon={Mail}
+                      type="email"
+                      placeholder="Email"
+                      value={email}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setEmail(value);
+                        setError("");
+                      }}
+                      onBlur={(e) => {
+                        const value = e.target.value;
+                        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                          setError("Email không hợp lệ");
+                        }
+                      }}
+                      autoComplete="email"
+                      required
+                      className={error && error.includes("Email") ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                    />
+                  </div>
 
                   <div>
                     <InputGroup

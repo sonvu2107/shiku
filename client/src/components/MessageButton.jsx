@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { chatAPI } from "../chatAPI";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../contexts/ToastContext";
 
 /**
  * MessageButton - Message button for a user
@@ -18,6 +19,7 @@ export default function MessageButton({ user, className = "" }) {
   
   const [isLoading, setIsLoading] = useState(false); // Loading state while creating a conversation
   const navigate = useNavigate();
+  const { showError } = useToast();
 
   const handleMessage = async () => {
     if (!user || !user._id) {
@@ -49,7 +51,7 @@ export default function MessageButton({ user, className = "" }) {
       if (error.message && error.message.includes('already exists')) {
         navigate('/chat');
       } else {
-        alert('Có lỗi xảy ra khi tạo cuộc trò chuyện');
+        showError('Có lỗi xảy ra khi tạo cuộc trò chuyện');
       }
     } finally {
       setIsLoading(false);

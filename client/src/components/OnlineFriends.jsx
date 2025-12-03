@@ -9,12 +9,14 @@ import { useOnlineFriends } from '../hooks/useFriends';
 import UserName from './UserName';
 import UserAvatar from './UserAvatar';
 import { useChat } from '../contexts/ChatContext';
+import { useToast } from '../contexts/ToastContext';
 
 /**
  * OnlineFriends - Component show online friends sidebar
  */
 export default function OnlineFriends({ user, minimal = false }) {
   const { addChatPopup } = useChat();
+  const { showError } = useToast();
 
   // Use React Query for online friends
   const { data: onlineFriendsData, isLoading, refetch } = useOnlineFriends();
@@ -136,7 +138,7 @@ export default function OnlineFriends({ user, minimal = false }) {
       // Add to the list of open popups
       addChatPopup(conversationData);
     } catch (error) {
-      alert('Không thể mở cuộc trò chuyện');
+      showError('Không thể mở cuộc trò chuyện');
     }
   };
 

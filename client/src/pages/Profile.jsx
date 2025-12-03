@@ -10,6 +10,7 @@ import ProfileEditForm from "../components/profile/ProfileEditForm";
 import PostsTab from "../components/profile/PostsTab";
 import FriendsTab from "../components/profile/FriendsTab";
 import AnalyticsTab from "../components/profile/AnalyticsTab";
+import { useToast } from "../contexts/ToastContext";
 
 // --- UI COMPONENTS (Tái sử dụng từ Landing Page để đồng bộ) ---
 
@@ -26,6 +27,7 @@ const NoiseOverlay = () => (
 );
 
 export default function Profile({ user: propUser, setUser: propSetUser }) {
+  const { showSuccess, showError } = useToast();
   // ==================== STATE MANAGEMENT ====================
   // Local state for user, synced with prop from App.jsx
   const [user, setLocalUser] = useState(propUser);
@@ -181,7 +183,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
       // Update user object as well
       setUser(prev => prev ? { ...prev, coverUrl: url } : null);
     } catch (err) {
-      alert(err.message);
+      showError(err.message || 'Lỗi khi tải ảnh bìa');
     } finally {
       setAvatarUploading(false);
     }
@@ -216,10 +218,10 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
           await refreshAll(analyticsPeriod);
         }
         
-                           alert("Đã lưu thay đổi!"); 
-                         }
+        showSuccess("Đã lưu thay đổi!"); 
+      }
     } catch (err) {
-      alert(err.message);
+      showError(err.message || 'Lỗi khi lưu thay đổi');
     } finally {
       setFormLoading(false);
     }
@@ -246,7 +248,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
               // Reset state
               setSelectedAvatarFile(null);
             } catch (err) {
-              alert("Tải lên thất bại: " + err.message);
+              showError("Tải lên thất bại: " + err.message);
             } finally {
               setAvatarUploading(false);
             }

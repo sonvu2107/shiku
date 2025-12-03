@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { Calendar, MapPin, Users, Tag, ArrowLeft, Save, Image, X, Globe, Lock } from "lucide-react";
-import { useToast } from "../components/Toast";
+import { useToast } from "../contexts/ToastContext";
 import ImageUpload from "../components/ImageUpload";
 import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
 import { motion } from "framer-motion";

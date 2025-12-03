@@ -10,7 +10,7 @@ import VerifiedBadge from "./VerifiedBadge";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
 import LazyImage from "./LazyImageSimple";
 import Poll from "./Poll";
-import { useToast } from "./Toast";
+import { useToast } from "../contexts/ToastContext";
 
 /**
  * List of emojis used by the comment emoji picker
@@ -160,10 +160,10 @@ function PostCard({
       await api(`/api/posts/${post._id}`, {
       method: "DELETE"
     });
-      alert("Đã xóa bài viết.");
-      navigate(0); // Reload page
+      showSuccess("Đã xóa bài viết.");
+      setTimeout(() => navigate(0), 500); // Reload page
     } catch (e) { 
-      alert("Lỗi xóa bài: " + e.message); 
+      showError("Lỗi xóa bài: " + e.message); 
     }
   }
 
@@ -183,10 +183,10 @@ function PostCard({
       method: "PUT",
       body: { status: newStatus }
     });
-      alert(newStatus === 'private' ? "Đã chuyển thành riêng tư" : "Đã công khai bài viết");
-      navigate(0); // Reload page
+      showSuccess(newStatus === 'private' ? "Đã chuyển thành riêng tư" : "Đã công khai bài viết");
+      setTimeout(() => navigate(0), 500); // Reload page
     } catch (e) { 
-      alert("Lỗi: " + e.message); 
+      showError("Lỗi: " + e.message); 
     }
   }
 
@@ -363,7 +363,7 @@ function PostCard({
     } catch (e) {
       // Show error if adding emote fails
       const errorMessage = e?.message || 'Không thể thêm cảm xúc. Vui lòng thử lại.';
-      alert(errorMessage);
+      showError(errorMessage);
     }
   }
 
@@ -397,7 +397,7 @@ function PostCard({
         onSavedChange(post._id, nextState);
       }
     } catch (e) {
-      alert(e.message || "Không thể lưu bài viết");
+      showError(e.message || "Không thể lưu bài viết");
     }
   }, [post._id, savedCount, onPostUpdate, onSavedChange]);
 
@@ -445,7 +445,7 @@ function PostCard({
       // Navigate to post detail to see the comment
       navigate(`/post/${post.slug}`);
     } catch (e) {
-      alert(e.message || "Không thể gửi bình luận");
+      showError(e.message || "Không thể gửi bình luận");
     } finally {
       setCommentLoading(false);
     }
@@ -486,13 +486,13 @@ function PostCard({
       // Validate files (same logic as CommentImageUpload)
     const validFiles = newFiles.filter(file => {
       if (!file.type.startsWith('image/')) {
-        alert(`File ${file.name} không phải là hình ảnh`);
+        showError(`File ${file.name} không phải là hình ảnh`);
         return false;
       }
       
       const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
-        alert(`File ${file.name} quá lớn. Kích thước tối đa là 5MB`);
+        showError(`File ${file.name} quá lớn. Kích thước tối đa là 5MB`);
         return false;
       }
       
@@ -1121,9 +1121,9 @@ function PostCard({
               e.stopPropagation();
               const url = `${window.location.origin}/post/${post.slug}`;
               navigator.clipboard.writeText(url).then(() => {
-                alert("Đã sao chép liên kết!");
+                showSuccess("Đã sao chép liên kết!");
               }).catch(() => {
-                alert("Không thể sao chép liên kết");
+                showError("Không thể sao chép liên kết");
               });
             }}
             title="Chia sẻ"

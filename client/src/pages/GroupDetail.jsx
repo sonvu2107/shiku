@@ -46,6 +46,7 @@ import PostCreator from '../components/PostCreator';
 import { getAccessToken } from '../utils/tokenManager.js';
 import { cn } from '../utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '../contexts/ToastContext';
 
 // --- UI COMPONENTS (Đồng bộ Design System) ---
 
@@ -105,6 +106,7 @@ const SpotlightCard = ({ children, className = "", onClick }) => {
 const GroupDetail = () => {
    const { id } = useParams();
    const navigate = useNavigate();
+   const { showSuccess, showError } = useToast();
 
    // State cho nhóm
    const [group, setGroup] = useState(null);
@@ -245,7 +247,7 @@ const GroupDetail = () => {
          }
       } catch (error) {
          // Với nhóm cần duyệt, server trả success, lỗi khác hiển thị như cũ
-         alert(error.message || 'Không thể tham gia nhóm');
+         showError(error.message || 'Không thể tham gia nhóm');
       } finally {
          setIsJoining(false);
       }
@@ -265,7 +267,7 @@ const GroupDetail = () => {
             setActiveTab('posts');
          }
       } catch (error) {
-         alert(error.response?.data?.message || 'Không thể rời khỏi nhóm');
+         showError(error.response?.data?.message || 'Không thể rời khỏi nhóm');
       } finally {
          setIsLeaving(false);
       }
@@ -332,19 +334,19 @@ const GroupDetail = () => {
 
          // Validation
          if (!settingsData.name || !settingsData.name.trim()) {
-            alert('Vui lòng nhập tên nhóm');
+            showError('Vui lòng nhập tên nhóm');
             setSettingsLoading(false);
             return;
          }
 
          if (settingsData.name.trim().length > 100) {
-            alert('Tên nhóm không được quá 100 ký tự');
+            showError('Tên nhóm không được quá 100 ký tự');
             setSettingsLoading(false);
             return;
          }
 
          if (settingsData.description && settingsData.description.length > 500) {
-            alert('Mô tả nhóm không được quá 500 ký tự');
+            showError('Mô tả nhóm không được quá 500 ký tự');
             setSettingsLoading(false);
             return;
          }
@@ -353,13 +355,13 @@ const GroupDetail = () => {
          if (settingsData.tags) {
             const tagsArray = settingsData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
             if (tagsArray.length > 10) {
-               alert('Tối đa 10 tags');
+               showError('Tối đa 10 tags');
                setSettingsLoading(false);
                return;
             }
             for (const tag of tagsArray) {
                if (tag.length > 20) {
-                  alert(`Tag "${tag}" không được quá 20 ký tự`);
+                  showError(`Tag "${tag}" không được quá 20 ký tự`);
                   setSettingsLoading(false);
                   return;
                }
@@ -389,10 +391,10 @@ const GroupDetail = () => {
          if (response.success) {
             // Reload group data to reflect changes
             await loadGroup();
-            alert('Cài đặt đã được lưu thành công!');
+            showSuccess('Cài đặt đã được lưu thành công!');
          }
       } catch (error) {
-         alert(error.message || 'Có lỗi xảy ra khi lưu cài đặt');
+         showError(error.message || 'Có lỗi xảy ra khi lưu cài đặt');
       } finally {
          setSettingsLoading(false);
       }
@@ -424,13 +426,13 @@ const GroupDetail = () => {
 
       // Validate file type
       if (!file.type.startsWith('image/')) {
-         alert('Vui lòng chọn file ảnh');
+         showError('Vui lòng chọn file ảnh');
          return;
       }
 
       // Validate file size (5MB)
       if (file.size > 5 * 1024 * 1024) {
-         alert('Kích thước file không được vượt quá 5MB');
+         showError('Kích thước file không được vượt quá 5MB');
          return;
       }
 
@@ -447,10 +449,10 @@ const GroupDetail = () => {
 
          if (response.success) {
             await loadGroup(); // Reload group data
-            alert('Cập nhật ảnh đại diện thành công!');
+            showSuccess('Cập nhật ảnh đại diện thành công!');
          }
       } catch (error) {
-         alert(error.message || 'Có lỗi xảy ra khi tải ảnh lên');
+         showError(error.message || 'Có lỗi xảy ra khi tải ảnh lên');
       } finally {
          setUploadingAvatar(false);
       }
@@ -463,13 +465,13 @@ const GroupDetail = () => {
 
       // Validate file type
       if (!file.type.startsWith('image/')) {
-         alert('Vui lòng chọn file ảnh');
+         showError('Vui lòng chọn file ảnh');
          return;
       }
 
       // Validate file size (5MB)
       if (file.size > 5 * 1024 * 1024) {
-         alert('Kích thước file không được vượt quá 5MB');
+         showError('Kích thước file không được vượt quá 5MB');
          return;
       }
 
@@ -486,10 +488,10 @@ const GroupDetail = () => {
 
          if (response.success) {
             await loadGroup(); // Reload group data
-            alert('Cập nhật ảnh bìa thành công!');
+            showSuccess('Cập nhật ảnh bìa thành công!');
          }
       } catch (error) {
-         alert(error.message || 'Có lỗi xảy ra khi tải ảnh lên');
+         showError(error.message || 'Có lỗi xảy ra khi tải ảnh lên');
       } finally {
          setUploadingCover(false);
       }
@@ -505,10 +507,10 @@ const GroupDetail = () => {
 
          if (response.success) {
             await loadGroup(); // Reload group data
-            alert('Cập nhật vai trò thành công!');
+            showSuccess('Cập nhật vai trò thành công!');
          }
       } catch (error) {
-         alert(error.message || 'Có lỗi xảy ra khi cập nhật vai trò');
+         showError(error.message || 'Có lỗi xảy ra khi cập nhật vai trò');
       }
    };
 
@@ -523,10 +525,10 @@ const GroupDetail = () => {
 
          if (response.success) {
             await loadGroup(); // Reload group data
-            alert('Đã xóa thành viên khỏi nhóm!');
+            showSuccess('Đã xóa thành viên khỏi nhóm!');
          }
       } catch (error) {
-         alert(error.message || 'Có lỗi xảy ra khi xóa thành viên');
+         showError(error.message || 'Có lỗi xảy ra khi xóa thành viên');
       }
    };
 
@@ -543,10 +545,10 @@ const GroupDetail = () => {
 
          if (response.success) {
             await loadGroup(); // Reload group data
-            alert('Đã cấm thành viên khỏi nhóm!');
+            showSuccess('Đã cấm thành viên khỏi nhóm!');
          }
       } catch (error) {
-         alert(error.message || 'Có lỗi xảy ra khi cấm thành viên');
+         showError(error.message || 'Có lỗi xảy ra khi cấm thành viên');
       }
    };
 
@@ -1214,9 +1216,9 @@ const GroupDetail = () => {
                                                             });
                                                             await loadGroup();
                                                             setShowMemberMenu(null);
-                                                            alert('Đã thăng cấp thành điều hành viên');
+                                                            showSuccess('Đã thăng cấp thành điều hành viên');
                                                          } catch (e) {
-                                                            alert(e.message || 'Lỗi thăng cấp');
+                                                            showError(e.message || 'Lỗi thăng cấp');
                                                          }
                                                       }}
                                                       className="w-full px-4 py-2 text-left text-sm font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2"
@@ -1234,9 +1236,9 @@ const GroupDetail = () => {
                                                             });
                                                             await loadGroup();
                                                             setShowMemberMenu(null);
-                                                            alert('Đã thăng cấp thành admin');
+                                                            showSuccess('Đã thăng cấp thành admin');
                                                          } catch (e) {
-                                                            alert(e.message || 'Lỗi thăng cấp');
+                                                            showError(e.message || 'Lỗi thăng cấp');
                                                          }
                                                       }}
                                                       className="w-full px-4 py-2 text-left text-sm font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2"
@@ -1313,7 +1315,8 @@ const GroupDetail = () => {
                                                    const res = await api(`/api/groups/${id}/join-requests?t=${Date.now()}`, { method: 'GET' });
                                                    if (res.success) setPendingRequests(Array.isArray(res.data) ? res.data.filter(r => r.status === 'pending') : []);
                                                    await loadGroup();
-                                                } catch (e) { alert(e.message || 'Lỗi duyệt yêu cầu'); }
+                                                   showSuccess('Đã duyệt yêu cầu tham gia');
+                                                } catch (e) { showError(e.message || 'Lỗi duyệt yêu cầu'); }
                                              }}
                                              className="px-4 py-2 bg-green-600 text-white rounded-full font-bold text-sm hover:bg-green-700 transition-colors flex items-center gap-2"
                                           >
@@ -1328,7 +1331,8 @@ const GroupDetail = () => {
                                                    const res = await api(`/api/groups/${id}/join-requests?t=${Date.now()}`, { method: 'GET' });
                                                    if (res.success) setPendingRequests(Array.isArray(res.data) ? res.data.filter(r => r.status === 'pending') : []);
                                                    await loadGroup();
-                                                } catch (e) { alert(e.message || 'Lỗi từ chối yêu cầu'); }
+                                                   showSuccess('Đã từ chối yêu cầu tham gia');
+                                                } catch (e) { showError(e.message || 'Lỗi từ chối yêu cầu'); }
                                              }}
                                              className="px-4 py-2 bg-red-600 text-white rounded-full font-bold text-sm hover:bg-red-700 transition-colors flex items-center gap-2"
                                           >

@@ -5,7 +5,7 @@ import Editor from "../components/Editor";
 import { Image, Video, ArrowLeft, Save, X, Globe, Lock } from "lucide-react";
 import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
 import { motion } from "framer-motion";
-import { useToast } from "../components/Toast";
+import { useToast } from "../contexts/ToastContext";
 import { cn } from "../utils/cn";
 
 /**

@@ -8,7 +8,8 @@ import FloatingDock from "./components/FloatingDock.jsx";
 import PostCreator from "./components/PostCreator.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
-import { ToastContainer, useToast } from "./components/Toast.jsx";
+import { ToastContainer } from "./components/Toast.jsx";
+import { ToastProvider, useToast } from "./contexts/ToastContext";
 import { PageLoader, LazyErrorBoundary } from "./components/PageLoader.jsx";
 import { ChatProvider } from "./contexts/ChatContext.jsx";
 import Home from "./pages/Home.jsx"; // Eager load Home for better LCP
@@ -93,8 +94,6 @@ export default function App() {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   // Hook để lấy thông tin location hiện tại
   const location = useLocation();
-  // Toast notifications
-  const { toasts, removeToast } = useToast();
 
   // Effect để đảm bảo robots meta tag luôn được set đúng khi route thay đổi
   // Đặt mặc định 'index, follow' cho các trang công khai
@@ -390,10 +389,11 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <ChatProvider>
-        <div className="min-h-screen">
-        {/* Toast Container */}
-        <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <ToastProvider>
+        <ChatProvider>
+          <div className="min-h-screen">
+          {/* Toast Container - moved inside ToastProvider */}
+          <ToastContainerWrapper />
         
         {/* Mobile CSRF Debug Component */}
         
@@ -508,7 +508,14 @@ export default function App() {
       
       
         </div>
-      </ChatProvider>
+        </ChatProvider>
+      </ToastProvider>
     </ErrorBoundary>
   );
+}
+
+// Separate component to use ToastContext inside ToastProvider
+function ToastContainerWrapper() {
+  const { toasts, removeToast } = useToast();
+  return <ToastContainer toasts={toasts} onRemove={removeToast} />;
 }

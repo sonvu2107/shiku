@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, Search, Users, User, Check, Plus } from "lucide-react";
 import { chatAPI } from "../../chatAPI";
+import { useToast } from "../../contexts/ToastContext";
 
 /**
  * NewConversationModal - Modal create new conversation
@@ -12,6 +13,7 @@ import { chatAPI } from "../../chatAPI";
  * @returns {JSX.Element|null} Component modal or null if not visible
  */
 export default function NewConversationModal({ isOpen, onClose, onCreateConversation }) {
+  const { showError } = useToast();
   // ==================== STATE MANAGEMENT ====================
   
   // Step management
@@ -151,7 +153,7 @@ export default function NewConversationModal({ isOpen, onClose, onCreateConversa
       }
       onClose();
     } catch (error) {
-      alert('Có lỗi xảy ra khi tạo cuộc trò chuyện');
+      showError('Có lỗi xảy ra khi tạo cuộc trò chuyện');
     } finally {
       setIsLoading(false);
     }
