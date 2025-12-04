@@ -4,7 +4,6 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Menu, 
-  X, 
   Home, 
   Users, 
   UserCheck, 
@@ -18,7 +17,7 @@ import {
   Calendar,
   Image,
   Bookmark,
-  LifeBuoy,
+  HelpCircle,
   ChevronRight,
   Sparkles
 } from "lucide-react";
@@ -113,7 +112,7 @@ export default function MobileMenu({ user, setUser }) {
     { icon: Bell, label: "Thông báo", path: "/notifications", show: false },
     { icon: User, label: "Trang cá nhân", path: "/profile", show: true },
     { icon: Settings, label: "Cài đặt", path: "/settings", show: true },
-    { icon: LifeBuoy, label: "Trợ giúp", path: "/support", show: true },
+    { icon: HelpCircle, label: "Trợ giúp", path: "/support", show: true },
     { icon: Crown, label: "Admin", path: "/admin", show: user.role === "admin", isAdmin: true },
   ] : [
     { icon: Home, label: "Trang chủ", path: "/", show: true },
@@ -144,25 +143,10 @@ export default function MobileMenu({ user, setUser }) {
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed top-0 left-0 h-full w-[75%] max-w-[280px] bg-white/90 dark:bg-black/90 backdrop-blur-2xl shadow-2xl z-[10000] md:hidden flex flex-col border-r border-white/20 dark:border-white/10"
           >
-            {/* Header with User Profile or Logo */}
-            <div className="p-5 pb-4 flex-shrink-0">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                   <div className="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
-                      <Sparkles size={16} className="text-white dark:text-black" />
-                   </div>
-                   <span className="font-bold text-xl tracking-tight">Shiku</span>
-                </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-2 -mr-2 text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
+            {/* Header with User Profile */}
+            <div className="pt-4 px-5 pb-3 flex-shrink-0">
               {user ? (
-                <div className="bg-neutral-100/80 dark:bg-neutral-800/50 p-3 rounded-2xl border border-neutral-200 dark:border-neutral-700/50 flex items-center gap-3" onClick={() => { navigate('/profile'); setIsOpen(false); }}>
+                <div className="bg-neutral-100/80 dark:bg-neutral-800/50 p-2.5 rounded-2xl border border-neutral-200 dark:border-neutral-700/50 flex items-center gap-3" onClick={() => { navigate('/profile'); setIsOpen(false); }}>
                   <UserAvatar 
                     user={user}
                     size={40}
@@ -176,7 +160,7 @@ export default function MobileMenu({ user, setUser }) {
                   <ChevronRight size={16} className="text-neutral-400" />
                 </div>
               ) : (
-                <div className="bg-neutral-50 dark:bg-neutral-900 p-4 rounded-2xl border border-dashed border-neutral-300 dark:border-neutral-700 text-center">
+                <div className="bg-neutral-50 dark:bg-neutral-900 p-3 rounded-2xl border border-dashed border-neutral-300 dark:border-neutral-700 text-center">
                    <p className="text-sm text-neutral-500 mb-3">Tham gia cộng đồng Shiku ngay!</p>
                    <div className="grid grid-cols-2 gap-3">
                       <Link to="/login" onClick={() => setIsOpen(false)} className="py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-bold shadow-lg shadow-black/10">
@@ -191,7 +175,7 @@ export default function MobileMenu({ user, setUser }) {
             </div>
 
             {/* Menu Items */}
-            <div className="flex-1 overflow-y-auto px-4 py-2 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-4 py-1 no-scrollbar">
               <div className="space-y-1">
                 {menuItems.map((item, index) => {
                   if (!item.show) return null;
@@ -213,7 +197,6 @@ export default function MobileMenu({ user, setUser }) {
                     >
                       <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className={cn("transition-transform group-hover:scale-110", isActive && "scale-110")} />
                       <span className={cn("font-medium text-[15px]", isActive && "font-bold")}>{item.label}</span>
-                      {item.isAdmin && <Crown size={14} className="ml-auto text-amber-500" />}
                     </Link>
                   );
                 })}
