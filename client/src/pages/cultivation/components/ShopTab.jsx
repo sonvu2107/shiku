@@ -265,7 +265,7 @@ const ShopTab = memo(function ShopTab() {
                   💎 {item.price}
                 </span>
                 <span className="text-[10px] text-slate-300 uppercase mt-1">
-                  {item.owned ? '✓ Đã có' : buying === item.id ? '...' : 'Mua'}
+                  {item.owned ? 'Đã sở hữu' : buying === item.id ? '...' : 'Mua'}
                 </span>
               </button>
             </div>

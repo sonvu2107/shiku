@@ -390,18 +390,39 @@ router.get("/shop", async (req, res, next) => {
     const userId = req.user.id;
     const cultivation = await Cultivation.getOrCreate(userId);
     
-    // Đánh dấu item đã sở hữu
-    const shopItems = SHOP_ITEMS.map(item => ({
-      ...item,
-      owned: cultivation.inventory.some(i => i.itemId === item.id),
-      canAfford: cultivation.spiritStones >= item.price
-    }));
+    // Đánh dấu item đã sở hữu - check chính xác hơn
+    const shopItems = SHOP_ITEMS.map(item => {
+      // Với công pháp, check trong learnedTechniques
+      if (item.type === 'technique') {
+        const isOwned = cultivation.learnedTechniques?.some(t => t.techniqueId === item.id) || false;
+        return {
+          ...item,
+          owned: isOwned,
+          canAfford: cultivation.spiritStones >= item.price
+        };
+      }
+      
+      // Với các item khác, check trong inventory
+      const isOwned = cultivation.inventory.some(i => {
+        // So sánh itemId (string)
+        if (i.itemId && i.itemId.toString() === item.id) return true;
+        // So sánh _id nếu có
+        if (i._id && i._id.toString() === item.id) return true;
+        return false;
+      });
+      
+      return {
+        ...item,
+        owned: isOwned,
+        canAfford: cultivation.spiritStones >= item.price
+      };
+    });
     
     // Lấy equipment có giá bán (price > 0) và is_active = true
+    // Không filter theo level_required ở đây - để hiển thị tất cả, check level khi mua
     const availableEquipment = await Equipment.find({
       is_active: true,
-      price: { $gt: 0 },
-      level_required: { $lte: cultivation.realmLevel }
+      price: { $gt: 0 }
     }).lean();
     
     // Format equipment để tương thích với shop items
@@ -414,8 +435,23 @@ router.get("/shop", async (req, res, next) => {
         elementalDamage = eq.stats.elemental_damage;
       }
       
+      // Check xem equipment đã có trong inventory chưa
+      const eqId = eq._id.toString();
+      const isOwned = cultivation.inventory.some(i => {
+        // So sánh itemId (string)
+        if (i.itemId && i.itemId.toString() === eqId) return true;
+        // So sánh metadata._id (ObjectId hoặc string)
+        if (i.metadata?._id) {
+          const metadataId = i.metadata._id.toString();
+          if (metadataId === eqId) return true;
+        }
+        // So sánh _id nếu có
+        if (i._id && i._id.toString() === eqId) return true;
+        return false;
+      });
+      
       return {
-        id: eq._id.toString(),
+        id: eqId,
         name: eq.name,
         type: `equipment_${eq.type}`, // equipment_weapon, equipment_armor, etc.
         equipmentType: eq.type, // weapon, armor, etc.
@@ -435,7 +471,7 @@ router.get("/shop", async (req, res, next) => {
         lifesteal: eq.lifesteal,
         true_damage: eq.true_damage,
         buff_duration: eq.buff_duration,
-        owned: false, // Equipment không nằm trong inventory, sẽ check riêng
+        owned: isOwned,
         canAfford: cultivation.spiritStones >= eq.price,
         canUse: cultivation.realmLevel >= eq.level_required
       };
@@ -501,11 +537,20 @@ router.post("/shop/buy/:itemId", async (req, res, next) => {
         });
       }
       
-      // Kiểm tra đã sở hữu chưa (check trong inventory)
-      const alreadyOwned = cultivation.inventory.some(i => 
-        i.itemId === itemId.toString() || 
-        (i.metadata && i.metadata._id && i.metadata._id.toString() === itemId)
-      );
+      // Kiểm tra đã sở hữu chưa (check trong inventory) - chính xác hơn
+      const itemIdStr = itemId.toString();
+      const alreadyOwned = cultivation.inventory.some(i => {
+        // So sánh itemId (string)
+        if (i.itemId && i.itemId.toString() === itemIdStr) return true;
+        // So sánh metadata._id (ObjectId hoặc string)
+        if (i.metadata?._id) {
+          const metadataId = i.metadata._id.toString();
+          if (metadataId === itemIdStr) return true;
+        }
+        // So sánh _id nếu có
+        if (i._id && i._id.toString() === itemIdStr) return true;
+        return false;
+      });
       
       if (alreadyOwned) {
         return res.status(400).json({

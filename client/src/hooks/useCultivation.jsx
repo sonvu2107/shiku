@@ -219,6 +219,9 @@ export function CultivationProvider({ children }) {
           inventory: response.data.inventory
         }));
 
+        // Reload cultivation để cập nhật đầy đủ
+        await loadCultivation();
+
         return response.data;
       }
     } catch (err) {
@@ -230,7 +233,7 @@ export function CultivationProvider({ children }) {
       });
       throw err;
     }
-  }, []);
+  }, [loadCultivation]);
 
   /**
    * Bỏ trang bị
@@ -247,13 +250,16 @@ export function CultivationProvider({ children }) {
           inventory: response.data.inventory
         }));
 
+        // Reload cultivation để cập nhật đầy đủ
+        await loadCultivation();
+
         return response.data;
       }
     } catch (err) {
       setError(err.message);
       throw err;
     }
-  }, []);
+  }, [loadCultivation]);
 
   /**
    * Trang bị equipment (vũ khí, giáp, trang sức)

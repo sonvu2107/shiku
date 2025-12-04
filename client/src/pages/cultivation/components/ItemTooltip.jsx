@@ -1,149 +1,97 @@
 /**
  * Item Tooltip - Display item details and stats
  */
-import { memo, useEffect, useState, useRef } from 'react';
+import { memo, useLayoutEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { RARITY_COLORS } from '../utils/constants.js';
 
-const ItemTooltip = memo(function ItemTooltip({ item, stats, position, onClose }) {
+const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
   const tooltipRef = useRef(null);
-  const TOOLTIP_WIDTH = 288; // w-72 = 18rem = 288px
-  const GAP = 10; // Gap between item and tooltip
-  const MARGIN = 10; // Margin from viewport edges
+  
+  const [tooltipStyle, setTooltipStyle] = useState({
+    top: '0px',
+    left: '0px',
+    opacity: 0,
+    visibility: 'hidden'
+  });
 
-  // Initial position (will be recalculated after render)
-  const getInitialPosition = (pos) => {
-    if (!pos) return { left: '0px', top: '0px' };
-    const itemRight = pos.right !== undefined ? pos.right : pos.x;
-    const itemTop = pos.top !== undefined ? pos.top : pos.y;
-    return {
-      left: `${itemRight + GAP}px`,
-      top: `${itemTop}px`
-    };
-  };
+  useLayoutEffect(() => {
+    if (!position || !item || !tooltipRef.current) return;
 
-  const [tooltipStyle, setTooltipStyle] = useState(() => getInitialPosition(position));
+    const calculatePosition = () => {
+      const tooltip = tooltipRef.current;
+      const { innerWidth: vw, innerHeight: vh } = window;
+      const { width: tw, height: th } = tooltip.getBoundingClientRect();
 
-  // Update initial position when position changes
-  useEffect(() => {
-    if (position) {
-      setTooltipStyle(getInitialPosition(position));
-    }
-  }, [position]);
+      // Item boundaries
+      const itemRect = {
+        left: position.left ?? position.x,
+        right: position.right ?? position.x,
+        top: position.top ?? position.y,
+        bottom: position.bottom ?? position.y,
+      };
 
-  // Calculate position after tooltip is rendered to get actual height
-  useEffect(() => {
-    if (!position || !item) return;
+      const GAP = 12;
+      const MARGIN = 16;
 
-    // Use requestAnimationFrame to ensure DOM is updated
-    requestAnimationFrame(() => {
-      if (!tooltipRef.current) return;
+      let left = 0;
+      let top = 0;
 
-      const tooltipElement = tooltipRef.current;
-      const tooltipHeight = tooltipElement.offsetHeight;
-      const tooltipWidth = tooltipElement.offsetWidth;
-
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-
-    // Use rect information if available, otherwise fall back to x, y
-    const itemRight = position.right !== undefined ? position.right : position.x;
-    const itemLeft = position.left !== undefined ? position.left : position.x - 200; // Estimate item width
-    const itemTop = position.top !== undefined ? position.top : position.y;
-    const itemBottom = position.bottom !== undefined ? position.bottom : position.y + 100; // Estimate item height
-
-    // Calculate actual position
-    let left, top;
-
-    // Check if tooltip would overflow on the right
-    const spaceOnRight = windowWidth - itemRight;
-    const spaceOnLeft = itemLeft;
-    const wouldOverflowRight = spaceOnRight < tooltipWidth + GAP;
-    const wouldOverflowLeft = spaceOnLeft < tooltipWidth + GAP;
-
-    // Determine horizontal position
-    if (wouldOverflowRight && spaceOnLeft >= tooltipWidth + GAP) {
-      // Show on the left side of item
-      left = itemLeft - tooltipWidth - GAP;
-    } else {
-      // Show on the right side of item (default)
-      left = itemRight + GAP;
-    }
-
-    // Ensure tooltip doesn't go off left edge
-    if (left < MARGIN) {
-      left = MARGIN;
-    }
-
-    // Ensure tooltip doesn't go off right edge
-    if (left + tooltipWidth > windowWidth - MARGIN) {
-      left = windowWidth - tooltipWidth - MARGIN;
-    }
-
-    // Check if tooltip would overflow on the bottom
-    const spaceOnBottom = windowHeight - itemTop;
-    const spaceOnTop = itemTop;
-
-    // Adjust vertical position based on actual tooltip height
-    if (spaceOnBottom < tooltipHeight + MARGIN) {
-      // Tooltip would overflow bottom
-      if (spaceOnTop >= tooltipHeight + MARGIN) {
-        // Show above item if there's enough space
-        top = itemTop - tooltipHeight - GAP;
-      } else {
-        // Not enough space above or below, position to fit in viewport
-        const maxTop = windowHeight - tooltipHeight - MARGIN;
-        if (maxTop > MARGIN) {
-          top = Math.max(itemTop, maxTop);
+      // 1. Try Right Side
+      if (itemRect.right + GAP + tw + MARGIN <= vw) {
+        left = itemRect.right + GAP;
+        top = itemRect.top;
+      }
+      // 2. Try Left Side
+      else if (itemRect.left - GAP - tw - MARGIN >= 0) {
+        left = itemRect.left - GAP - tw;
+        top = itemRect.top;
+      }
+      // 3. Fallback: Determine best horizontal fit
+      else {
+        const spaceRight = vw - itemRect.right;
+        const spaceLeft = itemRect.left;
+        
+        if (spaceRight >= spaceLeft) {
+             left = vw - tw - MARGIN;
+             top = itemRect.bottom + GAP; // Move below if squeezing on side
         } else {
-          // Tooltip is taller than viewport, show from top
-          top = MARGIN;
+             left = MARGIN;
+             top = itemRect.bottom + GAP;
         }
       }
-    } else {
-      // Default: align with top of item
-      top = itemTop;
-    }
 
-    // Ensure tooltip doesn't go off top edge
-    if (top < MARGIN) {
-      top = MARGIN;
-    }
-
-    // Final check: ensure tooltip doesn't overflow bottom
-    if (top + tooltipHeight > windowHeight - MARGIN) {
-      top = windowHeight - tooltipHeight - MARGIN;
-      // If still doesn't fit, at least show from top
-      if (top < MARGIN) {
-        top = MARGIN;
+      // Vertical Adjustment (Clamping)
+      // If the tooltip bottom goes off-screen
+      if (top + th + MARGIN > vh) {
+          // Align bottom of tooltip with bottom of viewport (minus margin)
+          top = vh - th - MARGIN;
       }
-    }
+      
+      // If the tooltip top goes off-screen (after bottom adjustment or initially)
+      if (top < MARGIN) {
+          top = MARGIN;
+      }
 
       setTooltipStyle({
         left: `${left}px`,
-        top: `${top}px`
+        top: `${top}px`,
+        opacity: 1,
+        visibility: 'visible'
       });
-    });
-  }, [position, item]);
-
-  // Recalculate when window resizes
-  useEffect(() => {
-    const handleResize = () => {
-      if (tooltipRef.current && position) {
-        // Trigger recalculation by updating style
-        const currentStyle = tooltipRef.current.style;
-        const temp = currentStyle.left;
-        currentStyle.left = temp;
-      }
     };
 
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('scroll', handleResize);
+    calculatePosition();
+
+    // Recalculate on scroll/resize
+    window.addEventListener('resize', calculatePosition);
+    window.addEventListener('scroll', calculatePosition, true);
+
     return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleResize);
+      window.removeEventListener('resize', calculatePosition);
+      window.removeEventListener('scroll', calculatePosition, true);
     };
-  }, [position]);
+  }, [position, item]);
 
   if (!item) return null;
 

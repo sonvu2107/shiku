@@ -1,7 +1,7 @@
 /**
  * Weapon Slot Component - Display equipment slot
  */
-import { memo, useState } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { RARITY_COLORS } from '../utils/constants.js';
 import { getItemIcon, IMAGE_COMPONENTS } from '../utils/iconHelpers.js';
@@ -10,6 +10,8 @@ import { useCultivation } from '../../../hooks/useCultivation.jsx';
 const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, iconColor, cultivation }) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [unequipping, setUnequipping] = useState(false);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+  const prevEquippedIdRef = useRef(null);
   const { unequipEquipment } = useCultivation();
   
   // Map slotType to equipped slot names (direct mapping)
@@ -56,11 +58,44 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
 
   const weaponStats = getWeaponStats();
 
+  // Detect equipment changes và trigger animation
+  useEffect(() => {
+    const currentEquippedId = equippedWeapon?.itemId?.toString() || 
+                              equippedWeapon?.metadata?._id?.toString() || 
+                              equippedWeapon?._id?.toString() || 
+                              null;
+    
+    if (currentEquippedId && currentEquippedId !== prevEquippedIdRef.current) {
+      // Equipment đã thay đổi - trigger animation
+      setShouldAnimate(true);
+      prevEquippedIdRef.current = currentEquippedId;
+      
+      // Reset animation flag sau khi animation hoàn thành
+      const timer = setTimeout(() => {
+        setShouldAnimate(false);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    } else if (!currentEquippedId) {
+      prevEquippedIdRef.current = null;
+    }
+  }, [equippedWeapon]);
+
   return (
-    <div 
+    <motion.div 
       className={`relative bg-black/40 border-2 ${equippedWeapon ? rarity?.border || 'border-amber-500/30' : 'border-slate-700/50 border-dashed'} rounded-xl p-3 md:p-4 transition-all hover:scale-[1.02] hover:z-[100] group`}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
+      initial={false}
+      animate={shouldAnimate && equippedWeapon ? {
+        scale: [1, 1.05, 1],
+        boxShadow: [
+          '0 0 0px rgba(245,158,11,0)',
+          '0 0 20px rgba(245,158,11,0.5)',
+          '0 0 0px rgba(245,158,11,0)'
+        ]
+      } : {}}
+      transition={{ duration: 0.5, ease: "easeOut" }}
     >
       {/* Slot Header */}
       <div className="text-center mb-2">
@@ -336,7 +371,7 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 });
 
