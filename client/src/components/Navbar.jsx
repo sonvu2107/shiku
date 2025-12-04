@@ -657,7 +657,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
                   <Bell size={20} />
                 </button>
 
-                <MobileMenu user={user} setUser={setUser} />
+                <MobileMenu user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
               </div>
             </>
           ) : (
@@ -676,7 +676,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
                 Đăng ký
               </Link>
               <div className="md:hidden">
-                <MobileMenu user={user} setUser={setUser} />
+                <MobileMenu user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
               </div>
             </div>
           )}

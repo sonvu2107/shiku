@@ -19,7 +19,9 @@ import {
   Bookmark,
   HelpCircle,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Moon,
+  Sun
 } from "lucide-react";
 import { removeAuthToken } from "../utils/auth.js";
 import { api } from "../api.js";
@@ -30,7 +32,7 @@ import UserAvatar from "./UserAvatar";
  * MobileMenu - Hamburger menu component for mobile (redesigned)
  * Style: Monochrome Luxury & Glassmorphism
  */
-export default function MobileMenu({ user, setUser }) {
+export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -204,8 +206,18 @@ export default function MobileMenu({ user, setUser }) {
             </div>
 
             {/* Footer */}
-            {user && (
-              <div className="p-4 border-t border-neutral-100 dark:border-neutral-800/50 bg-white/50 dark:bg-black/20 backdrop-blur-md">
+            <div className="p-4 border-t border-neutral-100 dark:border-neutral-800/50 bg-white/50 dark:bg-black/20 backdrop-blur-md space-y-2">
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={() => setDarkMode && setDarkMode(!darkMode)}
+                className="flex items-center justify-center gap-2 w-full px-4 py-3.5 text-neutral-600 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900/50 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all font-medium text-sm"
+              >
+                {darkMode ? <Moon size={18} /> : <Sun size={18} />}
+                <span>{darkMode ? 'Chế độ tối' : 'Chế độ sáng'}</span>
+              </button>
+              
+              {/* Logout Button */}
+              {user && (
                 <button
                   onClick={handleLogout}
                   className="flex items-center justify-center gap-2 w-full px-4 py-3.5 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl transition-all font-bold text-sm"
@@ -213,8 +225,8 @@ export default function MobileMenu({ user, setUser }) {
                   <LogOut size={18} />
                   <span>Đăng xuất</span>
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </motion.div>
         </>
       )}
