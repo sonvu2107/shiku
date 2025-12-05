@@ -1,6 +1,7 @@
 import express from "express";
 import { getClientAgent } from "../utils/clientAgent.js";
 import mongoose from "mongoose";
+import { escapeRegex } from "../utils/mongoSecurity.js";
 import User from "../models/User.js";
 import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
@@ -500,20 +501,23 @@ router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, asy
   try {
     // Pagination parameters với validation
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    // Allow larger limits for admin dashboard (max 1000), but default to 20
-    const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit) || 20));
+    // Limit max 100 for performance, default to 20
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
     const skip = (page - 1) * limit;
     
-    // Search filters
+    // Search filters - escape regex to prevent NoSQL injection
     const searchQuery = req.query.search ? {
       $or: [
-        { name: { $regex: req.query.search, $options: 'i' } },
-        { email: { $regex: req.query.search, $options: 'i' } }
+        { name: { $regex: escapeRegex(req.query.search), $options: 'i' } },
+        { email: { $regex: escapeRegex(req.query.search), $options: 'i' } }
       ]
     } : {};
     
-    // Role filter
-    const roleFilter = req.query.role ? { role: req.query.role } : {};
+    // Role filter - validate against allowed roles to prevent NoSQL injection
+    const allowedRoles = ['user', 'admin', 'moderator', 'vip'];
+    const roleFilter = req.query.role && typeof req.query.role === 'string' && allowedRoles.includes(req.query.role) 
+      ? { role: req.query.role } 
+      : {};
     
     // Ban status filter
     let banFilter = {};
@@ -529,15 +533,18 @@ router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, asy
     // Get total count for pagination
     const total = await User.countDocuments(matchQuery);
     
-    // Aggregate để lấy thêm số lượng bài viết của mỗi user với pagination
+    // OPTIMIZED: Use $lookup with pipeline to count instead of loading all posts
     const users = await User.aggregate([
       { $match: matchQuery },
       {
         $lookup: {
           from: "posts",
-          localField: "_id",
-          foreignField: "author",
-          as: "posts"
+          let: { userId: "$_id" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$author", "$$userId"] } } },
+            { $count: "count" }
+          ],
+          as: "postStats"
         }
       },
       {
@@ -552,7 +559,9 @@ router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, asy
           bannedAt: 1,
           banExpiresAt: 1,
           bannedBy: 1,
-          postCount: { $size: "$posts" }
+          postCount: { 
+            $ifNull: [{ $arrayElemAt: ["$postStats.count", 0] }, 0]
+          }
         }
       },
       { $sort: { createdAt: -1 } },

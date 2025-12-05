@@ -8,12 +8,16 @@
  */
 
 import { getClientAgent } from "../utils/clientAgent.js";
+import { getCorrelationId, getRequestDuration } from "./correlationId.js";
 
 /**
  * 404 Not Found handler
  */
 export function notFound(req, res) {
-  res.status(404).json({ error: "Không tìm thấy trang yêu cầu" });
+  res.status(404).json({ 
+    error: "Không tìm thấy trang yêu cầu",
+    correlationId: getCorrelationId(req)
+  });
 }
 
 /**
@@ -21,12 +25,17 @@ export function notFound(req, res) {
  * Xử lý các loại lỗi: MongoDB, JWT, Rate Limiting, v.v.
  */
 export function errorHandler(err, req, res, next) {
+  const correlationId = getCorrelationId(req);
+  const duration = getRequestDuration(req);
+  
   console.error("Error:", {
+    correlationId,
     message: err.message,
     stack: err.stack,
     url: req.url,
     method: req.method,
     ip: req.ip,
+    duration: `${duration}ms`,
     clientAgent: getClientAgent(req)
   });
 
@@ -76,7 +85,8 @@ export function errorHandler(err, req, res, next) {
 
   const errorResponse = {
     error: message,
-    status: status
+    status: status,
+    correlationId: correlationId // Always include for client-side debugging
   };
 
   // Include stack trace trong development

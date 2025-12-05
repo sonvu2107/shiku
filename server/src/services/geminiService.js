@@ -13,6 +13,37 @@ class GeminiService {
     this.genAI = this.apiKey ? new GoogleGenerativeAI(this.apiKey) : null;
     this.model = null;
     this.chatSessions = new Map(); // Lưu trữ chat sessions cho từng user
+    this.sessionLastActivity = new Map(); // Track last activity
+    this.SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+    this.MAX_SESSIONS = 1000; // Maximum concurrent sessions
+    
+    // Cleanup interval for expired sessions
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupExpiredSessions();
+    }, 5 * 60 * 1000); // Run every 5 minutes
+    
+    // Allow process to exit even if interval is running
+    this.cleanupInterval.unref();
+  }
+
+  /**
+   * Cleanup expired sessions to prevent memory leak
+   */
+  cleanupExpiredSessions() {
+    const now = Date.now();
+    let cleanedCount = 0;
+    
+    for (const [userId, lastActivity] of this.sessionLastActivity.entries()) {
+      if (now - lastActivity > this.SESSION_TIMEOUT) {
+        this.chatSessions.delete(userId);
+        this.sessionLastActivity.delete(userId);
+        cleanedCount++;
+      }
+    }
+    
+    if (cleanedCount > 0) {
+      console.log(`[INFO][GEMINI] Cleaned up ${cleanedCount} expired sessions`);
+    }
   }
 
   /**
@@ -38,6 +69,20 @@ class GeminiService {
    * @param {Array} dbHistory - Chat history từ database (optional)
    */
   getChatSession(userId, dbHistory = null) {
+    // Update last activity
+    this.sessionLastActivity.set(userId, Date.now());
+    
+    // Enforce max sessions limit
+    if (this.chatSessions.size >= this.MAX_SESSIONS && !this.chatSessions.has(userId)) {
+      // Remove oldest session
+      const oldestSession = [...this.sessionLastActivity.entries()]
+        .sort((a, b) => a[1] - b[1])[0];
+      if (oldestSession) {
+        this.chatSessions.delete(oldestSession[0]);
+        this.sessionLastActivity.delete(oldestSession[0]);
+      }
+    }
+    
     // Nếu đã có session, không cần tạo lại
     if (this.chatSessions.has(userId)) {
       return this.chatSessions.get(userId);
@@ -88,7 +133,8 @@ class GeminiService {
       };
     } catch (error) {
       console.error('[ERROR][GEMINI] Error sending message to Gemini:', error);
-      throw new Error('Failed to get response from AI: ' + error.message);
+      // Return generic error to client, log detailed error server-side
+      throw new Error('Không thể nhận phản hồi từ AI. Vui lòng thử lại sau.');
     }
   }
 
@@ -98,6 +144,7 @@ class GeminiService {
   clearChatSession(userId) {
     if (this.chatSessions.has(userId)) {
       this.chatSessions.delete(userId);
+      this.sessionLastActivity.delete(userId);
       return true;
     }
     return false;

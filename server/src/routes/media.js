@@ -13,14 +13,22 @@
 import express from 'express';
 import Media from '../models/Media.js';
 import { authRequired } from '../middleware/auth.js';
+import { escapeRegex } from '../utils/mongoSecurity.js';
 
 const router = express.Router();
 
-// Create media cache instance
+// Create media cache instance with LRU-like behavior
 const mediaCache = {
   cache: new Map(),
   ttl: 5 * 60 * 1000, // 5 minutes
+  maxSize: 500, // Maximum cache entries
   set(key, value, customTtl = null) {
+    // Enforce max size - remove oldest entries if needed
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    
     const ttl = customTtl || this.ttl;
     this.cache.set(key, {
       value,
@@ -38,8 +46,23 @@ const mediaCache = {
   },
   delete(key) {
     this.cache.delete(key);
+  },
+  // Periodic cleanup of expired entries
+  cleanup() {
+    const now = Date.now();
+    for (const [key, item] of this.cache.entries()) {
+      if (now > item.expires) {
+        this.cache.delete(key);
+      }
+    }
   }
 };
+
+// Run cleanup every 10 minutes
+const mediaCacheCleanupInterval = setInterval(() => {
+  mediaCache.cleanup();
+}, 10 * 60 * 1000);
+mediaCacheCleanupInterval.unref();
 
 /**
  * Media Routes - API routes cho chức năng quản lý media
@@ -84,11 +107,12 @@ router.get('/', authRequired, async (req, res) => {
       query.type = 'video';
     }
     
-    // Tìm kiếm theo tên file, title
+    // Tìm kiếm theo tên file, title - escape regex to prevent NoSQL injection
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { originalName: { $regex: search, $options: 'i' } }
+        { title: { $regex: safeSearch, $options: 'i' } },
+        { originalName: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 

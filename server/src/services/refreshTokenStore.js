@@ -14,6 +14,61 @@ const refreshTokenIndex = new Map();
 const tokenFamilies = new Map(); // familyId -> Set<jti>
 
 const MILLISECONDS_IN_SECOND = 1000;
+const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+
+// Cleanup interval reference
+let cleanupInterval = null;
+
+/**
+ * Start periodic cleanup of expired tokens
+ */
+function startCleanupInterval() {
+  if (cleanupInterval) return;
+  
+  cleanupInterval = setInterval(() => {
+    cleanupExpiredTokens();
+  }, CLEANUP_INTERVAL_MS);
+  
+  // Allow process to exit
+  if (cleanupInterval.unref) {
+    cleanupInterval.unref();
+  }
+}
+
+/**
+ * Cleanup expired tokens to prevent memory leak
+ */
+function cleanupExpiredTokens() {
+  const now = Date.now();
+  let cleaned = 0;
+  
+  for (const [jti, token] of refreshTokenIndex.entries()) {
+    // Remove if expired AND (revoked OR expired for more than 1 hour)
+    const isExpired = token.expiresAt && token.expiresAt.getTime() <= now;
+    const isStale = isExpired && (token.revoked || (now - token.expiresAt.getTime() > 60 * 60 * 1000));
+    
+    if (isStale) {
+      refreshTokenIndex.delete(jti);
+      
+      // Also clean up from family
+      if (token.familyId && tokenFamilies.has(token.familyId)) {
+        const family = tokenFamilies.get(token.familyId);
+        family.delete(jti);
+        if (family.size === 0) {
+          tokenFamilies.delete(token.familyId);
+        }
+      }
+      cleaned++;
+    }
+  }
+  
+  if (cleaned > 0) {
+    console.log(`[REFRESH-TOKEN-STORE] Cleaned ${cleaned} expired tokens, ${refreshTokenIndex.size} remaining`);
+  }
+}
+
+// Start cleanup when module loads
+startCleanupInterval();
 
 /**
  * Lưu metadata của refresh token

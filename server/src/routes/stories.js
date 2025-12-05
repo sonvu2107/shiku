@@ -11,13 +11,30 @@
  */
 
 import express from "express";
+import mongoose from "mongoose";
 import Story from "../models/Story.js";
 import User from "../models/User.js";
 import { authRequired } from "../middleware/auth.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
 import NotificationService from "../services/NotificationService.js";
+import { uploadLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router();
+
+// Validate ObjectId params
+router.param('storyId', (req, res, next, value) => {
+  if (!mongoose.Types.ObjectId.isValid(value)) {
+    return res.status(400).json({ error: "ID story không hợp lệ" });
+  }
+  next();
+});
+
+router.param('userId', (req, res, next, value) => {
+  if (!mongoose.Types.ObjectId.isValid(value)) {
+    return res.status(400).json({ error: "ID người dùng không hợp lệ" });
+  }
+  next();
+});
 
 /**
  * GET /api/stories/feed - Lấy stories feed (của bạn bè)
@@ -82,11 +99,11 @@ router.get("/user/:userId", authRequired, async (req, res, next) => {
  */
 router.get("/:storyId", authRequired, async (req, res, next) => {
   try {
+    // Don't use .lean() here because we need Mongoose methods
     const story = await Story.findById(req.params.storyId)
       .populate('author', 'name avatarUrl isVerified')
       .populate('views.user', 'name avatarUrl')
-      .populate('reactions.user', 'name avatarUrl')
-      .lean();
+      .populate('reactions.user', 'name avatarUrl');
     
     if (!story) {
       return res.status(404).json({ error: "Story không tồn tại" });
@@ -94,12 +111,14 @@ router.get("/:storyId", authRequired, async (req, res, next) => {
     
     // Kiểm tra quyền xem
     const user = await User.findById(req.user._id).select('friends').lean();
-    if (!story.canView(req.user._id, user.friends)) {
+    
+    // Use the Mongoose instance method
+    if (typeof story.canView === 'function' && !story.canView(req.user._id, user.friends)) {
       return res.status(403).json({ error: "Bạn không có quyền xem story này" });
     }
     
     // Tự động thêm view nếu chưa xem
-    if (!story.hasViewed(req.user._id)) {
+    if (typeof story.hasViewed === 'function' && !story.hasViewed(req.user._id)) {
       await story.addView(req.user._id);
     }
     
@@ -115,7 +134,7 @@ router.get("/:storyId", authRequired, async (req, res, next) => {
 /**
  * POST /api/stories - Tạo story mới
  */
-router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
+router.post("/", uploadLimiter, authRequired, checkBanStatus, async (req, res, next) => {
   try {
     const { 
       mediaUrl, 
@@ -177,7 +196,7 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
  */
 router.post("/:storyId/view", authRequired, async (req, res, next) => {
   try {
-    const story = await Story.findById(req.params.storyId).lean();
+    const story = await Story.findById(req.params.storyId);
     
     if (!story) {
       return res.status(404).json({ error: "Story không tồn tại" });

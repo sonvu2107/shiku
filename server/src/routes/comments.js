@@ -247,7 +247,6 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
           uploadToCloudinary(file, 'blog/comments', 'image')
         );
         const uploadResults = await Promise.all(uploadPromises);
-        console.log("[DEBUG][COMMENTS] uploadResults:", uploadResults);
         // Chỉ nhận các ảnh có đủ url và publicId
         images = uploadResults
           .filter(result => result.url && result.public_id)

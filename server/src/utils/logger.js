@@ -5,11 +5,17 @@
  * Hỗ trợ các mức log: ERROR, WARN, INFO, DEBUG
  * Tự động format message với timestamp và metadata
  * 
+ * PRODUCTION: Chỉ log ERROR, WARN, INFO (không có DEBUG)
+ * DEVELOPMENT: Log tất cả các mức
+ * 
  * @module logger
  */
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const isProduction = process.env.NODE_ENV === 'production';
+
+// Sensitive keys to redact from logs
+const SENSITIVE_KEYS = ['password', 'token', 'secret', 'authorization', 'cookie', 'apiKey', 'api_key', 'accessToken', 'refreshToken'];
 
 class Logger {
   constructor() {
@@ -20,12 +26,38 @@ class Logger {
       DEBUG: 3
     };
     
-    this.currentLevel = isDevelopment ? this.levels.DEBUG : this.levels.INFO;
+    // Production: INFO level, Development: DEBUG level
+    this.currentLevel = isProduction ? this.levels.INFO : this.levels.DEBUG;
+  }
+
+  /**
+   * Redact sensitive information from meta object
+   * @param {any} meta - Object to redact
+   * @param {number} depth - Current recursion depth (prevent infinite loops)
+   */
+  redactSensitive(meta, depth = 0) {
+    // Prevent deep recursion (max 5 levels)
+    if (depth > 5) return '[MAX_DEPTH]';
+    if (!meta || typeof meta !== 'object') return meta;
+    
+    const redacted = Array.isArray(meta) ? [...meta] : { ...meta };
+    
+    for (const key in redacted) {
+      if (SENSITIVE_KEYS.some(sk => key.toLowerCase().includes(sk.toLowerCase()))) {
+        redacted[key] = '[REDACTED]';
+      } else if (typeof redacted[key] === 'object' && redacted[key] !== null) {
+        redacted[key] = this.redactSensitive(redacted[key], depth + 1);
+      }
+    }
+    
+    return redacted;
   }
 
   formatMessage(level, message, meta = {}) {
     const timestamp = new Date().toISOString();
-    const metaStr = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : '';
+    // Redact sensitive data in production
+    const safeMeta = isProduction ? this.redactSensitive(meta) : meta;
+    const metaStr = Object.keys(safeMeta).length > 0 ? ` ${JSON.stringify(safeMeta)}` : '';
     return `[${timestamp}] [${level}] ${message}${metaStr}`;
   }
 
@@ -48,7 +80,8 @@ class Logger {
   }
 
   debug(message, meta = {}) {
-    if (this.currentLevel >= this.levels.DEBUG && isDevelopment) {
+    // DEBUG logs are ONLY shown in development
+    if (!isProduction && this.currentLevel >= this.levels.DEBUG) {
       console.log(this.formatMessage('DEBUG', message, meta));
     }
   }

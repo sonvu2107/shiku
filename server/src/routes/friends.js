@@ -16,8 +16,12 @@ import FriendRequest from '../models/FriendRequest.js';
 import User from '../models/User.js';
 import { authRequired } from '../middleware/auth.js';
 import { withCache, userCache, invalidateCacheByPrefix } from '../utils/cache.js';
+import { apiLimiter } from '../middleware/rateLimit.js';
 
 const router = express.Router();
+
+// Apply rate limiting to all friend routes
+router.use(apiLimiter);
 
 /**
  * POST /send-request - Gửi lời mời kết bạn

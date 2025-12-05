@@ -20,6 +20,21 @@ import sanitizeHtml from "sanitize-html";
 
 const router = express.Router();
 
+// Validate ObjectId params
+router.param('pollId', (req, res, next, value) => {
+  if (!mongoose.Types.ObjectId.isValid(value)) {
+    return res.status(400).json({ error: "ID bình chọn không hợp lệ" });
+  }
+  next();
+});
+
+router.param('postId', (req, res, next, value) => {
+  if (!mongoose.Types.ObjectId.isValid(value)) {
+    return res.status(400).json({ error: "ID bài viết không hợp lệ" });
+  }
+  next();
+});
+
 /**
  * POST / - Tạo poll mới cho một post
  * Request body: { postId, question, options, allowMultipleVotes, isPublic, expiresAt }

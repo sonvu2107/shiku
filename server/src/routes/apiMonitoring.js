@@ -234,6 +234,7 @@ export const cleanupAPIMonitoring = async () => {
 // Start batch write interval if monitoring is enabled
 if (monitoringEnabled && !batchWriteInterval) {
   batchWriteInterval = setInterval(() => setImmediate(flushStatsBuffer), BATCH_WRITE_INTERVAL);
+  if (batchWriteInterval.unref) batchWriteInterval.unref();
   monitoringIntervals.push(batchWriteInterval);
   console.log(`[INFO][API-MONITORING] Batch write system started (interval: ${BATCH_WRITE_INTERVAL}ms)`);
 }
@@ -402,6 +403,7 @@ if (monitoringEnabled) {
       hourlyResetRunning = false;
     }
   }), 60 * 60 * 1000); // Reset every hour
+  if (hourlyInterval.unref) hourlyInterval.unref();
   monitoringIntervals.push(hourlyInterval);
 
   let dailyResetRunning = false;
@@ -420,6 +422,7 @@ if (monitoringEnabled) {
       dailyResetRunning = false;
     }
   }), 24 * 60 * 60 * 1000); // Reset every 24 hours
+  if (dailyInterval.unref) dailyInterval.unref();
   monitoringIntervals.push(dailyInterval);
 
   // Schedule daily reset at midnight (Vietnam timezone)
@@ -447,6 +450,7 @@ if (monitoringEnabled) {
         scheduleDailyReset();
       }
     }), timeUntilMidnight);
+    if (midnightTimeout.unref) midnightTimeout.unref();
     
     // Store timeout for cleanup
     monitoringIntervals.push(midnightTimeout);
@@ -470,6 +474,7 @@ if (monitoringEnabled) {
       cleanupRunning = false;
     }
   }), 24 * 60 * 60 * 1000); // Clean every 24 hours
+  if (cleanupInterval.unref) cleanupInterval.unref();
   monitoringIntervals.push(cleanupInterval);
 } else {
   console.log("[INFO][API-MONITORING] Disabled via DISABLE_API_MONITORING flag");

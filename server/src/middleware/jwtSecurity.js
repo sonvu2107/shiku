@@ -497,6 +497,11 @@ if (typeof global.refreshAttemptsCleanup === 'undefined') {
       }
     }
   }, 5 * 60 * 1000);
+  
+  // Allow process to exit
+  if (global.refreshAttemptsCleanup.unref) {
+    global.refreshAttemptsCleanup.unref();
+  }
 }
 
 // ============================================================

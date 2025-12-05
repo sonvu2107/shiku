@@ -883,7 +883,11 @@ router.get("/ranking/list", async (req, res, next) => {
     // Merge stats
     const statsMap = new Map();
     
-    rankings[0].challengerStats.forEach(s => {
+    // Check if rankings has data before accessing
+    const challengerStats = rankings[0]?.challengerStats || [];
+    const opponentStats = rankings[0]?.opponentStats || [];
+    
+    challengerStats.forEach(s => {
       statsMap.set(s._id.toString(), {
         userId: s._id,
         battles: s.battles,
@@ -891,7 +895,7 @@ router.get("/ranking/list", async (req, res, next) => {
       });
     });
 
-    rankings[0].opponentStats.forEach(s => {
+    opponentStats.forEach(s => {
       const existing = statsMap.get(s._id.toString());
       if (existing) {
         existing.battles += s.battles;

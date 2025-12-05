@@ -13,6 +13,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import Group from '../models/Group.js';
+import { escapeRegex } from '../utils/mongoSecurity.js';
 import Post from '../models/Post.js';
 import User from '../models/User.js';
 import { authRequired, authOptional } from '../middleware/auth.js';
@@ -89,12 +90,13 @@ router.get('/', authOptional, async (req, res) => {
       query['settings.type'] = type;
     }
     
-    // Tìm kiếm theo tên, mô tả, tags
+    // Tìm kiếm theo tên, mô tả, tags - escape regex to prevent NoSQL injection
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { description: { $regex: safeSearch, $options: 'i' } },
+        { tags: { $in: [new RegExp(safeSearch, 'i')] } }
       ];
     }
 
@@ -437,7 +439,7 @@ router.post('/', authRequired, upload.fields([
     });
 
     // Xử lý ảnh upload
-    if (req.files.avatar && req.files.avatar[0]) {
+    if (req.files?.avatar && req.files.avatar[0]) {
       try {
         const avatarResult = await uploadToCloudinary(req.files.avatar[0].buffer, 'groups/avatars');
         group.avatar = avatarResult.secure_url;
@@ -445,7 +447,7 @@ router.post('/', authRequired, upload.fields([
         console.error('[ERROR][GROUPS] Error uploading avatar:', error);
       }
     }
-    if (req.files.coverImage && req.files.coverImage[0]) {
+    if (req.files?.coverImage && req.files.coverImage[0]) {
       try {
         const coverResult = await uploadToCloudinary(req.files.coverImage[0].buffer, 'groups/covers');
         group.coverImage = coverResult.secure_url;
@@ -572,7 +574,7 @@ router.put('/:id', authRequired, upload.fields([
     }
 
     // Xử lý ảnh upload
-    if (req.files.avatar && req.files.avatar[0]) {
+    if (req.files?.avatar && req.files.avatar[0]) {
       try {
         const avatarResult = await uploadToCloudinary(req.files.avatar[0].buffer, 'groups/avatars');
         group.avatar = avatarResult.secure_url;
@@ -580,7 +582,7 @@ router.put('/:id', authRequired, upload.fields([
         console.error('[ERROR][GROUPS] Error uploading avatar:', error);
       }
     }
-    if (req.files.coverImage && req.files.coverImage[0]) {
+    if (req.files?.coverImage && req.files.coverImage[0]) {
       try {
         const coverResult = await uploadToCloudinary(req.files.coverImage[0].buffer, 'groups/covers');
         group.coverImage = coverResult.secure_url;

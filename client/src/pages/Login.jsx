@@ -11,7 +11,7 @@ import { useSEO } from "../utils/useSEO";
 import BackgroundWrapper from "../components/BackgroundWrapper";
 import BackgroundControls from "../components/BackgroundControls";
 
-// --- UI COMPONENTS (Tái sử dụng style để đồng bộ) ---
+// --- UI COMPONENTS ---
 
 // Input Field Custom
 const InputGroup = ({ icon: Icon, ...props }) => (

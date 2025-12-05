@@ -134,10 +134,11 @@ function setupConnectionMonitoring() {
 
   // Log pool size periodically
   if (process.env.NODE_ENV !== 'production') {
-    setInterval(() => {
+    const poolStatsInterval = setInterval(() => {
       stats.connectionPool.stats = getPoolStats();
       stats.connectionPool.lastChecked = new Date();
     }, 60000); // Every minute
+    if (poolStatsInterval.unref) poolStatsInterval.unref();
   }
 }
 

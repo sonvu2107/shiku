@@ -342,7 +342,10 @@ function cleanup() {
 }
 
 // Auto cleanup every 5 minutes
-setInterval(cleanup, 5 * 60 * 1000);
+const hybridCacheCleanupInterval = setInterval(cleanup, 5 * 60 * 1000);
+if (hybridCacheCleanupInterval.unref) {
+  hybridCacheCleanupInterval.unref();
+}
 
 // ============================================================
 // EXPORTS

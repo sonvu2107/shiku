@@ -47,6 +47,7 @@ const requiredEnvVars = [
 export const validateEnvVars = () => {
   const missingVars = [];
   const invalidVars = [];
+  const warnings = [];
 
   // Kiểm tra các biến bắt buộc
   requiredEnvVars.forEach(varName => {
@@ -55,15 +56,47 @@ export const validateEnvVars = () => {
     }
   });
 
-  // Bỏ kiểm tra độ dài JWT_SECRET và JWT_REFRESH_SECRET
-  // Giữ lại kiểm tra các biến còn lại
+  // Độ dài tối thiểu được khuyến nghị secret JWT (256 bits = 32 characters)
+  const MIN_SECRET_LENGTH = 32;
+  
+  // Kiểm tra độ dài JWT_SECRET (critical security check)
+  if (process.env.JWT_SECRET) {
+    if (process.env.JWT_SECRET.length < MIN_SECRET_LENGTH) {
+      if (process.env.NODE_ENV === 'production') {
+        invalidVars.push(`JWT_SECRET must have at least ${MIN_SECRET_LENGTH} characters (current: ${process.env.JWT_SECRET.length})`);
+      } else {
+        warnings.push(`JWT_SECRET short (${process.env.JWT_SECRET.length} chars). Production requires at least ${MIN_SECRET_LENGTH} characters.`);
+      }
+    }
+  }
+  
+  // Kiểm tra độ dài REFRESH_TOKEN_SECRET
+  if (process.env.REFRESH_TOKEN_SECRET) {
+    if (process.env.REFRESH_TOKEN_SECRET.length < MIN_SECRET_LENGTH) {
+      if (process.env.NODE_ENV === 'production') {
+        invalidVars.push(`REFRESH_TOKEN_SECRET must have at least ${MIN_SECRET_LENGTH} characters (current: ${process.env.REFRESH_TOKEN_SECRET.length})`);
+      } else {
+        warnings.push(`REFRESH_TOKEN_SECRET short (${process.env.REFRESH_TOKEN_SECRET.length} chars). Production requires at least ${MIN_SECRET_LENGTH} characters.`);
+      }
+    }
+  }
+  
+  // Kiểm tra JWT_SECRET và REFRESH_TOKEN_SECRET không được giống nhau trong production
+  if (process.env.NODE_ENV === 'production' && 
+      process.env.JWT_SECRET && 
+      process.env.REFRESH_TOKEN_SECRET &&
+      process.env.JWT_SECRET === process.env.REFRESH_TOKEN_SECRET) {
+    invalidVars.push('JWT_SECRET and REFRESH_TOKEN_SECRET must not be the same in production');
+  }
+
+  // Kiểm tra MongoDB URI
   if (process.env.MONGODB_URI && !process.env.MONGODB_URI.startsWith('mongodb')) {
-    invalidVars.push('MONGODB_URI phải là một MongoDB connection string hợp lệ');
+    invalidVars.push('MONGODB_URI must be a valid MongoDB connection string');
   }
 
   // Báo lỗi nếu có biến thiếu hoặc không hợp lệ
   if (missingVars.length > 0 || invalidVars.length > 0) {
-    console.error('[ENVIRONMENT]Environment Variables Error:');
+    console.error('[ENVIRONMENT] Environment Variables Error:');
     
     if (missingVars.length > 0) {
       console.error('Missing required variables:', missingVars.join(', '));
@@ -73,10 +106,16 @@ export const validateEnvVars = () => {
       console.error('Invalid variables:', invalidVars.join(', '));
     }
     
-    console.error('\nVui lòng tạo file .env với các biến sau:');
+    console.error('\nPlease create a .env file with the following variables:');
     console.error(requiredEnvVars.map(varName => `${varName}=your_value_here`).join('\n'));
     
     process.exit(1);
+  }
+
+  // Hiển thị warnings (không block startup nhưng cảnh báo developer)
+  if (warnings.length > 0) {
+    console.warn('[ENVIRONMENT] Security Warnings:');
+    warnings.forEach(warning => console.warn(warning));
   }
 
   console.log('[ENVIRONMENT] All required environment variables are set');

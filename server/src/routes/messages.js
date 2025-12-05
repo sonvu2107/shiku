@@ -13,6 +13,8 @@
 import express from "express";
 import mongoose from "mongoose";
 import { authRequired } from "../middleware/auth.js";
+import { escapeRegex } from "../utils/mongoSecurity.js";
+import { validateObjectId } from "../middleware/validateObjectId.js";
 import Message from "../models/Message.js";
 import Conversation from "../models/Conversation.js";
 import User from "../models/User.js";
@@ -21,6 +23,22 @@ import { v2 as cloudinary } from "cloudinary";
 const router = express.Router();
 
 // Messages routes loaded successfully
+
+// Apply ObjectId validation to all routes with :conversationId
+router.param('conversationId', (req, res, next, value) => {
+  if (!mongoose.Types.ObjectId.isValid(value)) {
+    return res.status(400).json({ message: "ID cuộc trò chuyện không hợp lệ" });
+  }
+  next();
+});
+
+// Apply ObjectId validation to routes with :messageId
+router.param('messageId', (req, res, next, value) => {
+  if (!mongoose.Types.ObjectId.isValid(value)) {
+    return res.status(400).json({ message: "ID tin nhắn không hợp lệ" });
+  }
+  next();
+});
 
 // Helper function to check if user has access to conversation
 const checkConversationAccess = (userId) => ({
@@ -213,6 +231,17 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
   try {
     const { conversationId } = req.params;
     const { content, messageType = 'text', emote } = req.body;
+
+    // Validate message length to prevent DoS
+    const MAX_MESSAGE_LENGTH = 10000;
+    if (content && content.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({ message: `Tin nhắn không được vượt quá ${MAX_MESSAGE_LENGTH} ký tự` });
+    }
+
+    // Validate conversationId format
+    if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+      return res.status(400).json({ message: "ID cuộc trò chuyện không hợp lệ" });
+    }
 
     // Check if user is participant
     // OPTIMIZATION: Use lean() and batch fetch blockedUsers separately
@@ -1146,13 +1175,15 @@ router.get("/users/search", authRequired, async (req, res) => {
       return res.status(400).json({ message: "Từ khóa tìm kiếm quá ngắn" });
     }
 
+    // Escape regex to prevent NoSQL injection
+    const safeQuery = escapeRegex(q.trim());
     const users = await User.find({
       $and: [
         { _id: { $ne: req.user._id } },
         {
           $or: [
-            { name: { $regex: q.trim(), $options: 'i' } },
-            { email: { $regex: q.trim(), $options: 'i' } }
+            { name: { $regex: safeQuery, $options: 'i' } },
+            { email: { $regex: safeQuery, $options: 'i' } }
           ]
         }
       ]

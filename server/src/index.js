@@ -8,7 +8,8 @@ import helmet from "helmet"; // Security middleware
 import cookieParser from "cookie-parser"; // Parse cookies
 import cors from "cors"; // Cross-Origin Resource Sharing
 import morgan from "morgan"; // HTTP request logger
-import csrf from "csurf"; // CSRF protection
+// Note: csurf is deprecated, using custom csrfProtection instead
+import { csrfProtection, csrfErrorHandler } from "./middleware/csrfProtection.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createServer } from "http"; // HTTP server
@@ -21,6 +22,8 @@ import { apiLimiter, authLimiter, authStatusLimiter, uploadLimiter, messageLimit
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { requestTimeout } from "./middleware/timeout.js";
 import { authOptional } from "./middleware/auth.js";
+import { correlationIdMiddleware } from "./middleware/correlationId.js";
+import { isRedisConnected } from "./services/redisClient.js";
 import User from "./models/User.js";
 import { getClientAgent } from "./utils/clientAgent.js";
 import { buildCookieOptions } from "./utils/cookieOptions.js";
@@ -98,6 +101,9 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 4000;
 
 // ==================== MIDDLEWARE SETUP ====================
+
+// Correlation ID - PHẢI đặt đầu tiên để trace tất cả requests
+app.use(correlationIdMiddleware);
 
 // Parse cookie trước tiên
 app.use(cookieParser());
@@ -189,21 +195,14 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// CSRF Cookie Options - Sử dụng buildCookieOptions để đồng bộ
-const csrfCookieOptions = buildCookieOptions(60 * 60 * 1000, { httpOnly: true });
-
-// CSRF middleware (phải sau CORS, cookieParser, bodyParser)
-const csrfProtection = csrf({ cookie: csrfCookieOptions });
-
-// Custom CSRF middleware that excludes refresh endpoint
-app.use((req, res, next) => {
-  // Skip CSRF for refresh endpoint
-  if (req.path === '/api/auth/refresh' && req.method === 'POST') {
-    return next();
-  }
-  // Apply CSRF protection for all other routes
-  csrfProtection(req, res, next);
-});
+// Custom CSRF Protection middleware (replaces deprecated csurf package)
+// The csrfProtection middleware handles:
+// - Generating CSRF tokens with signed timestamps
+// - Validating tokens on POST/PUT/DELETE requests
+// - Skipping validation for safe methods (GET, HEAD, OPTIONS)
+// - Skipping specific paths like /api/auth/refresh
+app.use(csrfProtection);
+app.use(csrfErrorHandler);
 
 // Logging và timeout
 app.use(morgan(isProduction ? "combined" : "dev"));
@@ -234,13 +233,56 @@ app.get("/", (req, res) => {
   });
 });
 
-// Detailed health check endpoint
+// Detailed health check endpoint with dependency checks
 app.get("/health", (req, res) => {
+  const startTime = Date.now();
+  const health = {
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    checks: {}
+  };
+  
+  // Check MongoDB connection
+  try {
+    const mongoState = mongoose.connection.readyState;
+    const mongoStates = {
+      0: 'disconnected',
+      1: 'connected',
+      2: 'connecting',
+      3: 'disconnecting'
+    };
+    health.checks.mongodb = {
+      status: mongoState === 1 ? 'healthy' : 'unhealthy',
+      state: mongoStates[mongoState] || 'unknown'
+    };
+    if (mongoState !== 1) {
+      health.status = 'degraded';
+    }
+  } catch (error) {
+    health.checks.mongodb = { status: 'unhealthy', error: error.message };
+    health.status = 'degraded';
+  }
+  
+  // Check Redis connection (if enabled)
+  try {
+    const redisConnected = isRedisConnected();
+    health.checks.redis = {
+      status: redisConnected ? 'healthy' : 'not-configured',
+      enabled: process.env.USE_REDIS === 'true'
+    };
+  } catch (error) {
+    health.checks.redis = { status: 'not-configured' };
+  }
+
+  // Add response time
+  health.responseTime = `${Date.now() - startTime}ms`;
+  
   // Minimal info in production to prevent fingerprinting
   if (isProduction) {
-    return res.json({
-      status: "ok",
-      timestamp: new Date().toISOString()
+    return res.status(health.status === 'healthy' ? 200 : 503).json({
+      status: health.status,
+      timestamp: health.timestamp,
+      responseTime: health.responseTime
     });
   }
 
@@ -248,11 +290,14 @@ app.get("/health", (req, res) => {
   const memoryUsage = process.memoryUsage();
   const uptime = process.uptime();
 
-  res.json({
-    status: "healthy",
-    timestamp: new Date().toISOString(),
+  res.status(health.status === 'healthy' ? 200 : 503).json({
+    ...health,
     uptime: uptime,
-    memory: memoryUsage,
+    memory: {
+      heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+      heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
+      rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`
+    },
     connectedSockets: connectedUsers.size,
     nodeVersion: process.version,
     environment: process.env.NODE_ENV || 'development'
@@ -282,17 +327,11 @@ app.get("/heartbeat", (req, res) => {
 
 // Preflight helper for all routes
 
-// CSRF token endpoint - optimized but respects csurf's secret management
-// NOTE: We cache based on the _csrf secret cookie to ensure token validity
-// The token is only valid when paired with its corresponding secret
+// CSRF token endpoint - using custom csrfProtection middleware
+// The token is signed with timestamp and validated on subsequent requests
 app.get("/api/csrf-token", (req, res) => {
   try {
-    // Get the existing secret from cookie (csurf uses this)
-    const existingSecret = req.cookies?._csrf;
-    
-    // Generate token - csurf will:
-    // - Reuse secret if _csrf cookie exists and is valid
-    // - Create new secret if not present (sets new cookie)
+    // Generate token using the csrfToken() method attached by csrfProtection middleware
     const token = req.csrfToken();
 
     res.json({
@@ -678,8 +717,14 @@ app.use(errorHandler);
 
 // ==================== SOCKET.IO EVENT HANDLING ====================
 
+// Import Socket rate limiting
+import { socketRateLimitMiddleware, applyRateLimitToSocket } from './middleware/socketRateLimit.js';
+
 // Track connected users to prevent memory leaks
 const connectedUsers = new Map();
+
+// Socket rate limiting middleware - MUST be first
+io.use(socketRateLimitMiddleware);
 
 // Socket authentication middleware
 io.use(async (socket, next) => {
@@ -708,6 +753,9 @@ io.use(async (socket, next) => {
 });
 
 io.on("connection", async (socket) => {
+  // Apply rate limiting to all socket events
+  applyRateLimitToSocket(socket);
+  
   // Store connection info
   connectedUsers.set(socket.id, {
     userId: socket.userId,

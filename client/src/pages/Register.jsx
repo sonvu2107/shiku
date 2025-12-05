@@ -12,7 +12,6 @@ import BackgroundWrapper from "../components/BackgroundWrapper";
 import BackgroundControls from "../components/BackgroundControls";
 
 // --- TÁI SỬ DỤNG UI COMPONENTS ---
-
 const InputGroup = ({ icon: Icon, type = "text", showPasswordToggle = false, passwordVisible = false, onTogglePassword, ...props }) => (
   <div className="relative group">
     <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-white transition-colors duration-300">

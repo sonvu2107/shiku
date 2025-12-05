@@ -402,6 +402,8 @@ const securityLogsCleanupInterval = setInterval(() => setImmediate(async () => {
     securityLogsCleanupRunning = false;
   }
 }), 24 * 60 * 60 * 1000);
+// Allow process to exit naturally
+if (securityLogsCleanupInterval.unref) securityLogsCleanupInterval.unref();
 
 // Cleanup function for graceful shutdown (called by main server)
 export const cleanupSecurityLogging = () => {

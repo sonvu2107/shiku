@@ -9,11 +9,9 @@ dotenv.config();
  * Sử dụng credentials từ environment variables
  */
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, // Tên cloud trên Cloudinary
-  api_key: process.env.CLOUDINARY_API_KEY, // API key
-  api_secret: process.env.CLOUDINARY_API_SECRET, // API secret
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
+  api_key: process.env.CLOUDINARY_API_KEY, 
+  api_secret: process.env.CLOUDINARY_API_SECRET, 
 });
-
-// Cloudinary configuration loaded
 
 export default cloudinary;

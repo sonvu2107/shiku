@@ -243,4 +243,7 @@ export function cleanupAllCaches() {
 }
 
 // Auto cleanup mỗi 5 phút
-setInterval(cleanupAllCaches, 5 * 60 * 1000);
+const cacheCleanupInterval = setInterval(cleanupAllCaches, 5 * 60 * 1000);
+if (cacheCleanupInterval.unref) {
+  cacheCleanupInterval.unref();
+}

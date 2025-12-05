@@ -12,8 +12,7 @@ import FriendsTab from "../components/profile/FriendsTab";
 import AnalyticsTab from "../components/profile/AnalyticsTab";
 import { useToast } from "../contexts/ToastContext";
 
-// --- UI COMPONENTS (Tái sử dụng từ Landing Page để đồng bộ) ---
-
+// --- UI COMPONENTS ---
 const GridPattern = () => (
   <div className="absolute inset-0 -z-10 h-full w-full bg-white dark:bg-black bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]">
     <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-neutral-200 dark:bg-neutral-900 opacity-20 blur-[100px]"></div>
