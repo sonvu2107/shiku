@@ -364,13 +364,13 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
     const statusLabel = p.status === 'private' ? 'Riêng tư' : 'Công khai';
 
     return (
-      <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pt-16 sm:pt-20 pb-20 sm:pb-32">
-        <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-          <div className="bg-white dark:bg-[#111] rounded-2xl sm:rounded-[32px] px-3 sm:px-5 pt-3 sm:pt-4 pb-4 sm:pb-6 mb-4 sm:mb-6
+      <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pt-16 sm:pt-20 pb-16 sm:pb-32">
+        <div className="max-w-3xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
+          <div className="bg-white dark:bg-[#111] rounded-xl sm:rounded-[32px] px-3 sm:px-5 pt-3 sm:pt-4 pb-3 sm:pb-6 mb-3 sm:mb-6
             shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
             border border-transparent dark:border-white/5 relative">
           {/* HEADER */}
-          <div className="flex items-center justify-between mb-3 sm:mb-4 px-0 sm:px-1">
+          <div className="flex items-center justify-between mb-2.5 sm:mb-4 px-0 sm:px-1">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <Link to={`/user/${p.author?._id}`} className="relative flex-shrink-0">
                 <UserAvatar 
@@ -382,7 +382,7 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                 />
                 <UserAvatar 
                   user={p.author}
-                  size={40}
+                  size={36}
                   showFrame={true}
                   showBadge={true}
                   className="sm:hidden"
@@ -391,16 +391,16 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
               <div className="min-w-0 flex-1">
                 <Link 
                   to={`/user/${p.author?._id}`} 
-                  className="font-bold text-sm sm:text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1 sm:gap-1.5"
+                  className="font-bold text-xs sm:text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1 sm:gap-1.5"
                 >
-                  <UserName user={p.author} maxLength={20} />
+                  <UserName user={p.author} maxLength={18} />
                   {p.author?.role === 'admin' && <VerifiedBadge user={p.author} />}
                 </Link>
-                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1 sm:gap-1.5 mt-0.5 flex-wrap">
+                <div className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1 sm:gap-1.5 mt-0.5 flex-wrap">
                   {timeAgo && <span className="whitespace-nowrap">{timeAgo}</span>}
                   {timeAgo && <span>•</span>}
                   <span className={cn(
-                    "px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-semibold whitespace-nowrap",
+                    "px-1 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[10px] font-semibold whitespace-nowrap",
                     p.status === 'private' 
                       ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" 
                       : "bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
@@ -433,15 +433,15 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
 
           {/* TITLE */}
           {p.title && (
-            <h1 className="px-0 sm:px-1 mb-2 sm:mb-3 text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight break-words">
+            <h1 className="px-0 sm:px-1 mb-2 sm:mb-3 text-lg sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight break-words">
               {p.title}
             </h1>
           )}
 
           {/* CONTENT */}
           {p.content && (
-            <div className="px-0 sm:px-1 mb-3 sm:mb-4">
-              <div className="prose dark:prose-invert max-w-none text-sm sm:text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed prose-p:mb-3 prose-headings:mb-2 prose-headings:mt-4">
+            <div className="px-0 sm:px-1 mb-2.5 sm:mb-4">
+              <div className="prose dark:prose-invert max-w-none text-xs sm:text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed prose-p:mb-2 sm:prose-p:mb-3 prose-headings:mb-2 prose-headings:mt-4">
                 <MarkdownWithMentions 
                   content={p.content} 
                   mentionedUsers={p.mentions || []}
@@ -682,7 +682,7 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
           )}
 
           {/* ACTION BAR */}
-          <div className="flex items-center justify-between px-0 sm:px-1 pt-1 gap-1 sm:gap-2">
+          <div className="flex items-center justify-between px-0 sm:px-1 pt-1 gap-0.5 sm:gap-2">
             <div className="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0">
               {/* Emote/Like Button với Popup */}
               <div
@@ -721,7 +721,7 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                       }}
                       disabled={emoting}
                       className={cn(
-                        "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full transition-all active:scale-90 touch-manipulation min-h-[44px]",
+                        "flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-full transition-all active:scale-90 touch-manipulation min-h-[40px] sm:min-h-[44px]",
                         myEmote 
                           ? "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-500" 
                           : "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400",
@@ -799,7 +799,7 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
 
               {/* Comment */}
               <button
-                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90 touch-manipulation min-h-[44px]"
+                className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-full hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90 touch-manipulation min-h-[40px] sm:min-h-[44px]"
                 type="button"
                 onClick={() => {
                   const cmtEl = document.getElementById("comments-section");
@@ -812,7 +812,7 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
 
               {/* Share */}
               <button
-                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/20 dark:hover:text-green-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90 touch-manipulation min-h-[44px]"
+                className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-full hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/20 dark:hover:text-green-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90 touch-manipulation min-h-[40px] sm:min-h-[44px]"
                 type="button"
                 onClick={() => {
                   const url = window.location.href;
@@ -833,7 +833,7 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
               onClick={toggleSave}
               disabled={saving}
               className={cn(
-                "p-2.5 sm:p-3 rounded-full transition-all active:scale-90 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0",
+                "p-2 sm:p-3 rounded-full transition-all active:scale-90 touch-manipulation min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] flex items-center justify-center flex-shrink-0",
                 saved
                   ? "bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-500"
                   : "hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-500/20 dark:hover:text-yellow-500 text-gray-400",
@@ -851,11 +851,11 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
         </div>
 
         {/* Comments */}
-        <div id="comments-section" className="max-w-3xl mx-auto px-3 sm:px-4">
-          <div className="bg-white dark:bg-[#111] rounded-2xl sm:rounded-[32px] p-4 sm:p-5 mb-4 sm:mb-6
+        <div id="comments-section" className="max-w-3xl mx-auto px-2 sm:px-4">
+          <div className="bg-white dark:bg-[#111] rounded-xl sm:rounded-[32px] p-3 sm:p-5 mb-3 sm:mb-6
             shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
             border border-transparent dark:border-white/5">
-            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-gray-900 dark:text-white">Bình luận</h2>
+            <h2 className="text-base sm:text-xl font-bold mb-2.5 sm:mb-4 text-gray-900 dark:text-white">Bình luận</h2>
           {(() => {
             // Xác định quyền bình luận nếu bài đăng thuộc về một nhóm
             const groupInfo = p.group || null;

@@ -1,6 +1,7 @@
 import express from "express";
 import Battle from "../models/Battle.js";
 import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES } from "../models/Cultivation.js";
+import Equipment from "../models/Equipment.js";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import { authRequired } from "../middleware/auth.js";
@@ -11,6 +12,30 @@ const router = express.Router();
 router.use(authRequired);
 
 // ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Tích hợp stats từ trang bị vào combat stats
+ */
+const mergeEquipmentStats = (combatStats, equipStats) => {
+  if (!equipStats) return combatStats;
+
+  combatStats.attack = (combatStats.attack || 0) + (equipStats.attack || 0);
+  combatStats.defense = (combatStats.defense || 0) + (equipStats.defense || 0);
+  combatStats.qiBlood = (combatStats.qiBlood || 0) + (equipStats.hp || 0); // HP từ equipment cộng vào qiBlood
+  combatStats.speed = (combatStats.speed || 0) + (equipStats.speed || 0);
+  
+  // Percentage stats (convert 0-1 to 0-100)
+  combatStats.criticalRate = (combatStats.criticalRate || 0) + ((equipStats.crit_rate || 0) * 100);
+  combatStats.criticalDamage = (combatStats.criticalDamage || 0) + ((equipStats.crit_damage || 0) * 100);
+  combatStats.accuracy = (combatStats.accuracy || 0) + ((equipStats.hit_rate || 0) * 100);
+  combatStats.dodge = (combatStats.dodge || 0) + ((equipStats.evasion || 0) * 100);
+  combatStats.lifesteal = (combatStats.lifesteal || 0) + ((equipStats.lifesteal || 0) * 100);
+  
+  combatStats.penetration = (combatStats.penetration || 0) + (equipStats.penetration || 0);
+  combatStats.regeneration = (combatStats.regeneration || 0) + (equipStats.energy_regen || 0);
+  
+  return combatStats;
+};
 
 /**
  * Lấy skills từ công pháp đã học
@@ -327,9 +352,16 @@ router.post("/challenge", async (req, res, next) => {
       });
     }
 
-    // Tính combat stats
+    // Tính combat stats (Base + Techniques)
     const challengerStats = challengerCultivation.calculateCombatStats();
     const opponentStats = opponentCultivation.calculateCombatStats();
+
+    // Lấy và tích hợp stats từ trang bị
+    const challengerEquipStats = await challengerCultivation.getEquipmentStats();
+    const opponentEquipStats = await opponentCultivation.getEquipmentStats();
+
+    mergeEquipmentStats(challengerStats, challengerEquipStats);
+    mergeEquipmentStats(opponentStats, opponentEquipStats);
 
     // Lấy realm info
     const challengerRealm = CULTIVATION_REALMS.find(r => r.level === challengerCultivation.realmLevel) || CULTIVATION_REALMS[0];

@@ -790,9 +790,9 @@ function CommentSection({ postId, initialComments = [], user }) {
     const isSubmittingReply = submittingReply.get(comment._id);
 
     return (
-      <div key={comment._id} data-comment-id={comment._id} className={`${level > 0 ? "ml-1 sm:ml-4 md:ml-6 lg:ml-8 pl-2 sm:pl-4 border-l-2 border-neutral-100 dark:border-neutral-800" : ""}`}>
+      <div key={comment._id} data-comment-id={comment._id} className={`${level > 0 ? "ml-0.5 sm:ml-4 md:ml-6 lg:ml-8 pl-1.5 sm:pl-4 border-l-2 border-neutral-100 dark:border-neutral-800" : ""}`}>
         {/* Main Comment */}
-        <div className="flex gap-2 sm:gap-3 py-2 sm:py-1.5 group/comment">
+        <div className="flex gap-2 sm:gap-3 py-1.5 sm:py-1.5 group/comment">
           <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="focus:outline-none flex-shrink-0 touch-manipulation">
             <UserAvatar 
               user={comment.author}
@@ -803,17 +803,17 @@ function CommentSection({ postId, initialComments = [], user }) {
             />
             <UserAvatar 
               user={comment.author}
-              size={36}
+              size={32}
               showFrame={true}
               showBadge={true}
               className="sm:hidden"
             />
           </Link>
           <div className="flex-1 min-w-0">
-            <div className={`${editingComment === comment._id ? 'w-full' : 'w-fit max-w-full'} bg-neutral-100/80 dark:bg-neutral-900/80 backdrop-blur-sm rounded-2xl rounded-tl-none px-3 sm:px-4 py-2.5 sm:py-3 border border-transparent dark:border-neutral-800`}>
-              <div className="flex items-center justify-between mb-1.5 sm:mb-1 gap-2">
-                <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="font-bold text-sm sm:text-sm text-neutral-900 dark:text-white hover:underline truncate touch-manipulation">
-                  <UserName user={comment.author} maxLength={20} />
+            <div className={`${editingComment === comment._id ? 'w-full' : 'w-fit max-w-full'} bg-neutral-100/80 dark:bg-neutral-900/80 backdrop-blur-sm rounded-xl sm:rounded-2xl rounded-tl-none px-2.5 sm:px-4 py-2 sm:py-3 border border-transparent dark:border-neutral-800`}>
+              <div className="flex items-center justify-between mb-1 sm:mb-1 gap-2">
+                <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="font-bold text-xs sm:text-sm text-neutral-900 dark:text-white hover:underline truncate touch-manipulation">
+                  <UserName user={comment.author} maxLength={18} />
                 </Link>
               </div>
               
@@ -899,7 +899,7 @@ function CommentSection({ postId, initialComments = [], user }) {
                   </div>
                 </div>
               ) : (
-                <div className="text-neutral-800 dark:text-neutral-200 text-sm sm:text-sm leading-relaxed whitespace-pre-wrap break-words">
+                <div className="text-neutral-800 dark:text-neutral-200 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">
                   <MentionText 
                     text={comment.content} 
                     mentionedUsers={comment.mentions || []}
@@ -924,8 +924,8 @@ function CommentSection({ postId, initialComments = [], user }) {
             </div>
 
             {/* Comment Actions */}
-            <div className="flex items-center gap-2.5 sm:gap-4 mt-2 sm:mt-1.5 ml-1 sm:ml-2 flex-wrap">
-              <span className="text-[11px] sm:text-xs text-neutral-400 font-medium flex-shrink-0 whitespace-nowrap">
+            <div className="flex items-center gap-2 sm:gap-4 mt-1.5 sm:mt-1.5 ml-0.5 sm:ml-2 flex-wrap">
+              <span className="text-[10px] sm:text-xs text-neutral-400 font-medium flex-shrink-0 whitespace-nowrap">
                 {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
               </span>
 
@@ -1161,10 +1161,10 @@ function CommentSection({ postId, initialComments = [], user }) {
 
   return (
     <ComponentErrorBoundary>
-      <div className="max-w-4xl mx-auto px-3 sm:px-0" style={{ overflow: 'visible' }}>
+      <div className="max-w-4xl mx-auto px-2 sm:px-0" style={{ overflow: 'visible' }}>
         
         {/* Comment Input */}
-        <div className="mb-6 sm:mb-8 flex gap-3 sm:gap-4">
+        <div className="mb-4 sm:mb-8 flex gap-2 sm:gap-4">
           <UserAvatar 
             user={user}
             size={40}
@@ -1174,14 +1174,14 @@ function CommentSection({ postId, initialComments = [], user }) {
           />
           <UserAvatar 
             user={user}
-            size={36}
+            size={32}
             showFrame={true}
             showBadge={true}
-            className="sm:hidden"
+            className="sm:hidden flex-shrink-0"
           />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <form onSubmit={handleSubmitComment} className="relative group/input">
-              <div className="relative bg-neutral-100 dark:bg-neutral-900 rounded-2xl transition-all focus-within:ring-2 focus-within:ring-black/5 dark:focus-within:ring-white/10 focus-within:bg-white dark:focus-within:bg-black border border-transparent focus-within:border-neutral-200 dark:focus-within:border-neutral-800">
+              <div className="relative bg-neutral-100 dark:bg-neutral-900 rounded-xl sm:rounded-2xl transition-all focus-within:ring-2 focus-within:ring-black/5 dark:focus-within:ring-white/10 focus-within:bg-white dark:focus-within:bg-black border border-transparent focus-within:border-neutral-200 dark:focus-within:border-neutral-800">
                 <textarea
                   ref={newCommentTextareaRef}
                   value={newComment}
@@ -1189,10 +1189,10 @@ function CommentSection({ postId, initialComments = [], user }) {
                   onKeyDown={handleNewCommentKeyDown}
                   onSelect={(e) => setNewCommentCursorPosition(e.target.selectionStart)}
                   onClick={(e) => setNewCommentCursorPosition(e.target.selectionStart)}
-                  placeholder="Viết bình luận của bạn... (Gõ @ để tag bạn bè)"
-                  className="w-full px-4 py-3 sm:py-3 bg-transparent border-none text-sm sm:text-base text-neutral-900 dark:text-white placeholder-neutral-500 focus:ring-0 resize-none rounded-2xl"
+                  placeholder="Viết bình luận..."
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-transparent border-none text-xs sm:text-base text-neutral-900 dark:text-white placeholder-neutral-500 focus:ring-0 resize-none rounded-xl sm:rounded-2xl"
                   rows={Math.max(2, newComment.split('\n').length)}
-                  style={{ minHeight: '56px', maxHeight: '200px' }}
+                  style={{ minHeight: '48px', maxHeight: '200px' }}
                 />
                 
                 {/* Mention Autocomplete */}
@@ -1208,17 +1208,17 @@ function CommentSection({ postId, initialComments = [], user }) {
                 )}
                 
                 <div className="px-2 sm:px-2 pb-2 sm:pb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 sm:gap-1 emoji-picker-container relative">
+                  <div className="flex items-center gap-1 sm:gap-1 emoji-picker-container relative">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.preventDefault();
                         setShowEmojiPicker(!showEmojiPicker);
                       }}
-                      className="p-2 sm:p-1.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg active:bg-neutral-200 dark:active:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors touch-manipulation"
+                      className="p-1.5 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 rounded-lg active:bg-neutral-200 dark:active:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors touch-manipulation"
                       title="Thêm emoji"
                     >
-                      <Smile size={20} className="sm:w-[18px] sm:h-[18px]" />
+                      <Smile size={16} className="sm:w-[18px] sm:h-[18px]" />
                     </button>
                     {renderEmojiPicker(
                       (emoji) => setNewComment(prev => prev + emoji),
@@ -1235,7 +1235,7 @@ function CommentSection({ postId, initialComments = [], user }) {
                   <button
                     type="submit"
                     disabled={(!newComment.trim() && newCommentImages.length === 0) || submittingComment}
-                    className="px-5 py-2.5 sm:px-4 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-black dark:bg-white text-white dark:text-black text-sm sm:text-sm font-bold rounded-full active:opacity-90 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm touch-manipulation flex items-center gap-2"
+                    className="px-4 py-2 sm:px-4 sm:py-1.5 min-h-[36px] sm:min-h-0 bg-black dark:bg-white text-white dark:text-black text-xs sm:text-sm font-bold rounded-full active:opacity-90 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm touch-manipulation flex items-center gap-1.5 sm:gap-2"
                   >
                     {submittingComment ? (
                       <>
@@ -1269,7 +1269,7 @@ function CommentSection({ postId, initialComments = [], user }) {
         </div>
 
         {/* Comments List */}
-        <div ref={commentsContainerRef} className="space-y-3 sm:space-y-2">
+        <div ref={commentsContainerRef} className="space-y-2.5 sm:space-y-2">
           {fetchingComments ? (
             <div className="text-center py-12">
               <Loader2 size={24} className="animate-spin text-neutral-400 mx-auto" />

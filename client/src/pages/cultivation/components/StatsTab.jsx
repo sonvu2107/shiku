@@ -18,6 +18,9 @@ const StatsTab = memo(function StatsTab() {
   }
 
   const currentRealm = CULTIVATION_REALMS.find(r => r.level === cultivation.realm?.level) || CULTIVATION_REALMS[0];
+  
+  // Backend đã merge equipment stats vào combatStats rồi
+  const combatStats = getCombatStats(cultivation);
 
   return (
     <div className="space-y-8 pb-4">
@@ -67,7 +70,7 @@ const StatsTab = memo(function StatsTab() {
               <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-red-500/30 to-transparent"></div>
               <p className="text-[11px] text-red-300/80 uppercase tracking-[0.2em] mb-3 font-semibold">Tấn Công</p>
               <h3 className="text-xl lg:text-2xl font-bold text-red-100 font-mono leading-tight">
-                {getCombatStats(cultivation).attack.toLocaleString()}
+                {combatStats.attack.toLocaleString()}
               </h3>
             </div>
 
@@ -76,7 +79,7 @@ const StatsTab = memo(function StatsTab() {
               <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
               <p className="text-[11px] text-blue-300/80 uppercase tracking-[0.2em] mb-3 font-semibold">Phòng Thủ</p>
               <h3 className="text-xl lg:text-2xl font-bold text-blue-100 font-mono leading-tight">
-                {getCombatStats(cultivation).defense.toLocaleString()}
+                {combatStats.defense.toLocaleString()}
               </h3>
             </div>
 
@@ -85,7 +88,7 @@ const StatsTab = memo(function StatsTab() {
               <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-pink-500/30 to-transparent"></div>
               <p className="text-[11px] text-pink-300/80 uppercase tracking-[0.2em] mb-3 font-semibold">Khí Huyết</p>
               <h3 className="text-xl lg:text-2xl font-bold text-pink-100 font-mono leading-tight">
-                {getCombatStats(cultivation).qiBlood.toLocaleString()}
+                {combatStats.qiBlood.toLocaleString()}
               </h3>
             </div>
 
@@ -94,7 +97,7 @@ const StatsTab = memo(function StatsTab() {
               <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-purple-500/30 to-transparent"></div>
               <p className="text-[11px] text-purple-300/80 uppercase tracking-[0.2em] mb-3 font-semibold">Chân Nguyên</p>
               <h3 className="text-xl lg:text-2xl font-bold text-purple-100 font-mono leading-tight">
-                {getCombatStats(cultivation).zhenYuan.toLocaleString()}
+                {combatStats.zhenYuan.toLocaleString()}
               </h3>
             </div>
           </div>

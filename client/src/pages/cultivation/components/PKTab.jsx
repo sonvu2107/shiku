@@ -237,6 +237,7 @@ const PKTab = memo(function PKTab() {
     }
   }, [particles]);
 
+  // Backend đã merge equipment stats vào combatStats rồi
   const currentUserStats = cultivation?.combatStats || getCombatStats(cultivation);
 
   if (!cultivation) {

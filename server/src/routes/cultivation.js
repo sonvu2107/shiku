@@ -14,6 +14,30 @@ router.use(authRequired);
 // ==================== HELPER FUNCTIONS ====================
 
 /**
+ * Merge equipment stats vào combat stats
+ * @param {Object} combatStats - Combat stats từ calculateCombatStats()
+ * @param {Object} equipmentStats - Equipment stats từ getEquipmentStats()
+ * @returns {Object} Combat stats đã merge với equipment stats
+ */
+const mergeEquipmentStatsIntoCombatStats = (combatStats, equipmentStats) => {
+  if (!equipmentStats) return combatStats;
+  
+  combatStats.attack = (combatStats.attack || 0) + (equipmentStats.attack || 0);
+  combatStats.defense = (combatStats.defense || 0) + (equipmentStats.defense || 0);
+  combatStats.qiBlood = (combatStats.qiBlood || 0) + (equipmentStats.hp || 0);
+  combatStats.speed = (combatStats.speed || 0) + (equipmentStats.speed || 0);
+  combatStats.criticalRate = (combatStats.criticalRate || 0) + ((equipmentStats.crit_rate || 0) * 100);
+  combatStats.criticalDamage = (combatStats.criticalDamage || 0) + ((equipmentStats.crit_damage || 0) * 100);
+  combatStats.accuracy = (combatStats.accuracy || 0) + ((equipmentStats.hit_rate || 0) * 100);
+  combatStats.dodge = (combatStats.dodge || 0) + ((equipmentStats.evasion || 0) * 100);
+  combatStats.penetration = (combatStats.penetration || 0) + (equipmentStats.penetration || 0);
+  combatStats.lifesteal = (combatStats.lifesteal || 0) + ((equipmentStats.lifesteal || 0) * 100);
+  combatStats.regeneration = (combatStats.regeneration || 0) + (equipmentStats.energy_regen || 0);
+  
+  return combatStats;
+};
+
+/**
  * Format cultivation data cho response
  */
 const formatCultivationResponse = (cultivation) => {
@@ -135,16 +159,21 @@ router.get("/", async (req, res, next) => {
       console.error("[CULTIVATION] Error syncing cache:", syncErr);
     }
     
-    // Load equipment stats
-    let equipmentStats = null;
-    try {
-      equipmentStats = await cultivation.getEquipmentStats();
-    } catch (equipErr) {
-      console.error("[CULTIVATION] Error loading equipment stats:", equipErr);
-    }
-    
-    const response = formatCultivationResponse(cultivation);
-    response.equipmentStats = equipmentStats;
+  // Load equipment stats
+  let equipmentStats = null;
+  try {
+    equipmentStats = await cultivation.getEquipmentStats();
+  } catch (equipErr) {
+    console.error("[CULTIVATION] Error loading equipment stats:", equipErr);
+  }
+  
+  const response = formatCultivationResponse(cultivation);
+  response.equipmentStats = equipmentStats;
+  
+  // Merge equipment stats vào combatStats để đảm bảo consistency
+  if (response.combatStats) {
+    response.combatStats = mergeEquipmentStatsIntoCombatStats(response.combatStats, equipmentStats);
+  }
     
     res.json({
       success: true,
@@ -733,7 +762,11 @@ router.post("/equipment/:equipmentId/equip", async (req, res, next) => {
       await cultivation.save();
       
       // Recalculate combat stats after equipping
-      const combatStats = await cultivation.calculateCombatStats();
+      let combatStats = cultivation.calculateCombatStats();
+      
+      // Load equipment stats and merge
+      const equipmentStats = await cultivation.getEquipmentStats();
+      combatStats = mergeEquipmentStatsIntoCombatStats(combatStats, equipmentStats);
       
       res.json({
         success: true,
@@ -770,11 +803,12 @@ router.post("/equipment/:slot/unequip", async (req, res, next) => {
       cultivation.unequipEquipment(slot);
       await cultivation.save();
       
-      // Load equipment stats
-      const equipmentStats = await cultivation.getEquipmentStats();
-      
       // Recalculate combat stats after unequipping
-      const combatStats = await cultivation.calculateCombatStats();
+      let combatStats = cultivation.calculateCombatStats();
+      
+      // Load equipment stats and merge
+      const equipmentStats = await cultivation.getEquipmentStats();
+      combatStats = mergeEquipmentStatsIntoCombatStats(combatStats, equipmentStats);
       
       res.json({
         success: true,
@@ -1314,7 +1348,11 @@ router.get("/combat-stats", async (req, res, next) => {
     const userId = req.user.id;
     const cultivation = await Cultivation.getOrCreate(userId);
     
-    const combatStats = cultivation.calculateCombatStats();
+    let combatStats = cultivation.calculateCombatStats();
+    
+    // Load equipment stats and merge
+    const equipmentStats = await cultivation.getEquipmentStats();
+    combatStats = mergeEquipmentStatsIntoCombatStats(combatStats, equipmentStats);
     
     res.json({
       success: true,
@@ -1342,7 +1380,11 @@ router.get("/combat-stats/:userId", async (req, res, next) => {
       });
     }
     
-    const combatStats = cultivation.calculateCombatStats();
+    let combatStats = cultivation.calculateCombatStats();
+    
+    // Load equipment stats and merge
+    const equipmentStats = await cultivation.getEquipmentStats();
+    combatStats = mergeEquipmentStatsIntoCombatStats(combatStats, equipmentStats);
     
     res.json({
       success: true,
