@@ -53,7 +53,13 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
   // Tính toán stats bonus từ equipment
   const getWeaponStats = () => {
     if (!equippedWeapon) return null;
-    return equippedWeapon.metadata?.stats || equippedWeapon.stats || null;
+    // Ưu tiên metadata.stats, sau đó stats trực tiếp
+    const stats = equippedWeapon.metadata?.stats || equippedWeapon.stats || null;
+    // Đảm bảo stats là object hợp lệ
+    if (stats && typeof stats === 'object' && !Array.isArray(stats)) {
+      return stats;
+    }
+    return null;
   };
 
   const weaponStats = getWeaponStats();
@@ -152,12 +158,21 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
             )}
           </div>
 
-          {/* Stats Bonuses - Hiển thị 3 stats đầu tiên */}
+          {/* Stats Bonuses - Hiển thị tất cả stats có giá trị */}
           {weaponStats && (
             <div className="space-y-1 pt-2 border-t border-white/10">
               {Object.entries(weaponStats)
-                .filter(([_, value]) => value && value !== 0)
-                .slice(0, 3)
+                .filter(([key, value]) => {
+                  // Bỏ qua elemental_damage (là object/Map)
+                  if (key === 'elemental_damage') return false;
+                  // Chỉ hiển thị stats có giá trị > 0 và là number (không phải object/array)
+                  return value != null && 
+                         value !== 0 && 
+                         typeof value === 'number' && 
+                         !isNaN(value) &&
+                         isFinite(value);
+                })
+                .slice(0, 5) // Hiển thị tối đa 5 stats đầu tiên
                 .map(([stat, value]) => {
                   const statLabels = {
                     attack: { label: 'Tấn Công', color: 'text-red-300' },
@@ -176,9 +191,9 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
                     luck: { label: 'Vận Khí', color: 'text-indigo-300' }
                   };
                   const statInfo = statLabels[stat] || { label: stat, color: 'text-slate-300' };
-                  const displayValue = typeof value === 'number' 
-                    ? (value > 0 ? `+${value.toLocaleString()}` : value.toLocaleString())
-                    : value;
+                  // Đảm bảo value là number trước khi format
+                  const numValue = typeof value === 'number' ? value : (typeof value === 'string' ? parseFloat(value) : 0);
+                  const displayValue = numValue > 0 ? `+${numValue.toLocaleString()}` : numValue.toLocaleString();
                   const suffix = (stat === 'crit_rate' || stat === 'criticalRate' || stat === 'crit_damage' || stat === 'dodge' || stat === 'evasion') ? '%' : '';
                   
                   return (
@@ -278,7 +293,16 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
             </p>
             <div className="space-y-1.5 bg-slate-800/30 rounded-lg p-2">
               {Object.entries(weaponStats)
-                .filter(([_, value]) => value && value !== 0)
+                .filter(([key, value]) => {
+                  // Bỏ qua elemental_damage (là object/Map)
+                  if (key === 'elemental_damage') return false;
+                  // Chỉ hiển thị stats có giá trị > 0 và là number (không phải object/array)
+                  return value != null && 
+                         value !== 0 && 
+                         typeof value === 'number' && 
+                         !isNaN(value) &&
+                         isFinite(value);
+                })
                 .map(([stat, value]) => {
                   const statLabels = {
                     attack: { label: 'Tấn Công', color: 'text-red-400' },
@@ -300,9 +324,9 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
                     buff_duration: { label: 'Thời Gian Buff', color: 'text-cyan-300' }
                   };
                   const statInfo = statLabels[stat] || { label: stat, color: 'text-slate-300' };
-                  const displayValue = typeof value === 'number' 
-                    ? (value > 0 ? `+${value.toLocaleString()}` : value.toLocaleString())
-                    : value;
+                  // Đảm bảo value là number trước khi format
+                  const numValue = typeof value === 'number' ? value : (typeof value === 'string' ? parseFloat(value) : 0);
+                  const displayValue = numValue > 0 ? `+${numValue.toLocaleString()}` : numValue.toLocaleString();
                   const suffix = (stat === 'crit_rate' || stat === 'criticalRate' || stat === 'crit_damage' || stat === 'dodge' || stat === 'evasion' || stat === 'hit_rate') ? '%' : '';
                   
                   return (

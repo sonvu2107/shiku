@@ -1,6 +1,5 @@
 /**
  * PK Tab - Battle Arena Component
- * ~940 lines - Complex battle system with animations
  * 
  * Features:
  * - Opponents list with challenge functionality
@@ -8,13 +7,30 @@
  * - Ranking leaderboard
  * - Full battle animation with effects (particles, slash, damage numbers)
  */
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sword, Shield, Droplet, Zap, Flame } from 'lucide-react';
+import { Sword, Shield, Droplet, Zap, Flame, Scroll, Coins, Sparkles } from 'lucide-react';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { api } from '../../../api';
 import { getUserAvatarUrl } from '../../../utils/avatarUtils.js';
 import { getCombatStats } from '../utils/helpers.js';
+
+// Character Animation Variants - Dash & Recoil Physics
+const characterVariants = {
+  idle: { x: 0, scale: 1, filter: "brightness(1)" },
+  attackRight: { x: 60, scale: 1.1, transition: { duration: 0.1, ease: "easeIn" } }, // Lao lên phải
+  attackLeft: { x: -60, scale: 1.1, transition: { duration: 0.1, ease: "easeIn" } }, // Lao lên trái
+  hit: { 
+    x: [0, -10, 10, -5, 5, 0], 
+    filter: ["brightness(1)", "brightness(2)", "brightness(1)"], 
+    transition: { duration: 0.3 } 
+  }, // Bị đánh rung lắc + chớp sáng
+  dodge: { 
+    opacity: [1, 0.5, 1], 
+    x: [0, -30, 0], 
+    transition: { duration: 0.4 } 
+  } // Tàn ảnh né tránh
+};
 
 const PKTab = memo(function PKTab() {
   const { cultivation } = useCultivation();
@@ -36,8 +52,53 @@ const PKTab = memo(function PKTab() {
   // HP tracking states - updated per log
   const [challengerCurrentHp, setChallengerCurrentHp] = useState(0);
   const [opponentCurrentHp, setOpponentCurrentHp] = useState(0);
+  // Mana tracking states - updated per log
+  const [challengerCurrentMana, setChallengerCurrentMana] = useState(0);
+  const [opponentCurrentMana, setOpponentCurrentMana] = useState(0);
   const [showDamageNumber, setShowDamageNumber] = useState(null); // { side: 'left'|'right', damage: number, isCritical: boolean }
   const [battlePhase, setBattlePhase] = useState('intro'); // 'intro', 'fighting', 'result'
+  
+  // Character Animation States - NEW: Dash & Recoil
+  const [challengerAction, setChallengerAction] = useState('idle'); // 'idle' | 'attackRight' | 'hit' | 'dodge'
+  const [opponentAction, setOpponentAction] = useState('idle'); // 'idle' | 'attackLeft' | 'hit' | 'dodge'
+  const [screenFlash, setScreenFlash] = useState(null); // 'white' | 'red' | 'dark' | null
+  const [showSkillName, setShowSkillName] = useState(null); // { name: string, side: 'left' | 'right' } | null
+
+  // --- MEMOIZED BACKGROUND DATA (Fix for jumping background) ---
+  const starsData = useMemo(() => Array.from({ length: 50 }, () => ({
+    top: Math.random() * 60,
+    left: Math.random() * 100,
+    opacity: Math.random(),
+    duration: 2 + Math.random() * 4,
+    delay: Math.random() * 5
+  })), []);
+
+  const rocksData = useMemo(() => Array.from({ length: 7 }, () => ({
+    width: Math.random() * 50 + 30,
+    height: Math.random() * 50 + 30,
+    borderRadius: `${Math.random() * 30 + 30}% ${Math.random() * 30 + 30}% ${Math.random() * 30 + 30}% ${Math.random() * 30 + 30}% / ${Math.random() * 30 + 30}% ${Math.random() * 30 + 30}% ${Math.random() * 30 + 30}% ${Math.random() * 30 + 30}%`,
+    top: Math.random() * 70,
+    left: Math.random() * 100,
+    blur: Math.random() * 2,
+    yAnim: Math.random() * -30 - 20,
+    rotateAnim: Math.random() * 20 - 10,
+    duration: 8 + Math.random() * 10
+  })), []);
+
+  const dustData = useMemo(() => Array.from({ length: 60 }, () => ({
+    top: Math.random() * 100,
+    left: Math.random() * 100,
+    yAnim: Math.random() * -100 - 50,
+    xAnim: (Math.random() - 0.5) * 50,
+    duration: 5 + Math.random() * 10,
+    delay: Math.random() * 5
+  })), []);
+
+  const spiritParticlesData = useMemo(() => Array.from({ length: 25 }, () => ({
+    xStart: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+    delay: Math.random() * 3,
+    duration: 4 + Math.random() * 5
+  })), []);
 
   // Load opponents list
   const loadOpponents = useCallback(async () => {
@@ -111,9 +172,11 @@ const PKTab = memo(function PKTab() {
         setBattleResult(response.data);
         setBattleLogs(response.data.battleLogs || []);
         setCurrentLogIndex(0);
-        // Initialize HP to max
+        // Initialize HP and Mana to max
         setChallengerCurrentHp(response.data.challenger.stats.qiBlood);
         setOpponentCurrentHp(response.data.opponent.stats.qiBlood);
+        setChallengerCurrentMana(response.data.challenger.stats.zhenYuan);
+        setOpponentCurrentMana(response.data.opponent.stats.zhenYuan);
         setBattlePhase('intro');
         setShowBattleAnimation(true);
         // Start battle after intro delay
@@ -126,6 +189,31 @@ const PKTab = memo(function PKTab() {
     }
   };
 
+  // Skip to result (khi đang fighting)
+  const skipToResult = () => {
+    // Dừng animation và chuyển sang hiển thị kết quả
+    if (battleLogs.length > 0) {
+      // Lấy log cuối cùng để cập nhật HP/Mana cuối cùng
+      const lastLog = battleLogs[battleLogs.length - 1];
+      setChallengerCurrentHp(lastLog.challengerHp || 0);
+      setOpponentCurrentHp(lastLog.opponentHp || 0);
+      if (lastLog.challengerMana !== undefined) setChallengerCurrentMana(lastLog.challengerMana);
+      if (lastLog.opponentMana !== undefined) setOpponentCurrentMana(lastLog.opponentMana);
+      setCurrentLogIndex(battleLogs.length);
+    }
+    // Reset animation states
+    setShowDamageNumber(null);
+    setChallengerAction('idle');
+    setOpponentAction('idle');
+    setScreenFlash(null);
+    setShowSlash(null);
+    setHitEffect(null);
+    setShowSkillName(null);
+    setParticles([]);
+    // Chuyển sang phase result
+    setBattlePhase('result');
+  };
+
   // Close battle result modal
   const closeBattleResult = () => {
     setShowBattleAnimation(false);
@@ -134,93 +222,159 @@ const PKTab = memo(function PKTab() {
     setCurrentLogIndex(0);
     setChallengerCurrentHp(0);
     setOpponentCurrentHp(0);
+    setChallengerCurrentMana(0);
+    setOpponentCurrentMana(0);
     setBattlePhase('intro');
     setShowDamageNumber(null);
+    setChallengerAction('idle');
+    setOpponentAction('idle');
+    setScreenFlash(null);
     // Reload history if on history tab
     if (activeView === 'history') {
       loadHistory();
     }
   };
 
-  // Auto-play battle logs with effects - NEW IMPROVED VERSION
+  // Auto-play battle logs with effects - ENHANCED WITH PHYSICS (Dash & Recoil)
   useEffect(() => {
     if (battlePhase !== 'fighting' || !showBattleAnimation || battleLogs.length === 0) return;
 
     if (currentLogIndex < battleLogs.length) {
       const currentLog = battleLogs[currentLogIndex];
       const isAttackerChallenger = currentLog.attacker === 'challenger';
+      const isCrit = currentLog.isCritical;
+      const isSkill = currentLog.skillUsed;
 
-      // Show slash effect
-      if (!currentLog.isDodged && currentLog.damage > 0) {
-        setShowSlash(isAttackerChallenger ? 'right' : 'left');
-
-        // Trigger Hit Effect on target (opposite side of attacker)
-        setTimeout(() => {
-          setHitEffect({
-            side: isAttackerChallenger ? 'right' : 'left',
-            type: currentLog.isCritical ? 'crit' : currentLog.skillUsed ? 'skill' : 'normal'
-          });
-        }, 150); // Sync with slash impact
-
-        // Show damage number on the target side
-        setTimeout(() => {
-          setShowDamageNumber({
-            side: isAttackerChallenger ? 'right' : 'left',
-            damage: currentLog.damage,
-            isCritical: currentLog.isCritical,
-            isSkill: currentLog.skillUsed
-          });
-
-          // Update HP dựa trên log từ server (chính xác hơn)
-          setChallengerCurrentHp(currentLog.challengerHp);
-          setOpponentCurrentHp(currentLog.opponentHp);
-        }, 200);
-
-        // Shake on critical
-        if (currentLog.isCritical) {
-          setIsShaking(true);
-          // Create particles on critical hit
-          const newParticles = Array.from({ length: 15 }, (_, i) => ({
-            id: Date.now() + i,
-            x: isAttackerChallenger ? 75 : 25,
-            y: 40 + Math.random() * 20,
-            color: currentLog.skillUsed ? '#f59e0b' : currentLog.isCritical ? '#fbbf24' : '#ef4444'
-          }));
-          setParticles(prev => [...prev, ...newParticles]);
-          setTimeout(() => setIsShaking(false), 400); // Longer shake
-        }
-
-        setTimeout(() => setShowSlash(null), 400);
-        setTimeout(() => setShowDamageNumber(null), 800);
-        setTimeout(() => setHitEffect(null), 500);
-      } else if (currentLog.isDodged) {
-        // Show dodge effect
-        setShowDamageNumber({
-          side: isAttackerChallenger ? 'right' : 'left',
-          damage: 0,
-          isDodged: true
-        });
-
-        // Update HP ngay cả khi dodge (HP không đổi nhưng cần sync với server)
-        setChallengerCurrentHp(currentLog.challengerHp);
-        setOpponentCurrentHp(currentLog.opponentHp);
-
-        setTimeout(() => setShowDamageNumber(null), 800);
+      // ========== PHASE 1: WIND UP (Lao lên) ==========
+      // Người tấn công lao lên về phía đối thủ
+      if (isAttackerChallenger) {
+        setChallengerAction('attackRight');
+      } else {
+        setOpponentAction('attackLeft');
       }
 
-      // Kiểm tra xem có ai hết máu không - dừng animation ngay
-      const shouldStop = currentLog.challengerHp <= 0 || currentLog.opponentHp <= 0;
+      // ========== PHASE 2: IMPACT (Va chạm) - Sau 200ms ==========
+      const impactTimer = setTimeout(() => {
+        // Reset vị trí người đánh về idle
+        setChallengerAction('idle');
+        setOpponentAction('idle');
 
-      const timer = setTimeout(() => {
-        if (shouldStop) {
-          // Nếu có người hết máu, chuyển sang result ngay
+        // Nếu né được
+        if (currentLog.isDodged) {
+          if (isAttackerChallenger) {
+            setOpponentAction('dodge');
+          } else {
+            setChallengerAction('dodge');
+          }
+          
+          setShowDamageNumber({
+            side: isAttackerChallenger ? 'right' : 'left',
+            damage: 0,
+            isDodged: true
+          });
+
+          // Update HP/Mana
+          setChallengerCurrentHp(currentLog.challengerHp);
+          setOpponentCurrentHp(currentLog.opponentHp);
+          if (currentLog.challengerMana !== undefined) setChallengerCurrentMana(currentLog.challengerMana);
+          if (currentLog.opponentMana !== undefined) setOpponentCurrentMana(currentLog.opponentMana);
+        } 
+        // Nếu trúng đòn
+        else {
+          // Hiển thị tên công pháp nếu có skill
+          if (isSkill && currentLog.skillUsed) {
+            setShowSkillName({
+              name: currentLog.skillUsed,
+              side: isAttackerChallenger ? 'left' : 'right'
+            });
+            // Tự động ẩn sau 2 giây
+            setTimeout(() => setShowSkillName(null), 2000);
+          }
+
+          // Người bị đánh giật lùi (Recoil) và rung lắc
+          if (isAttackerChallenger) {
+            setOpponentAction('hit');
+          } else {
+            setChallengerAction('hit');
+          }
+
+          // Screen Flash Effect
+          if (isCrit) {
+            setScreenFlash('red'); // Bạo kích nháy đỏ
+          setIsShaking(true);
+            setTimeout(() => setIsShaking(false), 600);
+          } else if (isSkill) {
+            setScreenFlash('dark'); // Skill làm tối màn hình
+            setIsShaking(true);
+            setTimeout(() => setIsShaking(false), 400);
+          } else {
+            setScreenFlash('white'); // Đánh thường nháy trắng nhẹ
+          }
+
+          // Hiệu ứng chém (Slash)
+          setShowSlash(isAttackerChallenger ? 'right' : 'left');
+
+          // Hit Effect (Nổ tại vị trí người bị đánh)
+          setHitEffect({
+            side: isAttackerChallenger ? 'right' : 'left',
+            type: isCrit ? 'crit' : isSkill ? 'skill' : 'normal'
+          });
+
+          // Hiển thị số dame
+        setShowDamageNumber({
+          side: isAttackerChallenger ? 'right' : 'left',
+            damage: currentLog.damage,
+            isCritical: isCrit,
+            isSkill: isSkill
+          });
+
+          // Tạo particles nổ ra với velocity
+          const particleCount = isCrit ? 30 : isSkill ? 20 : 12;
+          const newParticles = Array.from({ length: particleCount }, (_, i) => ({
+            id: Date.now() + i,
+            x: isAttackerChallenger ? 75 : 25, // Vị trí nổ phía người bị đánh
+            y: 40 + (Math.random() - 0.5) * 20,
+            color: isCrit ? '#fbbf24' : isSkill ? '#38bdf8' : '#ef4444',
+            type: isCrit ? 'crit' : isSkill ? 'skill' : 'normal',
+            size: isCrit ? 3 : isSkill ? 2 : 1.5,
+            vx: (Math.random() - 0.5) * 200, // Velocity X
+            vy: (Math.random() - 0.5) * 200  // Velocity Y
+          }));
+          setParticles(prev => [...prev, ...newParticles]);
+
+          // Update HP/Mana
+        setChallengerCurrentHp(currentLog.challengerHp);
+        setOpponentCurrentHp(currentLog.opponentHp);
+          if (currentLog.challengerMana !== undefined) setChallengerCurrentMana(currentLog.challengerMana);
+          if (currentLog.opponentMana !== undefined) setOpponentCurrentMana(currentLog.opponentMana);
+        }
+      }, 200); // Delay impact để khớp với animation lao lên
+
+      // ========== PHASE 3: CLEANUP (Dọn dẹp hiệu ứng) ==========
+      const cleanupTimer = setTimeout(() => {
+        setShowSlash(null);
+        setScreenFlash(null);
+        setHitEffect(null);
+        setShowDamageNumber(null);
+        setChallengerAction('idle');
+        setOpponentAction('idle');
+      }, 700);
+
+      // ========== PHASE 4: NEXT STEP ==========
+      const isFinished = currentLog.challengerHp <= 0 || currentLog.opponentHp <= 0;
+      const nextStepTimer = setTimeout(() => {
+        if (isFinished) {
           setBattlePhase('result');
         } else {
-          // Tiếp tục log tiếp theo
           setCurrentLogIndex(prev => prev + 1);
         }
-      }, shouldStop ? 1500 : 1000); // Dừng lâu hơn nếu kết thúc
-      return () => clearTimeout(timer);
+      }, isFinished ? 1500 : 1200); // Delay giữa các lượt
+
+      return () => {
+        clearTimeout(impactTimer);
+        clearTimeout(cleanupTimer);
+        clearTimeout(nextStepTimer);
+      };
     } else {
       // All logs finished -> show result
       setTimeout(() => setBattlePhase('result'), 500);
@@ -520,112 +674,395 @@ const PKTab = memo(function PKTab() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {/* Background Battle Effects */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              {/* Animated background lines */}
-              <div className="absolute inset-0 opacity-10">
-                {[...Array(10)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute h-px bg-gradient-to-r from-transparent via-red-500 to-transparent"
-                    style={{ top: `${10 + i * 10}%`, width: '100%' }}
-                    animate={{ x: [-1000, 1000] }}
-                    transition={{ duration: 3 + i * 0.5, repeat: Infinity, ease: 'linear' }}
-                  />
-                ))}
-              </div>
+            {/* Screen Flash Effects - Enhanced with Physics */}
+            <AnimatePresence>
+              {screenFlash === 'white' && (
+                <motion.div
+                  className="absolute inset-0 pointer-events-none z-[150] bg-white/20"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 1, 0] }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                />
+              )}
+              {screenFlash === 'red' && (
+                <motion.div
+                  className="absolute inset-0 pointer-events-none z-[150] bg-red-500/30 mix-blend-overlay"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 1, 0] }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                />
+              )}
+              {screenFlash === 'dark' && (
+                <motion.div
+                  className="absolute inset-0 pointer-events-none z-[150] bg-black/60"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 1, 0] }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                />
+              )}
+            </AnimatePresence>
+            
+            {/* Background Atmosphere - Enhanced Tiên Hiệp Style (FIXED: Using useMemo) */}
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+              {/* Deep Sky Gradient with Nebula */}
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0a0118] via-[#1a0b2e] to-[#2d1b4e]"></div>
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/40 via-transparent to-transparent"></div>
+              
+              {/* Giant Spirit Moon */}
+              <motion.div 
+                className="absolute top-[-15%] left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-purple-500/20 rounded-full blur-[120px] mix-blend-screen"
+                animate={{ scale: [1, 1.05, 1], opacity: [0.5, 0.7, 0.5] }}
+                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div 
+                className="absolute top-[0%] left-1/2 -translate-x-1/2 w-[250px] h-[250px] bg-gradient-to-b from-purple-200 to-purple-400/0 rounded-full opacity-60 blur-3xl mix-blend-overlay"
+                animate={{ scale: [1, 1.1, 1], opacity: [0.6, 0.8, 0.6] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              />
+
+              {/* Stars - using memoized data */}
+              {starsData.map((star, i) => (
+                <motion.div 
+                  key={`star-${i}`} 
+                  className="absolute w-0.5 h-0.5 bg-white rounded-full"
+                  style={{ top: `${star.top}%`, left: `${star.left}%`, opacity: star.opacity }}
+                  animate={{ opacity: [0.2, 1, 0.2] }}
+                  transition={{ duration: star.duration, repeat: Infinity, delay: star.delay }}
+                />
+              ))}
+
+              {/* Parallax Mountains */}
+              <motion.div 
+                className="absolute bottom-[10%] left-0 right-0 h-[50%] opacity-40"
+                animate={{ x: [-20, 0] }} 
+                transition={{ duration: 40, repeat: Infinity, repeatType: "mirror", ease: "linear" }}
+              >
+                <svg viewBox="0 0 1440 320" className="w-full h-full preserve-3d scale-[1.2] origin-bottom">
+                  <path fill="#130a29" fillOpacity="1" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,261.3C960,256,1056,224,1152,197.3C1248,171,1344,149,1392,138.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+                </svg>
+              </motion.div>
+              <motion.div 
+                className="absolute bottom-0 left-0 right-0 h-[40%] opacity-70"
+                animate={{ x: [-40, 0] }} 
+                transition={{ duration: 30, repeat: Infinity, repeatType: "mirror", ease: "linear" }}
+              >
+                <svg viewBox="0 0 1440 320" className="w-full h-full preserve-3d scale-[1.1] origin-bottom">
+                  <path fill="#1e1b4b" fillOpacity="1" d="M0,192L48,202.7C96,213,192,235,288,229.3C384,224,480,192,576,176C672,160,768,160,864,181.3C960,203,1056,245,1152,250.7C1248,256,1344,224,1392,208L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+                </svg>
+              </motion.div>
+              <motion.div 
+                className="absolute bottom-[-5%] left-0 right-0 h-[35%] opacity-90"
+                animate={{ x: [-60, 0] }} 
+                transition={{ duration: 20, repeat: Infinity, repeatType: "mirror", ease: "linear" }}
+              >
+                <svg viewBox="0 0 1440 320" className="w-full h-full preserve-3d">
+                  <path fill="#0f0518" fillOpacity="1" d="M0,128L48,154.7C96,181,192,235,288,240C384,245,480,203,576,192C672,181,768,203,864,224C960,245,1056,267,1152,261.3C1248,256,1344,224,1392,208L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+                </svg>
+              </motion.div>
+
+              {/* Moving Fog */}
+              <motion.div 
+                className="absolute bottom-0 left-0 w-[200%] h-[60%] bg-gradient-to-t from-purple-900/40 via-purple-800/20 to-transparent mix-blend-screen"
+                animate={{ x: [-200, 0] }} 
+                transition={{ duration: 45, repeat: Infinity, ease: "linear" }} 
+              />
+
+              {/* Floating Rocks - using memoized data */}
+              {rocksData.map((rock, i) => (
+                <motion.div 
+                  key={`rock-${i}`}
+                  className="absolute bg-slate-900/70 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+                  style={{
+                    width: `${rock.width}px`,
+                    height: `${rock.height}px`,
+                    borderRadius: rock.borderRadius,
+                    top: `${rock.top}%`,
+                    left: `${rock.left}%`,
+                    filter: `blur(${rock.blur}px)`
+                  }}
+                  animate={{ 
+                    y: [0, rock.yAnim, 0], 
+                    rotate: [0, rock.rotateAnim, 0],
+                    scale: [1, 1.05, 1]
+                  }}
+                  transition={{ duration: rock.duration, repeat: Infinity, ease: "easeInOut" }}
+                />
+              ))}
+
+              {/* Dust - using memoized data */}
+              {dustData.map((dust, i) => (
+                <motion.div 
+                  key={`dust-${i}`} 
+                  className="absolute w-0.5 h-0.5 bg-amber-200/60 rounded-full"
+                  style={{ top: `${dust.top}%`, left: `${dust.left}%` }}
+                  animate={{ 
+                    y: [0, dust.yAnim],
+                    x: [0, dust.xAnim],
+                    opacity: [0, 0.8, 0] 
+                  }}
+                  transition={{ duration: dust.duration, repeat: Infinity, ease: "linear", delay: dust.delay }}
+                />
+              ))}
+
+              {/* Spirit Particles - using memoized data */}
+              {spiritParticlesData.map((p, i) => (
+                <motion.div 
+                  key={`spirit-${i}`} 
+                  className="absolute w-1 h-1 bg-amber-400/50 rounded-full blur-[1px] shadow-[0_0_5px_rgba(251,191,36,0.5)]"
+                  initial={{ x: p.xStart, y: typeof window !== 'undefined' ? window.innerHeight + 50 : 800 }}
+                  animate={{ y: -100, opacity: [0, 1, 0], scale: [0.5, 1.5, 0.5] }}
+                  transition={{ duration: p.duration, repeat: Infinity, ease: "linear", delay: p.delay }}
+                />
+              ))}
             </div>
 
-            {/* Battle Particles - Enhanced (Mystical Sparks) */}
+            {/* Battle Particles - Enhanced with Velocity Physics */}
             {particles.map(particle => (
               <motion.div
                 key={particle.id}
-                className="absolute w-1.5 h-1.5 rounded-full pointer-events-none"
+                className="absolute rounded-full pointer-events-none z-40"
                 style={{
+                  width: `${particle.size || 2}px`,
+                  height: `${particle.size || 2}px`,
                   backgroundColor: particle.color,
                   left: `${particle.x}%`,
                   top: `${particle.y}%`,
-                  boxShadow: `0 0 8px ${particle.color}, 0 0 15px ${particle.color}`
+                  boxShadow: particle.type === 'crit' 
+                    ? `0 0 12px ${particle.color}, 0 0 24px ${particle.color}, 0 0 36px ${particle.color}`
+                    : particle.type === 'skill'
+                    ? `0 0 10px ${particle.color}, 0 0 20px ${particle.color}`
+                    : `0 0 6px ${particle.color}, 0 0 12px ${particle.color}`
                 }}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{
-                  x: (Math.random() - 0.5) * 200,
-                  y: (Math.random() - 0.5) * 200 - 100, // Float up slightly
-                  scale: [0, 1.5, 0],
-                  opacity: [0, 1, 0]
+                  x: particle.vx || (Math.random() - 0.5) * 200, // Use velocity if available
+                  y: particle.vy || (Math.random() - 0.5) * 200 - 100,
+                  scale: [0, particle.type === 'crit' ? 2.5 : particle.type === 'skill' ? 2 : 1.5, 0],
+                  opacity: [1, 0.8, 0]
                 }}
-                transition={{ duration: 1.5, ease: 'easeOut' }}
+                transition={{ 
+                  duration: 0.6, 
+                  ease: "easeOut" 
+                }}
               />
             ))}
 
-            {/* Hit Effects - Shockwaves/Bursts (Tu Tien Style) */}
+            {/* Hit Effects - Enhanced Tiên Hiệp Shockwaves */}
             <AnimatePresence>
               {hitEffect && (
                 <motion.div
                   className={`absolute pointer-events-none z-[60] ${hitEffect.side === 'right' ? 'right-[20%]' : 'left-[20%]'
                     }`}
                   style={{ top: '35%' }}
-                  initial={{ opacity: 1, scale: 0 }}
-                  animate={{ opacity: 0, scale: hitEffect.type === 'crit' ? 2.5 : 1.5 }}
+                  initial={{ opacity: 1, scale: 0, rotate: 0 }}
+                  animate={{ 
+                    opacity: [1, 0.8, 0],
+                    scale: hitEffect.type === 'crit' ? [0, 3, 3.5] : hitEffect.type === 'skill' ? [0, 2.5, 3] : [0, 1.8, 2],
+                    rotate: [0, 180, 360]
+                  }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4 }}
+                  transition={{ duration: hitEffect.type === 'crit' ? 0.6 : 0.5 }}
                   onAnimationComplete={() => setHitEffect(null)}
                 >
-                  {/* Core Burst */}
-                  <div className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${hitEffect.type === 'crit' ? 'bg-yellow-400' : hitEffect.type === 'skill' ? 'bg-amber-400' : 'bg-cyan-100'
-                    } blur-md w-20 h-20 opacity-80`} />
+                  {/* Core Energy Burst - Multiple Layers */}
+                  <motion.div
+                    className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 blur-xl ${
+                      hitEffect.type === 'crit' 
+                        ? 'bg-gradient-radial from-yellow-300 via-yellow-500 to-yellow-700' 
+                        : hitEffect.type === 'skill' 
+                        ? 'bg-gradient-radial from-amber-300 via-amber-500 to-amber-700'
+                        : 'bg-gradient-radial from-cyan-200 via-cyan-400 to-blue-500'
+                    }`}
+                    style={{
+                      width: hitEffect.type === 'crit' ? '120px' : hitEffect.type === 'skill' ? '100px' : '80px',
+                      height: hitEffect.type === 'crit' ? '120px' : hitEffect.type === 'skill' ? '100px' : '80px',
+                      opacity: 0.9
+                    }}
+                    animate={{
+                      scale: [1, 1.2, 1],
+                      opacity: [0.9, 1, 0.7]
+                    }}
+                    transition={{ duration: 0.3, repeat: 2 }}
+                  />
 
-                  {/* Shockwave Ring */}
-                  <div className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border-4 ${hitEffect.type === 'crit' ? 'border-yellow-500' : hitEffect.type === 'skill' ? 'border-amber-500' : 'border-cyan-400'
-                    } w-32 h-32 opacity-60`} />
+                  {/* Shockwave Rings - Multiple Expanding Rings */}
+                  {[1, 2, 3].map((ring, idx) => (
+                    <motion.div
+                      key={ring}
+                      className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border-2 ${
+                        hitEffect.type === 'crit' 
+                          ? 'border-yellow-400' 
+                          : hitEffect.type === 'skill' 
+                          ? 'border-amber-400' 
+                          : 'border-cyan-300'
+                      }`}
+                      style={{
+                        width: `${80 + ring * 40}px`,
+                        height: `${80 + ring * 40}px`,
+                        opacity: 0.7 - idx * 0.2
+                      }}
+                      initial={{ scale: 0, opacity: 0.7 - idx * 0.2 }}
+                      animate={{
+                        scale: [0, 1.5 + ring * 0.3],
+                        opacity: [0.7 - idx * 0.2, 0]
+                      }}
+                      transition={{
+                        duration: 0.5 + idx * 0.1,
+                        delay: idx * 0.05
+                      }}
+                    />
+                  ))}
 
-                  {/* Energy Rays for Crit/Skill */}
+                  {/* Energy Rays - Spiral Effect for Crit/Skill */}
                   {(hitEffect.type === 'crit' || hitEffect.type === 'skill') && (
-                    <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-gradient-radial ${hitEffect.type === 'crit' ? 'from-yellow-500/50' : 'from-amber-500/50'
-                      } to-transparent blur-xl`} />
+                    <>
+                      {[...Array(8)].map((_, i) => (
+                        <motion.div
+                          key={`ray-${i}`}
+                          className={`absolute top-1/2 left-1/2 origin-bottom ${
+                            hitEffect.type === 'crit' ? 'bg-yellow-400' : 'bg-amber-400'
+                          }`}
+                          style={{
+                            width: '4px',
+                            height: hitEffect.type === 'crit' ? '120px' : '100px',
+                            transformOrigin: 'bottom center',
+                            opacity: 0.8,
+                            rotate: i * 45,
+                            filter: 'blur(2px)'
+                          }}
+                          initial={{ scaleY: 0, opacity: 0 }}
+                          animate={{
+                            scaleY: [0, 1, 0],
+                            opacity: [0, 0.8, 0]
+                          }}
+                          transition={{
+                            duration: 0.6,
+                            delay: i * 0.05
+                          }}
+                        />
+                      ))}
+                      {/* Radial Glow */}
+                      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-radial ${
+                        hitEffect.type === 'crit' 
+                          ? 'from-yellow-500/40 via-yellow-400/20 to-transparent' 
+                          : 'from-amber-500/40 via-amber-400/20 to-transparent'
+                      } blur-2xl`} />
+                    </>
                   )}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Damage Number Floating */}
+            {/* Damage Number Floating - Enhanced with Physics Bounce */}
             <AnimatePresence>
               {showDamageNumber && (
                 <motion.div
-                  className={`absolute z-[200] pointer-events-none ${showDamageNumber.side === 'right' ? 'right-[20%]' : 'left-[20%]'
-                    }`}
-                  style={{ top: '35%' }}
+                  className={`absolute z-[200] pointer-events-none font-black text-4xl sm:text-6xl font-title tracking-wider ${
+                    showDamageNumber.side === 'right' ? 'right-[20%] text-right' : 'left-[20%] text-left'
+                  }`}
+                  style={{ top: '25%' }}
                   initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, y: -30, scale: showDamageNumber.isCritical ? 1.5 : 1.2 }}
-                  exit={{ opacity: 0, y: -60 }}
-                  transition={{ duration: 0.5 }}
+                  animate={{ 
+                    opacity: 1,
+                    y: -100, // Nảy lên
+                    scale: showDamageNumber.isCritical ? 1.5 : showDamageNumber.isSkill ? 1.3 : 1.2
+                  }}
+                  exit={{ opacity: 0, y: -150 }}
+                  transition={{ 
+                    opacity: {
+                      duration: 0.3,
+                      ease: "easeOut"
+                    },
+                    y: {
+                      type: "spring", 
+                      bounce: 0.5, // Physics bounce effect
+                      stiffness: 200,
+                      duration: 0.8
+                    },
+                    scale: {
+                      type: "spring",
+                      bounce: 0.4,
+                      stiffness: 300,
+                      duration: 0.6
+                    }
+                  }}
                 >
                   {showDamageNumber.isDodged ? (
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xl sm:text-2xl md:text-3xl font-bold text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.9)] font-title tracking-wider">
+                    <div className="flex flex-col items-center gap-2">
+                      <motion.span
+                        className="text-2xl sm:text-3xl md:text-4xl font-bold text-cyan-400 font-title tracking-wider"
+                        style={{
+                          textShadow: '0 0 20px rgba(34,211,238,1), 0 0 40px rgba(34,211,238,0.8), 0 0 60px rgba(34,211,238,0.6)',
+                          filter: 'drop-shadow(0 0 10px rgba(34,211,238,0.9))'
+                        }}
+                        animate={{
+                          scale: [1, 1.2, 1],
+                          opacity: [1, 0.9, 1]
+                        }}
+                        transition={{ duration: 0.5, repeat: 2 }}
+                      >
                         NÉ TRÁNH!
-                      </span>
-                      <div className="h-0.5 w-12 sm:w-16 bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
+                      </motion.span>
+                      <motion.div
+                        className="h-1 w-16 sm:w-20 bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: [0, 1, 0] }}
+                        transition={{ duration: 0.6 }}
+                      />
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-1">
-                      <span className={`text-2xl sm:text-3xl md:text-4xl font-bold drop-shadow-lg font-mono ${showDamageNumber.isCritical
-                        ? 'text-yellow-300 drop-shadow-[0_0_20px_rgba(250,204,21,1)] animate-pulse'
+                    <div className="flex flex-col items-center gap-2">
+                      <motion.span
+                        className={`text-3xl sm:text-4xl md:text-5xl font-bold font-mono ${
+                          showDamageNumber.isCritical
+                            ? 'text-yellow-200'
                         : showDamageNumber.isSkill
-                          ? 'text-amber-300 drop-shadow-[0_0_15px_rgba(251,191,36,0.9)]'
-                          : 'text-red-300 drop-shadow-[0_0_12px_rgba(248,113,113,0.9)]'
-                        }`}>
+                            ? 'text-amber-200'
+                            : 'text-red-200'
+                        }`}
+                        style={{
+                          textShadow: showDamageNumber.isCritical
+                            ? '0 0 25px rgba(250,204,21,1), 0 0 50px rgba(250,204,21,0.8), 0 0 75px rgba(250,204,21,0.6)'
+                            : showDamageNumber.isSkill
+                            ? '0 0 20px rgba(251,191,36,1), 0 0 40px rgba(251,191,36,0.8)'
+                            : '0 0 15px rgba(248,113,113,1), 0 0 30px rgba(248,113,113,0.8)',
+                          filter: 'drop-shadow(0 0 8px currentColor)'
+                        }}
+                        animate={{
+                          scale: showDamageNumber.isCritical ? [1, 1.3, 1.1] : [1, 1.2, 1],
+                          y: [0, -5, 0]
+                        }}
+                        transition={{ duration: 0.6, repeat: showDamageNumber.isCritical ? 3 : 1 }}
+                      >
                         -{showDamageNumber.damage}
-                      </span>
+                      </motion.span>
                       {showDamageNumber.isCritical && (
-                        <span className="text-xs font-bold text-yellow-400 bg-yellow-500/30 px-2 py-0.5 rounded-full border border-yellow-400/50 animate-pulse">
+                        <motion.span
+                          className="text-xs sm:text-sm font-bold text-yellow-300 bg-gradient-to-r from-yellow-500/40 via-yellow-400/50 to-yellow-500/40 px-3 py-1 rounded-full border-2 border-yellow-400/70 backdrop-blur-sm"
+                          style={{
+                            boxShadow: '0 0 15px rgba(250,204,21,0.6), inset 0 0 10px rgba(250,204,21,0.3)'
+                          }}
+                          animate={{
+                            scale: [1, 1.1, 1],
+                            opacity: [1, 0.9, 1]
+                          }}
+                          transition={{ duration: 0.4, repeat: Infinity }}
+                        >
                           CHÍ MẠNG!
-                        </span>
+                        </motion.span>
                       )}
                       {showDamageNumber.isSkill && !showDamageNumber.isCritical && (
-                        <span className="text-xs font-bold text-amber-400 bg-amber-500/30 px-2 py-0.5 rounded-full border border-amber-400/50">
+                        <motion.span
+                          className="text-xs sm:text-sm font-bold text-amber-300 bg-gradient-to-r from-amber-500/40 via-amber-400/50 to-amber-500/40 px-3 py-1 rounded-full border-2 border-amber-400/70 backdrop-blur-sm"
+                          style={{
+                            boxShadow: '0 0 12px rgba(251,191,36,0.5), inset 0 0 8px rgba(251,191,36,0.3)'
+                          }}
+                        >
                           CÔNG PHÁP
-                        </span>
+                        </motion.span>
                       )}
                     </div>
                   )}
@@ -633,37 +1070,63 @@ const PKTab = memo(function PKTab() {
               )}
             </AnimatePresence>
 
-            {/* Slash Effects - Sword Qi (Kiem Khi) */}
+            {/* Slash Effects - Enhanced Kiếm Khí (Sword Qi) with SVG Arc */}
             <AnimatePresence>
-              {showSlash === 'right' && (
+              {showSlash && (
                 <motion.div
-                  className="absolute right-[25%] top-1/2 -translate-y-1/2 pointer-events-none z-50"
-                  initial={{ opacity: 0, scale: 0.5, rotate: -45, x: -50 }}
-                  animate={{ opacity: [0, 1, 0], scale: 2, x: 50 }}
+                  className={`absolute top-1/2 -translate-y-1/2 pointer-events-none z-50 ${
+                    showSlash === 'right' ? 'right-[20%]' : 'left-[20%]'
+                  }`}
+                  initial={{ opacity: 0, scale: 0.5, x: showSlash === 'right' ? -100 : 100 }}
+                  animate={{ 
+                    opacity: [0, 1, 0],
+                    scale: [0.5, 1.5, 2],
+                    x: 0
+                  }}
                   transition={{ duration: 0.3, ease: "easeOut" }}
                 >
-                  {/* Sword Beam */}
-                  <div className="relative w-64 h-3 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_rgba(34,211,238,0.8)] rounded-full blur-[1px]"></div>
-                  <div className="absolute top-0 left-0 w-64 h-3 bg-white/60 rounded-full blur-[0.5px] mix-blend-overlay"></div>
-                </motion.div>
-              )}
-              {showSlash === 'left' && (
-                <motion.div
-                  className="absolute left-[25%] top-1/2 -translate-y-1/2 pointer-events-none z-50"
-                  initial={{ opacity: 0, scale: 0.5, rotate: 45, x: 50 }}
-                  animate={{ opacity: [0, 1, 0], scale: 2, x: -50 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                >
-                  {/* Sword Beam */}
-                  <div className="relative w-64 h-3 bg-gradient-to-l from-transparent via-red-500 to-transparent shadow-[0_0_15px_rgba(239,68,68,0.8)] rounded-full blur-[1px]"></div>
-                  <div className="absolute top-0 left-0 w-64 h-3 bg-white/60 rounded-full blur-[0.5px] mix-blend-overlay"></div>
+                  {/* SVG Arc - Vết chém hình bán nguyệt sắc bén */}
+                  <svg 
+                    width="300" 
+                    height="300" 
+                    viewBox="0 0 100 100" 
+                    className={`transform ${showSlash === 'right' ? '' : 'scale-x-[-1]'}`}
+                  >
+                    {/* Outer Arc - Main Slash */}
+                    <path 
+                      d="M 20 20 Q 80 50 20 80" 
+                      fill="none" 
+                      stroke={screenFlash === 'red' ? '#fbbf24' : '#38bdf8'} 
+                      strokeWidth="3"
+                      className="drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]"
+                      style={{ filter: 'drop-shadow(0 0 8px currentColor)' }}
+                    />
+                    {/* Inner Arc - Bright Core */}
+                    <path 
+                      d="M 25 25 Q 75 50 25 75" 
+                      fill="none" 
+                      stroke="white" 
+                      strokeWidth="4"
+                      className="blur-[1px]"
+                      opacity="0.9"
+                    />
+                    {/* Glow Effect */}
+                    <path 
+                      d="M 20 20 Q 80 50 20 80" 
+                      fill="none" 
+                      stroke={screenFlash === 'red' ? '#fbbf24' : '#38bdf8'} 
+                      strokeWidth="1"
+                      opacity="0.5"
+                      className="blur-[3px]"
+                    />
+                  </svg>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Main Battle Card - Optimized for Mobile */}
+            {/* Main Battle Content - No Card, Full Background */}
             <motion.div
-              className="relative w-full max-w-5xl mx-1 sm:mx-2 md:mx-4 bg-gradient-to-b from-[#0f172a] to-[#1e1b4b] border-2 border-red-600/50 rounded-lg sm:rounded-xl md:rounded-2xl p-2 sm:p-3 md:p-4 lg:p-5 shadow-[0_0_100px_rgba(220,38,38,0.3)] max-h-[95vh] sm:max-h-[90vh] md:max-h-[85vh] overflow-hidden"
+              className="relative w-full max-w-5xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8"
               initial={{ scale: 0.8, opacity: 0, y: 50 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.8, opacity: 0, y: 50 }}
@@ -671,283 +1134,351 @@ const PKTab = memo(function PKTab() {
             >
               {/* Battle Header */}
               <motion.div
-                className="text-center mb-2 sm:mb-3 md:mb-4"
+                className="text-center mb-4 sm:mb-6"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
+                {battlePhase === 'fighting' && (
+                  <p className="text-sm sm:text-base text-slate-300 mb-2 animate-pulse">
+                    Đang giao chiến...
+                  </p>
+                )}
                 <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-400 to-red-400 font-title tracking-wide sm:tracking-wider">
                   {battlePhase === 'intro' ? 'LUẬN KIẾM ĐÀI' :
-                    battlePhase === 'fighting' ? `LƯỢT ${currentLogIndex + 1}/${battleLogs.length}` :
+                    battlePhase === 'fighting' ? `HIỆP ${currentLogIndex + 1}` :
                       'KẾT QUẢ'}
                 </h3>
               </motion.div>
 
-              {/* Main Content - Optimized Layout */}
-              <div className="flex flex-col md:flex-row gap-2 sm:gap-3 md:gap-4">
-                {/* Left Side - Combatants */}
-                <div className="flex-shrink-0 w-full md:w-72 order-2 md:order-1">
-                  {/* Combatants Arena - Compact on Mobile */}
-                  <div className="flex flex-col gap-1.5 sm:gap-2">
-                    {/* Challenger */}
-                    <motion.div
-                      className={`p-1.5 sm:p-2 md:p-3 rounded-md sm:rounded-lg md:rounded-xl bg-gradient-to-br from-blue-900/40 to-slate-900/40 border ${battlePhase === 'result' && battleResult.winner === 'challenger'
-                        ? 'border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]'
-                        : 'border-blue-500/30'
-                        }`}
-                      animate={battlePhase === 'fighting' && battleLogs[currentLogIndex]?.attacker === 'challenger' ? {
-                        scale: [1, 1.02, 1],
-                        boxShadow: ['0 0 0px rgba(59,130,246,0)', '0 0 20px rgba(59,130,246,0.5)', '0 0 0px rgba(59,130,246,0)']
-                      } : {}}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
-                        <motion.div
-                          className={`w-9 h-9 sm:w-10 md:w-12 sm:h-10 md:h-12 rounded-full border-2 overflow-hidden flex-shrink-0 ${battlePhase === 'result' && battleResult.winner === 'challenger'
-                            ? 'border-green-400 ring-2 ring-green-400/30'
-                            : 'border-blue-400'
-                            }`}
-                          animate={battlePhase === 'intro' ? { scale: [0.8, 1.1, 1] } : {}}
-                          transition={{ duration: 0.5, delay: 0.5 }}
-                        >
-                          {battleResult.challenger.avatar ? (
-                            <img src={battleResult.challenger.avatar || getUserAvatarUrl({ name: battleResult.challenger.username })} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-slate-800 flex items-center justify-center text-lg text-amber-400 font-bold">
-                              {battleResult.challenger.username?.charAt(0)?.toUpperCase()}
-                            </div>
-                          )}
-                        </motion.div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 flex-wrap">
-                            <p className="font-bold text-blue-200 text-[10px] sm:text-xs md:text-sm truncate">{battleResult.challenger.username}</p>
-                            {battlePhase === 'result' && battleResult.winner === 'challenger' && (
-                              <span className="text-green-400 text-[8px] sm:text-[9px] md:text-[10px] font-bold bg-green-500/20 px-1 py-0.5 rounded">THẮNG</span>
-                            )}
-                          </div>
-                          <p className="text-[8px] sm:text-[9px] md:text-[10px] text-slate-400 truncate">{battleResult.challenger.stats.realmName}</p>
-                          <div className="relative h-2 sm:h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-600 mt-0.5 sm:mt-1">
-                            <motion.div
-                              className="absolute inset-0 bg-gradient-to-r from-green-600 to-green-400"
-                              initial={{ width: '100%' }}
-                              animate={{
-                                width: `${Math.max(0, (challengerCurrentHp / battleResult.challenger.stats.qiBlood) * 100)}%`,
-                                backgroundColor: challengerCurrentHp / battleResult.challenger.stats.qiBlood > 0.5
-                                  ? ['#22c55e', '#22c55e']
-                                  : challengerCurrentHp / battleResult.challenger.stats.qiBlood > 0.25
-                                    ? ['#eab308', '#eab308']
-                                    : ['#ef4444', '#ef4444']
-                              }}
-                              transition={{ duration: 0.3 }}
-                            />
-                          </div>
-                          <p className="text-[7px] sm:text-[8px] md:text-[9px] text-slate-500 mt-0.5 font-mono">{Math.round(challengerCurrentHp)} / {battleResult.challenger.stats.qiBlood}</p>
-                        </div>
-                      </div>
-                    </motion.div>
-
-                    {/* VS Divider */}
-                    <div className="flex items-center justify-center py-0.5 sm:py-1">
+              {/* Main Content - New Layout: 2 Characters Facing Each Other */}
+              <div className="relative flex justify-between items-center px-4 sm:px-8 md:px-12 lg:px-16 min-h-[400px] sm:min-h-[500px]">
+                {/* Left Side - Challenger */}
+                <div className="relative flex flex-col items-center z-10">
+                  {/* HP Bar - Above Avatar */}
+                  <div className="w-32 sm:w-40 md:w-48 mb-2">
+                    <div className="relative bg-slate-900/80 h-3 sm:h-4 rounded-full overflow-hidden border-2 border-slate-700 shadow-lg">
                       <motion.div
-                        className="text-base sm:text-lg md:text-xl font-bold text-red-500"
-                        animate={battlePhase === 'fighting' ? {
-                          scale: [1, 1.2, 1],
-                          textShadow: ['0 0 0px #ef4444', '0 0 20px #ef4444', '0 0 0px #ef4444']
-                        } : {}}
-                        transition={{ duration: 0.5, repeat: battlePhase === 'fighting' ? Infinity : 0, repeatDelay: 0.5 }}
-                      >
-                        VS
-                      </motion.div>
-                    </div>
-
-                    {/* Opponent */}
-                    <motion.div
-                      className={`p-3 rounded-xl bg-gradient-to-br from-red-900/40 to-slate-900/40 border ${battlePhase === 'result' && battleResult.winner === 'opponent'
-                        ? 'border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]'
-                        : 'border-red-500/30'
-                        }`}
-                      animate={battlePhase === 'fighting' && battleLogs[currentLogIndex]?.attacker === 'opponent' ? {
-                        scale: [1, 1.02, 1],
-                        boxShadow: ['0 0 0px rgba(239,68,68,0)', '0 0 20px rgba(239,68,68,0.5)', '0 0 0px rgba(239,68,68,0)']
-                      } : {}}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <motion.div
-                          className={`w-12 h-12 rounded-full border-2 overflow-hidden flex-shrink-0 ${battlePhase === 'result' && battleResult.winner === 'opponent'
-                            ? 'border-green-400 ring-2 ring-green-400/30'
-                            : 'border-red-400'
-                            }`}
-                          animate={battlePhase === 'intro' ? { scale: [0.8, 1.1, 1] } : {}}
-                          transition={{ duration: 0.5, delay: 0.7 }}
-                        >
-                          {battleResult.opponent.avatar ? (
-                            <img src={battleResult.opponent.avatar || getUserAvatarUrl({ name: battleResult.opponent.username })} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-slate-800 flex items-center justify-center text-lg text-amber-400 font-bold">
-                              {battleResult.opponent.username?.charAt(0)?.toUpperCase()}
-                            </div>
-                          )}
-                        </motion.div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-red-200 text-sm truncate">{battleResult.opponent.username}</p>
-                            {battlePhase === 'result' && battleResult.winner === 'opponent' && (
-                              <span className="text-green-400 text-[10px] font-bold bg-green-500/20 px-1.5 py-0.5 rounded">THẮNG</span>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-slate-400">{battleResult.opponent.stats.realmName}</p>
-                          <div className="relative h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-600 mt-1">
-                            <motion.div
-                              className="absolute inset-0 bg-gradient-to-r from-green-600 to-green-400"
-                              initial={{ width: '100%' }}
-                              animate={{
-                                width: `${Math.max(0, (opponentCurrentHp / battleResult.opponent.stats.qiBlood) * 100)}%`,
-                                backgroundColor: opponentCurrentHp / battleResult.opponent.stats.qiBlood > 0.5
-                                  ? ['#22c55e', '#22c55e']
-                                  : opponentCurrentHp / battleResult.opponent.stats.qiBlood > 0.25
-                                    ? ['#eab308', '#eab308']
-                                    : ['#ef4444', '#ef4444']
-                              }}
-                              transition={{ duration: 0.3 }}
-                            />
-                          </div>
-                          <p className="text-[9px] text-slate-500 mt-0.5">{Math.round(opponentCurrentHp)} / {battleResult.opponent.stats.qiBlood}</p>
-                        </div>
+                        className="h-full bg-gradient-to-r from-green-600 to-green-400"
+                        initial={{ width: '100%' }}
+                        animate={{
+                          width: `${Math.max(0, (challengerCurrentHp / battleResult.challenger.stats.qiBlood) * 100)}%`
+                        }}
+                        transition={{ duration: 0.3 }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-[8px] sm:text-[10px] font-bold text-white drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]">
+                          {Math.round(challengerCurrentHp)}/{battleResult.challenger.stats.qiBlood}
+                        </span>
                       </div>
-                    </motion.div>
+                    </div>
                   </div>
 
-                  {/* Result Banner - Mobile Optimized */}
-                  <AnimatePresence>
-                    {battlePhase === 'result' && (
+                  {/* Mana Bar - Below HP */}
+                  <div className="w-32 sm:w-40 md:w-48 mb-3">
+                    <div className="relative bg-slate-900/80 h-2 sm:h-3 rounded-full overflow-hidden border-2 border-slate-700 shadow-lg">
                       <motion.div
-                        className={`text-center py-1.5 sm:py-2 rounded-lg sm:rounded-xl mt-2 sm:mt-3 ${battleResult.isDraw
-                          ? 'bg-gradient-to-r from-slate-700/50 to-slate-700/50 border border-slate-500/50'
-                          : battleResult.winner === 'challenger'
-                            ? 'bg-gradient-to-r from-green-900/50 to-green-900/50 border border-green-500/50'
-                            : 'bg-gradient-to-r from-red-900/50 to-red-900/50 border border-red-500/50'
-                          }`}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ type: 'spring', duration: 0.5 }}
-                      >
-                        <motion.p
-                          className={`text-sm sm:text-base md:text-lg font-bold font-title ${battleResult.isDraw ? 'text-slate-300' : battleResult.winner === 'challenger' ? 'text-green-400' : 'text-red-400'
-                            }`}
-                          animate={{ scale: [1, 1.05, 1] }}
-                          transition={{ duration: 0.5, repeat: 2 }}
-                        >
-                          {battleResult.isDraw ? 'HÒA' : battleResult.winner === 'challenger' ? 'CHIẾN THẮNG!' : 'THẤT BẠI'}
-                        </motion.p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        className="h-full bg-gradient-to-r from-blue-600 to-cyan-400"
+                        initial={{ width: '100%' }}
+                        animate={{
+                          width: `${Math.max(0, (challengerCurrentMana / battleResult.challenger.stats.zhenYuan) * 100)}%`
+                        }}
+                        transition={{ duration: 0.3 }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-[7px] sm:text-[9px] font-bold text-white drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]">
+                          {Math.round(challengerCurrentMana)}/{battleResult.challenger.stats.zhenYuan}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-                  {/* Rewards - Mobile Optimized */}
-                  <AnimatePresence>
-                    {battlePhase === 'result' && (
-                      <motion.div
-                        className="text-center py-1.5 sm:py-2 bg-slate-800/50 rounded-lg sm:rounded-xl border border-amber-500/30 mt-1.5 sm:mt-2"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        <p className="text-[9px] sm:text-[10px] text-slate-400 mb-0.5 sm:mb-1">Phần thưởng:</p>
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-[10px] sm:text-xs">
-                          <span className="text-amber-400 font-bold">
-                            +{battleResult.winner === 'challenger' || battleResult.isDraw
-                              ? battleResult.rewards.winnerExp
-                              : battleResult.rewards.loserExp} EXP
-                          </span>
-                          {(battleResult.winner === 'challenger' || battleResult.isDraw) && battleResult.rewards.winnerSpiritStones > 0 && (
-                            <span className="text-cyan-400 font-bold">
-                              +{battleResult.rewards.winnerSpiritStones} Linh Thạch
-                            </span>
-                          )}
-                        </div>
-                      </motion.div>
+                  {/* Avatar with Glow */}
+                  <motion.div
+                    variants={characterVariants}
+                    animate={challengerAction}
+                    className={`relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full border-4 overflow-hidden shadow-[0_0_30px_rgba(59,130,246,0.5)] ${
+                      battlePhase === 'result' && battleResult.winner === 'challenger'
+                        ? 'border-green-400 ring-4 ring-green-400/50'
+                        : 'border-blue-400'
+                    }`}
+                  >
+                    {/* Outer Glow Effect */}
+                    <div className="absolute inset-0 bg-blue-500/30 blur-2xl -z-10 rounded-full" />
+                    
+                    {/* Aura effect when attacking */}
+                    {challengerAction.toString().includes('attack') && (
+                      <div className="absolute inset-0 bg-blue-500/60 blur-xl rounded-full scale-150 animate-pulse -z-10" />
                     )}
-                  </AnimatePresence>
+
+                    {battleResult.challenger.avatar ? (
+                      <img 
+                        src={battleResult.challenger.avatar || getUserAvatarUrl({ name: battleResult.challenger.username })} 
+                        alt="" 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-3xl sm:text-4xl md:text-5xl text-black font-bold">
+                        {battleResult.challenger.username?.charAt(0)?.toUpperCase()}
+                        {battleResult.challenger.username?.charAt(1)?.toUpperCase()}
+                      </div>
+                    )}
+                  </motion.div>
+
+                  {/* Name Below Avatar */}
+                  <p className="mt-4 font-bold text-white text-lg sm:text-xl md:text-2xl drop-shadow-lg">
+                    {battleResult.challenger.username}
+                  </p>
+                  <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                    {battleResult.challenger.stats.realmName}
+                  </p>
                 </div>
 
-                {/* Right Side - Battle Log - Optimized */}
-                <div className="flex-1 flex flex-col min-w-0 order-1 md:order-2">
-                  <div className="bg-slate-900/70 rounded-md sm:rounded-lg md:rounded-xl p-1.5 sm:p-2 md:p-3 flex-1 overflow-hidden border border-slate-700/50 flex flex-col">
-                    <div className="flex items-center justify-between mb-1.5 sm:mb-2 flex-shrink-0">
-                      <p className="text-[9px] sm:text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-tight sm:tracking-wider">Diễn Biến</p>
-                      <p className="text-[9px] sm:text-[10px] md:text-xs text-amber-400 font-mono">{currentLogIndex}/{battleLogs.length}</p>
-                    </div>
-                    <div className="space-y-1 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-600 pr-0.5 sm:pr-1" style={{ maxHeight: '180px' }}>
-                      {battleLogs.slice(0, currentLogIndex).map((log, idx) => (
-                        <motion.div
-                          key={idx}
-                          initial={{ opacity: 0, x: log.attacker === 'challenger' ? -15 : 15, scale: 0.95 }}
-                          animate={{ opacity: 1, x: 0, scale: 1 }}
-                          className={`text-[10px] sm:text-[11px] p-1.5 sm:p-2 rounded-md sm:rounded-lg flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 ${log.isDodged
-                            ? 'bg-cyan-900/30 text-cyan-300 border border-cyan-500/30'
-                            : log.skillUsed
-                              ? 'bg-amber-900/40 text-amber-200 border border-amber-500/40'
-                              : log.isCritical
-                                ? 'bg-yellow-900/40 text-yellow-200 border border-yellow-500/40'
-                                : log.attacker === 'challenger'
-                                  ? 'bg-blue-900/30 text-blue-200 border border-blue-500/20'
-                                  : 'bg-red-900/30 text-red-200 border border-red-500/20'
-                            }`}
-                        >
-                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                            <span className="text-slate-500 font-mono w-4 sm:w-5 flex-shrink-0 text-[9px] sm:text-[10px]">#{idx + 1}</span>
-                            <span className={`font-bold flex-shrink-0 text-[10px] sm:text-xs ${log.attacker === 'challenger' ? 'text-blue-300' : 'text-red-300'}`}>
-                              {log.attacker === 'challenger' ? battleResult.challenger.username : battleResult.opponent.username}:
-                            </span>
-                            <span className="flex-1 truncate text-[10px] sm:text-[11px]">{log.description}</span>
-                          </div>
-                          <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                            {log.isCritical && !log.isDodged && (
-                              <span className="text-yellow-400 text-[8px] sm:text-[9px] font-bold flex-shrink-0 bg-yellow-500/20 px-1 rounded">CRT</span>
-                            )}
-                            {log.skillUsed && (
-                              <span className="text-amber-400 text-[8px] sm:text-[9px] font-bold flex-shrink-0 bg-amber-500/20 px-1 rounded">SKILL</span>
-                            )}
-                            {!log.isDodged ? (
-                              <span className={`font-mono text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded flex-shrink-0 ${log.isCritical ? 'bg-yellow-500/40 text-yellow-200' : 'bg-slate-700/70 text-slate-300'
-                                }`}>
-                                -{log.damage}
-                              </span>
-                            ) : (
-                              <span className="text-cyan-400 text-[9px] sm:text-[10px] font-bold flex-shrink-0 bg-cyan-500/20 px-1 rounded">MISS</span>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-
-                      {battlePhase === 'fighting' && currentLogIndex < battleLogs.length && (
-                        <div className="flex items-center justify-center gap-2 py-2 text-slate-400">
-                          <motion.div
-                            className="w-1.5 h-1.5 bg-red-500 rounded-full"
-                            animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
-                            transition={{ duration: 0.5, repeat: Infinity }}
-                          />
-                          <span className="text-[10px]">Đang chiến đấu...</span>
-                        </div>
-                      )}
+                {/* Right Side - Opponent */}
+                <div className="relative flex flex-col items-center z-10">
+                  {/* HP Bar - Above Avatar */}
+                  <div className="w-32 sm:w-40 md:w-48 mb-2">
+                    <div className="relative bg-slate-900/80 h-3 sm:h-4 rounded-full overflow-hidden border-2 border-slate-700 shadow-lg">
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-red-600 to-red-400"
+                        initial={{ width: '100%' }}
+                        animate={{
+                          width: `${Math.max(0, (opponentCurrentHp / battleResult.opponent.stats.qiBlood) * 100)}%`
+                        }}
+                        transition={{ duration: 0.3 }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-[8px] sm:text-[10px] font-bold text-white drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]">
+                          {Math.round(opponentCurrentHp)}/{battleResult.opponent.stats.qiBlood}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Close Button - Mobile Optimized */}
-                  <motion.button
-                    onClick={closeBattleResult}
-                    className="w-full py-2 sm:py-2.5 md:py-3 mt-2 sm:mt-3 bg-gradient-to-r from-red-700 via-red-600 to-red-700 text-white rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:from-red-600 hover:via-red-500 hover:to-red-600 transition-all shadow-lg active:scale-95"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: battlePhase === 'result' ? 0.8 : 0 }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  {/* Mana Bar - Below HP */}
+                  <div className="w-32 sm:w-40 md:w-48 mb-3">
+                    <div className="relative bg-slate-900/80 h-2 sm:h-3 rounded-full overflow-hidden border-2 border-slate-700 shadow-lg">
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-blue-600 to-cyan-400"
+                        initial={{ width: '100%' }}
+                        animate={{
+                          width: `${Math.max(0, (opponentCurrentMana / battleResult.opponent.stats.zhenYuan) * 100)}%`
+                        }}
+                        transition={{ duration: 0.3 }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-[7px] sm:text-[9px] font-bold text-white drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]">
+                          {Math.round(opponentCurrentMana)}/{battleResult.opponent.stats.zhenYuan}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Avatar with Glow */}
+                  <motion.div
+                    variants={characterVariants}
+                    animate={opponentAction}
+                    className={`relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full border-4 overflow-hidden shadow-[0_0_30px_rgba(239,68,68,0.5)] ${
+                      battlePhase === 'result' && battleResult.winner === 'opponent'
+                        ? 'border-green-400 ring-4 ring-green-400/50'
+                        : 'border-red-400'
+                    }`}
                   >
-                    {battlePhase === 'result' ? 'Đóng' : 'Bỏ qua'}
-                  </motion.button>
+                    {/* Outer Glow Effect */}
+                    <div className="absolute inset-0 bg-red-500/30 blur-2xl -z-10 rounded-full" />
+                    
+                    {/* Aura effect when attacking */}
+                    {opponentAction.toString().includes('attack') && (
+                      <div className="absolute inset-0 bg-red-500/60 blur-xl rounded-full scale-150 animate-pulse -z-10" />
+                    )}
+
+                    {battleResult.opponent.avatar ? (
+                      <img 
+                        src={battleResult.opponent.avatar || getUserAvatarUrl({ name: battleResult.opponent.username })} 
+                        alt="" 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-3xl sm:text-4xl md:text-5xl text-black font-bold">
+                        {battleResult.opponent.username?.charAt(0)?.toUpperCase()}
+                        {battleResult.opponent.username?.charAt(1)?.toUpperCase()}
+                      </div>
+                    )}
+                  </motion.div>
+
+                  {/* Name Below Avatar */}
+                  <p className="mt-4 font-bold text-white text-lg sm:text-xl md:text-2xl drop-shadow-lg">
+                    {battleResult.opponent.username}
+                  </p>
+                  <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                    {battleResult.opponent.stats.realmName}
+                  </p>
                 </div>
               </div>
+
+              {/* Result Overlay - Tiên Hiệp Style (Thánh Chỉ/Bảng Vàng) */}
+              <AnimatePresence>
+                {battlePhase === 'result' && (
+                  <motion.div
+                    className="absolute inset-0 z-[70] flex flex-col items-center justify-center bg-black/90 backdrop-blur-lg"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {/* Scroll Container - Thánh Chỉ Style */}
+                    <motion.div
+                      className="relative w-full max-w-sm mx-4 bg-[#1a103c] border-2 border-amber-600/50 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden"
+                      initial={{ scale: 0.8, y: 50, opacity: 0 }}
+                      animate={{ scale: 1, y: 0, opacity: 1 }}
+                      exit={{ scale: 0.8, opacity: 0 }}
+                      transition={{ type: 'spring', duration: 0.6, bounce: 0.3 }}
+                    >
+                      {/* Decorative Header */}
+                      <div className="bg-gradient-to-r from-amber-900/80 via-amber-700/80 to-amber-900/80 p-3 text-center border-b-2 border-amber-500/50">
+                        <h3 className="text-amber-100 font-bold font-title tracking-widest text-base sm:text-lg">KẾT QUẢ TỶ THÍ</h3>
+                      </div>
+
+                      {/* Main Body */}
+                      <div className="p-6 flex flex-col items-center gap-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDAgTCA0MCAwIEwgNDAgNDAgTCAwIDQwIFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIwLjUiIG9wYWNpdHk9IjAuMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')]">
+                        
+                        {/* Stamp Animation - Đóng Dấu */}
+                        <motion.div 
+                          initial={{ scale: 3, opacity: 0, rotate: -20 }}
+                          animate={{ scale: 1, opacity: 1, rotate: -5 }}
+                          transition={{ type: 'spring', bounce: 0.5, duration: 0.8 }}
+                          className={`border-4 rounded-lg p-4 sm:p-5 rotate-[-5deg] backdrop-blur-sm shadow-xl
+                            ${battleResult.isDraw 
+                              ? 'border-slate-500 bg-slate-900/20' 
+                              : battleResult.winner === 'challenger' 
+                              ? 'border-red-500 bg-red-900/20' 
+                              : 'border-red-500 bg-red-900/20'}
+                          `}
+                        >
+                          <h2 className={`text-3xl sm:text-4xl md:text-5xl font-black font-title uppercase tracking-widest text-center
+                            ${battleResult.isDraw 
+                              ? 'text-slate-300 drop-shadow-[0_0_15px_rgba(148,163,184,0.8)]' 
+                              : 'text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]'}
+                          `}>
+                            {battleResult.isDraw ? 'HÒA' : battleResult.winner === 'challenger' ? 'ĐẠI THẮNG' : 'BẠI TRẬN'}
+                          </h2>
+                        </motion.div>
+
+                        {/* Rewards Section - Chiến Lợi Phẩm */}
+                        <div className="w-full bg-black/40 rounded-lg p-3 sm:p-4 border border-white/10">
+                          <p className="text-center text-amber-200/80 text-xs uppercase mb-3 tracking-widest">
+                            Chiến Lợi Phẩm
+                          </p>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="flex flex-col items-center p-2 sm:p-3 bg-slate-800/50 rounded border border-slate-700/50">
+                              <span className="text-xs text-slate-400 mb-1">Tu Vi</span>
+                              <span className="font-bold text-purple-300 text-sm sm:text-base">
+                                +{battleResult.winner === 'challenger' || battleResult.isDraw
+                                  ? battleResult.rewards.winnerExp
+                                  : battleResult.rewards.loserExp}
+                              </span>
+                            </div>
+                            {(battleResult.winner === 'challenger' || battleResult.isDraw) && battleResult.rewards.winnerSpiritStones > 0 && (
+                              <div className="flex flex-col items-center p-2 sm:p-3 bg-slate-800/50 rounded border border-slate-700/50">
+                                <span className="text-xs text-slate-400 mb-1">Linh Thạch</span>
+                                <span className="font-bold text-yellow-300 text-sm sm:text-base">
+                                  +{battleResult.rewards.winnerSpiritStones}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Button */}
+                        <motion.button 
+                          onClick={closeBattleResult}
+                          className="w-full py-3 bg-gradient-to-r from-amber-700 to-amber-900 text-amber-100 font-bold rounded-lg border border-amber-500/30 shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          {battleResult.winner === 'challenger' ? 'Thu Thập & Rời Đi' : 'Rời Khỏi'}
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Skill Name Display - Anime Style */}
+              <AnimatePresence>
+                {showSkillName && (
+                  <motion.div
+                    className={`absolute top-1/2 -translate-y-1/2 z-[80] pointer-events-none ${
+                      showSkillName.side === 'left' ? 'left-[10%]' : 'right-[10%]'
+                    }`}
+                    initial={{ opacity: 0, scale: 0.3, y: 50, rotateX: -90 }}
+                    animate={{ 
+                      opacity: [0, 1, 1, 0],
+                      scale: [0.3, 1.2, 1, 0.9],
+                      y: [50, 0, 0, -30],
+                      rotateX: [-90, 0, 0, 0]
+                    }}
+                    exit={{ opacity: 0, scale: 0.5, y: -50 }}
+                    transition={{ 
+                      duration: 2,
+                      times: [0, 0.2, 0.8, 1],
+                      ease: [0.34, 1.56, 0.64, 1] // Bounce effect
+                    }}
+                  >
+                    {/* Outer Glow */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 blur-3xl opacity-60 scale-150 animate-pulse" />
+                    
+                    {/* Main Text Container */}
+                    <div className="relative">
+                      {/* Background with gradient border */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-amber-600/90 via-yellow-500/90 to-amber-600/90 blur-sm scale-110" />
+                      <div className="relative bg-gradient-to-r from-amber-800/95 via-yellow-700/95 to-amber-800/95 px-8 sm:px-12 md:px-16 py-4 sm:py-6 md:py-8 rounded-lg sm:rounded-xl border-4 border-amber-300/80 shadow-[0_0_40px_rgba(251,191,36,0.8),inset_0_0_20px_rgba(251,191,36,0.3)]">
+                        {/* Decorative lines */}
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-200 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-200 to-transparent" />
+                        
+                        {/* Skill Name Text */}
+                        <motion.h2
+                          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black font-title text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-yellow-200 text-center tracking-wider drop-shadow-[0_0_20px_rgba(251,191,36,1)]"
+                          animate={{ 
+                            textShadow: [
+                              '0 0 20px rgba(251,191,36,1), 0 0 40px rgba(251,191,36,0.8)',
+                              '0 0 30px rgba(251,191,36,1), 0 0 60px rgba(251,191,36,1)',
+                              '0 0 20px rgba(251,191,36,1), 0 0 40px rgba(251,191,36,0.8)'
+                            ]
+                          }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          {showSkillName.name}
+                        </motion.h2>
+                        
+                        {/* Subtitle */}
+                        <motion.p
+                          className="text-xs sm:text-sm md:text-base text-amber-200 text-center mt-2 font-bold uppercase tracking-[0.3em]"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: [0, 1, 1, 0] }}
+                          transition={{ delay: 0.3, duration: 1.7 }}
+                        >
+                          CÔNG PHÁP
+                        </motion.p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Close/Skip Button */}
+              <motion.button
+                onClick={battlePhase === 'result' ? closeBattleResult : skipToResult}
+                className="w-full py-3 mt-4 sm:mt-6 bg-gradient-to-r from-red-700 via-red-600 to-red-700 text-white rounded-lg sm:rounded-xl font-bold text-sm sm:text-base hover:from-red-600 hover:via-red-500 hover:to-red-600 transition-all shadow-lg active:scale-95"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: battlePhase === 'result' ? 0.8 : 0 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {battlePhase === 'result' ? 'Đóng' : 'Bỏ qua'}
+              </motion.button>
             </motion.div>
           </motion.div>
         )}

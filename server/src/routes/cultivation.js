@@ -40,7 +40,7 @@ const mergeEquipmentStatsIntoCombatStats = (combatStats, equipmentStats) => {
 /**
  * Format cultivation data cho response
  */
-const formatCultivationResponse = (cultivation) => {
+const formatCultivationResponse = async (cultivation) => {
   // Dùng realmLevel từ database (realm hiện tại của người chơi)
   const currentRealm = CULTIVATION_REALMS.find(r => r.level === cultivation.realmLevel) || CULTIVATION_REALMS[0];
   // Tính realm có thể đạt được từ exp (để hiển thị progress)
@@ -50,6 +50,96 @@ const formatCultivationResponse = (cultivation) => {
   // Tính exp cần cho realm tiếp theo (dựa trên realm hiện tại)
   const nextRealm = CULTIVATION_REALMS.find(r => r.level === currentRealm.level + 1);
   const expToNext = nextRealm ? Math.max(0, nextRealm.minExp - cultivation.exp) : 0;
+
+  // Populate equipment data cho inventory items
+  // Lấy tất cả equipment IDs từ inventory
+  const equipmentIds = cultivation.inventory
+    .filter(item => item.type?.startsWith('equipment_') && item.itemId)
+    .map(item => {
+      // itemId có thể là string hoặc ObjectId
+      try {
+        return mongoose.Types.ObjectId.isValid(item.itemId) ? new mongoose.Types.ObjectId(item.itemId) : null;
+      } catch {
+        return null;
+      }
+    })
+    .filter(id => id !== null);
+
+  // Load equipment từ database
+  let equipmentMap = new Map();
+  if (equipmentIds.length > 0) {
+    try {
+      const equipments = await Equipment.find({ _id: { $in: equipmentIds } }).lean();
+      equipments.forEach(eq => {
+        // Convert Map to Object nếu cần
+        let elementalDamage = {};
+        if (eq.stats?.elemental_damage) {
+          if (eq.stats.elemental_damage instanceof Map) {
+            elementalDamage = Object.fromEntries(eq.stats.elemental_damage);
+          } else {
+            elementalDamage = eq.stats.elemental_damage;
+          }
+        }
+        
+        equipmentMap.set(eq._id.toString(), {
+          _id: eq._id,
+          name: eq.name,
+          type: eq.type,
+          subtype: eq.subtype,
+          rarity: eq.rarity,
+          level_required: eq.level_required,
+          img: eq.img,
+          description: eq.description,
+          stats: {
+            ...eq.stats,
+            elemental_damage: elementalDamage
+          },
+          special_effect: eq.special_effect,
+          skill_bonus: eq.skill_bonus,
+          energy_regen: eq.energy_regen,
+          lifesteal: eq.lifesteal,
+          true_damage: eq.true_damage,
+          buff_duration: eq.buff_duration
+        });
+      });
+    } catch (err) {
+      console.error("[CULTIVATION] Error loading equipment for inventory:", err);
+    }
+  }
+
+  // Update inventory items với equipment data mới nhất
+  const updatedInventory = cultivation.inventory.map(item => {
+    if (item.type?.startsWith('equipment_') && item.itemId) {
+      const equipmentIdStr = item.itemId.toString();
+      const equipment = equipmentMap.get(equipmentIdStr);
+      
+      if (equipment) {
+        // Update metadata với data mới nhất từ Equipment collection
+        return {
+          ...item.toObject ? item.toObject() : item,
+          name: equipment.name, // Update name nếu có thay đổi
+          metadata: {
+            ...(item.metadata || {}),
+            _id: equipment._id,
+            equipmentType: equipment.type,
+            subtype: equipment.subtype,
+            rarity: equipment.rarity,
+            level_required: equipment.level_required,
+            stats: equipment.stats, // Update stats mới nhất
+            special_effect: equipment.special_effect,
+            skill_bonus: equipment.skill_bonus,
+            energy_regen: equipment.energy_regen,
+            lifesteal: equipment.lifesteal,
+            true_damage: equipment.true_damage,
+            buff_duration: equipment.buff_duration,
+            img: equipment.img,
+            description: equipment.description
+          }
+        };
+      }
+    }
+    return item.toObject ? item.toObject() : item;
+  });
 
   return {
     _id: cultivation._id,
@@ -105,8 +195,8 @@ const formatCultivationResponse = (cultivation) => {
       };
     }),
     
-    // Kho đồ & Trang bị
-    inventory: cultivation.inventory,
+    // Kho đồ & Trang bị - với equipment data đã được sync
+    inventory: updatedInventory,
     equipped: cultivation.equipped,
     activeBoosts: cultivation.activeBoosts.filter(b => new Date(b.expiresAt) > new Date()),
     
@@ -167,7 +257,7 @@ router.get("/", async (req, res, next) => {
     console.error("[CULTIVATION] Error loading equipment stats:", equipErr);
   }
   
-  const response = formatCultivationResponse(cultivation);
+  const response = await formatCultivationResponse(cultivation);
   response.equipmentStats = equipmentStats;
   
   // Merge equipment stats vào combatStats để đảm bảo consistency
@@ -363,7 +453,7 @@ router.post("/login", async (req, res, next) => {
         stonesEarned: result.stonesEarned,
         leveledUp: result.leveledUp,
         newRealm: result.newRealm,
-        cultivation: formatCultivationResponse(cultivation)
+        cultivation: await formatCultivationResponse(cultivation)
       }
     });
   } catch (error) {
@@ -395,7 +485,7 @@ router.post("/quest/:questId/claim", async (req, res, next) => {
           stonesEarned: result.stonesEarned,
           leveledUp: result.leveledUp,
           newRealm: result.newRealm,
-          cultivation: formatCultivationResponse(cultivation)
+          cultivation: await formatCultivationResponse(cultivation)
         }
       });
     } catch (claimError) {
@@ -997,7 +1087,7 @@ router.post("/collect-passive-exp", async (req, res, next) => {
         : `Thu thập ${result.expEarned} tu vi!`,
       data: {
         ...result,
-        cultivation: formatCultivationResponse(cultivation)
+        cultivation: await formatCultivationResponse(cultivation)
       }
     });
   } catch (error) {
@@ -1208,17 +1298,39 @@ router.post("/add-exp", async (req, res, next) => {
     const userId = req.user.id;
     const { amount, source = 'activity' } = req.body;
     
-    // Validate amount
-    if (!amount || typeof amount !== 'number' || amount < 1 || amount > 10) {
+    const cultivation = await Cultivation.getOrCreate(userId);
+    
+    // Validate amount - cho phép exp lớn hơn dựa trên cảnh giới
+    const realmLevel = cultivation.realmLevel || 1;
+    
+    // Exp ranges dựa trên exp yêu cầu cho mỗi cảnh giới
+    // Level 1: 1-3, Level 2: 3-10, Level 3: 10-30, Level 4: 20-60, Level 5: 50-150, Level 6+: 100-200
+    const expRanges = {
+      1: { min: 1, max: 3 },
+      2: { min: 3, max: 10 },
+      3: { min: 10, max: 30 },
+      4: { min: 20, max: 60 },
+      5: { min: 50, max: 150 },
+      6: { min: 100, max: 200 },
+      7: { min: 100, max: 200 },
+      8: { min: 100, max: 200 },
+      9: { min: 100, max: 200 },
+      10: { min: 100, max: 200 },
+      11: { min: 100, max: 200 }
+    };
+    
+    const range = expRanges[realmLevel] || expRanges[1];
+    const maxExp = range.max;
+    const minExp = range.min;
+    
+    if (!amount || typeof amount !== 'number' || amount < minExp || amount > maxExp) {
       return res.status(400).json({
         success: false,
-        message: "Số exp không hợp lệ (1-10)"
+        message: `Số exp không hợp lệ (${minExp}-${maxExp}) cho cảnh giới ${realmLevel}`
       });
     }
     
-    const cultivation = await Cultivation.getOrCreate(userId);
-    
-    // Rate limiting: max 100 exp per 5 minutes from yinyang_click
+    // Rate limiting: max exp per 5 minutes from yinyang_click (tăng theo cảnh giới)
     if (source === 'yinyang_click') {
       const now = new Date();
       const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
@@ -1230,7 +1342,25 @@ router.post("/add-exp", async (req, res, next) => {
       
       const recentExp = recentClicks.reduce((sum, log) => sum + log.amount, 0);
       
-      if (recentExp >= 100) {
+      // Rate limit tăng theo cảnh giới dựa trên exp ranges
+      // Level 1: 100, Level 2: 300, Level 3: 1000, Level 4: 2500, Level 5: 5000, Level 6+: 10000
+      const rateLimits = {
+        1: 100,
+        2: 300,
+        3: 1000,
+        4: 2500,
+        5: 5000,
+        6: 10000,
+        7: 10000,
+        8: 10000,
+        9: 10000,
+        10: 10000,
+        11: 10000
+      };
+      
+      const rateLimit = rateLimits[realmLevel] || rateLimits[1];
+      
+      if (recentExp >= rateLimit) {
         return res.status(429).json({
           success: false,
           message: "Linh khí đã cạn kiệt, hãy chờ một lát..."
@@ -1271,7 +1401,7 @@ router.post("/add-exp", async (req, res, next) => {
         totalExp: cultivation.exp,
         leveledUp,
         newRealm: leveledUp ? newRealm : null,
-        cultivation: formatCultivationResponse(cultivation)
+        cultivation: await formatCultivationResponse(cultivation)
       }
     });
   } catch (error) {
@@ -1470,18 +1600,71 @@ router.post("/breakthrough", async (req, res, next) => {
       });
     }
     
-    // Tính tỷ lệ thành công
-    // Base rate: 30%, mỗi lần thất bại +10% (max 100%)
-    const baseSuccessRate = 30;
-    const bonusPerFailure = 10;
+    // Tính tỷ lệ thành công dựa trên cảnh giới hiện tại
+    // Cảnh giới đầu: tỷ lệ cao, cảnh giới cao: tỷ lệ thấp
+    const baseSuccessRatesByRealm = {
+      1: 90,  // Phàm Nhân -> Luyện Khí: 90%
+      2: 80,  // Luyện Khí -> Trúc Cơ: 80%
+      3: 70,  // Trúc Cơ -> Kim Đan: 70%
+      4: 60,  // Kim Đan -> Nguyên Anh: 60%
+      5: 50,  // Nguyên Anh -> Hóa Thần: 50%
+      6: 40,  // Hóa Thần -> Luyện Hư: 40%
+      7: 30,  // Luyện Hư -> Đại Thừa: 30%
+      8: 20,  // Đại Thừa -> Độ Kiếp: 20%
+      9: 15,  // Độ Kiếp -> Tiên Nhân: 15%
+      10: 10, // Tiên Nhân -> Thiên Đế: 10%
+      11: 5   // Thiên Đế (max level, không thể độ kiếp nữa)
+    };
+    
+    const baseSuccessRate = baseSuccessRatesByRealm[currentRealm.level] || 30;
+    // Bonus mỗi lần thất bại: giảm dần theo cảnh giới
+    // Cảnh giới đầu: +15%, cảnh giới cao: +5%
+    const bonusPerFailureByRealm = {
+      1: 15, 2: 15, 3: 12, 4: 10, 5: 8, 6: 7, 7: 6, 8: 5, 9: 5, 10: 5, 11: 5
+    };
+    const bonusPerFailure = bonusPerFailureByRealm[currentRealm.level] || 10;
+    
+    // Kiểm tra đan dược tăng tỷ lệ độ kiếp trong inventory
+    let breakthroughBonus = 0;
+    let usedPill = null;
+    const breakthroughPills = cultivation.inventory.filter(item => 
+      item.type === ITEM_TYPES.BREAKTHROUGH_BOOST && 
+      !item.used && 
+      (!item.expiresAt || new Date(item.expiresAt) > now)
+    );
+    
+    // Tìm đan dược có bonus cao nhất
+    if (breakthroughPills.length > 0) {
+      breakthroughPills.sort((a, b) => {
+        const aBonus = SHOP_ITEMS.find(i => i.id === a.itemId)?.breakthroughBonus || 0;
+        const bBonus = SHOP_ITEMS.find(i => i.id === b.itemId)?.breakthroughBonus || 0;
+        return bBonus - aBonus;
+      });
+      usedPill = breakthroughPills[0];
+      const pillData = SHOP_ITEMS.find(i => i.id === usedPill.itemId);
+      breakthroughBonus = pillData?.breakthroughBonus || 0;
+    }
+    
     const currentSuccessRate = Math.min(100, 
       (cultivation.breakthroughSuccessRate || baseSuccessRate) + 
-      (cultivation.breakthroughFailureCount || 0) * bonusPerFailure
+      (cultivation.breakthroughFailureCount || 0) * bonusPerFailure +
+      breakthroughBonus
     );
     
     // Roll để xem thành công hay thất bại
     const roll = Math.random() * 100;
     const success = roll < currentSuccessRate;
+    
+    // Nếu đã dùng đan dược, đánh dấu đã sử dụng và xóa khỏi inventory
+    if (usedPill) {
+      const pillIndex = cultivation.inventory.findIndex(i => 
+        i.itemId === usedPill.itemId && 
+        i._id?.toString() === usedPill._id?.toString()
+      );
+      if (pillIndex !== -1) {
+        cultivation.inventory.splice(pillIndex, 1);
+      }
+    }
     
     // Cập nhật thời gian thử độ kiếp
     cultivation.lastBreakthroughAttempt = now;
@@ -1492,9 +1675,10 @@ router.post("/breakthrough", async (req, res, next) => {
       cultivation.realmLevel = nextRealm.level;
       cultivation.realmName = nextRealm.name;
       
-      // Reset failure count và success rate về base
+      // Reset failure count và success rate về base của cảnh giới mới
       cultivation.breakthroughFailureCount = 0;
-      cultivation.breakthroughSuccessRate = baseSuccessRate;
+      const nextBaseSuccessRate = baseSuccessRatesByRealm[nextRealm.level] || 30;
+      cultivation.breakthroughSuccessRate = nextBaseSuccessRate;
       cultivation.breakthroughCooldownUntil = null;
       
       await cultivation.save();
@@ -1502,12 +1686,13 @@ router.post("/breakthrough", async (req, res, next) => {
       res.json({
         success: true,
         breakthroughSuccess: true,
-        message: `Chúc mừng! Bạn đã độ kiếp thành công, đạt cảnh giới ${nextRealm.name}!`,
+        message: `Chúc mừng! Bạn đã độ kiếp thành công, đạt cảnh giới ${nextRealm.name}!${usedPill ? ` (Đã sử dụng ${usedPill.name})` : ''}`,
         data: {
           oldRealm: oldRealm.name,
           newRealm: nextRealm,
           successRate: currentSuccessRate,
-          cultivation: formatCultivationResponse(cultivation)
+          usedPill: usedPill ? { name: usedPill.name, bonus: breakthroughBonus } : null,
+          cultivation: await formatCultivationResponse(cultivation)
         }
       });
     } else {
@@ -1532,15 +1717,16 @@ router.post("/breakthrough", async (req, res, next) => {
       res.json({
         success: true,
         breakthroughSuccess: false,
-        message: `Độ kiếp thất bại! Tỷ lệ thành công lần sau: ${nextSuccessRate}%`,
+        message: `Độ kiếp thất bại! Tỷ lệ thành công lần sau: ${nextSuccessRate}%${usedPill ? ` (Đã sử dụng ${usedPill.name})` : ''}`,
         data: {
           currentRealm: currentRealm.name,
           targetRealm: nextRealm.name,
           failureCount: cultivation.breakthroughFailureCount,
           nextSuccessRate: nextSuccessRate,
+          usedPill: usedPill ? { name: usedPill.name, bonus: breakthroughBonus } : null,
           cooldownUntil: cultivation.breakthroughCooldownUntil,
           cooldownRemaining: cooldownHours * 60 * 60 * 1000,
-          cultivation: formatCultivationResponse(cultivation)
+          cultivation: await formatCultivationResponse(cultivation)
         }
       });
     }

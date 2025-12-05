@@ -38,10 +38,59 @@ const mergeEquipmentStats = (combatStats, equipStats) => {
 };
 
 /**
- * Lấy skills từ công pháp đã học
+ * Tính mana cost dựa trên rarity của công pháp và max mana của người dùng
+ * @param {string} rarity - Rarity của công pháp (common, uncommon, rare, epic, legendary)
+ * @param {number} maxMana - Lượng chân nguyên tối đa của người dùng
+ * @returns {number} Mana cost (scaled theo max mana)
  */
-const getLearnedSkills = (cultivation) => {
+const getManaCostByRarity = (rarity, maxMana = 1000) => {
+  // Base mana cost theo rarity
+  const baseManaCostMap = {
+    'common': 10,
+    'uncommon': 20,
+    'rare': 35,
+    'epic': 50,
+    'legendary': 75
+  };
+  
+  const baseCost = baseManaCostMap[rarity] || 10;
+  
+  // Scale theo max mana: người có mana lớn hơn sẽ tốn nhiều hơn
+  // Công thức: baseCost * (1 + (maxMana - 1000) / 5000)
+  // Ví dụ: maxMana = 1000 -> multiplier = 1.0
+  //        maxMana = 5000 -> multiplier = 1.8
+  //        maxMana = 10000 -> multiplier = 2.8
+  const manaMultiplier = 1 + Math.max(0, (maxMana - 1000) / 5000);
+  const scaledCost = Math.floor(baseCost * manaMultiplier);
+  
+  // Đảm bảo cost không quá 30% max mana
+  const maxCost = Math.floor(maxMana * 0.3);
+  
+  return Math.min(scaledCost, maxCost);
+};
+
+/**
+ * Lấy skills từ công pháp đã học
+ * @param {Object} cultivation - Cultivation object
+ * @param {number} maxMana - Lượng chân nguyên tối đa (optional, sẽ tính từ combatStats nếu không có)
+ */
+const getLearnedSkills = (cultivation, maxMana = null) => {
   const skills = [];
+  
+  // Tính maxMana nếu chưa có
+  let actualMaxMana = maxMana;
+  if (!actualMaxMana) {
+    // Tính từ combat stats nếu có
+    if (cultivation.calculateCombatStats) {
+      const combatStats = cultivation.calculateCombatStats();
+      actualMaxMana = combatStats.zhenYuan || 1000;
+    } else if (cultivation.combatStats?.zhenYuan) {
+      actualMaxMana = cultivation.combatStats.zhenYuan;
+    } else {
+      actualMaxMana = 1000; // Default
+    }
+  }
+  
   if (cultivation.learnedTechniques && cultivation.learnedTechniques.length > 0) {
     cultivation.learnedTechniques.forEach(learned => {
       const technique = SHOP_ITEMS.find(t => t.id === learned.techniqueId && t.type === ITEM_TYPES.TECHNIQUE);
@@ -50,9 +99,12 @@ const getLearnedSkills = (cultivation) => {
           ...technique.skill,
           techniqueId: technique.id,
           techniqueName: technique.name,
+          rarity: technique.rarity || 'common',
           level: learned.level,
           // Damage multiplier dựa trên level của công pháp
-          damageMultiplier: 1 + (learned.level - 1) * 0.15
+          damageMultiplier: 1 + (learned.level - 1) * 0.15,
+          // Mana cost dựa trên rarity và max mana (scaled)
+          manaCost: getManaCostByRarity(technique.rarity || 'common', actualMaxMana)
         });
       }
     });
@@ -79,6 +131,13 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
   const challengerMaxHp = challengerStats.qiBlood;
   const opponentMaxHp = opponentStats.qiBlood;
 
+  // Mana ban đầu = zhenYuan
+  let challengerMana = challengerStats.zhenYuan;
+  let opponentMana = opponentStats.zhenYuan;
+
+  const challengerMaxMana = challengerStats.zhenYuan;
+  const opponentMaxMana = opponentStats.zhenYuan;
+
   let turn = 0;
   let totalDamageByChallenger = 0;
   let totalDamageByOpponent = 0;
@@ -100,21 +159,38 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
     const defenderHp = currentAttacker === 'challenger' ? opponentHp : challengerHp;
     const attackerSkills = currentAttacker === 'challenger' ? challengerSkills : opponentSkills;
     const attackerCooldowns = currentAttacker === 'challenger' ? challengerSkillCooldowns : opponentSkillCooldowns;
+    const attackerMana = currentAttacker === 'challenger' ? challengerMana : opponentMana;
 
     // Reduce cooldowns TRƯỚC khi check skill (để tránh giảm cooldown vừa set)
     Object.keys(attackerCooldowns).forEach(key => {
       if (attackerCooldowns[key] > 0) attackerCooldowns[key]--;
     });
 
-    // Check if can use skill
+    // Mana regeneration mỗi turn (5% max mana)
+    const manaRegen = Math.floor((currentAttacker === 'challenger' ? challengerMaxMana : opponentMaxMana) * 0.05);
+    if (currentAttacker === 'challenger') {
+      challengerMana = Math.min(challengerMaxMana, challengerMana + manaRegen);
+    } else {
+      opponentMana = Math.min(opponentMaxMana, opponentMana + manaRegen);
+    }
+
+    // Check if can use skill (cần đủ mana và hết cooldown)
     let usedSkill = null;
     let skillDamageBonus = 0;
+    let manaConsumed = 0;
     for (const skill of attackerSkills) {
-      if (attackerCooldowns[skill.techniqueId] <= 0) {
+      if (attackerCooldowns[skill.techniqueId] <= 0 && attackerMana >= (skill.manaCost || 10)) {
         // Use this skill
         usedSkill = skill;
         skillDamageBonus = (skill.damage || 50) * skill.damageMultiplier;
+        manaConsumed = skill.manaCost || 10;
         attackerCooldowns[skill.techniqueId] = skill.cooldown || 3;
+        // Consume mana
+        if (currentAttacker === 'challenger') {
+          challengerMana = Math.max(0, challengerMana - manaConsumed);
+        } else {
+          opponentMana = Math.max(0, opponentMana - manaConsumed);
+        }
         break;
       }
     }
@@ -185,6 +261,7 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
       if (regenerationHealed > 0) description += ` Hồi ${regenerationHealed} máu`;
     } else if (usedSkill) {
       description = `Sử dụng [${usedSkill.name}]! ${isCritical ? 'Chí mạng! ' : ''}Gây ${damage} sát thương`;
+      if (manaConsumed > 0) description += ` (Tốn ${manaConsumed} chân nguyên)`;
       if (lifestealHealed > 0) description += `, hút ${lifestealHealed} máu`;
       if (regenerationHealed > 0) description += `, hồi ${regenerationHealed} máu`;
     } else if (isCritical) {
@@ -207,6 +284,9 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
       regenerationHealed,
       challengerHp: Math.floor(challengerHp),
       opponentHp: Math.floor(opponentHp),
+      challengerMana: Math.floor(challengerMana),
+      opponentMana: Math.floor(opponentMana),
+      manaConsumed: manaConsumed > 0 ? manaConsumed : undefined,
       description,
       skillUsed
     });
@@ -372,9 +452,9 @@ router.post("/challenge", async (req, res, next) => {
     opponentStats.realmLevel = opponentCultivation.realmLevel;
     opponentStats.realmName = opponentRealm.name;
 
-    // Lấy skills từ công pháp đã học
-    const challengerSkills = getLearnedSkills(challengerCultivation);
-    const opponentSkills = getLearnedSkills(opponentCultivation);
+    // Lấy skills từ công pháp đã học (với max mana để tính mana cost chính xác)
+    const challengerSkills = getLearnedSkills(challengerCultivation, challengerStats.zhenYuan);
+    const opponentSkills = getLearnedSkills(opponentCultivation, opponentStats.zhenYuan);
 
     // Thực hiện trận đấu
     const battleResult = simulateBattle(challengerStats, opponentStats, challengerSkills, opponentSkills);

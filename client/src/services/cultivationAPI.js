@@ -211,7 +211,8 @@ export const CULTIVATION_REALMS = [
   { level: 7, name: "Luyện Hư", minExp: 100000, maxExp: 249999, color: "#14B8A6", icon: "" },
   { level: 8, name: "Đại Thừa", minExp: 250000, maxExp: 499999, color: "#F97316", icon: "" },
   { level: 9, name: "Độ Kiếp", minExp: 500000, maxExp: 999999, color: "#EF4444", icon: "" },
-  { level: 10, name: "Tiên Nhân", minExp: 1000000, maxExp: Infinity, color: "#FFD700", icon: "" }
+  { level: 10, name: "Tiên Nhân", minExp: 1000000, maxExp: 4999999, color: "#FFD700", icon: "" },
+  { level: 11, name: "Thiên Đế", minExp: 5000000, maxExp: Infinity, color: "#FF00FF", icon: "" }
 ];
 
 /**

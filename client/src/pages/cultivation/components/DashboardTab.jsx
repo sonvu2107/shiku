@@ -24,17 +24,63 @@ const DashboardTab = memo(function DashboardTab({
   setLogExpanded,
   logEndRef
 }) {
-  // Tính tỷ lệ thành công cho độ kiếp
-  const baseSuccessRate = 30;
-  const bonusPerFailure = 10;
+  // Tính tỷ lệ thành công cho độ kiếp dựa trên cảnh giới
+  const baseSuccessRatesByRealm = {
+    1: 90,  // Phàm Nhân -> Luyện Khí: 90%
+    2: 80,  // Luyện Khí -> Trúc Cơ: 80%
+    3: 70,  // Trúc Cơ -> Kim Đan: 70%
+    4: 60,  // Kim Đan -> Nguyên Anh: 60%
+    5: 50,  // Nguyên Anh -> Hóa Thần: 50%
+    6: 40,  // Hóa Thần -> Luyện Hư: 40%
+    7: 30,  // Luyện Hư -> Đại Thừa: 30%
+    8: 20,  // Đại Thừa -> Độ Kiếp: 20%
+    9: 15,  // Độ Kiếp -> Tiên Nhân: 15%
+    10: 10, // Tiên Nhân -> Thiên Đế: 10%
+    11: 5   // Thiên Đế (max level)
+  };
+  
+  const bonusPerFailureByRealm = {
+    1: 15, 2: 15, 3: 12, 4: 10, 5: 8, 6: 7, 7: 6, 8: 5, 9: 5, 10: 5, 11: 5
+  };
+  
+  const realmLevel = cultivation?.realm?.level || 1;
+  const baseSuccessRate = baseSuccessRatesByRealm[realmLevel] || 30;
+  const bonusPerFailure = bonusPerFailureByRealm[realmLevel] || 10;
   const failureCount = cultivation.breakthroughFailureCount || 0;
-  const currentSuccessRate = Math.min(100,
-    (cultivation.breakthroughSuccessRate || baseSuccessRate) +
-    failureCount * bonusPerFailure
-  );
-
+  
   // Kiểm tra cooldown
   const now = new Date();
+  
+  // Kiểm tra đan dược tăng tỷ lệ độ kiếp trong inventory
+  const breakthroughPills = (cultivation?.inventory || []).filter(item => 
+    item.type === 'breakthrough_boost' && 
+    !item.used && 
+    (!item.expiresAt || new Date(item.expiresAt) > now)
+  );
+  
+  // Tìm đan dược có bonus cao nhất
+  let breakthroughBonus = 0;
+  let bestPill = null;
+  if (breakthroughPills.length > 0) {
+    // Lấy bonus từ metadata.breakthroughBonus (được lưu khi mua item)
+    breakthroughPills.forEach(pill => {
+      const bonus = pill.metadata?.breakthroughBonus || 
+                    (pill.itemId?.includes('perfect') ? 50 :
+                     pill.itemId?.includes('large') ? 30 :
+                     pill.itemId?.includes('medium') ? 20 :
+                     pill.itemId?.includes('small') ? 10 : 0);
+      
+      if (bonus > breakthroughBonus) {
+        breakthroughBonus = bonus;
+        bestPill = pill;
+      }
+    });
+  }
+  
+  // Tính tỷ lệ thành công: base rate + bonus từ số lần thất bại + bonus từ đan dược
+  const currentSuccessRate = Math.min(100,
+    baseSuccessRate + failureCount * bonusPerFailure + breakthroughBonus
+  );
   const cooldownUntil = cultivation.breakthroughCooldownUntil ? new Date(cultivation.breakthroughCooldownUntil) : null;
   const isOnCooldown = cooldownUntil && cooldownUntil > now;
   const cooldownRemaining = isOnCooldown ? Math.ceil((cooldownUntil - now) / (1000 * 60)) : 0;
@@ -165,7 +211,7 @@ const DashboardTab = memo(function DashboardTab({
             </h4>
           </button>
           <div
-            className={`bg-black/50 rounded-xl border-2 border-cyan-500/10 p-3 overflow-y-auto custom-scrollbar font-mono text-[11px] leading-5 transition-all duration-300 relative ${logExpanded ? 'h-40' : 'h-16'}`}
+            className={`bg-black/50 rounded-xl border-2 border-cyan-500/10 p-3 overflow-y-auto custom-scrollbar font-cultivation text-[11px] leading-5 transition-all duration-300 relative ${logExpanded ? 'h-40' : 'h-16'}`}
             style={{
               backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.05) 0%, transparent 50%)'
             }}
@@ -253,6 +299,11 @@ const DashboardTab = memo(function DashboardTab({
                 {!isOnCooldown && (
                   <span className="text-xs font-normal opacity-80">
                     Tỷ lệ: {currentSuccessRate}%
+                    {breakthroughBonus > 0 && (
+                      <span className="text-emerald-400 ml-1">
+                        (+{breakthroughBonus}% từ {bestPill?.name || 'Đan Dược'})
+                      </span>
+                    )}
                   </span>
                 )}
                 {isOnCooldown && (
@@ -264,6 +315,11 @@ const DashboardTab = memo(function DashboardTab({
               {failureCount > 0 && !isOnCooldown && (
                 <p className="text-xs text-center text-amber-400/70">
                   Đã thất bại {failureCount} lần (+{failureCount * bonusPerFailure}% tỷ lệ)
+                </p>
+              )}
+              {breakthroughBonus > 0 && !isOnCooldown && (
+                <p className="text-xs text-center text-emerald-400/70">
+                  Có {breakthroughPills.length} đan dược độ kiếp trong túi đồ
                 </p>
               )}
             </div>

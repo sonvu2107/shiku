@@ -92,10 +92,19 @@ export const CULTIVATION_REALMS = [
     level: 10,
     name: "Tiên Nhân",
     minExp: 1000000,
-    maxExp: Infinity,
+    maxExp: 4999999,
     description: "Đạt đến cảnh giới bất tử, siêu thoát luân hồi",
     color: "#FFD700", // gold
     icon: "🏆"
+  },
+  {
+    level: 11,
+    name: "Thiên Đế",
+    minExp: 5000000,
+    maxExp: Infinity,
+    description: "Cảnh giới tối cao, thống trị thiên địa, vạn vật quy phục",
+    color: "#FF00FF", // magenta
+    icon: "👑"
   }
 ];
 
@@ -130,6 +139,7 @@ export const ITEM_TYPES = {
   AVATAR_FRAME: "avatar_frame", // Khung avatar
   PROFILE_EFFECT: "profile_effect", // Hiệu ứng profile
   EXP_BOOST: "exp_boost",   // Tăng exp
+  BREAKTHROUGH_BOOST: "breakthrough_boost", // Tăng tỷ lệ độ kiếp
   CONSUMABLE: "consumable", // Vật phẩm tiêu hao
   PET: "pet",               // Linh thú
   MOUNT: "mount",           // Linh thú cưỡi
@@ -184,10 +194,16 @@ export const SHOP_ITEMS = [
   { id: "effect_galaxy", name: "Tinh Hà Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 1200, description: "Hiệu ứng ngân hà huyền bí", icon: "🌌", rarity: "legendary" },
 
   // ==================== ĐAN DƯỢC (EXP_BOOST) ====================
-  { id: "exp_boost_2x", name: "Tu Luyện Đan (2x)", type: ITEM_TYPES.EXP_BOOST, price: 200, description: "Tăng gấp đôi exp trong 24h", duration: 24, multiplier: 2, icon: "💊", rarity: "uncommon" },
-  { id: "exp_boost_3x", name: "Thiên Tài Đan (3x)", type: ITEM_TYPES.EXP_BOOST, price: 500, description: "Tăng gấp 3 exp trong 24h", duration: 24, multiplier: 3, icon: "💎", rarity: "rare" },
-  { id: "exp_boost_5x", name: "Thần Đan (5x)", type: ITEM_TYPES.EXP_BOOST, price: 1000, description: "Tăng gấp 5 exp trong 12h", duration: 12, multiplier: 5, icon: "🌟", rarity: "epic" },
-  { id: "exp_boost_mini", name: "Tiểu Hoàn Đan", type: ITEM_TYPES.EXP_BOOST, price: 50, description: "Tăng 50% exp trong 6h", duration: 6, multiplier: 1.5, icon: "🔮", rarity: "common" },
+  { id: "exp_boost_2x", name: "Tu Luyện Đan (2x)", type: ITEM_TYPES.EXP_BOOST, price: 200, description: "Tăng gấp đôi exp trong 24h", duration: 24, multiplier: 2, icon: "💊", img: "/assets/danduoc.jpg", rarity: "uncommon" },
+  { id: "exp_boost_3x", name: "Thiên Tài Đan (3x)", type: ITEM_TYPES.EXP_BOOST, price: 500, description: "Tăng gấp 3 exp trong 24h", duration: 24, multiplier: 3, icon: "💎", img: "/assets/danduoc.jpg", rarity: "rare" },
+  { id: "exp_boost_5x", name: "Thần Đan (5x)", type: ITEM_TYPES.EXP_BOOST, price: 1000, description: "Tăng gấp 5 exp trong 12h", duration: 12, multiplier: 5, icon: "🌟", img: "/assets/danduoc.jpg", rarity: "epic" },
+  { id: "exp_boost_mini", name: "Tiểu Hoàn Đan", type: ITEM_TYPES.EXP_BOOST, price: 50, description: "Tăng 50% exp trong 6h", duration: 6, multiplier: 1.5, icon: "🔮", img: "/assets/danduoc.jpg", rarity: "common" },
+
+  // ==================== ĐAN DƯỢC ĐỘ KIẾP (BREAKTHROUGH_BOOST) ====================
+  { id: "breakthrough_pill_small", name: "Tiểu Độ Kiếp Đan", type: ITEM_TYPES.BREAKTHROUGH_BOOST, price: 300, description: "Tăng 10% tỷ lệ độ kiếp (1 lần sử dụng)", breakthroughBonus: 10, icon: "💊", img: "/assets/danduoc.jpg", rarity: "uncommon" },
+  { id: "breakthrough_pill_medium", name: "Trung Độ Kiếp Đan", type: ITEM_TYPES.BREAKTHROUGH_BOOST, price: 600, description: "Tăng 20% tỷ lệ độ kiếp (1 lần sử dụng)", breakthroughBonus: 20, icon: "💎", img: "/assets/danduoc.jpg", rarity: "rare" },
+  { id: "breakthrough_pill_large", name: "Đại Độ Kiếp Đan", type: ITEM_TYPES.BREAKTHROUGH_BOOST, price: 1200, description: "Tăng 30% tỷ lệ độ kiếp (1 lần sử dụng)", breakthroughBonus: 30, icon: "🌟", img: "/assets/danduoc.jpg", rarity: "epic" },
+  { id: "breakthrough_pill_perfect", name: "Hoàn Mỹ Độ Kiếp Đan", type: ITEM_TYPES.BREAKTHROUGH_BOOST, price: 2500, description: "Tăng 50% tỷ lệ độ kiếp (1 lần sử dụng)", breakthroughBonus: 50, icon: "✨", img: "/assets/danduoc.jpg", rarity: "legendary" },
 
   // ==================== VẬT PHẨM TIÊU HAO (CONSUMABLE) ====================
   { id: "spirit_stone_pack_small", name: "Tiểu Linh Thạch Túi", type: ITEM_TYPES.CONSUMABLE, price: 0, description: "Nhận 50 linh thạch (chỉ mua bằng điểm)", spiritStoneReward: 50, icon: "💰", rarity: "common" },
@@ -360,7 +376,7 @@ const CultivationSchema = new mongoose.Schema({
 
   // ==================== TU VI & CẢNH GIỚI ====================
   exp: { type: Number, default: 0, min: 0 }, // Tổng tu vi (experience)
-  realmLevel: { type: Number, default: 1, min: 1, max: 10 }, // Cảnh giới hiện tại (1-10)
+  realmLevel: { type: Number, default: 1, min: 1, max: 11 }, // Cảnh giới hiện tại (1-11)
   realmName: { type: String, default: "Phàm Nhân" }, // Tên cảnh giới
   subLevel: { type: Number, default: 1, min: 1, max: 10 }, // Tiểu cấp trong cảnh giới (sơ/trung/hậu kỳ)
 
@@ -484,7 +500,7 @@ CultivationSchema.methods.calculateCombatStats = function () {
   // Tính progress trong cảnh giới (0-1)
   const expProgress = realm.maxExp !== Infinity
     ? Math.min(1, Math.max(0, (currentExp - realm.minExp) / (realm.maxExp - realm.minExp)))
-    : Math.min(1, (currentExp - realm.minExp) / 100000); // Fallback cho Tiên Nhân
+    : Math.min(1, (currentExp - realm.minExp) / 1000000); // Fallback cho cảnh giới Infinity (Thiên Đế)
 
   // Base stats theo cảnh giới
   const baseStatsByRealm = {
@@ -497,7 +513,8 @@ CultivationSchema.methods.calculateCombatStats = function () {
     7: { attack: 800, defense: 400, qiBlood: 8000, zhenYuan: 4000, speed: 40, criticalRate: 20, criticalDamage: 210, accuracy: 96, dodge: 20, penetration: 18, resistance: 18, lifesteal: 10, regeneration: 5, luck: 20 },
     8: { attack: 1600, defense: 800, qiBlood: 16000, zhenYuan: 8000, speed: 45, criticalRate: 22, criticalDamage: 220, accuracy: 97, dodge: 22, penetration: 20, resistance: 20, lifesteal: 12, regeneration: 6, luck: 22 },
     9: { attack: 3200, defense: 1600, qiBlood: 32000, zhenYuan: 16000, speed: 50, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 7, luck: 25 },
-    10: { attack: 6400, defense: 3200, qiBlood: 64000, zhenYuan: 32000, speed: 60, criticalRate: 30, criticalDamage: 250, accuracy: 99, dodge: 30, penetration: 25, resistance: 25, lifesteal: 20, regeneration: 8, luck: 30 }
+    10: { attack: 6400, defense: 3200, qiBlood: 64000, zhenYuan: 32000, speed: 60, criticalRate: 30, criticalDamage: 250, accuracy: 99, dodge: 30, penetration: 25, resistance: 25, lifesteal: 20, regeneration: 8, luck: 30 },
+    11: { attack: 12800, defense: 6400, qiBlood: 128000, zhenYuan: 64000, speed: 70, criticalRate: 35, criticalDamage: 300, accuracy: 100, dodge: 35, penetration: 30, resistance: 30, lifesteal: 25, regeneration: 10, luck: 35 }
   };
 
   const baseStats = baseStatsByRealm[realmLevel] || baseStatsByRealm[1];
@@ -513,7 +530,8 @@ CultivationSchema.methods.calculateCombatStats = function () {
     7: { attack: 40, defense: 20, qiBlood: 400, zhenYuan: 200 },
     8: { attack: 80, defense: 40, qiBlood: 800, zhenYuan: 400 },
     9: { attack: 160, defense: 80, qiBlood: 1600, zhenYuan: 800 },
-    10: { attack: 320, defense: 160, qiBlood: 3200, zhenYuan: 1600 }
+    10: { attack: 320, defense: 160, qiBlood: 3200, zhenYuan: 1600 },
+    11: { attack: 640, defense: 320, qiBlood: 6400, zhenYuan: 3200 }
   };
 
   const bonus = expBonusMultiplier[realmLevel] || expBonusMultiplier[1];
@@ -646,7 +664,7 @@ CultivationSchema.methods.getRealmFromExp = function () {
  */
 CultivationSchema.methods.getExpToNextRealm = function () {
   const currentRealm = this.getRealmFromExp();
-  if (currentRealm.level >= 10) return 0; // Đã max
+  if (currentRealm.level >= 11) return 0; // Đã max
   return currentRealm.maxExp - this.exp + 1;
 };
 
@@ -657,7 +675,7 @@ CultivationSchema.methods.getExpToNextRealm = function () {
 CultivationSchema.methods.getRealmProgress = function () {
   // Dùng realmLevel hiện tại thay vì tính từ exp
   const currentRealm = CULTIVATION_REALMS.find(r => r.level === this.realmLevel) || CULTIVATION_REALMS[0];
-  if (currentRealm.level >= 10) return 100;
+  if (currentRealm.level >= 11) return 100;
   
   // Tính progress trong realm hiện tại
   const progressInRealm = this.exp - currentRealm.minExp;
@@ -772,7 +790,8 @@ CultivationSchema.methods.collectPassiveExp = function () {
     7: 60,   // Luyện Hư
     8: 100,  // Đại Thừa
     9: 150,  // Độ Kiếp
-    10: 250  // Tiên Nhân
+    10: 250, // Tiên Nhân
+    11: 500  // Thiên Đế
   };
 
   const baseExpPerMinute = expPerMinuteByRealm[this.realmLevel] || 2;

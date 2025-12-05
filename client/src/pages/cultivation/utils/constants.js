@@ -11,7 +11,28 @@ export const LOG_MESSAGES = [
   "Luyện hóa trọc khí...",
   "Ngộ ra một chút chân lý...",
   "Phát hiện một luồng linh khí lạ...",
-  "Nghe thấy tiếng đại đạo thì thầm..."
+  "Nghe thấy tiếng đại đạo thì thầm...",
+  "Thu thập linh khí thiên địa...",
+  "Cảm nhận được dao động của vũ trụ...",
+  "Tinh khí thần hợp nhất...",
+  "Đan điền ấm áp, tu vi dần tăng...",
+  "Hấp thu tinh hoa từ thiên địa...",
+  "Linh khí xoay quanh thân thể...",
+  "Cảm ngộ được một phần đại đạo...",
+  "Chân nguyên trong cơ thể dần dày đặc...",
+  "Thiên địa linh khí quy về một mạch...",
+  "Tâm thần tĩnh lặng, tu vi tự nhiên tăng...",
+  "Phát hiện một điểm sáng trong đan điền...",
+  "Linh khí như sương mù bao phủ...",
+  "Cảm nhận được nhịp đập của thiên địa...",
+  "Tinh khí hội tụ, tu vi thăng hoa...",
+  "Đạo tâm kiên định, bất động như sơn...",
+  "Linh khí tuần hoàn trong kinh mạch...",
+  "Cảm ngộ được bí mật của vạn vật...",
+  "Thiên địa linh khí như dòng sông chảy...",
+  "Tâm cảnh thanh tịnh, tu vi tự nhiên tăng...",
+  "Hấp thu tinh hoa từ vạn vật...",
+  "Linh khí như ánh sáng xuyên qua thân thể..."
 ];
 
 export const RARITY_COLORS = {

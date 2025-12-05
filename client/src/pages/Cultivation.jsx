@@ -162,12 +162,54 @@ const CultivationContent = memo(function CultivationContent() {
     if (clickCooldown || checkingIn || isBreakingThrough) return;
 
     setClickCooldown(true);
-    const expGain = Math.floor(Math.random() * 5) + 1;
+    
+    // Tính toán exp và linh thạch dựa trên cảnh giới
+    const realmLevel = cultivation?.realm?.level || 1;
+    
+    // Backend cho phép: level 1 = 10, level 2 = 20, level 3 = 50, level 4 = 100, level 5+ = 200
+    const maxExpAllowed = Math.min(200, Math.max(10, realmLevel * 20));
+    
+    // Tính toán exp dựa trên exp yêu cầu cho mỗi cảnh giới
+    // Mục tiêu: khoảng 50-200 lần bấm để lên cảnh giới tiếp theo
+    // Level 1: cần 100 exp -> 1-3 exp/lần (33-100 lần)
+    // Level 2: cần 900 exp -> 3-10 exp/lần (90-300 lần)
+    // Level 3: cần 4000 exp -> 10-30 exp/lần (133-400 lần)
+    // Level 4: cần 10000 exp -> 20-60 exp/lần (167-500 lần)
+    // Level 5: cần 25000 exp -> 50-150 exp/lần (167-500 lần)
+    // Level 6+: cần rất nhiều -> 100-200 exp/lần
+    const expRanges = {
+      1: { min: 1, max: 3 },      // Phàm Nhân: 1-3 exp
+      2: { min: 3, max: 10 },     // Luyện Khí: 3-10 exp
+      3: { min: 10, max: 30 },    // Trúc Cơ: 10-30 exp
+      4: { min: 20, max: 60 },    // Kim Đan: 20-60 exp
+      5: { min: 50, max: 150 },   // Nguyên Anh: 50-150 exp
+      6: { min: 100, max: 200 },  // Hóa Thần: 100-200 exp
+      7: { min: 100, max: 200 },  // Luyện Hư: 100-200 exp
+      8: { min: 100, max: 200 },  // Đại Thừa: 100-200 exp
+      9: { min: 100, max: 200 },  // Độ Kiếp: 100-200 exp
+      10: { min: 100, max: 200 }, // Tiên Nhân: 100-200 exp
+      11: { min: 100, max: 200 }  // Thiên Đế: 100-200 exp
+    };
+    
+    const range = expRanges[realmLevel] || expRanges[1];
+    const baseExpMin = range.min;
+    const baseExpMax = Math.min(maxExpAllowed, range.max);
+    const expGain = Math.floor(Math.random() * (baseExpMax - baseExpMin + 1)) + baseExpMin;
+    
     const rect = e.currentTarget.getBoundingClientRect();
     spawnParticle(rect.left + rect.width / 2, rect.top, `+${expGain} Tu Vi`, 'cyan');
 
-    if (Math.random() < 0.1) {
-      const stoneDrop = Math.floor(Math.random() * 3) + 1;
+    // Linh thạch cũng tăng theo cảnh giới, nhưng tỷ lệ rơi cao hơn ở cảnh giới cao
+    // Level 1: 10% cơ hội, 1-3 linh thạch
+    // Level 2: 15% cơ hội, 2-6 linh thạch
+    // Level 3: 20% cơ hội, 3-10 linh thạch
+    // Level 4: 25% cơ hội, 5-15 linh thạch
+    // Level 5+: 30% cơ hội, 10-30 linh thạch
+    const stoneDropChance = Math.min(0.3, 0.1 + (realmLevel - 1) * 0.05);
+    if (Math.random() < stoneDropChance) {
+      const baseStoneMin = Math.max(1, Math.floor(realmLevel * 0.5));
+      const baseStoneMax = Math.max(3, Math.floor(realmLevel * 3));
+      const stoneDrop = Math.floor(Math.random() * (baseStoneMax - baseStoneMin + 1)) + baseStoneMin;
       setTimeout(() => {
         spawnParticle(rect.left + rect.width / 2, rect.top - 30, `+${stoneDrop} Linh Thạch`, 'gold');
       }, 200);
@@ -176,9 +218,9 @@ const CultivationContent = memo(function CultivationContent() {
 
     try {
       await addExp(expGain, 'yinyang_click');
-      if (Math.random() < 0.2) {
-        addLog(LOG_MESSAGES[Math.floor(Math.random() * LOG_MESSAGES.length)]);
-      }
+      // Luôn hiển thị một log message tu tiên mỗi lần click
+      const randomMessage = LOG_MESSAGES[Math.floor(Math.random() * LOG_MESSAGES.length)];
+      addLog(randomMessage, 'normal');
     } catch (err) {
       if (err.message?.includes('cạn kiệt')) {
         addLog(`Chân nguyên đã cạn kiệt, hãy chờ một lát...`, 'danger');

@@ -79,7 +79,8 @@ const ShopTab = memo(function ShopTab() {
     ],
     consumable_group: [
         { id: 'all', label: 'Tất cả' },
-        { id: 'exp_boost', label: 'Đan Dược' },
+        { id: 'exp_boost', label: 'Đan Dược Tu Luyện' },
+        { id: 'breakthrough_boost', label: 'Đan Dược Độ Kiếp' },
         { id: 'consumable', label: 'Tiêu Hao' }
     ],
     companion: [
@@ -100,7 +101,7 @@ const ShopTab = memo(function ShopTab() {
       return ['avatar_frame', 'profile_effect'].includes(item.type);
     }
     if (category === 'consumable_group') {
-      return ['exp_boost', 'consumable'].includes(item.type);
+      return ['exp_boost', 'breakthrough_boost', 'consumable'].includes(item.type);
     }
     if (category === 'companion') {
       return ['pet', 'mount'].includes(item.type);

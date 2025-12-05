@@ -355,19 +355,59 @@ const InventoryTab = memo(function InventoryTab() {
                     </div>
                     <p className="text-xs text-slate-400 leading-tight">{item.description || item.metadata?.description || ''}</p>
                     {/* Hiển thị stats cho equipment */}
-                    {item.type?.startsWith('equipment_') && item.metadata?.stats && (
-                      <div className="text-[10px] text-slate-400 mt-1 space-y-0.5">
-                        {item.metadata.stats.attack > 0 && (
-                          <p>Tấn Công: <span className="text-red-400">+{item.metadata.stats.attack}</span></p>
-                        )}
-                        {item.metadata.stats.defense > 0 && (
-                          <p>Phòng Thủ: <span className="text-blue-400">+{item.metadata.stats.defense}</span></p>
-                        )}
-                        {item.metadata.stats.hp > 0 && (
-                          <p>Khí Huyết: <span className="text-green-400">+{item.metadata.stats.hp}</span></p>
-                        )}
-                      </div>
-                    )}
+                    {item.type?.startsWith('equipment_') && (item.metadata?.stats || item.stats) && (() => {
+                      const stats = item.metadata?.stats || item.stats || {};
+                      const statLabels = {
+                        attack: { label: 'Tấn Công', color: 'text-red-400' },
+                        defense: { label: 'Phòng Thủ', color: 'text-blue-400' },
+                        hp: { label: 'Khí Huyết', color: 'text-green-400' },
+                        qiBlood: { label: 'Khí Huyết', color: 'text-pink-400' },
+                        zhenYuan: { label: 'Chân Nguyên', color: 'text-purple-400' },
+                        speed: { label: 'Tốc Độ', color: 'text-cyan-400' },
+                        crit_rate: { label: 'Chí Mạng', color: 'text-yellow-400' },
+                        criticalRate: { label: 'Chí Mạng', color: 'text-yellow-400' },
+                        crit_damage: { label: 'Sát Thương Chí Mạng', color: 'text-yellow-300' },
+                        dodge: { label: 'Né Tránh', color: 'text-green-400' },
+                        evasion: { label: 'Né Tránh', color: 'text-green-400' },
+                        penetration: { label: 'Xuyên Thấu', color: 'text-orange-400' },
+                        hit_rate: { label: 'Chính Xác', color: 'text-blue-300' },
+                        resistance: { label: 'Kháng Cự', color: 'text-teal-400' },
+                        luck: { label: 'Vận Khí', color: 'text-indigo-400' }
+                      };
+                      
+                      const statsToShow = Object.entries(stats)
+                        .filter(([key, value]) => {
+                          // Bỏ qua elemental_damage (là object/Map)
+                          if (key === 'elemental_damage') return false;
+                          // Chỉ hiển thị stats có giá trị > 0 và là number (không phải object/array)
+                          return value != null && 
+                                 value !== 0 && 
+                                 typeof value === 'number' && 
+                                 !isNaN(value) &&
+                                 isFinite(value);
+                        })
+                        .slice(0, 5); // Hiển thị tối đa 5 stats đầu tiên
+                      
+                      if (statsToShow.length === 0) return null;
+                      
+                      return (
+                        <div className="text-[10px] text-slate-400 mt-1 space-y-0.5">
+                          {statsToShow.map(([stat, value]) => {
+                            const statInfo = statLabels[stat] || { label: stat, color: 'text-slate-400' };
+                            // Đảm bảo value là number trước khi format
+                            const numValue = typeof value === 'number' ? value : (typeof value === 'string' ? parseFloat(value) : 0);
+                            const displayValue = numValue > 0 ? `+${numValue.toLocaleString()}` : numValue.toLocaleString();
+                            const suffix = (stat === 'crit_rate' || stat === 'criticalRate' || stat === 'crit_damage' || stat === 'dodge' || stat === 'evasion' || stat === 'hit_rate') ? '%' : '';
+                            
+                            return (
+                              <p key={stat}>
+                                {statInfo.label}: <span className={statInfo.color}>{displayValue}{suffix}</span>
+                              </p>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                     <p className={`text-[10px] mt-1 ${typeInfo.color}`}>{typeInfo.label}</p>
                   </div>
                 </div>
