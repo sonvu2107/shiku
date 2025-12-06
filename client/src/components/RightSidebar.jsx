@@ -18,34 +18,35 @@ function RightSidebar({ user }) {
   const [sendingRequests, setSendingRequests] = useState(new Set()); // Track which requests are being sent
   const [sentRequests, setSentRequests] = useState(new Set()); // Track which requests were sent successfully
   const navigate = useNavigate();
-  
+
   // OPTIMIZATION: Sử dụng React Query hook với caching tự động
   const { data: trendingTags, isLoading: tagsLoading } = useTrendingTags(3);
-  
+
   // Fallback nếu chưa có data
   const displayTags = trendingTags || [];
 
-  // Animation variants
+  // Animation variants - OPTIMIZED: reduced stagger delay
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
+        staggerChildren: 0.03  // Giảm từ 0.1 xuống 0.03 để animation nhanh hơn
       }
     }
   };
 
   const itemVariants = {
     hidden: { opacity: 0, x: 20 },
-    visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+    visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 400, damping: 28 } }  // Tăng stiffness để animation nhanh hơn
   };
+
 
   // Memoized loadData function - chỉ load friend suggestions
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Load friend suggestions
       try {
         const suggestionsResponse = await api('/api/friends/suggestions?limit=5');
@@ -146,7 +147,7 @@ function RightSidebar({ user }) {
   return (
     <div className="space-y-6 max-h-[calc(100vh-5rem)] overflow-y-auto scrollbar-hide pb-20">
       {/* Friend Suggestions */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -168,65 +169,64 @@ function RightSidebar({ user }) {
               Không có gợi ý bạn bè
             </p>
           ) : (
-            <motion.div 
+            <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
               className="space-y-4"
             >
               {friendSuggestions.slice(0, 4).map((friend) => {
-              const isSending = sendingRequests.has(friend._id);
-              const isSent = sentRequests.has(friend._id);
+                const isSending = sendingRequests.has(friend._id);
+                const isSent = sentRequests.has(friend._id);
 
-              return (
-                <motion.div 
-                  key={friend._id} 
-                  variants={itemVariants}
-                  className="flex items-center gap-3 group"
-                >
-                  <Link to={`/user/${friend._id}`} className="flex-shrink-0 relative">
-                    <UserAvatar 
-                      user={friend}
-                      size={40}
-                      showFrame={false}
-                      showBadge={false}
-                    />
-                  </Link>
-                  <div className="flex-1 min-w-0">
-                    <Link
-                      to={`/user/${friend._id}`}
-                      className="block text-sm font-bold text-neutral-900 dark:text-white hover:underline truncate"
-                    >
-                      <UserName user={friend} />
-                    </Link>
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                      @{friend.name.toLowerCase().replace(/\s+/g, '')}
-                    </p>
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleAddFriend(friend._id)}
-                    disabled={isSending || isSent}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 shadow-sm ${
-                      isSent
-                        ? 'bg-green-500 dark:bg-green-600 text-white cursor-default'
-                        : isSending
-                        ? 'bg-neutral-400 dark:bg-neutral-600 text-white cursor-wait'
-                        : 'bg-black dark:bg-neutral-800 text-white dark:text-white hover:bg-neutral-800 dark:hover:bg-neutral-700'
-                    }`}
-                    title={isSent ? 'Đã gửi lời mời' : isSending ? 'Đang gửi...' : 'Gửi lời mời kết bạn'}
+                return (
+                  <motion.div
+                    key={friend._id}
+                    variants={itemVariants}
+                    className="flex items-center gap-3 group"
                   >
-                    {isSent ? (
-                      <Check size={16} strokeWidth={2.5} />
-                    ) : isSending ? (
-                      <Loader2 size={16} className="animate-spin" strokeWidth={2.5} />
-                    ) : (
-                      <Plus size={16} strokeWidth={2.5} />
-                    )}
-                  </motion.button>
-                </motion.div>
-              );
+                    <Link to={`/user/${friend._id}`} className="flex-shrink-0 relative">
+                      <UserAvatar
+                        user={friend}
+                        size={40}
+                        showFrame={false}
+                        showBadge={false}
+                      />
+                    </Link>
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        to={`/user/${friend._id}`}
+                        className="block text-sm font-bold text-neutral-900 dark:text-white hover:underline truncate"
+                      >
+                        <UserName user={friend} />
+                      </Link>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                        @{friend.name.toLowerCase().replace(/\s+/g, '')}
+                      </p>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleAddFriend(friend._id)}
+                      disabled={isSending || isSent}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 shadow-sm ${isSent
+                          ? 'bg-green-500 dark:bg-green-600 text-white cursor-default'
+                          : isSending
+                            ? 'bg-neutral-400 dark:bg-neutral-600 text-white cursor-wait'
+                            : 'bg-black dark:bg-neutral-800 text-white dark:text-white hover:bg-neutral-800 dark:hover:bg-neutral-700'
+                        }`}
+                      title={isSent ? 'Đã gửi lời mời' : isSending ? 'Đang gửi...' : 'Gửi lời mời kết bạn'}
+                    >
+                      {isSent ? (
+                        <Check size={16} strokeWidth={2.5} />
+                      ) : isSending ? (
+                        <Loader2 size={16} className="animate-spin" strokeWidth={2.5} />
+                      ) : (
+                        <Plus size={16} strokeWidth={2.5} />
+                      )}
+                    </motion.button>
+                  </motion.div>
+                );
               })}
             </motion.div>
           )}
@@ -234,7 +234,7 @@ function RightSidebar({ user }) {
       </motion.div>
 
       {/* Trending Tags */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
@@ -295,7 +295,7 @@ function RightSidebar({ user }) {
       </motion.div>
 
       {/* Footer Links */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}

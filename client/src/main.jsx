@@ -6,9 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // Lazy load ReactQueryDevtools - chỉ load trong dev mode
 let ReactQueryDevtools = null;
 if (import.meta.env.DEV) {
-  ReactQueryDevtools = React.lazy(() => 
-    import("@tanstack/react-query-devtools").then(module => ({ 
-      default: module.ReactQueryDevtools 
+  ReactQueryDevtools = React.lazy(() =>
+    import("@tanstack/react-query-devtools").then(module => ({
+      default: module.ReactQueryDevtools
     }))
   );
 }
@@ -16,6 +16,7 @@ if (import.meta.env.DEV) {
 // Import component chính và styles
 import App from "./App.jsx";
 import "./styles.css";
+import "./mobile-performance.css";
 import { bootstrapAuth } from "./bootstrapAuth.js";
 
 /**

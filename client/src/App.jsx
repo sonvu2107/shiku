@@ -106,7 +106,7 @@ export default function App() {
     // Danh sách các trang private (cần noindex)
     const privatePages = ["/login", "/register", "/forgot-password", "/reset-password", "/settings", "/notifications", "/chat", "/admin"];
     const isPrivatePage = privatePages.some(page => location.pathname.startsWith(page));
-    
+
     // Chỉ set robots nếu không phải trang private (các trang private sẽ tự set qua useSEO)
     if (!isPrivatePage) {
       let metaRobots = document.querySelector('meta[name="robots"]');
@@ -124,7 +124,7 @@ export default function App() {
   // reset-password và forgot-password luôn ẩn navbar (bất kể đã đăng nhập hay chưa)
   const alwaysHideNavbarPages = ["/forgot-password", "/reset-password", "/about", "/cultivation"];
   const conditionalHideNavbarPages = ["/login", "/register", "/", "/tour", "/terms", "/support"];
-  const shouldHideNavbar = alwaysHideNavbarPages.includes(location.pathname) || 
+  const shouldHideNavbar = alwaysHideNavbarPages.includes(location.pathname) ||
     (conditionalHideNavbarPages.includes(location.pathname) && !user);
 
   // Debug log
@@ -144,10 +144,10 @@ export default function App() {
     const checkAuth = async () => {
       try {
         console.log("[App] Starting authentication check...");
-        
+
         await ensureCSRFToken();
         console.log("[App] CSRF token ensured");
-        
+
         // Try to initialize access token from cookies (will attempt refresh if needed)
         const token = await initializeAccessToken();
         console.log("[App] Token initialization result:", token ? "SUCCESS" : "FAILED");
@@ -162,7 +162,7 @@ export default function App() {
           try {
             const res = await api("/api/auth/session");
             console.log("[App] Session check result:", res);
-            
+
             if (!cancelled && res.authenticated && res.user) {
               console.log("[App] User authenticated:", res.user.name);
               setUser(res.user);
@@ -193,7 +193,7 @@ export default function App() {
           // Đảm bảo loading hiển thị ít nhất 5 giây
           const elapsedTime = Date.now() - startTime;
           const remainingTime = Math.max(0, MIN_LOADING_TIME - elapsedTime);
-          
+
           setTimeout(() => {
             if (!cancelled) {
               setLoading(false); // Kết thúc loading sau 5 giây
@@ -202,10 +202,10 @@ export default function App() {
         }
       }
     };
-    
+
     // Debounce the auth check to prevent multiple calls
     timeoutId = setTimeout(checkAuth, 100);
-    
+
     return () => {
       cancelled = true;
       if (timeoutId) {
@@ -221,7 +221,7 @@ export default function App() {
     }
 
     const interval = setInterval(() => {
-      getValidAccessToken().catch(() => {});
+      getValidAccessToken().catch(() => { });
     }, 10 * 60 * 1000);
     return () => clearInterval(interval);
   }, [user]);
@@ -255,7 +255,7 @@ export default function App() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-    // Centralized heartbeat manager (1 request/min)
+  // Centralized heartbeat manager (1 request/min)
   useEffect(() => {
     if (!user) {
       heartbeatManager.stop();
@@ -270,7 +270,7 @@ export default function App() {
         api("/api/auth-token/heartbeat", {
           method: "POST",
           body: { isOnline: false }
-        }).catch(() => {});
+        }).catch(() => { });
       } else {
         heartbeatManager.start();
         heartbeatManager.ping();
@@ -297,7 +297,7 @@ export default function App() {
     if (process.env.NODE_ENV === 'production') {
       console.log('[App] Starting server keepalive service...');
       const cleanup = startKeepAlive(12, true); // Ping mỗi 12 phút, chỉ khi tab active
-      
+
       return cleanup;
     }
   }, []);
@@ -321,73 +321,93 @@ export default function App() {
         }
       }
     };
-    
+
     syncUserData();
   }, [user?._id]); // Chỉ depend vào user._id để tránh infinite loop
 
   // Effect để kiểm tra xem StoryViewer có đang mở không
+  // OPTIMIZED: Sử dụng debounced check và giới hạn observation scope
   useEffect(() => {
+    let debounceTimer = null;
+
     const checkStoryViewer = () => {
-      const storyViewer = document.querySelector('.story-viewer');
-      setIsStoryViewerOpen(!!storyViewer);
+      // Debounce để tránh check quá nhiều lần
+      if (debounceTimer) cancelAnimationFrame(debounceTimer);
+      debounceTimer = requestAnimationFrame(() => {
+        const storyViewer = document.querySelector('.story-viewer');
+        setIsStoryViewerOpen(!!storyViewer);
+      });
     };
 
     // Kiểm tra ngay lập tức
     checkStoryViewer();
 
-    // Sử dụng MutationObserver để theo dõi thay đổi DOM
+    // OPTIMIZED: Chỉ theo dõi childList của body, không cần subtree
+    // vì StoryViewer thường được mount trực tiếp vào body hoặc root
     const observer = new MutationObserver(checkStoryViewer);
     observer.observe(document.body, {
       childList: true,
-      subtree: true
+      subtree: false  // Giảm scope observation
     });
 
-    return () => observer.disconnect();
+    return () => {
+      if (debounceTimer) cancelAnimationFrame(debounceTimer);
+      observer.disconnect();
+    };
   }, []);
 
+
   // Effect để theo dõi video đang phát (trong PostDetail)
+  // OPTIMIZED: Sử dụng debounce và WeakMap để tránh add/remove listeners quá nhiều lần
   useEffect(() => {
+    let debounceTimer = null;
+    const videoListenerMap = new WeakMap(); // Track which videos already have listeners
+
     const handleVideoPlay = () => setIsVideoPlaying(true);
     const handleVideoPause = () => setIsVideoPlaying(false);
     const handleVideoEnded = () => setIsVideoPlaying(false);
 
-    // Lắng nghe sự kiện play/pause/ended từ tất cả video elements
-    const addVideoListeners = () => {
+    const updateVideoListeners = () => {
       const videos = document.querySelectorAll('video');
       videos.forEach(video => {
-        video.addEventListener('play', handleVideoPlay);
-        video.addEventListener('pause', handleVideoPause);
-        video.addEventListener('ended', handleVideoEnded);
+        // Chỉ add listeners nếu chưa có
+        if (!videoListenerMap.has(video)) {
+          video.addEventListener('play', handleVideoPlay);
+          video.addEventListener('pause', handleVideoPause);
+          video.addEventListener('ended', handleVideoEnded);
+          videoListenerMap.set(video, true);
+        }
       });
     };
 
-    const removeVideoListeners = () => {
-      const videos = document.querySelectorAll('video');
-      videos.forEach(video => {
+    // OPTIMIZED: Debounce để tránh update quá nhiều lần
+    const debouncedUpdate = () => {
+      if (debounceTimer) cancelAnimationFrame(debounceTimer);
+      debounceTimer = requestAnimationFrame(updateVideoListeners);
+    };
+
+    // Kiểm tra ngay lập tức
+    updateVideoListeners();
+
+    // MutationObserver để theo dõi video mới được thêm vào DOM
+    const observer = new MutationObserver(debouncedUpdate);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true // Cần subtree vì video có thể nằm sâu trong DOM
+    });
+
+    return () => {
+      if (debounceTimer) cancelAnimationFrame(debounceTimer);
+      // Cleanup all video listeners
+      document.querySelectorAll('video').forEach(video => {
         video.removeEventListener('play', handleVideoPlay);
         video.removeEventListener('pause', handleVideoPause);
         video.removeEventListener('ended', handleVideoEnded);
       });
-    };
-
-    // Kiểm tra ngay lập tức
-    addVideoListeners();
-
-    // Sử dụng MutationObserver để theo dõi video mới được thêm vào DOM
-    const observer = new MutationObserver(() => {
-      removeVideoListeners();
-      addVideoListeners();
-    });
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-
-    return () => {
-      removeVideoListeners();
       observer.disconnect();
     };
   }, []);
+
 
   // Hiển thị màn hình offline khi mất kết nối
   if (!isOnline) {
@@ -401,7 +421,7 @@ export default function App() {
         <div className="flex flex-col items-center space-y-4">
           {/* Square animation loader */}
           <Loader />
-          
+
           {/* Loading text */}
           <div className="text-center">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">
@@ -421,123 +441,123 @@ export default function App() {
       <ToastProvider>
         <ChatProvider>
           <div className="min-h-screen">
-          {/* Toast Container - moved inside ToastProvider */}
-          <ToastContainerWrapper />
-        
-        {/* Mobile CSRF Debug Component */}
-        
-        {/* Hiển thị navbar cho tất cả trang trừ login/register/landing (khi chưa đăng nhập), chat, home, cultivation và admin/equipment */}
-        {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && location.pathname !== "/home" && location.pathname !== "/feed" && location.pathname !== "/search" && location.pathname !== "/cultivation" && location.pathname !== "/admin/equipment" && (
-          <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
-        )}
+            {/* Toast Container - moved inside ToastProvider */}
+            <ToastContainerWrapper />
 
-        {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat/cultivation/admin/equipment, không có story viewer đang mở, và không có video đang phát */}
-        {user && !shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/cultivation" && location.pathname !== "/admin/equipment" && !isStoryViewerOpen && !isVideoPlaying && (
-          <FloatingDock />
-        )}
+            {/* Mobile CSRF Debug Component */}
 
-        {/* Global PostCreator - để có thể mở modal từ bất kỳ trang nào (qua FloatingDock) - ẩn trigger input card */}
-        {user && !shouldHideNavbar && location.pathname !== "/cultivation" && (
-          <PostCreator user={user} hideTrigger={true} />
-        )}
+            {/* Hiển thị navbar cho tất cả trang trừ login/register/landing (khi chưa đăng nhập), chat, home, cultivation và admin/equipment */}
+            {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && location.pathname !== "/home" && location.pathname !== "/feed" && location.pathname !== "/search" && location.pathname !== "/cultivation" && location.pathname !== "/admin/equipment" && (
+              <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
+            )}
 
-      {/* Routing logic dựa trên loại trang */}
-      {shouldHideNavbar ? (
-        // Routes cho các trang authentication và landing (không có navbar)
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/tour" element={<Tour />} />
-            <Route path="/login" element={<Login setUser={setUser} />} />
-            <Route path="/register" element={<Register setUser={setUser} />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/support" element={<Support user={user} />} />
-            <Route path="/cultivation" element={<ProtectedRoute user={user}><Cultivation /></ProtectedRoute>} />
-          </Routes>
-        </Suspense>
-      ) : location.pathname === "/chat" ? (
-        // Layout đặc biệt cho trang chat (full screen với navbar cố định)
-        <div className="h-screen flex flex-col">
-          <div className="flex-shrink-0">
-            <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
+            {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat/cultivation/admin/equipment, không có story viewer đang mở, và không có video đang phát */}
+            {user && !shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/cultivation" && location.pathname !== "/admin/equipment" && !isStoryViewerOpen && !isVideoPlaying && (
+              <FloatingDock />
+            )}
+
+            {/* Global PostCreator - để có thể mở modal từ bất kỳ trang nào (qua FloatingDock) - ẩn trigger input card */}
+            {user && !shouldHideNavbar && location.pathname !== "/cultivation" && (
+              <PostCreator user={user} hideTrigger={true} />
+            )}
+
+            {/* Routing logic dựa trên loại trang */}
+            {shouldHideNavbar ? (
+              // Routes cho các trang authentication và landing (không có navbar)
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/tour" element={<Tour />} />
+                  <Route path="/login" element={<Login setUser={setUser} />} />
+                  <Route path="/register" element={<Register setUser={setUser} />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/support" element={<Support user={user} />} />
+                  <Route path="/cultivation" element={<ProtectedRoute user={user}><Cultivation /></ProtectedRoute>} />
+                </Routes>
+              </Suspense>
+            ) : location.pathname === "/chat" ? (
+              // Layout đặc biệt cho trang chat (full screen với navbar cố định)
+              <div className="h-screen flex flex-col">
+                <div className="flex-shrink-0">
+                  <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      <Route
+                        path="/chat"
+                        element={<ProtectedRoute user={user}><Chat /></ProtectedRoute>}
+                      />
+                    </Routes>
+                  </Suspense>
+                </div>
+              </div>
+            ) : (
+              // Routes cho các trang thông thường
+              <div className="w-full">
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    {/* Trang chủ - Landing page nếu chưa đăng nhập, Home nếu đã đăng nhập */}
+                    <Route path="/" element={user ? <Home user={user} setUser={setUser} /> : <Landing />} />
+
+                    {/* Trang About - Public */}
+                    <Route path="/about" element={<About />} />
+
+                    {/* Các trang được bảo vệ (cần đăng nhập) */}
+                    <Route path="/home" element={<ProtectedRoute user={user}><Home user={user} setUser={setUser} /></ProtectedRoute>} />
+                    <Route path="/feed" element={<ProtectedRoute user={user}><Home user={user} setUser={setUser} /></ProtectedRoute>} />
+                    <Route path="/post/:slug" element={<PostDetail user={user} />} />
+                    <Route path="/new-post" element={<ProtectedRoute user={user}><NewPost user={user} /></ProtectedRoute>} />
+                    <Route path="/edit-post/:id" element={<ProtectedRoute user={user}><EditPost user={user} /></ProtectedRoute>} />
+                    <Route path="/search" element={<Search user={user} />} />
+
+                    {/* User Routes */}
+                    <Route path="/profile" element={<ProtectedRoute user={user}><Profile user={user} setUser={setUser} /></ProtectedRoute>} />
+                    <Route path="/user/:userId" element={<ProtectedRoute user={user}><UserProfile /></ProtectedRoute>} />
+                    <Route path="/friends" element={<ProtectedRoute user={user}><Friends /></ProtectedRoute>} />
+                    <Route path="/groups" element={<ProtectedRoute user={user}><Groups /></ProtectedRoute>} />
+                    <Route path="/groups/:id" element={<ProtectedRoute user={user}><GroupDetail /></ProtectedRoute>} />
+                    <Route path="/groups/create" element={<ProtectedRoute user={user}><CreateGroup /></ProtectedRoute>} />
+                    <Route path="/explore" element={<ProtectedRoute user={user}><Explore /></ProtectedRoute>} />
+                    <Route path="/events" element={<ProtectedRoute user={user}><Events /></ProtectedRoute>} />
+                    <Route path="/events/create" element={<ProtectedRoute user={user}><CreateEvent /></ProtectedRoute>} />
+                    <Route path="/events/:id" element={<ProtectedRoute user={user}><EventDetail /></ProtectedRoute>} />
+                    <Route path="/events/:id/edit" element={<ProtectedRoute user={user}><EditEvent /></ProtectedRoute>} />
+                    <Route path="/media" element={<ProtectedRoute user={user}><Media /></ProtectedRoute>} />
+                    <Route path="/saved" element={<ProtectedRoute user={user}><Saved /></ProtectedRoute>} />
+                    <Route path="/notifications" element={<ProtectedRoute user={user}><NotificationHistory /></ProtectedRoute>} />
+
+                    {/* Trang admin */}
+                    <Route path="/admin" element={<ProtectedRoute user={user}><AdminDashboard /></ProtectedRoute>} />
+                    <Route path="/admin/feedback" element={<ProtectedRoute user={user}><AdminFeedback /></ProtectedRoute>} />
+                    <Route path="/admin/equipment" element={<ProtectedRoute user={user}><EquipmentManagement /></ProtectedRoute>} />
+
+                    {/* Tu Tiên System */}
+                    <Route path="/cultivation" element={<ProtectedRoute user={user}><Cultivation /></ProtectedRoute>} />
+
+                    {/* Các trang khác */}
+                    <Route path="/settings" element={<ProtectedRoute user={user}><Settings /></ProtectedRoute>} />
+                    <Route path="/support" element={<ProtectedRoute user={user}><Support user={user} /></ProtectedRoute>} />
+
+                    {/* Auth pages - cần có ở cả 2 nhánh để đảm bảo luôn match (bất kể đã đăng nhập hay chưa) */}
+                    <Route path="/login" element={<Login setUser={setUser} />} />
+                    <Route path="/register" element={<Register setUser={setUser} />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/terms" element={<Terms />} />
+
+                    {/* Catch-all route - redirect về trang chủ */}
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                </Suspense>
+              </div>
+            )}
+
+
           </div>
-          <div className="flex-1 overflow-hidden">
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route
-                  path="/chat"
-                  element={<ProtectedRoute user={user}><Chat /></ProtectedRoute>}
-                />
-              </Routes>
-            </Suspense>
-          </div>
-        </div>
-      ) : (
-        // Routes cho các trang thông thường
-        <div className="w-full">
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              {/* Trang chủ - Landing page nếu chưa đăng nhập, Home nếu đã đăng nhập */}
-              <Route path="/" element={user ? <Home user={user} setUser={setUser} /> : <Landing />} />
-              
-              {/* Trang About - Public */}
-              <Route path="/about" element={<About />} />
-              
-              {/* Các trang được bảo vệ (cần đăng nhập) */}
-              <Route path="/home" element={<ProtectedRoute user={user}><Home user={user} setUser={setUser} /></ProtectedRoute>} />
-              <Route path="/feed" element={<ProtectedRoute user={user}><Home user={user} setUser={setUser} /></ProtectedRoute>} />
-              <Route path="/post/:slug" element={<PostDetail user={user} />} />
-              <Route path="/new-post" element={<ProtectedRoute user={user}><NewPost user={user} /></ProtectedRoute>} />
-              <Route path="/edit-post/:id" element={<ProtectedRoute user={user}><EditPost user={user} /></ProtectedRoute>} />
-              <Route path="/search" element={<Search user={user} />} />
-
-              {/* User Routes */}
-              <Route path="/profile" element={<ProtectedRoute user={user}><Profile user={user} setUser={setUser} /></ProtectedRoute>} />
-              <Route path="/user/:userId" element={<ProtectedRoute user={user}><UserProfile /></ProtectedRoute>} />
-              <Route path="/friends" element={<ProtectedRoute user={user}><Friends /></ProtectedRoute>} />
-              <Route path="/groups" element={<ProtectedRoute user={user}><Groups /></ProtectedRoute>} />
-              <Route path="/groups/:id" element={<ProtectedRoute user={user}><GroupDetail /></ProtectedRoute>} />
-              <Route path="/groups/create" element={<ProtectedRoute user={user}><CreateGroup /></ProtectedRoute>} />
-              <Route path="/explore" element={<ProtectedRoute user={user}><Explore /></ProtectedRoute>} />
-              <Route path="/events" element={<ProtectedRoute user={user}><Events /></ProtectedRoute>} />
-              <Route path="/events/create" element={<ProtectedRoute user={user}><CreateEvent /></ProtectedRoute>} />
-              <Route path="/events/:id" element={<ProtectedRoute user={user}><EventDetail /></ProtectedRoute>} />
-              <Route path="/events/:id/edit" element={<ProtectedRoute user={user}><EditEvent /></ProtectedRoute>} />
-              <Route path="/media" element={<ProtectedRoute user={user}><Media /></ProtectedRoute>} />
-              <Route path="/saved" element={<ProtectedRoute user={user}><Saved /></ProtectedRoute>} />
-              <Route path="/notifications" element={<ProtectedRoute user={user}><NotificationHistory /></ProtectedRoute>} />
-              
-              {/* Trang admin */}
-              <Route path="/admin" element={<ProtectedRoute user={user}><AdminDashboard /></ProtectedRoute>} />
-              <Route path="/admin/feedback" element={<ProtectedRoute user={user}><AdminFeedback /></ProtectedRoute>} />
-              <Route path="/admin/equipment" element={<ProtectedRoute user={user}><EquipmentManagement /></ProtectedRoute>} />
-              
-              {/* Tu Tiên System */}
-              <Route path="/cultivation" element={<ProtectedRoute user={user}><Cultivation /></ProtectedRoute>} />
-              
-              {/* Các trang khác */}
-              <Route path="/settings" element={<ProtectedRoute user={user}><Settings /></ProtectedRoute>} />
-              <Route path="/support" element={<ProtectedRoute user={user}><Support user={user} /></ProtectedRoute>} />
-              
-              {/* Auth pages - cần có ở cả 2 nhánh để đảm bảo luôn match (bất kể đã đăng nhập hay chưa) */}
-              <Route path="/login" element={<Login setUser={setUser} />} />
-              <Route path="/register" element={<Register setUser={setUser} />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/terms" element={<Terms />} />
-              
-              {/* Catch-all route - redirect về trang chủ */}
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </Suspense>
-        </div>
-      )}
-      
-      
-        </div>
         </ChatProvider>
       </ToastProvider>
     </ErrorBoundary>

@@ -10,7 +10,7 @@ export default function Search({ user }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
-  
+
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState({ users: [], posts: [] });
   const [loading, setLoading] = useState(false);
@@ -46,7 +46,7 @@ export default function Search({ user }) {
     try {
       const raw = localStorage.getItem('searchHistory');
       localItems = JSON.parse(raw || '[]');
-    } catch (_) {}
+    } catch (_) { }
     setHistory(Array.isArray(localItems) ? localItems : []);
 
     if (user) {
@@ -56,14 +56,14 @@ export default function Search({ user }) {
           // Merge logic could be improved, for now just use server or mix
           // Simple merge:
           const combined = [...res.items, ...localItems].reduce((acc, curr) => {
-             if (!acc.find(x => x.query.toLowerCase() === curr.query.toLowerCase())) {
-               acc.push(curr);
-             }
-             return acc;
+            if (!acc.find(x => x.query.toLowerCase() === curr.query.toLowerCase())) {
+              acc.push(curr);
+            }
+            return acc;
           }, []).slice(0, 20);
           setHistory(combined);
         }
-      } catch (_) {}
+      } catch (_) { }
     }
   };
 
@@ -75,12 +75,12 @@ export default function Search({ user }) {
         api(`/api/users/search?q=${encodeURIComponent(searchQuery)}`),
         api(`/api/posts?q=${encodeURIComponent(searchQuery)}`)
       ]);
-      
+
       setResults({
         users: userRes.users || [],
         posts: postRes.items || []
       });
-      
+
       addToHistory(searchQuery);
     } catch (error) {
       console.error("Search error:", error);
@@ -90,20 +90,20 @@ export default function Search({ user }) {
   };
 
   const addToHistory = (searchQuery) => {
-    const newItem = { 
-      id: Date.now().toString(), 
-      query: searchQuery, 
-      lastSearchedAt: Date.now() 
+    const newItem = {
+      id: Date.now().toString(),
+      query: searchQuery,
+      lastSearchedAt: Date.now()
     };
     const newHistory = [newItem, ...history.filter(h => h.query.toLowerCase() !== searchQuery.toLowerCase())].slice(0, 20);
     setHistory(newHistory);
     localStorage.setItem('searchHistory', JSON.stringify(newHistory));
-    
+
     if (user) {
       api('/api/search/history', {
         method: "POST",
         body: newItem
-      }).catch(() => {});
+      }).catch(() => { });
     }
   };
 
@@ -112,7 +112,7 @@ export default function Search({ user }) {
     setHistory(newHistory);
     localStorage.setItem('searchHistory', JSON.stringify(newHistory));
     if (user) {
-      api(`/api/search/history/${id}`, { method: "DELETE" }).catch(() => {});
+      api(`/api/search/history/${id}`, { method: "DELETE" }).catch(() => { });
     }
   };
 
@@ -120,7 +120,7 @@ export default function Search({ user }) {
     setHistory([]);
     localStorage.setItem('searchHistory', '[]');
     if (user) {
-      api('/api/search/history', { method: "DELETE" }).catch(() => {});
+      api('/api/search/history', { method: "DELETE" }).catch(() => { });
     }
   };
 
@@ -134,10 +134,10 @@ export default function Search({ user }) {
   const renderPostPreview = (post) => {
     let media = { url: '/assets/posts.png', type: 'image' };
     if (post.coverUrl) {
-       const found = post.files?.find(f => f.url === post.coverUrl);
-       media = { url: post.coverUrl, type: found ? found.type : 'image' };
+      const found = post.files?.find(f => f.url === post.coverUrl);
+      media = { url: post.coverUrl, type: found ? found.type : 'image' };
     } else if (post.files?.length > 0) {
-       media = post.files[0];
+      media = post.files[0];
     }
 
     if (media.type === 'video') {
@@ -151,9 +151,9 @@ export default function Search({ user }) {
       {/* Header Mobile */}
       <div className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 h-16">
-          <button 
-            type="button" 
-            onClick={() => navigate(-1)} 
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
             className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             <ArrowLeft size={24} />
@@ -170,7 +170,7 @@ export default function Search({ user }) {
             />
             <SearchIcon size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
             {query && (
-              <button 
+              <button
                 type="button"
                 onClick={() => { setQuery(''); inputRef.current?.focus(); }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500"
@@ -180,23 +180,23 @@ export default function Search({ user }) {
             )}
           </div>
         </form>
-        
+
         {/* Tabs if there are results */}
         {(results.users.length > 0 || results.posts.length > 0) && (
           <div className="flex px-4 gap-6 overflow-x-auto scrollbar-hide">
-            <button 
+            <button
               onClick={() => setActiveTab('all')}
               className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'all' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500'}`}
             >
               Tất cả
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('users')}
               className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'users' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500'}`}
             >
               Mọi người ({results.users.length})
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('posts')}
               className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'posts' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500'}`}
             >
@@ -250,9 +250,9 @@ export default function Search({ user }) {
                   <button onClick={clearHistory} className="text-blue-500 text-sm">Xóa tất cả</button>
                 </div>
                 <div className="space-y-1">
-                  {history.map(item => (
-                    <div 
-                      key={item.id} 
+                  {history.map((item, index) => (
+                    <div
+                      key={item.id || `history-${item.query}-${index}`}
                       onClick={() => {
                         setQuery(item.query);
                         setSearchParams({ q: item.query });
@@ -265,7 +265,7 @@ export default function Search({ user }) {
                         </div>
                         <span className="font-medium">{item.query}</span>
                       </div>
-                      <button 
+                      <button
                         onClick={(e) => { e.stopPropagation(); removeFromHistory(item.id); }}
                         className="p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
@@ -286,12 +286,12 @@ export default function Search({ user }) {
                     {activeTab === 'all' && <h3 className="font-semibold text-lg">Mọi người</h3>}
                     <div className="space-y-2">
                       {results.users.map((u, index) => (
-                        <Link 
+                        <Link
                           key={`${u._id}-${index}`}
                           to={`/user/${u._id}`}
                           className="flex items-center gap-3 p-3 -mx-3 rounded-xl hover:bg-white dark:hover:bg-gray-800 shadow-sm border border-transparent hover:border-gray-100 dark:hover:border-gray-700 transition-all"
                         >
-                          <UserAvatar 
+                          <UserAvatar
                             user={u}
                             size={48}
                             showFrame={true}
@@ -315,7 +315,7 @@ export default function Search({ user }) {
                     {activeTab === 'all' && <h3 className="font-semibold text-lg">Bài viết</h3>}
                     <div className="space-y-2">
                       {results.posts.map((post, index) => (
-                        <Link 
+                        <Link
                           key={`${post._id}-${index}`}
                           to={`/post/${post.slug || post._id}`}
                           className="flex gap-3 p-3 -mx-3 rounded-xl hover:bg-white dark:hover:bg-gray-800 shadow-sm border border-transparent hover:border-gray-100 dark:hover:border-gray-700 transition-all"

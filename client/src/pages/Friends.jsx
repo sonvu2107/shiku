@@ -12,11 +12,9 @@ import {
   Send, UserMinus, MessageCircle, Zap
 } from 'lucide-react';
 
-// --- UI COMPONENTS (Đồng bộ) ---
+// --- UI COMPONENTS ---
 const GridPattern = () => (
-  <div className="absolute inset-0 -z-10 h-full w-full bg-white dark:bg-black bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]">
-    <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-neutral-200 dark:bg-neutral-900 opacity-20 blur-[100px]"></div>
-  </div>
+  <div className="absolute inset-0 -z-10 h-full w-full bg-white dark:bg-black bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
 );
 
 export default function Friends() {
@@ -284,7 +282,7 @@ export default function Friends() {
     <PageLayout className="relative overflow-x-hidden bg-white dark:bg-black">
       <GridPattern />
 
-      <div className="pt-24">
+      <div>
         {/* --- HEADER --- */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>

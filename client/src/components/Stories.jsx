@@ -9,7 +9,7 @@ import StoryViewer from './StoryViewer';
  * Stories automatically delete after 24h, with view count and reactions
  */
 function Stories({ user }) {
-  const [storiesGroups, setStoriesGroups] = useState([]); 
+  const [storiesGroups, setStoriesGroups] = useState([]);
   const [myStories, setMyStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showStoryCreator, setShowStoryCreator] = useState(false);
@@ -28,13 +28,13 @@ function Stories({ user }) {
   const loadStories = async () => {
     try {
       setLoading(true);
-      
+
       // Load stories feed
       const feedResponse = await api('/api/stories/feed');
       if (feedResponse.storiesGroups) {
         setStoriesGroups(feedResponse.storiesGroups);
       }
-      
+
       // Load my stories separately for display
       const myResponse = await api('/api/stories/my/all');
       if (myResponse.stories) {
@@ -53,7 +53,7 @@ function Stories({ user }) {
   const handleStoryCreated = (newStory) => {
     // Add to my stories
     setMyStories(prev => [newStory, ...prev]);
-    
+
     // Reload to update feed
     loadStories();
   };
@@ -74,7 +74,7 @@ function Stories({ user }) {
     setTimeout(() => {
       // Remove from my stories
       setMyStories(prev => prev.filter(s => s._id !== storyId));
-      
+
       // Reload feed
       loadStories();
     }, 0);
@@ -95,7 +95,7 @@ function Stories({ user }) {
    */
   const getTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    
+
     if (seconds < 60) return 'Vừa xong';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}p trước`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h trước`;
@@ -107,8 +107,8 @@ function Stories({ user }) {
    */
   const hasViewedAll = (storyGroup) => {
     if (!storyGroup?.stories || !user?._id) return false;
-    
-    return storyGroup.stories.every(story => 
+
+    return storyGroup.stories.every(story =>
       story.views?.some(v => v.user === user._id)
     );
   };
@@ -201,21 +201,21 @@ function Stories({ user }) {
               <p className="text-gray-500 text-sm">Chưa có tin nào. Hãy tạo tin đầu tiên!</p>
             </div>
           )}
-          
+
           {storiesGroups.map((storyGroup, index) => {
             // Skip if story group is the user's own (already shown above)
             if (!storyGroup._id || !user) return null;
             if (storyGroup._id._id === user._id || storyGroup._id === user._id) {
               return null;
             }
-            
+
             const author = storyGroup._id;
             const latestStory = storyGroup.latestStory;
             const viewed = hasViewedAll(storyGroup);
-            
+
             // Skip if no author or latestStory
             if (!author || !latestStory) return null;
-            
+
             return (
               <div key={author._id || index} className="flex-shrink-0">
                 <button
@@ -244,7 +244,7 @@ function Stories({ user }) {
                       </div>
                     </>
                   )}
-                  
+
                   {/* User Avatar with Ring */}
                   <div className="absolute top-1 left-1">
                     <div className={`w-6 h-6 rounded-full ring-2 ${viewed ? 'ring-gray-400' : 'ring-blue-500'} ring-offset-1 ring-offset-transparent overflow-hidden`}>
@@ -255,7 +255,7 @@ function Stories({ user }) {
                       />
                     </div>
                   </div>
-                  
+
                   {/* Story Count Badge */}
                   {storyGroup.storyCount > 1 && (
                     <div className="absolute top-1 right-1 bg-black/60 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">

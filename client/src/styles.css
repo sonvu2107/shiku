@@ -3,7 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
-body { @apply bg-gray-50 text-gray-900; }
+body {
+  @apply bg-gray-50 text-gray-900;
+}
 
 /* Sidebar Collapse Styles */
 body[data-sidebar-collapsed="true"] {
@@ -24,25 +26,44 @@ body[data-sidebar-collapsed="false"] {
   body[data-sidebar-collapsed="true"] .main-content-with-sidebar {
     margin-left: 64px;
   }
-  
+
   body[data-sidebar-collapsed="false"] .main-content-with-sidebar {
     margin-left: 256px;
   }
-  
+
   body[data-sidebar-collapsed="true"] .nav-with-sidebar {
     left: 64px;
   }
-  
+
   body[data-sidebar-collapsed="false"] .nav-with-sidebar {
     left: 256px;
   }
 }
-.container { @apply max-w-4xl mx-auto px-4; }
-.card { @apply bg-white rounded-2xl shadow p-4; }
-.btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border bg-black text-white hover:opacity-90; }
-.btn-outline { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50; }
-input, textarea { @apply w-full rounded-xl border border-gray-300 px-3 py-2; }
-label { @apply text-sm font-medium text-gray-700; }
+
+.container {
+  @apply max-w-4xl mx-auto px-4;
+}
+
+.card {
+  @apply bg-white rounded-2xl shadow p-4;
+}
+
+.btn {
+  @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border bg-black text-white hover:opacity-90;
+}
+
+.btn-outline {
+  @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50;
+}
+
+input,
+textarea {
+  @apply w-full rounded-xl border border-gray-300 px-3 py-2;
+}
+
+label {
+  @apply text-sm font-medium text-gray-700;
+}
 
 /* Custom Scrollbar */
 .custom-scrollbar {
@@ -137,14 +158,31 @@ select.appearance-none {
 /* Mobile Optimizations */
 
 /* Dark mode globals - Đồng bộ với Landing page */
-.dark body { @apply bg-black text-white; }
-.dark .card { @apply bg-[#111] border border-gray-800; }
-.dark .btn-outline { @apply bg-transparent border-gray-600 text-gray-100 hover:bg-gray-800; }
-.dark input, .dark textarea { @apply bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400; }
-.dark label { color: #d1d5db; }
+.dark body {
+  @apply bg-black text-white;
+}
+
+.dark .card {
+  @apply bg-[#111] border border-gray-800;
+}
+
+.dark .btn-outline {
+  @apply bg-transparent border-gray-600 text-gray-100 hover:bg-gray-800;
+}
+
+.dark input,
+.dark textarea {
+  @apply bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400;
+}
+
+.dark label {
+  color: #d1d5db;
+}
 
 /* Lucide/inline icons inherit currentColor, make currentColor white-ish in dark */
-.dark svg { color: #d1d5db; }
+.dark svg {
+  color: #d1d5db;
+}
 
 /* Icon color optimization for dark mode */
 .dark svg[class*="lucide"] {
@@ -158,11 +196,25 @@ select.appearance-none {
 }
 
 /* Icon color classes for dark mode */
-.dark .icon-gray-600 { color: #9ca3af !important; }
-.dark .icon-gray-500 { color: #6b7280 !important; }
-.dark .icon-gray-400 { color: #9ca3af !important; }
-.dark .icon-white { color: #f3f4f6 !important; }
-.dark .icon-black { color: #d1d5db !important; }
+.dark .icon-gray-600 {
+  color: #9ca3af !important;
+}
+
+.dark .icon-gray-500 {
+  color: #6b7280 !important;
+}
+
+.dark .icon-gray-400 {
+  color: #9ca3af !important;
+}
+
+.dark .icon-white {
+  color: #f3f4f6 !important;
+}
+
+.dark .icon-black {
+  color: #d1d5db !important;
+}
 
 /* Ensure icons with text color classes work in dark mode */
 .dark .text-gray-600 svg,
@@ -202,53 +254,160 @@ select.appearance-none {
 }
 
 /* Dark compatibility overrides for common Tailwind classes used across app */
-.dark .bg-white { background-color: #111827 !important; }
-.dark .bg-gray-50 { background-color: #0b1220 !important; }
-.dark .bg-gray-100 { background-color: #111827 !important; }
-.dark .bg-gray-200 { background-color: #1f2937 !important; }
-.dark .bg-blue-50 { background-color: #0b1220 !important; }
-.dark .bg-green-50 { background-color: #0b1220 !important; }
-.dark .bg-purple-50 { background-color: #0b1220 !important; }
-.dark .bg-red-50 { background-color: #0b1220 !important; }
-.dark .bg-yellow-50 { background-color: #0b1220 !important; }
-.dark .bg-indigo-50 { background-color: #0b1220 !important; }
-.dark .bg-emerald-50 { background-color: #0b1220 !important; }
-.dark .bg-cyan-50 { background-color: #0b1220 !important; }
-.dark .text-black { color: #f3f4f6 !important; }
-.dark .text-gray-900 { color: #f3f4f6 !important; }
-.dark .text-gray-800 { color: #e5e7eb !important; }
-.dark .text-gray-700 { color: #d1d5db !important; }
-.dark .text-gray-600 { color: #cbd5e1 !important; }
-.dark .border-gray-100 { border-color: #374151 !important; }
-.dark .border-gray-200 { border-color: #374151 !important; }
-.dark .border-gray-300 { border-color: #4b5563 !important; }
-.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #374151 !important; }
-.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: #374151 !important; }
+.dark .bg-white {
+  background-color: #111827 !important;
+}
+
+.dark .bg-gray-50 {
+  background-color: #0b1220 !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: #111827 !important;
+}
+
+.dark .bg-gray-200 {
+  background-color: #1f2937 !important;
+}
+
+.dark .bg-blue-50 {
+  background-color: #0b1220 !important;
+}
+
+.dark .bg-green-50 {
+  background-color: #0b1220 !important;
+}
+
+.dark .bg-purple-50 {
+  background-color: #0b1220 !important;
+}
+
+.dark .bg-red-50 {
+  background-color: #0b1220 !important;
+}
+
+.dark .bg-yellow-50 {
+  background-color: #0b1220 !important;
+}
+
+.dark .bg-indigo-50 {
+  background-color: #0b1220 !important;
+}
+
+.dark .bg-emerald-50 {
+  background-color: #0b1220 !important;
+}
+
+.dark .bg-cyan-50 {
+  background-color: #0b1220 !important;
+}
+
+.dark .text-black {
+  color: #f3f4f6 !important;
+}
+
+.dark .text-gray-900 {
+  color: #f3f4f6 !important;
+}
+
+.dark .text-gray-800 {
+  color: #e5e7eb !important;
+}
+
+.dark .text-gray-700 {
+  color: #d1d5db !important;
+}
+
+.dark .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+.dark .border-gray-100 {
+  border-color: #374151 !important;
+}
+
+.dark .border-gray-200 {
+  border-color: #374151 !important;
+}
+
+.dark .border-gray-300 {
+  border-color: #4b5563 !important;
+}
+
+.dark .divide-gray-100> :not([hidden])~ :not([hidden]) {
+  border-color: #374151 !important;
+}
+
+.dark .divide-gray-200> :not([hidden])~ :not([hidden]) {
+  border-color: #374151 !important;
+}
 
 /* Hover/active helpers commonly used */
-.dark .hover\:bg-gray-50:hover { background-color: #1f2937 !important; }
-.dark .hover\:bg-gray-100:hover { background-color: #1f2937 !important; }
-.dark .hover\:bg-gray-200:hover { background-color: #374151 !important; }
-.dark .active\:bg-gray-100:active { background-color: #1f2937 !important; }
-.dark .active\:bg-gray-200:active { background-color: #374151 !important; }
+.dark .hover\:bg-gray-50:hover {
+  background-color: #1f2937 !important;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: #1f2937 !important;
+}
+
+.dark .hover\:bg-gray-200:hover {
+  background-color: #374151 !important;
+}
+
+.dark .active\:bg-gray-100:active {
+  background-color: #1f2937 !important;
+}
+
+.dark .active\:bg-gray-200:active {
+  background-color: #374151 !important;
+}
 
 /* Dropdowns/menus often use these utilities */
-.dark .shadow, .dark .shadow-lg, .dark .shadow-xl { box-shadow: 0 10px 25px rgba(0,0,0,0.6) !important; }
+.dark .shadow,
+.dark .shadow-lg,
+.dark .shadow-xl {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6) !important;
+}
 
 /* Emote sizing - ensure all GIFs are visually consistent */
-.emote { width: 2rem; height: 2rem; object-fit: contain; }
-.emote-5 { width: 1.25rem; height: 1.25rem; object-fit: contain; }
-.emote-6 { width: 1.5rem; height: 1.5rem; object-fit: contain; }
-.emote-7 { width: 1.75rem; height: 1.75rem; object-fit: contain; }
-.emote-8 { width: 2rem; height: 2rem; object-fit: contain; }
+.emote {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
+
+.emote-5 {
+  width: 1.25rem;
+  height: 1.25rem;
+  object-fit: contain;
+}
+
+.emote-6 {
+  width: 1.5rem;
+  height: 1.5rem;
+  object-fit: contain;
+}
+
+.emote-7 {
+  width: 1.75rem;
+  height: 1.75rem;
+  object-fit: contain;
+}
+
+.emote-8 {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
 
 /* Post emote picker (for posts) */
-.emote-picker { 
-  display: flex; 
-  flex-direction: row; 
-  gap: 4px; 
-  padding: 4px; 
-  border-radius: 12px; 
+.emote-picker {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
   background: white;
   border: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -259,30 +418,35 @@ select.appearance-none {
   border: 1px solid #374151;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
-.emote-btn { 
-  width: 32px; 
-  height: 32px; 
-  border-radius: 9999px; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  transition: transform 0.15s ease; 
+
+.emote-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
   position: relative;
 }
-.emote-btn:hover { 
-  transform: scale(1.08); 
+
+.emote-btn:hover {
+  transform: scale(1.08);
   background-color: #f3f4f6;
 }
 
 .dark .emote-btn:hover {
   background-color: #374151;
 }
+
 .emote-btn.active {
   background-color: #dbeafe;
 }
+
 .dark .emote-btn.active {
   background-color: #1e3a8a;
 }
+
 .emote-btn.active .emote {
   transform: scale(1.1);
 }
@@ -300,7 +464,7 @@ select.appearance-none {
   border-radius: 12px;
   background: white;
   border: 2px solid #3b82f6;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   width: max-content;
   white-space: nowrap;
   z-index: 9999;
@@ -310,7 +474,7 @@ select.appearance-none {
 .dark .comment-emote-picker {
   background: #1f2937;
   border: 2px solid #3b82f6;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .comment-emote-btn {
@@ -357,7 +521,8 @@ select.appearance-none {
 .login-background {
   background-attachment: scroll;
   min-height: 100vh;
-  min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  min-height: 100dvh;
+  /* Dynamic viewport height for mobile browsers */
 }
 
 @media (min-width: 768px) {
@@ -374,69 +539,75 @@ select.appearance-none {
 
 /* PostDetail Mobile Optimizations */
 @media (max-width: 640px) {
+
   /* PostDetail container adjustments */
   .post-detail-container {
     padding-left: 0.75rem;
     padding-right: 0.75rem;
   }
-  
+
   /* Ensure buttons have minimum touch target size */
-  button, a[role="button"] {
+  button,
+  a[role="button"] {
     min-height: 44px;
     min-width: 44px;
   }
-  
+
   /* Optimize prose content for mobile */
   .prose {
     font-size: 0.875rem;
     line-height: 1.6;
   }
-  
+
   .prose p {
     margin-bottom: 0.75rem;
   }
-  
-  .prose h1, .prose h2, .prose h3 {
+
+  .prose h1,
+  .prose h2,
+  .prose h3 {
     font-size: 1.125rem;
     margin-top: 1rem;
     margin-bottom: 0.5rem;
   }
-  
+
   /* Media grid optimization */
   .media-grid-mobile {
     gap: 0.375rem;
   }
-  
+
   /* Action bar spacing */
   .action-bar-mobile {
     gap: 0.125rem;
   }
-  
-  /* Emote picker mobile positioning */
+
+  /* Emote picker mobile positioning - nằm ngang */
   .emote-picker {
     left: 0 !important;
     right: 0 !important;
     transform: none !important;
     justify-content: center;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
     max-width: calc(100vw - 1rem);
     margin: 0 auto;
   }
-  
+
   /* Modal optimizations */
   .media-modal-mobile {
     padding: 0.5rem;
   }
-  
+
   .media-modal-mobile button {
     padding: 0.625rem;
   }
-  
+
   /* Scrollbar hide utility */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
@@ -454,42 +625,49 @@ select.appearance-none {
 
 /* Prevent zoom on input focus on iOS */
 @media screen and (max-width: 768px) {
+
   /* Ensure minimum font-size for readability on mobile */
   body {
     font-size: 15px !important;
   }
-  
+
   /* Ensure text elements have minimum readable size */
-  p, span, div, a, button, label {
+  p,
+  span,
+  div,
+  a,
+  button,
+  label {
     font-size: clamp(14px, 4vw, 16px) !important;
   }
-  
+
   /* Small text should still be readable */
   .text-xs {
     font-size: 14px !important;
   }
-  
+
   input[type="email"],
   input[type="password"],
   input[type="text"],
   textarea,
   select {
-    font-size: 16px !important; /* Prevents zoom on iOS */
+    font-size: 16px !important;
+    /* Prevents zoom on iOS */
   }
-  
+
   /* Tắt flip card animation trên mobile - dùng show/hide đơn giản */
   .register-flip-container {
     perspective: none !important;
     height: auto !important;
   }
-  
+
   .register-flip-card {
     transform: none !important;
     transform-style: flat !important;
     height: auto !important;
     position: static !important;
   }
-  
+
   /* Trên mobile: ẩn step không active, hiển thị step active */
   .register-step-1,
   .register-step-2 {
@@ -498,7 +676,7 @@ select.appearance-none {
     backface-visibility: visible !important;
     -webkit-backface-visibility: visible !important;
   }
-  
+
   .register-step-1[data-step-active="false"],
   .register-step-2[data-step-active="false"] {
     display: none !important;
@@ -506,7 +684,7 @@ select.appearance-none {
     pointer-events: none !important;
     visibility: hidden !important;
   }
-  
+
   .register-step-1[data-step-active="true"],
   .register-step-2[data-step-active="true"] {
     display: block !important;
@@ -520,11 +698,12 @@ select.appearance-none {
     visibility: visible !important;
     animation: registerFadeIn 0.3s ease-in-out;
   }
-  
+
   @keyframes shimmer {
     0% {
       transform: translateX(-100%);
     }
+
     100% {
       transform: translateX(100%);
     }
@@ -535,6 +714,7 @@ select.appearance-none {
       opacity: 0;
       transform: translateY(10px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -548,26 +728,26 @@ select.appearance-none {
     perspective: 1000px !important;
     height: auto !important;
   }
-  
+
   .register-flip-card {
     transform-style: preserve-3d !important;
     position: relative !important;
   }
-  
+
   .register-step-1,
   .register-step-2 {
     position: absolute !important;
     backface-visibility: hidden !important;
     -webkit-backface-visibility: hidden !important;
   }
-  
+
   .register-step-1[data-step-active="false"],
   .register-step-2[data-step-active="false"] {
     display: block !important;
     opacity: 1 !important;
     visibility: visible !important;
   }
-  
+
   .register-step-1[data-step-active="true"],
   .register-step-2[data-step-active="true"] {
     display: block !important;

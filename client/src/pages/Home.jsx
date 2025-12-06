@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { api } from "../api";
 import { useSavedPosts } from "../hooks/useSavedPosts";
@@ -478,37 +478,47 @@ function Home({ user, setUser }) {
     }
   }, [topSearchQuery, addToSearchHistory]);
 
-  // Debounced search function
-  const handleSearchDebounced = useCallback(
-    (() => {
-      let timeoutId;
-      return () => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(async () => {
-          const trimmedQuery = topSearchQuery.trim();
-          if (trimmedQuery && trimmedQuery.length <= 100) {
-            setSearchLoading(true);
-            try {
-              // Tìm users
-              const userRes = await api(`/api/users/search?q=${encodeURIComponent(trimmedQuery)}`);
-              setSearchResults(userRes.users || []);
+  // OPTIMIZED: Debounced search function using ref to persist timeout
+  const searchDebounceRef = useRef(null);
 
-              // Tìm bài viết
-              const postRes = await api(`/api/posts?q=${encodeURIComponent(trimmedQuery)}`);
-              setSearchPosts(postRes.items || []);
-              // Note: không lưu lịch sử khi debounced search (chỉ preview)
-            } catch (err) {
-              setSearchResults([]);
-              setSearchPosts([]);
-            } finally {
-              setSearchLoading(false);
-            }
-          }
-        }, 300);
-      };
-    })(),
-    [topSearchQuery]
-  );
+  const handleSearchDebounced = useCallback(() => {
+    // Clear previous timeout
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    searchDebounceRef.current = setTimeout(async () => {
+      const trimmedQuery = topSearchQuery.trim();
+      if (trimmedQuery && trimmedQuery.length <= 100) {
+        setSearchLoading(true);
+        try {
+          // Tìm users
+          const userRes = await api(`/api/users/search?q=${encodeURIComponent(trimmedQuery)}`);
+          setSearchResults(userRes.users || []);
+
+          // Tìm bài viết
+          const postRes = await api(`/api/posts?q=${encodeURIComponent(trimmedQuery)}`);
+          setSearchPosts(postRes.items || []);
+          // Note: không lưu lịch sử khi debounced search (chỉ preview)
+        } catch (err) {
+          setSearchResults([]);
+          setSearchPosts([]);
+        } finally {
+          setSearchLoading(false);
+        }
+      }
+    }, 300);
+  }, [topSearchQuery]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, []);
+
 
   const handleTopSearch = (e) => {
     e.preventDefault();
@@ -591,7 +601,7 @@ function Home({ user, setUser }) {
   }, []);
 
   // ==================== LOADING SKELETON ====================
-
+  // Note: Keeping as function component wrapped in useCallback since it's used as <LoadingSkeleton />
   const LoadingSkeleton = useCallback(() => (
     <div className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden transition-colors duration-300">
       <div className="p-5">
@@ -648,6 +658,8 @@ function Home({ user, setUser }) {
       </div>
     </div>
   ), []);
+
+
 
 
   // ==================== RENDER ====================

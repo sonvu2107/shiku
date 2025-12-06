@@ -2,7 +2,7 @@
  * Batch Saved Posts Hook
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../api';
 
 /**
@@ -15,13 +15,16 @@ export function useSavedPosts(posts) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const postIdsKey = Array.isArray(posts)
-    ? posts
-        .map((p) => p?._id)
-        .filter(Boolean)
-        .sort()
-        .join(',')
-    : '';
+  // OPTIMIZED: Wrap in useMemo to avoid recalculating on every render
+  const postIdsKey = useMemo(() => {
+    if (!Array.isArray(posts)) return '';
+    return posts
+      .map((p) => p?._id)
+      .filter(Boolean)
+      .sort()
+      .join(',');
+  }, [posts]);
+
 
   const fetchSavedStatus = useCallback(async () => {
     const ids = Array.from(

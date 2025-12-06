@@ -3,46 +3,47 @@
 
 /* ==================== MOBILE BREAKPOINTS ==================== */
 @media (max-width: 640px) {
+
   /* Mobile-specific container adjustments */
   .container {
     @apply px-3;
   }
-  
+
   /* Navbar mobile optimization */
   .navbar-mobile {
     @apply px-3 py-2;
   }
-  
+
   .navbar-mobile .search-container {
     @apply hidden;
   }
-  
+
   .navbar-mobile .mobile-search {
     @apply block;
   }
-  
+
   /* Chat layout mobile - Full screen switching */
   .chat-mobile {
     @apply flex-col;
   }
-  
+
   .chat-sidebar-mobile {
     @apply w-full h-full border-b-0 border-r-0;
   }
-  
+
   .chat-window-mobile {
     @apply flex-1 h-full;
   }
-  
+
   /* Post cards mobile */
   .post-card-mobile {
     @apply mx-2;
   }
-  
+
   .post-card-mobile .aspect-ratio {
     @apply aspect-[4/3];
   }
-  
+
   /* Post metadata mobile spacing */
   .post-meta-mobile {
     @apply gap-3 sm:gap-4;
@@ -51,54 +52,56 @@
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
-  
+
   .post-meta-mobile::-webkit-scrollbar {
     display: none;
   }
-  
-  .post-meta-mobile > * {
+
+  .post-meta-mobile>* {
     @apply flex-shrink-0;
     white-space: nowrap;
   }
-  
+
   /* Đảm bảo VerifiedBadge có đủ không gian */
   .post-meta-mobile .inline-flex {
     @apply flex-shrink-0;
     min-width: max-content;
   }
-  
+
   .post-meta-mobile .inline-flex img {
     @apply flex-shrink-0;
   }
-  
+
   /* Form inputs mobile */
   .input-mobile {
     @apply text-base py-3 px-4;
   }
-  
+
   /* Buttons mobile */
   .btn-mobile {
     @apply min-h-[44px] px-4 py-3 text-base;
   }
-  
+
   /* Modal mobile */
   .modal-mobile {
     @apply mx-4 max-w-none;
   }
-  
+
   /* Dropdown mobile */
   .dropdown-mobile {
     @apply w-full max-w-[calc(100vw-2rem)];
   }
-  
+
   /* Emote picker mobile */
   .emote-picker {
-    left: 0;
-    right: 0;
-    transform: none;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
     justify-content: center;
-    flex-wrap: wrap;
-    max-width: calc(100vw - 1rem);
+    flex-wrap: nowrap;
+    flex-direction: row !important;
+    width: max-content;
+    max-width: none !important;
     padding: 8px;
     gap: 4px;
   }
@@ -106,19 +109,20 @@
 
 /* ==================== TOUCH OPTIMIZATIONS ==================== */
 @media (hover: none) and (pointer: coarse) {
+
   /* Touch device optimizations */
   .touch-target {
     @apply min-h-[44px] min-w-[44px];
   }
-  
+
   .hover\:scale-105:hover {
     @apply scale-100;
   }
-  
+
   .hover\:bg-gray-50:hover {
     @apply bg-transparent;
   }
-  
+
   /* Show touch feedback */
   .touch-feedback:active {
     @apply scale-95 bg-gray-100;
@@ -130,7 +134,7 @@
   .chat-mobile-landscape {
     @apply flex-row;
   }
-  
+
   .chat-sidebar-mobile-landscape {
     @apply w-64 h-full border-r border-b-0;
   }
@@ -138,12 +142,13 @@
 
 /* ==================== ACCESSIBILITY ==================== */
 @media (prefers-reduced-motion: reduce) {
+
   .transition-all,
   .transition-colors,
   .transition-transform {
     @apply transition-none;
   }
-  
+
   .animate-spin {
     @apply animate-none;
   }
@@ -151,11 +156,15 @@
 
 /* ==================== SCROLLBAR HIDE ==================== */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* Internet Explorer 10+ */
+  scrollbar-width: none;
+  /* Firefox */
 }
-.scrollbar-hide::-webkit-scrollbar { 
-  display: none;  /* Safari and Chrome */
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  /* Safari and Chrome */
 }
 
 /* ==================== USER NAME TRUNCATION ==================== */
@@ -187,7 +196,7 @@
   .mobile-search-dropdown {
     @apply text-xs;
   }
-  
+
   .mobile-search-dropdown .touch-target {
     @apply min-h-[44px];
   }
@@ -227,35 +236,35 @@
   .comment-section-mobile {
     @apply px-2;
   }
-  
+
   .comment-actions-mobile {
     @apply flex-wrap gap-1;
   }
-  
+
   .comment-reply-mobile {
     @apply ml-2;
   }
-  
+
   /* Mobile emote display fixes */
   .emote-display {
     @apply max-w-[calc(100vw-4rem)] gap-0.5;
   }
-  
+
   .emote-item {
     @apply text-xs px-1.5 py-0.5;
     max-width: 60px;
   }
-  
+
   /* Nested comment emote fixes */
   .comment-nested .emote-display {
     @apply max-w-[calc(100vw-6rem)];
   }
-  
+
   .comment-nested .emote-item {
     @apply text-xs px-1 py-0.5;
     max-width: 50px;
   }
-  
+
 }
 
 /* ==================== ADMIN DASHBOARD MOBILE ==================== */
@@ -263,15 +272,15 @@
   .admin-table-mobile {
     @apply text-xs;
   }
-  
+
   .admin-card-mobile {
     @apply p-3;
   }
-  
+
   .admin-button-mobile {
     @apply min-h-[36px] px-3 py-2 text-xs;
   }
-  
+
   .admin-stats-mobile {
     @apply grid-cols-1 gap-3;
   }
@@ -282,11 +291,11 @@
   .dark-mode-mobile {
     @apply bg-gray-900 text-white;
   }
-  
+
   .dark-mode-mobile .card {
     @apply bg-gray-800 border-gray-700;
   }
-  
+
   .dark-mode-mobile .input-mobile {
     @apply bg-gray-700 border-gray-600 text-white;
   }

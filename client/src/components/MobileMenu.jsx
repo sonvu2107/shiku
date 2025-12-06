@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Menu, 
-  Home, 
-  Users, 
-  UserCheck, 
-  MessageCircle, 
-  Bell, 
-  Settings, 
+import {
+  Menu,
+  Home,
+  Users,
+  UserCheck,
+  MessageCircle,
+  Bell,
+  Settings,
   LogOut,
   User,
   Crown,
@@ -35,6 +35,7 @@ import UserAvatar from "./UserAvatar";
  */
 export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showCultivationConfirm, setShowCultivationConfirm] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -67,8 +68,8 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
   const handleLogout = async () => {
     try {
       await api("/api/auth/logout", { method: "POST" });
-    } catch (err) {}
-    
+    } catch (err) { }
+
     // Cleanup all services with robust error handling
     const cleanupPromises = [
       (async () => {
@@ -90,21 +91,21 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
         } catch (err) { console.warn('Keepalive cleanup failed:', err); }
       })()
     ];
-    
+
     await Promise.race([
       Promise.allSettled(cleanupPromises),
       new Promise(resolve => setTimeout(resolve, 2000))
     ]);
-    
+
     // Clear all auth data
     removeAuthToken();
     invalidateUserCache();
-    
+
     // Reset user state and redirect
     if (setUser) setUser(null);
     setIsOpen(false);
     navigate("/");
-    
+
     // Force reload to ensure clean state
     window.location.reload();
   };
@@ -135,29 +136,29 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
-          <motion.div 
+          {/* Backdrop - Tối ưu: bỏ backdrop-blur trên mobile */}
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] md:hidden"
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 bg-black/70 z-[9999] md:hidden"
             onClick={() => setIsOpen(false)}
           />
 
-          {/* Drawer */}
-          <motion.div 
+          {/* Drawer - Tối ưu: solid background thay vì backdrop-blur */}
+          <motion.div
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed top-0 left-0 h-full w-[75%] max-w-[280px] bg-white/90 dark:bg-black/90 backdrop-blur-2xl shadow-2xl z-[10000] md:hidden flex flex-col border-r border-white/20 dark:border-white/10"
+            transition={{ type: "tween", duration: 0.2 }}
+            className="fixed top-0 left-0 h-full w-[75%] max-w-[280px] bg-white dark:bg-neutral-900 shadow-xl z-[10000] md:hidden flex flex-col border-r border-neutral-200 dark:border-neutral-800"
           >
             {/* Header with User Profile */}
             <div className="pt-4 px-5 pb-3 flex-shrink-0">
               {user ? (
                 <div className="bg-neutral-100/80 dark:bg-neutral-800/50 p-2.5 rounded-2xl border border-neutral-200 dark:border-neutral-700/50 flex items-center gap-3" onClick={() => { navigate('/profile'); setIsOpen(false); }}>
-                  <UserAvatar 
+                  <UserAvatar
                     user={user}
                     size={40}
                     showFrame={true}
@@ -171,15 +172,15 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
                 </div>
               ) : (
                 <div className="bg-neutral-50 dark:bg-neutral-900 p-3 rounded-2xl border border-dashed border-neutral-300 dark:border-neutral-700 text-center">
-                   <p className="text-sm text-neutral-500 mb-3">Tham gia cộng đồng Shiku ngay!</p>
-                   <div className="grid grid-cols-2 gap-3">
-                      <Link to="/login" onClick={() => setIsOpen(false)} className="py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-bold shadow-lg shadow-black/10">
-                         Đăng nhập
-                      </Link>
-                      <Link to="/register" onClick={() => setIsOpen(false)} className="py-2 rounded-xl bg-white dark:bg-neutral-800 text-black dark:text-white border border-neutral-200 dark:border-neutral-700 text-sm font-bold">
-                         Đăng ký
-                      </Link>
-                   </div>
+                  <p className="text-sm text-neutral-500 mb-3">Tham gia cộng đồng Shiku ngay!</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Link to="/login" onClick={() => setIsOpen(false)} className="py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-bold shadow-lg shadow-black/10">
+                      Đăng nhập
+                    </Link>
+                    <Link to="/register" onClick={() => setIsOpen(false)} className="py-2 rounded-xl bg-white dark:bg-neutral-800 text-black dark:text-white border border-neutral-200 dark:border-neutral-700 text-sm font-bold">
+                      Đăng ký
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>
@@ -191,16 +192,27 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
                   if (!item.show) return null;
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
-                  
+                  const isCultivation = item.path === '/cultivation';
+
+                  // Xử lý click cho Tu Tiên - hiện popup xác nhận
+                  const handleClick = (e) => {
+                    if (isCultivation) {
+                      e.preventDefault();
+                      setShowCultivationConfirm(true);
+                    } else {
+                      setIsOpen(false);
+                    }
+                  };
+
                   return (
                     <Link
                       key={item.path}
-                      to={item.path}
-                      onClick={() => setIsOpen(false)}
+                      to={isCultivation ? "#" : item.path}
+                      onClick={handleClick}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group",
-                        isActive 
-                          ? "bg-black dark:bg-white text-white dark:text-black shadow-md shadow-black/5" 
+                        isActive
+                          ? "bg-black dark:bg-white text-white dark:text-black shadow-md shadow-black/5"
                           : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white",
                         item.isAdmin && !isActive && "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                       )}
@@ -223,7 +235,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
                 {darkMode ? <Moon size={18} /> : <Sun size={18} />}
                 <span>{darkMode ? 'Chế độ tối' : 'Chế độ sáng'}</span>
               </button>
-              
+
               {/* Logout Button */}
               {user && (
                 <button
@@ -242,6 +254,60 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
     document.body
   ) : null;
 
+  // Cultivation Confirm Modal Portal - Hiển thị toàn màn hình (Tối ưu cho mobile)
+  const cultivationModal = typeof document !== 'undefined' ? createPortal(
+    <AnimatePresence>
+      {showCultivationConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="fixed inset-0 bg-black/70 z-[99999] flex items-center justify-center p-4"
+          onClick={() => setShowCultivationConfirm(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.15 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-neutral-900 rounded-2xl p-5 w-full max-w-[280px] shadow-xl border border-neutral-200 dark:border-neutral-700"
+          >
+            <div className="text-center mb-5">
+              <h3 className="font-bold text-lg text-neutral-900 dark:text-white mb-3">Thông báo</h3>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                Tính năng <span className="font-bold">Tu Tiên</span> chưa được tối ưu hoàn toàn cho mobile.
+              </p>
+              <p className="text-sm text-neutral-500 dark:text-neutral-500 mt-2">
+                Bạn có chắc chắn muốn vào không?
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowCultivationConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-bold text-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={() => {
+                  setShowCultivationConfirm(false);
+                  setIsOpen(false);
+                  navigate('/cultivation');
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-black dark:bg-white text-white dark:text-black font-bold text-sm hover:opacity-90 transition-opacity"
+              >
+                Vào ngay
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
+  ) : null;
+
   return (
     <>
       <button
@@ -252,6 +318,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
         <Menu size={22} />
       </button>
       {menuContent}
+      {cultivationModal}
     </>
   );
 }
