@@ -4,8 +4,7 @@ import viteCompression from "vite-plugin-compression";
 
 /**
  * Vite configuration cho React client
- * - Code splitting tối ưu để giảm unused JavaScript
- * - Lazy load các vendor chunks lớn
+ * - Code splitting an toan - dam bao React load truoc
  */
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -17,7 +16,6 @@ export default defineConfig(({ command, mode }) => {
         jsxRuntime: 'automatic',
         jsxImportSource: 'react',
       }),
-      // Compression plugin cho production
       ...(isProduction ? [
         viteCompression({
           algorithm: 'gzip',
@@ -89,74 +87,55 @@ export default defineConfig(({ command, mode }) => {
           assetFileNames: 'assets/[name]-[hash].[ext]',
           format: 'es',
 
-          // Code splitting toi uu - tach vendor thanh nhieu chunks nho
+          // Code splitting AN TOAN - giu React va cac thu vien React trong main bundle
           manualChunks: (id) => {
             if (id.includes('node_modules')) {
-              // React core - giu trong main bundle
-              if (id.includes('react/jsx-runtime') ||
-                id.includes('react/jsx-dev-runtime') ||
-                id.includes('node_modules/react/') ||
-                id.includes('node_modules/react-dom/')) {
-                return undefined;
+              // React core + TAT CA thu vien dung React - GIU trong main bundle
+              // De tranh loi "Cannot access React before initialization"
+              if (id.includes('react') ||
+                id.includes('framer-motion') ||
+                id.includes('lucide-react') ||
+                id.includes('@tanstack')) {
+                return undefined; // Giu trong entry chunk
               }
 
-              // React Router - can ngay cho navigation
-              if (id.includes('react-router')) {
-                return undefined;
-              }
-
-              // TanStack Query - can cho data fetching
-              if (id.includes('@tanstack/react-query')) {
-                return undefined;
-              }
-
-              // Framer Motion - heavy, tach rieng de lazy load
-              if (id.includes('framer-motion')) {
-                return 'framer-motion';
-              }
-
-              // Markdown libs - chi can khi view/edit posts
-              if (id.includes('react-markdown') ||
-                id.includes('remark') ||
+              // Markdown libs - khong dung React truc tiep, co the tach
+              if (id.includes('remark') ||
                 id.includes('rehype') ||
                 id.includes('unified') ||
                 id.includes('micromark') ||
                 id.includes('mdast') ||
-                id.includes('hast')) {
+                id.includes('hast') ||
+                id.includes('unist')) {
                 return 'markdown-vendor';
               }
 
-              // Lucide icons - tach rieng
-              if (id.includes('lucide-react')) {
-                return 'icons';
-              }
-
-              // Date utilities
+              // Date utilities - khong dung React
               if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment')) {
                 return 'date-vendor';
               }
 
-              // Charts/visualization
-              if (id.includes('chart') || id.includes('recharts') || id.includes('d3')) {
-                return 'charts-vendor';
-              }
-
-              // Socket.io
-              if (id.includes('socket.io-client')) {
+              // Socket.io - khong dung React
+              if (id.includes('socket.io-client') || id.includes('engine.io')) {
                 return 'socket-vendor';
               }
 
-              // Con lai - tach vao vendor chung
+              // Utilities khong lien quan React
+              if (id.includes('lodash') || id.includes('axios')) {
+                return 'utils-vendor';
+              }
+
+              // Con lai - giu trong vendor chung
               return 'vendor';
             }
 
-            // Source files - tach theo feature
+            // Source files - tach theo feature (chi tach pages, KHONG tach components)
             if (id.includes('/src/contexts/') || id.includes('/src/hooks/')) {
               return undefined;
             }
 
-            if (id.includes('/src/components/Toast')) {
-              return undefined;
+            if (id.includes('/src/components/')) {
+              return undefined; // Giu components trong main bundle
             }
 
             // Admin pages - lazy load
@@ -174,30 +153,8 @@ export default defineConfig(({ command, mode }) => {
               return 'groups';
             }
 
-            // Chat components
-            if (id.includes('/src/components/chat/') || id.includes('/src/pages/Chat')) {
-              return 'chat';
-            }
-
-            // Story components
-            if (id.includes('Story')) {
-              return 'stories';
-            }
-
-            // Media components
-            if (id.includes('MediaViewer') || id.includes('ImageViewer')) {
-              return 'media';
-            }
-
-            // Heavy components - lazy load
-            if (id.includes('/src/components/')) {
-              if (id.includes('CommentSection') || id.includes('MarkdownEditor')) {
-                return 'heavy-components';
-              }
-            }
-
             // Cultivation system
-            if (id.includes('Cultivation') || id.includes('cultivation')) {
+            if (id.includes('Cultivation')) {
               return 'cultivation';
             }
           }
@@ -205,7 +162,6 @@ export default defineConfig(({ command, mode }) => {
       },
       chunkSizeWarningLimit: 1000,
 
-      // Production optimizations
       ...(isProduction ? {
         minify: 'terser',
         terserOptions: {
