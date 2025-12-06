@@ -2,7 +2,7 @@
  * useCultivation Hook - Quản lý state hệ thống tu tiên
  */
 
-import { useState, useEffect, useCallback, useContext, createContext } from 'react';
+import React, { useState, useEffect, useCallback, useContext, createContext } from 'react';
 import {
   getCultivation,
   dailyLogin,

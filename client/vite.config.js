@@ -127,7 +127,8 @@ export default defineConfig(({ command, mode }) => {
                   id.includes('react-window') ||
                   id.includes('react-virtual') ||
                   id.includes('react-markdown') ||
-                  id.includes('framer-motion')) {
+                  id.includes('framer-motion') ||
+                  id.includes('styled-components')) {
                 return undefined; // GIỮ trong entry chunk với React
               }
               
@@ -141,21 +142,16 @@ export default defineConfig(({ command, mode }) => {
             }
             
             // Source files - tách theo feature
-            // QUAN TRỌNG: Không tách contexts vào chunk riêng - phải ở cùng với main app
+            // QUAN TRỌNG: Không tách contexts và hooks vào chunk riêng - phải ở cùng với main app
             // Và đảm bảo contexts không phụ thuộc vào React từ chunk khác
-            if (id.includes('/src/contexts/')) {
-              // Kiểm tra xem context có import React không
-              const info = getModuleInfo(id);
-              if (info && info.importers) {
-                // Nếu context được import bởi entry, giữ nó trong main bundle
-                const isImportedByEntry = info.importers.some(importer => 
-                  importer.includes('main.jsx') || importer.includes('App.jsx')
-                );
-                if (isImportedByEntry) {
-                  return; // Giữ trong main bundle
-                }
-              }
-              return; // Giữ contexts trong main bundle để đảm bảo React có sẵn
+            if (id.includes('/src/contexts/') || id.includes('/src/hooks/')) {
+              // Giữ contexts và hooks trong main bundle để đảm bảo React có sẵn
+              return undefined;
+            }
+            
+            // Giữ Toast component trong main bundle vì nó dùng React
+            if (id.includes('/src/components/Toast')) {
+              return undefined;
             }
             
             if (id.includes('/src/pages/')) {
