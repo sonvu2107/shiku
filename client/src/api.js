@@ -98,10 +98,14 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
           return await api(path, { method, body, headers: { ...headers, Authorization: `Bearer ${refreshResult}` }, _isRetry: true });
         }
         
-        // Refresh failed, clear tokens and redirect
-        console.log("[api] Refresh failed, redirecting to login...");
+        // Refresh failed, clear tokens and redirect (chỉ redirect nếu không phải đang ở trang login)
+        console.log("[api] Refresh failed");
         clearTokens();
-        window.location.href = "/login";
+        // Chỉ redirect nếu không phải đang ở trang login hoặc register
+        if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+          console.log("[api] Redirecting to login...");
+          window.location.href = "/login";
+        }
         return;
       }
       
@@ -109,7 +113,11 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
       if (res.status === 401 && _isRetry) {
         console.log("[api] Retry failed with 401, session invalid");
         clearTokens();
-        window.location.href = "/login";
+        // Chỉ redirect nếu không phải đang ở trang login hoặc register
+        if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+          console.log("[api] Redirecting to login...");
+          window.location.href = "/login";
+        }
         return;
       }
       

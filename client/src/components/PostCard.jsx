@@ -711,7 +711,7 @@ function PostCard({
 
   return (
     <ComponentErrorBoundary>
-      <div className="bg-white dark:bg-[#18191A] border border-gray-200 dark:border-[#3A3B3C] rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-visible">
+      <div className="bg-white dark:bg-[#18191A] border border-gray-200 dark:border-[#3A3B3C] rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out overflow-visible group">
       {/* HEADER */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-3 min-w-0">

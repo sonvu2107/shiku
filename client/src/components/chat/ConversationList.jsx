@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { Users, User, Bot } from "lucide-react";
 
 /**
@@ -122,8 +123,10 @@ export default function ConversationList({
 
   return (
     <div className="space-y-1 p-2">
-      <div
+      <motion.div
         onClick={handleOpenChatbot}
+        whileHover={{ scale: 1.02, x: 4 }}
+        whileTap={{ scale: 0.98 }}
         className={`p-3 rounded-lg cursor-pointer transition-all flex items-center gap-3 border ${
           isChatbotActive
             ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 shadow-md'
@@ -145,22 +148,27 @@ export default function ConversationList({
             Nhấn để mở chatbot và nhận hỗ trợ tức thì
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {conversations
         .filter(conv => conv.conversationType !== 'chatbot') // Exclude chatbot conversations from the list
-        .map((conversation) => {
+        .map((conversation, index) => {
         const isSelected = selectedConversation?._id === conversation._id;
         const avatar = getConversationAvatar(conversation);
         const name = getConversationName(conversation);
         
         return (
-          <div
+          <motion.div
             key={conversation._id}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.05, duration: 0.2 }}
+            whileHover={{ scale: 1.02, x: 4 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => onSelectConversation(conversation)}
-            className={`p-3 rounded-lg cursor-pointer transition-colors ${
+            className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
               isSelected 
-                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 shadow-sm' 
                 : 'hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
@@ -230,7 +238,7 @@ export default function ConversationList({
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         );
       })}
     </div>

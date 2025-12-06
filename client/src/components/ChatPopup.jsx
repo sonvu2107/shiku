@@ -10,6 +10,7 @@ import callManager from "../utils/callManager";
 import { X, Phone, Video, ChevronDown, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Edit2, Trash2, Bot } from "lucide-react";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { useToast } from "../contexts/ToastContext";
+import { parseLinks } from "../utils/linkParser.jsx";
 
 // Custom CSS for enhanced shadows
 const customStyles = `
@@ -549,7 +550,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           </div>
                         ) : (
                           <div className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
-                            {msg.content}
+                            {parseLinks(msg.content, { linkClassName: "text-blue-200 hover:text-blue-100 underline break-all" })}
                           </div>
                         )}
 
@@ -638,7 +639,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           </div>
                         ) : (
                           <div className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
-                            {msg.content}
+                            {parseLinks(msg.content)}
                           </div>
                         )}
                         {/* Reactions row */}

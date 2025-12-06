@@ -8,6 +8,7 @@ import { CheckCircle, XCircle, AlertCircle, Info, X } from "lucide-react";
 export default function Toast({ 
   type = "info", 
   message, 
+  description,
   duration = 5000, 
   onClose 
 }) {
@@ -30,56 +31,107 @@ export default function Toast({
   };
 
   const getIcon = () => {
+    const iconSize = 24; // w-6 h-6 = 24px
     switch (type) {
       case "success":
-        return <CheckCircle size={20} className="text-green-600" />;
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+          </svg>
+        );
       case "error":
-        return <XCircle size={20} className="text-red-600" />;
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        );
       case "warning":
-        return <AlertCircle size={20} className="text-yellow-600" />;
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+        );
       default:
-        return <Info size={20} className="text-blue-600" />;
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+          </svg>
+        );
     }
   };
 
-  const getStyles = () => {
+  const getIconColor = () => {
     switch (type) {
       case "success":
-        return "bg-green-50 border-green-200 text-green-800";
+        return "text-[#2b9875]";
       case "error":
-        return "bg-red-50 border-red-200 text-red-800";
+        return "text-[#e74c3c]";
       case "warning":
-        return "bg-yellow-50 border-yellow-200 text-yellow-800";
+        return "text-[#f39c12]";
       default:
-        return "bg-blue-50 border-blue-200 text-blue-800";
+        return "text-[#3498db]";
     }
+  };
+
+  const getTitle = () => {
+    switch (type) {
+      case "success":
+        return "done successfully :)";
+      case "error":
+        return "error occurred";
+      case "warning":
+        return "warning";
+      default:
+        return "information";
+    }
+  };
+
+  // Fun messages array - random messages for fun
+  const funMessages = [
+    "Have a great day!",
+    "You're awesome!",
+    "Keep it up!",
+    "Nice work!",
+    "Stay awesome!",
+    "You got this!",
+    "Amazing!",
+    "Keep going!"
+  ];
+
+  // Get random fun message
+  const getFunMessage = () => {
+    return funMessages[Math.floor(Math.random() * funMessages.length)];
   };
 
   if (!visible) return null;
 
   return (
-    <div
-      className={`w-full max-w-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-2xl transform transition-all duration-300 ${
-        visible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
-      }`}
-    >
-      <div className={`p-4 border-l-4 ${getStyles()}`}>
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
+    <div className="flex flex-col gap-2 w-60 sm:w-72 text-[10px] sm:text-xs z-50">
+      <div className={`cursor-default flex items-center justify-between w-full h-12 sm:h-14 rounded-lg bg-[#232531] px-[10px] transform transition-all duration-300 ease-out ${
+        visible ? "translate-x-0 opacity-100 scale-100" : "translate-x-full opacity-0 scale-95"
+      }`}>
+        <div className="flex gap-2">
+          <div className={`${getIconColor()} bg-white/5 backdrop-blur-xl p-1 rounded-lg`}>
             {getIcon()}
           </div>
-          <div className="ml-3 flex-1 min-w-0">
-            <p className="text-sm font-medium break-words dark:text-neutral-200">{message}</p>
-          </div>
-          <div className="ml-4 flex-shrink-0">
-            <button
-              onClick={handleClose}
-              className="inline-flex text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none touch-manipulation min-w-[32px] min-h-[32px] items-center justify-center"
-            >
-              <X size={16} />
-            </button>
+          <div>
+            <p className="text-white font-medium">{message || getTitle()}</p>
+            {description && (
+              <p className="text-gray-500">{description}</p>
+            )}
+            {!description && (
+              <p className="text-gray-500">{getFunMessage()}</p>
+            )}
           </div>
         </div>
+        <button 
+          onClick={handleClose}
+          className="text-gray-600 hover:bg-white/5 p-1 rounded-md transition-colors ease-linear"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
     </div>
   );
@@ -98,6 +150,7 @@ export function ToastContainer({ toasts, onRemove }) {
           <Toast
             type={toast.type}
             message={toast.message}
+            description={toast.description}
             duration={toast.duration}
             onClose={() => onRemove(toast.id)}
           />

@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { User, Users, ChevronUp, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Edit2, Trash2, X } from "lucide-react";
 import { api } from "../../api";
 import ImageViewer from "../ImageViewer";
 import { useToast } from "../../contexts/ToastContext";
+import { parseLinks } from "../../utils/linkParser.jsx";
 
 /**
  * MessageList - Component for display message list in chat
@@ -35,6 +37,7 @@ export default function MessageList({
   const [editContent, setEditContent] = useState(""); // Edit content
   const [showOptionsMenu, setShowOptionsMenu] = useState(null); // ID of the message showing options menu
   const [hoveredMessageId, setHoveredMessageId] = useState(null); // ID of the message being hovered
+  const [isMobile, setIsMobile] = useState(false); // Detect mobile device
   
   // ==================== REFS ====================
   
@@ -42,6 +45,19 @@ export default function MessageList({
   const topRef = useRef(null); // Ref for top of the container
   const prevMessagesLength = useRef(messages.length); // Previous number of messages
   const prevScrollHeight = useRef(0); // Previous scroll height
+  const hoverTimeoutRef = useRef(null); // Timeout for hiding hover button
+  const dropdownRefs = useRef({}); // Refs for dropdown menus by message ID
+  const buttonRefs = useRef({}); // Refs for option buttons by message ID
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -89,12 +105,26 @@ export default function MessageList({
       if (showOptionsMenu && !e.target.closest('.message-options-menu')) {
         setShowOptionsMenu(null);
         setHoveredMessageId(null);
+        // Clear any pending timeout
+        if (hoverTimeoutRef.current) {
+          clearTimeout(hoverTimeoutRef.current);
+          hoverTimeoutRef.current = null;
+        }
       }
     };
     
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showOptionsMenu]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -221,6 +251,113 @@ export default function MessageList({
     }
   };
 
+  // Calculate dropdown position to prevent overflow
+  const calculateDropdownPosition = (buttonElement, dropdownElement) => {
+    if (!buttonElement || !dropdownElement) return {};
+    
+    const buttonRect = buttonElement.getBoundingClientRect();
+    const dropdownRect = dropdownElement.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const margin = 8; // Spacing between button and dropdown
+    const leftOffset = -128; // -left-32 = -128px (32 * 4px)
+    
+    const styles = {};
+    
+    // Horizontal positioning: default is -left-32 (to the left of button, pushed further left)
+    // Check if dropdown would overflow on the left
+    const spaceOnLeft = buttonRect.left;
+    const spaceOnRight = viewportWidth - buttonRect.right;
+    const dropdownWidth = dropdownRect.width || 140; // Fallback to min-width
+    const requiredSpace = dropdownWidth + Math.abs(leftOffset) + margin;
+    
+    if (spaceOnLeft < requiredSpace && spaceOnRight > dropdownWidth + margin) {
+      // Not enough space on left, but enough on right - open to the right
+      styles.left = 'auto';
+      styles.right = 0;
+    } else if (spaceOnLeft >= requiredSpace) {
+      // Enough space on left - use default (left side with offset)
+      styles.left = leftOffset;
+      styles.right = 'auto';
+    } else {
+      // Not enough space on either side - align to viewport edge
+      if (buttonRect.left < viewportWidth / 2) {
+        // Button is on left side, align dropdown to left edge
+        styles.left = -buttonRect.left + margin;
+        styles.right = 'auto';
+      } else {
+        // Button is on right side, align dropdown to right edge
+        styles.left = 'auto';
+        styles.right = viewportWidth - buttonRect.right + margin;
+      }
+    }
+    
+    // Vertical positioning: default is top-full mt-1 (below button)
+    // Check if dropdown would overflow on the bottom
+    const spaceBelow = viewportHeight - buttonRect.bottom;
+    const spaceAbove = buttonRect.top;
+    const dropdownHeight = dropdownRect.height || 80; // Approximate fallback
+    
+    if (spaceBelow < dropdownHeight + margin && spaceAbove > dropdownHeight + margin) {
+      // Not enough space below, but enough above - open above button
+      styles.top = 'auto';
+      styles.bottom = '100%';
+      styles.marginBottom = '4px';
+      styles.marginTop = '0';
+    } else if (spaceBelow >= dropdownHeight + margin) {
+      // Enough space below - use default (below button)
+      styles.top = '100%';
+      styles.bottom = 'auto';
+      styles.marginTop = '4px';
+      styles.marginBottom = '0';
+    } else {
+      // Not enough space on either side - align to viewport edge
+      if (buttonRect.bottom < viewportHeight / 2) {
+        // Button is in upper half, align dropdown to top edge
+        styles.top = '100%';
+        styles.bottom = 'auto';
+        styles.marginTop = '4px';
+        styles.maxHeight = `${spaceBelow - margin}px`;
+        styles.overflowY = 'auto';
+      } else {
+        // Button is in lower half, align dropdown to bottom edge
+        styles.top = 'auto';
+        styles.bottom = '100%';
+        styles.marginBottom = '4px';
+        styles.maxHeight = `${spaceAbove - margin}px`;
+        styles.overflowY = 'auto';
+      }
+    }
+    
+    return styles;
+  };
+
+  // Update dropdown position when menu opens (desktop only)
+  useEffect(() => {
+    if (showOptionsMenu && !isMobile) {
+      // Use double requestAnimationFrame to ensure DOM is fully rendered and measured
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const buttonEl = buttonRefs.current[showOptionsMenu];
+          const dropdownEl = dropdownRefs.current[showOptionsMenu];
+          
+          if (buttonEl && dropdownEl) {
+            const position = calculateDropdownPosition(buttonEl, dropdownEl);
+            
+            // Apply styles
+            Object.keys(position).forEach(key => {
+              if (key === 'marginTop' || key === 'marginBottom') {
+                dropdownEl.style[key] = `${position[key]}px`;
+              } else {
+                dropdownEl.style[key] = position[key] === 'auto' ? 'auto' : `${position[key]}px`;
+              }
+            });
+          }
+        });
+      });
+    }
+  }, [showOptionsMenu, isMobile]);
+
   const renderMessage = (message, index) => {
     if (!currentUser || !message) return null;
     
@@ -262,7 +399,13 @@ export default function MessageList({
       new Date(nextMessage.createdAt) - new Date(message.createdAt) > 5 * 60 * 1000;
 
     return (
-      <div key={message._id} className={`flex mb-2 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+      <motion.div
+        key={message._id}
+        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+        className={`flex mb-2 ${isOwn ? 'justify-end' : 'justify-start'}`}
+      >
         {/* Avatar for received messages */}
         {!isOwn && showAvatar && showSenderInfo && (
           <div className="flex-shrink-0 mr-2">
@@ -288,11 +431,22 @@ export default function MessageList({
         {/* Message content container */}
         <div 
           className={`max-w-xs lg:max-w-md xl:max-lg relative ${isOwn ? 'ml-12' : 'mr-12'} min-w-0`}
-          onMouseEnter={() => setHoveredMessageId(message._id)}
+          onMouseEnter={() => {
+            // Clear any pending timeout
+            if (hoverTimeoutRef.current) {
+              clearTimeout(hoverTimeoutRef.current);
+              hoverTimeoutRef.current = null;
+            }
+            setHoveredMessageId(message._id);
+          }}
           onMouseLeave={() => {
-            // Hide if menu is not open
+            // Hide if menu is not open, but with delay
             if (showOptionsMenu !== message._id) {
-              setHoveredMessageId(null);
+              // Add delay before hiding to allow moving mouse to button
+              hoverTimeoutRef.current = setTimeout(() => {
+                setHoveredMessageId(null);
+                hoverTimeoutRef.current = null;
+              }, 300); // 300ms delay
             }
           }}
         >
@@ -305,29 +459,59 @@ export default function MessageList({
           
           {/* Message options menu - only show when hovered and it's own message */}
           {isOwn && !message.isDeleted && message.messageType !== 'system' && (hoveredMessageId === message._id || showOptionsMenu === message._id) && (
-            <div className="absolute top-1 -left-8 z-10 message-options-menu">
+            <div 
+              className="absolute top-1 -left-12 z-10 message-options-menu"
+              onMouseEnter={() => {
+                // Clear timeout when hovering over button
+                if (hoverTimeoutRef.current) {
+                  clearTimeout(hoverTimeoutRef.current);
+                  hoverTimeoutRef.current = null;
+                }
+                setHoveredMessageId(message._id);
+              }}
+              onMouseLeave={() => {
+                // Hide if menu is not open, with delay
+                if (showOptionsMenu !== message._id) {
+                  hoverTimeoutRef.current = setTimeout(() => {
+                    setHoveredMessageId(null);
+                    hoverTimeoutRef.current = null;
+                  }, 300);
+                }
+              }}
+            >
               <div className="relative">
                 <button
+                  ref={(el) => {
+                    if (el) buttonRefs.current[message._id] = el;
+                    else delete buttonRefs.current[message._id];
+                  }}
                   onClick={() => setShowOptionsMenu(showOptionsMenu === message._id ? null : message._id)}
-                  onMouseEnter={() => setHoveredMessageId(message._id)}
-                  className="p-1.5 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 shadow-sm"
+                  className={`p-1.5 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 shadow-sm ${
+                    isMobile ? 'flex items-center justify-center' : ''
+                  }`}
                   title="Tùy chọn"
                 >
-                  <MoreHorizontal size={16} className="text-gray-600 dark:text-gray-300" />
+                  <MoreHorizontal size={14} className="text-gray-600 dark:text-gray-300" />
                 </button>
                 
-                {/* Dropdown menu */}
-                {showOptionsMenu === message._id && (
-                  <div 
-                    className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px] z-50 message-options-menu"
-                    onMouseEnter={() => setHoveredMessageId(message._id)}
-                  >
-                    {message.messageType !== 'image' && (
+                 {/* Dropdown menu */}
+                 {showOptionsMenu === message._id && (
+                   <div 
+                     ref={(el) => {
+                       if (el) dropdownRefs.current[message._id] = el;
+                       else delete dropdownRefs.current[message._id];
+                     }}  
+                     className="absolute top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px] z-50 message-options-menu"
+                     style={{
+                       // Position will be calculated by useEffect if needed (desktop only)
+                     }}
+                   >
+                    {message.messageType !== 'image' && message.messageType !== 'emote' && (
                       <button
                         onClick={() => handleEditMessage(message)}
                         className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-200"
                       >
-                        <Edit2 size={14} />
+                        <Edit2 size={12} />
                         Sửa tin nhắn
                       </button>
                     )}
@@ -335,7 +519,7 @@ export default function MessageList({
                       onClick={() => handleDeleteMessage(message._id)}
                       className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={12} />
                       Thu hồi
                     </button>
                   </div>
@@ -345,16 +529,18 @@ export default function MessageList({
           )}
           
           {/* Message bubble */}
-          <div
-            className={`relative px-4 py-2 rounded-3xl shadow-sm ${
+          <motion.div
+            className={`relative px-4 py-2 rounded-3xl shadow-sm transition-all duration-200 ${
               isOwn
-                ? 'bg-blue-500 dark:bg-blue-600 text-white ml-auto'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 mr-auto'
+                ? 'bg-blue-500 dark:bg-blue-600 text-white ml-auto hover:shadow-md'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 mr-auto hover:shadow-md'
             } break-words overflow-wrap-anywhere`}
             style={{
               borderTopRightRadius: isOwn && isLastInGroup ? '8px' : '24px',
               borderTopLeftRadius: !isOwn && isLastInGroup ? '8px' : '24px',
             }}
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.15 }}
           >
             {/* Message content */}
             {editingMessageId === message._id ? (
@@ -433,10 +619,14 @@ export default function MessageList({
               </p>
             ) : (
               <p className="text-sm leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
-                {message.content}
+                {parseLinks(message.content, { 
+                  linkClassName: isOwn 
+                    ? "text-blue-200 hover:text-blue-100 underline break-all" 
+                    : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline break-all"
+                })}
               </p>
             )}
-          </div>
+          </motion.div>
           
           {/* Edited indicator */}
           {message.isEdited && !message.isDeleted && editingMessageId !== message._id && (
@@ -507,7 +697,7 @@ export default function MessageList({
             )}
           </div>
         )}
-      </div>
+      </motion.div>
     );
   };
 
@@ -548,14 +738,21 @@ export default function MessageList({
       </div>
 
       {/* Scroll to bottom button */}
-      {showScrollButton && (
-        <button
-          onClick={scrollToBottom}
-          className="absolute bottom-4 right-4 bg-blue-500 dark:bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
-        >
-          <ChevronUp size={20} className="transform rotate-180" />
-        </button>
-      )}
+      <AnimatePresence>
+        {showScrollButton && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={scrollToBottom}
+            className="absolute bottom-4 right-4 bg-blue-500 dark:bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors z-10"
+          >
+            <ChevronUp size={20} className="transform rotate-180" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Image Viewer */}
       <ImageViewer

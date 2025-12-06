@@ -68,40 +68,33 @@ export default function LazyImageSimple({
       }}
       {...props}
     >
-      {/* Loading placeholder */}
+      {/* Loading placeholder with blur effect */}
       {!isLoaded && !hasError && (
         <div
+          className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse"
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: '#f3f4f6',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#9ca3af',
-            fontSize: '14px'
+            filter: 'blur(10px)',
+            transform: 'scale(1.1)',
           }}
         >
-          Loading...
+          {/* Shimmer effect */}
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent"></div>
         </div>
       )}
 
-      {/* Actual image */}
+      {/* Actual image with blur-up effect */}
       {isInView && (
         <img
           src={src}
           alt={alt}
           onLoad={handleLoad}
           onError={handleError}
+          className="w-full h-full object-cover transition-opacity duration-500 ease-out"
           style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
             opacity: isLoaded ? 1 : 0,
-            transition: 'opacity 0.3s ease'
+            filter: isLoaded ? 'blur(0px)' : 'blur(10px)',
+            transform: isLoaded ? 'scale(1)' : 'scale(1.1)',
+            transition: 'opacity 0.5s ease-out, filter 0.5s ease-out, transform 0.5s ease-out'
           }}
         />
       )}

@@ -1,5 +1,6 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
+import Loader from "./Loader.jsx";
 
 /**
  * PageLoader - Component show loading state when lazy load pages
@@ -9,8 +10,8 @@ export function PageLoader() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="text-center">
-        <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600" />
-        <p className="text-gray-600 dark:text-gray-400">Đang tải trang...</p>
+        <Loader />
+        <p className="text-gray-600 dark:text-gray-400 mt-4">Đang tải trang...</p>
       </div>
     </div>
   );

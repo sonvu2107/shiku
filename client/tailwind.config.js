@@ -35,8 +35,8 @@ export default {
           "100%": { transform: "rotate(215deg) translateX(-500px)", opacity: "0" },
         },
         shimmer: {
-          from: { backgroundPosition: "0 0" },
-          to: { backgroundPosition: "-200% 0" },
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
         },
         spotlight: {
           "0%": { opacity: 0, transform: "translate(-72%, -62%) scale(0.5)" },

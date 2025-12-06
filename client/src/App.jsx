@@ -11,6 +11,8 @@ import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { ToastContainer } from "./components/Toast.jsx";
 import { ToastProvider, useToast } from "./contexts/ToastContext";
 import { PageLoader, LazyErrorBoundary } from "./components/PageLoader.jsx";
+import Loader from "./components/Loader.jsx";
+import OfflineScreen from "./components/OfflineScreen.jsx";
 import { ChatProvider } from "./contexts/ChatContext.jsx";
 import Home from "./pages/Home.jsx"; // Eager load Home for better LCP
 
@@ -83,6 +85,8 @@ export default function App() {
   const [user, setUser] = useState(null);
   // State quản lý trạng thái loading khi khởi tạo app
   const [loading, setLoading] = useState(true);
+  // State quản lý trạng thái kết nối internet
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   // Dark mode
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("app:darkMode");
@@ -134,6 +138,8 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     let timeoutId = null;
+    const startTime = Date.now();
+    const MIN_LOADING_TIME = 5000; // 5 giây
 
     const checkAuth = async () => {
       try {
@@ -184,7 +190,15 @@ export default function App() {
         }
       } finally {
         if (!cancelled) {
-          setLoading(false); // Kết thúc loading
+          // Đảm bảo loading hiển thị ít nhất 5 giây
+          const elapsedTime = Date.now() - startTime;
+          const remainingTime = Math.max(0, MIN_LOADING_TIME - elapsedTime);
+          
+          setTimeout(() => {
+            if (!cancelled) {
+              setLoading(false); // Kết thúc loading sau 5 giây
+            }
+          }, remainingTime);
         }
       }
     };
@@ -222,6 +236,25 @@ export default function App() {
     }
     localStorage.setItem('app:darkMode', darkMode ? '1' : '0');
   }, [darkMode]);
+
+  // Effect để theo dõi trạng thái kết nối internet
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
     // Centralized heartbeat manager (1 request/min)
   useEffect(() => {
     if (!user) {
@@ -356,16 +389,18 @@ export default function App() {
     };
   }, []);
 
+  // Hiển thị màn hình offline khi mất kết nối
+  if (!isOnline) {
+    return <OfflineScreen />;
+  }
+
   // Hiển thị loading screen khi app đang khởi tạo
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
         <div className="flex flex-col items-center space-y-4">
-          {/* Spinner vòng tròn */}
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-gray-200 dark:border-gray-600 rounded-full animate-spin border-t-black dark:border-t-white"></div>
-            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent rounded-full animate-ping border-t-gray-600 dark:border-t-gray-300 opacity-20"></div>
-          </div>
+          {/* Square animation loader */}
+          <Loader />
           
           {/* Loading text */}
           <div className="text-center">
@@ -375,13 +410,6 @@ export default function App() {
             <p className="text-sm text-gray-600 dark:text-gray-400 animate-pulse">
               Vui lòng chờ trong giây lát...
             </p>
-          </div>
-          
-          {/* Loading dots animation */}
-          <div className="flex space-x-1">
-            <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
           </div>
         </div>
       </div>

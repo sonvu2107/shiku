@@ -573,7 +573,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
 
                   {/* Profile Dropdown */}
                   {showProfileMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-100 dark:border-neutral-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-100 dark:border-neutral-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 transform origin-top-right">
                       <div className="fixed inset-0 z-[-1]" onClick={() => setShowProfileMenu(false)} />
 
                       <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50">

@@ -10,18 +10,21 @@ import { getCSRFToken, clearCSRFToken } from "../utils/csrfToken";
 import { useSEO } from "../utils/useSEO";
 import BackgroundWrapper from "../components/BackgroundWrapper";
 import BackgroundControls from "../components/BackgroundControls";
+import { useToast } from "../contexts/ToastContext";
 
 // --- UI COMPONENTS ---
 
-// Input Field Custom
+// Input Field Custom with enhanced focus animations
 const InputGroup = ({ icon: Icon, ...props }) => (
   <div className="relative group">
-    <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-white transition-colors duration-300">
+    <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-white group-focus-within:scale-110 transition-all duration-300">
       <Icon size={18} className="sm:w-5 sm:h-5" strokeWidth={1.5} />
     </div>
+    {/* Focus glow effect */}
+    <div className="absolute inset-0 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-r from-neutral-500/10 via-neutral-400/10 to-neutral-500/10 blur-xl"></div>
     <input
       {...props}
-      className="w-full bg-neutral-900/50 border border-neutral-800 text-white rounded-xl py-3 sm:py-4 pl-10 sm:pl-12 pr-4 text-sm sm:text-base outline-none focus:border-neutral-500 focus:bg-neutral-900 focus:ring-1 focus:ring-neutral-500 transition-all duration-300 placeholder:text-neutral-600"
+      className="relative w-full bg-neutral-900/50 border border-neutral-800 text-white rounded-xl py-3 sm:py-4 pl-10 sm:pl-12 pr-4 text-sm sm:text-base outline-none focus:border-neutral-500 focus:bg-neutral-900 focus:ring-2 focus:ring-neutral-500/50 focus:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300 placeholder:text-neutral-600"
     />
   </div>
 );
@@ -35,6 +38,7 @@ export default function Login({ setUser }) {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
 
   const [backgroundConfig, setBackgroundConfig] = useState({
     type: 'galaxy',
@@ -114,6 +118,7 @@ export default function Login({ setUser }) {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Ngăn event bubbling
     if (!email.trim() || !password.trim() || emailError || passwordError) return;
 
     setLoading(true);
@@ -158,6 +163,9 @@ export default function Login({ setUser }) {
       // Cập nhật user state toàn cục
       setUser(data.user);
 
+      // Hiển thị thông báo thành công
+      showSuccess("Đăng nhập thành công!", "Chào mừng bạn trở lại Shiku");
+
       // Redirect đến trang chủ (replace để không quay lại được trang login)
       navigate("/", { replace: true });
     } catch (err) {
@@ -165,7 +173,37 @@ export default function Login({ setUser }) {
       if (err.message.includes('csrf') || err.message.includes('CSRF')) {
         clearCSRFToken();
       }
-      setError(err.message || "Đăng nhập thất bại");
+      
+      // Xử lý các loại lỗi cụ thể
+      let errorMessage = err.message || "Đăng nhập thất bại";
+      let errorDescription = "";
+
+      // Phân tích lỗi từ server
+      if (err.message) {
+        const lowerMessage = err.message.toLowerCase();
+        
+        if (lowerMessage.includes('password') || lowerMessage.includes('mật khẩu') || lowerMessage.includes('incorrect')) {
+          errorMessage = "Sai mật khẩu";
+          errorDescription = "Vui lòng kiểm tra lại mật khẩu của bạn";
+        } else if (lowerMessage.includes('email') || lowerMessage.includes('user') || lowerMessage.includes('not found') || lowerMessage.includes('không tồn tại')) {
+          errorMessage = "Email không tồn tại";
+          errorDescription = "Vui lòng kiểm tra lại email hoặc đăng ký tài khoản mới";
+        } else if (lowerMessage.includes('token') || lowerMessage.includes('csrf')) {
+          errorMessage = "Lỗi xác thực";
+          errorDescription = "Vui lòng thử lại sau vài giây";
+        } else if (lowerMessage.includes('network') || lowerMessage.includes('fetch')) {
+          errorMessage = "Lỗi kết nối";
+          errorDescription = "Vui lòng kiểm tra kết nối internet của bạn";
+        } else {
+          errorDescription = "Vui lòng thử lại";
+        }
+      }
+
+      // Hiển thị toast error
+      showError(errorMessage, errorDescription);
+      
+      // Giữ lại error state cho UI (nếu cần)
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

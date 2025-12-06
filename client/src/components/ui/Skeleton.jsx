@@ -1,7 +1,7 @@
 import { cn } from "../../utils/cn";
 
 /**
- * Skeleton loader component
+ * Skeleton loader component with shimmer effect
  */
 export default function Skeleton({
   className = "",
@@ -9,17 +9,20 @@ export default function Skeleton({
   ...props
 }) {
   const variants = {
-    default: "bg-neutral-100 dark:bg-neutral-900 rounded-xl animate-pulse",
-    card: "bg-neutral-100 dark:bg-neutral-900 rounded-2xl animate-pulse",
-    circle: "bg-neutral-100 dark:bg-neutral-900 rounded-full animate-pulse",
-    text: "bg-neutral-100 dark:bg-neutral-900 rounded animate-pulse h-4",
+    default: "bg-neutral-100 dark:bg-neutral-900 rounded-xl relative overflow-hidden",
+    card: "bg-neutral-100 dark:bg-neutral-900 rounded-2xl relative overflow-hidden",
+    circle: "bg-neutral-100 dark:bg-neutral-900 rounded-full relative overflow-hidden",
+    text: "bg-neutral-100 dark:bg-neutral-900 rounded relative overflow-hidden h-4",
   };
   
   return (
     <div
       className={cn(variants[variant], className)}
       {...props}
-    />
+    >
+      {/* Shimmer effect */}
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent"></div>
+    </div>
   );
 }
 

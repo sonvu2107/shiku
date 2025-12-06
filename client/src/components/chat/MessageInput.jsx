@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Send, Image, Smile, X } from "lucide-react";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -120,27 +121,47 @@ export default function MessageInput({ onSendMessage }) {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 relative">
       {/* Image preview */}
-      {imagePreview && (
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="relative inline-block">
-            <img
-              src={imagePreview}
-              alt="Preview"
-              className="max-w-32 max-h-32 rounded-lg object-cover"
-            />
-            <button
-              onClick={removeImage}
-              className="absolute -top-2 -right-2 bg-red-500 dark:bg-red-600 text-white rounded-full p-1 hover:bg-red-600 dark:hover:bg-red-700 transition-colors"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {imagePreview && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="p-4 border-b border-gray-200 dark:border-gray-700 overflow-hidden"
+          >
+            <div className="relative inline-block">
+              <motion.img
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.2 }}
+                src={imagePreview}
+                alt="Preview"
+                className="max-w-32 max-h-32 rounded-lg object-cover"
+              />
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={removeImage}
+                className="absolute -top-2 -right-2 bg-red-500 dark:bg-red-600 text-white rounded-full p-1 hover:bg-red-600 dark:hover:bg-red-700 transition-colors"
+              >
+                <X size={14} />
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Emote picker */}
-      {showEmotePicker && (
-        <div className="absolute bottom-full left-2 right-2 sm:left-4 sm:right-4 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg p-4 max-h-48 overflow-y-auto z-10 emote-picker-mobile">
+      <AnimatePresence>
+        {showEmotePicker && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+            className="absolute bottom-full left-2 right-2 sm:left-4 sm:right-4 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg p-4 max-h-48 overflow-y-auto z-10 emote-picker-mobile"
+          >
           <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
             {EMOTES.map((emote, index) => (
             <button
@@ -152,25 +173,30 @@ export default function MessageInput({ onSendMessage }) {
             </button>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Input area */}
       <form onSubmit={handleSubmit} className="p-3 sm:p-4">
         <div className="flex items-end space-x-2 sm:space-x-3">
           {/* Action buttons */}
           <div className="flex space-x-1">
-            <button
+            <motion.button
               type="button"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => fileInputRef.current?.click()}
               className="p-2 text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:bg-blue-100 dark:active:bg-blue-900/30 rounded-full transition-colors touch-target"
               title="Gửi hình ảnh"
             >
               <Image size={20} />
-            </button>
+            </motion.button>
             
-            <button
+            <motion.button
               type="button"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => setShowEmotePicker(!showEmotePicker)}
               className={`p-2 rounded-full transition-colors touch-target ${
                 showEmotePicker 
@@ -180,7 +206,7 @@ export default function MessageInput({ onSendMessage }) {
               title="Chọn emote"
             >
               <Smile size={20} />
-            </button>
+            </motion.button>
           </div>
 
           {/* Text input container */}
@@ -198,15 +224,23 @@ export default function MessageInput({ onSendMessage }) {
           </div>
 
           {/* Send button */}
-          {(message.trim() || selectedImage) && (
-            <button
-              type="submit"
-              className="p-2 bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700 active:bg-blue-700 dark:active:bg-blue-800 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 touch-target"
-              title="Gửi tin nhắn"
-            >
-              <Send size={20} />
-            </button>
-          )}
+          <AnimatePresence>
+            {(message.trim() || selectedImage) && (
+              <motion.button
+                type="submit"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+                className="p-2 bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700 active:bg-blue-700 dark:active:bg-blue-800 rounded-full transition-colors touch-target"
+                title="Gửi tin nhắn"
+              >
+                <Send size={20} />
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
       </form>
 

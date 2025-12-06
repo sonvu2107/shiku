@@ -1,7 +1,8 @@
 import { cn } from "../../utils/cn";
+import { createRipple } from "../../utils/animations";
 
 /**
- * Button component with variants
+ * Button component with variants and animations
  */
 export default function Button({
   children,
@@ -10,9 +11,10 @@ export default function Button({
   className = "",
   disabled = false,
   loading = false,
+  ripple = true,
   ...props
 }) {
-  const baseStyles = "font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
+  const baseStyles = "font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden active:scale-95";
   
   const variants = {
     primary: "bg-black dark:bg-white text-white dark:text-black hover:opacity-90",
@@ -26,6 +28,15 @@ export default function Button({
     md: "px-6 py-2.5 text-sm rounded-xl",
     lg: "px-8 py-3 text-base rounded-xl",
   };
+
+  const handleClick = (e) => {
+    if (ripple && !disabled && !loading) {
+      createRipple(e, e.currentTarget);
+    }
+    if (props.onClick) {
+      props.onClick(e);
+    }
+  };
   
   return (
     <button
@@ -36,6 +47,7 @@ export default function Button({
         className
       )}
       disabled={disabled || loading}
+      onClick={handleClick}
       {...props}
     >
       {loading ? (
