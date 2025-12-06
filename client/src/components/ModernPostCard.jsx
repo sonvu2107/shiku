@@ -657,7 +657,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       {/* YouTube Music Player */}
       {post.youtubeUrl && (
         <div className="mb-3 md:mb-4" onClick={e => e.stopPropagation()}>
-          <YouTubePlayer key={`yt-${post._id}`} url={post.youtubeUrl} variant="compact" />
+          <YouTubePlayer key={`yt-${post._id}`} url={post.youtubeUrl} variant="full" />
         </div>
       )}
 
