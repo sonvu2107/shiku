@@ -150,19 +150,22 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:", "http:"],
-      scriptSrc: ["'self'"],
-      connectSrc: ["'self'", "ws:", "wss:"],
+      imgSrc: ["'self'", "data:", "https:", "http:", "blob:"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      connectSrc: ["'self'", "ws:", "wss:", "https:"],
       objectSrc: ["'none'"],
-      frameSrc: ["'none'"],
-      frameAncestors: ["'none'"],
+      frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com"],
+      frameAncestors: ["'self'"],
+      mediaSrc: ["'self'", "https://www.youtube.com", "blob:"],
       upgradeInsecureRequests: isProduction ? [] : null
     }
   },
   crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+  crossOriginResourcePolicy: { policy: "cross-origin" },
   // Anti-clickjacking protection (X-Frame-Options)
   frameguard: {
-    action: 'deny'
+    action: 'sameorigin' // Changed from 'deny' to allow YouTube embeds
   },
   // Prevent MIME type sniffing (X-Content-Type-Options)
   noSniff: true,
@@ -177,16 +180,35 @@ app.use(helmet({
   // Referrer Policy
   referrerPolicy: {
     policy: 'strict-origin-when-cross-origin'
-  }
+  },
+  // DNS Prefetch Control
+  dnsPrefetchControl: {
+    allow: false
+  },
+  // IE No Open
+  ieNoOpen: true,
+  // Origin-Agent-Cluster
+  originAgentCluster: true
 }));
 
 // Additional security headers middleware
 app.use((req, res, next) => {
-  // Permissions-Policy (feature policy) - not covered by helmet
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  // Remove server identification
+  res.removeHeader('X-Powered-By');
+  res.removeHeader('Server');
+  
+  // Permissions-Policy (feature policy) - comprehensive list
+  res.setHeader('Permissions-Policy', 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), interest-cohort=()');
 
   // Referrer-Policy - additional enforcement
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Cache control for API responses - prevent caching of sensitive data
+  if (req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
 
   next();
 });

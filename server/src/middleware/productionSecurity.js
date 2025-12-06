@@ -102,16 +102,33 @@ export const uploadRateLimit = rateLimit({
 export const securityHeaders = (req, res, next) => {
   // Xóa thông tin server
   res.removeHeader('X-Powered-By');
+  res.removeHeader('Server');
   
-  // Thêm các header bảo mật
+  // Thêm các header bảo mật cơ bản
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   
+  // Cross-Origin headers
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  
+  // Cache control cho API responses
+  if (req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+  }
+  
   // Header dành cho production
   if (isProduction()) {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    res.setHeader('Permissions-Policy', 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()');
+    // Content Security Policy report-only (để debug mà không break site)
+    // res.setHeader('Content-Security-Policy-Report-Only', "default-src 'self'; report-uri /api/csp-report");
+  } else {
     res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   }
   
