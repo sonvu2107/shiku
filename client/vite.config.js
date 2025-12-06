@@ -4,31 +4,25 @@ import viteCompression from "vite-plugin-compression";
 
 /**
  * Vite configuration cho React client
- * - Sử dụng React plugin
- * - Cấu hình dev server chạy trên port 5173
- * - Host 0.0.0.0 để có thể truy cập từ network
- * - Manual chunks cho code splitting tối ưu
- * - Environment-aware configuration
- * - Compression và optimization plugins
+ * - Code splitting tối ưu để giảm unused JavaScript
+ * - Lazy load các vendor chunks lớn
  */
 export default defineConfig(({ command, mode }) => {
-  // Load environment variables
   const env = loadEnv(mode, process.cwd(), '');
   const isProduction = mode === 'production';
-  
+
   return {
     plugins: [
       react({
-        // Đảm bảo React được transform đúng cách với JSX automatic
         jsxRuntime: 'automatic',
         jsxImportSource: 'react',
-      }), // Plugin hỗ trợ React
+      }),
       // Compression plugin cho production
       ...(isProduction ? [
         viteCompression({
           algorithm: 'gzip',
           exclude: [/\.(br)$/, /\.(gz)$/],
-          threshold: 1024, // Chỉ compress file > 1KB
+          threshold: 1024,
         }),
         viteCompression({
           algorithm: 'brotliCompress',
@@ -38,8 +32,7 @@ export default defineConfig(({ command, mode }) => {
         }),
       ] : []),
     ],
-    
-    // Đảm bảo React được resolve đúng cách
+
     resolve: {
       dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
       alias: {
@@ -47,38 +40,33 @@ export default defineConfig(({ command, mode }) => {
         'react-dom': 'react-dom'
       }
     },
-    
-    // Optimize dependencies
+
     optimizeDeps: {
       include: ['react', 'react-dom', 'react/jsx-runtime'],
       esbuildOptions: {
-        // Đảm bảo React được bundle đúng cách
         target: 'es2020',
       },
     },
-    
-    // Environment variables
+
     define: {
       __APP_ENV__: JSON.stringify(mode),
       __API_URL__: JSON.stringify(env.VITE_API_URL || (isProduction ? 'https://api.shiku.click' : 'http://localhost:4000'))
     },
-    
+
     server: {
-      port: 5173, // Port cho dev server
-      host: '0.0.0.0', // Cho phép truy cập từ mạng ngoài
-      strictPort: true, // Fail nếu port đã được sử dụng
+      port: 5173,
+      host: '0.0.0.0',
+      strictPort: true,
       proxy: {
         '/api': {
           target: env.VITE_API_URL || "http://localhost:4000",
           changeOrigin: true,
           secure: false,
-          ws: true, // Support WebSocket for socket.io
+          ws: true,
         }
       },
-      // Cấu hình MIME types cho dev server
       middlewareMode: false,
       configure: (app) => {
-        // Đảm bảo .jsx files được serve với MIME type chính xác
         app.use((req, res, next) => {
           if (req.path.endsWith('.jsx') || req.path.endsWith('.js')) {
             res.setHeader('Content-Type', 'application/javascript');
@@ -87,92 +75,136 @@ export default defineConfig(({ command, mode }) => {
         });
       }
     },
+
     build: {
       assetsDir: 'assets',
-      // CommonJS options - đảm bảo React được bundle đúng
       commonjsOptions: {
         include: [/react/, /react-dom/, /node_modules/],
         transformMixedEsModules: true,
       },
-      // Đảm bảo các file được build với extension chính xác
-        rollupOptions: {
+      rollupOptions: {
         output: {
-          // Cấu hình tên file output với extension chính xác
           entryFileNames: 'assets/[name]-[hash].js',
           chunkFileNames: 'assets/[name]-[hash].js',
           assetFileNames: 'assets/[name]-[hash].[ext]',
-          // Đảm bảo React được externalize đúng cách
           format: 'es',
-          // Đảm bảo React vendor chunk được preload và load trước
-          manualChunks: (id, { getModuleInfo }) => {
-            // Node modules - tách riêng các vendor lớn
+
+          // Code splitting toi uu - tach vendor thanh nhieu chunks nho
+          manualChunks: (id) => {
             if (id.includes('node_modules')) {
-              // React core + TẤT CẢ libs dùng React - GIỮ TRONG ENTRY CHUNK
-              // Để tránh lỗi createContext khi vendor chunks load trước React
-              const isReactCore = 
-                id.includes('react/jsx-runtime') || 
+              // React core - giu trong main bundle
+              if (id.includes('react/jsx-runtime') ||
                 id.includes('react/jsx-dev-runtime') ||
-                id.includes('node_modules/react/') || 
-                id.includes('node_modules/react-dom/');
-              
-              // KHÔNG tách React - return undefined để giữ trong main bundle
-              if (isReactCore) {
+                id.includes('node_modules/react/') ||
+                id.includes('node_modules/react-dom/')) {
                 return undefined;
               }
-              
-              // TẤT CẢ thư viện dùng React - GIỮ trong main bundle
-              if (id.includes('react-router') ||
-                  id.includes('@tanstack/react-query') ||
-                  id.includes('lucide-react') ||
-                  id.includes('react-window') ||
-                  id.includes('react-virtual') ||
-                  id.includes('react-markdown') ||
-                  id.includes('framer-motion') ||
-                  id.includes('styled-components')) {
-                return undefined; // GIỮ trong entry chunk với React
+
+              // React Router - can ngay cho navigation
+              if (id.includes('react-router')) {
+                return undefined;
               }
-              
-              // Socket.io - KHÔNG dùng React, có thể tách riêng
+
+              // TanStack Query - can cho data fetching
+              if (id.includes('@tanstack/react-query')) {
+                return undefined;
+              }
+
+              // Framer Motion - heavy, tach rieng de lazy load
+              if (id.includes('framer-motion')) {
+                return 'framer-motion';
+              }
+
+              // Markdown libs - chi can khi view/edit posts
+              if (id.includes('react-markdown') ||
+                id.includes('remark') ||
+                id.includes('rehype') ||
+                id.includes('unified') ||
+                id.includes('micromark') ||
+                id.includes('mdast') ||
+                id.includes('hast')) {
+                return 'markdown-vendor';
+              }
+
+              // Lucide icons - tach rieng
+              if (id.includes('lucide-react')) {
+                return 'icons';
+              }
+
+              // Date utilities
+              if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment')) {
+                return 'date-vendor';
+              }
+
+              // Charts/visualization
+              if (id.includes('chart') || id.includes('recharts') || id.includes('d3')) {
+                return 'charts-vendor';
+              }
+
+              // Socket.io
               if (id.includes('socket.io-client')) {
                 return 'socket-vendor';
               }
-              
-              // Các vendor KHÔNG dùng React mới được tách ra
+
+              // Con lai - tach vao vendor chung
               return 'vendor';
             }
-            
-            // Source files - tách theo feature
-            // QUAN TRỌNG: Không tách contexts và hooks vào chunk riêng - phải ở cùng với main app
-            // Và đảm bảo contexts không phụ thuộc vào React từ chunk khác
+
+            // Source files - tach theo feature
             if (id.includes('/src/contexts/') || id.includes('/src/hooks/')) {
-              // Giữ contexts và hooks trong main bundle để đảm bảo React có sẵn
               return undefined;
             }
-            
-            // Giữ Toast component trong main bundle vì nó dùng React
+
             if (id.includes('/src/components/Toast')) {
               return undefined;
             }
-            
-            if (id.includes('/src/pages/')) {
-              if (id.includes('Admin')) return 'admin';
-              if (id.includes('Event')) return 'events';
-              if (id.includes('Group')) return 'groups';
+
+            // Admin pages - lazy load
+            if (id.includes('/src/pages/Admin') || id.includes('/src/pages/admin/')) {
+              return 'admin';
             }
-            
+
+            // Events pages
+            if (id.includes('/src/pages/') && id.includes('Event')) {
+              return 'events';
+            }
+
+            // Groups pages
+            if (id.includes('/src/pages/') && id.includes('Group')) {
+              return 'groups';
+            }
+
+            // Chat components
+            if (id.includes('/src/components/chat/') || id.includes('/src/pages/Chat')) {
+              return 'chat';
+            }
+
+            // Story components
+            if (id.includes('Story')) {
+              return 'stories';
+            }
+
+            // Media components
+            if (id.includes('MediaViewer') || id.includes('ImageViewer')) {
+              return 'media';
+            }
+
+            // Heavy components - lazy load
             if (id.includes('/src/components/')) {
-              if (id.includes('chat/')) return 'chat';
-              if (id.includes('Story')) return 'stories';
-              if (id.includes('Media') || id.includes('Image')) return 'media';
-              if (id.includes('Navbar') || id.includes('CommentSection') || id.includes('PostCreator')) {
+              if (id.includes('CommentSection') || id.includes('MarkdownEditor')) {
                 return 'heavy-components';
               }
+            }
+
+            // Cultivation system
+            if (id.includes('Cultivation') || id.includes('cultivation')) {
+              return 'cultivation';
             }
           }
         }
       },
-      chunkSizeWarningLimit: 1000, // Tăng limit để giảm warning
-      
+      chunkSizeWarningLimit: 1000,
+
       // Production optimizations
       ...(isProduction ? {
         minify: 'terser',
@@ -185,20 +217,15 @@ export default defineConfig(({ command, mode }) => {
           },
           mangle: {
             safari10: true,
-            // Không mangle các tên biến React để tránh lỗi
             reserved: ['React', 'ReactDOM', 'createContext', 'useState', 'useEffect', 'useRef'],
           },
         },
-        // Tối ưu CSS
         cssCodeSplit: true,
         cssMinify: true,
-        // Source maps chỉ cho production (nhỏ hơn)
         sourcemap: false,
-        // TẮT treeshaking cho an toàn với React 19
-        // Treeshaking quá aggressive có thể làm mất React.createContext
         treeshake: false,
       } : {
-        sourcemap: true, // Source maps cho dev
+        sourcemap: true,
       })
     }
   };
