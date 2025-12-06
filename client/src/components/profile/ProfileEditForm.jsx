@@ -19,7 +19,7 @@ export default function ProfileEditForm({
   loading = false,
 }) {
   const { showError } = useToast();
-  
+
   if (!editing) return null;
 
   const validateForm = (data) => {
@@ -31,13 +31,13 @@ export default function ProfileEditForm({
       const hasUpper = /[A-Z]/.test(data.password);
       const hasDigit = /\d/.test(data.password);
       const hasSpecial = PASSWORD.specialChars.test(data.password);
-      
+
       if (!hasMinLength || !hasLower || !hasUpper || !hasDigit || !hasSpecial) {
         showError("Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt (@$!%*?&)");
         return false;
       }
     }
-    
+
     // Validate birthday
     if (data.birthday && data.birthday !== "") {
       if (!VALIDATION_RULES.BIRTHDAY.test(data.birthday)) {
@@ -50,7 +50,7 @@ export default function ProfileEditForm({
         return false;
       }
     }
-    
+
     // Validate phone
     if (data.phone && data.phone !== "") {
       if (!VALIDATION_RULES.PHONE.test(data.phone)) {
@@ -58,13 +58,13 @@ export default function ProfileEditForm({
         return false;
       }
     }
-    
+
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Preprocess website field
     const updateData = { ...form };
     if (updateData.website && updateData.website !== "" && !updateData.website.startsWith('http://') && !updateData.website.startsWith('https://')) {
@@ -76,15 +76,41 @@ export default function ProfileEditForm({
       return;
     }
 
-    // Filter out empty fields except name and email
-    const filteredData = Object.fromEntries(
-      Object.entries(updateData).filter(([key, value]) => {
-        if (key === "name" || key === "email") return true;
-        if ((key === "avatarUrl" || key === "coverUrl") && value !== "") return true;
-        if (key === "password" && value === "") return false;
-        return value !== "";
-      })
-    );
+    // Các field có thể xóa (gửi giá trị rỗng để xóa)
+    const clearableFields = ['nickname', 'bio', 'birthday', 'gender', 'hobbies', 'phone', 'location', 'website'];
+
+    // Build update data - giữ lại các field có thể xóa ngay cả khi rỗng
+    const filteredData = {};
+
+    Object.entries(updateData).forEach(([key, value]) => {
+      // Luôn giữ name và email
+      if (key === "name" || key === "email") {
+        filteredData[key] = value;
+        return;
+      }
+
+      // Giữ avatar/cover nếu có giá trị
+      if ((key === "avatarUrl" || key === "coverUrl") && value !== "") {
+        filteredData[key] = value;
+        return;
+      }
+
+      // Bỏ qua password nếu rỗng (không đổi mật khẩu)
+      if (key === "password" && value === "") {
+        return;
+      }
+
+      // Các field có thể xóa: gửi cả giá trị rỗng
+      if (clearableFields.includes(key)) {
+        filteredData[key] = value || ""; // Gửi chuỗi rỗng để xóa
+        return;
+      }
+
+      // Các field khác: chỉ gửi nếu có giá trị
+      if (value !== "") {
+        filteredData[key] = value;
+      }
+    });
 
     await onSubmit(filteredData);
   };
@@ -100,19 +126,19 @@ export default function ProfileEditForm({
         >
           <SpotlightCard className="p-6 md:p-8">
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Edit3 size={20}/> Cập nhật thông tin
+              <Edit3 size={20} /> Cập nhật thông tin
             </h3>
             <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <Input
                   label="Tên hiển thị"
                   value={form.name}
-                  onChange={e => setForm(f => ({...f, name: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 />
                 <Input
                   label="Biệt danh"
                   value={form.nickname || ""}
-                  onChange={e => setForm(f => ({...f, nickname: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, nickname: e.target.value }))}
                   placeholder="Nhập biệt danh của bạn..."
                   maxLength={30}
                 />
@@ -120,18 +146,18 @@ export default function ProfileEditForm({
                   label="Tiểu sử (Bio)"
                   rows={3}
                   value={form.bio || ""}
-                  onChange={e => setForm(f => ({...f, bio: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
                 />
                 <Input
                   label="Ngày sinh"
                   type="date"
                   value={form.birthday || ""}
-                  onChange={e => setForm(f => ({...f, birthday: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, birthday: e.target.value }))}
                 />
                 <Select
                   label="Giới tính"
                   value={form.gender || ""}
-                  onChange={e => setForm(f => ({...f, gender: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}
                 >
                   {GENDER_OPTIONS.map(option => (
                     <option key={option.value} value={option.value}>
@@ -144,34 +170,34 @@ export default function ProfileEditForm({
                 <Input
                   label="Sở thích"
                   value={form.hobbies || ""}
-                  onChange={e => setForm(f => ({...f, hobbies: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, hobbies: e.target.value }))}
                   placeholder="VD: Đọc sách, Du lịch..."
                 />
                 <Input
                   label="Số điện thoại"
                   value={form.phone || ""}
-                  onChange={e => setForm(f => ({...f, phone: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder="+84 123 456 789"
                 />
                 <Input
                   label="Địa chỉ"
                   value={form.location || ""}
-                  onChange={e => setForm(f => ({...f, location: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                 />
                 <Input
                   label="Website"
                   value={form.website || ""}
-                  onChange={e => setForm(f => ({...f, website: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, website: e.target.value }))}
                 />
                 <Input
                   label="Mật khẩu mới"
                   type="password"
                   value={form.password || ""}
-                  onChange={e => setForm(f => ({...f, password: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                   placeholder="Để trống nếu không đổi"
                 />
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   variant="primary"
                   size="lg"
                   className="w-full"

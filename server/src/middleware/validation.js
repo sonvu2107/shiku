@@ -187,9 +187,11 @@ export const updateProfileSchema = Joi.object({
       'string.max': 'Mật khẩu không được quá 128 ký tự',
       'string.pattern.base': 'Mật khẩu phải có ít nhất 1 chữ thường, 1 chữ hoa, 1 số và 1 ký tự đặc biệt'
     }),
+  // Các field có thể xóa - cho phép chuỗi rỗng
   bio: Joi.string()
     .max(500)
     .trim()
+    .allow('')
     .optional()
     .messages({
       'string.max': 'Bio không được quá 500 ký tự'
@@ -197,18 +199,23 @@ export const updateProfileSchema = Joi.object({
   nickname: Joi.string()
     .max(30)
     .trim()
+    .allow('')
     .optional()
     .messages({
       'string.max': 'Biệt danh không được quá 30 ký tự'
     }),
-  birthday: Joi.string()
-    .pattern(/^\d{4}-\d{2}-\d{2}$/)
+  birthday: Joi.alternatives()
+    .try(
+      Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
+      Joi.string().allow('', null)
+    )
     .optional()
     .messages({
       'string.pattern.base': 'Ngày sinh phải có định dạng YYYY-MM-DD'
     }),
   gender: Joi.string()
     .valid('male', 'female', 'other', '')
+    .allow('')
     .optional()
     .messages({
       'any.only': 'Giới tính phải là male, female, other hoặc để trống'
@@ -216,6 +223,7 @@ export const updateProfileSchema = Joi.object({
   hobbies: Joi.string()
     .max(200)
     .trim()
+    .allow('')
     .optional()
     .messages({
       'string.max': 'Sở thích không được quá 200 ký tự'
@@ -236,18 +244,25 @@ export const updateProfileSchema = Joi.object({
   location: Joi.string()
     .max(100)
     .trim()
+    .allow('')
     .optional()
     .messages({
       'string.max': 'Địa chỉ không được quá 100 ký tự'
     }),
-  website: Joi.string()
-    .uri()
+  website: Joi.alternatives()
+    .try(
+      Joi.string().uri(),
+      Joi.string().allow('', null)
+    )
     .optional()
     .messages({
       'string.uri': 'Website không hợp lệ'
     }),
-  phone: Joi.string()
-    .pattern(/^[\+]?[0-9\s\-\(\)]{10,15}$/)
+  phone: Joi.alternatives()
+    .try(
+      Joi.string().pattern(/^[\+]?[0-9\s\-\(\)]{10,15}$/),
+      Joi.string().allow('', null)
+    )
     .optional()
     .messages({
       'string.pattern.base': 'Số điện thoại không hợp lệ'
@@ -342,7 +357,7 @@ export const validate = (schema, property = 'body') => {
  */
 export const sanitizeHtml = (input) => {
   if (typeof input !== 'string') return input;
-  
+
   return input
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -358,6 +373,6 @@ export const sanitizeHtml = (input) => {
  */
 export const escapeRegex = (input) => {
   if (typeof input !== 'string') return input;
-  
+
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };

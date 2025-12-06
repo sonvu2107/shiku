@@ -124,7 +124,7 @@ router.post("/login",
       const user = await User.findOne({ email: email.toLowerCase() }).lean();
       if (!user) {
         const failureStatus = req.recordAuthFailure?.();
-        
+
         logSecurityEvent(LOG_LEVELS.WARN, SECURITY_EVENTS.LOGIN_FAILED, {
           email: email,
           ip: req.ip,
@@ -157,7 +157,7 @@ router.post("/login",
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
         const failureStatus = req.recordAuthFailure?.();
-        
+
         logSecurityEvent(LOG_LEVELS.WARN, SECURITY_EVENTS.LOGIN_FAILED, {
           email: email,
           ip: req.ip,
@@ -171,7 +171,7 @@ router.post("/login",
           error: "Email hoặc mật khẩu không đúng",
           code: "INVALID_CREDENTIALS"
         };
-        
+
         if (currentStatus.requiresCaptcha || failureStatus?.requiresCaptcha) {
           response.requiresCaptcha = true;
           response.message = "Bạn cần giải CAPTCHA để tiếp tục";
@@ -369,9 +369,9 @@ router.post("/logout",
   async (req, res, next) => {
     try {
       // Cố gắng lấy token từ request (không bắt buộc phải valid)
-      const token = req.cookies?.accessToken || 
-                    req.headers.authorization?.replace('Bearer ', '');
-      
+      const token = req.cookies?.accessToken ||
+        req.headers.authorization?.replace('Bearer ', '');
+
       // Nếu có token, cố gắng logout trên server (invalidate token)
       if (token) {
         try {
@@ -413,8 +413,8 @@ router.post("/logout",
         const clearOptions = buildCookieOptions(0);
         res.clearCookie("accessToken", clearOptions);
         res.clearCookie("refreshToken", clearOptions);
-      } catch (e) {}
-      
+      } catch (e) { }
+
       next(error);
     }
   }
@@ -630,7 +630,7 @@ router.get("/me",
       // Lấy thông tin cultivation cơ bản nếu user chọn hiển thị cultivation badge
       let cultivationInfo = null;
       let cultivationCache = req.user.cultivationCache;
-      
+
       // Luôn load cultivation để lấy equipped items
       const cultivation = await Cultivation.getOrCreate(req.user._id);
       if (cultivation) {
@@ -640,13 +640,13 @@ router.get("/me",
           realmName: cultivation.realmName,
           equipped: cultivation.equipped
         };
-        
+
         // Sync cultivationCache nếu chưa có hoặc khác
-        const needsSync = !cultivationCache || 
-            cultivationCache.realmLevel !== cultivation.realmLevel ||
-            cultivationCache.exp !== cultivation.exp ||
-            JSON.stringify(cultivationCache.equipped) !== JSON.stringify(cultivation.equipped);
-            
+        const needsSync = !cultivationCache ||
+          cultivationCache.realmLevel !== cultivation.realmLevel ||
+          cultivationCache.exp !== cultivation.exp ||
+          JSON.stringify(cultivationCache.equipped) !== JSON.stringify(cultivation.equipped);
+
         if (needsSync) {
           cultivationCache = {
             realmLevel: cultivation.realmLevel,
@@ -659,7 +659,7 @@ router.get("/me",
             }
           };
           // Update user's cultivationCache in background
-          User.findByIdAndUpdate(req.user._id, { cultivationCache }).catch(err => 
+          User.findByIdAndUpdate(req.user._id, { cultivationCache }).catch(err =>
             console.error('[AUTH] Error syncing cultivationCache:', err)
           );
         }
@@ -785,19 +785,23 @@ router.put("/update-profile",
         }
       }
 
-      // Cập nhật thông tin user
+      // Cập nhật thông tin user - cho phép xóa bằng cách gửi chuỗi rỗng
       if (name) req.user.name = sanitizeHtml(name);
       if (email) req.user.email = email.toLowerCase();
-      if (bio) req.user.bio = sanitizeHtml(bio);
-      if (nickname !== undefined) req.user.nickname = sanitizeHtml(nickname);
-      if (birthday) req.user.birthday = birthday;
-      if (gender) req.user.gender = gender;
-      if (hobbies) req.user.hobbies = sanitizeHtml(hobbies);
+
+      // Các field có thể xóa (chấp nhận chuỗi rỗng)
+      if (bio !== undefined) req.user.bio = bio ? sanitizeHtml(bio) : "";
+      if (nickname !== undefined) req.user.nickname = nickname ? sanitizeHtml(nickname) : "";
+      if (birthday !== undefined) req.user.birthday = birthday || null;
+      if (gender !== undefined) req.user.gender = gender || "";
+      if (hobbies !== undefined) req.user.hobbies = hobbies ? sanitizeHtml(hobbies) : "";
+      if (location !== undefined) req.user.location = location ? sanitizeHtml(location) : "";
+      if (website !== undefined) req.user.website = website || "";
+      if (phone !== undefined) req.user.phone = phone || "";
+
+      // Các field không thể xóa (chỉ update nếu có giá trị)
       if (avatarUrl) req.user.avatarUrl = avatarUrl;
       if (coverUrl !== undefined) req.user.coverUrl = coverUrl;
-      if (location) req.user.location = sanitizeHtml(location);
-      if (website) req.user.website = website;
-      if (phone) req.user.phone = phone;
       if (profileTheme) req.user.profileTheme = profileTheme;
       if (profileLayout) req.user.profileLayout = profileLayout;
       if (useCoverImage !== undefined) {

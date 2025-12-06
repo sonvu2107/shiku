@@ -31,14 +31,14 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
   // ==================== STATE MANAGEMENT ====================
   // Local state for user, synced with prop from App.jsx
   const [user, setLocalUser] = useState(propUser);
-  
+
   // Sync local user when propUser changes from App
   useEffect(() => {
     if (propUser) {
       setLocalUser(propUser);
     }
   }, [propUser]);
-  
+
   // Wrapper to update both local and App state
   const setUser = (newUser) => {
     setLocalUser(newUser);
@@ -61,12 +61,12 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
   // Data states
   const [activeTab, setActiveTab] = useState('posts');
   const [analyticsPeriod, setAnalyticsPeriod] = useState('30d');
-  
+
   // Use profile data hook để lấy dữ liệu từ API (chỉ khi user đã được load)
   // API trả về user.id (không phải _id), nên cần check cả 2
   const userId = user?.id || user?._id || null;
   const profileData = useProfileData(userId);
-  const { 
+  const {
     data: { posts = [], friends = [], analytics = null, recentImages = [] },
     loading: { posts: postsLoading = false, friends: friendsLoading = false, analytics: analyticsLoading = false },
     loadPosts,
@@ -74,39 +74,39 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
     loadAnalytics,
     refreshAll,
   } = profileData;
-  
-  
+
+
   const { savedMap, updateSavedState } = useSavedPosts(posts);
 
   // Refs để cleanup async operations
   const abortControllerRef = useRef(null);
 
   // ==================== EFFECTS & API ====================
-  
+
   // Load user data on mount
   useEffect(() => {
     let isMounted = true;
     abortControllerRef.current = new AbortController();
 
-  async function load() {
+    async function load() {
       try {
-    const res = await api("/api/auth/me");
+        const res = await api("/api/auth/me");
         if (isMounted && !abortControllerRef.current?.signal.aborted) {
-    // Đảm bảo user object có cả id và _id để tương thích
-    const userData = {
-      ...res.user,
-      _id: res.user.id || res.user._id, // Đảm bảo có _id
-      id: res.user.id || res.user._id,   // Đảm bảo có id
-    };
-    setUser(userData);
-    setForm({
-      ...userData,
-      password: "",
+          // Đảm bảo user object có cả id và _id để tương thích
+          const userData = {
+            ...res.user,
+            _id: res.user.id || res.user._id, // Đảm bảo có _id
+            id: res.user.id || res.user._id,   // Đảm bảo có id
+          };
+          setUser(userData);
+          setForm({
+            ...userData,
+            password: "",
             postsCount: userData.postsCount || 0,
             friendsCount: userData.friendsCount || 0,
           });
         }
-    } catch (error) {
+      } catch (error) {
         if (isMounted && !abortControllerRef.current?.signal.aborted) {
         }
       }
@@ -122,7 +122,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
 
   // Posts sẽ tự động load khi user._id thay đổi thông qua useProfileData hook
   // Hook đã tự động handle việc load posts khi userId thay đổi
-  
+
   // Update posts count when posts change
   useEffect(() => {
     if (posts.length >= 0) { // >= 0 để cập nhật cả khi posts = []
@@ -138,7 +138,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
     loadFriends();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, user?._id]);
-  
+
   // Reload friends khi chuyển sang tab friends (để đảm bảo data mới nhất)
   useEffect(() => {
     const currentUserId = user?.id || user?._id;
@@ -146,7 +146,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
     loadFriends();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
-  
+
   // Update friends count when friends change
   useEffect(() => {
     if (friends.length >= 0) { // >= 0 để cập nhật cả khi friends = []
@@ -162,7 +162,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
     loadAnalytics(analyticsPeriod);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, user?._id, analyticsPeriod]);
-  
+
   // Reload analytics khi chuyển sang tab analytics (để đảm bảo data mới nhất)
   useEffect(() => {
     const currentUserId = user?.id || user?._id;
@@ -174,9 +174,9 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
   // ==================== HANDLERS ====================
 
   const handleCoverChange = async (e) => {
-                   const file = e.target.files?.[0];
+    const file = e.target.files?.[0];
     if (!file) return;
-                   setAvatarUploading(true);
+    setAvatarUploading(true);
     try {
       const { url } = await uploadImage(file);
       setForm(f => ({ ...f, coverUrl: url }));
@@ -190,7 +190,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
   };
 
   const handleAvatarClick = (e) => {
-                          const file = e.target.files?.[0];
+    const file = e.target.files?.[0];
     if (file) {
       setSelectedAvatarFile(file);
       setShowAvatarCropper(true);
@@ -202,23 +202,30 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
     try {
       const res = await api("/api/auth/update-profile", { method: "PUT", body: filteredData });
       if (res.user) {
-        setUser(res.user);
-        setForm({ 
-          ...res.user, 
+        // Reload fresh user data from API to ensure UI has latest data
+        const freshUserRes = await api("/api/auth/me");
+        const userData = {
+          ...freshUserRes.user,
+          _id: freshUserRes.user.id || freshUserRes.user._id,
+          id: freshUserRes.user.id || freshUserRes.user._id,
+        };
+
+        setUser(userData);
+        setForm({
+          ...userData,
           password: "",
-          postsCount: res.user.postsCount || 0,
-          friendsCount: res.user.friendsCount || 0,
+          postsCount: userData.postsCount || 0,
+          friendsCount: userData.friendsCount || 0,
         });
         setEditing(false);
-        
+
         // Reload tất cả dữ liệu sau khi update profile
-        const updatedUserId = res.user.id || res.user._id;
+        const updatedUserId = userData.id || userData._id;
         if (updatedUserId) {
-          // Sử dụng refreshAll để reload tất cả dữ liệu với period hiện tại
           await refreshAll(analyticsPeriod);
         }
-        
-        showSuccess("Đã lưu thay đổi!"); 
+
+        showSuccess("Đã lưu thay đổi!");
       }
     } catch (err) {
       showError(err.message || 'Lỗi khi lưu thay đổi');
@@ -228,30 +235,30 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
   };
 
   const handleAvatarCropComplete = async (croppedBlob) => {
-            try {
-              setAvatarUploading(true);
-              setShowAvatarCropper(false);
-              
-              // Convert blob to File
-              const croppedFile = new File([croppedBlob], selectedAvatarFile.name, {
-                type: 'image/png',
-                lastModified: Date.now()
-              });
-              
-              // Upload cropped image
-              const { url } = await uploadImage(croppedFile);
-              setForm(f => ({ ...f, avatarUrl: url }));
-      
+    try {
+      setAvatarUploading(true);
+      setShowAvatarCropper(false);
+
+      // Convert blob to File
+      const croppedFile = new File([croppedBlob], selectedAvatarFile.name, {
+        type: 'image/png',
+        lastModified: Date.now()
+      });
+
+      // Upload cropped image
+      const { url } = await uploadImage(croppedFile);
+      setForm(f => ({ ...f, avatarUrl: url }));
+
       // Update user object as well
       setUser(prev => prev ? { ...prev, avatarUrl: url } : null);
-              
-              // Reset state
-              setSelectedAvatarFile(null);
-            } catch (err) {
-              showError("Tải lên thất bại: " + err.message);
-            } finally {
-              setAvatarUploading(false);
-            }
+
+      // Reset state
+      setSelectedAvatarFile(null);
+    } catch (err) {
+      showError("Tải lên thất bại: " + err.message);
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   const handleLoadPosts = async () => {
@@ -358,13 +365,13 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
                 id: res.user.id || res.user._id,   // Đảm bảo có id
               };
               setUser(userData);
-              setForm({ 
-                ...userData, 
+              setForm({
+                ...userData,
                 password: "",
                 postsCount: userData.postsCount || 0,
                 friendsCount: userData.friendsCount || 0,
               });
-              
+
               // Reload tất cả dữ liệu sau khi update customization
               const updatedUserId = userData.id || userData._id;
               if (updatedUserId) {
@@ -378,7 +385,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
           onClose={() => setShowCustomization(false)}
         />
       )}
-      
+
       {showAvatarCropper && selectedAvatarFile && (
         <AvatarCropper
           imageFile={selectedAvatarFile}
