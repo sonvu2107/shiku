@@ -363,32 +363,58 @@ router.get("/session",
 
 /**
  * POST /logout - Đăng xuất
+ * Không yêu cầu auth hợp lệ - luôn clear cookies
  */
 router.post("/logout",
-  authRequired,
   async (req, res, next) => {
     try {
-      if (req.token) {
-        await logout({ accessToken: req.token });
+      // Cố gắng lấy token từ request (không bắt buộc phải valid)
+      const token = req.cookies?.accessToken || 
+                    req.headers.authorization?.replace('Bearer ', '');
+      
+      // Nếu có token, cố gắng logout trên server (invalidate token)
+      if (token) {
+        try {
+          await logout({ accessToken: token });
+        } catch (logoutErr) {
+          // Silent - token có thể đã invalid
+        }
       }
 
-      res.clearCookie("accessToken");
-      res.clearCookie("refreshToken");
+      // Luôn clear cookies với đúng options (quan trọng cho production)
+      const clearOptions = buildCookieOptions(0);
+      res.clearCookie("accessToken", clearOptions);
+      res.clearCookie("refreshToken", clearOptions);
 
-      if (req.user) {
-        await User.findByIdAndUpdate(req.user._id, {
-          isOnline: false,
-          lastSeen: new Date()
-        });
+      // Cố gắng update user status nếu có thể decode token
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET, { ignoreExpiration: true });
+          if (decoded?.id) {
+            await User.findByIdAndUpdate(decoded.id, {
+              isOnline: false,
+              lastSeen: new Date()
+            });
+          }
+        } catch (decodeErr) {
+          // Silent - token có thể hoàn toàn invalid
+        }
       }
 
       logSecurityEvent(LOG_LEVELS.INFO, SECURITY_EVENTS.LOGOUT, {
-        userId: req.user?.id,
+        userId: req.user?.id || 'unknown',
         ip: req.ip
       }, req);
 
       res.json({ message: "Đăng xuất thành công" });
     } catch (error) {
+      // Even on error, try to clear cookies
+      try {
+        const clearOptions = buildCookieOptions(0);
+        res.clearCookie("accessToken", clearOptions);
+        res.clearCookie("refreshToken", clearOptions);
+      } catch (e) {}
+      
       next(error);
     }
   }
