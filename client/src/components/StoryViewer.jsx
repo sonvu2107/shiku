@@ -8,7 +8,7 @@ import VerifiedBadge from './VerifiedBadge';
  * StoryViewer - Component xem stories fullscreen
  * Automatically switch stories, progress bars, and reactions
  */
-export default function StoryViewer({ 
+export default function StoryViewer({
   storiesGroup, // { _id: userId, stories: [], latestStory: {}, storyCount: N }
   initialStoryIndex = 0,
   onClose,
@@ -25,10 +25,10 @@ export default function StoryViewer({
   const [showReactionsList, setShowReactionsList] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   const progressInterval = useRef(null);
   const videoRef = useRef(null);
-  
+
   const stories = storiesGroup?.stories || [];
   const currentStory = stories[currentIndex];
   const isOwner = currentUser?._id === storiesGroup?._id?._id || currentUser?._id === storiesGroup?._id;
@@ -36,7 +36,7 @@ export default function StoryViewer({
   // Helper functions for safe callbacks
   const safeClose = () => setTimeout(onClose, 0);
   const safeDelete = (storyId) => setTimeout(() => onDelete?.(storyId), 0);
-  
+
   // Story duration (seconds) - Increase display time for videos
   const getDuration = () => {
     if (currentStory?.mediaType === 'video' && videoRef.current) {
@@ -80,7 +80,7 @@ export default function StoryViewer({
       if (isPaused) {
         videoRef.current.pause();
       } else {
-        videoRef.current.play().catch(() => {});
+        videoRef.current.play().catch(() => { });
       }
     }
   }, [isPaused, currentStory]);
@@ -93,9 +93,9 @@ export default function StoryViewer({
       // Use setTimeout to ensure this runs after render
       const timeoutId = setTimeout(() => {
         api(`/api/stories/${currentStory._id}/view`, { method: 'POST' })
-          .catch(() => {}); // Silent fail
+          .catch(() => { }); // Silent fail
       }, 0);
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [currentStory?._id, isOwner]);
@@ -127,15 +127,15 @@ export default function StoryViewer({
    */
   const handleReaction = async (type) => {
     if (!currentStory) return;
-    
+
     try {
       const response = await api(`/api/stories/${currentStory._id}/react`, {
         method: 'POST',
         body: { type }
       });
-      
+
       // Note: Reactions will be updated when parent component reloads
-      
+
       setShowReactions(false);
     } catch (err) {
       // Silent fail - reaction will not be shown
@@ -147,7 +147,7 @@ export default function StoryViewer({
    */
   const loadViewers = async () => {
     if (!isOwner || !currentStory) return;
-    
+
     setLoading(true);
     try {
       const response = await api(`/api/stories/${currentStory._id}/views`);
@@ -165,7 +165,7 @@ export default function StoryViewer({
    */
   const loadReactions = async () => {
     if (!isOwner || !currentStory) return;
-    
+
     setLoading(true);
     try {
       const response = await api(`/api/stories/${currentStory._id}/reactions`);
@@ -183,19 +183,19 @@ export default function StoryViewer({
    */
   const handleDelete = async () => {
     if (!isOwner || !currentStory) return;
-    
+
     if (!confirm('Bạn có chắc muốn xóa story này?')) return;
-    
+
     try {
       await api(`/api/stories/${currentStory._id}`, { method: 'DELETE' });
-      
+
       // Defer all callbacks to avoid state update during render
       setTimeout(() => {
         // Callback to parent
         if (onDelete) {
           onDelete(currentStory._id);
         }
-        
+
         // Move to next or close after parent update
         if (stories.length > 1) {
           setCurrentIndex(prev => prev + 1);
@@ -204,7 +204,7 @@ export default function StoryViewer({
           onClose(); // Không cần lồng setTimeout nữa
         }
       }, 0);
-      
+
     } catch (err) {
       alert('Lỗi xóa story: ' + err.message);
     }
@@ -228,8 +228,9 @@ export default function StoryViewer({
   const author = storiesGroup._id;
 
   return (
-    <div 
+    <div
       className="story-viewer fixed inset-0 bg-black z-[9999] flex items-center justify-center"
+      data-story-viewer
       onClick={(e) => {
         // Click outside to close (only on desktop)
         if (e.target === e.currentTarget && window.innerWidth >= 768) {
@@ -258,20 +259,20 @@ export default function StoryViewer({
           animation: slideInFromLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
       `}</style>
-      
+
       {/* Story Container - Mobile Fullscreen, Desktop Card */}
       <div className="relative w-full h-full md:w-[400px] md:h-[85vh] md:max-h-[800px] bg-black md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col">
-        
+
         {/* Top Gradient Overlay for visibility */}
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/60 to-transparent z-10 pointer-events-none" />
-        
+
         {/* Progress Bars */}
         <div className="absolute top-0 left-0 right-0 flex gap-1 p-3 z-20 pt-safe-top">
           {stories.map((_, idx) => (
             <div key={idx} className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
-              <div 
+              <div
                 className="h-full bg-white transition-all duration-100 ease-linear"
-                style={{ 
+                style={{
                   width: idx < currentIndex ? '100%' : idx === currentIndex ? `${progress}%` : '0%'
                 }}
               />
@@ -302,7 +303,7 @@ export default function StoryViewer({
                   const now = new Date();
                   const storyTime = new Date(currentStory.createdAt);
                   const diffMinutes = Math.floor((now - storyTime) / (1000 * 60));
-                  
+
                   if (diffMinutes < 1) return 'Vừa xong';
                   if (diffMinutes < 60) return `${diffMinutes} phút`;
                   if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)} giờ`;
@@ -311,7 +312,7 @@ export default function StoryViewer({
               </p>
             </div>
           </div>
-          
+
           {/* Right Controls */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {/* Pause/Play Button */}
@@ -320,9 +321,9 @@ export default function StoryViewer({
               className="text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 backdrop-blur-md"
             >
               {isPaused ? (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
               ) : (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /></svg>
               )}
             </button>
 
@@ -332,10 +333,10 @@ export default function StoryViewer({
                 onClick={(e) => { e.stopPropagation(); setShowViewers(!showViewers); }}
                 className="text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 backdrop-blur-md"
               >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
               </button>
             )}
-            
+
             {/* Close */}
             <button
               onClick={(e) => { e.stopPropagation(); safeClose(); }}
@@ -347,7 +348,7 @@ export default function StoryViewer({
         </div>
 
         {/* Story Content Area */}
-        <div 
+        <div
           className="flex-1 relative flex items-center justify-center bg-black"
           onMouseDown={() => setIsPaused(true)}
           onMouseUp={() => setIsPaused(false)}
@@ -361,7 +362,7 @@ export default function StoryViewer({
               className="w-1/3 h-full outline-none focus:outline-none"
               disabled={currentIndex === 0}
             />
-            <div 
+            <div
               className="w-1/3 h-full"
               onClick={() => setIsPaused(!isPaused)}
             />
@@ -390,7 +391,7 @@ export default function StoryViewer({
               onLoadedMetadata={() => setProgress(0)}
             />
           )}
-          
+
           {/* Caption Overlay */}
           {currentStory.caption && (
             <div className="absolute bottom-32 left-0 right-0 z-10 px-6">
@@ -411,34 +412,34 @@ export default function StoryViewer({
           {/* Reaction Button for non-owners */}
           {!isOwner && (
             <div className="flex items-center gap-4">
-               <div className="relative flex-1">
-                  <input 
-                     type="text" 
-                     placeholder="Gửi tin nhắn..." 
-                     className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-5 py-3 text-white placeholder-white/50 focus:outline-none focus:border-white/40 transition-colors text-sm"
-                  />
-               </div>
-               <button
-                  onClick={() => setShowReactions(!showReactions)}
-                  className="bg-white/10 backdrop-blur-md text-white rounded-full p-3 hover:bg-white/20 transition-all border border-white/20"
-               >
-                  <Heart size={20} className={showReactions ? "fill-red-500 text-red-500" : ""} />
-               </button>
-                
-                {/* Reactions Popup */}
-                {showReactions && (
-                  <div className="absolute right-0 bottom-full mb-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full p-2 flex gap-2 animate-slide-from-left shadow-2xl">
-                    {Object.entries(reactionConfig).map(([type, { Icon, color }], index) => (
-                      <button
-                        key={type}
-                        onClick={() => handleReaction(type)}
-                        className={`p-2 hover:scale-125 transition-all duration-200 rounded-full hover:bg-white/20 ${color}`}
-                      >
-                        <Icon size={24} />
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Gửi tin nhắn..."
+                  className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-5 py-3 text-white placeholder-white/50 focus:outline-none focus:border-white/40 transition-colors text-sm"
+                />
+              </div>
+              <button
+                onClick={() => setShowReactions(!showReactions)}
+                className="bg-white/10 backdrop-blur-md text-white rounded-full p-3 hover:bg-white/20 transition-all border border-white/20"
+              >
+                <Heart size={20} className={showReactions ? "fill-red-500 text-red-500" : ""} />
+              </button>
+
+              {/* Reactions Popup */}
+              {showReactions && (
+                <div className="absolute right-0 bottom-full mb-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full p-2 flex gap-2 animate-slide-from-left shadow-2xl">
+                  {Object.entries(reactionConfig).map(([type, { Icon, color }], index) => (
+                    <button
+                      key={type}
+                      onClick={() => handleReaction(type)}
+                      className={`p-2 hover:scale-125 transition-all duration-200 rounded-full hover:bg-white/20 ${color}`}
+                    >
+                      <Icon size={24} />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -455,7 +456,7 @@ export default function StoryViewer({
                   {currentStory.viewCount || 0}
                 </span>
               </button>
-              
+
               <button
                 onClick={() => setShowAnalytics(true)}
                 className="bg-white/10 backdrop-blur-md text-white rounded-xl px-4 py-3 flex items-center gap-2 hover:bg-white/20 transition-all border border-white/10 flex-1 justify-center"
@@ -463,7 +464,7 @@ export default function StoryViewer({
                 <BarChart3 size={18} />
                 <span className="text-sm font-bold">Thống kê</span>
               </button>
-              
+
               <button
                 onClick={handleDelete}
                 className="bg-red-500/20 backdrop-blur-md text-red-400 rounded-xl px-4 py-3 flex items-center gap-2 hover:bg-red-500/30 transition-all border border-red-500/20 flex-1 justify-center"
@@ -478,11 +479,11 @@ export default function StoryViewer({
 
       {/* Viewers Modal - Modern Style */}
       {showViewers && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center z-[10000] p-0 md:p-4"
           onClick={() => setShowViewers(false)}
         >
-          <div 
+          <div
             className="bg-white dark:bg-neutral-900 rounded-t-[32px] md:rounded-3xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
@@ -494,25 +495,25 @@ export default function StoryViewer({
             </div>
             <div className="p-2 overflow-y-auto flex-1">
               {viewersList.length === 0 ? (
-                 <div className="py-10 text-center text-neutral-500 dark:text-neutral-400">Chưa có ai xem tin này</div>
+                <div className="py-10 text-center text-neutral-500 dark:text-neutral-400">Chưa có ai xem tin này</div>
               ) : (
-                 viewersList.map((view, idx) => (
-                   <div key={idx} className="flex items-center justify-between p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-2xl transition-colors">
-                     <div className="flex items-center gap-3">
-                       <img
-                         src={view.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(view.user?.name || 'User')}`}
-                         alt={view.user?.name}
-                         className="w-10 h-10 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
-                       />
-                       <div>
-                         <p className="font-bold text-sm dark:text-white">{view.user?.name}</p>
-                         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                           {new Date(view.viewedAt).toLocaleString('vi-VN')}
-                         </p>
-                       </div>
-                     </div>
-                   </div>
-                 ))
+                viewersList.map((view, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-2xl transition-colors">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={view.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(view.user?.name || 'User')}`}
+                        alt={view.user?.name}
+                        className="w-10 h-10 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
+                      />
+                      <div>
+                        <p className="font-bold text-sm dark:text-white">{view.user?.name}</p>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          {new Date(view.viewedAt).toLocaleString('vi-VN')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
@@ -521,11 +522,11 @@ export default function StoryViewer({
 
       {/* Reactions Modal - Modern Style */}
       {showReactionsList && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center z-[10000] p-0 md:p-4"
           onClick={() => setShowReactionsList(false)}
         >
-          <div 
+          <div
             className="bg-white dark:bg-neutral-900 rounded-t-[32px] md:rounded-3xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
@@ -537,31 +538,31 @@ export default function StoryViewer({
             </div>
             <div className="p-2 overflow-y-auto flex-1">
               {reactionsList.length === 0 ? (
-                 <div className="py-10 text-center text-neutral-500 dark:text-neutral-400">Chưa có cảm xúc nào</div>
+                <div className="py-10 text-center text-neutral-500 dark:text-neutral-400">Chưa có cảm xúc nào</div>
               ) : (
-                 reactionsList.map((reaction, idx) => {
-                   const { Icon, color } = reactionConfig[reaction.type] || { Icon: Heart, color: 'text-red-500' };
-                   return (
-                     <div key={idx} className="flex items-center justify-between p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-2xl transition-colors">
-                       <div className="flex items-center gap-3">
-                         <img
-                           src={reaction.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(reaction.user?.name || 'User')}`}
-                           alt={reaction.user?.name}
-                           className="w-10 h-10 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
-                         />
-                         <div>
-                           <p className="font-bold text-sm dark:text-white">{reaction.user?.name}</p>
-                           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                             {new Date(reaction.reactedAt).toLocaleString('vi-VN')}
-                           </p>
-                         </div>
-                       </div>
-                       <div className={`${color} flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 rounded-full`}>
-                         <Icon size={16} />
-                       </div>
-                     </div>
-                   );
-                 })
+                reactionsList.map((reaction, idx) => {
+                  const { Icon, color } = reactionConfig[reaction.type] || { Icon: Heart, color: 'text-red-500' };
+                  return (
+                    <div key={idx} className="flex items-center justify-between p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-2xl transition-colors">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={reaction.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(reaction.user?.name || 'User')}`}
+                          alt={reaction.user?.name}
+                          className="w-10 h-10 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
+                        />
+                        <div>
+                          <p className="font-bold text-sm dark:text-white">{reaction.user?.name}</p>
+                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                            {new Date(reaction.reactedAt).toLocaleString('vi-VN')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className={`${color} flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 rounded-full`}>
+                        <Icon size={16} />
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>

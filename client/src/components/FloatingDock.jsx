@@ -35,6 +35,7 @@ export default function FloatingDock() {
         document.querySelector('[data-profile-customization-modal]') ||
         document.querySelector('[data-image-viewer]') ||
         document.querySelector('[data-media-viewer]') ||
+        document.querySelector('[data-story-viewer]') ||
         document.querySelector('.fixed.inset-0.z-\\[110\\]') ||
         document.querySelector('.fixed.inset-0.z-\\[50\\]');
       setIsModalOpen(!!modal);

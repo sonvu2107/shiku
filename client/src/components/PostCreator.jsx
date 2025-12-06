@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { Globe, Lock, Image, Users, BarChart3, Plus, X, Loader2 } from "lucide-react";
+import { Globe, Lock, Image, Users, BarChart3, Plus, X, Loader2, Youtube } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BanNotification from "./BanNotification";
 import MarkdownEditor from "./MarkdownEditor";
@@ -53,7 +53,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
   const [pollExpiresIn, setPollExpiresIn] = useState(""); // Expiry in days
   const [pollIsPublic, setPollIsPublic] = useState(true); // Whether poll votes are public
   const [pollAllowMultiple, setPollAllowMultiple] = useState(false); // Allow multiple choices
-  
+
   // YouTube Music states
   const [youtubeUrl, setYoutubeUrl] = useState(""); // YouTube URL for music embed
   const [showYoutubeInput, setShowYoutubeInput] = useState(false); // Show YouTube input field
@@ -61,7 +61,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
   const navigate = useNavigate();
 
   // ==================== EFFECTS ====================
-  
+
   // Load user's groups
   useEffect(() => {
     const loadGroups = async () => {
@@ -99,7 +99,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
       showError("Vui lòng nhập tiêu đề");
       return;
     }
-    
+
     // Content is optional if poll is present
     if (!hasPoll && !content.trim()) {
       setErr("Vui lòng nhập nội dung hoặc tạo poll");
@@ -232,7 +232,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
   const handleFilesUpload = async (e) => {
     const selectedFiles = Array.from(e.target.files);
     if (!selectedFiles.length) return;
-    
+
     setUploading(true);
     try {
       // Create a FormData object for multiple files
@@ -244,7 +244,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
         method: "POST",
         body: formData
       });
-      
+
       // Append uploaded files to state
       if (data.files) {
         setFiles(prev => {
@@ -286,35 +286,43 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
         className="hidden"
         aria-hidden="true"
       />
-      
-      {/* Trigger Input Card - Monochrome Luxury Style (chỉ hiển thị khi không có groupId và không bị ẩn) */}
+
+      {/* Trigger Input Card - Monochrome Luxury Style */}
       {!groupId && !hideTrigger && (
         <div
           onClick={() => setShowModal(true)}
-          className="bg-white dark:bg-neutral-900 rounded-3xl shadow-lg border border-neutral-200 dark:border-neutral-800 p-5 cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.01]"
+          className="bg-white dark:bg-neutral-900 rounded-2xl sm:rounded-3xl shadow-lg border border-neutral-200 dark:border-neutral-800 p-3 sm:p-5 cursor-pointer hover:shadow-xl transition-all duration-300 active:scale-[0.98] sm:hover:scale-[1.01]"
         >
-        <div className="flex items-center gap-4">
-          <UserAvatar 
-            user={user}
-            size={40}
-            showFrame={true}
-            showBadge={true}
-          />
-          <div className="flex-1 text-neutral-500 dark:text-neutral-400 text-base font-medium">
-            {userDisplayName} ơi, bạn đang nghĩ gì?
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" title="Thêm ảnh/video">
-              <Image size={20} className="text-neutral-400 dark:text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors" />
+          <div className="flex items-center gap-3 sm:gap-4">
+            <UserAvatar
+              user={user}
+              size={36}
+              showFrame={true}
+              showBadge={true}
+              className="sm:hidden"
+            />
+            <UserAvatar
+              user={user}
+              size={40}
+              showFrame={true}
+              showBadge={true}
+              className="hidden sm:block"
+            />
+            <div className="flex-1 text-neutral-500 dark:text-neutral-400 text-sm sm:text-base font-medium truncate">
+              Bạn đang nghĩ gì?
             </div>
-            <div className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" title="Tạo bình chọn">
-              <BarChart3 size={20} className="text-neutral-400 dark:text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors" />
+            <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+              <div className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" title="Thêm ảnh/video">
+                <Image size={20} className="text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors" />
+              </div>
+              <div className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" title="Tạo bình chọn">
+                <BarChart3 size={20} className="text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors" />
+              </div>
             </div>
           </div>
-        </div>
         </div>
       )}
-      
+
       {/* Modal - Monochrome Luxury with Glassmorphism */}
       <AnimatePresence>
         {showModal && (
@@ -322,29 +330,29 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[110] p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-end sm:items-center justify-center z-[110] p-0 sm:p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) handleClose();
             }}
             data-post-creator-modal
           >
             <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
               transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-              className="bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl border border-neutral-200/50 dark:border-neutral-800/50"
+              className="bg-white dark:bg-neutral-900 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden shadow-2xl border-t sm:border border-neutral-200 dark:border-neutral-800"
             >
-              {/* Glass Header - Sticky */}
-              <div className="sticky top-0 z-10 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-200 dark:border-neutral-800 px-6 py-4">
+              {/* Header */}
+              <div className="sticky top-0 z-10 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border-b border-neutral-200 dark:border-neutral-800 px-4 sm:px-6 py-3 sm:py-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-black text-neutral-900 dark:text-white">Tạo bài viết</h2>
+                  <h2 className="text-lg sm:text-2xl font-black text-neutral-900 dark:text-white">Tạo bài viết</h2>
                   <button
                     onClick={handleClose}
-                    className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white w-10 h-10 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200"
+                    className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200"
                     aria-label="Đóng"
                   >
-                    <X size={20} strokeWidth={2.5} />
+                    <X size={18} className="sm:w-5 sm:h-5" strokeWidth={2.5} />
                   </button>
                 </div>
               </div>
@@ -353,7 +361,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                   {/* Avatar + Privacy */}
                   <div className="flex items-center gap-4">
-                    <UserAvatar 
+                    <UserAvatar
                       user={user}
                       size={40}
                       showFrame={true}
@@ -494,10 +502,10 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                   </div>
 
                   {/* Actions - Minimalist Icons */}
-                  <div className="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-800">
-                    <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-all duration-200 group" title="Thêm ảnh/video">
-                      <Image size={18} className="text-neutral-500 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors" strokeWidth={2.5} />
-                      <span className="text-sm font-bold text-neutral-600 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors">
+                  <div className="flex items-center gap-1 sm:gap-2 pt-3 sm:pt-4 border-t border-neutral-200 dark:border-neutral-800 flex-wrap">
+                    <label className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-all duration-200 group" title="Thêm ảnh/video">
+                      <Image size={16} className="sm:w-[18px] sm:h-[18px] text-neutral-500 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors" strokeWidth={2.5} />
+                      <span className="text-xs sm:text-sm font-bold text-neutral-600 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors">
                         {uploading ? "Đang tải..." : "Ảnh/Video"}
                       </span>
                       <input
@@ -512,33 +520,31 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                     <button
                       type="button"
                       onClick={() => setHasPoll(!hasPoll)}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
-                        hasPoll
-                          ? "bg-neutral-900 dark:bg-white text-white dark:text-black"
-                          : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                      }`}
+                      className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all duration-200 group ${hasPoll
+                        ? "bg-neutral-900 dark:bg-white text-white dark:text-black"
+                        : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                        }`}
                       title="Tạo bình chọn"
                     >
-                      <BarChart3 size={18} className={hasPoll ? "text-white dark:text-black" : "text-neutral-500 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"} strokeWidth={2.5} />
-                      <span className={`text-sm font-bold ${hasPoll ? "text-white dark:text-black" : "text-neutral-600 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"}`}>
+                      <BarChart3 size={16} className={`sm:w-[18px] sm:h-[18px] ${hasPoll ? "text-white dark:text-black" : "text-neutral-500 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"}`} strokeWidth={2.5} />
+                      <span className={`text-xs sm:text-sm font-bold ${hasPoll ? "text-white dark:text-black" : "text-neutral-600 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"}`}>
                         Bình chọn
                       </span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowYoutubeInput(!showYoutubeInput)}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
-                        showYoutubeInput || youtubeUrl
-                          ? "bg-neutral-900 dark:bg-white text-white dark:text-black"
-                          : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                      }`}
+                      className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all duration-200 group ${showYoutubeInput || youtubeUrl
+                        ? "bg-red-600 text-white"
+                        : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                        }`}
                       title="Thêm nhạc từ YouTube"
                     >
-                      <span className={`text-sm font-bold ${
-                        showYoutubeInput || youtubeUrl 
-                          ? "text-white dark:text-black" 
-                          : "text-neutral-600 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"
-                      }`}>
+                      <Youtube size={16} className={`sm:w-[18px] sm:h-[18px] ${showYoutubeInput || youtubeUrl ? "text-white" : "text-red-500 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors"}`} strokeWidth={2.5} />
+                      <span className={`text-xs sm:text-sm font-bold ${showYoutubeInput || youtubeUrl
+                        ? "text-white"
+                        : "text-neutral-600 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"
+                        }`}>
                         YouTube
                       </span>
                     </button>
@@ -745,11 +751,10 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                                 onChange={(e) => setPollAllowMultiple(e.target.checked)}
                                 className="sr-only"
                               />
-                              <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${
-                                pollAllowMultiple 
-                                  ? 'bg-neutral-900 dark:bg-white border-neutral-900 dark:border-white text-white dark:text-black' 
-                                  : 'border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 group-hover:border-neutral-900 dark:group-hover:border-white'
-                              }`}>
+                              <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${pollAllowMultiple
+                                ? 'bg-neutral-900 dark:bg-white border-neutral-900 dark:border-white text-white dark:text-black'
+                                : 'border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 group-hover:border-neutral-900 dark:group-hover:border-white'
+                                }`}>
                                 {pollAllowMultiple && (
                                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -768,11 +773,10 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                                 onChange={(e) => setPollIsPublic(e.target.checked)}
                                 className="sr-only"
                               />
-                              <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${
-                                pollIsPublic 
-                                  ? 'bg-neutral-900 dark:bg-white border-neutral-900 dark:border-white text-white dark:text-black' 
-                                  : 'border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 group-hover:border-neutral-900 dark:group-hover:border-white'
-                              }`}>
+                              <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${pollIsPublic
+                                ? 'bg-neutral-900 dark:bg-white border-neutral-900 dark:border-white text-white dark:text-black'
+                                : 'border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 group-hover:border-neutral-900 dark:group-hover:border-white'
+                                }`}>
                                 {pollIsPublic && (
                                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
