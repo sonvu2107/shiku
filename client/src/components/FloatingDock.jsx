@@ -1,14 +1,14 @@
 import React, { useRef, useState, useEffect } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
-import { 
-  Home, 
-  Compass, 
-  PlusSquare, 
-  UserCheck, 
-  Image, 
-  Bookmark, 
-  Calendar 
+import {
+  Home,
+  Compass,
+  PlusSquare,
+  UserCheck,
+  Image,
+  Bookmark,
+  Calendar
 } from "lucide-react";
 import { cn } from "../utils/cn";
 
@@ -17,7 +17,7 @@ const dockItems = [
   { icon: Home, label: "Trang chủ", href: "/" },
   { icon: Compass, label: "Khám phá", href: "/explore" },
   { icon: UserCheck, label: "Nhóm", href: "/groups" },
-  { icon: PlusSquare, label: "Đăng bài", href: "/new", isPrimary: true }, 
+  { icon: PlusSquare, label: "Đăng bài", href: "/new", isPrimary: true },
   { icon: Calendar, label: "Sự kiện", href: "/events" },
   { icon: Image, label: "Media", href: "/media" },
   { icon: Bookmark, label: "Bài đã lưu", href: "/saved" },
@@ -27,14 +27,16 @@ export default function FloatingDock() {
   let mouseX = useMotionValue(Infinity);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-      // Check if PostCreator or ProfileCustomization modal is open
+  // Check if PostCreator or ProfileCustomization modal is open
   useEffect(() => {
     const checkModal = () => {
       // Check if any modal element is currently displayed
-      const modal = document.querySelector('[data-post-creator-modal]') || 
-                    document.querySelector('[data-profile-customization-modal]') ||
-                    document.querySelector('.fixed.inset-0.z-\\[110\\]') ||
-                    document.querySelector('.fixed.inset-0.z-\\[50\\]');
+      const modal = document.querySelector('[data-post-creator-modal]') ||
+        document.querySelector('[data-profile-customization-modal]') ||
+        document.querySelector('[data-image-viewer]') ||
+        document.querySelector('[data-media-viewer]') ||
+        document.querySelector('.fixed.inset-0.z-\\[110\\]') ||
+        document.querySelector('.fixed.inset-0.z-\\[50\\]');
       setIsModalOpen(!!modal);
     };
 
@@ -77,9 +79,9 @@ export default function FloatingDock() {
 function DockIcon({ mouseX, item }) {
   const ref = useRef(null);
   const location = useLocation();
-  const isActive = location.pathname === item.href || 
-                   (item.href === "/" && location.pathname === "/home") ||
-                   (item.href === "/" && location.pathname === "/feed");
+  const isActive = location.pathname === item.href ||
+    (item.href === "/" && location.pathname === "/home") ||
+    (item.href === "/" && location.pathname === "/feed");
 
   // Calculate distance from mouse to icon
   let distance = useTransform(mouseX, (val) => {
@@ -112,39 +114,39 @@ function DockIcon({ mouseX, item }) {
       style={{ width }}
       className="aspect-square flex flex-col items-center justify-center gap-1 group relative"
     >
-        <motion.div
-          className={cn(
-            "flex h-full w-full items-center justify-center rounded-2xl transition-colors duration-200",
-            isActive 
-              ? "bg-black text-white dark:bg-neutral-700 dark:text-white" 
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100",
-            item.isPrimary && "bg-black text-white dark:bg-neutral-700 dark:text-white shadow-lg shadow-black/30 dark:shadow-neutral-900/30"
-          )}
-        >
-          <item.icon className={cn(
-            "h-5 w-5 md:h-6 md:w-6",
-            isActive && "dark:text-white",
-            !isActive && !item.isPrimary && "dark:text-gray-300 dark:group-hover:text-gray-100"
-          )} strokeWidth={item.isPrimary ? 2.5 : 2} />
-        </motion.div>
-        
-        {/* Tooltip (only visible on hover) */}
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white dark:text-gray-100 text-xs rounded-md whitespace-nowrap pointer-events-none z-50 shadow-lg dark:shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
-          {item.label}
-        </div>
-        
-        {/* Active dot */}
-        {isActive && !item.isPrimary && (
-          <span className="absolute -bottom-2 w-1 h-1 rounded-full bg-black dark:bg-white" />
+      <motion.div
+        className={cn(
+          "flex h-full w-full items-center justify-center rounded-2xl transition-colors duration-200",
+          isActive
+            ? "bg-black text-white dark:bg-neutral-700 dark:text-white"
+            : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100",
+          item.isPrimary && "bg-black text-white dark:bg-neutral-700 dark:text-white shadow-lg shadow-black/30 dark:shadow-neutral-900/30"
         )}
+      >
+        <item.icon className={cn(
+          "h-5 w-5 md:h-6 md:w-6",
+          isActive && "dark:text-white",
+          !isActive && !item.isPrimary && "dark:text-gray-300 dark:group-hover:text-gray-100"
+        )} strokeWidth={item.isPrimary ? 2.5 : 2} />
       </motion.div>
+
+      {/* Tooltip (only visible on hover) */}
+      <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white dark:text-gray-100 text-xs rounded-md whitespace-nowrap pointer-events-none z-50 shadow-lg dark:shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
+        {item.label}
+      </div>
+
+      {/* Active dot */}
+      {isActive && !item.isPrimary && (
+        <span className="absolute -bottom-2 w-1 h-1 rounded-full bg-black dark:bg-white" />
+      )}
+    </motion.div>
   );
 
   // If it's the "Đăng bài" button, use button instead of Link
   if (item.isPrimary) {
     return (
-      <button 
-        onClick={handleClick} 
+      <button
+        onClick={handleClick}
         className="outline-none border-none bg-transparent p-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded-2xl"
         aria-label={item.label}
         aria-pressed={isActive}
@@ -156,7 +158,7 @@ function DockIcon({ mouseX, item }) {
 
   // Other icons use Link as usual
   return (
-    <Link 
+    <Link
       to={item.href}
       aria-label={item.label}
       aria-current={isActive ? "page" : undefined}
@@ -166,4 +168,3 @@ function DockIcon({ mouseX, item }) {
     </Link>
   );
 }
-

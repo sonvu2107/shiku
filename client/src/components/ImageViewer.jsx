@@ -18,7 +18,7 @@ export default function ImageViewer({ isOpen, imageUrl, onClose, alt = "Ảnh" }
     } else {
       document.body.style.overflow = 'unset';
     }
-    
+
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -62,13 +62,16 @@ export default function ImageViewer({ isOpen, imageUrl, onClose, alt = "Ảnh" }
   if (!isOpen || !imageUrl) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
+      data-image-viewer
+    >
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black bg-opacity-90"
         onClick={onClose}
       />
-      
+
       {/* Image Container */}
       <div className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center">
         {/* Close Button */}

@@ -1,387 +1,387 @@
-  import React, { useRef, useEffect, useState, useMemo } from "react";
-  import MenuActions from "../components/MenuActions";
-  import { useNavigate, useParams, Link } from "react-router-dom";
-  import { api } from "../api";
-  import ReactMarkdown from "react-markdown";
+import React, { useRef, useEffect, useState, useMemo } from "react";
+import MenuActions from "../components/MenuActions";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { api } from "../api";
+import ReactMarkdown from "react-markdown";
 import MarkdownWithMentions from "../components/MarkdownWithMentions";
-  import CommentSection from "../components/CommentSection";
-  import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck, MessageCircle, Share2, MoreHorizontal, Loader2 } from "lucide-react";
-  import UserName from "../components/UserName";
-  import UserAvatar from "../components/UserAvatar";
-  import VerifiedBadge from "../components/VerifiedBadge";
-  import Poll from "../components/Poll";
-  import YouTubePlayer from "../components/YouTubePlayer";
-  import { useSEO } from "../utils/useSEO";
-  import { getOptimizedImageUrl } from "../utils/imageOptimization";
-  import LazyImage from "../components/LazyImageSimple";
-  import { formatDistanceToNow } from "date-fns";
-  import { vi } from "date-fns/locale";
-  import { cn } from "../utils/cn";
-  import { useToast } from "../contexts/ToastContext";
+import CommentSection from "../components/CommentSection";
+import { Expand, X, Eye, Lock, Globe, ThumbsUp, Bookmark, BookmarkCheck, MessageCircle, Share2, MoreHorizontal, Loader2 } from "lucide-react";
+import UserName from "../components/UserName";
+import UserAvatar from "../components/UserAvatar";
+import VerifiedBadge from "../components/VerifiedBadge";
+import Poll from "../components/Poll";
+import YouTubePlayer from "../components/YouTubePlayer";
+import { useSEO } from "../utils/useSEO";
+import { getOptimizedImageUrl } from "../utils/imageOptimization";
+import LazyImage from "../components/LazyImageSimple";
+import { formatDistanceToNow } from "date-fns";
+import { vi } from "date-fns/locale";
+import { cn } from "../utils/cn";
+import { useToast } from "../contexts/ToastContext";
 
+
+/**
+ * PostDetail - Trang chi tiết bài viết
+ * Hiển thị nội dung bài viết, media, emotes, comments và các actions
+ * Hỗ trợ media modal carousel và emote system
+ */
+export default function PostDetail() {
+  // ==================== UTILITY FUNCTIONS ====================
 
   /**
-   * PostDetail - Trang chi tiết bài viết
-   * Hiển thị nội dung bài viết, media, emotes, comments và các actions
-   * Hỗ trợ media modal carousel và emote system
+   * Format thời gian chi tiết cho tooltip
+   * @param {string} dateString - ISO date string
+   * @returns {string} Formatted date string
    */
-  export default function PostDetail() {
-    // ==================== UTILITY FUNCTIONS ====================
-    
-    /**
-     * Format thời gian chi tiết cho tooltip
-     * @param {string} dateString - ISO date string
-     * @returns {string} Formatted date string
-     */
-    function formatFullDate(dateString) {
-      const date = new Date(dateString);
-      return date.toLocaleString('vi-VN', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-    
-    /**
-     * Format thời gian dạng relative (x giờ trước, x ngày trước, etc.)
-     * @param {string} dateString - ISO date string
-     * @returns {string} Relative time string
-     */
-    function formatTimeAgo(dateString) {
-      const now = new Date();
-      const date = new Date(dateString);
-      const diffMs = now - date;
-      const diffSec = Math.floor(diffMs / 1000);
-      const diffMin = Math.floor(diffSec / 60);
-      const diffHour = Math.floor(diffMin / 60);
-      const diffDay = Math.floor(diffHour / 24);
-      const diffMonth = Math.floor(diffDay / 30);
-      
-      if (diffMonth >= 1) return `${diffMonth} tháng trước`;
-      if (diffDay >= 1) return `${diffDay} ngày trước`;
-      if (diffHour >= 1) return `${diffHour} giờ trước`;
-      if (diffMin >= 1) return `${diffMin} phút trước`;
-      return 'Vừa xong';
-    }
-    const { slug } = useParams();
-    const navigate = useNavigate();
-    const { showSuccess, showError } = useToast();
-    const [data, setDataRaw] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [deleting, setDeleting] = useState(false);
-    const [emoting, setEmoting] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [togglingStatus, setTogglingStatus] = useState(false);
-
-    // ==================== SEO ====================
-    // Trang chi tiết bài viết là public → index, follow
-    useSEO({
-      title: data?.post ? `${data.post.title} - Shiku` : "Bài viết - Shiku",
-      description: data?.post?.content 
-        ? `${data.post.content.substring(0, 160).replace(/\n/g, ' ')}...`
-        : "Xem bài viết trên Shiku",
-      robots: "index, follow",
-      canonical: data?.post?.slug ? `https://shiku.click/post/${data.post.slug}` : undefined
+  function formatFullDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
+  }
 
-    const [showEmoteList, setShowEmoteList] = useState(false);
-    const [activeTab, setActiveTab] = useState("all");
+  /**
+   * Format thời gian dạng relative (x giờ trước, x ngày trước, etc.)
+   * @param {string} dateString - ISO date string
+   * @returns {string} Relative time string
+   */
+  function formatTimeAgo(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    const diffMonth = Math.floor(diffDay / 30);
 
-    const setData = (updater) => {
-      setDataRaw(updater);
-      setLoading(false);
-    };
+    if (diffMonth >= 1) return `${diffMonth} tháng trước`;
+    if (diffDay >= 1) return `${diffDay} ngày trước`;
+    if (diffHour >= 1) return `${diffHour} giờ trước`;
+    if (diffMin >= 1) return `${diffMin} phút trước`;
+    return 'Vừa xong';
+  }
+  const { slug } = useParams();
+  const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
+  const [data, setDataRaw] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [emoting, setEmoting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [togglingStatus, setTogglingStatus] = useState(false);
 
-    const [user, setUser] = useState(null);
-    const [groupCtx, setGroupCtx] = useState(null); // { userRole, settings }
+  // ==================== SEO ====================
+  // Trang chi tiết bài viết là public → index, follow
+  useSEO({
+    title: data?.post ? `${data.post.title} - Shiku` : "Bài viết - Shiku",
+    description: data?.post?.content
+      ? `${data.post.content.substring(0, 160).replace(/\n/g, ' ')}...`
+      : "Xem bài viết trên Shiku",
+    robots: "index, follow",
+    canonical: data?.post?.slug ? `https://shiku.click/post/${data.post.slug}` : undefined
+  });
 
-    // Modal media
-    const [showMediaModal, setShowMediaModal] = useState(false);
-    const [currentIndex, setCurrentIndex] = useState(0);
+  const [showEmoteList, setShowEmoteList] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
 
-    const emoteMap = {
-      "👍": "like.gif",
-      "❤️": "care.gif",
-      "😂": "haha.gif",
-      "😮": "wow.gif",
-      "😢": "sad.gif",
-      "😡": "angry.gif"
-    };
-    const emotes = Object.keys(emoteMap);
-    const [showEmotePopup, setShowEmotePopup] = React.useState(false);
-    const emotePopupTimeout = React.useRef();
-    const [saved, setSaved] = useState(false);
-    const [emotesState, setEmotesState] = useState([]); // Local emote state
+  const setData = (updater) => {
+    setDataRaw(updater);
+    setLoading(false);
+  };
 
-    // Sync emotesState with data.post.emotes
-    useEffect(() => {
-      if (data?.post?.emotes) {
-        setEmotesState(data.post.emotes);
+  const [user, setUser] = useState(null);
+  const [groupCtx, setGroupCtx] = useState(null); // { userRole, settings }
+
+  // Modal media
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const emoteMap = {
+    "👍": "like.gif",
+    "❤️": "care.gif",
+    "😂": "haha.gif",
+    "😮": "wow.gif",
+    "😢": "sad.gif",
+    "😡": "angry.gif"
+  };
+  const emotes = Object.keys(emoteMap);
+  const [showEmotePopup, setShowEmotePopup] = React.useState(false);
+  const emotePopupTimeout = React.useRef();
+  const [saved, setSaved] = useState(false);
+  const [emotesState, setEmotesState] = useState([]); // Local emote state
+
+  // Sync emotesState with data.post.emotes
+  useEffect(() => {
+    if (data?.post?.emotes) {
+      setEmotesState(data.post.emotes);
+    }
+  }, [data?.post?.emotes]);
+
+  useEffect(() => {
+    if (!data || data.post?.slug !== slug) {
+      load();
+    }
+  }, [slug]);
+
+  // Tải người dùng từ bộ nhớ đệm
+  useEffect(() => {
+    (async () => {
+      try {
+        const { loadUser } = await import("../utils/userCache");
+        const cachedUser = await loadUser();
+        setUser(cachedUser);
+      } catch (_) {
+        setUser(null);
       }
-    }, [data?.post?.emotes]);
+    })();
+  }, []);
 
-    useEffect(() => {
-      if (!data || data.post?.slug !== slug) {
-        load();
-      }
-    }, [slug]);
-
-    // Tải người dùng từ bộ nhớ đệm
-    useEffect(() => {
-      (async () => {
-        try {
-          const { loadUser } = await import("../utils/userCache");
-          const cachedUser = await loadUser();
-          setUser(cachedUser);
-        } catch (_) {
-          setUser(null);
-        }
-      })();
-    }, []);
-
-    // Lấy ngữ cảnh nhóm nếu bài viết thuộc về nhóm
-    useEffect(() => {
-      const fetchGroupCtx = async () => {
-        try {
-          const groupId = data?.post?.group?._id || data?.post?.group?.id;
-          if (!groupId) { setGroupCtx(null); return; }
-          const res = await api(`/api/groups/${groupId}?t=${Date.now()}`);
-          if (res?.success && res?.data) {
-            setGroupCtx({ userRole: res.data.userRole || null, settings: res.data.settings || {} });
-          } else {
-            setGroupCtx(null);
-          }
-        } catch (_) {
-          // Nếu lỗi, đặt ngữ cảnh nhóm là null
+  // Lấy ngữ cảnh nhóm nếu bài viết thuộc về nhóm
+  useEffect(() => {
+    const fetchGroupCtx = async () => {
+      try {
+        const groupId = data?.post?.group?._id || data?.post?.group?.id;
+        if (!groupId) { setGroupCtx(null); return; }
+        const res = await api(`/api/groups/${groupId}?t=${Date.now()}`);
+        if (res?.success && res?.data) {
+          setGroupCtx({ userRole: res.data.userRole || null, settings: res.data.settings || {} });
+        } else {
           setGroupCtx(null);
         }
-      };
-      fetchGroupCtx();
-    }, [data?.post?.group?._id, data?.post?.group?.id]);
-
-    const commentTree = useMemo(() => {
-      return data?.comments || [];
-    }, [data?.comments]);
-
-    async function load() {
-      setLoading(true);
-      try {
-        const res = await api(`/api/posts/slug/${slug}`);
-        setData(res);
-        // Load saved status
-        if (user) {
-          try {
-            const savedRes = await api(`/api/posts/${res.post._id}/save`);
-            setSaved(!!savedRes.saved);
-          } catch (_) {}
-        }
-      } catch (e) {
-        showError("Không thể tải bài viết. Vui lòng thử lại.");
-      } finally {
-        setLoading(false);
+      } catch (_) {
+        // Nếu lỗi, đặt ngữ cảnh nhóm là null
+        setGroupCtx(null);
       }
-    }
+    };
+    fetchGroupCtx();
+  }, [data?.post?.group?._id, data?.post?.group?.id]);
 
-    async function deletePost() {
-      if (!window.confirm("Bạn có chắc muốn xóa bài này?")) return;
-      setDeleting(true);
-      try {
-        await api(`/api/posts/${data.post._id}`, { method: "DELETE" });
-        showSuccess("Đã xóa bài viết.");
-        setTimeout(() => navigate("/"), 500);
-      } catch (e) {
-        showError(e.message || "Không thể xóa bài viết.");
-        setDeleting(false);
+  const commentTree = useMemo(() => {
+    return data?.comments || [];
+  }, [data?.comments]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await api(`/api/posts/slug/${slug}`);
+      setData(res);
+      // Load saved status
+      if (user) {
+        try {
+          const savedRes = await api(`/api/posts/${res.post._id}/save`);
+          setSaved(!!savedRes.saved);
+        } catch (_) { }
       }
+    } catch (e) {
+      showError("Không thể tải bài viết. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
     }
+  }
 
-    async function emote(emoteType) {
-      if (emoting) return;
-      setEmoting(true);
-      // Optimistic update
-      const previousEmotes = [...emotesState];
-      const currentUserId = user?.id || user?._id;
-      const existingEmoteIndex = emotesState.findIndex(e => {
-        const emoteUserId = e.user?._id || e.user;
-        return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
-      });
-      
-      if (existingEmoteIndex >= 0) {
-        if (emotesState[existingEmoteIndex].type === emoteType) {
-          // Remove emote
-          const newEmotes = emotesState.filter((_, idx) => idx !== existingEmoteIndex);
-          setEmotesState(newEmotes);
-        } else {
-          // Change emote
-          const newEmotes = [...emotesState];
-          newEmotes[existingEmoteIndex] = { ...newEmotes[existingEmoteIndex], type: emoteType };
-          setEmotesState(newEmotes);
-        }
+  async function deletePost() {
+    if (!window.confirm("Bạn có chắc muốn xóa bài này?")) return;
+    setDeleting(true);
+    try {
+      await api(`/api/posts/${data.post._id}`, { method: "DELETE" });
+      showSuccess("Đã xóa bài viết.");
+      setTimeout(() => navigate("/"), 500);
+    } catch (e) {
+      showError(e.message || "Không thể xóa bài viết.");
+      setDeleting(false);
+    }
+  }
+
+  async function emote(emoteType) {
+    if (emoting) return;
+    setEmoting(true);
+    // Optimistic update
+    const previousEmotes = [...emotesState];
+    const currentUserId = user?.id || user?._id;
+    const existingEmoteIndex = emotesState.findIndex(e => {
+      const emoteUserId = e.user?._id || e.user;
+      return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
+    });
+
+    if (existingEmoteIndex >= 0) {
+      if (emotesState[existingEmoteIndex].type === emoteType) {
+        // Remove emote
+        const newEmotes = emotesState.filter((_, idx) => idx !== existingEmoteIndex);
+        setEmotesState(newEmotes);
       } else {
-        // Add emote
-        setEmotesState([...emotesState, { type: emoteType, user: user }]);
+        // Change emote
+        const newEmotes = [...emotesState];
+        newEmotes[existingEmoteIndex] = { ...newEmotes[existingEmoteIndex], type: emoteType };
+        setEmotesState(newEmotes);
       }
-      
-      try {
-        const res = await api(`/api/posts/${data.post._id}/emote`, {
-          method: "POST",
-          body: { emote: emoteType }
-        });
-        if (res && res.emotes) {
-          setEmotesState(res.emotes);
-        }
-      } catch (e) {
-        // Rollback on error
-        setEmotesState(previousEmotes);
-        showError(e.message || "Không thể thả cảm xúc.");
-      } finally {
-        setEmoting(false);
-      }
+    } else {
+      // Add emote
+      setEmotesState([...emotesState, { type: emoteType, user: user }]);
     }
 
-    async function toggleSave() {
-      if (saving) return;
-      setSaving(true);
-      const previousSaved = saved;
-      // Optimistic update
-      setSaved(!saved);
-      
-      try {
-        const res = await api(`/api/posts/${data.post._id}/save`, { method: "POST" });
-        setSaved(!!res.saved);
-        if (res.saved) {
-          showSuccess("Đã lưu bài viết.");
-        } else {
-          showSuccess("Đã bỏ lưu bài viết.");
-        }
-      } catch (e) {
-        // Rollback on error
-        setSaved(previousSaved);
-        showError(e.message || "Không thể lưu bài viết");
-      } finally {
-        setSaving(false);
+    try {
+      const res = await api(`/api/posts/${data.post._id}/emote`, {
+        method: "POST",
+        body: { emote: emoteType }
+      });
+      if (res && res.emotes) {
+        setEmotesState(res.emotes);
       }
+    } catch (e) {
+      // Rollback on error
+      setEmotesState(previousEmotes);
+      showError(e.message || "Không thể thả cảm xúc.");
+    } finally {
+      setEmoting(false);
     }
+  }
 
-    async function togglePostStatus() {
-      const currentStatus = data.post.status;
-      const newStatus = currentStatus === "private" ? "published" : "private";
-      const confirmMessage =
+  async function toggleSave() {
+    if (saving) return;
+    setSaving(true);
+    const previousSaved = saved;
+    // Optimistic update
+    setSaved(!saved);
+
+    try {
+      const res = await api(`/api/posts/${data.post._id}/save`, { method: "POST" });
+      setSaved(!!res.saved);
+      if (res.saved) {
+        showSuccess("Đã lưu bài viết.");
+      } else {
+        showSuccess("Đã bỏ lưu bài viết.");
+      }
+    } catch (e) {
+      // Rollback on error
+      setSaved(previousSaved);
+      showError(e.message || "Không thể lưu bài viết");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function togglePostStatus() {
+    const currentStatus = data.post.status;
+    const newStatus = currentStatus === "private" ? "published" : "private";
+    const confirmMessage =
+      newStatus === "private"
+        ? "Bạn có chắc muốn chuyển bài viết này thành riêng tư?"
+        : "Bạn có chắc muốn công khai bài viết này?";
+    if (!window.confirm(confirmMessage)) return;
+
+    setTogglingStatus(true);
+    // Optimistic update
+    setData((prev) => ({
+      ...prev,
+      post: { ...prev.post, status: newStatus }
+    }));
+
+    try {
+      await api(`/api/posts/${data.post._id}`, {
+        method: "PUT",
+        body: { status: newStatus }
+      });
+
+      showSuccess(
         newStatus === "private"
-          ? "Bạn có chắc muốn chuyển bài viết này thành riêng tư?"
-          : "Bạn có chắc muốn công khai bài viết này?";
-      if (!window.confirm(confirmMessage)) return;
-
-      setTogglingStatus(true);
-      // Optimistic update
+          ? "Đã chuyển trạng thái thành riêng tư"
+          : "Đã chuyển thành trạng thái công khai"
+      );
+    } catch (e) {
+      // Rollback on error
       setData((prev) => ({
         ...prev,
-        post: { ...prev.post, status: newStatus }
+        post: { ...prev.post, status: currentStatus }
       }));
-
-      try {
-        await api(`/api/posts/${data.post._id}`, {
-          method: "PUT",
-          body: { status: newStatus }
-        });
-
-        showSuccess(
-          newStatus === "private"
-            ? "Đã chuyển trạng thái thành riêng tư"
-            : "Đã chuyển thành trạng thái công khai"
-        );
-      } catch (e) {
-        // Rollback on error
-        setData((prev) => ({
-          ...prev,
-          post: { ...prev.post, status: currentStatus }
-        }));
-        showError(e.message || "Không thể thay đổi trạng thái");
-      } finally {
-        setTogglingStatus(false);
-      }
+      showError(e.message || "Không thể thay đổi trạng thái");
+    } finally {
+      setTogglingStatus(false);
     }
+  }
 
-    function countEmotes() {
-      const counts = {};
-      if (!emotesState || emotesState.length === 0) return counts;
-      for (const emo of emotes) counts[emo] = 0;
-      for (const e of emotesState) {
-        if (counts[e.type] !== undefined) counts[e.type]++;
-      }
-      return counts;
+  function countEmotes() {
+    const counts = {};
+    if (!emotesState || emotesState.length === 0) return counts;
+    for (const emo of emotes) counts[emo] = 0;
+    for (const e of emotesState) {
+      if (counts[e.type] !== undefined) counts[e.type]++;
     }
+    return counts;
+  }
 
-    // Loading skeleton
-    if (loading || !data) {
-      return (
-        <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pt-16 sm:pt-20 pb-20 sm:pb-32">
-          <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-            <div className="bg-white dark:bg-[#111] rounded-2xl sm:rounded-[32px] px-3 sm:px-5 pt-3 sm:pt-4 pb-4 sm:pb-6 mb-4 sm:mb-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-32"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-24"></div>
-                </div>
+  // Loading skeleton
+  if (loading || !data) {
+    return (
+      <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pt-16 sm:pt-20 pb-20 sm:pb-32">
+        <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <div className="bg-white dark:bg-[#111] rounded-2xl sm:rounded-[32px] px-3 sm:px-5 pt-3 sm:pt-4 pb-4 sm:pb-6 mb-4 sm:mb-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-32"></div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-24"></div>
               </div>
-              <div className="space-y-2 mb-4">
-                <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-                <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-4/5"></div>
-              </div>
-              <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-3xl animate-pulse mb-4"></div>
-              <div className="flex items-center gap-2">
-                <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-20"></div>
-                <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-20"></div>
-              </div>
+            </div>
+            <div className="space-y-2 mb-4">
+              <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+              <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-4/5"></div>
+            </div>
+            <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-3xl animate-pulse mb-4"></div>
+            <div className="flex items-center gap-2">
+              <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-20"></div>
+              <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-20"></div>
             </div>
           </div>
         </div>
-      );
-    }
-    const p = data.post;
-    const counts = countEmotes();
+      </div>
+    );
+  }
+  const p = data.post;
+  const counts = countEmotes();
 
-    // Tất cả phương tiện = bìa + tệp
-    const allMedia = [
-      ...(p.coverUrl
-        ? (() => {
-            const found = Array.isArray(p.files)
-              ? p.files.find(f => f.url === p.coverUrl)
-              : null;
-            if (found) return [{ url: p.coverUrl, type: found.type }];
-            return [{ url: p.coverUrl, type: "image" }];
-          })()
-        : []),
-      ...(Array.isArray(p.files) ? p.files.filter(f => f.url !== p.coverUrl) : [])
-    ];
+  // Tất cả phương tiện = bìa + tệp
+  const allMedia = [
+    ...(p.coverUrl
+      ? (() => {
+        const found = Array.isArray(p.files)
+          ? p.files.find(f => f.url === p.coverUrl)
+          : null;
+        if (found) return [{ url: p.coverUrl, type: found.type }];
+        return [{ url: p.coverUrl, type: "image" }];
+      })()
+      : []),
+    ...(Array.isArray(p.files) ? p.files.filter(f => f.url !== p.coverUrl) : [])
+  ];
 
-    const timeAgo = p.createdAt 
-      ? formatDistanceToNow(new Date(p.createdAt), { addSuffix: true, locale: vi }) 
-      : "";
-    const statusLabel = p.status === 'private' ? 'Riêng tư' : 'Công khai';
+  const timeAgo = p.createdAt
+    ? formatDistanceToNow(new Date(p.createdAt), { addSuffix: true, locale: vi })
+    : "";
+  const statusLabel = p.status === 'private' ? 'Riêng tư' : 'Công khai';
 
-    return (
-      <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pt-16 sm:pt-20 pb-16 sm:pb-32">
-        <div className="max-w-3xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
-          <div className="bg-white dark:bg-[#111] rounded-xl sm:rounded-[32px] px-3 sm:px-5 pt-3 sm:pt-4 pb-3 sm:pb-6 mb-3 sm:mb-6
+  return (
+    <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pt-16 sm:pt-20 pb-16 sm:pb-32">
+      <div className="max-w-3xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
+        <div className="bg-white dark:bg-[#111] rounded-xl sm:rounded-[32px] px-3 sm:px-5 pt-3 sm:pt-4 pb-3 sm:pb-6 mb-3 sm:mb-6
             shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
             border border-transparent dark:border-white/5 relative">
           {/* HEADER */}
           <div className="flex items-center justify-between mb-2.5 sm:mb-4 px-0 sm:px-1">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <Link to={`/user/${p.author?._id}`} className="relative flex-shrink-0">
-                <UserAvatar 
+                <UserAvatar
                   user={p.author}
                   size={48}
                   showFrame={true}
                   showBadge={true}
                   className="hidden sm:block"
                 />
-                <UserAvatar 
+                <UserAvatar
                   user={p.author}
                   size={36}
                   showFrame={true}
@@ -390,8 +390,8 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                 />
               </Link>
               <div className="min-w-0 flex-1">
-                <Link 
-                  to={`/user/${p.author?._id}`} 
+                <Link
+                  to={`/user/${p.author?._id}`}
                   className="font-bold text-xs sm:text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1 sm:gap-1.5"
                 >
                   <UserName user={p.author} maxLength={18} />
@@ -402,8 +402,8 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                   {timeAgo && <span>•</span>}
                   <span className={cn(
                     "px-1 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[10px] font-semibold whitespace-nowrap",
-                    p.status === 'private' 
-                      ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" 
+                    p.status === 'private'
+                      ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
                       : "bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
                   )}>
                     {statusLabel}
@@ -423,7 +423,7 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                 />
               </div>
             ) : (
-              <button 
+              <button
                 className="p-2 sm:p-2.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors flex-shrink-0 ml-2 touch-manipulation"
                 aria-label="More options"
               >
@@ -443,8 +443,8 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
           {p.content && (
             <div className="px-0 sm:px-1 mb-2.5 sm:mb-4">
               <div className="prose dark:prose-invert max-w-none text-xs sm:text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed prose-p:mb-2 sm:prose-p:mb-3 prose-headings:mb-2 prose-headings:mt-4">
-                <MarkdownWithMentions 
-                  content={p.content} 
+                <MarkdownWithMentions
+                  content={p.content}
                   mentionedUsers={p.mentions || []}
                 />
               </div>
@@ -585,10 +585,10 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                       .filter(([_, count]) => count > 0)
                       .slice(0, 3)
                       .map(([emo]) => (
-                        <img 
-                          key={emo} 
-                          src={`/assets/${emoteMap[emo]}`} 
-                          alt={emo} 
+                        <img
+                          key={emo}
+                          src={`/assets/${emoteMap[emo]}`}
+                          alt={emo}
                           className="w-6 h-6 sm:w-7 sm:h-7 md:w-6 md:h-6 flex-shrink-0"
                           loading="lazy"
                           onError={(e) => {
@@ -662,14 +662,14 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                       const emoteUser = e.user || {};
                       return (
                         <div key={idx} className="flex gap-2 sm:gap-3 py-2 border-b border-gray-200 dark:border-gray-800 items-center">
-                          <UserAvatar 
+                          <UserAvatar
                             user={emoteUser}
                             size={40}
                             showFrame={true}
                             showBadge={true}
                             className="hidden sm:block"
                           />
-                          <UserAvatar 
+                          <UserAvatar
                             user={emoteUser}
                             size={32}
                             showFrame={true}
@@ -714,8 +714,8 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                     return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
                   });
                   return (
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => {
                         if (window.innerWidth < 768) {
                           setShowEmotePopup(prev => !prev);
@@ -730,8 +730,8 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                       disabled={emoting}
                       className={cn(
                         "flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-full transition-all active:scale-90 touch-manipulation min-h-[40px] sm:min-h-[44px]",
-                        myEmote 
-                          ? "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-500" 
+                        myEmote
+                          ? "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-500"
                           : "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400",
                         emoting && "opacity-50 cursor-not-allowed"
                       )}
@@ -864,45 +864,45 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
             shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
             border border-transparent dark:border-white/5">
             <h2 className="text-base sm:text-xl font-bold mb-2.5 sm:mb-4 text-gray-900 dark:text-white">Bình luận</h2>
-          {(() => {
-            // Xác định quyền bình luận nếu bài đăng thuộc về một nhóm
-            const groupInfo = p.group || null;
-            if (!groupInfo) {
+            {(() => {
+              // Xác định quyền bình luận nếu bài đăng thuộc về một nhóm
+              const groupInfo = p.group || null;
+              if (!groupInfo) {
+                return (
+                  <CommentSection
+                    postId={p._id}
+                    initialComments={data.comments || []}
+                    user={user}
+                  />
+                );
+              }
+
+              // Ưu tiên ngữ cảnh nhóm được tìm nạp; nếu không có sẵn, hãy cho phép bình luận để tránh chặn UX
+              const setting = groupCtx?.settings?.commentPermissions || 'all_members';
+              const role = groupCtx?.userRole || null;
+              const userIsAdmin = role === 'owner' || role === 'admin';
+              const userIsMember = !!role;
+
+              let canComment = true;
+              if (setting === 'admins_only') canComment = userIsAdmin;
+              else if (setting === 'members_only') canComment = userIsMember;
+              else canComment = userIsMember || true; // 'all_members'
+
+              if (canComment) {
+                return (
+                  <CommentSection
+                    postId={p._id}
+                    initialComments={data.comments || []}
+                    user={user}
+                  />
+                );
+              }
               return (
-                <CommentSection
-                  postId={p._id}
-                  initialComments={data.comments || []}
-                  user={user}
-                />
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
+                  Chỉ quản trị viên được phép bình luận trong nhóm này.
+                </div>
               );
-            }
-
-            // Ưu tiên ngữ cảnh nhóm được tìm nạp; nếu không có sẵn, hãy cho phép bình luận để tránh chặn UX
-            const setting = groupCtx?.settings?.commentPermissions || 'all_members';
-            const role = groupCtx?.userRole || null;
-            const userIsAdmin = role === 'owner' || role === 'admin';
-            const userIsMember = !!role;
-
-            let canComment = true;
-            if (setting === 'admins_only') canComment = userIsAdmin;
-            else if (setting === 'members_only') canComment = userIsMember;
-            else canComment = userIsMember || true; // 'all_members'
-
-            if (canComment) {
-              return (
-                <CommentSection
-                  postId={p._id}
-                  initialComments={data.comments || []}
-                  user={user}
-                />
-              );
-            }
-            return (
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
-                Chỉ quản trị viên được phép bình luận trong nhóm này.
-              </div>
-            );
-          })()}
+            })()}
           </div>
         </div>
 
@@ -911,6 +911,7 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
           <div
             className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-2 sm:p-4"
             onClick={() => setShowMediaModal(false)}
+            data-media-viewer
           >
             <div className="relative max-w-full max-h-full flex items-center w-full h-full">
               {/* Close */}
@@ -983,8 +984,8 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
                       }}
                       className={cn(
                         "w-2 h-2 rounded-full transition-all touch-manipulation",
-                        idx === currentIndex 
-                          ? "bg-white w-6" 
+                        idx === currentIndex
+                          ? "bg-white w-6"
                           : "bg-white/50 hover:bg-white/75"
                       )}
                       aria-label={`Xem ảnh ${idx + 1}`}
@@ -995,7 +996,7 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
             </div>
           </div>
         )}
-        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}

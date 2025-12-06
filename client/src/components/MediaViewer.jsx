@@ -19,26 +19,26 @@ export default function MediaViewer({ media, onClose, gallery, index, onNavigate
   // Determine active media from gallery if provided
   const activeMedia = Array.isArray(gallery) && typeof index === 'number' && gallery[index]
     ? {
-        ...gallery[index],
-        type: gallery[index].type || 'image',
-        title: gallery[index].title || gallery[index].alt || '',
-      }
+      ...gallery[index],
+      type: gallery[index].type || 'image',
+      title: gallery[index].title || gallery[index].alt || '',
+    }
     : media;
 
   useEffect(() => {
     if (activeMedia?.type === "video" && videoRef.current) {
       const video = videoRef.current;
-      
+
       const handleTimeUpdate = () => setCurrentTime(video.currentTime);
       const handleLoadedMetadata = () => setDuration(video.duration);
       const handlePlay = () => setIsPlaying(true);
       const handlePause = () => setIsPlaying(false);
-      
+
       video.addEventListener('timeupdate', handleTimeUpdate);
       video.addEventListener('loadedmetadata', handleLoadedMetadata);
       video.addEventListener('play', handlePlay);
       video.addEventListener('pause', handlePause);
-      
+
       return () => {
         video.removeEventListener('timeupdate', handleTimeUpdate);
         video.removeEventListener('loadedmetadata', handleLoadedMetadata);
@@ -102,9 +102,10 @@ export default function MediaViewer({ media, onClose, gallery, index, onNavigate
   if (!activeMedia) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-2 sm:p-4"
       onClick={toggleControls}
+      data-media-viewer
     >
       <div className="relative max-w-6xl max-h-full w-full h-full flex flex-col">
         {/* Header */}
@@ -197,7 +198,7 @@ export default function MediaViewer({ media, onClose, gallery, index, onNavigate
                 muted={isMuted}
                 loop
               />
-              
+
               {/* Video Controls Overlay */}
               <div className={`absolute inset-0 bg-black transition-all duration-300 flex items-center justify-center ${showControls ? 'bg-opacity-30' : 'bg-opacity-0'}`}>
                 <div className={`transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
@@ -225,7 +226,7 @@ export default function MediaViewer({ media, onClose, gallery, index, onNavigate
                   >
                     {isPlaying ? <Pause size={16} /> : <Play size={16} />}
                   </button>
-                  
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -235,11 +236,11 @@ export default function MediaViewer({ media, onClose, gallery, index, onNavigate
                   >
                     {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                   </button>
-                  
+
                   <div className="flex-1 flex items-center gap-1 sm:gap-2">
                     <span className="text-xs sm:text-sm">{formatTime(currentTime)}</span>
                     <div className="flex-1 bg-gray-600 rounded-full h-1">
-                      <div 
+                      <div
                         className="bg-white h-1 rounded-full transition-all duration-200"
                         style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
                       />
