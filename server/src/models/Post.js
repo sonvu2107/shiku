@@ -30,6 +30,9 @@ const PostSchema = new mongoose.Schema({
     }
   ],
   
+  // ==================== YOUTUBE MUSIC ====================
+  youtubeUrl: { type: String, default: "" }, // YouTube URL for music/video embed
+  
   // ==================== METADATA ====================
   tags: [{ type: String, index: true }], // Tags để phân loại (có index để search nhanh)
   status: { type: String, enum: ["private", "published"], default: "published" }, // Trạng thái bài viết

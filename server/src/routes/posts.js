@@ -1052,12 +1052,15 @@ router.get("/edit/:id", authRequired, async (req, res, next) => {
 // Create
 router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
   try {
-    const { title, content, tags = [], coverUrl = "", status = "published", files = [], group = null } = req.body;
+    const { title, content, tags = [], coverUrl = "", status = "published", files = [], group = null, youtubeUrl = "" } = req.body;
     if (!["private", "published"].includes(status)) {
       return res.status(400).json({ error: "Trạng thái không hợp lệ" });
     }
     // Sanitize input để chống XSS
     const sanitized = sanitizePostFields({ title, content, tags, coverUrl });
+    
+    // Validate và sanitize YouTube URL
+    const sanitizedYoutubeUrl = youtubeUrl ? sanitizePlain(youtubeUrl) : "";
 
     if (!sanitized.title) {
       return res.status(400).json({ error: "Vui lòng nhập tiêu đề" });
@@ -1081,7 +1084,8 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
       status,
       files: Array.isArray(files) ? files : [],
       group,
-      mentions: mentionedUserIds
+      mentions: mentionedUserIds,
+      youtubeUrl: sanitizedYoutubeUrl
     });
     
     // Create mention notifications
@@ -1127,7 +1131,7 @@ router.put("/:id", authRequired, checkBanStatus, async (req, res, next) => {
     if (post.author.toString() !== req.user._id.toString() && req.user.role !== "admin") {
       return res.status(403).json({ error: "Bạn không có quyền chỉnh sửa bài viết này" });
     }
-    const { title, content, tags, coverUrl, status, files } = req.body;
+    const { title, content, tags, coverUrl, status, files, youtubeUrl } = req.body;
     const sanitizedUpdate = sanitizePostFields({ title, content, tags, coverUrl });
 
     if (title !== undefined) {
@@ -1149,6 +1153,12 @@ router.put("/:id", authRequired, checkBanStatus, async (req, res, next) => {
     if (Array.isArray(files)) {
       post.files = files;
     }
+    
+    // Update YouTube URL if provided
+    if (youtubeUrl !== undefined) {
+      post.youtubeUrl = youtubeUrl ? sanitizePlain(youtubeUrl) : "";
+    }
+    
     if (!["private", "published"].includes(status)) {
       return res.status(400).json({ error: "Trạng thái không hợp lệ" });
     }

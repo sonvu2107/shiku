@@ -10,6 +10,7 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
   import UserAvatar from "../components/UserAvatar";
   import VerifiedBadge from "../components/VerifiedBadge";
   import Poll from "../components/Poll";
+  import YouTubePlayer from "../components/YouTubePlayer";
   import { useSEO } from "../utils/useSEO";
   import { getOptimizedImageUrl } from "../utils/imageOptimization";
   import LazyImage from "../components/LazyImageSimple";
@@ -454,6 +455,13 @@ import MarkdownWithMentions from "../components/MarkdownWithMentions";
           {p.hasPoll && (
             <div className="px-0 sm:px-1 mb-3 sm:mb-4">
               <Poll post={p} user={user} />
+            </div>
+          )}
+
+          {/* YouTube Music Player */}
+          {p.youtubeUrl && (
+            <div className="px-0 sm:px-1 mb-3 sm:mb-4">
+              <YouTubePlayer key={`yt-${p._id}`} url={p.youtubeUrl} variant="full" />
             </div>
           )}
 

@@ -12,6 +12,7 @@ import UserName from "./UserName";
 import UserAvatar from "./UserAvatar";
 import ReactMarkdown from "react-markdown";
 import Poll from "./Poll";
+import YouTubePlayer from "./YouTubePlayer";
 import { useToast } from "../contexts/ToastContext";
 
 // Mapping of emotes to corresponding GIF filenames
@@ -650,6 +651,13 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       {post.hasPoll && (
         <div className="mb-3 md:mb-4" onClick={e => e.stopPropagation()}>
           <Poll post={post} user={user} />
+        </div>
+      )}
+
+      {/* YouTube Music Player */}
+      {post.youtubeUrl && (
+        <div className="mb-3 md:mb-4" onClick={e => e.stopPropagation()}>
+          <YouTubePlayer key={`yt-${post._id}`} url={post.youtubeUrl} variant="compact" />
         </div>
       )}
 

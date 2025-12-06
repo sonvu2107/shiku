@@ -7,6 +7,7 @@ import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSy
 import { motion } from "framer-motion";
 import { useToast } from "../contexts/ToastContext";
 import { cn } from "../utils/cn";
+import YouTubePlayer, { isValidYouTubeUrl } from "../components/YouTubePlayer";
 
 /**
  * EditPost - Trang chỉnh sửa bài viết (Monochrome Luxury Style)
@@ -291,6 +292,31 @@ export default function EditPost() {
               </div>
             ))}
           </div>
+        </SpotlightCard>
+
+        {/* YouTube Music URL */}
+        <SpotlightCard>
+          <label className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
+            Nhạc từ YouTube
+          </label>
+          <input
+            type="url"
+            value={post.youtubeUrl || ""}
+            onChange={e => setPost({ ...post, youtubeUrl: e.target.value })}
+            className="w-full px-4 py-3 bg-transparent border border-neutral-200 dark:border-neutral-800 rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500"
+            placeholder="Dán link YouTube vào đây... (VD: https://youtube.com/watch?v=...)"
+          />
+          />
+          {post.youtubeUrl && !isValidYouTubeUrl(post.youtubeUrl) && (
+            <p className="text-xs text-red-500 font-medium mt-2">
+              Link YouTube không hợp lệ. Vui lòng nhập link đúng định dạng.
+            </p>
+          )}
+          {post.youtubeUrl && isValidYouTubeUrl(post.youtubeUrl) && (
+            <div className="mt-3">
+              <YouTubePlayer url={post.youtubeUrl} variant="compact" />
+            </div>
+          )}
         </SpotlightCard>
 
         {/* Editor */}

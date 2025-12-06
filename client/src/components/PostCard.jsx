@@ -1,3 +1,6 @@
+/** 
+ * No longer use this
+**/
 import React, { useState, useRef, useEffect, memo, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Calendar, MessageCircle, Lock, Globe, ThumbsUp, Heart, Users, Bookmark, BookmarkCheck, MoreHorizontal, Edit, Trash2, BarChart3, Eye, Share2, Smile, Send, Paperclip, X, Plus, Minus } from "lucide-react";
@@ -10,6 +13,7 @@ import VerifiedBadge from "./VerifiedBadge";
 import ComponentErrorBoundary from "./ComponentErrorBoundary";
 import LazyImage from "./LazyImageSimple";
 import Poll from "./Poll";
+import YouTubePlayer from "./YouTubePlayer";
 import { useToast } from "../contexts/ToastContext";
 
 /**
@@ -921,6 +925,13 @@ function PostCard({
       {post.hasPoll && (
         <div className="px-4 py-2 border-b border-gray-200 dark:border-[#3A3B3C]">
           <Poll post={post} user={user} />
+        </div>
+      )}
+
+      {/* YouTube Music Player */}
+      {post.youtubeUrl && (
+        <div className="px-4 py-2">
+          <YouTubePlayer url={post.youtubeUrl} variant="compact" />
         </div>
       )}
 

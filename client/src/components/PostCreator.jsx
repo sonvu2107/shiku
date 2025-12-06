@@ -7,6 +7,7 @@ import BanNotification from "./BanNotification";
 import MarkdownEditor from "./MarkdownEditor";
 import UserAvatar from "./UserAvatar";
 import { useToast } from "../contexts/ToastContext";
+import YouTubePlayer, { isValidYouTubeUrl } from "./YouTubePlayer";
 
 /**
  * PostCreator - Component for creating a new post
@@ -52,6 +53,10 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
   const [pollExpiresIn, setPollExpiresIn] = useState(""); // Expiry in days
   const [pollIsPublic, setPollIsPublic] = useState(true); // Whether poll votes are public
   const [pollAllowMultiple, setPollAllowMultiple] = useState(false); // Allow multiple choices
+  
+  // YouTube Music states
+  const [youtubeUrl, setYoutubeUrl] = useState(""); // YouTube URL for music embed
+  const [showYoutubeInput, setShowYoutubeInput] = useState(false); // Show YouTube input field
 
   const navigate = useNavigate();
 
@@ -138,7 +143,8 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
           status,
           coverUrl,
           group: selectedGroup || null,
-          hasPoll
+          hasPoll,
+          youtubeUrl: youtubeUrl.trim() || undefined
         }
       });
 
@@ -214,6 +220,9 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
     setPollExpiresIn("");
     setPollIsPublic(true);
     setPollAllowMultiple(false);
+    // Reset YouTube
+    setYoutubeUrl("");
+    setShowYoutubeInput(false);
   };
 
   /**
@@ -515,6 +524,24 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                         Bình chọn
                       </span>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowYoutubeInput(!showYoutubeInput)}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
+                        showYoutubeInput || youtubeUrl
+                          ? "bg-neutral-900 dark:bg-white text-white dark:text-black"
+                          : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                      }`}
+                      title="Thêm nhạc từ YouTube"
+                    >
+                      <span className={`text-sm font-bold ${
+                        showYoutubeInput || youtubeUrl 
+                          ? "text-white dark:text-black" 
+                          : "text-neutral-600 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors"
+                      }`}>
+                        YouTube
+                      </span>
+                    </button>
                   </div>
 
                   {/* Media Preview */}
@@ -551,6 +578,54 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                     />
                   </div>
 
+                  {/* YouTube Music Input */}
+                  {showYoutubeInput && (
+                    <div className="space-y-4 p-5 bg-neutral-50 dark:bg-neutral-800/50 rounded-2xl border border-neutral-200 dark:border-neutral-800">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-[0.15em]">YouTube</span>
+                          <h4 className="text-base font-bold text-neutral-900 dark:text-white">Thêm nhạc từ YouTube</h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowYoutubeInput(false);
+                            setYoutubeUrl("");
+                          }}
+                          className="text-xs font-bold text-neutral-400 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors px-3 py-1.5 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                        >
+                          Đóng
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <input
+                          type="url"
+                          placeholder="Dán link YouTube vào đây... (VD: https://youtube.com/watch?v=...)"
+                          value={youtubeUrl}
+                          onChange={(e) => setYoutubeUrl(e.target.value)}
+                          className="w-full border-0 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-red-500 dark:focus:ring-red-400 transition-all"
+                        />
+                        {youtubeUrl && !isValidYouTubeUrl(youtubeUrl) && (
+                          <p className="text-xs text-red-500 font-medium">
+                            Link YouTube không hợp lệ. Vui lòng nhập link đúng định dạng.
+                          </p>
+                        )}
+                        {youtubeUrl && isValidYouTubeUrl(youtubeUrl) && (
+                          <p className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
+                            <span>✓</span> Link hợp lệ - Nhạc sẽ được hiển thị trong bài viết
+                          </p>
+                        )}
+                      </div>
+
+                      {/* YouTube Preview */}
+                      {youtubeUrl && isValidYouTubeUrl(youtubeUrl) && (
+                        <div className="mt-3">
+                          <YouTubePlayer url={youtubeUrl} variant="compact" />
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Poll Configuration */}
                   {hasPoll && (
