@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import viteCompression from "vite-plugin-compression";
 
 /**
- * Vite configuration - An toan, khong split vendor de tranh loi React initialization
+ * Vite configuration
  */
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -86,21 +86,18 @@ export default defineConfig(({ command, mode }) => {
           assetFileNames: 'assets/[name]-[hash].[ext]',
           format: 'es',
 
-          // CHI TACH SOURCE FILES - KHONG TACH NODE_MODULES
           // De Vite tu dong xu ly thu tu load dung
           manualChunks: (id) => {
-            // KHONG tach node_modules - de Vite tu xu ly
             if (id.includes('node_modules')) {
               return undefined;
             }
 
-            // Chi tach cac pages lon de lazy load
             // Admin pages
             if (id.includes('/src/pages/Admin') || id.includes('/src/pages/admin/')) {
               return 'admin';
             }
 
-            // Cultivation system - rat lon
+            // Cultivation system
             if (id.includes('/src/pages/Cultivation')) {
               return 'cultivation';
             }
