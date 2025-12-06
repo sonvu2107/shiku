@@ -214,7 +214,19 @@ const formatCultivationResponse = async (cultivation) => {
     equipmentStats: null, // Sẽ được populate nếu cần
     
     // Độ kiếp (Breakthrough)
-    breakthroughSuccessRate: cultivation.breakthroughSuccessRate || 30,
+    // Tính tỷ lệ thành công dựa trên cảnh giới và số lần thất bại
+    breakthroughSuccessRate: (() => {
+      const baseRates = {
+        1: 90, 2: 80, 3: 70, 4: 60, 5: 50, 6: 40, 7: 30, 8: 20, 9: 15, 10: 10, 11: 5
+      };
+      const bonusPerFailure = {
+        1: 15, 2: 15, 3: 12, 4: 10, 5: 8, 6: 7, 7: 6, 8: 5, 9: 5, 10: 5, 11: 5
+      };
+      const baseRate = baseRates[currentRealm.level] || 30;
+      const bonus = bonusPerFailure[currentRealm.level] || 10;
+      const failureCount = cultivation.breakthroughFailureCount || 0;
+      return Math.min(100, baseRate + failureCount * bonus);
+    })(),
     breakthroughFailureCount: cultivation.breakthroughFailureCount || 0,
     lastBreakthroughAttempt: cultivation.lastBreakthroughAttempt,
     breakthroughCooldownUntil: cultivation.breakthroughCooldownUntil,
@@ -1645,11 +1657,13 @@ router.post("/breakthrough", async (req, res, next) => {
       breakthroughBonus = pillData?.breakthroughBonus || 0;
     }
     
-    const currentSuccessRate = Math.min(100, 
-      (cultivation.breakthroughSuccessRate || baseSuccessRate) + 
-      (cultivation.breakthroughFailureCount || 0) * bonusPerFailure +
-      breakthroughBonus
-    );
+    // Tính tỷ lệ thành công:
+    // - Base rate theo cảnh giới hiện tại
+    // - Cộng bonus từ số lần thất bại (failureCount * bonusPerFailure)
+    // - Cộng bonus từ đan dược (nếu có)
+    // Lưu ý: KHÔNG dùng breakthroughSuccessRate vì nó đã cũ, chỉ dùng để track
+    const failureBonus = (cultivation.breakthroughFailureCount || 0) * bonusPerFailure;
+    const currentSuccessRate = Math.min(100, baseSuccessRate + failureBonus + breakthroughBonus);
     
     // Roll để xem thành công hay thất bại
     const roll = Math.random() * 100;
@@ -1703,15 +1717,15 @@ router.post("/breakthrough", async (req, res, next) => {
       const cooldownHours = 1;
       cultivation.breakthroughCooldownUntil = new Date(now.getTime() + cooldownHours * 60 * 60 * 1000);
       
-      // Cập nhật success rate (tăng 10% mỗi lần thất bại)
-      cultivation.breakthroughSuccessRate = Math.min(100, 
-        (cultivation.breakthroughSuccessRate || baseSuccessRate) + bonusPerFailure
-      );
+      // Không cần cập nhật breakthroughSuccessRate vì đã tính từ failureCount
+      // Chỉ giữ để hiển thị/debug
+      cultivation.breakthroughSuccessRate = baseSuccessRate;
       
       await cultivation.save();
       
+      // Tính tỷ lệ thành công lần sau (đã cộng failure mới)
       const nextSuccessRate = Math.min(100, 
-        cultivation.breakthroughSuccessRate + cultivation.breakthroughFailureCount * bonusPerFailure
+        baseSuccessRate + cultivation.breakthroughFailureCount * bonusPerFailure
       );
       
       res.json({
