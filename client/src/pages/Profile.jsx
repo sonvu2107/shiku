@@ -11,6 +11,7 @@ import PostsTab from "../components/profile/PostsTab";
 import FriendsTab from "../components/profile/FriendsTab";
 import AnalyticsTab from "../components/profile/AnalyticsTab";
 import { useToast } from "../contexts/ToastContext";
+import BackToTop from "../components/BackToTop";
 
 // --- UI COMPONENTS ---
 const GridPattern = () => (
@@ -388,6 +389,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
           }}
         />
       )}
+      <BackToTop />
     </div>
   );
 }

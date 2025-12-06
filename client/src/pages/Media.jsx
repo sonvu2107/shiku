@@ -6,6 +6,7 @@ import MediaViewer from "../components/MediaViewer";
 import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../utils/cn";
+import BackToTop from "../components/BackToTop";
 
 // --- HELPER FUNCTIONS ---
 const formatDate = (dateString) => {
@@ -276,6 +277,7 @@ export default function Media() {
       {/* Modals */}
       {showUploadModal && <MediaUpload onUploadSuccess={handleUploadSuccess} onClose={() => setShowUploadModal(false)} />}
       {viewingMedia && <MediaViewer media={viewingMedia} onClose={() => setViewingMedia(null)} />}
+      <BackToTop />
     </PageLayout>
   );
 }

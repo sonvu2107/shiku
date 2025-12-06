@@ -5,6 +5,7 @@ import { api } from "../api";
 import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
 import { motion } from "framer-motion";
 import { cn } from "../utils/cn";
+import BackToTop from "../components/BackToTop";
 
 /**
  * NotificationHistory - Trang lịch sử thông báo (Monochrome Luxury Style)
@@ -423,6 +424,7 @@ export default function NotificationHistory() {
           </SpotlightCard>
         </div>
       )}
+      <BackToTop />
     </PageLayout>
   );
 }

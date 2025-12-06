@@ -14,10 +14,11 @@ import ChatPopupManager from "../components/ChatPopupManager";
 import UserName from "../components/UserName";
 import UserAvatar from "../components/UserAvatar";
 import Navbar from "../components/Navbar";
-import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2, Sparkles, Search, Bell, MessageCircle, Plus, X, Moon, Sun, Users, ArrowUp } from "lucide-react";
+import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2, Sparkles, Search, Bell, MessageCircle, Plus, X, Moon, Sun, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../contexts/ToastContext";
 import { useChat } from "../contexts/ChatContext";
+import BackToTop from "../components/BackToTop";
 
 // --- VISUAL COMPONENTS FROM LANDING PAGE ---
 const NoiseOverlay = () => (
@@ -151,29 +152,6 @@ function Home({ user, setUser }) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [searchFocused]);
-
-  // Scroll to top button logic
-  const [showScrollTop, setShowScrollTop] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 400) {
-        setShowScrollTop(true);
-      } else {
-        setShowScrollTop(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  };
 
   // ==================== SEO ====================
   // QUAN TRỌNG: Phải set robots="index, follow" để đảm bảo Google index trang chủ
@@ -1137,22 +1115,7 @@ function Home({ user, setUser }) {
           </div>
 
           {/* Scroll To Top Button */}
-          <AnimatePresence>
-            {showScrollTop && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.5, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.5, y: 20 }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={scrollToTop}
-                className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-50 p-3 bg-black dark:bg-neutral-700 text-white dark:text-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
-                aria-label="Cuộn lên đầu trang"
-              >
-                <ArrowUp size={24} />
-              </motion.button>
-            )}
-          </AnimatePresence>
+          <BackToTop />
         </main>
 
         {/* Chat Popup Manager */}

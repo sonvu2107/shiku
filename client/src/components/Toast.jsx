@@ -110,8 +110,8 @@ export default function Toast({
         visible ? "translate-x-0 opacity-100 scale-100" : "translate-x-full opacity-0 scale-95"
       }`}>
         <div className="flex gap-2 sm:gap-2 flex-1 min-w-0">
-          <div className={`${getIconColor()} bg-white/5 backdrop-blur-xl p-1.5 sm:p-1 rounded-lg flex-shrink-0`}>
-            <div className="w-4 h-4 sm:w-6 sm:h-6">
+          <div className={`${getIconColor()} bg-white/5 backdrop-blur-xl p-1.5 sm:p-1 rounded-lg flex-shrink-0 flex items-center justify-center`}>
+            <div className="w-4 h-4 sm:w-6 sm:h-6 flex items-center justify-center">
               {getIcon()}
             </div>
           </div>
@@ -143,7 +143,7 @@ export function ToastContainer({ toasts, onRemove }) {
   if (!toasts || toasts.length === 0) return null;
   
   return (
-    <div className="fixed bottom-4 left-4 right-4 sm:bottom-auto sm:top-4 sm:left-auto sm:right-4 z-[9999] space-y-2 pointer-events-none max-w-sm sm:max-w-none w-auto sm:w-full pb-safe sm:pb-0">
+    <div className="fixed bottom-4 left-4 right-4 sm:bottom-auto sm:top-4 sm:left-auto sm:right-4 z-[9999] space-y-2 pointer-events-none max-w-sm sm:max-w-sm w-auto sm:w-auto pb-safe sm:pb-0">
       {toasts.map((toast, index) => (
         <div key={toast.id} className="pointer-events-auto" style={{ marginTop: index > 0 ? '0.5rem' : '0' }}>
           <Toast

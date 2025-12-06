@@ -15,6 +15,7 @@ import {
   MapPin, Link as LinkIcon, Calendar as CalendarIcon, Heart, Users, FileText,
   MessageCircle, UserPlus, UserMinus, UserCheck, MoreHorizontal, Phone, Ban, Shield, Sparkles
 } from "lucide-react";
+import BackToTop from "../components/BackToTop";
 
 // --- UI COMPONENTS ---
 
@@ -783,6 +784,7 @@ export default function UserProfile() {
 
         </div>
       </div>
+      <BackToTop />
     </div>
   );
 }

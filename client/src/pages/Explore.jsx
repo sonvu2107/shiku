@@ -9,6 +9,7 @@ import ModernPostCard from "../components/ModernPostCard";
 import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
 import { motion } from "framer-motion";
 import { cn } from "../utils/cn";
+import BackToTop from "../components/BackToTop";
 
 /**
  * Explore - Trang khám phá nội dung (Redesigned)
@@ -288,6 +289,7 @@ export default function Explore({ user }) {
                </div>
             )}
          </div>
+         <BackToTop />
       </PageLayout>
    );
 }

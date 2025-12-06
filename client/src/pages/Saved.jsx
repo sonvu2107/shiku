@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bookmark, Search, Grid, List, ArrowRight } from "lucide-react";
 import { cn } from "../utils/cn";
 import { Link } from "react-router-dom";
+import BackToTop from "../components/BackToTop";
 
 export default function Saved() {
   // ==================== STATE ====================
@@ -155,6 +156,7 @@ export default function Saved() {
            </div>
         )}
       </div>
+      <BackToTop />
     </PageLayout>
   );
 }
