@@ -159,8 +159,9 @@ export default function Settings() {
       removeAuthToken();
       // Clear user cache
       invalidateUserCache();
-      // Redirect về trang chủ
+      // Redirect về trang chủ và force reload
       navigate("/");
+      window.location.reload();
     }
   };
 

@@ -186,6 +186,7 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
               createdAt: { $first: "$createdAt" },
               isEdited: { $first: "$isEdited" },
               hasPoll: { $first: "$hasPoll" },
+              youtubeUrl: { $first: "$youtubeUrl" },
               emotes: {
                 $push: {
                   $cond: [
@@ -557,7 +558,7 @@ router.get("/feed", authOptional, async (req, res, next) => {
     const postProjection = {
       title: 1, content: 1, slug: 1, tags: 1, createdAt: 1, author: 1, role: 1,
       status: 1, views: 1, coverUrl: 1, files: 1,
-      commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1
+      commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1, youtubeUrl: 1
     };
 
     // Execute Query
@@ -847,6 +848,7 @@ router.get("/", authOptional, async (req, res, next) => {
           emotes: { $slice: ["$emotes", 10] }, // Limit emotes to 10 for list view (need more for display)
           emoteCount: { $size: { $ifNull: ["$emotes", []] } }, // Total emote count for stats
           hasPoll: 1,
+          youtubeUrl: 1,
           author: "$authorData"
         }
       }

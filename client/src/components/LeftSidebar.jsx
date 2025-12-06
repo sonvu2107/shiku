@@ -21,6 +21,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { removeAuthToken } from '../utils/auth';
+import { invalidateUserCache } from '../utils/userCache';
 import { api } from '../api';
 import { getCachedRole, loadRoles } from '../utils/roleCache';
 import { useUserStats } from '../hooks/useUserStats';
@@ -161,9 +162,16 @@ function LeftSidebar({ user, setUser }) {
       new Promise(resolve => setTimeout(resolve, 2000))
     ]);
 
+    // Clear all auth data
     removeAuthToken();
+    invalidateUserCache();
+    
+    // Reset user state and redirect
     if (setUser) setUser(null);
     navigate("/");
+    
+    // Force reload to ensure clean state
+    window.location.reload();
   };
 
   // Navigation menu items

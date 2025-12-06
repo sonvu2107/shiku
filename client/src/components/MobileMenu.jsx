@@ -24,6 +24,7 @@ import {
   Sun
 } from "lucide-react";
 import { removeAuthToken } from "../utils/auth.js";
+import { invalidateUserCache } from "../utils/userCache.js";
 import { api } from "../api.js";
 import { cn } from "../utils/cn";
 import UserAvatar from "./UserAvatar";
@@ -95,10 +96,17 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
       new Promise(resolve => setTimeout(resolve, 2000))
     ]);
     
+    // Clear all auth data
     removeAuthToken();
+    invalidateUserCache();
+    
+    // Reset user state and redirect
     if (setUser) setUser(null);
-    navigate("/");
     setIsOpen(false);
+    navigate("/");
+    
+    // Force reload to ensure clean state
+    window.location.reload();
   };
 
   const menuItems = user ? [

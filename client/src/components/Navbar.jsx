@@ -372,6 +372,8 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
     if (setUser) setUser(null);
     // Redirect to homepage
     navigate("/");
+    // Force reload to ensure clean state
+    window.location.reload();
   }
 
   // ==================== RENDER ====================

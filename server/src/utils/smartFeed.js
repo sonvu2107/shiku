@@ -129,7 +129,7 @@ export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds =
         $project: {
           title: 1, content: 1, slug: 1, tags: 1, createdAt: 1, author: 1,
           status: 1, views: 1, coverUrl: 1, files: 1,
-          commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1, isEdited: 1
+          commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1, isEdited: 1, youtubeUrl: 1
         }
       }
     ]);
@@ -229,7 +229,7 @@ export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, 
         $project: {
           title: 1, content: 1, slug: 1, tags: 1, createdAt: 1, author: 1,
           status: 1, views: 1, coverUrl: 1, files: 1,
-          commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1, isEdited: 1
+          commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1, isEdited: 1, youtubeUrl: 1
         }
       }
     ]);
