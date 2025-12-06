@@ -1,237 +1,45 @@
 /* ==================== MOBILE PERFORMANCE OPTIMIZATIONS ==================== */
-/* Tối ưu hiệu năng cho thiết bị mobile tầm trung (Snapdragon 7xx series) */
+/* Tối ưu nhẹ nhàng cho mobile - không ảnh hưởng desktop */
 
-@media (max-width: 768px) {
+/* Chỉ áp dụng cho mobile nhỏ */
+@media (max-width: 640px) {
 
-    /* Giảm backdrop-blur - rất nặng trên GPU mobile */
-    .backdrop-blur-sm,
-    .backdrop-blur,
-    .backdrop-blur-md,
-    .backdrop-blur-lg,
-    .backdrop-blur-xl,
-    .backdrop-blur-2xl,
-    .backdrop-blur-3xl {
-        backdrop-filter: blur(4px) !important;
-        -webkit-backdrop-filter: blur(4px) !important;
+    /* Giảm backdrop-blur nhẹ - tiết kiệm GPU */
+    .backdrop-blur-2xl {
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
     }
 
-    /* Tắt hoàn toàn blur-[100px] và blur-[120px] trên mobile */
-    [class*="blur-[1"] {
-        filter: none !important;
-    }
-
-    /* Tối ưu shadow - dùng shadow nhẹ hơn */
+    /* Tối ưu shadow */
     .shadow-2xl {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
     }
 
-    .shadow-xl {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-    }
-
-    .shadow-lg {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-    }
-
-    /* Tối ưu transitions - giảm thời gian */
-    .transition-all {
-        transition-property: opacity, transform !important;
-        transition-duration: 100ms !important;
-    }
-
-    .transition-colors,
-    .transition-opacity,
-    .transition-transform {
-        transition-duration: 100ms !important;
-    }
-
-    /* GPU acceleration hints cho fixed elements */
-    .fixed {
-        will-change: transform;
-        transform: translateZ(0);
-        backface-visibility: hidden;
-    }
-
-    /* Giảm animation duration - loại trừ animate-pulse để tránh nhấp nháy */
-    [class*="animate-"]:not(.animate-pulse):not(.animate-spin) {
-        animation-duration: 150ms !important;
-    }
-
-    /* Làm chậm animate-pulse trên mobile để tránh nhấp nháy */
+    /* Làm chậm animate-pulse để không nhấp nháy */
     .animate-pulse {
-        animation-duration: 3s !important;
-    }
-
-    /* === TỐI ƯU POST CARDS TRÊN MOBILE === */
-    /* Contain để tránh reflow khi scroll */
-    article,
-    .post-card,
-    [class*="PostCard"],
-    [class*="postcard"] {
-        contain: layout style paint;
-        content-visibility: auto;
-        contain-intrinsic-size: 400px;
-    }
-
-    /* Giảm border-radius phức tạp */
-    .rounded-3xl {
-        border-radius: 16px !important;
-    }
-
-    .rounded-\[32px\] {
-        border-radius: 16px !important;
-    }
-
-    /* Tắt animation khi posts xuất hiện */
-    [class*="motion-"] {
-        animation: none !important;
-        transition: none !important;
+        animation-duration: 2.5s !important;
     }
 }
 
-/* Tối ưu cho thiết bị touch - loại bỏ hover effects không cần thiết */
+/* Tối ưu cho thiết bị touch */
 @media (hover: none) and (pointer: coarse) {
 
-    /* Tắt các hover transform effect - gây reflow/repaint */
-    .group:hover .group-hover\:scale-105,
-    .hover\:scale-105:hover,
-    .hover\:scale-\[1\.02\]:hover,
-    .hover\:scale-102:hover {
+    /* Tắt hover scale effects - không cần trên mobile */
+    .hover\:scale-105:hover {
         transform: none !important;
     }
 
-    /* Tắt hover shadow - giảm paint operations */
-    .hover\:shadow-xl:hover,
-    .hover\:shadow-2xl:hover,
-    .hover\:shadow-lg:hover {
-        box-shadow: inherit !important;
-    }
-
-    /* Tắt hover opacity */
-    .group:hover .group-hover\:opacity-100,
-    .group:hover .group-hover\:opacity-80 {
-        opacity: inherit !important;
-    }
-
-    /* Giảm transition trên touch devices */
-    .transition-all,
-    .transition-colors,
-    .transition-opacity,
-    .transition-transform {
-        transition-duration: 50ms !important;
-    }
-
-    /* Tối ưu touch feedback */
+    /* Touch feedback */
     button,
-    a,
-    [role="button"] {
-        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
-    }
-
-    /* Tắt tất cả hover effects trên touch */
-    *:hover {
-        transition-duration: 0ms !important;
+    a {
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.08);
     }
 }
 
-/* Tối ưu cho màn hình nhỏ (điện thoại) */
-@media (max-width: 480px) {
-
-    /* Tắt hoàn toàn backdrop-blur trên điện thoại nhỏ */
-    .backdrop-blur-2xl,
-    .backdrop-blur-xl,
-    .backdrop-blur-lg {
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        background-color: rgba(255, 255, 255, 0.95);
-    }
-
-    .dark .backdrop-blur-2xl,
-    .dark .backdrop-blur-xl,
-    .dark .backdrop-blur-lg {
-        background-color: rgba(0, 0, 0, 0.95);
-    }
-
-    /* Tắt tất cả blur effects */
-    [class*="blur-"] {
-        filter: none !important;
-    }
-
-    /* Optimize image rendering */
-    img {
-        content-visibility: auto;
-    }
-
-    /* Lazy rendering cho nội dung dài */
-    .lazy-render {
-        content-visibility: auto;
-        contain-intrinsic-size: 200px;
-    }
-
-    /* Giảm gradient complexity */
-    .bg-gradient-to-br,
-    .bg-gradient-to-r,
-    .bg-gradient-to-t {
-        background-size: 100% 100%;
-    }
-
-    /* Tắt transitions trên mobile nhỏ */
-    .transition-all,
-    .transition-colors {
-        transition: none !important;
-    }
-
-    /* === TỐI ƯU POST RENDERING === */
-    /* Lazy load các posts không nhìn thấy */
-    article:nth-child(n+5),
-    .post-card:nth-child(n+5) {
-        content-visibility: auto;
-        contain-intrinsic-size: 500px;
-    }
-
-    /* Giảm độ phức tạp của card */
-    .rounded-2xl {
-        border-radius: 12px !important;
-    }
-}
-
-/* Giảm motion cho người dùng chọn reduced motion */
+/* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-
-    *,
-    *::before,
-    *::after {
+    * {
         animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-    }
-
-    /* Tắt hoàn toàn backdrop-blur */
-    .backdrop-blur-sm,
-    .backdrop-blur,
-    .backdrop-blur-md,
-    .backdrop-blur-lg,
-    .backdrop-blur-xl,
-    .backdrop-blur-2xl {
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-    }
-}
-
-/* Optimize căn chỉnh số lượng render */
-@media (max-width: 768px) {
-
-    /* Contain layout để tránh reflow */
-    .post-card,
-    .comment-item,
-    .notification-item {
-        contain: layout style;
-    }
-
-    /* Ẩn các elements không cần thiết khi scroll */
-    .virtualize-list>*:nth-child(n+15) {
-        content-visibility: auto;
-        contain-intrinsic-size: 400px;
     }
 }
