@@ -85,23 +85,6 @@ export default function Toast({
     }
   };
 
-  // Fun messages array - random messages for fun
-  const funMessages = [
-    "Have a great day!",
-    "You're awesome!",
-    "Keep it up!",
-    "Nice work!",
-    "Stay awesome!",
-    "You got this!",
-    "Amazing!",
-    "Keep going!"
-  ];
-
-  // Get random fun message
-  const getFunMessage = () => {
-    return funMessages[Math.floor(Math.random() * funMessages.length)];
-  };
-
   if (!visible) return null;
 
   return (
@@ -117,8 +100,8 @@ export default function Toast({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-medium text-xs sm:text-sm leading-tight truncate sm:whitespace-normal">{message || getTitle()}</p>
-            {(description || !description) && (
-              <p className="text-gray-500 text-[10px] sm:text-xs mt-0.5 line-clamp-1 sm:line-clamp-none">{description || getFunMessage()}</p>
+            {description && (
+              <p className="text-gray-500 text-[10px] sm:text-xs mt-0.5 line-clamp-1 sm:line-clamp-none">{description}</p>
             )}
           </div>
         </div>
