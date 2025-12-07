@@ -23,25 +23,25 @@ const shouldSkipRateLimit = (req) => {
   if (process.env.NODE_ENV !== 'development' && !process.env.DISABLE_RATE_LIMIT) {
     return false;
   }
-  
+
   // Check IP
   const allowedIPs = ['127.0.0.1', '::1', 'localhost', '::ffff:127.0.0.1'];
   const clientIP = req.ip || req.connection?.remoteAddress;
   if (allowedIPs.includes(clientIP)) {
     return true;
   }
-  
+
   // Check User-Agent (cho stress test)
   const userAgent = req.get('User-Agent') || '';
   if (userAgent.includes('Stress-Test')) {
     return true;
   }
-  
+
   // Check environment variable
   if (process.env.DISABLE_RATE_LIMIT === 'true' || process.env.DISABLE_RATE_LIMIT === '1') {
     return true;
   }
-  
+
   return false;
 };
 
@@ -53,15 +53,15 @@ const createKeyGenerator = () => (req) => {
   const forwardedFor = req.get('X-Forwarded-For');
   const realIP = req.get('X-Real-IP');
   const clientIP = req.ip;
-  
+
   if (forwardedFor) {
     return forwardedFor.split(',')[0].trim();
   }
-  
+
   if (realIP) {
     return realIP;
   }
-  
+
   return clientIP;
 };
 
@@ -179,6 +179,46 @@ export const postsLimiter = rateLimit({
     logRateLimitInfo(req, 'Posts Rate limit reached');
     res.status(options.statusCode).json({
       error: "Quá nhiều yêu cầu bài viết, vui lòng thử lại sau 15 phút",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
+  skip: shouldSkipRateLimit,
+  keyGenerator: createKeyGenerator()
+});
+
+/**
+ * Breakthrough rate limiter (độ kiếp)
+ * 10 attempts / 15 phút (on top of cooldown timer)
+ */
+export const breakthroughLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Breakthrough Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Đạo hữu đã thử độ kiếp quá nhiều lần, hãy bình tâm tu luyện thêm",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
+  skip: shouldSkipRateLimit,
+  keyGenerator: createKeyGenerator()
+});
+
+/**
+ * Cultivation rate limiter (tu tiên general)
+ * 500 requests / 1 phút (cho các endpoint như add-exp, click yin-yang)
+ */
+export const cultivationLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Cultivation Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Tu luyện quá nhanh! Hãy chậm lại để hấp thụ linh khí",
       retryAfter: Math.round(options.windowMs / 1000)
     });
   },

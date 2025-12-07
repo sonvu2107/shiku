@@ -4,8 +4,30 @@ import Cultivation, { CULTIVATION_REALMS, QUEST_TEMPLATES, SHOP_ITEMS, ITEM_TYPE
 import Equipment from "../models/Equipment.js";
 import User from "../models/User.js";
 import { authRequired } from "../middleware/auth.js";
+import { breakthroughLimiter, cultivationLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router();
+
+// ==================== CACHING ====================
+// In-memory cache for leaderboard (30 second TTL)
+const leaderboardCache = new Map();
+const LEADERBOARD_CACHE_TTL = 30 * 1000; // 30 seconds
+
+// Helper function to get cached leaderboard or fetch new
+async function getCachedLeaderboard(type, limit) {
+  const cacheKey = `${type}:${limit}`;
+  const cached = leaderboardCache.get(cacheKey);
+
+  if (cached && Date.now() - cached.timestamp < LEADERBOARD_CACHE_TTL) {
+    return { data: cached.data, fromCache: true };
+  }
+
+  // Fetch new data
+  const data = await Cultivation.getLeaderboard(type, limit);
+  leaderboardCache.set(cacheKey, { data, timestamp: Date.now() });
+
+  return { data, fromCache: false };
+}
 
 // ==================== MIDDLEWARE ====================
 // Tất cả routes đều cần đăng nhập
@@ -308,7 +330,11 @@ router.post("/sync-cache", async (req, res, next) => {
       $set: {
         'cultivationCache.realmLevel': cultivation.realmLevel,
         'cultivationCache.realmName': cultivation.realmName,
-        'cultivationCache.exp': cultivation.exp
+        'cultivationCache.exp': cultivation.exp,
+        'cultivationCache.equipped.title': cultivation.equipped?.title || null,
+        'cultivationCache.equipped.badge': cultivation.equipped?.badge || null,
+        'cultivationCache.equipped.avatarFrame': cultivation.equipped?.avatarFrame || null,
+        'cultivationCache.equipped.profileEffect': cultivation.equipped?.profileEffect || null
       }
     });
 
@@ -318,7 +344,8 @@ router.post("/sync-cache", async (req, res, next) => {
       data: {
         realmLevel: cultivation.realmLevel,
         realmName: cultivation.realmName,
-        exp: cultivation.exp
+        exp: cultivation.exp,
+        equipped: cultivation.equipped
       }
     });
   } catch (error) {
@@ -1197,22 +1224,23 @@ router.get("/passive-exp-status", async (req, res, next) => {
 
 /**
  * GET /api/cultivation/leaderboard
- * Bảng xếp hạng
+ * Bảng xếp hạng (with 30s caching)
  */
 router.get("/leaderboard", async (req, res, next) => {
   try {
     const { type = 'exp', limit = 50 } = req.query;
     const userId = req.user.id;
 
-    const leaderboard = await Cultivation.getLeaderboard(type, parseInt(limit));
+    // Use cached leaderboard for better performance
+    const { data: leaderboard, fromCache } = await getCachedLeaderboard(type, parseInt(limit));
 
-    // Debug log
-    console.log("[LEADERBOARD] Raw data sample:", leaderboard.slice(0, 3).map(e => ({
-      userName: e.user?.name,
-      realmLevel: e.realmLevel,
-      realmName: e.realmName,
-      exp: e.exp
-    })));
+    // Debug log only when fetching new data
+    if (!fromCache) {
+      console.log("[LEADERBOARD] Cache miss, fetched new data. Sample:", leaderboard.slice(0, 2).map(e => ({
+        userName: e.user?.name,
+        realmLevel: e.realmLevel
+      })));
+    }
 
     // Tìm vị trí của user hiện tại
     const userCultivation = await Cultivation.findOne({ user: userId });
@@ -1332,8 +1360,9 @@ router.get("/exp-log", async (req, res, next) => {
 /**
  * POST /api/cultivation/add-exp
  * Thêm exp từ các hoạt động (yin-yang click, etc.)
+ * Rate limited: 500 requests per minute
  */
-router.post("/add-exp", async (req, res, next) => {
+router.post("/add-exp", cultivationLimiter, async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { amount, source = 'activity' } = req.body;
@@ -1426,10 +1455,10 @@ router.post("/add-exp", async (req, res, next) => {
       cultivation.expLog = cultivation.expLog.slice(-100);
     }
 
-    // Check for level up
-    const oldRealm = CULTIVATION_REALMS.find(r => r.minExp <= oldExp && (!CULTIVATION_REALMS[CULTIVATION_REALMS.indexOf(r) + 1] || CULTIVATION_REALMS[CULTIVATION_REALMS.indexOf(r) + 1].minExp > oldExp));
-    const newRealm = cultivation.getRealmFromExp();
-    const leveledUp = newRealm.level > (oldRealm?.level || 0);
+    // Check if can breakthrough (exp đủ nhưng realm chưa thay đổi vì cần bấm nút)
+    // KHÔNG tự động lên cấp - người chơi phải bấm nút breakthrough
+    const potentialRealm = cultivation.getRealmFromExp();
+    const canBreakthrough = potentialRealm.level > cultivation.realmLevel;
 
     await cultivation.save();
 
@@ -1439,8 +1468,10 @@ router.post("/add-exp", async (req, res, next) => {
       data: {
         expEarned: amount,
         totalExp: cultivation.exp,
-        leveledUp,
-        newRealm: leveledUp ? newRealm : null,
+        leveledUp: false, // Không tự động lên cấp nữa
+        newRealm: null, // Không trả về realm mới vì chưa breakthrough
+        canBreakthrough: canBreakthrough, // Thông báo có thể breakthrough
+        potentialRealm: canBreakthrough ? potentialRealm : null,
         cultivation: await formatCultivationResponse(cultivation)
       }
     });
@@ -1603,8 +1634,9 @@ router.post("/practice-technique", async (req, res, next) => {
 /**
  * POST /api/cultivation/breakthrough
  * Thử độ kiếp (breakthrough) - có thể thất bại
+ * Rate limited: 10 attempts per 15 minutes
  */
-router.post("/breakthrough", async (req, res, next) => {
+router.post("/breakthrough", breakthroughLimiter, async (req, res, next) => {
   try {
     const userId = req.user.id;
     const cultivation = await Cultivation.getOrCreate(userId);

@@ -1,6 +1,6 @@
 /**
  * ProfileEffect - Hiệu ứng động trên profile
- * Các hiệu ứng: sparkle, flames, snow, petals, lightning, aura, galaxy
+ * Các hiệu ứng: sparkle, aurora, snow, petals, lightning, aura, galaxy
  */
 
 import { memo, useEffect, useState, useMemo } from 'react';

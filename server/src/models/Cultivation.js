@@ -1441,7 +1441,11 @@ CultivationSchema.statics.getOrCreate = async function (userId) {
         $set: {
           'cultivationCache.realmLevel': cultivation.realmLevel,
           'cultivationCache.realmName': cultivation.realmName,
-          'cultivationCache.exp': cultivation.exp
+          'cultivationCache.exp': cultivation.exp,
+          'cultivationCache.equipped.title': cultivation.equipped?.title || null,
+          'cultivationCache.equipped.badge': cultivation.equipped?.badge || null,
+          'cultivationCache.equipped.avatarFrame': cultivation.equipped?.avatarFrame || null,
+          'cultivationCache.equipped.profileEffect': cultivation.equipped?.profileEffect || null
         }
       });
     } catch (error) {
