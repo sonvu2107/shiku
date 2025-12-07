@@ -52,6 +52,7 @@ const EditEvent = lazy(() => import("./pages/EditEvent.jsx"));
 // Media & Content
 const Media = lazy(() => import("./pages/Media.jsx"));
 const Saved = lazy(() => import("./pages/Saved.jsx"));
+const Gallery = lazy(() => import("./pages/Gallery.jsx"));
 
 // Admin & Support (heavy pages - lazy load)
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard.jsx"));
@@ -446,13 +447,13 @@ export default function App() {
 
             {/* Mobile CSRF Debug Component */}
 
-            {/* Hiển thị navbar cho tất cả trang trừ login/register/landing (khi chưa đăng nhập), chat, home, cultivation và admin/equipment */}
-            {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && location.pathname !== "/home" && location.pathname !== "/feed" && location.pathname !== "/search" && location.pathname !== "/cultivation" && location.pathname !== "/admin/equipment" && (
+            {/* Hiển thị navbar cho tất cả trang trừ login/register/landing (khi chưa đăng nhập), chat, home, cultivation, admin/equipment và gallery */}
+            {!shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/" && location.pathname !== "/home" && location.pathname !== "/feed" && location.pathname !== "/search" && location.pathname !== "/cultivation" && location.pathname !== "/admin/equipment" && location.pathname !== "/gallery" && (
               <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
             )}
 
-            {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat/cultivation/admin/equipment, không có story viewer đang mở, và không có video đang phát */}
-            {user && !shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/cultivation" && location.pathname !== "/admin/equipment" && !isStoryViewerOpen && !isVideoPlaying && (
+            {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat/cultivation/admin/equipment/gallery, không có story viewer đang mở, và không có video đang phát */}
+            {user && !shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/cultivation" && location.pathname !== "/admin/equipment" && location.pathname !== "/gallery" && !isStoryViewerOpen && !isVideoPlaying && (
               <FloatingDock />
             )}
 
@@ -528,6 +529,7 @@ export default function App() {
                     <Route path="/events/:id/edit" element={<ProtectedRoute user={user}><EditEvent /></ProtectedRoute>} />
                     <Route path="/media" element={<ProtectedRoute user={user}><Media /></ProtectedRoute>} />
                     <Route path="/saved" element={<ProtectedRoute user={user}><Saved /></ProtectedRoute>} />
+                    <Route path="/gallery" element={<ProtectedRoute user={user}><Gallery /></ProtectedRoute>} />
                     <Route path="/notifications" element={<ProtectedRoute user={user}><NotificationHistory /></ProtectedRoute>} />
 
                     {/* Trang admin */}

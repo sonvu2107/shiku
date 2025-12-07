@@ -21,7 +21,7 @@ router.use(authRequired);
  */
 const mergeEquipmentStatsIntoCombatStats = (combatStats, equipmentStats) => {
   if (!equipmentStats) return combatStats;
-  
+
   combatStats.attack = (combatStats.attack || 0) + (equipmentStats.attack || 0);
   combatStats.defense = (combatStats.defense || 0) + (equipmentStats.defense || 0);
   combatStats.qiBlood = (combatStats.qiBlood || 0) + (equipmentStats.hp || 0);
@@ -33,7 +33,7 @@ const mergeEquipmentStatsIntoCombatStats = (combatStats, equipmentStats) => {
   combatStats.penetration = (combatStats.penetration || 0) + (equipmentStats.penetration || 0);
   combatStats.lifesteal = (combatStats.lifesteal || 0) + ((equipmentStats.lifesteal || 0) * 100);
   combatStats.regeneration = (combatStats.regeneration || 0) + (equipmentStats.energy_regen || 0);
-  
+
   return combatStats;
 };
 
@@ -46,7 +46,7 @@ const formatCultivationResponse = async (cultivation) => {
   // Tính realm có thể đạt được từ exp (để hiển thị progress)
   const potentialRealm = cultivation.getRealmFromExp();
   const progress = cultivation.getRealmProgress();
-  
+
   // Tính exp cần cho realm tiếp theo (dựa trên realm hiện tại)
   const nextRealm = CULTIVATION_REALMS.find(r => r.level === currentRealm.level + 1);
   const expToNext = nextRealm ? Math.max(0, nextRealm.minExp - cultivation.exp) : 0;
@@ -80,7 +80,7 @@ const formatCultivationResponse = async (cultivation) => {
             elementalDamage = eq.stats.elemental_damage;
           }
         }
-        
+
         equipmentMap.set(eq._id.toString(), {
           _id: eq._id,
           name: eq.name,
@@ -112,7 +112,7 @@ const formatCultivationResponse = async (cultivation) => {
     if (item.type?.startsWith('equipment_') && item.itemId) {
       const equipmentIdStr = item.itemId.toString();
       const equipment = equipmentMap.get(equipmentIdStr);
-      
+
       if (equipment) {
         // Update metadata với data mới nhất từ Equipment collection
         return {
@@ -144,7 +144,7 @@ const formatCultivationResponse = async (cultivation) => {
   return {
     _id: cultivation._id,
     user: cultivation.user,
-    
+
     // Tu vi & Cảnh giới
     exp: cultivation.exp,
     realm: {
@@ -159,16 +159,16 @@ const formatCultivationResponse = async (cultivation) => {
     expToNextRealm: expToNext,
     // Thêm thông tin về realm có thể đạt được (để hiển thị progress bar)
     canBreakthrough: potentialRealm.level > currentRealm.level,
-    
+
     // Linh thạch
     spiritStones: cultivation.spiritStones,
     totalSpiritStonesEarned: cultivation.totalSpiritStonesEarned,
-    
+
     // Streak
     loginStreak: cultivation.loginStreak,
     longestStreak: cultivation.longestStreak,
     lastLoginDate: cultivation.lastLoginDate,
-    
+
     // Nhiệm vụ
     dailyQuests: cultivation.dailyQuests.map(q => {
       const template = QUEST_TEMPLATES.daily.find(t => t.id === q.questId);
@@ -194,25 +194,25 @@ const formatCultivationResponse = async (cultivation) => {
         progressPercent: template?.requirement ? Math.min(100, (q.progress / template.requirement.count) * 100) : 100
       };
     }),
-    
+
     // Kho đồ & Trang bị - với equipment data đã được sync
     inventory: updatedInventory,
     equipped: cultivation.equipped,
     activeBoosts: cultivation.activeBoosts.filter(b => new Date(b.expiresAt) > new Date()),
-    
+
     // Công pháp đã học
     learnedTechniques: cultivation.learnedTechniques || [],
     skills: cultivation.getSkills(),
-    
+
     // Thống kê
     stats: cultivation.stats,
-    
+
     // Thông số chiến đấu
     combatStats: cultivation.calculateCombatStats(),
-    
+
     // Equipment stats (sẽ được load async nếu cần)
     equipmentStats: null, // Sẽ được populate nếu cần
-    
+
     // Độ kiếp (Breakthrough)
     // Tính tỷ lệ thành công dựa trên cảnh giới và số lần thất bại
     breakthroughSuccessRate: (() => {
@@ -230,7 +230,7 @@ const formatCultivationResponse = async (cultivation) => {
     breakthroughFailureCount: cultivation.breakthroughFailureCount || 0,
     lastBreakthroughAttempt: cultivation.lastBreakthroughAttempt,
     breakthroughCooldownUntil: cultivation.breakthroughCooldownUntil,
-    
+
     // Timestamps
     createdAt: cultivation.createdAt,
     updatedAt: cultivation.updatedAt
@@ -247,7 +247,7 @@ router.get("/", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     // Force sync cultivationCache vào User
     try {
       await User.findByIdAndUpdate(userId, {
@@ -260,23 +260,23 @@ router.get("/", async (req, res, next) => {
     } catch (syncErr) {
       console.error("[CULTIVATION] Error syncing cache:", syncErr);
     }
-    
-  // Load equipment stats
-  let equipmentStats = null;
-  try {
-    equipmentStats = await cultivation.getEquipmentStats();
-  } catch (equipErr) {
-    console.error("[CULTIVATION] Error loading equipment stats:", equipErr);
-  }
-  
-  const response = await formatCultivationResponse(cultivation);
-  response.equipmentStats = equipmentStats;
-  
-  // Merge equipment stats vào combatStats để đảm bảo consistency
-  if (response.combatStats) {
-    response.combatStats = mergeEquipmentStatsIntoCombatStats(response.combatStats, equipmentStats);
-  }
-    
+
+    // Load equipment stats
+    let equipmentStats = null;
+    try {
+      equipmentStats = await cultivation.getEquipmentStats();
+    } catch (equipErr) {
+      console.error("[CULTIVATION] Error loading equipment stats:", equipErr);
+    }
+
+    const response = await formatCultivationResponse(cultivation);
+    response.equipmentStats = equipmentStats;
+
+    // Merge equipment stats vào combatStats để đảm bảo consistency
+    if (response.combatStats) {
+      response.combatStats = mergeEquipmentStatsIntoCombatStats(response.combatStats, equipmentStats);
+    }
+
     res.json({
       success: true,
       data: response
@@ -295,14 +295,14 @@ router.post("/sync-cache", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const cultivation = await Cultivation.findOne({ user: userId });
-    
+
     if (!cultivation) {
       return res.status(404).json({
         success: false,
         message: "Chưa có thông tin tu tiên"
       });
     }
-    
+
     // Sync vào User
     await User.findByIdAndUpdate(userId, {
       $set: {
@@ -311,7 +311,7 @@ router.post("/sync-cache", async (req, res, next) => {
         'cultivationCache.exp': cultivation.exp
       }
     });
-    
+
     res.json({
       success: true,
       message: "Đã đồng bộ thông tin tu tiên",
@@ -335,7 +335,7 @@ router.post("/sync-cache", async (req, res, next) => {
 router.post("/batch", async (req, res, next) => {
   try {
     const { userIds } = req.body;
-    
+
     if (!Array.isArray(userIds) || userIds.length === 0) {
       return res.status(400).json({
         success: false,
@@ -349,8 +349,8 @@ router.post("/batch", async (req, res, next) => {
     const cultivations = await Cultivation.find({
       user: { $in: limitedUserIds }
     })
-    .select('user exp realmLevel realmName')
-    .lean();
+      .select('user exp realmLevel realmName')
+      .lean();
 
     // Convert to map với key là oderId
     const result = {};
@@ -385,7 +385,7 @@ router.post("/batch", async (req, res, next) => {
 router.get("/user/:userId", async (req, res, next) => {
   try {
     const { userId } = req.params;
-    
+
     // Kiểm tra user tồn tại
     const user = await User.findById(userId).select('name avatarUrl');
     if (!user) {
@@ -394,10 +394,10 @@ router.get("/user/:userId", async (req, res, next) => {
         message: "Không tìm thấy vị đạo hữu này"
       });
     }
-    
+
     const cultivation = await Cultivation.getOrCreate(userId);
     const realm = cultivation.getRealmFromExp();
-    
+
     // Chỉ trả về thông tin public
     res.json({
       success: true,
@@ -439,9 +439,9 @@ router.post("/login", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     const result = cultivation.processLogin();
-    
+
     if (result.alreadyLoggedIn) {
       return res.json({
         success: true,
@@ -452,9 +452,9 @@ router.post("/login", async (req, res, next) => {
         }
       });
     }
-    
+
     await cultivation.save();
-    
+
     res.json({
       success: true,
       message: `Điểm danh thành công! Streak: ${result.streak} ngày`,
@@ -482,13 +482,13 @@ router.post("/quest/:questId/claim", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { questId } = req.params;
-    
+
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     try {
       const result = cultivation.claimQuestReward(questId);
       await cultivation.save();
-      
+
       res.json({
         success: true,
         message: "Nhận thưởng thành công!",
@@ -520,7 +520,7 @@ router.get("/shop", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     // Đánh dấu item đã sở hữu - check chính xác hơn
     const shopItems = SHOP_ITEMS.map(item => {
       // Với công pháp, check trong learnedTechniques
@@ -532,7 +532,7 @@ router.get("/shop", async (req, res, next) => {
           canAfford: cultivation.spiritStones >= item.price
         };
       }
-      
+
       // Với các item khác, check trong inventory
       const isOwned = cultivation.inventory.some(i => {
         // So sánh itemId (string)
@@ -541,21 +541,21 @@ router.get("/shop", async (req, res, next) => {
         if (i._id && i._id.toString() === item.id) return true;
         return false;
       });
-      
+
       return {
         ...item,
         owned: isOwned,
         canAfford: cultivation.spiritStones >= item.price
       };
     });
-    
+
     // Lấy equipment có giá bán (price > 0) và is_active = true
     // Không filter theo level_required ở đây - để hiển thị tất cả, check level khi mua
     const availableEquipment = await Equipment.find({
       is_active: true,
       price: { $gt: 0 }
     }).lean();
-    
+
     // Format equipment để tương thích với shop items
     const equipmentItems = availableEquipment.map(eq => {
       // Convert Map to Object nếu cần
@@ -565,7 +565,7 @@ router.get("/shop", async (req, res, next) => {
       } else if (eq.stats?.elemental_damage) {
         elementalDamage = eq.stats.elemental_damage;
       }
-      
+
       // Check xem equipment đã có trong inventory chưa
       const eqId = eq._id.toString();
       const isOwned = cultivation.inventory.some(i => {
@@ -580,7 +580,7 @@ router.get("/shop", async (req, res, next) => {
         if (i._id && i._id.toString() === eqId) return true;
         return false;
       });
-      
+
       return {
         id: eqId,
         name: eq.name,
@@ -607,10 +607,10 @@ router.get("/shop", async (req, res, next) => {
         canUse: cultivation.realmLevel >= eq.level_required
       };
     });
-    
+
     // Combine shop items và equipment
     const allItems = [...shopItems, ...equipmentItems];
-    
+
     res.json({
       success: true,
       data: {
@@ -632,34 +632,34 @@ router.post("/shop/buy/:itemId", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { itemId } = req.params;
-    
+
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     // Kiểm tra nếu là equipment (ObjectId hợp lệ)
     if (mongoose.Types.ObjectId.isValid(itemId)) {
       const equipment = await Equipment.findById(itemId);
-      
+
       if (!equipment) {
         return res.status(400).json({
           success: false,
           message: "Trang bị không tồn tại"
         });
       }
-      
+
       if (!equipment.is_active) {
         return res.status(400).json({
           success: false,
           message: "Trang bị này đã bị vô hiệu hóa"
         });
       }
-      
+
       if (equipment.price <= 0) {
         return res.status(400).json({
           success: false,
           message: "Trang bị này không được bán"
         });
       }
-      
+
       // Kiểm tra level requirement
       if (cultivation.realmLevel < equipment.level_required) {
         return res.status(400).json({
@@ -667,7 +667,7 @@ router.post("/shop/buy/:itemId", async (req, res, next) => {
           message: `Cần đạt cảnh giới cấp ${equipment.level_required} để mua trang bị này`
         });
       }
-      
+
       // Kiểm tra đã sở hữu chưa (check trong inventory) - chính xác hơn
       const itemIdStr = itemId.toString();
       const alreadyOwned = cultivation.inventory.some(i => {
@@ -682,14 +682,14 @@ router.post("/shop/buy/:itemId", async (req, res, next) => {
         if (i._id && i._id.toString() === itemIdStr) return true;
         return false;
       });
-      
+
       if (alreadyOwned) {
         return res.status(400).json({
           success: false,
           message: "Bạn đã sở hữu trang bị này rồi"
         });
       }
-      
+
       // Kiểm tra đủ linh thạch
       if (cultivation.spiritStones < equipment.price) {
         return res.status(400).json({
@@ -697,10 +697,10 @@ router.post("/shop/buy/:itemId", async (req, res, next) => {
           message: "Không đủ linh thạch để mua"
         });
       }
-      
+
       // Trừ linh thạch
       cultivation.spendSpiritStones(equipment.price);
-      
+
       // Thêm equipment vào inventory
       const inventoryItem = {
         itemId: equipment._id.toString(),
@@ -726,10 +726,10 @@ router.post("/shop/buy/:itemId", async (req, res, next) => {
           description: equipment.description
         }
       };
-      
+
       cultivation.inventory.push(inventoryItem);
       await cultivation.save();
-      
+
       return res.json({
         success: true,
         message: `Đã mua ${equipment.name}!`,
@@ -740,18 +740,18 @@ router.post("/shop/buy/:itemId", async (req, res, next) => {
         }
       });
     }
-    
+
     // Xử lý mua item thông thường
     try {
       const result = cultivation.buyItem(itemId);
       await cultivation.save();
-      
+
       // Nếu là công pháp, trả về thông tin công pháp đã học
       const responseData = {
         spiritStones: cultivation.spiritStones,
         inventory: cultivation.inventory
       };
-      
+
       if (result && result.type === 'technique') {
         responseData.learnedTechnique = result.learnedTechnique;
         const techniqueItem = SHOP_ITEMS.find(t => t.id === itemId && t.type === 'technique');
@@ -761,11 +761,11 @@ router.post("/shop/buy/:itemId", async (req, res, next) => {
       } else {
         responseData.item = result;
       }
-      
+
       res.json({
         success: true,
-        message: result && result.type === 'technique' 
-          ? `Đã học công pháp ${result.name}!` 
+        message: result && result.type === 'technique'
+          ? `Đã học công pháp ${result.name}!`
           : `Đã mua ${result?.name || 'vật phẩm'}!`,
         data: responseData
       });
@@ -789,13 +789,27 @@ router.post("/inventory/:itemId/equip", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { itemId } = req.params;
-    
+
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     try {
       const item = cultivation.equipItem(itemId);
       await cultivation.save();
-      
+
+      // Sync cultivationCache.equipped vào User
+      try {
+        await User.findByIdAndUpdate(userId, {
+          $set: {
+            'cultivationCache.equipped.title': cultivation.equipped?.title || null,
+            'cultivationCache.equipped.badge': cultivation.equipped?.badge || null,
+            'cultivationCache.equipped.avatarFrame': cultivation.equipped?.avatarFrame || null,
+            'cultivationCache.equipped.profileEffect': cultivation.equipped?.profileEffect || null
+          }
+        });
+      } catch (syncErr) {
+        console.error("[CULTIVATION] Error syncing equipped cache:", syncErr);
+      }
+
       res.json({
         success: true,
         data: {
@@ -822,13 +836,27 @@ router.post("/inventory/:itemId/unequip", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { itemId } = req.params;
-    
+
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     try {
       const item = cultivation.unequipItem(itemId);
       await cultivation.save();
-      
+
+      // Sync cultivationCache.equipped vào User
+      try {
+        await User.findByIdAndUpdate(userId, {
+          $set: {
+            'cultivationCache.equipped.title': cultivation.equipped?.title || null,
+            'cultivationCache.equipped.badge': cultivation.equipped?.badge || null,
+            'cultivationCache.equipped.avatarFrame': cultivation.equipped?.avatarFrame || null,
+            'cultivationCache.equipped.profileEffect': cultivation.equipped?.profileEffect || null
+          }
+        });
+      } catch (syncErr) {
+        console.error("[CULTIVATION] Error syncing equipped cache:", syncErr);
+      }
+
       res.json({
         success: true,
         data: {
@@ -856,20 +884,20 @@ router.post("/equipment/:equipmentId/equip", async (req, res, next) => {
     const userId = req.user.id;
     const { equipmentId } = req.params;
     const { slot } = req.body; // Optional: auto-detect nếu không có
-    
+
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     try {
       const equipment = await cultivation.equipEquipment(equipmentId, slot);
       await cultivation.save();
-      
+
       // Recalculate combat stats after equipping
       let combatStats = cultivation.calculateCombatStats();
-      
+
       // Load equipment stats and merge
       const equipmentStats = await cultivation.getEquipmentStats();
       combatStats = mergeEquipmentStatsIntoCombatStats(combatStats, equipmentStats);
-      
+
       res.json({
         success: true,
         data: {
@@ -898,20 +926,20 @@ router.post("/equipment/:slot/unequip", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { slot } = req.params;
-    
+
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     try {
       cultivation.unequipEquipment(slot);
       await cultivation.save();
-      
+
       // Recalculate combat stats after unequipping
       let combatStats = cultivation.calculateCombatStats();
-      
+
       // Load equipment stats and merge
       const equipmentStats = await cultivation.getEquipmentStats();
       combatStats = mergeEquipmentStatsIntoCombatStats(combatStats, equipmentStats);
-      
+
       res.json({
         success: true,
         data: {
@@ -939,9 +967,9 @@ router.get("/equipment/stats", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     const equipmentStats = await cultivation.getEquipmentStats();
-    
+
     res.json({
       success: true,
       data: equipmentStats
@@ -960,9 +988,9 @@ router.post("/inventory/:itemId/use", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { itemId } = req.params;
-    
+
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     // Tìm item trong inventory
     const itemIndex = cultivation.inventory.findIndex(i => i.itemId === itemId);
     if (itemIndex === -1) {
@@ -971,17 +999,17 @@ router.post("/inventory/:itemId/use", async (req, res, next) => {
         message: "Không tìm thấy vật phẩm trong kho đồ"
       });
     }
-    
+
     const item = cultivation.inventory[itemIndex];
     const itemData = SHOP_ITEMS.find(i => i.id === itemId);
-    
+
     if (!itemData) {
       return res.status(404).json({
         success: false,
         message: "Vật phẩm không hợp lệ"
       });
     }
-    
+
     // Check if item is consumable type
     if (!['exp_boost', 'consumable'].includes(item.type)) {
       return res.status(400).json({
@@ -989,10 +1017,10 @@ router.post("/inventory/:itemId/use", async (req, res, next) => {
         message: "Vật phẩm này không thể sử dụng trực tiếp"
       });
     }
-    
+
     let message = '';
     let reward = {};
-    
+
     // Handle different consumable types
     switch (item.type) {
       case 'exp_boost':
@@ -1006,7 +1034,7 @@ router.post("/inventory/:itemId/use", async (req, res, next) => {
         message = `Đã kích hoạt ${item.name}! Tăng ${itemData.multiplier}x exp trong ${itemData.duration}h`;
         reward = { type: 'boost', multiplier: itemData.multiplier, duration: itemData.duration };
         break;
-        
+
       case 'consumable':
         // Handle different consumable items
         if (itemData.expReward) {
@@ -1032,23 +1060,23 @@ router.post("/inventory/:itemId/use", async (req, res, next) => {
           message = `Đã sử dụng ${item.name}!`;
         }
         break;
-        
+
       default:
         return res.status(400).json({
           success: false,
           message: "Không thể sử dụng vật phẩm này"
         });
     }
-    
+
     // Reduce quantity or remove item
     if (item.quantity > 1) {
       cultivation.inventory[itemIndex].quantity -= 1;
     } else {
       cultivation.inventory.splice(itemIndex, 1);
     }
-    
+
     await cultivation.save();
-    
+
     res.json({
       success: true,
       message,
@@ -1064,7 +1092,7 @@ router.post("/inventory/:itemId/use", async (req, res, next) => {
         inventory: cultivation.inventory
       }
     });
-    
+
   } catch (error) {
     console.error("[CULTIVATION] Error using item:", error);
     next(error);
@@ -1080,22 +1108,22 @@ router.post("/collect-passive-exp", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     const result = cultivation.collectPassiveExp();
-    
+
     if (!result.collected) {
       return res.json({
         success: true,
         data: result
       });
     }
-    
+
     await cultivation.save();
-    
+
     res.json({
       success: true,
-      message: result.multiplier > 1 
-        ? `Thu thập ${result.expEarned} tu vi (x${result.multiplier} đan dược)!` 
+      message: result.multiplier > 1
+        ? `Thu thập ${result.expEarned} tu vi (x${result.multiplier} đan dược)!`
         : `Thu thập ${result.expEarned} tu vi!`,
       data: {
         ...result,
@@ -1116,23 +1144,23 @@ router.get("/passive-exp-status", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     const now = new Date();
     const lastCollected = cultivation.lastPassiveExpCollected || now;
     const elapsedMs = now.getTime() - new Date(lastCollected).getTime();
     const elapsedMinutes = Math.floor(elapsedMs / (1000 * 60));
-    
+
     // Tính exp đang chờ thu thập
     const maxMinutes = 1440;
     const effectiveMinutes = Math.min(elapsedMinutes, maxMinutes);
-    
+
     // Base exp theo cảnh giới
     const expPerMinuteByRealm = {
       1: 2, 2: 4, 3: 8, 4: 15, 5: 25, 6: 40, 7: 60, 8: 100, 9: 150, 10: 250
     };
     const baseExpPerMinute = expPerMinuteByRealm[cultivation.realmLevel] || 2;
     const baseExp = effectiveMinutes * baseExpPerMinute;
-    
+
     // Tính multiplier
     let multiplier = 1;
     const activeBoosts = cultivation.activeBoosts.filter(b => b.expiresAt > now);
@@ -1141,9 +1169,9 @@ router.get("/passive-exp-status", async (req, res, next) => {
         multiplier = Math.max(multiplier, boost.multiplier);
       }
     }
-    
+
     const pendingExp = Math.floor(baseExp * multiplier);
-    
+
     res.json({
       success: true,
       data: {
@@ -1175,9 +1203,9 @@ router.get("/leaderboard", async (req, res, next) => {
   try {
     const { type = 'exp', limit = 50 } = req.query;
     const userId = req.user.id;
-    
+
     const leaderboard = await Cultivation.getLeaderboard(type, parseInt(limit));
-    
+
     // Debug log
     console.log("[LEADERBOARD] Raw data sample:", leaderboard.slice(0, 3).map(e => ({
       userName: e.user?.name,
@@ -1185,11 +1213,11 @@ router.get("/leaderboard", async (req, res, next) => {
       realmName: e.realmName,
       exp: e.exp
     })));
-    
+
     // Tìm vị trí của user hiện tại
     const userCultivation = await Cultivation.findOne({ user: userId });
     let userRank = null;
-    
+
     if (userCultivation) {
       let countQuery;
       switch (type) {
@@ -1213,11 +1241,11 @@ router.get("/leaderboard", async (req, res, next) => {
         default:
           countQuery = { exp: { $gt: userCultivation.exp } };
       }
-      
+
       const rank = await Cultivation.countDocuments(countQuery);
       userRank = rank + 1;
     }
-    
+
     res.json({
       success: true,
       data: {
@@ -1255,7 +1283,7 @@ router.get("/realms", async (req, res, next) => {
     const userId = req.user.id;
     const cultivation = await Cultivation.getOrCreate(userId);
     const currentRealm = cultivation.getRealmFromExp();
-    
+
     res.json({
       success: true,
       data: {
@@ -1281,16 +1309,16 @@ router.get("/exp-log", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const cultivation = await Cultivation.findOne({ user: userId }).select('+expLog');
-    
+
     if (!cultivation) {
       return res.json({
         success: true,
         data: []
       });
     }
-    
+
     const expLog = cultivation.expLog?.slice(-50).reverse() || [];
-    
+
     res.json({
       success: true,
       data: expLog
@@ -1309,12 +1337,12 @@ router.post("/add-exp", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { amount, source = 'activity' } = req.body;
-    
+
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     // Validate amount - cho phép exp lớn hơn dựa trên cảnh giới
     const realmLevel = cultivation.realmLevel || 1;
-    
+
     // Exp ranges dựa trên exp yêu cầu cho mỗi cảnh giới
     // Level 1: 1-3, Level 2: 3-10, Level 3: 10-30, Level 4: 20-60, Level 5: 50-150, Level 6+: 100-200
     const expRanges = {
@@ -1330,30 +1358,30 @@ router.post("/add-exp", async (req, res, next) => {
       10: { min: 100, max: 200 },
       11: { min: 100, max: 200 }
     };
-    
+
     const range = expRanges[realmLevel] || expRanges[1];
     const maxExp = range.max;
     const minExp = range.min;
-    
+
     if (!amount || typeof amount !== 'number' || amount < minExp || amount > maxExp) {
       return res.status(400).json({
         success: false,
         message: `Số exp không hợp lệ (${minExp}-${maxExp}) cho cảnh giới ${realmLevel}`
       });
     }
-    
+
     // Rate limiting: max exp per 5 minutes from yinyang_click (tăng theo cảnh giới)
     if (source === 'yinyang_click') {
       const now = new Date();
       const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-      
+
       // Check recent exp log for yinyang clicks
-      const recentClicks = (cultivation.expLog || []).filter(log => 
+      const recentClicks = (cultivation.expLog || []).filter(log =>
         log.source === 'yinyang_click' && new Date(log.createdAt) > fiveMinutesAgo
       );
-      
+
       const recentExp = recentClicks.reduce((sum, log) => sum + log.amount, 0);
-      
+
       // Rate limit tăng theo cảnh giới dựa trên exp ranges
       // Level 1: 100, Level 2: 300, Level 3: 1000, Level 4: 2500, Level 5: 5000, Level 6+: 10000
       const rateLimits = {
@@ -1369,9 +1397,9 @@ router.post("/add-exp", async (req, res, next) => {
         10: 10000,
         11: 10000
       };
-      
+
       const rateLimit = rateLimits[realmLevel] || rateLimits[1];
-      
+
       if (recentExp >= rateLimit) {
         return res.status(429).json({
           success: false,
@@ -1379,11 +1407,11 @@ router.post("/add-exp", async (req, res, next) => {
         });
       }
     }
-    
+
     // Add exp
     const oldExp = cultivation.exp;
     cultivation.exp += amount;
-    
+
     // Log the exp gain
     if (!cultivation.expLog) cultivation.expLog = [];
     cultivation.expLog.push({
@@ -1392,19 +1420,19 @@ router.post("/add-exp", async (req, res, next) => {
       description: source === 'yinyang_click' ? 'Thu thập linh khí từ âm dương' : 'Hoạt động tu luyện',
       createdAt: new Date()
     });
-    
+
     // Keep only last 100 entries
     if (cultivation.expLog.length > 100) {
       cultivation.expLog = cultivation.expLog.slice(-100);
     }
-    
+
     // Check for level up
     const oldRealm = CULTIVATION_REALMS.find(r => r.minExp <= oldExp && (!CULTIVATION_REALMS[CULTIVATION_REALMS.indexOf(r) + 1] || CULTIVATION_REALMS[CULTIVATION_REALMS.indexOf(r) + 1].minExp > oldExp));
     const newRealm = cultivation.getRealmFromExp();
     const leveledUp = newRealm.level > (oldRealm?.level || 0);
-    
+
     await cultivation.save();
-    
+
     res.json({
       success: true,
       message: `+${amount} Tu Vi`,
@@ -1430,7 +1458,7 @@ router.get("/stats", async (req, res, next) => {
   try {
     // Tổng số tu sĩ
     const totalCultivators = await Cultivation.countDocuments();
-    
+
     // Phân bổ theo cảnh giới
     const realmDistribution = await Cultivation.aggregate([
       {
@@ -1441,10 +1469,10 @@ router.get("/stats", async (req, res, next) => {
       },
       { $sort: { _id: 1 } }
     ]);
-    
+
     // Top 3 tu sĩ
     const topCultivators = await Cultivation.getLeaderboard('exp', 3);
-    
+
     // Tổng exp toàn server
     const totalExpResult = await Cultivation.aggregate([
       {
@@ -1455,7 +1483,7 @@ router.get("/stats", async (req, res, next) => {
         }
       }
     ]);
-    
+
     res.json({
       success: true,
       data: {
@@ -1489,13 +1517,13 @@ router.get("/combat-stats", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     let combatStats = cultivation.calculateCombatStats();
-    
+
     // Load equipment stats and merge
     const equipmentStats = await cultivation.getEquipmentStats();
     combatStats = mergeEquipmentStatsIntoCombatStats(combatStats, equipmentStats);
-    
+
     res.json({
       success: true,
       data: combatStats
@@ -1514,20 +1542,20 @@ router.get("/combat-stats/:userId", async (req, res, next) => {
   try {
     const { userId } = req.params;
     const cultivation = await Cultivation.findOne({ user: userId });
-    
+
     if (!cultivation) {
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy thông tin tu tiên của vị đạo hữu này'
       });
     }
-    
+
     let combatStats = cultivation.calculateCombatStats();
-    
+
     // Load equipment stats and merge
     const equipmentStats = await cultivation.getEquipmentStats();
     combatStats = mergeEquipmentStatsIntoCombatStats(combatStats, equipmentStats);
-    
+
     res.json({
       success: true,
       data: combatStats
@@ -1546,23 +1574,23 @@ router.post("/practice-technique", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { techniqueId, expGain } = req.body;
-    
+
     if (!techniqueId) {
       return res.status(400).json({
         success: false,
         message: 'Vui lòng chọn công pháp để luyện'
       });
     }
-    
+
     const cultivation = await Cultivation.getOrCreate(userId);
     const result = cultivation.practiceTechnique(techniqueId, expGain || 10);
-    
+
     await cultivation.save();
-    
+
     res.json({
       success: true,
-      message: result.leveledUp 
-        ? `Công pháp đã lên cấp ${result.newLevel}!` 
+      message: result.leveledUp
+        ? `Công pháp đã lên cấp ${result.newLevel}!`
         : `Luyện công pháp thành công! (+${expGain || 10} exp)`,
       data: result
     });
@@ -1580,18 +1608,18 @@ router.post("/breakthrough", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     // Dùng realmLevel từ database (realm hiện tại của người chơi)
     const currentRealm = CULTIVATION_REALMS.find(r => r.level === cultivation.realmLevel) || CULTIVATION_REALMS[0];
     const nextRealm = CULTIVATION_REALMS.find(r => r.level === currentRealm.level + 1);
-    
+
     if (!nextRealm) {
       return res.status(400).json({
         success: false,
         message: "Bạn đã đạt cảnh giới tối đa!"
       });
     }
-    
+
     // Kiểm tra exp có đủ không
     if (cultivation.exp < nextRealm.minExp) {
       return res.status(400).json({
@@ -1599,7 +1627,7 @@ router.post("/breakthrough", async (req, res, next) => {
         message: `Cần ${nextRealm.minExp.toLocaleString()} Tu Vi để độ kiếp lên ${nextRealm.name}`
       });
     }
-    
+
     // Kiểm tra cooldown (nếu đã thất bại trước đó)
     const now = new Date();
     if (cultivation.breakthroughCooldownUntil && cultivation.breakthroughCooldownUntil > now) {
@@ -1611,7 +1639,7 @@ router.post("/breakthrough", async (req, res, next) => {
         cooldownRemaining: remainingMs
       });
     }
-    
+
     // Tính tỷ lệ thành công dựa trên cảnh giới hiện tại
     // Cảnh giới đầu: tỷ lệ cao, cảnh giới cao: tỷ lệ thấp
     const baseSuccessRatesByRealm = {
@@ -1627,7 +1655,7 @@ router.post("/breakthrough", async (req, res, next) => {
       10: 10, // Tiên Nhân -> Thiên Đế: 10%
       11: 5   // Thiên Đế (max level, không thể độ kiếp nữa)
     };
-    
+
     const baseSuccessRate = baseSuccessRatesByRealm[currentRealm.level] || 30;
     // Bonus mỗi lần thất bại: giảm dần theo cảnh giới
     // Cảnh giới đầu: +15%, cảnh giới cao: +5%
@@ -1635,16 +1663,16 @@ router.post("/breakthrough", async (req, res, next) => {
       1: 15, 2: 15, 3: 12, 4: 10, 5: 8, 6: 7, 7: 6, 8: 5, 9: 5, 10: 5, 11: 5
     };
     const bonusPerFailure = bonusPerFailureByRealm[currentRealm.level] || 10;
-    
+
     // Kiểm tra đan dược tăng tỷ lệ độ kiếp trong inventory
     let breakthroughBonus = 0;
     let usedPill = null;
-    const breakthroughPills = cultivation.inventory.filter(item => 
-      item.type === ITEM_TYPES.BREAKTHROUGH_BOOST && 
-      !item.used && 
+    const breakthroughPills = cultivation.inventory.filter(item =>
+      item.type === ITEM_TYPES.BREAKTHROUGH_BOOST &&
+      !item.used &&
       (!item.expiresAt || new Date(item.expiresAt) > now)
     );
-    
+
     // Tìm đan dược có bonus cao nhất
     if (breakthroughPills.length > 0) {
       breakthroughPills.sort((a, b) => {
@@ -1656,7 +1684,7 @@ router.post("/breakthrough", async (req, res, next) => {
       const pillData = SHOP_ITEMS.find(i => i.id === usedPill.itemId);
       breakthroughBonus = pillData?.breakthroughBonus || 0;
     }
-    
+
     // Tính tỷ lệ thành công:
     // - Base rate theo cảnh giới hiện tại
     // - Cộng bonus từ số lần thất bại (failureCount * bonusPerFailure)
@@ -1664,39 +1692,39 @@ router.post("/breakthrough", async (req, res, next) => {
     // Lưu ý: KHÔNG dùng breakthroughSuccessRate vì nó đã cũ, chỉ dùng để track
     const failureBonus = (cultivation.breakthroughFailureCount || 0) * bonusPerFailure;
     const currentSuccessRate = Math.min(100, baseSuccessRate + failureBonus + breakthroughBonus);
-    
+
     // Roll để xem thành công hay thất bại
     const roll = Math.random() * 100;
     const success = roll < currentSuccessRate;
-    
+
     // Nếu đã dùng đan dược, đánh dấu đã sử dụng và xóa khỏi inventory
     if (usedPill) {
-      const pillIndex = cultivation.inventory.findIndex(i => 
-        i.itemId === usedPill.itemId && 
+      const pillIndex = cultivation.inventory.findIndex(i =>
+        i.itemId === usedPill.itemId &&
         i._id?.toString() === usedPill._id?.toString()
       );
       if (pillIndex !== -1) {
         cultivation.inventory.splice(pillIndex, 1);
       }
     }
-    
+
     // Cập nhật thời gian thử độ kiếp
     cultivation.lastBreakthroughAttempt = now;
-    
+
     if (success) {
       // THÀNH CÔNG: Lên cảnh giới mới
       const oldRealm = currentRealm;
       cultivation.realmLevel = nextRealm.level;
       cultivation.realmName = nextRealm.name;
-      
+
       // Reset failure count và success rate về base của cảnh giới mới
       cultivation.breakthroughFailureCount = 0;
       const nextBaseSuccessRate = baseSuccessRatesByRealm[nextRealm.level] || 30;
       cultivation.breakthroughSuccessRate = nextBaseSuccessRate;
       cultivation.breakthroughCooldownUntil = null;
-      
+
       await cultivation.save();
-      
+
       res.json({
         success: true,
         breakthroughSuccess: true,
@@ -1712,22 +1740,22 @@ router.post("/breakthrough", async (req, res, next) => {
     } else {
       // THẤT BẠI: Tăng failure count và set cooldown
       cultivation.breakthroughFailureCount = (cultivation.breakthroughFailureCount || 0) + 1;
-      
+
       // Cooldown: 1 giờ sau khi thất bại
       const cooldownHours = 1;
       cultivation.breakthroughCooldownUntil = new Date(now.getTime() + cooldownHours * 60 * 60 * 1000);
-      
+
       // Không cần cập nhật breakthroughSuccessRate vì đã tính từ failureCount
       // Chỉ giữ để hiển thị/debug
       cultivation.breakthroughSuccessRate = baseSuccessRate;
-      
+
       await cultivation.save();
-      
+
       // Tính tỷ lệ thành công lần sau (đã cộng failure mới)
-      const nextSuccessRate = Math.min(100, 
+      const nextSuccessRate = Math.min(100,
         baseSuccessRate + cultivation.breakthroughFailureCount * bonusPerFailure
       );
-      
+
       res.json({
         success: true,
         breakthroughSuccess: false,
@@ -1758,7 +1786,7 @@ router.post("/fix-realms", async (req, res, next) => {
   try {
     console.log("[FIX-REALMS] Starting...");
     console.log("[FIX-REALMS] req.user:", req.user ? { id: req.user._id, role: req.user.role, name: req.user.name } : "null");
-    
+
     // Kiểm tra quyền admin
     if (!req.user || req.user.role !== 'admin') {
       console.log("[FIX-REALMS] Access denied - not admin");
@@ -1769,15 +1797,15 @@ router.post("/fix-realms", async (req, res, next) => {
     }
 
     console.log("[FIX-REALMS] Admin verified, fetching cultivations...");
-    
+
     // Lấy tất cả cultivation records
     const cultivations = await Cultivation.find().populate('user', 'name');
     let fixed = 0;
     const details = [];
-    
+
     console.log(`[FIX-REALMS] Found ${cultivations.length} cultivation records`);
     console.log(`[FIX-REALMS] CULTIVATION_REALMS count:`, CULTIVATION_REALMS?.length || 0);
-    
+
     for (const cult of cultivations) {
       // Debug: tính realm thủ công
       let correctRealm = CULTIVATION_REALMS[0];
@@ -1787,11 +1815,11 @@ router.post("/fix-realms", async (req, res, next) => {
           break;
         }
       }
-      
+
       const needsFix = cult.realmLevel !== correctRealm.level || cult.realmName !== correctRealm.name;
-      
+
       console.log(`[FIX-REALMS] User ${cult.user?.name}: exp=${cult.exp}, current=${cult.realmLevel}/${cult.realmName}, correct=${correctRealm.level}/${correctRealm.name}, needsFix=${needsFix}`);
-      
+
       details.push({
         userName: cult.user?.name || 'Unknown',
         exp: cult.exp,
@@ -1801,17 +1829,17 @@ router.post("/fix-realms", async (req, res, next) => {
         correctName: correctRealm.name,
         needsFix
       });
-      
+
       if (needsFix) {
         const oldName = cult.realmName;
         cult.realmLevel = correctRealm.level;
         cult.realmName = correctRealm.name;
-        await cult.save(); 
+        await cult.save();
         fixed++;
         console.log(`[FIX-REALMS] [SUCCEEDED] Fixed ${cult.user?.name}: exp=${cult.exp}, ${oldName} -> ${correctRealm.name}`);
       }
     }
-    
+
     res.json({
       success: true,
       message: `Đã sửa ${fixed}/${cultivations.length} bản ghi`,

@@ -655,7 +655,8 @@ router.get("/me",
             equipped: {
               title: cultivation.equipped?.title || null,
               badge: cultivation.equipped?.badge || null,
-              avatarFrame: cultivation.equipped?.avatarFrame || null
+              avatarFrame: cultivation.equipped?.avatarFrame || null,
+              profileEffect: cultivation.equipped?.profileEffect || null
             }
           };
           // Update user's cultivationCache in background

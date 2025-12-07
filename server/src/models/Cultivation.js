@@ -186,7 +186,7 @@ export const SHOP_ITEMS = [
 
   // ==================== HIỆU ỨNG PROFILE (PROFILE_EFFECT) ====================
   { id: "effect_sparkle", name: "Tinh Quang Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 400, description: "Hiệu ứng lấp lánh trên profile", icon: "✨", rarity: "rare" },
-  { id: "effect_flames", name: "Hỏa Diễm Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 500, description: "Hiệu ứng ngọn lửa trên profile", icon: "🔥", rarity: "epic" },
+  { id: "effect_aurora", name: "Cực Quang Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 500, description: "Hiệu ứng cực quang huyền ảo trên profile", icon: "🌈", rarity: "epic" },
   { id: "effect_snow", name: "Tuyết Hoa Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 400, description: "Hiệu ứng tuyết rơi trên profile", icon: "❄️", rarity: "rare" },
   { id: "effect_petals", name: "Hoa Vũ Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 350, description: "Hiệu ứng cánh hoa bay trên profile", icon: "🌸", rarity: "rare" },
   { id: "effect_lightning", name: "Lôi Điện Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 600, description: "Hiệu ứng sấm chớp trên profile", icon: "⚡", rarity: "epic" },
@@ -336,12 +336,12 @@ const QuestProgressSchema = new mongoose.Schema({
 const InventoryItemSchema = new mongoose.Schema({
   itemId: { type: String, required: true },
   name: { type: String, required: true },
-  type: { 
-    type: String, 
+  type: {
+    type: String,
     required: true,
     // Cho phép cả ITEM_TYPES và equipment types (equipment_weapon, equipment_armor, etc.)
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         const validTypes = Object.values(ITEM_TYPES);
         return validTypes.includes(v) || v.startsWith('equipment_');
       },
@@ -584,7 +584,7 @@ CultivationSchema.methods.calculateCombatStats = function () {
 
   // Tích hợp equipment stats (async - sẽ được gọi riêng nếu cần)
   // Equipment stats sẽ được tính riêng qua getEquipmentStats() và merge ở route level
-  
+
   return finalStats;
 };
 
@@ -676,7 +676,7 @@ CultivationSchema.methods.getRealmProgress = function () {
   // Dùng realmLevel hiện tại thay vì tính từ exp
   const currentRealm = CULTIVATION_REALMS.find(r => r.level === this.realmLevel) || CULTIVATION_REALMS[0];
   if (currentRealm.level >= 11) return 100;
-  
+
   // Tính progress trong realm hiện tại
   const progressInRealm = this.exp - currentRealm.minExp;
   const realmRange = currentRealm.maxExp - currentRealm.minExp + 1;
@@ -1240,16 +1240,16 @@ CultivationSchema.methods.unequipItem = function (itemId) {
 CultivationSchema.methods.equipEquipment = async function (equipmentId, slot) {
   const Equipment = mongoose.model('Equipment');
   const equipment = await Equipment.findById(equipmentId);
-  
+
   if (!equipment || !equipment.is_active) {
     throw new Error("Equipment không tồn tại hoặc đã bị vô hiệu hóa");
   }
-  
+
   // Kiểm tra level requirement
   if (this.realmLevel < equipment.level_required) {
     throw new Error(`Cần đạt cảnh giới cấp ${equipment.level_required} để trang bị`);
   }
-  
+
   // Auto-detect slot nếu không chỉ định
   if (!slot) {
     if (equipment.type === 'weapon') slot = 'weapon';
@@ -1270,21 +1270,21 @@ CultivationSchema.methods.equipEquipment = async function (equipmentId, slot) {
     else if (equipment.type === 'power_item') slot = 'powerItem';
     else throw new Error("Không thể xác định slot cho equipment này");
   }
-  
+
   // Kiểm tra slot có hợp lệ không
   if (!this.equipped.hasOwnProperty(slot)) {
     throw new Error(`Slot ${slot} không hợp lệ`);
   }
-  
+
   // Bỏ trang bị equipment cũ ở slot này (nếu có)
   const oldEquipmentId = this.equipped[slot];
   if (oldEquipmentId) {
     this.equipped[slot] = null;
   }
-  
+
   // Trang bị equipment mới
   this.equipped[slot] = equipmentId;
-  
+
   return equipment;
 };
 
@@ -1296,13 +1296,13 @@ CultivationSchema.methods.unequipEquipment = function (slot) {
   if (!this.equipped.hasOwnProperty(slot)) {
     throw new Error(`Slot ${slot} không hợp lệ`);
   }
-  
+
   if (!this.equipped[slot]) {
     throw new Error(`Slot ${slot} không có equipment nào được trang bị`);
   }
-  
+
   this.equipped[slot] = null;
-  
+
   return { slot, unequipped: true };
 };
 
@@ -1311,10 +1311,10 @@ CultivationSchema.methods.unequipEquipment = function (slot) {
  */
 CultivationSchema.methods.getEquipmentStats = async function () {
   const Equipment = mongoose.model('Equipment');
-  const equipmentIds = Object.values(this.equipped).filter(id => 
+  const equipmentIds = Object.values(this.equipped).filter(id =>
     id && mongoose.Types.ObjectId.isValid(id)
   );
-  
+
   if (equipmentIds.length === 0) {
     return {
       attack: 0,
@@ -1334,9 +1334,9 @@ CultivationSchema.methods.getEquipmentStats = async function () {
       buff_duration: 0
     };
   }
-  
+
   const equipments = await Equipment.find({ _id: { $in: equipmentIds }, is_active: true });
-  
+
   const totalStats = {
     attack: 0,
     defense: 0,
@@ -1354,7 +1354,7 @@ CultivationSchema.methods.getEquipmentStats = async function () {
     true_damage: 0,
     buff_duration: 0
   };
-  
+
   equipments.forEach(eq => {
     const stats = eq.getTotalStats();
     totalStats.attack += stats.attack || 0;
@@ -1371,7 +1371,7 @@ CultivationSchema.methods.getEquipmentStats = async function () {
     totalStats.lifesteal += stats.lifesteal || 0;
     totalStats.true_damage += stats.true_damage || 0;
     totalStats.buff_duration += stats.buff_duration || 0;
-    
+
     // Merge elemental damage
     if (stats.elemental_damage) {
       Object.entries(stats.elemental_damage).forEach(([element, damage]) => {
@@ -1379,14 +1379,14 @@ CultivationSchema.methods.getEquipmentStats = async function () {
       });
     }
   });
-  
+
   // Cap percentages at 1.0 (100%)
   totalStats.crit_rate = Math.min(totalStats.crit_rate, 1.0);
   totalStats.crit_damage = Math.min(totalStats.crit_damage, 1.0);
   totalStats.evasion = Math.min(totalStats.evasion, 1.0);
   totalStats.hit_rate = Math.min(totalStats.hit_rate, 1.0);
   totalStats.lifesteal = Math.min(totalStats.lifesteal, 1.0);
-  
+
   return totalStats;
 };
 

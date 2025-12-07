@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { FileText } from "lucide-react";
+import { FileText, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import PostCreator from "../PostCreator";
 import ModernPostCard from "../ModernPostCard";
 import { SpotlightCard } from "../ui/SpotlightCard";
@@ -42,19 +43,30 @@ export default function PostsTab({
               )}
             </div>
           </SpotlightCard>
-          
+
           {/* Recent Photos Mini Grid */}
           <SpotlightCard>
-            <h3 className="font-bold mb-4 text-lg">Ảnh gần đây</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">Ảnh gần đây</h3>
+              {recentImages.length > 0 && (
+                <Link
+                  to="/gallery"
+                  className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                >
+                  <span>Xem tất cả</span>
+                  <ArrowRight size={14} />
+                </Link>
+              )}
+            </div>
             <div className="grid grid-cols-3 gap-2">
               {recentImages.length === 0 ? (
-                [1,2,3,4,5,6].map(i => (
+                [1, 2, 3, 4, 5, 6].map(i => (
                   <div key={i} className="aspect-square bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
                 ))
               ) : (
                 recentImages.slice(0, 6).map((img, i) => (
-                  <div 
-                    key={`${img.postId}-${i}`} 
+                  <div
+                    key={`${img.postId}-${i}`}
                     className="aspect-square bg-neutral-200 dark:bg-neutral-800 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                     title={img.postTitle}
                   >
@@ -74,13 +86,13 @@ export default function PostsTab({
         </div>
         {postsLoading ? (
           <div className="space-y-6" style={{ overflow: 'visible' }}>
-            {[1,2,3].map(i => (
+            {[1, 2, 3].map(i => (
               <PostCardSkeleton key={i} />
             ))}
           </div>
         ) : posts.length > 0 ? (
           posts.map((post, index) => (
-            <motion.div 
+            <motion.div
               key={post._id}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -88,11 +100,11 @@ export default function PostsTab({
               transition={{ delay: index * 0.05 }}
               style={{ position: 'relative', overflow: 'visible', zIndex: 1 }}
             >
-              <ModernPostCard 
-                post={post} 
-                user={user} 
-                onUpdate={onUpdate} 
-                isSaved={savedMap[post._id]} 
+              <ModernPostCard
+                post={post}
+                user={user}
+                onUpdate={onUpdate}
+                isSaved={savedMap[post._id]}
                 onSavedChange={onSavedChange}
                 hideActionsMenu={true}
               />
