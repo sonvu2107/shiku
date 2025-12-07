@@ -10,9 +10,9 @@ import AuditLog from "../models/AuditLog.js";
 import { authRequired } from "../middleware/auth.js";
 import NotificationService from "../services/NotificationService.js";
 import sanitizeHtml from "sanitize-html";
-import { 
-  adminRateLimit, 
-  strictAdminRateLimit, 
+import {
+  adminRateLimit,
+  strictAdminRateLimit,
   notificationSlowDown,
   statsCache,
   userCache,
@@ -24,14 +24,37 @@ const router = express.Router();
 
 /**
  * Middleware kiểm tra quyền admin với audit logging
- * Chỉ cho phép user có role "admin" truy cập các routes admin
+ * Cho phép user có role "admin" HOẶC có bất kỳ permission admin.* nào
  * @param {Object} req - Request object
  * @param {Object} res - Response object  
  * @param {Function} next - Next middleware function
  */
 const adminRequired = async (req, res, next) => {
   try {
-    if (req.user.role !== "admin") {
+    let hasAdminAccess = false;
+
+    // Check 1: Full admin role
+    if (req.user.role === "admin") {
+      hasAdminAccess = true;
+    }
+
+    // Check 2: User has admin.* permissions via their role
+    if (!hasAdminAccess && req.user.role && req.user.role !== 'user') {
+      try {
+        const Role = mongoose.model('Role');
+        const roleDoc = await Role.findOne({ name: req.user.role, isActive: true }).lean();
+        if (roleDoc && roleDoc.permissions) {
+          // Check for any admin.* permission
+          hasAdminAccess = Object.keys(roleDoc.permissions).some(
+            key => key.startsWith('admin.') && roleDoc.permissions[key] === true
+          );
+        }
+      } catch (roleError) {
+        console.error('[ERROR][ADMIN] Error checking role permissions:', roleError);
+      }
+    }
+
+    if (!hasAdminAccess) {
       // Log failed admin access attempt
       await AuditLog.logAction(req.user._id, 'login_admin', {
         result: 'failed',
@@ -41,7 +64,7 @@ const adminRequired = async (req, res, next) => {
       });
       return res.status(403).json({ error: "Chỉ admin mới có quyền truy cập" });
     }
-    
+
     // Check if admin is banned
     if (req.user.isBanned && req.user.banExpiresAt && req.user.banExpiresAt > new Date()) {
       await AuditLog.logAction(req.user._id, 'login_admin', {
@@ -52,13 +75,19 @@ const adminRequired = async (req, res, next) => {
       });
       return res.status(403).json({ error: "Tài khoản admin bị cấm" });
     }
-    
+
     next();
   } catch (error) {
     console.error('[ERROR][ADMIN] Admin middleware error:', error);
     res.status(500).json({ error: "Lỗi server" });
   }
 };
+
+/**
+ * Helper to check if user is a FULL admin (role === 'admin')
+ * Only full admins can affect other admin accounts
+ */
+const isFullAdmin = (user) => user?.role === 'admin';
 
 /**
  * POST /ban-user - Cấm người dùng
@@ -71,7 +100,7 @@ const adminRequired = async (req, res, next) => {
 router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, async (req, res, next) => {
   try {
     const { userId, banDurationMinutes, reason } = req.body;
-    
+
     // Kiểm tra thông tin bắt buộc
     if (!userId || !reason) {
       await AuditLog.logAction(req.user._id, 'ban_user', {
@@ -110,17 +139,17 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, asyn
       return res.status(400).json({ error: "Không thể tự cấm chính mình" });
     }
 
-    // Không cho phép cấm admin
-    if (user.role === "admin") {
+    // Chỉ FULL admin mới có thể tác động lên admin accounts
+    if (user.role === "admin" && !isFullAdmin(req.user)) {
       await AuditLog.logAction(req.user._id, 'ban_user', {
         targetId: userId,
         targetType: 'user',
         result: 'failed',
         ipAddress: req.ip,
         clientAgent: getClientAgent(req),
-        reason: 'Attempted to ban another admin'
+        reason: 'Non-full admin attempted to ban admin account'
       });
-      return res.status(400).json({ error: "Không thể cấm admin" });
+      return res.status(403).json({ error: "Chỉ admin toàn quyền mới có thể tác động lên tài khoản admin khác" });
     }
 
     // Lưu dữ liệu trước khi thay đổi cho audit
@@ -132,7 +161,7 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, asyn
     };
 
     // Tính thời gian hết hạn cấm
-    const banExpiresAt = banDurationMinutes 
+    const banExpiresAt = banDurationMinutes
       ? new Date(Date.now() + banDurationMinutes * 60 * 1000)
       : null; // null = permanent ban
 
@@ -142,7 +171,7 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, asyn
     user.bannedAt = new Date();
     user.banExpiresAt = banExpiresAt;
     user.bannedBy = req.user._id;
-    
+
     await user.save();
 
     // Log audit action
@@ -174,8 +203,8 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, asyn
       console.error("[ERROR][ADMIN] Error creating ban notification:", notifError);
     }
 
-    res.json({ 
-      message: banDurationMinutes 
+    res.json({
+      message: banDurationMinutes
         ? `Đã cấm user ${user.name} trong ${banDurationMinutes} phút`
         : `Đã cấm vĩnh viễn user ${user.name}`,
       user: {
@@ -207,7 +236,7 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, asyn
 router.post("/unban-user", authRequired, adminRequired, async (req, res, next) => {
   try {
     const { userId } = req.body;
-    
+
     // Kiểm tra thông tin bắt buộc
     if (!userId) {
       return res.status(400).json({ error: "Thiếu userId" });
@@ -219,13 +248,18 @@ router.post("/unban-user", authRequired, adminRequired, async (req, res, next) =
       return res.status(404).json({ error: "User không tồn tại" });
     }
 
+    // Chỉ FULL admin mới có thể tác động lên admin accounts
+    if (user.role === "admin" && !isFullAdmin(req.user)) {
+      return res.status(403).json({ error: "Chỉ admin toàn quyền mới có thể tác động lên tài khoản admin khác" });
+    }
+
     // Gỡ cấm user
     user.isBanned = false;
     user.banReason = "";
     user.bannedAt = null;
     user.banExpiresAt = null;
     user.bannedBy = null;
-    
+
     await user.save();
 
     // Tạo thông báo gỡ cấm cho user
@@ -235,7 +269,7 @@ router.post("/unban-user", authRequired, adminRequired, async (req, res, next) =
       console.error("[ERROR][ADMIN] Error creating unban notification:", notifError);
     }
 
-    res.json({ 
+    res.json({
       message: `Đã gỡ cấm user ${user.name}`,
       user: {
         _id: user._id,
@@ -348,10 +382,12 @@ router.get("/stats", adminRateLimit, statsCache, authRequired, adminRequired, as
             lastMonthViews: {
               $sum: {
                 $cond: [
-                  { $and: [
-                    { $gte: ["$createdAt", lastMonth] },
-                    { $lt: ["$createdAt", thisMonth] }
-                  ]},
+                  {
+                    $and: [
+                      { $gte: ["$createdAt", lastMonth] },
+                      { $lt: ["$createdAt", thisMonth] }
+                    ]
+                  },
                   "$views",
                   0
                 ]
@@ -378,10 +414,12 @@ router.get("/stats", adminRateLimit, statsCache, authRequired, adminRequired, as
             lastMonthEmotes: {
               $sum: {
                 $cond: [
-                  { $and: [
-                    { $gte: ["$createdAt", lastMonth] },
-                    { $lt: ["$createdAt", thisMonth] }
-                  ]},
+                  {
+                    $and: [
+                      { $gte: ["$createdAt", lastMonth] },
+                      { $lt: ["$createdAt", thisMonth] }
+                    ]
+                  },
                   { $size: { $ifNull: ["$emotes", []] } },
                   0
                 ]
@@ -504,7 +542,7 @@ router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, asy
     // Limit max 100 for performance, default to 20
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
     const skip = (page - 1) * limit;
-    
+
     // Search filters - escape regex to prevent NoSQL injection
     const searchQuery = req.query.search ? {
       $or: [
@@ -512,13 +550,13 @@ router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, asy
         { email: { $regex: escapeRegex(req.query.search), $options: 'i' } }
       ]
     } : {};
-    
+
     // Role filter - validate against allowed roles to prevent NoSQL injection
     const allowedRoles = ['user', 'admin', 'moderator', 'vip'];
-    const roleFilter = req.query.role && typeof req.query.role === 'string' && allowedRoles.includes(req.query.role) 
-      ? { role: req.query.role } 
+    const roleFilter = req.query.role && typeof req.query.role === 'string' && allowedRoles.includes(req.query.role)
+      ? { role: req.query.role }
       : {};
-    
+
     // Ban status filter
     let banFilter = {};
     if (req.query.banned === 'true') {
@@ -526,13 +564,13 @@ router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, asy
     } else if (req.query.banned === 'false') {
       banFilter = { isBanned: { $ne: true } };
     }
-    
+
     // Combine all filters
     const matchQuery = { ...searchQuery, ...roleFilter, ...banFilter };
-    
+
     // Get total count for pagination
     const total = await User.countDocuments(matchQuery);
-    
+
     // OPTIMIZED: Use $lookup with pipeline to count instead of loading all posts
     const users = await User.aggregate([
       { $match: matchQuery },
@@ -559,7 +597,7 @@ router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, asy
           bannedAt: 1,
           banExpiresAt: 1,
           bannedBy: 1,
-          postCount: { 
+          postCount: {
             $ifNull: [{ $arrayElemAt: ["$postStats.count", 0] }, 0]
           }
         }
@@ -582,7 +620,7 @@ router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, asy
       }
     });
 
-    res.json({ 
+    res.json({
       users,
       pagination: {
         page,
@@ -609,10 +647,10 @@ router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, asy
 router.put("/users/:id/role", authRequired, adminRequired, async (req, res, next) => {
   try {
     const { role } = req.body;
-    
+
     // ✅ OPTIMIZED ROLE VALIDATION - Cache or use simple validation
     const validRoles = ['user', 'admin', 'moderator', 'premium']; // Add your valid roles here
-    
+
     // For custom roles, only check database if not in basic roles
     if (!validRoles.includes(role)) {
       const Role = mongoose.model('Role');
@@ -622,29 +660,41 @@ router.put("/users/:id/role", authRequired, adminRequired, async (req, res, next
       }
     }
 
-    // ✅ SINGLE DATABASE QUERY - findByIdAndUpdate instead of find + save
+    // Tìm user trước để check role
+    const targetUser = await User.findById(req.params.id).lean();
+    if (!targetUser) {
+      return res.status(404).json({ error: "Không tìm thấy người dùng" });
+    }
+
+    // Không cho phép user tự thay đổi quyền của chính mình
+    if (targetUser._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ error: "Không thể thay đổi quyền của chính bạn" });
+    }
+
+    // Chỉ FULL admin mới có thể tác động lên admin accounts
+    if (targetUser.role === "admin" && !isFullAdmin(req.user)) {
+      return res.status(403).json({ error: "Chỉ admin toàn quyền mới có thể tác động lên tài khoản admin khác" });
+    }
+
+    // Không cho phép non-full admin cấp quyền admin cho người khác
+    if (role === "admin" && !isFullAdmin(req.user)) {
+      return res.status(403).json({ error: "Chỉ admin toàn quyền mới có thể cấp quyền admin cho người khác" });
+    }
+
+    // ✅ Update role
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       { role: role },
-      { 
+      {
         new: true, // Return updated document
         runValidators: true,
         lean: true // Performance optimization
       }
     );
 
-    if (!updatedUser) {
-      return res.status(404).json({ error: "Không tìm thấy người dùng" });
-    }
-
-    // Không cho phép user tự thay đổi quyền của chính mình
-    if (updatedUser._id.toString() === req.user._id.toString()) {
-      return res.status(400).json({ error: "Không thể thay đổi quyền của chính bạn" });
-    }
-
-    res.json({ 
-      message: "User role updated successfully", 
-      user: updatedUser 
+    res.json({
+      message: "User role updated successfully",
+      user: updatedUser
     });
   } catch (e) {
     next(e);
@@ -675,6 +725,11 @@ router.delete("/users/:id", authRequired, adminRequired, async (req, res, next) 
     // Không cho phép user tự xóa chính mình
     if (user._id.toString() === req.user._id.toString()) {
       return res.status(400).json({ error: "Không thể xóa chính bạn" });
+    }
+
+    // Chỉ FULL admin mới có thể xóa admin accounts
+    if (user.role === "admin" && !isFullAdmin(req.user)) {
+      return res.status(403).json({ error: "Chỉ admin toàn quyền mới có thể xóa tài khoản admin khác" });
     }
 
     // Xóa tất cả bài viết của user
@@ -719,33 +774,33 @@ router.get("/total-visitors", authRequired, adminRequired, async (req, res, next
     // Tổng số users đã đăng ký
     //  FIX: Use estimatedDocumentCount for better performance
     const totalUsers = await User.estimatedDocumentCount();
-    
+
     // Số users đã từng online (có lastSeen)
     const usersWithActivity = await User.countDocuments({
       lastSeen: { $exists: true, $ne: null }
     });
-    
+
     // Số users đang online
     const onlineUsers = await User.countDocuments({ isOnline: true });
-    
+
     // Tính tổng lượt truy cập dựa trên hoạt động
     // Mỗi lần user login = 1 lượt truy cập
     // Có thể mở rộng để track page views
     const totalVisitors = usersWithActivity;
-    
+
     // Thống kê theo thời gian
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const thisWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+
     const [todayVisitors, weekVisitors, monthVisitors] = await Promise.all([
       User.countDocuments({ lastSeen: { $gte: today } }),
       User.countDocuments({ lastSeen: { $gte: thisWeek } }),
       User.countDocuments({ lastSeen: { $gte: thisMonth } })
     ]);
-    
-    res.json({ 
+
+    res.json({
       totalVisitors,
       totalUsers,
       onlineUsers,
@@ -771,18 +826,18 @@ router.post("/update-offline-users", authRequired, adminRequired, async (req, re
     // Tìm users online nhưng không hoạt động trong 2 phút
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
     const result = await User.updateMany(
-      { 
-        isOnline: true, 
-        lastSeen: { $lt: twoMinutesAgo } 
+      {
+        isOnline: true,
+        lastSeen: { $lt: twoMinutesAgo }
       },
-      { 
-        isOnline: false 
+      {
+        isOnline: false
       }
     );
-    
-    res.json({ 
+
+    res.json({
       message: "Updated offline users",
-      updatedCount: result.modifiedCount 
+      updatedCount: result.modifiedCount
     });
   } catch (e) {
     next(e);
@@ -806,10 +861,10 @@ router.post("/send-notification", notificationSlowDown, authRequired, adminRequi
     // XSS Protection: Sanitize title and message
     const title = sanitizeHtml(rawTitle, { allowedTags: [], allowedAttributes: {} });
     const message = sanitizeHtml(rawMessage, {
-      allowedTags: [ 'b', 'i', 'em', 'strong', 'a', 'p', 'br' ],
-      allowedAttributes: { 'a': [ 'href' ] }
+      allowedTags: ['b', 'i', 'em', 'strong', 'a', 'p', 'br'],
+      allowedAttributes: { 'a': ['href'] }
     });
-    
+
     // Kiểm tra thông tin bắt buộc
     if (!title || !message) {
       return res.status(400).json({ error: "Thiếu tiêu đề hoặc nội dung thông báo" });
@@ -865,7 +920,7 @@ router.post("/send-notification", notificationSlowDown, authRequired, adminRequi
 
     // Lưu thông báo vào database
     const savedNotifications = await Notification.insertMany(notifications);
-    
+
     // Gửi thông báo real-time qua Socket.IO
     const io = req.app.get('io');
     if (io) {
@@ -926,29 +981,29 @@ router.get("/audit-logs", adminRateLimit, userCache, authRequired, adminRequired
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
     const skip = (page - 1) * limit;
-    
+
     // Filters
     const filters = {};
     if (req.query.action) filters.action = req.query.action;
     if (req.query.adminId) filters.adminId = req.query.adminId;
     if (req.query.result) filters.result = req.query.result;
-    
+
     // Date range filter
     if (req.query.fromDate || req.query.toDate) {
       filters.timestamp = {};
       if (req.query.fromDate) filters.timestamp.$gte = new Date(req.query.fromDate);
       if (req.query.toDate) filters.timestamp.$lte = new Date(req.query.toDate);
     }
-    
+
     const total = await AuditLog.countDocuments(filters);
-    
+
     const logs = await AuditLog.find(filters)
       .populate('adminId', 'name email role')
       .sort({ timestamp: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
-    
+
     // Log the audit log viewing
     await AuditLog.logAction(req.user._id, 'view_admin_stats', {
       result: 'success',
@@ -956,7 +1011,7 @@ router.get("/audit-logs", adminRateLimit, userCache, authRequired, adminRequired
       clientAgent: getClientAgent(req),
       details: { endpoint: 'audit-logs', page, limit, total }
     });
-    
+
     res.json({
       logs,
       pagination: {
@@ -985,16 +1040,16 @@ router.get("/audit-logs", adminRateLimit, userCache, authRequired, adminRequired
 router.get("/suspicious-activities", adminRateLimit, noCache, authRequired, adminRequired, async (req, res, next) => {
   try {
     const timeframe = parseInt(req.query.hours) || 24; // Default 24 hours
-    
+
     const suspiciousActivities = await AuditLog.getSuspiciousActivities(timeframe);
-    
+
     await AuditLog.logAction(req.user._id, 'view_admin_stats', {
       result: 'success',
       ipAddress: req.ip,
       clientAgent: getClientAgent(req),
       details: { endpoint: 'suspicious-activities', timeframe }
     });
-    
+
     res.json({
       suspiciousActivities,
       timeframe,
@@ -1017,10 +1072,10 @@ router.get("/suspicious-activities", adminRateLimit, noCache, authRequired, admi
  */
 router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimit, async (req, res, next) => {
   try {
-    const { 
-      maxPostsPerUser = 4, 
-      likeProbability = 1, 
-      selectedUsers = [], 
+    const {
+      maxPostsPerUser = 4,
+      likeProbability = 1,
+      selectedUsers = [],
       emoteTypes = ['👍', '❤️', '😂', '😮', '😢', '😡'],
       enableAutoView = false,
       maxViewsPerUser = 8,
@@ -1031,9 +1086,9 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
       result: 'started',
       ipAddress: req.ip,
       clientAgent: getClientAgent(req),
-      details: { 
-        maxPostsPerUser, 
-        likeProbability, 
+      details: {
+        maxPostsPerUser,
+        likeProbability,
         userCount: selectedUsers.length,
         enableAutoView,
         maxViewsPerUser,
@@ -1051,20 +1106,20 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
     }
 
     // Filter users if specific ones selected
-    const usersToProcess = selectedUsers.length > 0 
+    const usersToProcess = selectedUsers.length > 0
       ? testUsers.filter(user => selectedUsers.includes(user.email))
       : []; // Return empty array if no users selected
 
     // Check if no users to process
     if (usersToProcess.length === 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: "Vui lòng chọn ít nhất một tài khoản để chạy auto like bot",
         availableUsers: testUsers.map(u => u.email)
       });
     }
 
     // Get recent posts - increased limit to ensure enough posts
-    const posts = await Post.find({ 
+    const posts = await Post.find({
       status: 'published',
       createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days instead of 7
     }).select('_id title author').limit(100).lean(); // Increased limit
@@ -1083,14 +1138,14 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
     for (const user of usersToProcess) {
       try {
         console.log(`[INFO][ADMIN] === Processing user: ${user.email} (ID: ${user._id}) ===`);
-        
+
         // Get posts excluding user's own posts (if any)
-        const availablePosts = posts.filter(post => 
+        const availablePosts = posts.filter(post =>
           post.author.toString() !== user._id.toString()
         );
-        
+
         console.log(`[INFO][ADMIN] User ${user.email}: Total posts: ${posts.length}, Available posts (excluding own): ${availablePosts.length}, requesting ${maxPostsPerUser} likes${enableAutoView ? `, ${maxViewsPerUser} views` : ''}`);
-        
+
         if (availablePosts.length === 0) {
           console.log(`[WARN][ADMIN] User ${user.email}: No available posts to like (may be author of all posts)`);
           results.push({
@@ -1102,7 +1157,7 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
           });
           continue;
         }
-        
+
         // Get random posts for this user - FIXED: ensure we process the exact number requested
         const shuffledPosts = availablePosts.sort(() => 0.5 - Math.random());
         const postsToLike = shuffledPosts.slice(0, Math.min(maxPostsPerUser, availablePosts.length));
@@ -1115,20 +1170,20 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
         // Process likes
         for (const post of postsToLike) {
           console.log(`[INFO][ADMIN] Checking post ${post._id} (${post.title}) for user ${user.email}`);
-          
+
           // Check if user already has an emote on this post
           const existingPost = await Post.findById(post._id).select('emotes').lean();
-          const hasExistingEmote = existingPost.emotes?.some(emote => 
+          const hasExistingEmote = existingPost.emotes?.some(emote =>
             emote.user.toString() === user._id.toString()
           );
 
           if (!hasExistingEmote || forceOverride) {
             // Random emote
             const randomEmote = emoteTypes[Math.floor(Math.random() * emoteTypes.length)];
-            
+
             if (hasExistingEmote && forceOverride) {
               console.log(`[INFO][ADMIN] Force override: Replacing existing emote for ${user.email} on post ${post._id}`);
-              
+
               // Remove existing emote first, then add new one
               await Post.findByIdAndUpdate(
                 post._id,
@@ -1137,15 +1192,15 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
                 }
               );
             }
-            
+
             console.log(`[INFO][ADMIN] Adding ${randomEmote} from ${user.email} to post ${post._id}`);
-            
+
             // Add emote to post (only if user hasn't reacted yet or force override)
             const updateResult = await Post.findByIdAndUpdate(
               post._id,
               {
-                $push: { 
-                  emotes: { 
+                $push: {
+                  emotes: {
                     user: user._id,
                     type: randomEmote,
                     createdAt: new Date()
@@ -1169,13 +1224,13 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
           // Small delay between likes
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
+
         console.log(`[INFO][ADMIN] User ${user.email} completed: ${userLikes} likes given out of ${postsToLike.length} posts processed`);
 
         // Process views if enabled
         if (enableAutoView) {
           const postsToView = shuffledPosts.slice(0, Math.min(maxViewsPerUser, availablePosts.length));
-          
+
           for (const post of postsToView) {
             // Increment view count - FIXED: use correct field name 'views'
             await Post.findByIdAndUpdate(
@@ -1218,7 +1273,7 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
       result: 'completed',
       ipAddress: req.ip,
       clientAgent: getClientAgent(req),
-      details: { 
+      details: {
         totalLikes,
         totalViews,
         usersProcessed: usersToProcess.length,
@@ -1227,7 +1282,7 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
       }
     });
 
-    const message = enableAutoView 
+    const message = enableAutoView
       ? `Auto like & view completed: ${totalLikes} likes + ${totalViews} views by ${usersToProcess.length} users`
       : `Auto like completed: ${totalLikes} likes by ${usersToProcess.length} users`;
 
@@ -1258,8 +1313,8 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
  */
 router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimit, async (req, res, next) => {
   try {
-    const { 
-      maxViewsPerUser = 8, 
+    const {
+      maxViewsPerUser = 8,
       selectedUsers = []
     } = req.body;
 
@@ -1267,8 +1322,8 @@ router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimi
       result: 'started',
       ipAddress: req.ip,
       clientAgent: getClientAgent(req),
-      details: { 
-        maxViewsPerUser, 
+      details: {
+        maxViewsPerUser,
         userCount: selectedUsers.length
       }
     });
@@ -1283,19 +1338,19 @@ router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimi
     }
 
     // Filter users if specific ones selected
-    const usersToProcess = selectedUsers.length > 0 
+    const usersToProcess = selectedUsers.length > 0
       ? testUsers.filter(user => selectedUsers.includes(user.email))
       : [];
 
     if (usersToProcess.length === 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: "Vui lòng chọn ít nhất một tài khoản để chạy auto view bot",
         availableUsers: testUsers.map(u => u.email)
       });
     }
 
     // Get recent posts - increased limit to ensure enough posts
-    const posts = await Post.find({ 
+    const posts = await Post.find({
       status: 'published',
       createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
     }).select('_id title author').limit(100).lean();
@@ -1313,12 +1368,12 @@ router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimi
     for (const user of usersToProcess) {
       try {
         // Get posts excluding user's own posts (if any)
-        const availablePosts = posts.filter(post => 
+        const availablePosts = posts.filter(post =>
           post.author.toString() !== user._id.toString()
         );
-        
+
         console.log(`[INFO][ADMIN] User ${user.email}: ${availablePosts.length} available posts, requesting ${maxViewsPerUser} views`);
-        
+
         // Get random posts for this user
         const shuffledPosts = availablePosts.sort(() => 0.5 - Math.random());
         const postsToView = shuffledPosts.slice(0, Math.min(maxViewsPerUser, availablePosts.length));
@@ -1362,7 +1417,7 @@ router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimi
       result: 'completed',
       ipAddress: req.ip,
       clientAgent: getClientAgent(req),
-      details: { 
+      details: {
         totalViews,
         usersProcessed: usersToProcess.length,
         postsAvailable: posts.length
@@ -1411,9 +1466,9 @@ router.post("/clear-test-reactions", authRequired, adminRequired, strictAdminRat
     const result = await Post.updateMany(
       {},
       {
-        $pull: { 
-          emotes: { 
-            user: { $in: testUserIds } 
+        $pull: {
+          emotes: {
+            user: { $in: testUserIds }
           }
         }
       }
@@ -1423,7 +1478,7 @@ router.post("/clear-test-reactions", authRequired, adminRequired, strictAdminRat
       result: 'success',
       ipAddress: req.ip,
       clientAgent: getClientAgent(req),
-      details: { 
+      details: {
         action: 'clear_test_reactions',
         testUsersCount: testUsers.length,
         postsModified: result.modifiedCount

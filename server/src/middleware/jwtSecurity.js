@@ -121,12 +121,12 @@ export const verifyAccessToken = async (token) => {
   if (!token) {
     throw new Error("Thiếu access token");
   }
-  
+
   const blacklisted = await isBlacklisted(token);
   if (blacklisted) {
     throw new Error("Access token đã bị thu hồi");
   }
-  
+
   const payload = jwt.verify(token, ACCESS_TOKEN_SECRET, {
     algorithms: [JWT_ALGORITHM]
   });
@@ -174,12 +174,12 @@ export const verifyRefreshToken = async (token) => {
     legacy: usedSecret === "legacy",
     needsRotation: usedSecret === "legacy" || !payload.jti
   };
-  
+
   if (!payload.jti) {
     console.warn("[SECURITY][JWT] Refresh token thiếu jti, buộc phải xoay vòng lại cho user", payload.id);
     return result;
   }
-  
+
   let metadata = await getRefreshToken(payload.jti);
   if (!metadata) {
     const issuedAt = payload.iat ? new Date(payload.iat * 1000) : new Date();
@@ -306,15 +306,42 @@ export const authOptional = async (req, res, next) => {
 
 /**
  * Middleware chỉ cho phép admin truy cập
+ * Cho phép users có role "admin" HOẶC có bất kỳ permission admin.* nào
  */
-export const adminOnly = (req, res, next) => {
-  if (req.user?.role === "admin") {
-    return next();
+export const adminOnly = async (req, res, next) => {
+  try {
+    let hasAdminAccess = false;
+
+    // Check 1: Full admin role
+    if (req.user?.role === "admin") {
+      hasAdminAccess = true;
+    }
+
+    // Check 2: User has admin.* permissions via their role
+    if (!hasAdminAccess && req.user?.role && req.user.role !== 'user') {
+      try {
+        const mongoose = await import('mongoose');
+        const Role = mongoose.default.model('Role');
+        const roleDoc = await Role.findOne({ name: req.user.role, isActive: true }).lean();
+        if (roleDoc && roleDoc.permissions) {
+          hasAdminAccess = Object.keys(roleDoc.permissions).some(
+            key => key.startsWith('admin.') && roleDoc.permissions[key] === true
+          );
+        }
+      } catch (roleError) {
+        console.error('[ERROR][JWT] Error checking role permissions:', roleError);
+      }
+    }
+
+    if (hasAdminAccess) return next();
+    return res.status(403).json({
+      error: "Chỉ admin mới có quyền truy cập",
+      code: "ADMIN_REQUIRED"
+    });
+  } catch (error) {
+    console.error('[ERROR][JWT] Admin middleware error:', error);
+    return res.status(500).json({ error: "Lỗi server" });
   }
-  return res.status(403).json({
-    error: "Chỉ admin mới có quyền truy cập",
-    code: "ADMIN_REQUIRED"
-  });
 };
 
 // ============================================================
@@ -439,7 +466,7 @@ export const resetRateLimit = (ip) => {
   if (!global.refreshAttempts) {
     global.refreshAttempts = new Map();
   }
-  
+
   const key = `refresh:${ip}`;
   global.refreshAttempts.delete(key);
   console.log(`[RATE LIMIT] Reset rate limit cho IP: ${ip}`);
@@ -454,14 +481,14 @@ export const refreshTokenLimiter = (req, res, next) => {
   const now = Date.now();
   const windowMs = 15 * 60 * 1000; // 15 phút
   const maxAttempts = process.env.NODE_ENV === 'production' ? 30 : 100;
-  
+
   if (!global.refreshAttempts) {
     global.refreshAttempts = new Map();
   }
-  
+
   const attempts = global.refreshAttempts.get(key) || [];
   const validAttempts = attempts.filter((time) => now - time < windowMs);
-  
+
   if (validAttempts.length >= maxAttempts) {
     console.warn(`[RATE LIMIT] IP ${req.ip} vượt quá giới hạn refresh token: ${validAttempts.length}/${maxAttempts}`);
     return res.status(429).json({
@@ -470,14 +497,14 @@ export const refreshTokenLimiter = (req, res, next) => {
       retryAfter: Math.ceil(windowMs / 1000)
     });
   }
-  
+
   validAttempts.push(now);
   global.refreshAttempts.set(key, validAttempts);
-  
+
   res.setHeader('X-RateLimit-Limit', maxAttempts);
   res.setHeader('X-RateLimit-Remaining', Math.max(0, maxAttempts - validAttempts.length));
   res.setHeader('X-RateLimit-Reset', new Date(now + windowMs).toISOString());
-  
+
   next();
 };
 
@@ -497,7 +524,7 @@ if (typeof global.refreshAttemptsCleanup === 'undefined') {
       }
     }
   }, 5 * 60 * 1000);
-  
+
   // Allow process to exit
   if (global.refreshAttemptsCleanup.unref) {
     global.refreshAttemptsCleanup.unref();

@@ -21,11 +21,33 @@ const router = express.Router();
 
 /**
  * Middleware kiểm tra quyền admin
- * Chỉ cho phép users có role "admin" truy cập
+ * Cho phép users có role "admin" HOẶC có bất kỳ permission admin.* nào
  */
-const adminRequired = (req, res, next) => {
-  if (req.user?.role === "admin") return next();
-  return res.status(403).json({ error: "Chỉ admin mới có quyền truy cập" });
+const adminRequired = async (req, res, next) => {
+  try {
+    let hasAdminAccess = false;
+
+    // Check 1: Full admin role
+    if (req.user?.role === "admin") {
+      hasAdminAccess = true;
+    }
+
+    // Check 2: User has admin.* permissions via their role
+    if (!hasAdminAccess && req.user?.role && req.user.role !== 'user') {
+      const roleDoc = await Role.findOne({ name: req.user.role, isActive: true }).lean();
+      if (roleDoc && roleDoc.permissions) {
+        hasAdminAccess = Object.keys(roleDoc.permissions).some(
+          key => key.startsWith('admin.') && roleDoc.permissions[key] === true
+        );
+      }
+    }
+
+    if (hasAdminAccess) return next();
+    return res.status(403).json({ error: "Chỉ admin mới có quyền truy cập" });
+  } catch (error) {
+    console.error('[ERROR][ROLES] Admin middleware error:', error);
+    return res.status(500).json({ error: "Lỗi server" });
+  }
 };
 
 /**
@@ -37,7 +59,7 @@ const adminRequired = (req, res, next) => {
 router.get("/public", authRequired, staleWhileRevalidate(600, 1200), async (req, res, next) => {
   try {
     const roles = await Role.getActiveRoles();
-    
+
     // Chỉ trả về thông tin cần thiết cho badges
     const publicRoles = roles.map(role => ({
       name: role.name,
@@ -47,10 +69,10 @@ router.get("/public", authRequired, staleWhileRevalidate(600, 1200), async (req,
       color: role.color
     }));
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       roles: publicRoles,
-      message: "Lấy thông tin roles thành công" 
+      message: "Lấy thông tin roles thành công"
     });
   } catch (error) {
     next(error);
@@ -102,14 +124,14 @@ router.get("/", authRequired, adminRequired, staleWhileRevalidate(300, 600), asy
 router.get("/:id", authRequired, adminRequired, async (req, res, next) => {
   try {
     const role = await Role.findById(req.params.id);
-    
+
     if (!role) {
       return res.status(404).json({
         success: false,
         error: "Không tìm thấy role"
       });
     }
-    
+
     res.json({
       success: true,
       role: role
@@ -128,7 +150,7 @@ router.get("/:id", authRequired, adminRequired, async (req, res, next) => {
 router.post("/", authRequired, adminRequired, async (req, res, next) => {
   try {
     const { name, displayName, description, iconUrl, color, permissions } = req.body;
-    
+
     // Validation
     if (!name || !displayName) {
       return res.status(400).json({
@@ -136,7 +158,7 @@ router.post("/", authRequired, adminRequired, async (req, res, next) => {
         error: "Tên role và tên hiển thị không được để trống"
       });
     }
-    
+
     // Kiểm tra role đã tồn tại
     const existingRole = await Role.findOne({ name: name.toLowerCase() });
     if (existingRole) {
@@ -145,7 +167,7 @@ router.post("/", authRequired, adminRequired, async (req, res, next) => {
         error: "Role này đã tồn tại"
       });
     }
-    
+
     // Tạo role mới
     const newRole = new Role({
       name: name.toLowerCase(),
@@ -156,9 +178,9 @@ router.post("/", authRequired, adminRequired, async (req, res, next) => {
       permissions: permissions || {},
       createdBy: req.user._id
     });
-    
+
     await newRole.save();
-    
+
     res.status(201).json({
       success: true,
       message: "Tạo role thành công",
@@ -178,7 +200,7 @@ router.post("/", authRequired, adminRequired, async (req, res, next) => {
 router.put("/:id", authRequired, adminRequired, async (req, res, next) => {
   try {
     const { displayName, description, iconUrl, color, permissions } = req.body;
-    
+
     const role = await Role.findById(req.params.id);
     if (!role) {
       return res.status(404).json({
@@ -186,27 +208,44 @@ router.put("/:id", authRequired, adminRequired, async (req, res, next) => {
         error: "Không tìm thấy role"
       });
     }
-    
+
     // Cho phép chỉnh sửa hiển thị của role mặc định (icon, màu, mô tả)
-    // Nhưng không cho đổi tên và permissions quan trọng
+    // Và cho phép update admin.* permissions, nhưng không cho đổi permissions hệ thống quan trọng
     if (role.isDefault) {
       // Chỉ cho phép cập nhật displayName, description, iconUrl, color
       if (displayName) role.displayName = displayName;
       if (description !== undefined) role.description = description;
       if (iconUrl !== undefined) role.iconUrl = iconUrl;
       if (color) role.color = color;
-      // Không cho đổi permissions của role mặc định
+
+      // Cho phép update admin.* permissions cho role mặc định
+      if (permissions) {
+        const protectedKeys = ['canModerateContent', 'canBanUsers', 'canManageRoles', 'canAccessAdmin'];
+        const safePermissions = { ...permissions };
+        // Xóa các protected keys - không cho phép thay đổi qua API
+        protectedKeys.forEach(key => delete safePermissions[key]);
+        // Chỉ update các admin.* permissions
+        Object.keys(safePermissions).forEach(key => {
+          if (key.startsWith('admin.')) {
+            role.permissions[key] = safePermissions[key];
+          }
+        });
+        role.markModified('permissions');
+      }
     } else {
       // Role tùy chỉnh có thể đổi tất cả
       if (displayName) role.displayName = displayName;
       if (description !== undefined) role.description = description;
       if (iconUrl !== undefined) role.iconUrl = iconUrl;
       if (color) role.color = color;
-      if (permissions) role.permissions = { ...role.permissions, ...permissions };
+      if (permissions) {
+        role.permissions = { ...role.permissions, ...permissions };
+        role.markModified('permissions'); // Required for Mixed type
+      }
     }
-    
+
     await role.save();
-    
+
     res.json({
       success: true,
       message: "Cập nhật role thành công",
@@ -226,7 +265,7 @@ router.put("/:id", authRequired, adminRequired, async (req, res, next) => {
 router.delete("/:id", authRequired, adminRequired, async (req, res, next) => {
   try {
     console.log(`[INFO][ROLES] DELETE role request for ID: ${req.params.id}`);
-    
+
     const role = await Role.findById(req.params.id);
     if (!role) {
       console.log(`[ERROR][ROLES] Role not found: ${req.params.id}`);
@@ -235,9 +274,9 @@ router.delete("/:id", authRequired, adminRequired, async (req, res, next) => {
         error: "Không tìm thấy role"
       });
     }
-    
+
     console.log(`[INFO][ROLES] Found role: ${role.name} (isDefault: ${role.isDefault})`);
-    
+
     // Không cho phép xóa role mặc định
     if (role.isDefault) {
       console.log(`[ERROR][ROLES] Cannot delete default role: ${role.name}`);
@@ -246,11 +285,11 @@ router.delete("/:id", authRequired, adminRequired, async (req, res, next) => {
         error: "Không thể xóa role mặc định"
       });
     }
-    
+
     // Kiểm tra có user nào đang sử dụng role này không
     const usersWithRole = await User.countDocuments({ role: role.name });
     console.log(`[INFO][ROLES] Users with role ${role.name}: ${usersWithRole}`);
-    
+
     if (usersWithRole > 0) {
       console.log(`[ERROR][ROLES] Cannot delete role ${role.name} - still in use by ${usersWithRole} users`);
       return res.status(400).json({
@@ -258,15 +297,15 @@ router.delete("/:id", authRequired, adminRequired, async (req, res, next) => {
         error: `Không thể xóa role này vì có ${usersWithRole} người dùng đang sử dụng`
       });
     }
-    
+
     // Xóa role (soft delete)
     role.isActive = false;
     await role.save();
     console.log(`[INFO][ROLES] Successfully soft-deleted role: ${role.name}`);
-    
+
     // Invalidate cache by calling next with cache invalidation
     req.cacheInvalidate = true;
-    
+
     res.json({
       success: true,
       message: "Xóa role thành công"
@@ -291,18 +330,18 @@ router.post("/:id/upload-icon", authRequired, adminRequired, ...uploadSingle('im
         error: "Không tìm thấy role"
       });
     }
-    
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
         error: "Không có file được upload"
       });
     }
-    
+
     // Cập nhật iconUrl
     role.iconUrl = req.file.path;
     await role.save();
-    
+
     res.json({
       success: true,
       message: "Upload icon thành công",
@@ -315,14 +354,12 @@ router.post("/:id/upload-icon", authRequired, adminRequired, ...uploadSingle('im
 });
 
 /**
- * @route   PUT /api/admin/roles/:id/sort
- * @desc    Cập nhật thứ tự sắp xếp role
+ * @route   DELETE /api/admin/roles/:id/icon
+ * @desc    Xóa icon của role
  * @access  Private (Admin only)
  */
-router.put("/:id/sort", authRequired, adminRequired, async (req, res, next) => {
+router.delete("/:id/icon", authRequired, adminRequired, async (req, res, next) => {
   try {
-    const { sortOrder } = req.body;
-    
     const role = await Role.findById(req.params.id);
     if (!role) {
       return res.status(404).json({
@@ -330,10 +367,41 @@ router.put("/:id/sort", authRequired, adminRequired, async (req, res, next) => {
         error: "Không tìm thấy role"
       });
     }
-    
+
+    // Xóa iconUrl
+    role.iconUrl = "";
+    await role.save();
+
+    res.json({
+      success: true,
+      message: "Xóa icon thành công"
+    });
+  } catch (error) {
+    console.error("[ERROR][ROLES] Error deleting icon:", error);
+    next(error);
+  }
+});
+
+/**
+ * @route   PUT /api/admin/roles/:id/sort
+ * @desc    Cập nhật thứ tự sắp xếp role
+ * @access  Private (Admin only)
+ */
+router.put("/:id/sort", authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const { sortOrder } = req.body;
+
+    const role = await Role.findById(req.params.id);
+    if (!role) {
+      return res.status(404).json({
+        success: false,
+        error: "Không tìm thấy role"
+      });
+    }
+
     role.sortOrder = sortOrder || 0;
     await role.save();
-    
+
     res.json({
       success: true,
       message: "Cập nhật thứ tự thành công"
@@ -358,12 +426,12 @@ router.get("/:id/users", authRequired, adminRequired, async (req, res, next) => 
         error: "Không tìm thấy role"
       });
     }
-    
+
     const users = await User.find({ role: role.name })
       .select('name email avatarUrl createdAt cultivationCache displayBadgeType')
       .sort({ createdAt: -1 })
       .limit(50); // Giới hạn 50 user để tránh quá tải
-    
+
     res.json({
       success: true,
       users: users,

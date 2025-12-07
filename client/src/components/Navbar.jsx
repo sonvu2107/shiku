@@ -478,7 +478,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
                             className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
                             onClick={() => navigate(`/user/${user._id}`)}
                           >
-                            <UserAvatar 
+                            <UserAvatar
                               user={user}
                               size={36}
                               showFrame={true}
@@ -539,8 +539,8 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
                 <Link
                   to="/friends"
                   className={`p-2.5 rounded-full transition-all relative ${location.pathname === '/friends'
-                      ? "text-black dark:text-white bg-neutral-100 dark:bg-neutral-800"
-                      : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white"
+                    ? "text-black dark:text-white bg-neutral-100 dark:bg-neutral-800"
+                    : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white"
                     }`}
                   title="Bạn bè"
                 >
@@ -562,7 +562,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
                     className="flex items-center gap-2 rounded-full p-1 pr-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700"
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                   >
-                    <UserAvatar 
+                    <UserAvatar
                       user={user}
                       size={32}
                       showFrame={true}
@@ -580,7 +580,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
 
                       <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50">
                         <div className="flex items-center gap-3">
-                          <UserAvatar 
+                          <UserAvatar
                             user={user}
                             size={48}
                             showFrame={true}
@@ -598,7 +598,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
                       </div>
 
                       <div className="p-2">
-                        {user.role === "admin" && (
+                        {(user.role === "admin" || Object.keys(user.roleData?.permissions || {}).some(k => k.startsWith('admin.') && user.roleData?.permissions[k])) && (
                           <Link to="/admin" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors" onClick={() => setShowProfileMenu(false)}>
                             <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
                               <Crown size={16} />

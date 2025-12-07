@@ -666,12 +666,29 @@ router.get("/me",
         }
       }
 
+      // Get role data with permissions for admin dashboard access
+      let roleData = null;
+      if (req.user.role && req.user.role !== 'user') {
+        const Role = (await import("../models/Role.js")).default;
+        const roleDoc = await Role.findOne({ name: req.user.role, isActive: true });
+        if (roleDoc) {
+          roleData = {
+            name: roleDoc.name,
+            displayName: roleDoc.displayName,
+            color: roleDoc.color,
+            iconUrl: roleDoc.iconUrl,
+            permissions: roleDoc.permissions || {}
+          };
+        }
+      }
+
       res.json({
         user: {
           id: req.user._id,
           name: req.user.name,
           email: req.user.email,
           role: req.user.role,
+          roleData: roleData,
           bio: req.user.bio,
           nickname: req.user.nickname,
           birthday: req.user.birthday,

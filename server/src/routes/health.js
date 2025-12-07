@@ -14,6 +14,28 @@ import { authRequired } from '../middleware/auth.js';
 const router = express.Router();
 
 /**
+ * Helper to check if user has admin access (full admin OR granular admin.* permissions)
+ */
+const hasAdminAccess = async (user) => {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (!user.role || user.role === 'user') return false;
+
+  try {
+    const Role = mongoose.model('Role');
+    const roleDoc = await Role.findOne({ name: user.role, isActive: true }).lean();
+    if (roleDoc && roleDoc.permissions) {
+      return Object.keys(roleDoc.permissions).some(
+        key => key.startsWith('admin.') && roleDoc.permissions[key] === true
+      );
+    }
+  } catch (error) {
+    console.error('[ERROR][HEALTH] Error checking role permissions:', error);
+  }
+  return false;
+};
+
+/**
  * GET /api/health - Health check endpoint
  * 
  * @route GET /api/health
@@ -21,7 +43,7 @@ const router = express.Router();
  */
 router.get('/', (req, res) => {
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   // Minimal response in production
   if (isProduction) {
     return res.status(200).json({
@@ -29,7 +51,7 @@ router.get('/', (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
-  
+
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
@@ -51,7 +73,8 @@ router.get('/', (req, res) => {
  */
 router.get('/detailed', authRequired, async (req, res) => {
   // Only admin can access detailed health
-  if (req.user?.role !== 'admin') {
+  const isAdmin = await hasAdminAccess(req.user);
+  if (!isAdmin) {
     return res.status(403).json({ error: 'Admin access required' });
   }
 
@@ -164,7 +187,8 @@ router.get('/db', async (req, res) => {
  * GET /api/health/cache - Cache statistics
  */
 router.get('/cache', authRequired, async (req, res) => {
-  if (req.user?.role !== 'admin') {
+  const isAdmin = await hasAdminAccess(req.user);
+  if (!isAdmin) {
     return res.status(403).json({ error: 'Admin access required' });
   }
 
@@ -201,13 +225,13 @@ function formatUptime(seconds) {
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
-  
+
   const parts = [];
   if (days > 0) parts.push(`${days}d`);
   if (hours > 0) parts.push(`${hours}h`);
   if (minutes > 0) parts.push(`${minutes}m`);
   parts.push(`${secs}s`);
-  
+
   return parts.join(' ');
 }
 

@@ -5,12 +5,32 @@ import { adminRateLimit, strictAdminRateLimit } from "../middleware/adminSecurit
 import AuditLog from "../models/AuditLog.js";
 import { getClientAgent } from "../utils/clientAgent.js";
 
+import mongoose from "mongoose";
+
 const router = express.Router();
 
 // ==================== MIDDLEWARE ====================
 const adminRequired = async (req, res, next) => {
   try {
-    if (req.user.role !== "admin") {
+    let hasAdminAccess = false;
+
+    // Check 1: Full admin role
+    if (req.user.role === "admin") {
+      hasAdminAccess = true;
+    }
+
+    // Check 2: User has admin.* permissions via their role  
+    if (!hasAdminAccess && req.user.role && req.user.role !== 'user') {
+      const Role = mongoose.model('Role');
+      const roleDoc = await Role.findOne({ name: req.user.role, isActive: true }).lean();
+      if (roleDoc && roleDoc.permissions) {
+        hasAdminAccess = Object.keys(roleDoc.permissions).some(
+          key => key.startsWith('admin.') && roleDoc.permissions[key] === true
+        );
+      }
+    }
+
+    if (!hasAdminAccess) {
       await AuditLog.logAction(req.user._id, 'access_equipment_admin', {
         result: 'failed',
         ipAddress: req.ip,
@@ -35,37 +55,37 @@ const adminRequired = async (req, res, next) => {
 router.get("/", authRequired, async (req, res, next) => {
   try {
     const { type, rarity, level_required, search, page = 1, limit = 50 } = req.query;
-    
+
     const filters = {};
-    
+
     if (type && Object.values(EQUIPMENT_TYPES).includes(type)) {
       filters.type = type;
     }
-    
+
     if (rarity && Object.values(RARITY).includes(rarity)) {
       filters.rarity = rarity;
     }
-    
+
     if (level_required) {
       filters.level_required = { $lte: parseInt(level_required) };
     }
-    
+
     if (search) {
       filters.$text = { $search: search };
     }
-    
+
     filters.is_active = true;
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const equipments = await Equipment.find(filters)
       .sort({ rarity: 1, level_required: 1, name: 1 })
       .skip(skip)
       .limit(parseInt(limit))
       .lean();
-    
+
     const total = await Equipment.countDocuments(filters);
-    
+
     res.json({
       success: true,
       data: equipments,
@@ -89,11 +109,11 @@ router.get("/", authRequired, async (req, res, next) => {
 router.get("/:id", authRequired, async (req, res, next) => {
   try {
     const equipment = await Equipment.findById(req.params.id);
-    
+
     if (!equipment || !equipment.is_active) {
       return res.status(404).json({ error: "Equipment không tồn tại" });
     }
-    
+
     res.json({
       success: true,
       data: equipment
@@ -129,20 +149,20 @@ router.post("/admin/create", strictAdminRateLimit, authRequired, adminRequired, 
       true_damage,
       buff_duration
     } = req.body;
-    
+
     // Validation
     if (!name || !type || !rarity) {
       return res.status(400).json({ error: "Thiếu thông tin bắt buộc: name, type, rarity" });
     }
-    
+
     if (!Object.values(EQUIPMENT_TYPES).includes(type)) {
       return res.status(400).json({ error: "Type không hợp lệ" });
     }
-    
+
     if (!Object.values(RARITY).includes(rarity)) {
       return res.status(400).json({ error: "Rarity không hợp lệ" });
     }
-    
+
     // Validate subtype nếu có
     if (subtype) {
       if (type === EQUIPMENT_TYPES.WEAPON && !Object.values(WEAPON_SUBTYPES).includes(subtype)) {
@@ -152,7 +172,7 @@ router.post("/admin/create", strictAdminRateLimit, authRequired, adminRequired, 
         return res.status(400).json({ error: "Armor subtype không hợp lệ" });
       }
     }
-    
+
     // Convert elemental_damage object to Map if provided
     let statsData = stats || {};
     if (statsData.elemental_damage && typeof statsData.elemental_damage === 'object' && !(statsData.elemental_damage instanceof Map)) {
@@ -164,7 +184,7 @@ router.post("/admin/create", strictAdminRateLimit, authRequired, adminRequired, 
       });
       statsData.elemental_damage = elementalMap;
     }
-    
+
     const equipment = new Equipment({
       name,
       type,
@@ -195,9 +215,9 @@ router.post("/admin/create", strictAdminRateLimit, authRequired, adminRequired, 
       created_by: req.user._id,
       is_active: true
     });
-    
+
     await equipment.save();
-    
+
     await AuditLog.logAction(req.user._id, 'create_equipment', {
       targetId: equipment._id,
       targetType: 'equipment',
@@ -206,7 +226,7 @@ router.post("/admin/create", strictAdminRateLimit, authRequired, adminRequired, 
       clientAgent: getClientAgent(req),
       details: { name, type, rarity }
     });
-    
+
     res.status(201).json({
       success: true,
       message: "Tạo equipment thành công",
@@ -231,11 +251,11 @@ router.post("/admin/create", strictAdminRateLimit, authRequired, adminRequired, 
 router.put("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, async (req, res, next) => {
   try {
     const equipment = await Equipment.findById(req.params.id);
-    
+
     if (!equipment) {
       return res.status(404).json({ error: "Equipment không tồn tại" });
     }
-    
+
     const {
       name,
       type,
@@ -254,7 +274,7 @@ router.put("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, asyn
       buff_duration,
       is_active
     } = req.body;
-    
+
     // Update fields
     if (name !== undefined) equipment.name = name;
     if (type !== undefined) {
@@ -281,7 +301,7 @@ router.put("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, asyn
     if (true_damage !== undefined) equipment.true_damage = parseFloat(true_damage) || 0;
     if (buff_duration !== undefined) equipment.buff_duration = parseFloat(buff_duration) || 0;
     if (is_active !== undefined) equipment.is_active = is_active;
-    
+
     // Update stats
     if (stats) {
       if (stats.attack !== undefined) equipment.stats.attack = parseFloat(stats.attack) || 0;
@@ -293,7 +313,7 @@ router.put("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, asyn
       if (stats.speed !== undefined) equipment.stats.speed = parseFloat(stats.speed) || 0;
       if (stats.evasion !== undefined) equipment.stats.evasion = parseFloat(stats.evasion) || 0;
       if (stats.hit_rate !== undefined) equipment.stats.hit_rate = parseFloat(stats.hit_rate) || 0;
-      
+
       // Update elemental_damage
       if (stats.elemental_damage && typeof stats.elemental_damage === 'object') {
         const elementalMap = new Map();
@@ -305,10 +325,10 @@ router.put("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, asyn
         equipment.stats.elemental_damage = elementalMap;
       }
     }
-    
+
     equipment.updated_at = new Date();
     await equipment.save();
-    
+
     await AuditLog.logAction(req.user._id, 'update_equipment', {
       targetId: equipment._id,
       targetType: 'equipment',
@@ -316,7 +336,7 @@ router.put("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, asyn
       ipAddress: req.ip,
       clientAgent: getClientAgent(req)
     });
-    
+
     res.json({
       success: true,
       message: "Cập nhật equipment thành công",
@@ -343,15 +363,15 @@ router.put("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, asyn
 router.delete("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, async (req, res, next) => {
   try {
     const equipment = await Equipment.findById(req.params.id);
-    
+
     if (!equipment) {
       return res.status(404).json({ error: "Equipment không tồn tại" });
     }
-    
+
     equipment.is_active = false;
     equipment.updated_at = new Date();
     await equipment.save();
-    
+
     await AuditLog.logAction(req.user._id, 'delete_equipment', {
       targetId: equipment._id,
       targetType: 'equipment',
@@ -360,7 +380,7 @@ router.delete("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, a
       clientAgent: getClientAgent(req),
       details: { name: equipment.name }
     });
-    
+
     res.json({
       success: true,
       message: "Xóa equipment thành công"
@@ -386,39 +406,39 @@ router.delete("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, a
 router.get("/admin/list", adminRateLimit, authRequired, adminRequired, async (req, res, next) => {
   try {
     const { type, rarity, level_required, search, is_active, page = 1, limit = 50 } = req.query;
-    
+
     const filters = {};
-    
+
     if (type && Object.values(EQUIPMENT_TYPES).includes(type)) {
       filters.type = type;
     }
-    
+
     if (rarity && Object.values(RARITY).includes(rarity)) {
       filters.rarity = rarity;
     }
-    
+
     if (level_required) {
       filters.level_required = { $lte: parseInt(level_required) };
     }
-    
+
     if (search) {
       filters.$text = { $search: search };
     }
-    
+
     if (is_active !== undefined) {
       filters.is_active = is_active === 'true';
     }
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const equipments = await Equipment.find(filters)
       .sort({ created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit))
       .lean();
-    
+
     const total = await Equipment.countDocuments(filters);
-    
+
     res.json({
       success: true,
       data: equipments,

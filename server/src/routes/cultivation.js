@@ -13,6 +13,28 @@ const router = express.Router();
 const leaderboardCache = new Map();
 const LEADERBOARD_CACHE_TTL = 30 * 1000; // 30 seconds
 
+/**
+ * Helper to check if user has admin access (full admin OR granular admin.* permissions)
+ */
+const hasAdminAccess = async (user) => {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (!user.role || user.role === 'user') return false;
+
+  try {
+    const Role = mongoose.model('Role');
+    const roleDoc = await Role.findOne({ name: user.role, isActive: true }).lean();
+    if (roleDoc && roleDoc.permissions) {
+      return Object.keys(roleDoc.permissions).some(
+        key => key.startsWith('admin.') && roleDoc.permissions[key] === true
+      );
+    }
+  } catch (error) {
+    console.error('[ERROR][CULTIVATION] Error checking role permissions:', error);
+  }
+  return false;
+};
+
 // Helper function to get cached leaderboard or fetch new
 async function getCachedLeaderboard(type, limit) {
   const cacheKey = `${type}:${limit}`;
@@ -1820,7 +1842,8 @@ router.post("/fix-realms", async (req, res, next) => {
     console.log("[FIX-REALMS] req.user:", req.user ? { id: req.user._id, role: req.user.role, name: req.user.name } : "null");
 
     // Kiểm tra quyền admin
-    if (!req.user || req.user.role !== 'admin') {
+    const isAdmin = await hasAdminAccess(req.user);
+    if (!isAdmin) {
       console.log("[FIX-REALMS] Access denied - not admin");
       return res.status(403).json({
         success: false,

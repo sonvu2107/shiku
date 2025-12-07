@@ -10,19 +10,35 @@ import {
   X,
   Crown,
   Image as ImageIcon,
-  AlertCircle
+  AlertCircle,
+  Shield,
+  Eye,
+  Settings
 } from "lucide-react";
+
+// Admin dashboard tab permissions
+const ADMIN_PERMISSIONS = [
+  { key: "admin.viewStats", label: "Xem thống kê", description: "Thống kê & Online Traffic" },
+  { key: "admin.manageUsers", label: "Quản lý người dùng", description: "Xem, sửa, xóa users" },
+  { key: "admin.manageRoles", label: "Quản lý phân quyền", description: "Tạo, sửa roles" },
+  { key: "admin.manageBans", label: "Cấm người dùng", description: "Ban/unban users" },
+  { key: "admin.sendNotifications", label: "Gửi thông báo", description: "Gửi notification hệ thống" },
+  { key: "admin.viewFeedback", label: "Xem phản hồi", description: "Đọc feedback từ users" },
+  { key: "admin.manageEquipment", label: "Quản lý trang bị", description: "Sửa equipment game" },
+  { key: "admin.viewAPI", label: "Xem API Monitor", description: "Giám sát API calls" },
+  { key: "admin.manageBot", label: "Quản lý Bot", description: "Auto-like bot settings" }
+];
 
 /**
  * RoleManagement - Component manages user roles
  * Allows admin to add, edit, delete roles and upload logos for roles
  */
-export default function RoleManagement({ onRolesChange = () => {} }) {
+export default function RoleManagement({ onRolesChange = () => { } }) {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  
+
   // Form states
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
@@ -30,9 +46,12 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
     name: "",
     displayName: "",
     description: "",
-    iconUrl: ""
+    iconUrl: "",
+    color: "#3B82F6",
+    permissions: {}
   });
   const [uploading, setUploading] = useState(false);
+  const [deletingIcon, setDeletingIcon] = useState(false);
 
   // Load roles on component mount
   useEffect(() => {
@@ -54,7 +73,7 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Automatically format role name to lowercase and replace spaces with underscores
     if (name === 'name') {
       const formattedValue = value.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
@@ -132,7 +151,7 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
         });
 
         setSuccess(editingRole.isDefault
-          ? "Cập nhật hiển thị role thành công (permissions không đổi)"
+          ? "Cập nhật role thành công (chỉ quyền admin được cập nhật)"
           : "Cập nhật role thành công"
         );
 
@@ -172,9 +191,37 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
       displayName: role.displayName,
       description: role.description || "",
       iconUrl: role.iconUrl || "",
-      color: role.color || "#3B82F6"
+      color: role.color || "#3B82F6",
+      permissions: role.permissions || {}
     });
     setShowAddForm(true);
+  };
+
+  const handleDeleteIcon = async () => {
+    if (!editingRole || !formData.iconUrl) return;
+
+    try {
+      setDeletingIcon(true);
+      await api(`/api/admin/roles/${editingRole._id}/icon`, { method: "DELETE" });
+      setFormData(prev => ({ ...prev, iconUrl: "" }));
+      setSuccess("Xóa icon thành công");
+      await loadRoles();
+      invalidateRoleCache();
+    } catch (err) {
+      setError(err.message || "Không thể xóa icon");
+    } finally {
+      setDeletingIcon(false);
+    }
+  };
+
+  const togglePermission = (permKey) => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        [permKey]: !prev.permissions[permKey]
+      }
+    }));
   };
 
   const handleDelete = async (roleId) => {
@@ -203,7 +250,8 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
       displayName: "",
       description: "",
       iconUrl: "",
-      color: "#3B82F6"
+      color: "#3B82F6",
+      permissions: {}
     });
     setError("");
     setSuccess("");
@@ -246,7 +294,7 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
           {error}
         </div>
       )}
-      
+
       {success && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-3 sm:px-4 py-3 rounded-lg text-sm sm:text-base">
           {success}
@@ -299,7 +347,7 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
                   </p>
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Tên Hiển Thị
@@ -330,6 +378,37 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
               />
             </div>
 
+            {/* Color Picker */}
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Màu sắc
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  name="color"
+                  value={formData.color}
+                  onChange={handleInputChange}
+                  className="w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  name="color"
+                  value={formData.color}
+                  onChange={handleInputChange}
+                  className="w-28 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  placeholder="#3B82F6"
+                />
+                <div
+                  className="px-3 py-1 rounded-full text-white text-xs font-medium"
+                  style={{ backgroundColor: formData.color }}
+                >
+                  Preview
+                </div>
+              </div>
+            </div>
+
+            {/* Logo/Badge */}
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Logo/Badge
@@ -350,14 +429,70 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
                   {uploading ? "Đang upload..." : "Chọn ảnh"}
                 </label>
                 {formData.iconUrl && (
-                  <img
-                    src={formData.iconUrl}
-                    alt="Preview"
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
+                  <>
+                    <img
+                      src={formData.iconUrl}
+                      alt="Preview"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                    {editingRole && (
+                      <button
+                        type="button"
+                        onClick={handleDeleteIcon}
+                        disabled={deletingIcon}
+                        className="flex items-center gap-1 px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      >
+                        <Trash2 size={12} />
+                        {deletingIcon ? "Đang xóa..." : "Xóa"}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
+
+            {/* Permissions Editor - For all roles (including default) */}
+            {editingRole && (
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield size={18} className="text-blue-600" />
+                  <label className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
+                    Quyền hạn Admin Dashboard
+                  </label>
+                  {editingRole.isDefault && (
+                    <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded">
+                      Role mặc định
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                  Cho phép truy cập các tab trong Admin Dashboard
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {ADMIN_PERMISSIONS.map(perm => (
+                    <label
+                      key={perm.key}
+                      className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!formData.permissions[perm.key]}
+                        onChange={() => togglePermission(perm.key)}
+                        className="mt-0.5 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {perm.label}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {perm.description}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
               <button
@@ -386,7 +521,7 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
             Danh Sách Role ({roles.length})
           </h3>
         </div>
-        
+
         {/* Desktop Table View */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full">
@@ -500,7 +635,7 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
                         </div>
                       )}
                     </div>
-                    
+
                     {/* Role Info */}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 dark:text-white text-sm">
@@ -519,7 +654,7 @@ export default function RoleManagement({ onRolesChange = () => {} }) {
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Actions */}
                   <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                     <button

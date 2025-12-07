@@ -16,6 +16,28 @@ import { authRequired, authOptional } from "../middleware/auth.js";
 
 const router = express.Router();
 
+/**
+ * Helper to check if user has admin access (full admin OR granular admin.* permissions)
+ */
+const hasAdminAccess = async (user) => {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (!user.role || user.role === 'user') return false;
+
+  try {
+    const Role = mongoose.model('Role');
+    const roleDoc = await Role.findOne({ name: user.role, isActive: true }).lean();
+    if (roleDoc && roleDoc.permissions) {
+      return Object.keys(roleDoc.permissions).some(
+        key => key.startsWith('admin.') && roleDoc.permissions[key] === true
+      );
+    }
+  } catch (error) {
+    console.error('[ERROR][SUPPORT] Error checking role permissions:', error);
+  }
+  return false;
+};
+
 // --- MODELS ---
 
 // FAQ Schema
@@ -152,23 +174,23 @@ const SupportTicket = mongoose.model("SupportTicket", supportTicketSchema);
 router.get("/faqs", async (req, res, next) => {
   try {
     const { category, search, limit = 20 } = req.query;
-    
+
     let query = { isPublished: true };
-    
+
     if (category && category !== 'all') {
       query.category = category;
     }
-    
+
     if (search) {
       query.$text = { $search: search };
     }
-    
+
     const faqs = await FAQ.find(query)
       .sort({ order: 1, createdAt: -1 })
       .limit(parseInt(limit))
       .select('-__v')
       .lean();
-    
+
     res.json({ faqs, total: faqs.length });
   } catch (err) {
     next(err);
@@ -183,11 +205,11 @@ router.get("/faqs/:id", async (req, res, next) => {
       { $inc: { views: 1 } },
       { new: true }
     ).select('-__v').lean();
-    
+
     if (!faq) {
       return res.status(404).json({ error: "FAQ không tồn tại" });
     }
-    
+
     res.json({ faq });
   } catch (err) {
     next(err);
@@ -198,26 +220,26 @@ router.get("/faqs/:id", async (req, res, next) => {
 router.post("/faqs/:id/feedback", authOptional, async (req, res, next) => {
   try {
     const { helpful } = req.body; // true or false
-    
+
     if (typeof helpful !== 'boolean') {
       return res.status(400).json({ error: "Vui lòng chọn có hữu ích hay không" });
     }
-    
-    const update = helpful 
+
+    const update = helpful
       ? { $inc: { helpful: 1 } }
       : { $inc: { notHelpful: 1 } };
-    
+
     const faq = await FAQ.findByIdAndUpdate(
       req.params.id,
       update,
       { new: true }
     ).select('helpful notHelpful').lean();
-    
+
     if (!faq) {
       return res.status(404).json({ error: "FAQ không tồn tại" });
     }
-    
-    res.json({ 
+
+    res.json({
       message: "Cảm ơn phản hồi của bạn!",
       helpful: faq.helpful,
       notHelpful: faq.notHelpful
@@ -233,15 +255,15 @@ router.post("/faqs/:id/feedback", authOptional, async (req, res, next) => {
 router.post("/tickets", authRequired, async (req, res, next) => {
   try {
     const { subject, message, category = 'other', priority = 'medium' } = req.body;
-    
+
     if (!subject || subject.trim().length < 5) {
       return res.status(400).json({ error: "Tiêu đề phải có ít nhất 5 ký tự" });
     }
-    
+
     if (!message || message.trim().length < 10) {
       return res.status(400).json({ error: "Nội dung phải có ít nhất 10 ký tự" });
     }
-    
+
     const ticket = await SupportTicket.create({
       user: req.user._id,
       subject: subject.trim(),
@@ -249,14 +271,14 @@ router.post("/tickets", authRequired, async (req, res, next) => {
       category,
       priority
     });
-    
+
     const populatedTicket = await SupportTicket.findById(ticket._id)
       .populate('user', 'name nickname email avatarUrl')
       .lean();
-    
-    res.status(201).json({ 
+
+    res.status(201).json({
       message: "Ticket đã được tạo thành công. Chúng tôi sẽ phản hồi sớm nhất!",
-      ticket: populatedTicket 
+      ticket: populatedTicket
     });
   } catch (err) {
     next(err);
@@ -267,15 +289,15 @@ router.post("/tickets", authRequired, async (req, res, next) => {
 router.get("/tickets", authRequired, async (req, res, next) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
-    
+
     let query = { user: req.user._id };
-    
+
     if (status && status !== 'all') {
       query.status = status;
     }
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const [tickets, total] = await Promise.all([
       SupportTicket.find(query)
         .sort({ createdAt: -1 })
@@ -286,9 +308,9 @@ router.get("/tickets", authRequired, async (req, res, next) => {
         .lean(),
       SupportTicket.countDocuments(query)
     ]);
-    
-    res.json({ 
-      tickets, 
+
+    res.json({
+      tickets,
       total,
       page: parseInt(page),
       pages: Math.ceil(total / parseInt(limit))
@@ -306,16 +328,16 @@ router.get("/tickets/:id", authRequired, async (req, res, next) => {
       .populate('assignedTo', 'name nickname avatarUrl')
       .populate('replies.user', 'name nickname avatarUrl')
       .lean();
-    
+
     if (!ticket) {
       return res.status(404).json({ error: "Ticket không tồn tại" });
     }
-    
+
     // Check permission
     if (ticket.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({ error: "Bạn không có quyền xem ticket này" });
     }
-    
+
     res.json({ ticket });
   } catch (err) {
     next(err);
@@ -326,47 +348,47 @@ router.get("/tickets/:id", authRequired, async (req, res, next) => {
 router.post("/tickets/:id/reply", authRequired, async (req, res, next) => {
   try {
     const { message } = req.body;
-    
+
     if (!message || message.trim().length < 5) {
       return res.status(400).json({ error: "Tin nhắn phải có ít nhất 5 ký tự" });
     }
-    
+
     const ticket = await SupportTicket.findById(req.params.id);
-    
+
     if (!ticket) {
       return res.status(404).json({ error: "Ticket không tồn tại" });
     }
-    
+
     // Check permission
     const isStaff = req.user.role === 'admin' || req.user.role === 'moderator';
     if (ticket.user.toString() !== req.user._id.toString() && !isStaff) {
       return res.status(403).json({ error: "Bạn không có quyền trả lời ticket này" });
     }
-    
+
     ticket.replies.push({
       user: req.user._id,
       message: message.trim(),
       isStaff
     });
-    
+
     ticket.updatedAt = new Date();
-    
+
     // Auto change status to in_progress if admin replies
     if (isStaff && ticket.status === 'open') {
       ticket.status = 'in_progress';
     }
-    
+
     await ticket.save();
-    
+
     const updatedTicket = await SupportTicket.findById(ticket._id)
       .populate('user', 'name nickname email avatarUrl')
       .populate('assignedTo', 'name nickname avatarUrl')
       .populate('replies.user', 'name nickname avatarUrl')
       .lean();
-    
-    res.json({ 
+
+    res.json({
       message: "Đã gửi tin nhắn thành công",
-      ticket: updatedTicket 
+      ticket: updatedTicket
     });
   } catch (err) {
     next(err);
@@ -377,41 +399,41 @@ router.post("/tickets/:id/reply", authRequired, async (req, res, next) => {
 router.patch("/tickets/:id/status", authRequired, async (req, res, next) => {
   try {
     const { status } = req.body;
-    
+
     const validStatuses = ['open', 'in_progress', 'resolved', 'closed'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: "Trạng thái không hợp lệ" });
     }
-    
+
     const ticket = await SupportTicket.findById(req.params.id);
-    
+
     if (!ticket) {
       return res.status(404).json({ error: "Ticket không tồn tại" });
     }
-    
+
     // Check permission
     const isOwner = ticket.user.toString() === req.user._id.toString();
     const isStaff = req.user.role === 'admin' || req.user.role === 'moderator';
-    
+
     if (!isOwner && !isStaff) {
       return res.status(403).json({ error: "Bạn không có quyền cập nhật ticket này" });
     }
-    
+
     // User can only close their own ticket
     if (isOwner && !isStaff && status !== 'closed') {
       return res.status(403).json({ error: "Bạn chỉ có thể đóng ticket của mình" });
     }
-    
+
     ticket.status = status;
     ticket.updatedAt = new Date();
-    
+
     if (status === 'resolved' || status === 'closed') {
       ticket.resolvedAt = new Date();
     }
-    
+
     await ticket.save();
-    
-    res.json({ 
+
+    res.json({
       message: "Đã cập nhật trạng thái ticket",
       status: ticket.status
     });
@@ -425,14 +447,15 @@ router.patch("/tickets/:id/status", authRequired, async (req, res, next) => {
 // GET /api/support/admin/tickets - Admin xem tất cả tickets
 router.get("/admin/tickets", authRequired, async (req, res, next) => {
   try {
-    if (req.user.role !== 'admin' && req.user.role !== 'moderator') {
+    const isAdmin = await hasAdminAccess(req.user);
+    if (!isAdmin && req.user.role !== 'moderator') {
       return res.status(403).json({ error: "Chỉ admin/moderator mới xem được" });
     }
-    
+
     const { status, priority, category, page = 1, limit = 20 } = req.query;
-    
+
     let query = {};
-    
+
     if (status && status !== 'all') {
       query.status = status;
     }
@@ -442,9 +465,9 @@ router.get("/admin/tickets", authRequired, async (req, res, next) => {
     if (category && category !== 'all') {
       query.category = category;
     }
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const [tickets, total] = await Promise.all([
       SupportTicket.find(query)
         .sort({ priority: -1, createdAt: -1 })
@@ -455,9 +478,9 @@ router.get("/admin/tickets", authRequired, async (req, res, next) => {
         .lean(),
       SupportTicket.countDocuments(query)
     ]);
-    
-    res.json({ 
-      tickets, 
+
+    res.json({
+      tickets,
       total,
       page: parseInt(page),
       pages: Math.ceil(total / parseInt(limit))
@@ -470,15 +493,16 @@ router.get("/admin/tickets", authRequired, async (req, res, next) => {
 // GET /api/support/admin/faqs - Admin xem tất cả FAQs
 router.get("/admin/faqs", authRequired, async (req, res, next) => {
   try {
-    if (req.user.role !== 'admin') {
+    const isAdmin = await hasAdminAccess(req.user);
+    if (!isAdmin) {
       return res.status(403).json({ error: "Chỉ admin mới xem được tất cả FAQ" });
     }
-    
+
     const faqs = await FAQ.find()
       .sort({ order: 1, createdAt: -1 })
       .select('-__v')
       .lean();
-    
+
     res.json({ faqs, total: faqs.length });
   } catch (err) {
     next(err);
@@ -488,20 +512,21 @@ router.get("/admin/faqs", authRequired, async (req, res, next) => {
 // POST /api/support/admin/faqs - Admin tạo FAQ
 router.post("/admin/faqs", authRequired, async (req, res, next) => {
   try {
-    if (req.user.role !== 'admin') {
+    const isAdmin = await hasAdminAccess(req.user);
+    if (!isAdmin) {
       return res.status(403).json({ error: "Chỉ admin mới tạo được FAQ" });
     }
-    
+
     const { question, answer, category = 'other', order = 0, isPublished = true } = req.body;
-    
+
     if (!question || question.trim().length < 5) {
       return res.status(400).json({ error: "Câu hỏi phải có ít nhất 5 ký tự" });
     }
-    
+
     if (!answer || answer.trim().length < 10) {
       return res.status(400).json({ error: "Câu trả lời phải có ít nhất 10 ký tự" });
     }
-    
+
     const faq = await FAQ.create({
       question: question.trim(),
       answer: answer.trim(),
@@ -509,10 +534,10 @@ router.post("/admin/faqs", authRequired, async (req, res, next) => {
       order,
       isPublished
     });
-    
-    res.status(201).json({ 
+
+    res.status(201).json({
       message: "FAQ đã được tạo thành công",
-      faq 
+      faq
     });
   } catch (err) {
     next(err);
@@ -522,32 +547,33 @@ router.post("/admin/faqs", authRequired, async (req, res, next) => {
 // PUT /api/support/admin/faqs/:id - Admin cập nhật FAQ
 router.put("/admin/faqs/:id", authRequired, async (req, res, next) => {
   try {
-    if (req.user.role !== 'admin') {
+    const isAdmin = await hasAdminAccess(req.user);
+    if (!isAdmin) {
       return res.status(403).json({ error: "Chỉ admin mới cập nhật được FAQ" });
     }
-    
+
     const { question, answer, category, order, isPublished } = req.body;
-    
+
     const updateData = { updatedAt: new Date() };
     if (question !== undefined) updateData.question = question.trim();
     if (answer !== undefined) updateData.answer = answer.trim();
     if (category !== undefined) updateData.category = category;
     if (order !== undefined) updateData.order = order;
     if (isPublished !== undefined) updateData.isPublished = isPublished;
-    
+
     const faq = await FAQ.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     ).lean();
-    
+
     if (!faq) {
       return res.status(404).json({ error: "FAQ không tồn tại" });
     }
-    
-    res.json({ 
+
+    res.json({
       message: "FAQ đã được cập nhật",
-      faq 
+      faq
     });
   } catch (err) {
     next(err);
@@ -557,16 +583,17 @@ router.put("/admin/faqs/:id", authRequired, async (req, res, next) => {
 // DELETE /api/support/admin/faqs/:id - Admin xóa FAQ
 router.delete("/admin/faqs/:id", authRequired, async (req, res, next) => {
   try {
-    if (req.user.role !== 'admin') {
+    const isAdmin = await hasAdminAccess(req.user);
+    if (!isAdmin) {
       return res.status(403).json({ error: "Chỉ admin mới xóa được FAQ" });
     }
-    
+
     const faq = await FAQ.findByIdAndDelete(req.params.id);
-    
+
     if (!faq) {
       return res.status(404).json({ error: "FAQ không tồn tại" });
     }
-    
+
     res.json({ message: "FAQ đã được xóa" });
   } catch (err) {
     next(err);
@@ -576,15 +603,16 @@ router.delete("/admin/faqs/:id", authRequired, async (req, res, next) => {
 // PATCH /api/support/admin/tickets/:id/assign - Assign ticket cho admin
 router.patch("/admin/tickets/:id/assign", authRequired, async (req, res, next) => {
   try {
-    if (req.user.role !== 'admin' && req.user.role !== 'moderator') {
+    const isAdmin = await hasAdminAccess(req.user);
+    if (!isAdmin && req.user.role !== 'moderator') {
       return res.status(403).json({ error: "Chỉ admin/moderator mới assign được" });
     }
-    
+
     const { assignedTo } = req.body;
-    
+
     const ticket = await SupportTicket.findByIdAndUpdate(
       req.params.id,
-      { 
+      {
         assignedTo: assignedTo || null,
         updatedAt: new Date()
       },
@@ -593,14 +621,14 @@ router.patch("/admin/tickets/:id/assign", authRequired, async (req, res, next) =
       .populate('user', 'name nickname email avatarUrl')
       .populate('assignedTo', 'name nickname avatarUrl')
       .lean();
-    
+
     if (!ticket) {
       return res.status(404).json({ error: "Ticket không tồn tại" });
     }
-    
-    res.json({ 
+
+    res.json({
       message: assignedTo ? "Đã assign ticket" : "Đã bỏ assign ticket",
-      ticket 
+      ticket
     });
   } catch (err) {
     next(err);

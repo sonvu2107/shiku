@@ -165,11 +165,11 @@ function LeftSidebar({ user, setUser }) {
     // Clear all auth data
     removeAuthToken();
     invalidateUserCache();
-    
+
     // Reset user state and redirect
     if (setUser) setUser(null);
     navigate("/");
-    
+
     // Force reload to ensure clean state
     window.location.reload();
   };
@@ -187,7 +187,7 @@ function LeftSidebar({ user, setUser }) {
     { icon: User, label: "Trang cá nhân", path: "/profile", show: true },
     { icon: Settings, label: "Cài đặt", path: "/settings", show: true },
     { icon: HelpCircle, label: "Trợ giúp", path: "/support", show: true },
-    { icon: Crown, label: "Admin", path: "/admin", show: user.role === "admin", isAdmin: true },
+    { icon: Crown, label: "Admin", path: "/admin", show: user.role === "admin" || Object.keys(user.roleData?.permissions || {}).some(k => k.startsWith('admin.') && user.roleData?.permissions[k]), isAdmin: true },
   ] : [
     { icon: Home, label: "Trang chủ", path: "/", show: true, exact: true },
     { icon: Compass, label: "Khám phá", path: "/explore", show: true },
@@ -271,8 +271,8 @@ function LeftSidebar({ user, setUser }) {
                   key={item.path}
                   to={item.path}
                   className={`flex items-center rounded-xl transition-all duration-200 group relative ${isCollapsed
-                      ? 'justify-center px-2 py-3'
-                      : 'gap-3 px-4 py-3'
+                    ? 'justify-center px-2 py-3'
+                    : 'gap-3 px-4 py-3'
                     } ${item.isAdmin
                       ? 'text-red-400 hover:bg-red-900/20 border-l-4 border-red-500'
                       : item.highlight
@@ -394,30 +394,30 @@ function LeftSidebar({ user, setUser }) {
                 <p className="text-white font-medium text-sm truncate mb-1">{user.name}</p>
                 <div className="flex flex-wrap items-center gap-1.5">
                   {/* Role badge - chỉ hiển thị khi displayBadgeType = 'none' hoặc 'role' */}
-                  {(!user.displayBadgeType || user.displayBadgeType === 'none' || user.displayBadgeType === 'role') && 
-                   user.role && user.role !== "user" && (
-                    <span className="px-2 py-0.5 bg-neutral-800 text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
-                      {typeof user.role === 'string' ? user.role : (user.role.displayName || user.role.name || 'user')}
-                    </span>
-                  )}
+                  {(!user.displayBadgeType || user.displayBadgeType === 'none' || user.displayBadgeType === 'role') &&
+                    user.role && user.role !== "user" && (
+                      <span className="px-2 py-0.5 bg-neutral-800 text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
+                        {typeof user.role === 'string' ? user.role : (user.role.displayName || user.role.name || 'user')}
+                      </span>
+                    )}
                   {/* Hiển thị cảnh giới tu tiên - nếu chọn realm hoặc both */}
-                  {(user.displayBadgeType === 'realm' || user.displayBadgeType === 'both' || user.displayBadgeType === 'cultivation') && 
-                   user.cultivationCache?.realmName && (
-                    <CultivationBadge 
-                      cultivation={user.cultivationCache} 
-                      size="sm" 
-                      variant="gradient" 
-                    />
-                  )}
+                  {(user.displayBadgeType === 'realm' || user.displayBadgeType === 'both' || user.displayBadgeType === 'cultivation') &&
+                    user.cultivationCache?.realmName && (
+                      <CultivationBadge
+                        cultivation={user.cultivationCache}
+                        size="sm"
+                        variant="gradient"
+                      />
+                    )}
                   {/* Danh hiệu tu tiên - nếu chọn title hoặc both */}
                   {(user.displayBadgeType === 'title' || user.displayBadgeType === 'both') && (
                     <UserTitle user={user} className="text-[10px]" />
                   )}
                   {/* Fallback: hiển thị roleLabel nếu không có badge nào được chọn */}
-                  {(!user.displayBadgeType || user.displayBadgeType === 'none') && 
-                   (!user.role || user.role === "user") && (
-                    <span className="text-neutral-400 text-xs truncate">{roleLabel}</span>
-                  )}
+                  {(!user.displayBadgeType || user.displayBadgeType === 'none') &&
+                    (!user.role || user.role === "user") && (
+                      <span className="text-neutral-400 text-xs truncate">{roleLabel}</span>
+                    )}
                 </div>
               </div>
               <button

@@ -124,7 +124,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
     { icon: User, label: "Trang cá nhân", path: "/profile", show: true },
     { icon: Settings, label: "Cài đặt", path: "/settings", show: true },
     { icon: HelpCircle, label: "Trợ giúp", path: "/support", show: true },
-    { icon: Crown, label: "Admin", path: "/admin", show: user.role === "admin", isAdmin: true },
+    { icon: Crown, label: "Admin", path: "/admin", show: user.role === "admin" || Object.keys(user.roleData?.permissions || {}).some(k => k.startsWith('admin.') && user.roleData?.permissions[k]), isAdmin: true },
   ] : [
     { icon: Home, label: "Trang chủ", path: "/", show: true },
     { icon: Compass, label: "Khám phá", path: "/explore", show: true },

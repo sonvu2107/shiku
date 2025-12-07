@@ -129,17 +129,30 @@ export default function AdminDashboard() {
    async function checkAdmin() {
       try {
          const res = await api("/api/auth/me");
-         if (res.user.role !== "admin") {
+         // Allow access if user is admin OR has any admin.* permission
+         const userRole = res.user.role;
+         const isAdmin = userRole === "admin";
+         const hasAdminPermissions = res.user.roleData?.permissions &&
+            Object.keys(res.user.roleData.permissions).some(k => k.startsWith('admin.') && res.user.roleData.permissions[k]);
+
+         if (!isAdmin && !hasAdminPermissions) {
             showError("Bạn không có quyền truy cập trang này!");
             navigate("/");
             return;
          }
-         setUser(res.user);
+         setUser({ ...res.user, isFullAdmin: isAdmin });
       } catch (e) {
          showError("Lỗi xác thực!");
          navigate("/login");
       }
    }
+
+   // Helper function to check if user has a specific permission
+   const hasPermission = (permKey) => {
+      if (!user) return false;
+      if (user.isFullAdmin || user.role === 'admin') return true;
+      return user.roleData?.permissions?.[permKey] === true;
+   };
 
    async function updateUserRole(userId, newRoleName) {
       if (!window.confirm(`Bạn có chắc muốn đổi role user này thành ${newRoleName}?`)) return;
@@ -195,18 +208,21 @@ export default function AdminDashboard() {
    }
 
    // --- SIDEBAR TABS CONFIGURATION ---
-   const menuItems = [
-      { id: 'stats', label: 'Thống kê', icon: BarChart3 },
-      { id: 'users', label: 'Quản lý N.Dùng', icon: Users },
-      { id: 'online', label: 'Online & Traffic', icon: Activity },
-      { id: 'roles', label: 'Phân quyền', icon: Crown },
-      { id: 'bans', label: 'Cấm N.Dùng', icon: Ban },
-      { id: 'notifications', label: 'Thông báo', icon: Bell },
-      { id: 'feedback', label: 'Phản hồi', icon: MessageCircle },
-      { id: 'equipment', label: 'Trang Bị', icon: Sword, external: true, path: '/admin/equipment' },
-      { id: 'api-monitoring', label: 'API Monitor', icon: Code },
-      { id: 'auto-like', label: 'Auto Bot', icon: Heart },
+   const allMenuItems = [
+      { id: 'stats', label: 'Thống kê', icon: BarChart3, permission: 'admin.viewStats' },
+      { id: 'users', label: 'Quản lý N.Dùng', icon: Users, permission: 'admin.manageUsers' },
+      { id: 'online', label: 'Online & Traffic', icon: Activity, permission: 'admin.viewStats' },
+      { id: 'roles', label: 'Phân quyền', icon: Crown, permission: 'admin.manageRoles' },
+      { id: 'bans', label: 'Cấm N.Dùng', icon: Ban, permission: 'admin.manageBans' },
+      { id: 'notifications', label: 'Thông báo', icon: Bell, permission: 'admin.sendNotifications' },
+      { id: 'feedback', label: 'Phản hồi', icon: MessageCircle, permission: 'admin.viewFeedback' },
+      { id: 'equipment', label: 'Trang Bị', icon: Sword, external: true, path: '/admin/equipment', permission: 'admin.manageEquipment' },
+      { id: 'api-monitoring', label: 'API Monitor', icon: Code, permission: 'admin.viewAPI' },
+      { id: 'auto-like', label: 'Auto Bot', icon: Heart, permission: 'admin.manageBot' },
    ];
+
+   // Filter menu items based on user permissions
+   const menuItems = allMenuItems.filter(item => hasPermission(item.permission));
 
    return (
       <PageLayout>
@@ -295,18 +311,18 @@ export default function AdminDashboard() {
                                     <div className="flex items-center gap-2 mb-2">
                                        <FileText className="text-blue-600 dark:text-blue-400" size={24} />
                                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                          {stats.overview ? stats.overview.totalPosts.count : (stats.totalPosts || 0)}
+                                          {stats?.overview ? stats?.overview.totalPosts.count : (stats.totalPosts || 0)}
                                        </div>
                                     </div>
                                     <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng bài viết</div>
-                                    {stats.overview && (
+                                    {stats?.overview && (
                                        <div className="space-y-1 text-xs">
                                           <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats.overview.totalPosts.thisMonth}
+                                             Tháng này: {stats?.overview.totalPosts.thisMonth}
                                           </div>
-                                          <div className={`flex items-center gap-1 ${stats.overview.totalPosts.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats.overview.totalPosts.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats.overview.totalPosts.growth)}% so với tháng trước
+                                          <div className={`flex items-center gap-1 ${stats?.overview.totalPosts.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                             {stats?.overview.totalPosts.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                             {Math.abs(stats?.overview.totalPosts.growth)}% so với tháng trước
                                           </div>
                                        </div>
                                     )}
@@ -317,18 +333,18 @@ export default function AdminDashboard() {
                                     <div className="flex items-center gap-2 mb-2">
                                        <Eye className="text-green-600 dark:text-green-400" size={24} />
                                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                          {stats.overview ? stats.overview.totalViews.count : (stats.totalViews || 0)}
+                                          {stats?.overview ? stats?.overview.totalViews.count : (stats.totalViews || 0)}
                                        </div>
                                     </div>
                                     <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng lượt xem</div>
-                                    {stats.overview && (
+                                    {stats?.overview && (
                                        <div className="space-y-1 text-xs">
                                           <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats.overview.totalViews.thisMonth}
+                                             Tháng này: {stats?.overview.totalViews.thisMonth}
                                           </div>
-                                          <div className={`flex items-center gap-1 ${stats.overview.totalViews.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats.overview.totalViews.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats.overview.totalViews.growth)}% so với tháng trước
+                                          <div className={`flex items-center gap-1 ${stats?.overview.totalViews.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                             {stats?.overview.totalViews.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                             {Math.abs(stats?.overview.totalViews.growth)}% so với tháng trước
                                           </div>
                                        </div>
                                     )}
@@ -339,18 +355,18 @@ export default function AdminDashboard() {
                                     <div className="flex items-center gap-2 mb-2">
                                        <MessageCircle className="text-purple-600 dark:text-purple-400" size={24} />
                                        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                                          {stats.overview ? stats.overview.totalComments.count : (stats.totalComments || 0)}
+                                          {stats?.overview ? stats?.overview.totalComments.count : (stats.totalComments || 0)}
                                        </div>
                                     </div>
                                     <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng bình luận</div>
-                                    {stats.overview && (
+                                    {stats?.overview && (
                                        <div className="space-y-1 text-xs">
                                           <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats.overview.totalComments.thisMonth}
+                                             Tháng này: {stats?.overview.totalComments.thisMonth}
                                           </div>
-                                          <div className={`flex items-center gap-1 ${stats.overview.totalComments.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats.overview.totalComments.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats.overview.totalComments.growth)}% so với tháng trước
+                                          <div className={`flex items-center gap-1 ${stats?.overview.totalComments.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                             {stats?.overview.totalComments.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                             {Math.abs(stats?.overview.totalComments.growth)}% so với tháng trước
                                           </div>
                                        </div>
                                     )}
@@ -361,18 +377,18 @@ export default function AdminDashboard() {
                                     <div className="flex items-center gap-2 mb-2">
                                        <Heart className="text-red-600 dark:text-red-400" size={24} />
                                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                                          {stats.overview ? stats.overview.totalEmotes.count : (stats.totalEmotes || 0)}
+                                          {stats?.overview ? stats?.overview.totalEmotes.count : (stats.totalEmotes || 0)}
                                        </div>
                                     </div>
                                     <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng cảm xúc đã thả</div>
-                                    {stats.overview && (
+                                    {stats?.overview && (
                                        <div className="space-y-1 text-xs">
                                           <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats.overview.totalEmotes.thisMonth}
+                                             Tháng này: {stats?.overview.totalEmotes.thisMonth}
                                           </div>
-                                          <div className={`flex items-center gap-1 ${stats.overview.totalEmotes.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats.overview.totalEmotes.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats.overview.totalEmotes.growth)}% so với tháng trước
+                                          <div className={`flex items-center gap-1 ${stats?.overview.totalEmotes.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                             {stats?.overview.totalEmotes.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                             {Math.abs(stats?.overview.totalEmotes.growth)}% so với tháng trước
                                           </div>
                                        </div>
                                     )}
@@ -383,18 +399,18 @@ export default function AdminDashboard() {
                                     <div className="flex items-center gap-2 mb-2">
                                        <Users className="text-yellow-600 dark:text-yellow-400" size={24} />
                                        <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                                          {stats.overview ? stats.overview.totalUsers.count : (stats.totalUsers || 0)}
+                                          {stats?.overview ? stats?.overview.totalUsers.count : (stats.totalUsers || 0)}
                                        </div>
                                     </div>
                                     <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng người dùng</div>
-                                    {stats.overview && (
+                                    {stats?.overview && (
                                        <div className="space-y-1 text-xs">
                                           <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats.overview.totalUsers.thisMonth}
+                                             Tháng này: {stats?.overview.totalUsers.thisMonth}
                                           </div>
-                                          <div className={`flex items-center gap-1 ${stats.overview.totalUsers.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats.overview.totalUsers.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats.overview.totalUsers.growth)}% so với tháng trước
+                                          <div className={`flex items-center gap-1 ${stats?.overview.totalUsers.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                             {stats?.overview.totalUsers.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                             {Math.abs(stats?.overview.totalUsers.growth)}% so với tháng trước
                                           </div>
                                        </div>
                                     )}
@@ -405,18 +421,18 @@ export default function AdminDashboard() {
                                     <div className="flex items-center gap-2 mb-2">
                                        <FileText className="text-indigo-600 dark:text-indigo-400" size={24} />
                                        <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                                          {stats.overview ? stats.overview.publishedPosts.count : (stats.publishedPosts || 0)}
+                                          {stats?.overview ? stats?.overview.publishedPosts.count : (stats.publishedPosts || 0)}
                                        </div>
                                     </div>
                                     <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Bài đã đăng</div>
-                                    {stats.overview && (
+                                    {stats?.overview && (
                                        <div className="space-y-1 text-xs">
                                           <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats.overview.publishedPosts.thisMonth}
+                                             Tháng này: {stats?.overview.publishedPosts.thisMonth}
                                           </div>
-                                          <div className={`flex items-center gap-1 ${stats.overview.publishedPosts.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats.overview.publishedPosts.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats.overview.publishedPosts.growth)}% so với tháng trước
+                                          <div className={`flex items-center gap-1 ${stats?.overview.publishedPosts.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                             {stats?.overview.publishedPosts.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                             {Math.abs(stats?.overview.publishedPosts.growth)}% so với tháng trước
                                           </div>
                                        </div>
                                     )}
@@ -427,18 +443,18 @@ export default function AdminDashboard() {
                                     <div className="flex items-center gap-2 mb-2">
                                        <Edit className="text-gray-600 dark:text-gray-400" size={24} />
                                        <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                                          {stats.overview ? stats.overview.draftPosts.count : (stats.draftPosts || 0)}
+                                          {stats?.overview ? stats?.overview.draftPosts.count : (stats.draftPosts || 0)}
                                        </div>
                                     </div>
                                     <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Bài riêng tư</div>
-                                    {stats.overview && (
+                                    {stats?.overview && (
                                        <div className="space-y-1 text-xs">
                                           <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats.overview.draftPosts.thisMonth}
+                                             Tháng này: {stats?.overview.draftPosts.thisMonth}
                                           </div>
-                                          <div className={`flex items-center gap-1 ${stats.overview.draftPosts.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats.overview.draftPosts.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats.overview.draftPosts.growth)}% so với tháng trước
+                                          <div className={`flex items-center gap-1 ${stats?.overview.draftPosts.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                             {stats?.overview.draftPosts.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                             {Math.abs(stats?.overview.draftPosts.growth)}% so với tháng trước
                                           </div>
                                        </div>
                                     )}
@@ -449,18 +465,18 @@ export default function AdminDashboard() {
                                     <div className="flex items-center gap-2 mb-2">
                                        <Crown className="text-pink-600 dark:text-pink-400" size={24} />
                                        <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
-                                          {stats.overview ? stats.overview.adminUsers.count : (stats.adminUsers || 0)}
+                                          {stats?.overview ? stats?.overview.adminUsers.count : (stats.adminUsers || 0)}
                                        </div>
                                     </div>
                                     <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Admin</div>
-                                    {stats.overview && (
+                                    {stats?.overview && (
                                        <div className="space-y-1 text-xs">
                                           <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats.overview.adminUsers.thisMonth}
+                                             Tháng này: {stats?.overview.adminUsers.thisMonth}
                                           </div>
-                                          <div className={`flex items-center gap-1 ${stats.overview.adminUsers.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats.overview.adminUsers.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats.overview.adminUsers.growth)}% so với tháng trước
+                                          <div className={`flex items-center gap-1 ${stats?.overview.adminUsers.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                             {stats?.overview.adminUsers.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                             {Math.abs(stats?.overview.adminUsers.growth)}% so với tháng trước
                                           </div>
                                        </div>
                                     )}
@@ -476,8 +492,8 @@ export default function AdminDashboard() {
                                     </div>
                                     <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Đang online</div>
                                     <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                                       {stats.overview ?
-                                          Math.max(0, stats.overview.totalUsers.count - onlineUsers.length) :
+                                       {stats?.overview ?
+                                          Math.max(0, stats?.overview.totalUsers.count - onlineUsers.length) :
                                           Math.max(0, users.length - onlineUsers.length)
                                        } người offline
                                     </div>
@@ -761,8 +777,8 @@ export default function AdminDashboard() {
                            <SpotlightCard className="p-4 text-center bg-gray-50/50 dark:bg-gray-800/50">
                               <WifiOff size={32} className="mx-auto text-gray-600 dark:text-gray-400 mb-2" />
                               <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                                 {stats.overview ?
-                                    Math.max(0, stats.overview.totalUsers.count - onlineUsers.length) :
+                                 {stats?.overview ?
+                                    Math.max(0, stats?.overview.totalUsers.count - onlineUsers.length) :
                                     Math.max(0, users.length - onlineUsers.length)
                                  }
                               </div>
@@ -776,7 +792,7 @@ export default function AdminDashboard() {
                            <SpotlightCard className="p-4 text-center bg-purple-50/50 dark:bg-purple-900/10">
                               <Users size={32} className="mx-auto text-purple-600 dark:text-purple-400 mb-2" />
                               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                                 {stats.overview ? stats.overview.totalUsers.count : users.length}
+                                 {stats?.overview ? stats?.overview.totalUsers.count : users.length}
                               </div>
                               <div className="text-sm text-neutral-600 dark:text-neutral-400">Tổng người dùng</div>
                            </SpotlightCard>

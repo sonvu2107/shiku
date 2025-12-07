@@ -11,17 +11,40 @@
  */
 
 import express from 'express';
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import { authRequired } from '../middleware/auth.js';
 import { withCache, userCache } from '../utils/cache.js';
 
 const router = express.Router();
 
+/**
+ * Helper to check if user has admin access (full admin OR granular admin.* permissions)
+ */
+const hasAdminAccess = async (user) => {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (!user.role || user.role === 'user') return false;
+
+  try {
+    const Role = mongoose.model('Role');
+    const roleDoc = await Role.findOne({ name: user.role, isActive: true }).lean();
+    if (roleDoc && roleDoc.permissions) {
+      return Object.keys(roleDoc.permissions).some(
+        key => key.startsWith('admin.') && roleDoc.permissions[key] === true
+      );
+    }
+  } catch (error) {
+    console.error('[ERROR][USERS] Error checking role permissions:', error);
+  }
+  return false;
+};
+
 // Lấy thông tin nhiều users theo IDs (cho blocked users)
 router.post('/batch', authRequired, async (req, res) => {
   try {
     const { userIds } = req.body;
-    
+
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return res.status(400).json({ message: 'Danh sách user IDs không hợp lệ' });
     }
@@ -47,7 +70,8 @@ router.post('/batch', authRequired, async (req, res) => {
 router.get('/', authRequired, async (req, res) => {
   try {
     // Chỉ admin mới có thể xem danh sách tất cả users
-    if (req.user.role !== 'admin') {
+    const isAdmin = await hasAdminAccess(req.user);
+    if (!isAdmin) {
       return res.status(403).json({ message: 'Chỉ admin mới có quyền xem danh sách users' });
     }
 
@@ -95,9 +119,9 @@ router.get('/suggestions', authRequired, async (req, res) => {
     const { getUserSuggestions } = await import('../utils/mentions.js');
     const query = (req.query.q || '').trim();
     const limit = Math.min(parseInt(req.query.limit) || 10, 20);
-    
+
     const users = await getUserSuggestions(query, req.user._id.toString(), limit);
-    
+
     res.json({ users });
   } catch (error) {
     console.error('[ERROR][USERS] Error fetching user suggestions:', error);
@@ -110,7 +134,7 @@ router.get('/search', authRequired, async (req, res) => {
   try {
     const q = (req.query.q || '').trim();
     if (!q || q.length > 100) return res.json({ users: [] });
-    
+
     const cacheKey = `search:${q}`;
     const users = await withCache(userCache, cacheKey, async () => {
       // Escape regex
@@ -124,7 +148,7 @@ router.get('/search', authRequired, async (req, res) => {
         .select('_id name avatarUrl bio isOnline lastSeen email role displayBadgeType cultivationCache')
         .limit(10);
     }, 2 * 60 * 1000); // 2 minutes cache
-    
+
     res.json({ users });
   } catch (err) {
     res.status(500).json({ message: 'Lỗi server' });
@@ -135,7 +159,7 @@ router.get('/search', authRequired, async (req, res) => {
 router.put('/current-conversation', authRequired, async (req, res) => {
   try {
     const { conversationId } = req.body;
-    
+
     await User.findByIdAndUpdate(req.user._id, {
       currentConversation: conversationId || null
     });
@@ -153,8 +177,8 @@ router.get('/current-conversation', authRequired, async (req, res) => {
       .select('currentConversation')
       .populate('currentConversation');
 
-    res.json({ 
-      currentConversationId: user.currentConversation?._id || null 
+    res.json({
+      currentConversationId: user.currentConversation?._id || null
     });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi server' });
@@ -165,7 +189,7 @@ router.get('/current-conversation', authRequired, async (req, res) => {
 router.post('/current-conversation', authRequired, async (req, res) => {
   try {
     const { conversationId } = req.body;
-    
+
     await User.findByIdAndUpdate(req.user._id, {
       currentConversation: conversationId
     });
@@ -180,7 +204,7 @@ router.post('/current-conversation', authRequired, async (req, res) => {
 router.get('/:id', authRequired, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const user = await User.findById(id)
       .select('-password -email')
       .populate('role') // Populate the role field
@@ -193,7 +217,7 @@ router.get('/:id', authRequired, async (req, res) => {
     // Kiểm tra quan hệ bạn bè với user hiện tại
     const currentUserId = req.user._id.toString();
     const isFriend = user.friends.some(friend => friend._id.toString() === currentUserId);
-    
+
     // Kiểm tra có lời mời kết bạn pending không
     const FriendRequest = (await import('../models/FriendRequest.js')).default;
     const pendingRequest = await FriendRequest.findOne({
@@ -207,7 +231,7 @@ router.get('/:id', authRequired, async (req, res) => {
     const currentUser = await User.findById(currentUserId).select('blockedUsers').lean();
     const iBlockedThem = (currentUser.blockedUsers || []).map(id => id.toString()).includes(user._id.toString());
     const theyBlockedMe = (user.blockedUsers || []).map(id => id.toString()).includes(currentUserId);
-    
+
     // Nếu người này đã chặn mình, trả về thông báo đặc biệt
     if (theyBlockedMe) {
       return res.json({
@@ -226,13 +250,13 @@ router.get('/:id', authRequired, async (req, res) => {
         blockedMessage: "Người dùng này đã chặn bạn. Bạn không thể xem nội dung của họ."
       });
     }
-    
+
     res.json({
       user: {
         ...user.toObject(),
         isFriend,
         hasPendingRequest: !!pendingRequest,
-        pendingRequestDirection: pendingRequest ? 
+        pendingRequestDirection: pendingRequest ?
           (pendingRequest.from.toString() === currentUserId ? 'sent' : 'received') : null,
         iBlockedThem,
         theyBlockedMe: false,
@@ -252,18 +276,18 @@ router.post('/block/:id', authRequired, async (req, res) => {
     if (targetId === req.user._id.toString()) {
       return res.status(400).json({ message: 'Không thể tự chặn bản thân.' });
     }
-    
+
     // Thêm vào danh sách blockedUsers nếu chưa có và xóa khỏi friends của cả hai bên
     const result = await User.findByIdAndUpdate(req.user._id, {
       $addToSet: { blockedUsers: targetId },
       $pull: { friends: targetId } // Nếu là bạn thì hủy kết bạn
     }, { new: true });
-    
+
     // Cũng xóa khỏi danh sách friends của user bị block
     await User.findByIdAndUpdate(targetId, {
       $pull: { friends: req.user._id }
     });
-    
+
     // Xóa mọi friend request giữa hai bên để tránh kẹt trạng thái
     const FriendRequest = (await import('../models/FriendRequest.js')).default;
     await FriendRequest.deleteMany({
@@ -272,14 +296,14 @@ router.post('/block/:id', authRequired, async (req, res) => {
         { from: targetId, to: req.user._id }
       ]
     });
-    
+
     console.log('[INFO][USERS] Block user result:', {
       userId: req.user._id,
       targetId,
       blockedUsers: result.blockedUsers,
       friends: result.friends
     });
-    
+
     res.json({ message: 'Đã chặn người dùng.' });
   } catch (error) {
     console.error('[ERROR][USERS] Error blocking user:', error);
@@ -291,18 +315,18 @@ router.post('/block/:id', authRequired, async (req, res) => {
 router.post('/unblock/:id', authRequired, async (req, res) => {
   try {
     const targetId = req.params.id;
-    
+
     const result = await User.findByIdAndUpdate(req.user._id, {
       $pull: { blockedUsers: targetId }
     }, { new: true });
-    
+
     console.log('[INFO][USERS] Unblock user result:', {
       userId: req.user._id,
       targetId,
       blockedUsers: result.blockedUsers,
       friends: result.friends
     });
-    
+
     res.json({ message: 'Đã bỏ chặn người dùng.' });
   } catch (error) {
     console.error('[ERROR][USERS] Error unblocking user:', error);
