@@ -288,7 +288,22 @@ export const updateProfileSchema = Joi.object({
     .optional()
     .messages({
       'any.only': 'Loại badge phải là realm, title, both hoặc none'
-    })
+    }),
+  // Profile Personalization fields
+  // Profile Personalization fields
+  profileSongUrl: Joi.alternatives()
+    .try(
+      Joi.string().uri().regex(/^https:\/\/open\.spotify\.com\//),
+      Joi.string().allow('', null)
+    )
+    .optional()
+    .messages({
+      'string.pattern.base': 'URL phải là link Spotify hợp lệ'
+    }),
+  statusUpdate: Joi.object({
+    text: Joi.string().max(100).allow('').optional(),
+    emoji: Joi.string().max(10).allow('').optional()
+  }).optional()
 });
 
 // Schema validation cho search

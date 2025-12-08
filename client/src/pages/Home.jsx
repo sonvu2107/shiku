@@ -822,7 +822,7 @@ function Home({ user, setUser }) {
                                   <div className="font-medium text-neutral-900 dark:text-white text-sm truncate">
                                     <UserName user={user} maxLength={20} />
                                   </div>
-                                  <div className="text-xs text-neutral-500 dark:text-neutral-400 truncate">{user.email}</div>
+                                  {user.nickname && <div className="text-xs text-neutral-500 dark:text-neutral-400 truncate">@{user.nickname}</div>}
                                 </div>
                               </div>
                             ))}
@@ -1102,7 +1102,7 @@ function Home({ user, setUser }) {
                         to="/create-post"
                         className="inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:scale-105 transition-transform shadow-lg"
                       >
-                        <Plus size={18} />
+                        <Plus size={18} className="text-white dark:text-black" />
                         Tạo bài viết đầu tiên
                       </Link>
                     )}

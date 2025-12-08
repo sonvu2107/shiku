@@ -4,6 +4,7 @@
 
 export const PROFILE_TABS = [
   { id: "posts", label: "Bài viết", icon: "FileText" },
+  { id: "info", label: "Thông tin", icon: "Info" },
   { id: "friends", label: "Bạn bè", icon: "Users" },
   { id: "analytics", label: "Phân tích", icon: "BarChart3" },
 ];

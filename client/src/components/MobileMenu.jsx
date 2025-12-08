@@ -136,7 +136,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop - Tối ưu: bỏ backdrop-blur trên mobile */}
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -146,7 +146,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
             onClick={() => setIsOpen(false)}
           />
 
-          {/* Drawer - Tối ưu: solid background thay vì backdrop-blur */}
+          {/* Drawer */}
           <motion.div
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
@@ -212,13 +212,29 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
                       className={cn(
                         "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group",
                         isActive
-                          ? "bg-black dark:bg-white text-white dark:text-black shadow-md shadow-black/5"
+                          ? "bg-black dark:bg-white shadow-md shadow-black/5"
                           : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white",
                         item.isAdmin && !isActive && "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                       )}
                     >
-                      <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className={cn("transition-transform group-hover:scale-110", isActive && "scale-110")} />
-                      <span className={cn("font-medium text-[15px]", isActive && "font-bold")}>{item.label}</span>
+                      <Icon
+                        size={20}
+                        strokeWidth={isActive ? 2.5 : 2}
+                        className={cn(
+                          "transition-transform group-hover:scale-110",
+                          isActive && "scale-110"
+                        )}
+                        style={isActive ? { color: darkMode ? '#000000' : '#ffffff' } : undefined}
+                      />
+                      <span
+                        className={cn(
+                          "font-medium text-[15px]",
+                          isActive && "font-bold",
+                          isActive ? "text-white dark:text-black" : ""
+                        )}
+                      >
+                        {item.label}
+                      </span>
                     </Link>
                   );
                 })}
@@ -254,7 +270,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
     document.body
   ) : null;
 
-  // Cultivation Confirm Modal Portal - Hiển thị toàn màn hình (Tối ưu cho mobile)
+  // Cultivation Confirm Modal Portal
   const cultivationModal = typeof document !== 'undefined' ? createPortal(
     <AnimatePresence>
       {showCultivationConfirm && (

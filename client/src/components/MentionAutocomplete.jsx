@@ -20,31 +20,31 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
   // Extract the mention query from the current cursor position
   const getMentionQuery = useCallback(() => {
     if (!value || cursorPosition === undefined) return null;
-    
+
     // Find the nearest @ before the cursor
     const textBeforeCursor = value.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-    
+
     if (lastAtIndex === -1) return null;
-    
+
     // Check if there are spaces or special characters between @ and the cursor
     const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
     const wordBoundaryMatch = textAfterAt.match(/^[\p{L}\p{N}_]+(?:\s+[\p{L}\p{N}_]+)*/u);
-    
+
     if (!wordBoundaryMatch) return null;
-    
+
     const query = wordBoundaryMatch[0];
-    
+
     // Only show if query is not too long (avoid spam)
     if (query.length > 30) return null;
-    
+
     return { query, startPosition: lastAtIndex };
   }, [value, cursorPosition]);
 
   // Fetch suggestions when the mention query changes
   useEffect(() => {
     const mentionInfo = getMentionQuery();
-    
+
     if (!mentionInfo || !mentionInfo.query.trim()) {
       setSuggestions([]);
       setSelectedIndex(0);
@@ -119,7 +119,7 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
 
     // Find the end position of the mention (including @ and query)
     const endPosition = mentionInfo.startPosition + 1 + mentionInfo.query.length;
-    
+
     onSelect?.(user, mentionInfo.startPosition, endPosition);
     onClose?.();
   };
@@ -135,7 +135,7 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
   };
 
   const mentionInfo = getMentionQuery();
-  
+
   // Do not display if there is no query or suggestions
   if (!mentionInfo || !mentionInfo.query.trim() || suggestions.length === 0) {
     return null;
@@ -152,7 +152,7 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
           Đang tải...
         </div>
       )}
-      
+
       {!loading && suggestions.length === 0 && (
         <div className="px-4 py-3 text-sm text-neutral-500 dark:text-neutral-400 text-center">
           Không tìm thấy người dùng
@@ -162,11 +162,10 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
       {!loading && suggestions.map((user, index) => (
         <div
           key={user._id}
-          className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
-            index === selectedIndex
+          className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${index === selectedIndex
               ? "bg-blue-50 dark:bg-blue-900/20"
               : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
-          }`}
+            }`}
           onMouseEnter={() => setSelectedIndex(index)}
           onClick={() => handleSelectUser(user)}
         >
@@ -182,9 +181,9 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
             <div className="text-sm font-semibold text-neutral-900 dark:text-white truncate">
               {user.name}
             </div>
-            {user.email && (
+            {user.nickname && (
               <div className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                {user.email}
+                @{user.nickname}
               </div>
             )}
           </div>

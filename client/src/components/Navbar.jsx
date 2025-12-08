@@ -488,7 +488,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
                               <div className="font-bold text-neutral-900 dark:text-white text-sm truncate">
                                 <UserName user={user} maxLength={25} />
                               </div>
-                              <div className="text-xs text-neutral-500 truncate">{user.email}</div>
+                              {user.nickname && <div className="text-xs text-neutral-500 truncate">@{user.nickname}</div>}
                             </div>
                           </div>
                         ))}

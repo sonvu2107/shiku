@@ -341,6 +341,22 @@ router.get("/session",
         return res.json({ authenticated: false });
       }
 
+      // Get role data with permissions for admin dashboard access
+      let roleData = null;
+      if (user.role && user.role !== 'user') {
+        const Role = (await import("../models/Role.js")).default;
+        const roleDoc = await Role.findOne({ name: user.role, isActive: true });
+        if (roleDoc) {
+          roleData = {
+            name: roleDoc.name,
+            displayName: roleDoc.displayName,
+            color: roleDoc.color,
+            iconUrl: roleDoc.iconUrl,
+            permissions: roleDoc.permissions || {}
+          };
+        }
+      }
+
       res.json({
         authenticated: true,
         user: {
@@ -349,6 +365,7 @@ router.get("/session",
           name: user.name,
           email: user.email,
           role: user.role,
+          roleData: roleData,
           bio: user.bio,
           avatarUrl: user.avatarUrl,
           isOnline: user.isOnline,
@@ -717,7 +734,12 @@ router.get("/me",
           isOnline: req.user.isOnline,
           isVerified: req.user.isVerified,
           lastSeen: req.user.lastSeen,
-          blockedUsers: req.user.blockedUsers || []
+          blockedUsers: req.user.blockedUsers || [],
+          // Profile Personalization
+          profileAccentColor: req.user.profileAccentColor,
+          profileSongUrl: req.user.profileSongUrl,
+          featuredPosts: req.user.featuredPosts,
+          statusUpdate: req.user.statusUpdate
         }
       });
     } catch (error) {
@@ -789,7 +811,9 @@ router.put("/update-profile",
         name, email, password, bio, nickname, birthday, gender, hobbies, avatarUrl,
         coverUrl, location, website, phone, profileTheme, profileLayout, useCoverImage,
         showEmail, showPhone, showBirthday, showLocation, showWebsite,
-        showHobbies, showFriends, showPosts, displayBadgeType
+        showHobbies, showFriends, showPosts, displayBadgeType,
+        // Profile Personalization fields
+        profileSongUrl, statusUpdate
       } = req.body;
 
       // Kiểm tra email có bị trùng không
@@ -835,6 +859,22 @@ router.put("/update-profile",
       if (showPosts !== undefined) req.user.showPosts = showPosts;
       if (displayBadgeType !== undefined) req.user.displayBadgeType = displayBadgeType;
 
+      // Profile Personalization fields
+      // Profile Personalization fields
+      if (profileSongUrl !== undefined) {
+        // Allow empty string to clear, or validate Spotify URL
+        if (profileSongUrl === '' || profileSongUrl.startsWith('https://open.spotify.com/')) {
+          req.user.profileSongUrl = profileSongUrl;
+        }
+      }
+      if (statusUpdate !== undefined) {
+        req.user.statusUpdate = {
+          text: statusUpdate.text || '',
+          emoji: statusUpdate.emoji || '',
+          updatedAt: new Date()
+        };
+      }
+
       if (password) {
         req.user.password = await bcrypt.hash(password, 12);
       }
@@ -877,7 +917,12 @@ router.put("/update-profile",
           showPosts: req.user.showPosts,
           showEvents: req.user.showEvents,
           displayBadgeType: req.user.displayBadgeType || 'none',
-          cultivationCache: req.user.cultivationCache
+          cultivationCache: req.user.cultivationCache,
+          // Profile Personalization
+          profileAccentColor: req.user.profileAccentColor,
+          profileSongUrl: req.user.profileSongUrl,
+          featuredPosts: req.user.featuredPosts,
+          statusUpdate: req.user.statusUpdate
         }
       });
     } catch (error) {

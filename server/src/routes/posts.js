@@ -107,11 +107,11 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
     const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
     const userId = req.user._id.toString();
     const statusFilter = status || "all";
-    
+
     const cacheKey = `my-posts:${userId}:${page}:${sanitizedLimit}:${statusFilter}`;
-    
+
     const result = await withCache(postCache, cacheKey, async () => {
-      const filter = { 
+      const filter = {
         author: req.user._id,
         status: status || { $in: ["published", "private"] },
         $and: [
@@ -123,7 +123,7 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
           }
         ]
       };
-      
+
       // Use aggregation for better performance
       const [posts, total] = await Promise.all([
         Post.aggregate([
@@ -207,7 +207,7 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
         ]),
         Post.countDocuments(filter)
       ]);
-      
+
       return {
         posts,
         pagination: {
@@ -218,7 +218,7 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
         }
       };
     }, 5 * 60 * 1000); // 5 minutes cache
-    
+
     res.json(result);
   } catch (error) {
     next(error);
@@ -230,11 +230,11 @@ router.get("/my-published", authRequired, async (req, res, next) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
-    const filter = { 
+    const filter = {
       author: req.user._id,
       status: "published"
     };
-    
+
     // Exclude group posts from personal profile
     filter.$and = [
       {
@@ -244,16 +244,16 @@ router.get("/my-published", authRequired, async (req, res, next) => {
         ]
       }
     ];
-    
+
     const posts = await Post.find(filter)
       .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache")
       .populate("group", "name")
       .sort({ createdAt: -1 })
       .limit(sanitizedLimit)
       .skip((page - 1) * sanitizedLimit);
-    
+
     const total = await Post.countDocuments(filter);
-    
+
     res.json({
       posts,
       pagination: {
@@ -273,11 +273,11 @@ router.get("/my-private", authRequired, async (req, res, next) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
-    const filter = { 
+    const filter = {
       author: req.user._id,
       status: "private"
     };
-    
+
     // Exclude group posts from personal profile
     filter.$and = [
       {
@@ -287,16 +287,16 @@ router.get("/my-private", authRequired, async (req, res, next) => {
         ]
       }
     ];
-    
+
     const posts = await Post.find(filter)
       .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache")
       .populate("group", "name")
       .sort({ createdAt: -1 })
       .limit(sanitizedLimit)
       .skip((page - 1) * sanitizedLimit);
-    
+
     const total = await Post.countDocuments(filter);
-    
+
     res.json({
       posts,
       pagination: {
@@ -316,40 +316,40 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
   try {
     const { userId, page = 1, limit = 20 } = req.query;
     const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
-    
+
     if (!userId || userId === "undefined") {
       return res.status(400).json({ error: "User ID is required" });
     }
-    
+
     // Validate MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ error: "User ID không hợp lệ" });
     }
-    
+
     // Check if user is blocked
     if (req.user) {
       const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
       const blockedIds = (currentUser.blockedUsers || []).map(id => id.toString());
-      
+
       // If current user blocked this user, return empty result
       if (blockedIds.includes(userId)) {
-        return res.json({ 
-          posts: [], 
-          pagination: { 
-            page: parseInt(page), 
-            limit: parseInt(limit), 
-            total: 0, 
-            pages: 0 
-          } 
+        return res.json({
+          posts: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            pages: 0
+          }
         });
       }
     }
-    
-    const filter = { 
+
+    const filter = {
       author: userId,
       status: "published" // Only public posts
     };
-    
+
     // Exclude group posts from user profile
     filter.$and = [
       {
@@ -359,7 +359,7 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
         ]
       }
     ];
-    
+
     const posts = await Post.find(filter)
       .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache")
       .populate("group", "name")
@@ -371,9 +371,9 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
       .limit(sanitizedLimit)
       .skip((page - 1) * sanitizedLimit)
       .lean(); // Use lean() for better performance
-    
+
     const total = await Post.countDocuments(filter);
-    
+
     res.json({
       posts: posts,
       pagination: {
@@ -417,20 +417,20 @@ router.get("/feed/smart", authOptional, async (req, res, next) => {
       const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
       const currentUserId = req.user._id.toString();
       const blockedSet = new Set((currentUser.blockedUsers || []).map(id => id.toString()));
-      
+
       // Batch fetch all authors' blocked lists
       const authorIds = [...new Set(
         itemsWithCommentCount
           .map(post => post.author?._id?.toString())
           .filter(Boolean)
       )];
-      
+
       const authorsWithBlocked = await User.find({
         _id: { $in: authorIds }
       })
         .select("_id blockedUsers")
         .lean();
-      
+
       // Create a Map for O(1) lookup
       const authorsBlockedMap = new Map();
       authorsWithBlocked.forEach(author => {
@@ -440,24 +440,24 @@ router.get("/feed/smart", authOptional, async (req, res, next) => {
           new Set((author.blockedUsers || []).map(id => id.toString()))
         );
       });
-      
+
       // Filter posts: remove if either user blocked the other
       filteredItems = itemsWithCommentCount.filter(post => {
         const author = post.author;
         if (!author) return false;
         const authorId = author._id.toString();
-        
+
         // Check if current user blocked this author
         if (blockedSet.has(authorId)) {
           return false;
         }
-        
+
         // Check if author blocked current user (mutual blocking)
         const authorBlockedSet = authorsBlockedMap.get(authorId);
         if (authorBlockedSet && authorBlockedSet.has(currentUserId)) {
           return false;
         }
-        
+
         return true;
       });
     }
@@ -588,7 +588,7 @@ router.get("/feed", authOptional, async (req, res, next) => {
         });
       }
     });
-    
+
     // Single query for all roles (only if we have valid IDs)
     let rolesMap = new Map();
     if (roleIds.size > 0) {
@@ -598,11 +598,11 @@ router.get("/feed", authOptional, async (req, res, next) => {
         .lean();
       roles.forEach(r => rolesMap.set(r._id.toString(), r));
     }
-    
+
     // Manually populate roles
     const itemsWithRoles = items.map(post => {
       const postCopy = { ...post };
-      
+
       // Populate author.role
       if (postCopy.author?.role) {
         const roleId = postCopy.author.role.toString();
@@ -611,7 +611,7 @@ router.get("/feed", authOptional, async (req, res, next) => {
           role: rolesMap.get(roleId) || postCopy.author.role
         };
       }
-      
+
       // Populate emotes.user.role
       if (postCopy.emotes) {
         postCopy.emotes = postCopy.emotes.map(emote => {
@@ -628,7 +628,7 @@ router.get("/feed", authOptional, async (req, res, next) => {
           return emote;
         });
       }
-      
+
       return postCopy;
     });
 
@@ -691,16 +691,16 @@ router.get("/feed-legacy", authOptional, async (req, res, next) => {
         });
       }
     }
-    
+
     const posts = await Post.find(filter)
       .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache")
       .populate("group", "name")
       .sort({ createdAt: -1 })
       .limit(sanitizedLimit)
       .skip((page - 1) * sanitizedLimit);
-    
+
     const total = await Post.countDocuments(filter);
-    
+
     res.json({
       posts,
       pagination: {
@@ -721,12 +721,12 @@ router.get("/", authOptional, async (req, res, next) => {
     const { page = 1, limit = 20, tag, author, q, status = "published", sort = "newest" } = req.query;
     const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
     const pageNum = Math.max(1, parseInt(page) || 1);
-    
+
     // OPTIMIZATION: Cache for common requests (public or logged-in homepage)
     const isHomepageFeed = !tag && !author && !q && status === "published" && sort === "newest";
     const userId = req.user?._id?.toString() || 'public';
     const cacheKey = `posts:feed:${userId}:page${pageNum}:limit${sanitizedLimit}`;
-    
+
     if (isHomepageFeed) {
       const cached = postCache.get(cacheKey);
       if (cached) {
@@ -810,7 +810,7 @@ router.get("/", authOptional, async (req, res, next) => {
 
     // OPTIMIZATION: Use parallel queries instead of $facet (faster for large datasets)
     const skip = (pageNum - 1) * sanitizedLimit;
-    
+
     // Build lightweight aggregation pipeline (no $facet)
     const pipeline = [
       { $match: filter },
@@ -862,20 +862,20 @@ router.get("/", authOptional, async (req, res, next) => {
         ? Post.estimatedDocumentCount()
         : Post.countDocuments(filter)
     ]);
-    
-    const response = { 
-      items, 
-      total, 
-      page: pageNum, 
-      pages: Math.ceil(total / sanitizedLimit) 
+
+    const response = {
+      items,
+      total,
+      page: pageNum,
+      pages: Math.ceil(total / sanitizedLimit)
     };
-    
+
     // OPTIMIZATION: Cache homepage page 1 for 5 seconds, other pages for 30 seconds
     if (isHomepageFeed) {
       const cacheTTL = pageNum === 1 ? 5 : 30;
       postCache.set(cacheKey, response, cacheTTL);
     }
-    
+
     res.json(response);
   } catch (e) {
     next(e);
@@ -888,7 +888,7 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
     // FIX DUPLICATE QUERY: Query once with $or instead of twice
     // FIX NESTED POPULATE: Only populate 1 level, fetch roles separately
     let post = await Post.findOneAndUpdate(
-      { 
+      {
         slug: req.params.slug,
         status: { $in: ["published", "private"] }
       },
@@ -924,7 +924,7 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
         return res.status(401).json({ error: "Token không hợp lệ" });
       }
     }
-    
+
     // FIX NESTED POPULATE: Fetch all roles in ONE query
     const roleIds = new Set();
     // Validate and collect only valid ObjectIds
@@ -938,7 +938,7 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
         }
       });
     }
-    
+
     // Single query for all roles (only if we have valid IDs)
     let rolesMap = new Map();
     if (roleIds.size > 0) {
@@ -948,13 +948,13 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
         .lean();
       roles.forEach(r => rolesMap.set(r._id.toString(), r));
     }
-    
+
     // Manually populate roles
     if (post.author?.role) {
       const roleId = post.author.role.toString();
       post.author.role = rolesMap.get(roleId) || post.author.role;
     }
-    
+
     if (post.emotes) {
       post.emotes = post.emotes.map(emote => {
         if (emote.user?.role) {
@@ -985,7 +985,7 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
         ) :
         Promise.resolve(false)
     ]);
-    
+
     // FIX NESTED POPULATE: Fetch comment author roles in ONE query
     const commentRoleIds = new Set();
     comments.forEach(comment => {
@@ -994,7 +994,7 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
         commentRoleIds.add(comment.author.role.toString());
       }
     });
-    
+
     if (commentRoleIds.size > 0) {
       const Role = mongoose.model('Role');
       const commentRoles = await Role.find({ _id: { $in: Array.from(commentRoleIds) } })
@@ -1002,7 +1002,7 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
         .lean();
       const commentRolesMap = new Map();
       commentRoles.forEach(r => commentRolesMap.set(r._id.toString(), r));
-      
+
       // Populate roles for comments
       comments.forEach(comment => {
         if (comment.author?.role) {
@@ -1060,7 +1060,7 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
     }
     // Sanitize input để chống XSS
     const sanitized = sanitizePostFields({ title, content, tags, coverUrl });
-    
+
     // Validate và sanitize YouTube URL
     const sanitizedYoutubeUrl = youtubeUrl ? sanitizePlain(youtubeUrl) : "";
 
@@ -1079,7 +1079,7 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
 
     const post = await Post.create({
       author: req.user._id,
-      title: sanitized.title, 
+      title: sanitized.title,
       content: sanitized.content || "",
       tags: sanitized.tags || [],
       coverUrl: sanitized.coverUrl || "",
@@ -1089,7 +1089,7 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
       mentions: mentionedUserIds,
       youtubeUrl: sanitizedYoutubeUrl
     });
-    
+
     // Create mention notifications
     if (mentionedUserIds.length > 0) {
       try {
@@ -1107,18 +1107,18 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
         console.error("[ERROR][POSTS] Failed to create mention notifications:", notifError);
       }
     }
-    
+
     // Invalidate cache for this user's posts
     invalidateCache(postCache, `my-posts:${req.user._id.toString()}`);
     invalidateCache(postCache, `posts:`);
-    
+
     // Cộng exp cho việc đăng bài
     try {
       await addExpForAction(req.user._id, 'post', { description: 'Đăng bài viết mới' });
     } catch (expError) {
       console.error('[POSTS] Error adding exp:', expError);
     }
-    
+
     res.json({ post });
   } catch (e) {
     next(e);
@@ -1155,12 +1155,12 @@ router.put("/:id", authRequired, checkBanStatus, async (req, res, next) => {
     if (Array.isArray(files)) {
       post.files = files;
     }
-    
+
     // Update YouTube URL if provided
     if (youtubeUrl !== undefined) {
       post.youtubeUrl = youtubeUrl ? sanitizePlain(youtubeUrl) : "";
     }
-    
+
     if (!["private", "published"].includes(status)) {
       return res.status(400).json({ error: "Trạng thái không hợp lệ" });
     }
@@ -1177,11 +1177,11 @@ router.put("/:id", authRequired, checkBanStatus, async (req, res, next) => {
     }
 
     await post.save();
-    
+
     // Invalidate cache for this user's posts and general posts
     invalidateCache(postCache, `my-posts:${post.author.toString()}`);
     invalidateCache(postCache, `posts:`);
-    
+
     res.json({ post });
   } catch (e) {
     next(e);
@@ -1198,11 +1198,11 @@ router.delete("/:id", authRequired, async (req, res, next) => {
     }
     await Comment.deleteMany({ post: post._id });
     await post.deleteOne();
-    
+
     // Invalidate cache for this user's posts and general posts
     invalidateCache(postCache, `my-posts:${post.author.toString()}`);
     invalidateCache(postCache, `posts:`);
-    
+
     res.json({ ok: true });
   } catch (e) {
     next(e);
@@ -1222,7 +1222,7 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
 
     const uid = req.user._id.toString();
     const existed = post.emotes.find(e => e.user.toString() === uid && e.type === emote);
-    
+
     let isNewLike = false;
     if (existed) {
       post.emotes = post.emotes.filter(e => !(e.user.toString() === uid && e.type === emote));
@@ -1235,7 +1235,7 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
 
     await post.save();
     await post.populate("emotes.user", "name nickname avatarUrl role");
-    
+
     // Cộng exp cho cả người like và người được like (nếu là lần đầu)
     if (isNewLike) {
       try {
@@ -1249,7 +1249,7 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
         console.error('[POSTS] Error adding emote exp:', expError);
       }
     }
-    
+
     res.json({ emotes: post.emotes });
   } catch (e) {
     next(e);
@@ -1262,7 +1262,7 @@ router.get("/analytics", authRequired, async (req, res, next) => {
   try {
     const userId = req.user._id;
     const { period = '30d' } = req.query;
-    
+
     // Calculate date range based on period
     let startDate = new Date();
     switch (period) {
@@ -1281,29 +1281,29 @@ router.get("/analytics", authRequired, async (req, res, next) => {
       default:
         startDate.setDate(startDate.getDate() - 30);
     }
-    
+
     // Get all user posts with view counts and emotes
-    const posts = await Post.find({ 
-      author: userId 
+    const posts = await Post.find({
+      author: userId
     })
-    .select('title slug views emotes createdAt status')
-    .sort({ createdAt: -1 })
-    .lean();
-    
+      .select('title slug views emotes createdAt status')
+      .sort({ createdAt: -1 })
+      .lean();
+
     // Calculate total views and total likes (emotes)
     const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0);
     const totalLikes = posts.reduce((sum, post) => sum + (Array.isArray(post.emotes) ? post.emotes.length : 0), 0);
-    
+
     // Get posts from the specified period
-    const recentPosts = posts.filter(post => 
+    const recentPosts = posts.filter(post =>
       new Date(post.createdAt) >= startDate
     );
-    
+
     // FIX DATE RANGE LOOP: Generate date array efficiently without blocking loop
     const viewsByDay = {};
     const currentDate = new Date();
     const daysDiff = Math.ceil((currentDate - startDate) / (1000 * 60 * 60 * 24));
-    
+
     // Generate dates efficiently using Array.from
     Array.from({ length: daysDiff + 1 }, (_, i) => {
       const date = new Date(startDate);
@@ -1311,20 +1311,20 @@ router.get("/analytics", authRequired, async (req, res, next) => {
       const dateKey = date.toISOString().split('T')[0];
       viewsByDay[dateKey] = 0;
     });
-    
+
     // Get top posts (by views)
     const topPosts = posts
       .sort((a, b) => (b.views || 0) - (a.views || 0))
       .slice(0, 10);
-    
+
     // Calculate growth metrics
     const totalPosts = posts.length;
     const publishedPosts = posts.filter(p => p.status === 'published').length;
     const privatePosts = posts.filter(p => p.status === 'private').length;
-    
+
     // Average views per post
     const avgViewsPerPost = totalPosts > 0 ? Math.round(totalViews / totalPosts) : 0;
-    
+
     res.json({
       success: true,
       analytics: {
@@ -1429,11 +1429,11 @@ router.post("/:id/save", authRequired, async (req, res, next) => {
     }
 
     await user.save();
-    
+
     // Lấy số lượng saved từ Post model (đã denormalized)
     const updatedPost = await Post.findById(postId).select("savedCount");
     const savedCount = updatedPost ? updatedPost.savedCount : 0;
-    
+
     res.json({ saved: !alreadySaved, savedCount });
   } catch (e) { next(e); }
 });
@@ -1508,7 +1508,7 @@ router.post("/:id/interest", authRequired, async (req, res, next) => {
     }
 
     const user = await User.findById(userId).select("interestedPosts notInterestedPosts");
-    
+
     // Remove from both lists first (toggle behavior)
     user.interestedPosts = (user.interestedPosts || []).filter(id => id.toString() !== postId);
     user.notInterestedPosts = (user.notInterestedPosts || []).filter(id => id.toString() !== postId);
@@ -1527,12 +1527,12 @@ router.post("/:id/interest", authRequired, async (req, res, next) => {
     }
 
     await user.save();
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       interested,
-      message: interested 
-        ? "Đã đánh dấu quan tâm bài viết này" 
+      message: interested
+        ? "Đã đánh dấu quan tâm bài viết này"
         : "Đã đánh dấu không quan tâm bài viết này"
     });
   } catch (error) {
@@ -1581,4 +1581,103 @@ router.get("/saved/list", authRequired, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ==================== FEATURED POSTS ====================
+// Toggle feature/unfeature a post on user profile
+router.post("/:id/feature", authRequired, async (req, res, next) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ error: "Post ID không hợp lệ" });
+    }
+
+    // Verify post exists and belongs to user
+    const post = await Post.findById(postId).select("_id author status");
+    if (!post) {
+      return res.status(404).json({ error: "Không tìm thấy bài viết" });
+    }
+
+    // Only allow featuring own posts
+    if (post.author.toString() !== userId.toString()) {
+      return res.status(403).json({ error: "Chỉ có thể ghim bài viết của bạn" });
+    }
+
+    // Only allow featuring published posts
+    if (post.status !== "published") {
+      return res.status(400).json({ error: "Chỉ có thể ghim bài viết đã công khai" });
+    }
+
+    const user = await User.findById(userId).select("featuredPosts");
+    const featuredPosts = user.featuredPosts || [];
+    const postIdStr = postId.toString();
+    const idx = featuredPosts.findIndex(id => id.toString() === postIdStr);
+
+    let isFeatured = false;
+    if (idx >= 0) {
+      // Unfeature
+      featuredPosts.splice(idx, 1);
+    } else {
+      // Feature - check limit
+      if (featuredPosts.length >= 5) {
+        return res.status(400).json({
+          error: "Đã đạt giới hạn 5 bài viết ghim. Vui lòng bỏ ghim bài khác trước."
+        });
+      }
+      featuredPosts.unshift(new mongoose.Types.ObjectId(postId));
+      isFeatured = true;
+    }
+
+    user.featuredPosts = featuredPosts;
+    await user.save();
+
+    res.json({
+      success: true,
+      isFeatured,
+      featuredPosts: user.featuredPosts,
+      message: isFeatured ? "Đã ghim bài viết lên profile" : "Đã bỏ ghim bài viết"
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get featured posts for a user
+router.get("/featured/:userId", authOptional, async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: "User ID không hợp lệ" });
+    }
+
+    const user = await User.findById(userId)
+      .select("featuredPosts")
+      .populate({
+        path: "featuredPosts",
+        populate: {
+          path: "author",
+          select: "name nickname avatarUrl role displayBadgeType cultivationCache"
+        }
+      });
+
+    if (!user) {
+      return res.status(404).json({ error: "Không tìm thấy người dùng" });
+    }
+
+    // Filter out any posts that no longer exist or are private
+    const validPosts = (user.featuredPosts || []).filter(post =>
+      post && post.status === "published"
+    );
+
+    res.json({
+      success: true,
+      featuredPosts: validPosts
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
+

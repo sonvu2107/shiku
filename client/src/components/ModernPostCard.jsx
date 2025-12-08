@@ -18,7 +18,7 @@ import { useToast } from "../contexts/ToastContext";
 // Mapping of emotes to corresponding GIF filenames
 const emoteMap = {
   "👍": "like.gif",
-  "❤️": "care.gif", 
+  "❤️": "care.gif",
   "😂": "haha.gif",
   "😮": "wow.gif",
   "😢": "sad.gif",
@@ -29,7 +29,7 @@ const emotes = Object.keys(emoteMap);
 const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedChange, hideActionsMenu = false }) => {
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
-  
+
   // ==================== STATE & REFS ====================
   const [showEmotePopup, setShowEmotePopup] = useState(false);
   const emotePopupTimeout = useRef();
@@ -54,7 +54,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const heartAnimationKey = useRef(0);
   const [localUserEmote, setLocalUserEmote] = useState(null);
-  
+
   // Comment input states
   const [commentContent, setCommentContent] = useState("");
   const [commentImages, setCommentImages] = useState([]);
@@ -65,17 +65,17 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   // Sync emotesState when post.emotes changes
   useEffect(() => {
     if (post.emotes) {
-      const normalizedEmotes = Array.isArray(post.emotes) 
+      const normalizedEmotes = Array.isArray(post.emotes)
         ? post.emotes.map(e => {
-            if (e && e.type) {
-              return {
-                type: e.type,
-                user: e.user || null,
-                createdAt: e.createdAt || null
-              };
-            }
-            return null;
-          }).filter(Boolean)
+          if (e && e.type) {
+            return {
+              type: e.type,
+              user: e.user || null,
+              createdAt: e.createdAt || null
+            };
+          }
+          return null;
+        }).filter(Boolean)
         : [];
       setEmotesState(normalizedEmotes);
     } else {
@@ -169,7 +169,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     const currentUserRawId = user._id ?? user.id;
     if (!currentUserRawId) return null;
     if (!emotesState || !Array.isArray(emotesState) || emotesState.length === 0) return null;
-    
+
     let currentUserId;
     if (typeof currentUserRawId === 'string') {
       currentUserId = currentUserRawId;
@@ -178,10 +178,10 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     } else {
       return null;
     }
-    
+
     const userEmote = emotesState.find(e => {
       if (!e || !e.user || !e.type) return false;
-      
+
       let userId = null;
       if (typeof e.user === 'string') {
         userId = e.user;
@@ -198,7 +198,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           userId = e.user.id || (e.user.toString ? e.user.toString() : null);
         }
       }
-      
+
       if (!userId) return false;
       try {
         return String(userId) === String(currentUserId);
@@ -206,7 +206,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         return false;
       }
     });
-    
+
     return userEmote && userEmote.type ? userEmote.type : null;
   }, [user, emotesState]);
 
@@ -222,8 +222,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     }
     return counts;
   }, [emotesState]);
-  
-  const totalEmotes = useMemo(() => 
+
+  const totalEmotes = useMemo(() =>
     Object.values(counts).reduce((a, b) => a + b, 0),
     [counts]
   );
@@ -231,11 +231,11 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   // Add/remove emote for the post - Memoized with optimistic update
   const handleEmote = useCallback(async (emoteType) => {
     if (emotingPost) return;
-    
+
     const hadEmote = !!uiUserEmote;
     const previousEmotes = [...emotesState];
     const previousUserEmote = uiUserEmote;
-    
+
     // Optimistic update
     setEmotingPost(true);
     if (hadEmote && previousUserEmote === emoteType) {
@@ -262,26 +262,26 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       setEmotesState([...filteredEmotes, newEmote]);
       setLocalUserEmote(emoteType);
     }
-    
+
     if ((emoteType === '👍' || emoteType === '❤️') && !hadEmote) {
       heartAnimationKey.current += 1;
       setShowHeartAnimation(true);
       setTimeout(() => setShowHeartAnimation(false), 1000);
     }
-    
+
     try {
       const res = await api(`/api/posts/${post._id}/emote`, {
         method: "POST",
         body: { emote: emoteType }
       });
-      
+
       if (res && res.emotes) {
-        const normalizedEmotes = Array.isArray(res.emotes) 
+        const normalizedEmotes = Array.isArray(res.emotes)
           ? res.emotes.map(e => ({
-              type: e.type,
-              user: e.user || null,
-              createdAt: e.createdAt || null
-            })).filter(Boolean)
+            type: e.type,
+            user: e.user || null,
+            createdAt: e.createdAt || null
+          })).filter(Boolean)
           : [];
         setEmotesState(normalizedEmotes);
         setShowEmotePopup(false);
@@ -309,7 +309,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     }
 
     if (savingPost) return;
-    
+
     // Optimistic update
     const previousSaved = saved;
     setSavingPost(true);
@@ -324,7 +324,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       const actualSaved = !!res.saved;
       setSaved(actualSaved);
       if (onSavedChange) onSavedChange(post._id, actualSaved);
-      
+
       if (actualSaved) {
         showSuccess("Đã lưu bài viết");
       } else {
@@ -341,8 +341,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   }, [user, navigate, post._id, onSavedChange, saved, savingPost, showSuccess, showError]);
 
   // Format time
-  const timeAgo = post.createdAt 
-    ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: vi }) 
+  const timeAgo = post.createdAt
+    ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: vi })
     : "";
 
   // Determine media to display (coverUrl preferred, then first file) - Memoized
@@ -404,7 +404,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   // Render emoji picker for comment
   const renderCommentEmojiPicker = () => {
     if (!showCommentEmojiPicker) return null;
-    
+
     return (
       <div className="absolute bottom-full right-0 mb-2 w-[calc(100vw-2rem)] sm:w-[360px] max-w-[360px] bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 z-[9999] overflow-hidden animate-in fade-in zoom-in-95 duration-200 comment-emoji-picker-container">
         <div className="p-3 max-h-[280px] overflow-y-auto">
@@ -433,7 +433,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   const handleSubmitComment = useCallback(async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if ((!commentContent.trim() && commentImages.length === 0) || !user) {
       if (!user) {
         navigate('/login');
@@ -444,16 +444,16 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     setSubmittingComment(true);
     try {
       let requestBody;
-      
+
       if (commentImages.length > 0) {
         // Has images - use FormData
         const formData = new FormData();
         formData.append('content', commentContent);
-        
+
         commentImages.forEach((image) => {
           formData.append('files', image.file);
         });
-        
+
         requestBody = formData;
       } else {
         // No images - use JSON
@@ -469,15 +469,15 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       setCommentContent("");
       commentImages.forEach(img => img.preview && URL.revokeObjectURL(img.preview));
       setCommentImages([]);
-      
+
       // Update post comment count
       if (onUpdate) {
         onUpdate();
       }
-      
+
       // Show success message
       showSuccess("Bình luận đã được đăng thành công!");
-      
+
       // Navigate to post to see the new comment
       navigate(`/post/${post.slug || post._id}`);
     } catch (error) {
@@ -488,7 +488,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   }, [commentContent, commentImages, user, navigate, post._id, post.slug, onUpdate, showSuccess, showError]);
 
   return (
-    <div 
+    <div
       onClick={() => navigate(`/post/${post.slug || post._id}`)}
       className="group relative bg-white dark:bg-[#111] rounded-2xl md:rounded-[32px] px-3 md:px-5 pt-3 md:pt-4 pb-4 md:pb-6 mb-4 md:mb-6 cursor-pointer
       shadow-[0_4px_20px_rgb(0,0,0,0.04)] md:shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.3)] dark:md:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
@@ -499,15 +499,15 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       <div className="flex justify-between items-start mb-2 md:mb-3">
         <div className="flex items-center gap-2 md:gap-3" onClick={e => e.stopPropagation()}>
           <Link to={`/user/${post.author?._id}`} className="relative flex-shrink-0">
-            <UserAvatar 
-              user={post.author} 
+            <UserAvatar
+              user={post.author}
               size={36}
               showFrame={true}
               showBadge={true}
               className="md:hidden"
             />
-            <UserAvatar 
-              user={post.author} 
+            <UserAvatar
+              user={post.author}
               size={40}
               showFrame={true}
               showBadge={true}
@@ -516,8 +516,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           </Link>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <Link 
-                to={`/user/${post.author?._id}`} 
+              <Link
+                to={`/user/${post.author?._id}`}
                 className="font-bold text-sm md:text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 truncate"
                 onClick={e => e.stopPropagation()}
               >
@@ -529,8 +529,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               {timeAgo && <span>•</span>}
               <span className={cn(
                 "px-1.5 md:px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-semibold flex-shrink-0",
-                post.status === 'private' 
-                  ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" 
+                post.status === 'private'
+                  ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
                   : "bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
               )}>
                 {statusLabel}
@@ -546,7 +546,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 handleInterested(true);
               }}
               className={cn(
-                "p-2 rounded-full transition-colors",
+                "w-9 h-9 flex items-center justify-center rounded-full transition-colors",
                 interestStatus === true
                   ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
                   : "text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
@@ -561,7 +561,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 handleInterested(false);
               }}
               className={cn(
-                "p-2 rounded-full transition-colors",
+                "w-9 h-9 flex items-center justify-center rounded-full transition-colors",
                 interestStatus === false
                   ? "text-red-500 bg-red-50 dark:bg-red-900/20"
                   : "text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
@@ -626,8 +626,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       {displayMedia && (
         <div className={`rounded-xl md:rounded-3xl overflow-hidden bg-gray-100 dark:bg-black mb-3 md:mb-4 relative ${displayMedia.type !== 'video' ? 'group/media' : ''}`}>
           {displayMedia.type === 'video' ? (
-            <video 
-              src={displayMedia.url} 
+            <video
+              src={displayMedia.url}
               className="w-full max-h-[500px] object-contain bg-black"
               controls
               controlsList="nodownload"
@@ -688,7 +688,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               if (e.target.closest('.emote-picker')) {
                 return;
               }
-              
+
               if (window.innerWidth < 768) {
                 setShowEmotePopup(prev => !prev);
                 return;
@@ -721,21 +721,21 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 <motion.div
                   key={heartAnimationKey.current}
                   initial={{ scale: 0, opacity: 0 }}
-                  animate={{ 
+                  animate={{
                     scale: [0, 1.3, 1],
                     opacity: [0, 1, 1, 0],
                     y: [0, -30, -50],
                     rotate: [0, -10, 10, 0]
                   }}
                   exit={{ opacity: 0, scale: 0 }}
-                  transition={{ 
+                  transition={{
                     duration: 0.8,
                     ease: "easeOut"
                   }}
                   className="absolute -top-8 left-1/2 -translate-x-1/2 pointer-events-none z-50"
                 >
-                  <Heart 
-                    size={32} 
+                  <Heart
+                    size={32}
                     className="text-red-500 fill-red-500 drop-shadow-lg"
                   />
                 </motion.div>
@@ -745,16 +745,16 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             <button
               className={cn(
                 "flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2 md:py-2.5 rounded-full transition-all active:scale-90 touch-manipulation",
-                uiUserEmote 
-                  ? "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-500" 
+                uiUserEmote
+                  ? "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-500"
                   : "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400"
               )}
             >
               {uiUserEmote ? (
                 <>
-                  <img 
-                    src={`/assets/${emoteMap[uiUserEmote]}`} 
-                    alt={uiUserEmote} 
+                  <img
+                    src={`/assets/${emoteMap[uiUserEmote]}`}
+                    alt={uiUserEmote}
                     width={20}
                     height={20}
                     className="w-5 h-5 md:w-[22px] md:h-[22px]"
@@ -802,14 +802,14 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 {emotes.map(e => {
                   const isActive = uiUserEmote === e;
                   return (
-                    <button 
-                      key={e} 
+                    <button
+                      key={e}
                       className={cn(
                         "emote-btn transition-all hover:scale-110 active:scale-95 p-1 md:p-0 touch-manipulation",
                         isActive ? 'opacity-100 ring-2 ring-blue-500 rounded-full' : 'opacity-90'
                       )}
-                      type="button" 
-                      onClick={(event) => { 
+                      type="button"
+                      onClick={(event) => {
                         event.stopPropagation();
                         setLocalUserEmote(prev => prev === e ? null : e);
                         handleEmote(e);
@@ -820,9 +820,9 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                       onMouseDown={(e) => e.preventDefault()}
                       title={isActive ? `Bỏ cảm xúc ${e}` : `Thả cảm xúc ${e}`}
                     >
-                      <img 
-                        src={`/assets/${emoteMap[e]}`} 
-                        alt={e} 
+                      <img
+                        src={`/assets/${emoteMap[e]}`}
+                        alt={e}
                         width={28}
                         height={28}
                         className="w-7 h-7 md:w-8 md:h-8"
@@ -839,7 +839,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           </div>
 
           {/* Comment */}
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/post/${post.slug || post._id}`);
@@ -851,7 +851,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           </button>
 
           {/* Share */}
-          <button 
+          <button
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -868,7 +868,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           </button>
         </div>
 
-        <button 
+        <button
           onClick={handleSave}
           className={cn(
             "p-2 md:p-3 rounded-full transition-all active:scale-90 touch-manipulation",
@@ -892,7 +892,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                   <div className="w-full rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-50 dark:bg-gray-800 aspect-square">
                     <img src={img.preview} className="w-full h-full object-cover" alt={`Preview ${idx + 1}`} />
                   </div>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => {
                       URL.revokeObjectURL(img.preview);
@@ -932,13 +932,13 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
                     if (files.length === 0) return;
-                    
+
                     const newImages = files.slice(0, 3 - commentImages.length).map(file => ({
                       file,
                       preview: URL.createObjectURL(file),
                       id: Math.random().toString(36).substr(2, 9)
                     }));
-                    
+
                     setCommentImages(prev => [...prev, ...newImages]);
                     if (e.target) e.target.value = "";
                   }}

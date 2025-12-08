@@ -1,31 +1,36 @@
 import { useState, useEffect, useRef } from "react";
 import { api, uploadImage } from "../api";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Palette, 
-  Layout, 
-  Eye, 
-  EyeOff, 
-  Upload, 
-  Save, 
-  X, 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Globe, 
-  Calendar, 
-  Heart, 
-  Users, 
-  FileText, 
+import {
+  Palette,
+  Layout,
+  Eye,
+  EyeOff,
+  Upload,
+  Save,
+  X,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Globe,
+  Calendar,
+  Heart,
+  Users,
+  FileText,
   Camera,
   Image as ImageIcon,
   Settings,
   Sparkles,
   Shield,
-  Crown
+  Crown,
+  Music,
+  Zap,
+  MessageCircle
 } from "lucide-react";
 import { cn } from "../utils/cn";
+import { SpotifyPreview } from "./SpotifyEmbed";
+import { StatusEditor } from "./StatusBadge";
 
 // Spotlight Card component
 const SpotlightCard = ({ children, className = "" }) => {
@@ -69,19 +74,19 @@ const SpotlightCard = ({ children, className = "" }) => {
  */
 export default function ProfileCustomization({ user, onUpdate, onClose }) {
   // ==================== STATE MANAGEMENT ====================
-  
-  const [activeTab, setActiveTab] = useState("appearance"); // appearance, privacy
+
+  const [activeTab, setActiveTab] = useState("appearance"); // appearance, privacy, personalization
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  
+
   // Appearance state
   const [appearance, setAppearance] = useState({
     profileTheme: "default",
     profileLayout: "classic",
     useCoverImage: true
   });
-  
+
   // Privacy state
   const [privacy, setPrivacy] = useState({
     showEmail: false,
@@ -94,14 +99,22 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
     showFriends: true,
     showPosts: true
   });
-  
+
   // Display badge type state (realm, title, both, none) - controls cultivation badges only
   // VerifiedBadge (role tick) is always shown
   const [displayBadgeType, setDisplayBadgeType] = useState("none");
-  
+
   // Upload states
   const [uploadingCover, setUploadingCover] = useState(false);
   const [previewCover, setPreviewCover] = useState("");
+
+  // Personalization state
+  const [personalization, setPersonalization] = useState({
+    profileSongUrl: "",
+    statusUpdate: { text: "", emoji: "" }
+  });
+
+
 
   // ==================== EFFECTS ====================
 
@@ -115,7 +128,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
     if (["realm", "title", "both", "none"].includes(value)) return value;
     return "none";
   };
-  
+
   useEffect(() => {
     if (user) {
       setAppearance({
@@ -123,7 +136,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
         profileLayout: user.profileLayout || "classic",
         useCoverImage: user.useCoverImage === true
       });
-      
+
       setPrivacy({
         showEmail: user.showEmail || false,
         showPhone: user.showPhone || false,
@@ -135,14 +148,20 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
         showFriends: user.showFriends !== false,
         showPosts: user.showPosts !== false
       });
-      
+
       setDisplayBadgeType(migrateDisplayBadgeType(user.displayBadgeType));
       setPreviewCover(user.coverUrl || "");
+
+      // Personalization
+      setPersonalization({
+        profileSongUrl: user.profileSongUrl || "",
+        statusUpdate: user.statusUpdate || { text: "", emoji: "" }
+      });
     }
   }, [user]);
 
   // ==================== THEME CONFIGURATIONS ====================
-  
+
   const themes = [
     { id: "default", name: "Mặc định", colors: { primary: "#3b82f6", secondary: "#1e40af" } },
     { id: "dark", name: "Tối", colors: { primary: "#1f2937", secondary: "#111827" } },
@@ -152,7 +171,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
     { id: "pink", name: "Hồng", colors: { primary: "#db2777", secondary: "#be185d" } },
     { id: "orange", name: "Cam", colors: { primary: "#ea580c", secondary: "#c2410c" } }
   ];
-  
+
   const layouts = [
     { id: "classic", name: "Cổ điển", description: "Layout truyền thống với sidebar" },
     { id: "modern", name: "Hiện đại", description: "Layout phẳng, tối giản" },
@@ -161,11 +180,11 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
   ];
 
   // ==================== HANDLERS ====================
-  
+
   const handleCoverUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     setUploadingCover(true);
     setError("");
     try {
@@ -188,23 +207,23 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
     setLoading(true);
     setError("");
     setSuccess("");
-    
+
     try {
       const updateData = {};
-      
+
       // Appearance - check if any appearance setting has changed
       const appearanceChanged = (
         appearance.profileTheme !== (user.profileTheme || "default") ||
         appearance.profileLayout !== (user.profileLayout || "classic") ||
         appearance.useCoverImage !== (user.useCoverImage === true)
       );
-      
+
       if (appearanceChanged) {
         updateData.profileTheme = appearance.profileTheme;
         updateData.profileLayout = appearance.profileLayout;
         updateData.useCoverImage = appearance.useCoverImage;
       }
-      
+
       // Privacy - only include if changed
       Object.keys(privacy).forEach(key => {
         const currentValue = user[key] !== false;
@@ -212,27 +231,41 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
           updateData[key] = privacy[key];
         }
       });
-      
+
       // Display badge type - check if changed
       if (displayBadgeType !== (user.displayBadgeType || "role")) {
         updateData.displayBadgeType = displayBadgeType;
       }
-      
+
+      // Personalization - check if changed
+      if (personalization.profileSongUrl !== (user.profileSongUrl || "")) {
+        updateData.profileSongUrl = personalization.profileSongUrl;
+      }
+      const currentStatus = user.statusUpdate || { text: "", emoji: "" };
+      if (personalization.statusUpdate.text !== currentStatus.text ||
+        personalization.statusUpdate.emoji !== currentStatus.emoji) {
+        updateData.statusUpdate = personalization.statusUpdate;
+      }
+
       // Only send request if there are changes
       if (Object.keys(updateData).length === 0) {
         setError("Không có thay đổi nào để lưu");
         setLoading(false);
         return;
       }
-      
-      await api("/api/auth/update-profile", {
+
+      console.log('[ProfileCustomization] Saving data:', updateData);
+
+      const response = await api("/api/auth/update-profile", {
         method: "PUT",
         body: updateData
       });
-      
+
+      console.log('[ProfileCustomization] API Response:', response);
+
       setSuccess("Cập nhật profile thành công!");
       onUpdate?.();
-      
+
       setTimeout(() => {
         onClose?.();
       }, 1500);
@@ -245,17 +278,38 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
 
   // Track if there are unsaved changes
   const hasUnsavedChanges = () => {
-    return (
+    // Safe comparison helpers
+    const userSongUrl = user.profileSongUrl || "";
+    const userStatusText = user.statusUpdate?.text || "";
+    const userStatusEmoji = user.statusUpdate?.emoji || "";
+
+    const currentSongUrl = personalization.profileSongUrl || "";
+    const currentStatusText = personalization.statusUpdate?.text || "";
+    const currentStatusEmoji = personalization.statusUpdate?.emoji || "";
+
+    const songChanged = currentSongUrl !== userSongUrl;
+    const statusTextChanged = currentStatusText !== userStatusText;
+    const statusEmojiChanged = currentStatusEmoji !== userStatusEmoji;
+
+    const hasChanges = (
       appearance.profileTheme !== (user.profileTheme || "default") ||
       appearance.profileLayout !== (user.profileLayout || "classic") ||
       appearance.useCoverImage !== (user.useCoverImage === true) ||
       displayBadgeType !== (user.displayBadgeType || "role") ||
-      Object.keys(privacy).some(key => privacy[key] !== (user[key] !== false))
+      Object.keys(privacy).some(key => privacy[key] !== (user[key] !== false)) ||
+      // Personalization changes
+      songChanged ||
+      statusTextChanged ||
+      statusEmojiChanged
     );
+
+
+
+    return hasChanges;
   };
 
   // ==================== RENDER ====================
-  
+
   if (!user) return null;
 
   return (
@@ -267,16 +321,16 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
         className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-4xl max-h-[95vh] md:max-h-[90vh] flex flex-col border border-neutral-200 dark:border-neutral-800"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-900/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
-              <Settings className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+        <div className="flex items-center justify-between p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-900/50">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="p-1.5 md:p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
+              <Settings className="w-4 h-4 md:w-5 md:h-5 text-neutral-600 dark:text-neutral-400" />
             </div>
-            <h2 className="text-xl md:text-2xl font-black text-neutral-900 dark:text-white">Tùy chỉnh giao diện</h2>
+            <h2 className="text-lg md:text-2xl font-black text-neutral-900 dark:text-white">Tùy chỉnh</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
+            className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <X className="w-5 h-5" />
           </button>
@@ -284,30 +338,31 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
 
         {/* Tabs */}
         <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl p-2">
-          <div className="flex gap-2">
+          <div className="flex gap-1 md:gap-2">
             {[
               { id: "appearance", label: "Giao diện", icon: Palette },
-              { id: "privacy", label: "Riêng tư", icon: Eye }
+              { id: "privacy", label: "Riêng tư", icon: Eye },
+              { id: "personalization", label: "Cá nhân", icon: Zap }
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 px-6 py-3 font-bold transition-all duration-300 rounded-full",
+                  "flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-2 md:px-6 py-2.5 md:py-3 font-bold transition-all duration-300 rounded-full min-h-[44px]",
                   activeTab === id
                     ? "bg-black dark:bg-white text-white dark:text-black shadow-md"
                     : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-black/5 dark:hover:bg-white/10"
                 )}
               >
-                <Icon className="w-5 h-5" />
-                <span>{label}</span>
+                <Icon className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+                <span className="text-xs md:text-sm truncate">{label}</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 flex-1 overflow-y-auto bg-white dark:bg-neutral-900 min-h-0">
+        <div className="p-4 md:p-6 flex-1 overflow-y-auto bg-white dark:bg-neutral-900 min-h-0">
           <AnimatePresence mode="wait">
             {/* Appearance Tab */}
             {activeTab === "appearance" && (
@@ -366,23 +421,23 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                   <label className="block text-sm font-bold uppercase text-neutral-500 mb-4">
                     Chọn theme màu sắc
                   </label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-3 md:grid-cols-4 gap-2 md:gap-4">
                     {themes.map((theme) => (
                       <button
                         key={theme.id}
                         onClick={() => setAppearance(prev => ({ ...prev, profileTheme: theme.id }))}
                         className={cn(
-                          "p-4 rounded-xl border-2 transition-all bg-white dark:bg-neutral-800",
+                          "p-2 md:p-4 rounded-xl border-2 transition-all bg-white dark:bg-neutral-800",
                           appearance.profileTheme === theme.id
                             ? "border-black dark:border-white ring-2 ring-neutral-200 dark:ring-neutral-700 shadow-lg"
                             : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
                         )}
                       >
                         <div
-                          className="w-full h-8 rounded-lg mb-2 shadow-sm"
+                          className="w-full h-6 md:h-8 rounded-lg mb-1 md:mb-2 shadow-sm"
                           style={{ backgroundColor: theme.colors.primary }}
                         ></div>
-                        <div className="text-sm font-bold text-neutral-900 dark:text-white">{theme.name}</div>
+                        <div className="text-xs md:text-sm font-bold text-neutral-900 dark:text-white truncate">{theme.name}</div>
                       </button>
                     ))}
                   </div>
@@ -419,29 +474,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                   </div>
                 </SpotlightCard>
 
-                {/* Layout Selection */}
-                <SpotlightCard>
-                  <label className="block text-sm font-bold uppercase text-neutral-500 mb-4">
-                    Chọn layout profile
-                  </label>
-                  <div className="grid grid-cols-1 gap-4">
-                    {layouts.map((layout) => (
-                      <button
-                        key={layout.id}
-                        onClick={() => setAppearance(prev => ({ ...prev, profileLayout: layout.id }))}
-                        className={cn(
-                          "p-4 rounded-xl border-2 text-left transition-all bg-white dark:bg-neutral-800",
-                          appearance.profileLayout === layout.id
-                            ? "border-black dark:border-white ring-2 ring-neutral-200 dark:ring-neutral-700 shadow-lg"
-                            : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
-                        )}
-                      >
-                        <div className="font-bold text-neutral-900 dark:text-white mb-1">{layout.name}</div>
-                        <div className="text-sm text-neutral-500 dark:text-neutral-400">{layout.description}</div>
-                      </button>
-                    ))}
-                  </div>
-                </SpotlightCard>
+
               </motion.div>
             )}
 
@@ -563,35 +596,35 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                   <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
                     Chọn thông tin tu tiên hiển thị bên cạnh tên của bạn
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2 md:gap-3">
                     {/* Realm option - Cảnh giới */}
                     <button
                       onClick={() => setDisplayBadgeType("realm")}
                       className={cn(
-                        "relative p-4 rounded-xl border-2 transition-all duration-200",
+                        "relative p-3 md:p-4 rounded-xl border-2 transition-all duration-200",
                         displayBadgeType === "realm"
                           ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
                           : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
                       )}
                     >
-                      <div className="flex flex-col items-center gap-2">
+                      <div className="flex flex-col items-center gap-1.5 md:gap-2">
                         <div className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center",
+                          "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center",
                           displayBadgeType === "realm"
                             ? "bg-gradient-to-br from-purple-500 to-indigo-600 text-white"
                             : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
                         )}>
-                          <Sparkles className="w-5 h-5" />
+                          <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
                         </div>
                         <span className={cn(
-                          "font-bold text-sm",
+                          "font-bold text-xs md:text-sm",
                           displayBadgeType === "realm"
                             ? "text-purple-600 dark:text-purple-400"
                             : "text-neutral-700 dark:text-neutral-300"
                         )}>
                           Cảnh giới
                         </span>
-                        <span className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                        <span className="text-[10px] md:text-xs text-neutral-500 dark:text-neutral-400 text-center hidden md:block">
                           Luyện Khí, Kim Đan...
                         </span>
                       </div>
@@ -608,30 +641,30 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                     <button
                       onClick={() => setDisplayBadgeType("title")}
                       className={cn(
-                        "relative p-4 rounded-xl border-2 transition-all duration-200",
+                        "relative p-3 md:p-4 rounded-xl border-2 transition-all duration-200",
                         displayBadgeType === "title"
                           ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
                           : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
                       )}
                     >
-                      <div className="flex flex-col items-center gap-2">
+                      <div className="flex flex-col items-center gap-1.5 md:gap-2">
                         <div className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center",
+                          "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center",
                           displayBadgeType === "title"
                             ? "bg-gradient-to-br from-amber-500 to-orange-600 text-white"
                             : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
                         )}>
-                          <Shield className="w-5 h-5" />
+                          <Shield className="w-4 h-4 md:w-5 md:h-5" />
                         </div>
                         <span className={cn(
-                          "font-bold text-sm",
+                          "font-bold text-xs md:text-sm",
                           displayBadgeType === "title"
                             ? "text-amber-600 dark:text-amber-400"
                             : "text-neutral-700 dark:text-neutral-300"
                         )}>
                           Danh hiệu
                         </span>
-                        <span className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                        <span className="text-[10px] md:text-xs text-neutral-500 dark:text-neutral-400 text-center hidden md:block">
                           Kiếm Khách, Tiên Nhân...
                         </span>
                       </div>
@@ -648,30 +681,30 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                     <button
                       onClick={() => setDisplayBadgeType("both")}
                       className={cn(
-                        "relative p-4 rounded-xl border-2 transition-all duration-200",
+                        "relative p-3 md:p-4 rounded-xl border-2 transition-all duration-200",
                         displayBadgeType === "both"
                           ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
                           : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
                       )}
                     >
-                      <div className="flex flex-col items-center gap-2">
+                      <div className="flex flex-col items-center gap-1.5 md:gap-2">
                         <div className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center",
+                          "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center",
                           displayBadgeType === "both"
                             ? "bg-gradient-to-br from-purple-500 via-pink-500 to-amber-500 text-white"
                             : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
                         )}>
-                          <Crown className="w-5 h-5" />
+                          <Crown className="w-4 h-4 md:w-5 md:h-5" />
                         </div>
                         <span className={cn(
-                          "font-bold text-sm",
+                          "font-bold text-xs md:text-sm",
                           displayBadgeType === "both"
                             ? "text-emerald-600 dark:text-emerald-400"
                             : "text-neutral-700 dark:text-neutral-300"
                         )}>
                           Cả hai
                         </span>
-                        <span className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                        <span className="text-[10px] md:text-xs text-neutral-500 dark:text-neutral-400 text-center hidden md:block">
                           Cảnh giới + Danh hiệu
                         </span>
                       </div>
@@ -688,30 +721,30 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                     <button
                       onClick={() => setDisplayBadgeType("none")}
                       className={cn(
-                        "relative p-4 rounded-xl border-2 transition-all duration-200",
+                        "relative p-3 md:p-4 rounded-xl border-2 transition-all duration-200",
                         displayBadgeType === "none"
                           ? "border-neutral-500 bg-neutral-100 dark:bg-neutral-800"
                           : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
                       )}
                     >
-                      <div className="flex flex-col items-center gap-2">
+                      <div className="flex flex-col items-center gap-1.5 md:gap-2">
                         <div className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center",
+                          "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center",
                           displayBadgeType === "none"
                             ? "bg-neutral-500 text-white"
                             : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
                         )}>
-                          <X className="w-5 h-5" />
+                          <X className="w-4 h-4 md:w-5 md:h-5" />
                         </div>
                         <span className={cn(
-                          "font-bold text-sm",
+                          "font-bold text-xs md:text-sm",
                           displayBadgeType === "none"
                             ? "text-neutral-700 dark:text-neutral-300"
                             : "text-neutral-700 dark:text-neutral-300"
                         )}>
                           Ẩn
                         </span>
-                        <span className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                        <span className="text-[10px] md:text-xs text-neutral-500 dark:text-neutral-400 text-center hidden md:block">
                           Không hiển thị
                         </span>
                       </div>
@@ -727,38 +760,91 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                 </SpotlightCard>
               </motion.div>
             )}
+
+            {/* Personalization Tab */}
+            {activeTab === "personalization" && (
+              <motion.div
+                key="personalization"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-6"
+              >
+
+
+                {/* Profile Song */}
+                <SpotlightCard>
+                  <h3 className="font-bold text-neutral-900 dark:text-white mb-2">Nhạc yêu thích</h3>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                    Thêm bài hát Spotify để hiển thị trên profile của bạn
+                  </p>
+
+                  <div className="space-y-4">
+                    <input
+                      type="url"
+                      value={personalization.profileSongUrl}
+                      onChange={(e) => setPersonalization(prev => ({ ...prev, profileSongUrl: e.target.value }))}
+                      placeholder="https://open.spotify.com/track/..."
+                      className="w-full px-4 py-3 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+
+                    {/* Spotify Preview */}
+                    <SpotifyPreview
+                      url={personalization.profileSongUrl}
+                      onClear={() => setPersonalization(prev => ({ ...prev, profileSongUrl: "" }))}
+                    />
+
+                    <p className="text-xs text-neutral-400">
+                      Mở Spotify → Chọn bài hát → Share → Copy link
+                    </p>
+                  </div>
+                </SpotlightCard>
+
+                {/* Status Update */}
+                <SpotlightCard>
+                  <h3 className="font-bold text-neutral-900 dark:text-white mb-2">Trạng thái</h3>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                    Chia sẻ hoạt động hoặc cảm xúc hiện tại của bạn
+                  </p>
+
+                  <StatusEditor
+                    value={personalization.statusUpdate}
+                    onChange={(status) => setPersonalization(prev => ({ ...prev, statusUpdate: status }))}
+                  />
+                </SpotlightCard>
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 border-t border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-900/50 gap-3 md:gap-0">
-          <div className="text-sm text-neutral-500 dark:text-neutral-400">
-            {activeTab === "appearance" && "Tùy chỉnh giao diện profile"}
-            {activeTab === "privacy" && "Cài đặt quyền riêng tư"}
+        <div className="flex flex-col-reverse md:flex-row items-stretch md:items-center justify-between p-4 md:p-6 border-t border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-900/50 gap-3">
+          <div className="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 text-center md:text-left">
             {hasUnsavedChanges() && (
-              <span className="ml-2 text-orange-600 dark:text-orange-400 font-bold">
+              <span className="text-orange-600 dark:text-orange-400 font-bold">
                 • Có thay đổi chưa lưu
               </span>
             )}
           </div>
-          <div className="flex gap-3 w-full md:w-auto">
+          <div className="flex gap-2 md:gap-3 w-full md:w-auto">
             <button
               onClick={onClose}
-              className="flex-1 md:flex-none px-6 py-2.5 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors font-bold text-sm"
+              className="flex-1 md:flex-none px-4 md:px-6 py-2.5 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors font-bold text-sm min-h-[44px]"
             >
               Hủy
             </button>
             <button
               onClick={handleSave}
               disabled={loading || !hasUnsavedChanges()}
-              className="flex-1 md:flex-none px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2 font-bold text-sm"
+              className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2 font-bold text-sm min-h-[44px]"
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              Lưu thay đổi
+              <span className="hidden sm:inline">Lưu thay đổi</span>
+              <span className="sm:hidden">Lưu</span>
             </button>
           </div>
         </div>

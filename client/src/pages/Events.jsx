@@ -155,7 +155,7 @@ export default function Events() {
                   to="/events/create"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold hover:scale-105 transition-transform shadow-lg"
                >
-                  <Plus size={20} /> Tạo sự kiện
+                  <Plus size={20} className="text-white dark:text-black" /> Tạo sự kiện
                </Link>
             }
          />

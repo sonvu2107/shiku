@@ -306,6 +306,11 @@ select.appearance-none {
   color: #f3f4f6 !important;
 }
 
+/* Fix: Icons in buttons with white background in dark mode should be black */
+.dark [class*="dark:bg-white"] svg {
+  color: #000000 !important;
+}
+
 .dark .text-gray-900 {
   color: #f3f4f6 !important;
 }

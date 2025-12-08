@@ -151,13 +151,13 @@ export default function Explore({ user }) {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={cn(
-                           "flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap flex-1 md:flex-none",
+                           "inline-flex items-center justify-center px-4 py-2 min-h-[40px] rounded-xl text-sm font-bold transition-all whitespace-nowrap text-center",
                            activeTab === tab.id
                               ? "bg-black dark:bg-white text-white dark:text-black shadow-md"
-                              : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-white/5 bg-neutral-50/50 dark:bg-white/5 md:bg-transparent"
+                              : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-white/5"
                         )}
                      >
-                        <tab.icon size={18} /> {tab.label}
+                        {tab.label}
                      </button>
                   ))}
                </div>
@@ -217,7 +217,7 @@ export default function Explore({ user }) {
                                  <h3 className="font-bold text-lg text-neutral-900 dark:text-white truncate w-full mb-1">
                                     <UserName user={user} />
                                  </h3>
-                                 <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate w-full mb-4">{user.email}</p>
+                                 {user.nickname && <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate w-full mb-4">@{user.nickname}</p>}
                                  <button className="px-6 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-full text-sm font-bold hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all w-full">
                                     Xem hồ sơ
                                  </button>
@@ -238,9 +238,8 @@ export default function Explore({ user }) {
                            </div>
                            <Link
                               to="/groups/create"
-                              className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-2"
+                              className="px-3 py-1.5 md:px-4 md:py-2 bg-black dark:bg-white text-white dark:text-black rounded-full text-xs md:text-sm font-bold hover:opacity-90 transition-opacity whitespace-nowrap"
                            >
-                              <Users size={16} />
                               Tạo nhóm
                            </Link>
                         </div>

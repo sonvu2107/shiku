@@ -9,10 +9,10 @@ const UserSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true }, // Tên hiển thị
   email: { type: String, required: true, unique: true, lowercase: true, trim: true }, // Email (unique)
   password: { type: String, required: true }, // Mật khẩu đã hash
-  
+
   // ==================== PHÂN QUYỀN ====================
-  role: { 
-    type: String, 
+  role: {
+    type: String,
     default: "user",
     trim: true,
     lowercase: true,
@@ -26,7 +26,7 @@ const UserSchema = new mongoose.Schema({
       message: props => `Role "${props.value}" không tồn tại trong hệ thống`
     }
   },
-  
+
   // ==================== THÔNG TIN CÁ NHÂN ====================
   bio: { type: String, default: "" }, // Tiểu sử
   nickname: { type: String, default: "", trim: true, maxlength: [30, 'Biệt danh không được quá 30 ký tự'] }, // Biệt danh
@@ -46,17 +46,17 @@ const UserSchema = new mongoose.Schema({
   location: { type: String, default: "" }, // Địa chỉ
   website: { type: String, default: "" }, // Website cá nhân
   phone: { type: String, default: "" }, // Số điện thoại
-  
+
   // ==================== TÙY CHỈNH HỒ SƠ (PROFILE) ====================
-  profileTheme: { 
-    type: String, 
-    enum: ["default", "dark", "blue", "green", "purple", "pink", "orange"], 
-    default: "default" 
+  profileTheme: {
+    type: String,
+    enum: ["default", "dark", "blue", "green", "purple", "pink", "orange"],
+    default: "default"
   }, // Theme màu sắc profile
-  profileLayout: { 
-    type: String, 
-    enum: ["classic", "modern", "minimal", "creative"], 
-    default: "classic" 
+  profileLayout: {
+    type: String,
+    enum: ["classic", "modern", "minimal", "creative"],
+    default: "classic"
   }, // Layout style profile
   useCoverImage: { type: Boolean, default: true }, // Hiển thị ảnh bìa thay vì màu theme
   showEmail: { type: Boolean, default: false }, // Hiển thị email công khai
@@ -68,40 +68,65 @@ const UserSchema = new mongoose.Schema({
   showFriends: { type: Boolean, default: true }, // Hiển thị danh sách bạn bè
   showPosts: { type: Boolean, default: true }, // Hiển thị bài đăng
   showEvents: { type: Boolean, default: true }, // Hiển thị sự kiện tham gia
-  displayBadgeType: { 
-    type: String, 
-    enum: ["realm", "title", "both", "none", "role", "cultivation"], 
-    default: "none" 
+  displayBadgeType: {
+    type: String,
+    enum: ["realm", "title", "both", "none", "role", "cultivation"],
+    default: "none"
   }, // Hiển thị badge tu tiên: realm (cảnh giới), title (danh hiệu), both (cả hai), none (không hiển thị - chỉ tick xanh)
-  
+
+  // ==================== PROFILE PERSONALIZATION ====================
+
+
+  profileSongUrl: {
+    type: String,
+    default: "",
+    validate: {
+      validator: function (v) {
+        return !v || v.startsWith('https://open.spotify.com/');
+      },
+      message: 'URL phải là link Spotify hợp lệ'
+    }
+  }, // Nhạc nền profile (Spotify embed URL)
+
+  featuredPosts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post'
+  }], // Danh sách bài viết ghim (tối đa 5)
+
+  statusUpdate: {
+    text: { type: String, default: "", maxlength: 100 },
+    emoji: { type: String, default: "" },
+    updatedAt: { type: Date, default: Date.now }
+  }, // Trạng thái hiện tại của user
+
   // ==================== TÍNH NĂNG MẠNG XÃ HỘI ====================
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Danh sách bạn bè
   blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Users bị block
   currentConversation: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation' }, // Chat hiện tại
-  
+
   // ==================== BÀI VIẾT ĐÃ LƯU ====================
   savedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }], // Bài viết đã lưu
-  
+
   // ==================== TÙY CHỌN THÍCH BÀI VIẾT ====================
   interestedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }], // Bài viết user quan tâm (sẽ thấy nhiều hơn)
   notInterestedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }], // Bài viết user không quan tâm (sẽ thấy ít hơn)
-  
+
   // ==================== TRẠNG THÁI ONLINE ====================
   isOnline: { type: Boolean, default: false }, // Có online không
   isVerified: { type: Boolean, default: false }, // Tài khoản đã verify
   lastSeen: { type: Date, default: Date.now }, // Lần cuối online
-  
+
   // ==================== HỆ THỐNG BAN (CẤM) ====================
   isBanned: { type: Boolean, default: false }, // Có bị ban không
   banReason: { type: String, default: "" }, // Lý do ban
   bannedAt: { type: Date }, // Thời điểm bị ban
   banExpiresAt: { type: Date }, // Thời điểm hết ban (null = permanent)
   bannedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Admin ban
-  
+
   // ==================== RESET PASSWORD ====================
   resetPasswordToken: { type: String }, // Token reset password
   resetPasswordExpires: { type: Date }, // Thời hạn token reset
-  
+
   // ==================== HỆ THỐNG TU TIÊN ====================
   cultivation: { type: mongoose.Schema.Types.ObjectId, ref: 'Cultivation' }, // Tham chiếu đến thông tin tu tiên
   cultivationCache: {
@@ -115,7 +140,7 @@ const UserSchema = new mongoose.Schema({
       profileEffect: { type: String, default: null }
     }
   } // Cache cultivation info để hiển thị badge và trang bị nhanh
-}, { 
+}, {
   timestamps: true // Tự động thêm createdAt và updatedAt
 });
 

@@ -12,6 +12,7 @@ import FriendsTab from "../components/profile/FriendsTab";
 import AnalyticsTab from "../components/profile/AnalyticsTab";
 import { useToast } from "../contexts/ToastContext";
 import BackToTop from "../components/BackToTop";
+import InfoTab from "../components/profile/InfoTab";
 
 // --- UI COMPONENTS ---
 const GridPattern = () => (
@@ -317,6 +318,13 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
 
         {/* Content Area */}
         <div className="min-h-[500px] pb-32 md:pb-28">
+          {activeTab === "info" && (
+            <InfoTab
+              form={form}
+              user={user}
+            />
+          )}
+
           {activeTab === "posts" && (
             <PostsTab
               user={user}

@@ -183,22 +183,22 @@ export default function Search({ user }) {
 
         {/* Tabs if there are results */}
         {(results.users.length > 0 || results.posts.length > 0) && (
-          <div className="flex px-4 gap-6 overflow-x-auto scrollbar-hide">
+          <div className="flex px-4 gap-2 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setActiveTab('all')}
-              className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'all' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500'}`}
+              className={`flex-1 py-3 min-h-[44px] text-sm font-medium border-b-2 whitespace-nowrap transition-colors text-center ${activeTab === 'all' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500'}`}
             >
               Tất cả
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'users' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500'}`}
+              className={`flex-1 py-3 min-h-[44px] text-sm font-medium border-b-2 whitespace-nowrap transition-colors text-center ${activeTab === 'users' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500'}`}
             >
               Mọi người ({results.users.length})
             </button>
             <button
               onClick={() => setActiveTab('posts')}
-              className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'posts' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500'}`}
+              className={`flex-1 py-3 min-h-[44px] text-sm font-medium border-b-2 whitespace-nowrap transition-colors text-center ${activeTab === 'posts' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500'}`}
             >
               Bài viết ({results.posts.length})
             </button>
@@ -301,7 +301,7 @@ export default function Search({ user }) {
                             <div className="font-semibold text-base truncate">
                               <UserName user={u} />
                             </div>
-                            <div className="text-sm text-gray-500 truncate">{u.email}</div>
+                            {u.nickname && <div className="text-sm text-gray-500 truncate">@{u.nickname}</div>}
                           </div>
                         </Link>
                       ))}

@@ -178,7 +178,7 @@ const SpotlightGroupCard = ({ group, onJoin, onLeave, userRole, isJoining, isLea
                         disabled={isJoining}
                         className="w-full py-2.5 rounded-xl bg-black dark:bg-white text-white dark:text-black font-bold text-sm hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
                      >
-                        {isJoining ? "..." : <><UserPlus size={16} /> Tham gia</>}
+                        {isJoining ? "..." : <><UserPlus size={16} className="text-white dark:text-black" /> Tham gia</>}
                      </button>
                   )}
                </div>
@@ -311,7 +311,7 @@ export default function Groups() {
                      className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-2xl hover:scale-105 transition-transform shadow-lg flex items-center justify-center"
                      title="Tạo nhóm mới"
                   >
-                     <Plus size={24} />
+                     <Plus size={24} className="text-white dark:text-black" />
                   </Link>
                </div>
             </div>
@@ -326,17 +326,17 @@ export default function Groups() {
                      key={tab.id}
                      onClick={() => setActiveTab(tab.id)}
                      className={cn(
-                        "flex-1 md:flex-none items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex",
+                        "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 min-h-[44px] rounded-xl text-sm font-bold transition-all whitespace-nowrap text-center touch-manipulation",
                         activeTab === tab.id
                            ? "bg-black dark:bg-white text-white dark:text-black shadow-md"
                            : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900"
                      )}
                   >
-                     <tab.icon size={16} />
-                     {tab.label}
+                     <tab.icon size={16} className="flex-shrink-0" />
+                     <span>{tab.label}</span>
                      {tab.count > 0 && (
                         <span className={cn(
-                           "text-xs px-1.5 py-0.5 rounded-md ml-1 font-bold",
+                           "text-xs px-1.5 py-0.5 rounded-md ml-1 font-bold flex-shrink-0",
                            activeTab === tab.id
                               ? "bg-white/20 dark:bg-black/20 text-white dark:text-black"
                               : "bg-neutral-300 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300"
@@ -372,16 +372,16 @@ export default function Groups() {
                         </div>
                      ) : (
                         <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.4 }}
-                          className="text-center py-20"
+                           initial={{ opacity: 0, y: 20 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           transition={{ duration: 0.4 }}
+                           className="text-center py-20"
                         >
-                          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 rounded-full flex items-center justify-center shadow-inner">
-                            <Users size={40} className="text-neutral-400 dark:text-neutral-500" />
-                          </div>
-                          <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Không tìm thấy nhóm nào</h3>
-                          <p className="text-neutral-500 dark:text-neutral-400 mb-6">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
+                           <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 rounded-full flex items-center justify-center shadow-inner">
+                              <Users size={40} className="text-neutral-400 dark:text-neutral-500" />
+                           </div>
+                           <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Không tìm thấy nhóm nào</h3>
+                           <p className="text-neutral-500 dark:text-neutral-400 mb-6">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
                         </motion.div>
                      )}
 
@@ -413,21 +413,21 @@ export default function Groups() {
                      </div>
                   ) : (
                      <motion.div
-                       initial={{ opacity: 0, y: 20 }}
-                       animate={{ opacity: 1, y: 0 }}
-                       transition={{ duration: 0.4 }}
-                       className="text-center py-20 bg-neutral-50 dark:bg-neutral-900 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="text-center py-20 bg-neutral-50 dark:bg-neutral-900 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800"
                      >
                         <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center shadow-inner">
-                          <Users size={40} className="text-blue-500 dark:text-blue-400" />
+                           <Users size={40} className="text-blue-500 dark:text-blue-400" />
                         </div>
                         <h3 className="font-bold text-xl text-neutral-900 dark:text-white mb-2">Bạn chưa tham gia nhóm nào</h3>
                         <p className="text-neutral-500 dark:text-neutral-400 mb-6">Khám phá các cộng đồng thú vị ngay!</p>
                         <button
-                          onClick={() => setActiveTab('discover')}
-                          className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold hover:scale-105 transition-transform shadow-lg"
+                           onClick={() => setActiveTab('discover')}
+                           className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold hover:scale-105 transition-transform shadow-lg"
                         >
-                          Khám phá ngay
+                           Khám phá ngay
                         </button>
                      </motion.div>
                   )

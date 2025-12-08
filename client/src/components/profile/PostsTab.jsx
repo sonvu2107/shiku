@@ -6,6 +6,8 @@ import ModernPostCard from "../ModernPostCard";
 import { SpotlightCard } from "../ui/SpotlightCard";
 import { PostCardSkeleton } from "../ui/Skeleton";
 import { PROFILE_MESSAGES } from "../../constants/profile";
+import SpotifyEmbed from "../SpotifyEmbed";
+
 
 /**
  * PostsTab - Component showing Posts tab in user profile
@@ -42,6 +44,16 @@ export default function PostsTab({
                 </div>
               )}
             </div>
+            {/* Spotify Embed in Bio Box */}
+            {user.profileSongUrl && (
+              <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+                <SpotifyEmbed
+                  url={user.profileSongUrl}
+                  compact={true}
+                  className="bg-neutral-100 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700"
+                />
+              </div>
+            )}
           </SpotlightCard>
 
           {/* Recent Photos Mini Grid */}
