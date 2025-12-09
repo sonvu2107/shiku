@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { api } from "../api";
 import { useSavedPosts } from "../hooks/useSavedPosts";
+import { usePostsFlattened } from "../hooks/usePosts";
 import { useSEO } from "../utils/useSEO";
 import PostCard from "../components/PostCard";
 import ModernPostCard from "../components/ModernPostCard";
@@ -77,22 +78,24 @@ function Home({ user, setUser }) {
     return () => clearTimeout(timeoutId);
   }, [darkMode]);
 
-  // Dữ liệu bài viết
-  const [items, setItems] = useState([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [totalPages, setTotalPages] = useState(0);
-
-  // Tải trạng thái
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState(null);
-  const { savedMap, updateSavedState } = useSavedPosts(items);
-
   // Tìm kiếm và sắp xếp
   const [searchParams] = useSearchParams();
   const q = searchParams.get('q') || '';
   const [sortBy, setSortBy] = useState('recommended');
+
+  // React Query for posts - replaces manual state management
+  const {
+    posts: items,
+    isLoading: loading,
+    isFetchingNextPage: loadingMore,
+    hasNextPage: hasMore,
+    fetchNextPage,
+    error: postsError,
+    refetch: refetchPosts
+  } = usePostsFlattened({ sortBy, searchQuery: q });
+
+  const error = postsError?.message || null;
+  const { savedMap, updateSavedState } = useSavedPosts(items);
 
   // Hàm chuyển sang chế độ sắp xếp tiếp theo
   const cycleSortBy = useCallback(() => {
@@ -187,101 +190,18 @@ function Home({ user, setUser }) {
     }
   }, []);
 
-  const loadInitial = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    loadingRef.current = true;
-
-    try {
-      // Use smart feed for "recommended" sort
-      if (sortBy === 'recommended') {
-        // Smart feed with pagination support
-        const limit = 20;
-        const smartFeedData = await api(`/api/posts/feed/smart?page=1&limit=${limit}`);
-        setItems(smartFeedData.items || []);
-        // Enable pagination: if we got 20 items, assume there are more
-        setHasMore((smartFeedData.items || []).length >= limit);
-        setPage(2); // Prepare for next page
-        setTotalPages(100); // Smart feed doesn't provide exact total, use large number as assumption
-      } else {
-        // Use unified feed endpoint for other sort options
-        // This handles both published and private posts in a single query with correct sorting
-        const limit = 20;
-        const feedData = await api(`/api/posts/feed?page=1&limit=${limit}&q=${encodeURIComponent(q)}&sort=${sortBy}`);
-
-        // No need to manually fetch private posts or sort - backend does it all
-        setItems(feedData.items || []);
-        setTotalPages(feedData.pages);
-        setHasMore((feedData.items || []).length >= limit && feedData.page < feedData.pages);
-        setPage(2);
-      }
-    } catch (error) {
-      setError('Không thể tải bài viết. Vui lòng thử lại.');
-      setItems([]);
-      setHasMore(false);
-    } finally {
-      setLoading(false);
-      loadingRef.current = false;
-    }
-  }, [q, user, sortBy]);
-
-  const loadMore = useCallback(async () => {
-    if (loadingRef.current || !hasMore || loadingMore) return;
-
-    setLoadingMore(true);
-    setError(null);
-    loadingRef.current = true;
-
-    try {
-      let newItems = [];
-      const limit = 20; // Unified limit for all feed types
-
-      if (sortBy === 'recommended') {
-        // Smart feed pagination
-        const smartFeedData = await api(`/api/posts/feed/smart?page=${page}&limit=${limit}`);
-        newItems = smartFeedData.items || [];
-      } else {
-        // Unified feed for other sort options
-        const feedData = await api(`/api/posts/feed?page=${page}&limit=${limit}&q=${encodeURIComponent(q)}&sort=${sortBy}`);
-        newItems = feedData.items || [];
-      }
-
-      // Deduplicate posts by _id to prevent duplicates when new posts are added
-      setItems(prev => {
-        const uniquePosts = new Map();
-        // Add existing posts to Map
-        prev.forEach(p => uniquePosts.set(p._id, p));
-        // Add new posts to Map (will overwrite if duplicate, keeping newer version)
-        newItems.forEach(p => uniquePosts.set(p._id, p));
-        // Convert back to array
-        return Array.from(uniquePosts.values());
-      });
-
-      // Update hasMore based on returned items count (if less than limit, no more items)
-      if (newItems.length < limit) {
-        setHasMore(false);
-      } else {
-        setPage(prev => prev + 1);
-      }
-    } catch (error) {
-      setError('Không thể tải thêm bài viết. Vui lòng thử lại.');
-    } finally {
-      setLoadingMore(false);
-      loadingRef.current = false;
-    }
-  }, [page, hasMore, loadingMore, q, sortBy]);
-
   // ==================== INFINITE SCROLL ====================
+  // Using React Query's fetchNextPage instead of manual loadMore
 
   const lastPostElementRef = useCallback(node => {
-    if (loadingRef.current || !hasMore) return;
+    if (loadingMore || !hasMore) return;
 
     if (observer.current) observer.current.disconnect();
 
     observer.current = new IntersectionObserver(
       entries => {
-        if (entries[0].isIntersecting && hasMore && !loadingRef.current) {
-          loadMore();
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          fetchNextPage();
         }
       },
       {
@@ -292,19 +212,10 @@ function Home({ user, setUser }) {
     );
 
     if (node) observer.current.observe(node);
-  }, [hasMore, loadMore]);
+  }, [hasMore, loadingMore, fetchNextPage]);
 
-  // ==================== EFFECTS ====================
-
-  useEffect(() => {
-    setItems([]);
-    setPage(1);
-    setHasMore(true);
-    setTotalPages(0);
-    setError(null);
-    loadingRef.current = false;
-    loadInitial();
-  }, [q, user, sortBy, loadInitial]);
+  // Note: React Query automatically refetches when sortBy or q changes (queryKey dependency)
+  // No need for manual useEffect to call loadInitial
 
 
   // ==================== SEARCH HELPER FUNCTIONS ====================
@@ -1057,7 +968,7 @@ function Home({ user, setUser }) {
                           <ModernPostCard
                             post={post}
                             user={user}
-                            onUpdate={loadInitial}
+                            onUpdate={refetchPosts}
                             isSaved={savedMap[post._id]}
                             onSavedChange={updateSavedState}
                           />

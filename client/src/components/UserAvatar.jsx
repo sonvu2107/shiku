@@ -1,74 +1,76 @@
 /**
  * UserAvatar Component - Hiển thị avatar với khung và hiệu ứng
  * Hỗ trợ các trang bị từ hệ thống tu tiên
+ * Hỗ trợ GIF và video avatar
  */
 
 import { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { isVideoUrl } from '../utils/mediaUtils';
 
 // Cấu hình khung avatar với hiệu ứng viền xung quanh
 const AVATAR_FRAMES = {
-  frame_gold: { 
-    name: 'Kim Sắc Khung', 
+  frame_gold: {
+    name: 'Kim Sắc Khung',
     borderColor: '#FFD700',
     glowColor: 'rgba(255, 215, 0, 0.6)',
     gradient: 'linear-gradient(135deg, #FFD700, #FFA500, #FFD700)',
     animated: false
   },
-  frame_purple: { 
-    name: 'Tử Sắc Khung', 
+  frame_purple: {
+    name: 'Tử Sắc Khung',
     borderColor: '#8B5CF6',
     glowColor: 'rgba(139, 92, 246, 0.6)',
     gradient: 'linear-gradient(135deg, #8B5CF6, #A78BFA, #8B5CF6)',
     animated: false
   },
-  frame_jade: { 
-    name: 'Ngọc Bích Khung', 
+  frame_jade: {
+    name: 'Ngọc Bích Khung',
     borderColor: '#10B981',
     glowColor: 'rgba(16, 185, 129, 0.6)',
     gradient: 'linear-gradient(135deg, #10B981, #34D399, #10B981)',
     animated: false
   },
-  frame_ruby: { 
-    name: 'Hồng Ngọc Khung', 
+  frame_ruby: {
+    name: 'Hồng Ngọc Khung',
     borderColor: '#EF4444',
     glowColor: 'rgba(239, 68, 68, 0.6)',
     gradient: 'linear-gradient(135deg, #EF4444, #F87171, #EF4444)',
     animated: false
   },
-  frame_sapphire: { 
-    name: 'Thanh Ngọc Khung', 
+  frame_sapphire: {
+    name: 'Thanh Ngọc Khung',
     borderColor: '#3B82F6',
     glowColor: 'rgba(59, 130, 246, 0.6)',
     gradient: 'linear-gradient(135deg, #3B82F6, #60A5FA, #3B82F6)',
     animated: false
   },
-  frame_rainbow: { 
-    name: 'Thất Sắc Khung', 
+  frame_rainbow: {
+    name: 'Thất Sắc Khung',
     borderColor: 'transparent',
     glowColor: 'rgba(255, 255, 255, 0.4)',
     gradient: 'linear-gradient(135deg, #FF6B6B, #FFE66D, #4ECDC4, #45B7D1, #96C93D, #DDA0DD, #FF6B6B)',
     animated: true,
     animationType: 'rainbow'
   },
-  frame_flames: { 
-    name: 'Hỏa Viêm Khung', 
+  frame_flames: {
+    name: 'Hỏa Viêm Khung',
     borderColor: '#F97316',
     glowColor: 'rgba(249, 115, 22, 0.8)',
     gradient: 'linear-gradient(0deg, #FF4500, #FF6347, #FFA500, #FF4500)',
     animated: true,
     animationType: 'flames'
   },
-  frame_ice: { 
-    name: 'Băng Tinh Khung', 
+  frame_ice: {
+    name: 'Băng Tinh Khung',
     borderColor: '#06B6D4',
     glowColor: 'rgba(6, 182, 212, 0.7)',
     gradient: 'linear-gradient(180deg, #E0FFFF, #87CEEB, #00CED1, #87CEEB, #E0FFFF)',
     animated: true,
     animationType: 'ice'
   },
-  frame_celestial: { 
-    name: 'Thiên Giới Khung', 
+  frame_celestial: {
+    name: 'Thiên Giới Khung',
     borderColor: '#FBBF24',
     glowColor: 'rgba(251, 191, 36, 0.9)',
     gradient: 'linear-gradient(135deg, #FFD700, #FFF8DC, #FBBF24, #FFF8DC, #FFD700)',
@@ -147,7 +149,7 @@ const UserAvatar = memo(function UserAvatar({
     return TITLES[equipped.title];
   }, [showTitle, equipped.title]);
 
-  // Tạo avatar URL
+  // Tạo avatar URL và kiểm tra xem có phải video không
   const avatarUrl = useMemo(() => {
     if (user?.avatarUrl && user.avatarUrl.trim() !== '') {
       return user.avatarUrl;
@@ -155,6 +157,9 @@ const UserAvatar = memo(function UserAvatar({
     const name = user?.name || user?.nickname || 'User';
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&length=2&background=cccccc&color=222222&size=${size * 2}`;
   }, [user?.avatarUrl, user?.name, user?.nickname, size]);
+
+  // Check if avatar is a video
+  const isVideo = useMemo(() => isVideoUrl(avatarUrl), [avatarUrl]);
 
   // Frame border sizes - tính toán dựa trên size
   const borderWidth = Math.max(3, Math.floor(size / 10));
@@ -164,7 +169,7 @@ const UserAvatar = memo(function UserAvatar({
   return (
     <div className={`relative inline-flex flex-col items-center ${className}`}>
       {/* Container chính - căn giữa hoàn hảo */}
-      <div 
+      <div
         className="relative flex items-center justify-center cursor-pointer"
         style={{ width: containerSize, height: containerSize }}
         onClick={onClick}
@@ -185,25 +190,25 @@ const UserAvatar = memo(function UserAvatar({
               opacity: 0.7
             }}
             animate={{
-              backgroundPosition: frameConfig.animationType === 'rainbow' 
+              backgroundPosition: frameConfig.animationType === 'rainbow'
                 ? ['0% 50%', '100% 50%', '0% 50%']
                 : frameConfig.animationType === 'flames'
-                ? ['50% 0%', '50% 100%', '50% 0%']
-                : frameConfig.animationType === 'ice'
-                ? ['50% 100%', '50% 0%', '50% 100%']
-                : ['0% 0%', '100% 100%', '0% 0%'],
+                  ? ['50% 0%', '50% 100%', '50% 0%']
+                  : frameConfig.animationType === 'ice'
+                    ? ['50% 100%', '50% 0%', '50% 100%']
+                    : ['0% 0%', '100% 100%', '0% 0%'],
               scale: [1, 1.1, 1]
             }}
             transition={{
-              backgroundPosition: { 
-                duration: frameConfig.animationType === 'flames' ? 1 : 3, 
-                repeat: Infinity, 
-                ease: 'linear' 
+              backgroundPosition: {
+                duration: frameConfig.animationType === 'flames' ? 1 : 3,
+                repeat: Infinity,
+                ease: 'linear'
               },
-              scale: { 
-                duration: 2, 
-                repeat: Infinity, 
-                ease: 'easeInOut' 
+              scale: {
+                duration: 2,
+                repeat: Infinity,
+                ease: 'easeInOut'
               }
             }}
           />
@@ -223,20 +228,20 @@ const UserAvatar = memo(function UserAvatar({
               boxShadow: `0 0 ${glowSize * 2}px ${frameConfig.glowColor}, inset 0 0 ${glowSize}px ${frameConfig.glowColor}`
             }}
             animate={frameConfig.animated ? {
-              backgroundPosition: frameConfig.animationType === 'rainbow' 
+              backgroundPosition: frameConfig.animationType === 'rainbow'
                 ? ['0% 50%', '100% 50%', '0% 50%']
                 : frameConfig.animationType === 'flames'
-                ? ['50% 0%', '50% 100%', '50% 0%']
-                : frameConfig.animationType === 'ice'
-                ? ['50% 100%', '50% 0%', '50% 100%']
-                : ['0% 0%', '100% 100%', '0% 0%']
+                  ? ['50% 0%', '50% 100%', '50% 0%']
+                  : frameConfig.animationType === 'ice'
+                    ? ['50% 100%', '50% 0%', '50% 100%']
+                    : ['0% 0%', '100% 100%', '0% 0%']
             } : {}}
             transition={frameConfig.animated ? {
-              backgroundPosition: { 
-                duration: frameConfig.animationType === 'flames' ? 0.8 : 
-                          frameConfig.animationType === 'celestial' ? 2 : 3, 
-                repeat: Infinity, 
-                ease: frameConfig.animationType === 'flames' ? 'easeInOut' : 'linear' 
+              backgroundPosition: {
+                duration: frameConfig.animationType === 'flames' ? 0.8 :
+                  frameConfig.animationType === 'celestial' ? 2 : 3,
+                repeat: Infinity,
+                ease: frameConfig.animationType === 'flames' ? 'easeInOut' : 'linear'
               }
             } : {}}
           />
@@ -257,7 +262,7 @@ const UserAvatar = memo(function UserAvatar({
         )}
 
         {/* Avatar - căn giữa chính xác */}
-        <div 
+        <div
           className="absolute rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700"
           style={{
             width: size,
@@ -268,12 +273,23 @@ const UserAvatar = memo(function UserAvatar({
             zIndex: 1
           }}
         >
-          <img
-            src={avatarUrl}
-            alt={user?.name || 'User'}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+          {isVideo ? (
+            <video
+              src={avatarUrl}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img
+              src={avatarUrl}
+              alt={user?.name || 'User'}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          )}
         </div>
 
         {/* Hiệu ứng lấp lánh cho legendary frame */}
@@ -355,7 +371,7 @@ export const UserTitle = memo(function UserTitle({ user, cultivation, className 
   }, [cultivation, user]);
 
   const titleConfig = equipped.title ? TITLES[equipped.title] : null;
-  
+
   if (!titleConfig) return null;
 
   return (
@@ -385,7 +401,7 @@ export const UserBadge = memo(function UserBadge({ user, cultivation, size = 16,
   }, [cultivation, user]);
 
   const badgeConfig = equipped.badge ? BADGES[equipped.badge] : null;
-  
+
   if (!badgeConfig) return null;
 
   return (

@@ -6,13 +6,14 @@ const API_URL = API_CONFIG.baseURL;
 
 import { getValidAccessToken, clearTokens, refreshAccessToken } from "./utils/tokenManager.js";
 import { getCSRFToken, ensureCSRFToken } from "./utils/csrfToken.js";
-import { 
-  parseRateLimitHeaders, 
-  showRateLimitWarning, 
+import {
+  parseRateLimitHeaders,
+  showRateLimitWarning,
   showRateLimitError,
   storeRateLimitInfo,
-  getStoredRateLimitInfo 
+  getStoredRateLimitInfo
 } from "./utils/rateLimitHandler.js";
+import { compressImage } from './utils/imageOptimization.js';
 
 // Deprecated: getToken() function đã được thay thế bởi getValidAccessToken() trong tokenManager.js
 
@@ -30,21 +31,21 @@ import {
 export async function api(path, { method = "GET", body, headers = {}, _isRetry = false } = {}) {
   // Lấy valid access token (tự động refresh nếu cần)
   const token = await getValidAccessToken();
-  
+
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-  
+
   if (method !== "GET") {
     await ensureCSRFToken();
     const csrf = await getCSRFToken();
     if (!csrf) {
       throw new Error("CSRF token not available. Please refresh the page and try again.");
     }
-    headers["X-CSRF-Token"] = csrf; 
+    headers["X-CSRF-Token"] = csrf;
   }
-  
-// Chuẩn bị request options
+
+  // Chuẩn bị request options
   const isFormData = body instanceof FormData;
 
   const requestHeaders = {
@@ -67,19 +68,19 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
   // Add timeout handling
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-  
+
   try {
     const res = await fetch(`${API_URL}${path}`, {
       ...requestOptions,
       signal: controller.signal
     });
     clearTimeout(timeoutId);
-    
+
     // Parse và xử lý rate limit headers
     const rateLimitInfo = parseRateLimitHeaders(res);
     if (rateLimitInfo.limit) {
       storeRateLimitInfo(path, rateLimitInfo);
-      
+
       // Show warning if nearly exceeded
       if (rateLimitInfo.warning || (rateLimitInfo.remaining && rateLimitInfo.remaining <= 10)) {
         showRateLimitWarning(rateLimitInfo);
@@ -97,7 +98,7 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
           // Retry request với token mới
           return await api(path, { method, body, headers: { ...headers, Authorization: `Bearer ${refreshResult}` }, _isRetry: true });
         }
-        
+
         // Refresh failed, clear tokens and redirect (chỉ redirect nếu không phải đang ở trang login)
         console.log("[api] Refresh failed");
         clearTokens();
@@ -108,7 +109,7 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
         }
         return;
       }
-      
+
       // If this was a retry and still got 401, give up
       if (res.status === 401 && _isRetry) {
         console.log("[api] Retry failed with 401, session invalid");
@@ -120,7 +121,7 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
         }
         return;
       }
-      
+
       // Nếu là lỗi 403 (CSRF token invalid), thử refresh CSRF token
       if (res.status === 403 && method !== "GET") {
         const newCSRFToken = await getCSRFToken(true); // Force refresh
@@ -141,17 +142,17 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
           // Failed to get new CSRF token
         }
       }
-      
+
       // Handle error responses (when !res.ok)
       const data = await res.json().catch(() => ({}));
       const error = new Error(data.message || data.error || `Request failed (${res.status})`);
-      
+
       // Xử lý rate limit error
       if (res.status === 429) {
         showRateLimitError(rateLimitInfo);
         error.rateLimitInfo = rateLimitInfo;
       }
-      
+
       // Thêm thông tin ban vào error nếu user bị cấm
       if (data.isBanned) {
         error.banInfo = {
@@ -160,7 +161,7 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
           banReason: data.banReason
         };
       }
-      
+
       throw error;
     }
 
@@ -168,7 +169,7 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
     return await res.json();
   } catch (error) {
     clearTimeout(timeoutId);
-    
+
     if (error.name === 'AbortError') {
       throw new Error('Request timeout - server không phản hồi kịp thời');
     }
@@ -178,16 +179,42 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
 
 
 /**
- * Upload hình ảnh lên server
+ * Upload hình ảnh lên server với automatic compression
  * @param {File} file - File hình ảnh cần upload
+ * @param {Object} options - Tùy chọn upload
+ * @param {boolean} options.skipCompression - Bỏ qua compression (default: false)
+ * @param {number} options.maxWidth - Max width cho compression (default: 1920)
+ * @param {number} options.quality - Chất lượng nén 0-1 (default: 0.85)
  * @returns {Promise<Object>} Response chứa URL của hình ảnh đã upload
  * @throws {Error} Lỗi nếu upload thất bại
  */
-export async function uploadImage(file) {
+export async function uploadImage(file, options = {}) {
+  const { skipCompression = false, maxWidth = 1920, quality = 0.85 } = options;
+
+  let fileToUpload = file;
+
+  // Compress image before upload if it's an image and not skipped
+  // Skip compression for GIFs (preserve animation) and videos (not supported)
+  const isVideo = file.type.startsWith('video/');
+  const isGif = file.type.includes('gif');
+
+  if (!skipCompression && file.type.startsWith('image/') && !isGif && !isVideo) {
+    try {
+      const compressedFile = await compressImage(file, { maxWidth, quality });
+      // Only use compressed file if it's smaller
+      if (compressedFile.size < file.size) {
+        console.log(`[uploadImage] Compressed: ${(file.size / 1024).toFixed(1)}KB → ${(compressedFile.size / 1024).toFixed(1)}KB (${Math.round((1 - compressedFile.size / file.size) * 100)}% smaller)`);
+        fileToUpload = compressedFile;
+      }
+    } catch (err) {
+      console.warn('[uploadImage] Compression failed, using original:', err.message);
+    }
+  }
+
   // Tạo FormData để upload file
   const form = new FormData();
-  form.append("file", file);
-  
+  form.append("file", fileToUpload);
+
   // Sử dụng api() function để tự động handle authentication
   return await api("/api/uploads/", {
     method: "POST",

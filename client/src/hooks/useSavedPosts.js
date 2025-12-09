@@ -2,7 +2,7 @@
  * Batch Saved Posts Hook
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { api } from '../api';
 
 /**
@@ -15,6 +15,10 @@ export function useSavedPosts(posts) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Use ref to store posts to avoid triggering effect on every render
+  const postsRef = useRef(posts);
+  postsRef.current = posts;
+
   // OPTIMIZED: Wrap in useMemo to avoid recalculating on every render
   const postIdsKey = useMemo(() => {
     if (!Array.isArray(posts)) return '';
@@ -25,11 +29,19 @@ export function useSavedPosts(posts) {
       .join(',');
   }, [posts]);
 
+  // Track last fetched key to prevent duplicate fetches
+  const lastFetchedKeyRef = useRef('');
 
   const fetchSavedStatus = useCallback(async () => {
+    // Skip if already fetched for this key
+    if (lastFetchedKeyRef.current === postIdsKey && postIdsKey !== '') {
+      return;
+    }
+
+    const currentPosts = postsRef.current;
     const ids = Array.from(
       new Set(
-        (posts || [])
+        (currentPosts || [])
           .map((post) => post?._id)
           .filter(Boolean)
       )
@@ -44,6 +56,7 @@ export function useSavedPosts(posts) {
 
     setLoading(true);
     setError(null);
+    lastFetchedKeyRef.current = postIdsKey;
 
     try {
       const query = encodeURIComponent(ids.join(','));
@@ -57,14 +70,17 @@ export function useSavedPosts(posts) {
       console.error('[useSavedPosts] Error:', err);
       setError(err);
       setSavedMap({});
+      lastFetchedKeyRef.current = ''; // Allow retry on error
     } finally {
       setLoading(false);
     }
-  }, [postIdsKey, posts]);
+  }, [postIdsKey]);
 
   useEffect(() => {
-    fetchSavedStatus();
-  }, [fetchSavedStatus, postIdsKey]);
+    if (postIdsKey) {
+      fetchSavedStatus();
+    }
+  }, [postIdsKey]); // Only depend on postIdsKey, not fetchSavedStatus
 
   const updateSavedState = useCallback((postId, value) => {
     setSavedMap((prev) => {

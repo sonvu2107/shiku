@@ -21,7 +21,7 @@ const router = express.Router();
 // File type validation
 const allowedMimeTypes = [
   'image/jpeg',
-  'image/png', 
+  'image/png',
   'image/gif',
   'image/webp',
   'video/mp4',
@@ -45,25 +45,25 @@ const validateFileType = (buffer, mimeType) => {
     'video/webm': [[0x1A, 0x45, 0xDF, 0xA3]],
     'video/quicktime': 'ftyp' // MOV cũng dùng ftyp
   };
-  
+
   const signature = signatures[mimeType];
   if (!signature) return false;
-  
+
   // Special handling for MP4/MOV - check for 'ftyp' at bytes 4-7
   if (signature === 'ftyp') {
     // ftyp box có thể bắt đầu ở byte 4-7: 0x66 0x74 0x79 0x70 = "ftyp"
     const ftypSignature = [0x66, 0x74, 0x79, 0x70];
     return ftypSignature.every((byte, index) => buffer[4 + index] === byte);
   }
-  
+
   // Array of possible signatures
-  return signature.some(sig => 
+  return signature.some(sig =>
     sig.every((byte, index) => buffer[index] === byte)
   );
 };
 
 const storage = multer.memoryStorage();
-const upload = multer({ 
+const upload = multer({
   storage,
   limits: {
     fileSize: MAX_FILE_SIZE,
@@ -74,7 +74,7 @@ const upload = multer({
     if (!allowedMimeTypes.includes(file.mimetype)) {
       return cb(new Error('File type not allowed'), false);
     }
-    
+
     // Note: File size is checked by multer limits and also validated after upload
     // The per-type size limit is enforced in the route handler after file is received
     cb(null, true);
@@ -99,17 +99,31 @@ const validateFileSize = (file) => {
 // Hàm upload 1 file lên Cloudinary
 const uploadFile = (file) => {
   return new Promise((resolve, reject) => {
-    const type = file.mimetype.startsWith("video") ? "video" : "image";
+    const isVideo = file.mimetype.startsWith("video");
+    const isGif = file.mimetype === "image/gif";
+
+    const uploadOptions = {
+      folder: "blog",
+      resource_type: isVideo ? "video" : "image",
+    };
+
+    // GIF: để mặc Cloudinary tự xử lý (không sửa format, không flags)
+    // Cloudinary giữ animation GIF 100% với resource_type: "image"
+
     const stream = cloudinary.uploader.upload_stream(
-      { folder: "blog", resource_type: type },
+      uploadOptions,
       (error, result) => {
         if (error) {
-          reject(error);
-        } else {
-          resolve({ url: result.secure_url, type });
+          return reject(error);
         }
+
+        resolve({
+          url: result.secure_url,
+          type: isGif ? "gif" : (isVideo ? "video" : "image"),
+        });
       }
     );
+
     streamifier.createReadStream(file.buffer).pipe(stream);
   });
 };
@@ -144,7 +158,7 @@ router.post("/", authRequired, upload.single("file"), async (req, res) => {
     }
 
     const result = await uploadFile(req.file);
-    
+
     res.json({
       success: true,
       url: result.url,
@@ -177,7 +191,7 @@ router.post("/media", authRequired, upload.array("files", 10), async (req, res) 
           error: `File "${file.originalname}" quá lớn. Tối đa ${maxSizeMB}MB (file hiện tại: ${actualSizeMB}MB)`
         });
       }
-      
+
       // Validate magic bytes
       if (!validateFileType(file.buffer, file.mimetype)) {
         return res.status(400).json({

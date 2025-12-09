@@ -52,12 +52,12 @@ const checkConversationAccess = (userId) => ({
 
 // Get all conversations for user
 router.get("/conversations", authRequired, async (req, res) => {
-  
+
   // Disable cache
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
-  
+
   try {
     // OPTIMIZATION: Use lean() for better performance
     const conversations = await Conversation.find({
@@ -69,10 +69,10 @@ router.get("/conversations", authRequired, async (req, res) => {
       },
       isActive: true
     })
-    .populate('participants.user', 'name avatarUrl isOnline lastSeen')
-    .populate('lastMessage')
-    .sort({ lastActivity: -1 })
-    .lean();
+      .populate('participants.user', 'name avatarUrl isOnline lastSeen')
+      .populate('lastMessage')
+      .sort({ lastActivity: -1 })
+      .lean();
 
 
     // Optimize unread count calculation with batch query
@@ -93,7 +93,7 @@ router.get("/conversations", authRequired, async (req, res) => {
         }
       }
     ]);
-    
+
     // Create a map for quick lookup
     const unreadCountMap = new Map();
     unreadCounts.forEach(item => {
@@ -186,6 +186,7 @@ router.get("/conversations/:conversationId/messages", authRequired, async (req, 
     // This ensures all message fields are preserved correctly
     const messages = await Message.find(query)
       .populate('sender', 'name avatarUrl')
+      .populate('readBy.user', 'name avatarUrl')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit))
@@ -254,8 +255,8 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
         }
       }
     })
-    .populate('participants.user', 'name avatarUrl')
-    .lean();
+      .populate('participants.user', 'name avatarUrl')
+      .lean();
 
     if (!conversation) {
       return res.status(403).json({ message: "Không có quyền truy cập cuộc trò chuyện này" });
@@ -265,18 +266,18 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
     // OPTIMIZATION: Batch fetch blockedUsers
     const currentUser = await User.findById(req.user._id).select('blockedUsers').lean();
     const otherParticipants = conversation.participants.filter(p => p.user._id.toString() !== req.user._id.toString());
-    
+
     if (otherParticipants.length > 0) {
       const otherUserIds = otherParticipants.map(p => p.user._id);
       const otherUsers = await User.find({ _id: { $in: otherUserIds } })
         .select('_id blockedUsers')
         .lean();
-      
+
       const currentUserId = req.user._id.toString();
       const currentUserBlockedSet = new Set(
         (currentUser?.blockedUsers || []).map(id => id.toString())
       );
-      
+
       const otherUsersBlockedMap = new Map();
       otherUsers.forEach(user => {
         otherUsersBlockedMap.set(
@@ -284,12 +285,12 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
           new Set((user.blockedUsers || []).map(id => id.toString()))
         );
       });
-      
+
       for (const p of otherParticipants) {
         const otherUserId = p.user._id.toString();
         const iBlockedThem = currentUserBlockedSet.has(otherUserId);
         const theyBlockedMe = otherUsersBlockedMap.get(otherUserId)?.has(currentUserId);
-        
+
         if (iBlockedThem || theyBlockedMe) {
           return res.status(403).json({ message: "Bạn hoặc người này đã chặn nhau, không thể gửi tin nhắn." });
         }
@@ -323,20 +324,20 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
 
     // Emit realtime message to conversation room
     const io = req.app.get('io');
-    
+
     // Ensure message has conversationId field for client
     const socketMessageData = {
       ...message.toObject(),
       conversationId: conversationId
     };
-    
+
     io.to(`conversation-${conversationId}`).emit('new-message', socketMessageData);
 
     res.status(201).json(message);
   } catch (error) {
     res.status(500).json({ message: "Lỗi server" });
   }
-}); 
+});
 
 // React to a message (like/love/laugh/angry/sad)
 router.post("/conversations/:conversationId/messages/:messageId/react", authRequired, async (req, res) => {
@@ -344,7 +345,7 @@ router.post("/conversations/:conversationId/messages/:messageId/react", authRequ
     const { conversationId, messageId } = req.params;
     const { type } = req.body;
 
-    if (!['like','love','laugh','angry','sad'].includes(type)) {
+    if (!['like', 'love', 'laugh', 'angry', 'sad'].includes(type)) {
       return res.status(400).json({ message: 'Loại cảm xúc không hợp lệ' });
     }
 
@@ -404,19 +405,19 @@ router.put("/conversations/:conversationId/messages/:messageId", authRequired, a
       _id: conversationId,
       ...checkConversationAccess(req.user._id)
     }).select('_id');
-    
+
     if (!conversation) {
       return res.status(403).json({ message: 'Không có quyền truy cập cuộc trò chuyện này' });
     }
 
     // Find message and check ownership
-    const message = await Message.findOne({ 
-      _id: messageId, 
-      conversation: conversationId, 
+    const message = await Message.findOne({
+      _id: messageId,
+      conversation: conversationId,
       sender: req.user._id,
-      isDeleted: false 
+      isDeleted: false
     });
-    
+
     if (!message) {
       return res.status(404).json({ message: 'Không tìm thấy tin nhắn hoặc bạn không có quyền sửa' });
     }
@@ -437,7 +438,7 @@ router.put("/conversations/:conversationId/messages/:messageId", authRequired, a
       editedAt: message.editedAt
     });
 
-    res.json({ 
+    res.json({
       message: 'Đã sửa tin nhắn',
       data: {
         _id: message._id,
@@ -462,19 +463,19 @@ router.delete("/conversations/:conversationId/messages/:messageId", authRequired
       _id: conversationId,
       ...checkConversationAccess(req.user._id)
     }).select('_id');
-    
+
     if (!conversation) {
       return res.status(403).json({ message: 'Không có quyền truy cập cuộc trò chuyện này' });
     }
 
     // Find message and check ownership
-    const message = await Message.findOne({ 
-      _id: messageId, 
-      conversation: conversationId, 
+    const message = await Message.findOne({
+      _id: messageId,
+      conversation: conversationId,
       sender: req.user._id,
-      isDeleted: false 
+      isDeleted: false
     });
-    
+
     if (!message) {
       return res.status(404).json({ message: 'Không tìm thấy tin nhắn hoặc bạn không có quyền thu hồi' });
     }
@@ -494,7 +495,7 @@ router.delete("/conversations/:conversationId/messages/:messageId", authRequired
       content: message.content
     });
 
-    res.json({ 
+    res.json({
       message: 'Đã thu hồi tin nhắn',
       data: {
         _id: message._id,
@@ -585,8 +586,8 @@ router.get("/conversations/private/check/:recipientId", authRequired, async (req
       'participants.user': { $all: [req.user._id, recipientId] },
       'participants.leftAt': null
     })
-    .populate('participants.user', 'name avatarUrl isOnline lastSeen')
-    .populate('lastMessage');
+      .populate('participants.user', 'name avatarUrl isOnline lastSeen')
+      .populate('lastMessage');
 
     if (existingConversation) {
       // Format response similar to getConversations
@@ -759,16 +760,16 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
     }
 
     // Check if user has permission to add members
-    const userParticipant = conversation.participants.find(p => 
+    const userParticipant = conversation.participants.find(p =>
       p.user.toString() === req.user._id.toString() && !p.leftAt
     );
-    
+
     if (!userParticipant) {
       return res.status(403).json({ message: "Bạn không có quyền truy cập nhóm này" });
     }
-    
+
     const canAddMembers = userParticipant.role === 'admin' || (conversation.allowMemberManagement === true);
-    
+
     if (!canAddMembers) {
       return res.status(403).json({ message: "Bạn không có quyền thêm thành viên" });
     }
@@ -777,20 +778,20 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
     const activeParticipantIds = conversation.participants
       .filter(p => !p.leftAt)
       .map(p => p.user.toString());
-    
-    
+
+
     // Check for users who left but can be re-added
     const leftParticipants = conversation.participants.filter(p => p.leftAt);
     const leftParticipantIds = leftParticipants.map(p => p.user.toString());
-    
-    
+
+
     // Separate new users from users to re-add
     const reAddParticipantIds = participantIds.filter(id => leftParticipantIds.includes(id.toString()));
-    const newParticipantIds = participantIds.filter(id => 
-      !activeParticipantIds.includes(id.toString()) && 
+    const newParticipantIds = participantIds.filter(id =>
+      !activeParticipantIds.includes(id.toString()) &&
       !leftParticipantIds.includes(id.toString())
     );
-    
+
 
     if (newParticipantIds.length === 0 && reAddParticipantIds.length === 0) {
       return res.status(400).json({ message: "Tất cả người dùng đã có trong nhóm" });
@@ -799,16 +800,16 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
     // Verify only new users exist (re-add users already exist in conversation)
     if (newParticipantIds.length > 0) {
       const users = await User.find({ _id: { $in: newParticipantIds } });
-      
+
       if (users.length !== newParticipantIds.length) {
         return res.status(400).json({ message: "Một số người dùng không tồn tại" });
       }
     }
-    
+
     // For re-add users, just verify they exist (they should since they were in conversation before)
     if (reAddParticipantIds.length > 0) {
       const reAddUsers = await User.find({ _id: { $in: reAddParticipantIds } });
-      
+
       if (reAddUsers.length !== reAddParticipantIds.length) {
         return res.status(400).json({ message: "Một số người dùng không tồn tại" });
       }
@@ -830,7 +831,7 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
 
     // Re-add participants who left (remove their leftAt timestamp)
     if (reAddParticipantIds.length > 0) {
-      
+
       const result = await Conversation.findByIdAndUpdate(conversationId, {
         $set: {
           'participants.$[elem].leftAt': null,
@@ -841,7 +842,7 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
         arrayFilters: [{ 'elem.user': { $in: reAddParticipantIds.map(id => new mongoose.Types.ObjectId(id)) }, 'elem.leftAt': { $ne: null } }],
         new: true
       });
-      
+
     }
 
     // Create system messages for added participants
@@ -849,7 +850,7 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
     if (allAddedUserIds.length > 0) {
       const addedUsers = await User.find({ _id: { $in: allAddedUserIds } }).select('name');
       const adderUser = await User.findById(req.user._id).select('name');
-      
+
       for (const user of addedUsers) {
         const systemMessage = new Message({
           content: `${adderUser.name} đã thêm ${user.name} vào nhóm`,
@@ -858,12 +859,12 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
           sender: null, // System message
           createdAt: new Date()
         });
-        
+
         await systemMessage.save();
-        
+
         // Populate conversation before emitting
         await systemMessage.populate('conversation');
-        
+
         // Emit system message to conversation room with proper structure
         const io = req.app.get('io');
         const messageData = {
@@ -872,7 +873,7 @@ router.post("/conversations/:conversationId/participants", authRequired, async (
         };
         io.to(`conversation-${conversationId}`).emit('new-message', messageData);
       }
-      
+
       // Update conversation last activity
       await Conversation.findByIdAndUpdate(conversationId, {
         lastActivity: new Date()
@@ -907,24 +908,24 @@ router.put("/conversations/:conversationId/name", authRequired, async (req, res)
     }
 
     // Check if user has permission to change group name
-    const userParticipant = conversation.participants.find(p => 
+    const userParticipant = conversation.participants.find(p =>
       p.user.toString() === req.user._id.toString() && !p.leftAt
     );
-    
+
     if (!userParticipant) {
       return res.status(403).json({ message: "Bạn không có quyền truy cập nhóm này" });
     }
-    
+
     const canChangeName = userParticipant.role === 'admin' || (conversation.allowMemberManagement === true);
-    
+
     // Debug: Group name change permission check
-    
+
     if (!canChangeName) {
       return res.status(403).json({ message: "Bạn không có quyền đổi tên nhóm" });
     }
 
     const oldName = conversation.groupName;
-    
+
     await Conversation.findByIdAndUpdate(conversationId, {
       groupName: groupName.trim(),
       lastActivity: new Date()
@@ -932,7 +933,7 @@ router.put("/conversations/:conversationId/name", authRequired, async (req, res)
 
     // Create system message
     const changerUser = await User.findById(req.user._id).select('name');
-    
+
     const systemMessageForNameChange = new Message({
       content: `${changerUser.name} đã đổi tên nhóm từ "${oldName}" thành "${groupName.trim()}"`,
       conversation: conversationId,
@@ -940,9 +941,9 @@ router.put("/conversations/:conversationId/name", authRequired, async (req, res)
       sender: null,
       createdAt: new Date()
     });
-    
+
     await systemMessageForNameChange.save();
-    
+
     // Emit system message
     const ioForNameChange = req.app.get('io');
     ioForNameChange.to(`conversation-${conversationId}`).emit('new-message', systemMessageForNameChange);
@@ -1034,7 +1035,7 @@ router.put("/conversations/:conversationId/participants/:userId/role", authRequi
     // Create system message
     const changedUser = await User.findById(userId).select('name');
     const adminUser = await User.findById(req.user._id).select('name');
-    
+
     const roleText = role === 'admin' ? 'quản trị viên' : 'thành viên';
     const systemMessage = new Message({
       content: `${adminUser.name} đã đặt ${changedUser.name} làm ${roleText}`,
@@ -1043,9 +1044,9 @@ router.put("/conversations/:conversationId/participants/:userId/role", authRequi
       sender: null,
       createdAt: new Date()
     });
-    
+
     await systemMessage.save();
-    
+
     // Emit system message
     const io = req.app.get('io');
     io.to(`conversation-${conversationId}`).emit('new-message', systemMessage);
@@ -1082,7 +1083,7 @@ router.put("/conversations/:conversationId/member-management", authRequired, asy
     // Create system message
     const adminUser = await User.findById(req.user._id).select('name');
     const statusText = allowMemberManagement ? 'cho phép' : 'không cho phép';
-    
+
     const systemMessageForManagement = new Message({
       content: `${adminUser.name} đã ${statusText} thành viên thêm người vào nhóm`,
       conversation: conversationId,
@@ -1090,9 +1091,9 @@ router.put("/conversations/:conversationId/member-management", authRequired, asy
       sender: null,
       createdAt: new Date()
     });
-    
+
     await systemMessageForManagement.save();
-    
+
     // Emit system message
     const ioForManagement = req.app.get('io');
     ioForManagement.to(`conversation-${conversationId}`).emit('new-message', systemMessageForManagement);
@@ -1128,7 +1129,7 @@ router.post("/conversations/:conversationId/leave", authRequired, async (req, re
         'participants.leftAt': null
       },
       {
-        $set: { 
+        $set: {
           'participants.$.leftAt': new Date(),
           lastActivity: new Date()
         }
@@ -1139,7 +1140,7 @@ router.post("/conversations/:conversationId/leave", authRequired, async (req, re
     // Create system message for user leaving
     if (updateResult.modifiedCount > 0) {
       const leavingUser = await User.findById(req.user._id).select('name');
-      
+
       const systemMessage = new Message({
         content: `${leavingUser.name} đã rời khỏi nhóm`,
         conversation: conversationId,
@@ -1147,13 +1148,13 @@ router.post("/conversations/:conversationId/leave", authRequired, async (req, re
         sender: null, // System message
         createdAt: new Date()
       });
-      
+
       await systemMessage.save();
-      
+
       // Emit system message to conversation room
       const io = req.app.get('io');
       io.to(`conversation-${conversationId}`).emit('new-message', systemMessage);
-      
+
       // Update conversation last activity
       await Conversation.findByIdAndUpdate(conversationId, {
         lastActivity: new Date()
@@ -1170,7 +1171,7 @@ router.post("/conversations/:conversationId/leave", authRequired, async (req, re
 router.get("/users/search", authRequired, async (req, res) => {
   try {
     const { q } = req.query;
-    
+
     if (!q || q.trim().length < 2) {
       return res.status(400).json({ message: "Từ khóa tìm kiếm quá ngắn" });
     }
@@ -1188,8 +1189,8 @@ router.get("/users/search", authRequired, async (req, res) => {
         }
       ]
     })
-    .select('name email avatarUrl cultivationCache displayBadgeType')
-    .limit(20);
+      .select('name email avatarUrl cultivationCache displayBadgeType')
+      .limit(20);
 
     res.json(users);
   } catch (error) {
@@ -1236,8 +1237,8 @@ router.get("/conversations/:conversationId/details", authRequired, async (req, r
       'participants.user': req.user._id,
       'participants.leftAt': null
     })
-    .populate('participants.user', 'name avatarUrl isOnline lastSeen')
-    .populate('createdBy', 'name avatarUrl');
+      .populate('participants.user', 'name avatarUrl isOnline lastSeen')
+      .populate('createdBy', 'name avatarUrl');
 
     if (!conversation) {
       return res.status(403).json({ message: "Không có quyền truy cập cuộc trò chuyện này" });
@@ -1281,18 +1282,18 @@ router.delete("/conversations/:conversationId/participants/:userId", authRequire
     }
 
     // Check if user has permission to remove members
-    const userParticipant = conversation.participants.find(p => 
+    const userParticipant = conversation.participants.find(p =>
       p.user.toString() === req.user._id.toString() && !p.leftAt
     );
-    
+
     if (!userParticipant) {
       return res.status(403).json({ message: "Bạn không có quyền truy cập nhóm này" });
     }
-    
+
     const canRemoveMembers = userParticipant.role === 'admin' || (conversation.allowMemberManagement === true);
-    
+
     // Debug: Member removal permission check
-    
+
     if (!canRemoveMembers) {
       return res.status(403).json({ message: "Bạn không có quyền xóa thành viên" });
     }
@@ -1323,13 +1324,13 @@ router.delete("/conversations/:conversationId/participants/:userId", authRequire
     try {
       const removedUser = await User.findById(userId).select('name');
       const removerUser = await User.findById(req.user._id).select('name');
-      
+
       // Debug: User removal debug
-      
+
       if (!removedUser || !removerUser) {
         return res.json({ message: "Đã xóa thành viên khỏi nhóm" });
       }
-      
+
       const systemMessageForRemoval = new Message({
         content: `${removerUser.name} đã xóa ${removedUser.name} khỏi nhóm`,
         conversation: conversationId,
@@ -1337,12 +1338,12 @@ router.delete("/conversations/:conversationId/participants/:userId", authRequire
         sender: null, // System message
         createdAt: new Date()
       });
-      
+
       await systemMessageForRemoval.save();
-      
+
       // Populate conversation before emitting
       await systemMessageForRemoval.populate('conversation');
-      
+
       // Emit system message to conversation room
       const ioForRemoval = req.app.get('io');
       if (ioForRemoval) {
@@ -1411,7 +1412,7 @@ router.put("/conversations/:conversationId", authRequired, async (req, res) => {
 router.delete("/conversations/:conversationId", authRequired, async (req, res) => {
   try {
     const { conversationId } = req.params;
-    
+
     const conversation = await Conversation.findOne({
       _id: conversationId,
       'participants.user': req.user._id,
@@ -1435,7 +1436,7 @@ router.delete("/conversations/:conversationId", authRequired, async (req, res) =
         arrayFilters: [{ 'elem.user': req.user._id }]
       });
     }
-    
+
     res.json({ message: "Xóa cuộc trò chuyện thành công" });
   } catch (error) {
     res.status(500).json({ message: "Lỗi server" });
@@ -1479,7 +1480,7 @@ router.post("/conversations/:conversationId/nickname", authRequired, async (req,
     }
 
     // Check if target user is in conversation
-    const targetParticipant = conversation.participants.find(p => 
+    const targetParticipant = conversation.participants.find(p =>
       p.user.toString() === targetUserId && !p.leftAt
     );
 
@@ -1536,7 +1537,7 @@ router.delete("/conversations/:conversationId/nickname", authRequired, async (re
     }
 
     // Check if target user is in conversation
-    const targetParticipant = conversation.participants.find(p => 
+    const targetParticipant = conversation.participants.find(p =>
       p.user.toString() === targetUserId && !p.leftAt
     );
 
@@ -1587,7 +1588,7 @@ router.get("/conversations/:conversationId/nickname/:targetUserId", authRequired
     }
 
     // Find target participant
-    const targetParticipant = conversation.participants.find(p => 
+    const targetParticipant = conversation.participants.find(p =>
       p.user._id.toString() === targetUserId && !p.leftAt
     );
 

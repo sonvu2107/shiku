@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import CallModal from "./CallModal";
 import CallIncomingModal from "./CallIncomingModal";
 import ImageViewer from "./ImageViewer";
@@ -7,7 +7,7 @@ import { api } from "../api";
 import { getUserInfo } from "../utils/auth";
 import socketService from "../socket";
 import callManager from "../utils/callManager";
-import { X, Phone, Video, ChevronDown, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Edit2, Trash2, Bot } from "lucide-react";
+import { X, Phone, Video, ChevronDown, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Edit2, Trash2, Bot, Check, CheckCheck } from "lucide-react";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { useToast } from "../contexts/ToastContext";
 import { parseLinks } from "../utils/linkParser.jsx";
@@ -123,12 +123,45 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   const [editContent, setEditContent] = useState(""); // Edit content
   const [showOptionsMenu, setShowOptionsMenu] = useState(null); // ID of the message showing options menu
   const [hoveredMessageId, setHoveredMessageId] = useState(null); // ID of the message being hovered
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 }); // Position for fixed dropdown
 
   // Refs
   const messagesEndRef = useRef(null); // Ref to scroll to the bottom of messages
+  const optionsButtonRefs = useRef({}); // Refs for options buttons
 
   // User info
   const me = getUserInfo()?.id || getUserInfo()?._id || conversation.me; // ID of the current user
+
+  // Calculate which message is the last one each user has read (Facebook-style)
+  const lastReadByMap = useMemo(() => {
+    if (!messages || !me) return {};
+
+    const userLastReadMessage = {}; // userId -> {messageId, user}
+
+    messages.forEach((msg) => {
+      const senderId = typeof msg.sender === 'string' ? msg.sender : msg.sender?._id;
+      if (!msg.readBy || senderId !== me) return; // Only our own messages
+
+      msg.readBy.forEach((reader) => {
+        const readerId = reader.user?._id || reader.user;
+        if (readerId && readerId !== me) {
+          userLastReadMessage[readerId] = {
+            messageId: msg._id,
+            user: reader.user
+          };
+        }
+      });
+    });
+
+    // Group by messageId
+    const result = {};
+    Object.values(userLastReadMessage).forEach(({ messageId, user }) => {
+      if (!result[messageId]) result[messageId] = [];
+      result[messageId].push(user);
+    });
+
+    return result;
+  }, [messages, me]);
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -293,8 +326,8 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   return (
     <div
       className={`bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col chat-popup-mobile transition-all duration-300 ${minimized
-          ? `w-12 h-12 rounded-full hover:scale-110 hover:shadow-3xl cursor-pointer minimized relative group`
-          : 'w-72 sm:w-80 rounded-xl h-[450px]'
+        ? `w-12 h-12 rounded-full hover:scale-110 hover:shadow-3xl cursor-pointer minimized relative group`
+        : 'w-72 sm:w-80 rounded-xl h-[450px]'
         }`}
       onClick={minimized ? () => setMinimized(false) : undefined}
     >
@@ -397,7 +430,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       {/* Chat content */}
       {!minimized && (
         <>
-          <div className={`flex-1 ${isChatbot ? 'overflow-hidden px-0 py-0 flex flex-col' : 'overflow-y-auto px-4 py-2'} bg-white dark:bg-gray-900`}>
+          <div className={`flex-1 ${isChatbot ? 'overflow-hidden px-0 py-0 flex flex-col' : 'overflow-y-auto overflow-x-visible px-4 py-2'} bg-white dark:bg-gray-900`}>
             {isChatbot ? (
               <div className="flex-1 flex flex-col min-h-0 h-full">
                 <Chatbot
@@ -451,12 +484,63 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                       }}
                     >
                       <div className="flex flex-col items-end max-w-[75%] relative">
-                        {/* Message options menu */}
+                        {/* Hover actions: Emoji picker + Options button in same row */}
                         {!msg.isDeleted && msg.messageType !== 'system' && (hoveredMessageId === msg._id || showOptionsMenu === msg._id) && (
-                          <div className="absolute top-1 -left-8 z-10 message-options-menu">
+                          <div className="absolute top-1 -left-16 z-10 message-options-menu flex items-center gap-1">
+                            {/* Emoji picker button with popup */}
+                            <div className="relative group">
+                              <button
+                                className="p-1.5 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 shadow-sm"
+                                title="Thả cảm xúc"
+                              >
+                                <Smile size={14} className="text-gray-600 dark:text-gray-300" />
+                              </button>
+                              {/* Reaction popup on hover */}
+                              <div className="absolute hidden group-hover:flex top-0 -translate-y-full right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full shadow-lg px-2 py-1 gap-1 z-50">
+                                {[
+                                  { type: 'like', Icon: ThumbsUp, color: 'text-blue-500' },
+                                  { type: 'love', Icon: Heart, color: 'text-red-500' },
+                                  { type: 'laugh', Icon: Laugh, color: 'text-yellow-500' },
+                                  { type: 'angry', Icon: Angry, color: 'text-orange-500' },
+                                  { type: 'sad', Icon: Frown, color: 'text-gray-500' }
+                                ].map(({ type, Icon, color }) => (
+                                  <button
+                                    key={type}
+                                    onClick={async () => {
+                                      try {
+                                        await api(`/api/messages/conversations/${conversation._id}/messages/${msg._id}/react`, {
+                                          method: "POST",
+                                          body: { type }
+                                        });
+                                      } catch (e) { }
+                                    }}
+                                    className={`p-1 hover:scale-125 transition-transform ${color}`}
+                                    title={type}
+                                  >
+                                    <Icon size={16} />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Options button (Edit/Delete) */}
                             <div className="relative">
                               <button
-                                onClick={() => setShowOptionsMenu(showOptionsMenu === msg._id ? null : msg._id)}
+                                ref={(el) => {
+                                  if (el) optionsButtonRefs.current[msg._id] = el;
+                                }}
+                                onClick={(e) => {
+                                  if (showOptionsMenu === msg._id) {
+                                    setShowOptionsMenu(null);
+                                  } else {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setDropdownPosition({
+                                      top: rect.top - 4, // Position above button
+                                      left: rect.left
+                                    });
+                                    setShowOptionsMenu(msg._id);
+                                  }
+                                }}
                                 onMouseEnter={() => setHoveredMessageId(msg._id)}
                                 className="p-1.5 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 shadow-sm"
                                 title="Tùy chọn"
@@ -464,10 +548,15 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                                 <MoreHorizontal size={14} className="text-gray-600 dark:text-gray-300" />
                               </button>
 
-                              {/* Dropdown menu */}
+                              {/* Dropdown menu - using fixed positioning */}
                               {showOptionsMenu === msg._id && (
                                 <div
-                                  className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px] z-50 message-options-menu"
+                                  className="fixed bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px] z-[9999] message-options-menu"
+                                  style={{
+                                    top: `${dropdownPosition.top}px`,
+                                    left: `${dropdownPosition.left}px`,
+                                    transform: 'translateY(-100%)'
+                                  }}
                                   onMouseEnter={() => setHoveredMessageId(msg._id)}
                                 >
                                   {msg.messageType !== 'image' && msg.messageType !== 'emote' && (
@@ -545,11 +634,17 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             onClick={() => setImageViewer({ isOpen: true, imageUrl: msg.imageUrl, alt: "Ảnh" })}
                           />
                         ) : msg.messageType === "emote" ? (
-                          <div className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white flex items-center justify-center">
+                          <div
+                            className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white flex items-center justify-center"
+                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() + " " + new Date(msg.createdAt).toLocaleDateString() : ""}
+                          >
                             <span className="text-2xl">{msg.emote}</span>
                           </div>
                         ) : (
-                          <div className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
+                          <div
+                            className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
+                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() + " " + new Date(msg.createdAt).toLocaleDateString() : ""}
+                          >
                             {parseLinks(msg.content, { linkClassName: "text-blue-200 hover:text-blue-100 underline break-all" })}
                           </div>
                         )}
@@ -561,55 +656,72 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           </p>
                         )}
 
-                        {/* Reactions row */}
-                        {!msg.isDeleted && editingMessageId !== msg._id && (
-                          <div className="mt-1 flex items-center gap-1">
-                            <div className="relative group">
-                              <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-100" title="Thả cảm xúc" tabIndex={0}>
-                                <Smile size={16} />
-                              </button>
-                              <div className="absolute hidden group-hover:flex group-focus-within:flex top-0 -translate-y-full right-0 bg-white border border-gray-200 rounded-full shadow px-2 py-1 gap-1 z-50">
-                                {[
-                                  { type: 'like', Icon: ThumbsUp, color: 'text-blue-500' },
-                                  { type: 'love', Icon: Heart, color: 'text-red-500' },
-                                  { type: 'laugh', Icon: Laugh, color: 'text-yellow-500' },
-                                  { type: 'angry', Icon: Angry, color: 'text-orange-500' },
-                                  { type: 'sad', Icon: Frown, color: 'text-gray-500' }
-                                ].map(({ type, Icon, color }) => (
-                                  <button key={type} onClick={async () => {
-                                    try {
-                                      await api(`/api/messages/conversations/${conversation._id}/messages/${msg._id}/react`, {
-                                        method: "POST",
-                                        body: { type }
-                                      });
-                                    } catch (e) { }
-                                  }} className={`p-1 ${color}`} title={type}>
-                                    <Icon size={16} />
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            {!!msg.reactions?.length && (
-                              <div className="flex flex-wrap gap-1">
-                                {['like', 'love', 'laugh', 'angry', 'sad'].map((type) => {
-                                  const map = { like: ThumbsUp, love: Heart, laugh: Laugh, angry: Angry, sad: Frown };
-                                  const color = { like: 'text-blue-500', love: 'text-red-500', laugh: 'text-yellow-500', angry: 'text-orange-500', sad: 'text-gray-500' };
-                                  const count = (msg.reactions || []).filter(r => r.type === type).length;
-                                  if (!count) return null;
-                                  const Ico = map[type];
-                                  return <span key={type} className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full ${color[type]}`}><Ico size={12} /> {count}</span>;
-                                })}
-                              </div>
-                            )}
+                        {/* Reaction counters only - picker is now in hover menu */}
+                        {!msg.isDeleted && editingMessageId !== msg._id && !!msg.reactions?.length && (
+                          <div className="mt-1 flex justify-end flex-wrap gap-1">
+                            {['like', 'love', 'laugh', 'angry', 'sad'].map((type) => {
+                              const map = { like: ThumbsUp, love: Heart, laugh: Laugh, angry: Angry, sad: Frown };
+                              const color = { like: 'text-blue-500', love: 'text-red-500', laugh: 'text-yellow-500', angry: 'text-orange-500', sad: 'text-gray-500' };
+                              const count = (msg.reactions || []).filter(r => r.type === type).length;
+                              if (!count) return null;
+                              const Ico = map[type];
+                              return <span key={type} className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full ${color[type]}`}><Ico size={12} /> {count}</span>;
+                            })}
                           </div>
                         )}
-                        <div className="text-xs text-gray-400 mt-1">
-                          {msg.createdAt
-                            ? new Date(msg.createdAt).toLocaleTimeString() +
-                            " " +
-                            new Date(msg.createdAt).toLocaleDateString()
-                            : ""}
-                        </div>
+                        {/* Message status indicator */}
+                        {!msg.isDeleted && (() => {
+                          // Get users whose last-read is THIS message (Facebook-style)
+                          const lastReadUsers = lastReadByMap[msg._id] || [];
+                          const hasAnyReader = (msg.readBy || []).some(
+                            r => r.user !== me && r.user?._id !== me
+                          );
+
+                          return (
+                            <div className="flex justify-end mt-1">
+                              {lastReadUsers.length > 0 ? (
+                                <div className="flex -space-x-1">
+                                  {lastReadUsers.slice(0, 2).map((readerUser, idx) => {
+                                    const avatarUrl = readerUser?.avatarUrl;
+                                    const name = readerUser?.name || 'User';
+
+                                    return avatarUrl ? (
+                                      <img
+                                        key={readerUser?._id || idx}
+                                        src={avatarUrl}
+                                        alt={name}
+                                        title={`${name} đã xem`}
+                                        className="w-3.5 h-3.5 rounded-full border border-white dark:border-gray-800 object-cover"
+                                      />
+                                    ) : (
+                                      <div
+                                        key={readerUser?._id || idx}
+                                        title={`${name} đã xem`}
+                                        className="w-3.5 h-3.5 rounded-full border border-white dark:border-gray-800 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center"
+                                      >
+                                        <span className="text-white text-[7px] font-semibold">
+                                          {name.charAt(0).toUpperCase()}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                  {lastReadUsers.length > 2 && (
+                                    <div
+                                      className="w-3.5 h-3.5 rounded-full border border-white dark:border-gray-800 bg-gray-300 dark:bg-gray-600 flex items-center justify-center"
+                                      title={`+${lastReadUsers.length - 2} người khác đã xem`}
+                                    >
+                                      <span className="text-gray-600 dark:text-gray-300 text-[7px] font-bold">
+                                        +{lastReadUsers.length - 2}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : hasAnyReader ? null : (
+                                <CheckCheck size={14} className="text-gray-400" title="Đã gửi" />
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
@@ -768,8 +880,8 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                 type="button"
                 onClick={() => setShowEmotePicker(!showEmotePicker)}
                 className={`p-2 rounded-full transition-colors touch-target ${showEmotePicker
-                    ? 'text-blue-600 bg-blue-50'
-                    : 'text-blue-500 hover:bg-blue-50 active:bg-blue-100'
+                  ? 'text-blue-600 bg-blue-50'
+                  : 'text-blue-500 hover:bg-blue-50 active:bg-blue-100'
                   }`}
                 title="Chọn emote"
               >

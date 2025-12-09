@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Edit3, Camera, Settings } from "lucide-react";
 import { generateAvatarUrl, AVATAR_SIZES } from "../../utils/avatarUtils";
+import { isVideoUrl, getAcceptedMediaTypes } from "../../utils/mediaUtils";
 import { SpotlightCard } from "../ui/SpotlightCard";
 import Button from "../ui/Button";
 import { PROFILE_MESSAGES } from "../../constants/profile";
@@ -9,7 +10,7 @@ import ProfileEffect from "../ProfileEffect";
 import CultivationBadge from "../CultivationBadge";
 import StatusBadge from "../StatusBadge";
 
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 
 /**
  * ProfileHeader - Component display profile header with cover, avatar, name, and stats
@@ -31,6 +32,9 @@ export default function ProfileHeader({
   const coverRef = useRef(null);
   const profileEffect = user?.cultivationCache?.equipped?.profileEffect;
 
+  // Check if cover URL is a video
+  const isCoverVideo = useMemo(() => isVideoUrl(form.coverUrl), [form.coverUrl]);
+
   // Theme color configurations
   const themeColors = {
     default: { from: "#3b82f6", to: "#1e40af" },
@@ -50,14 +54,25 @@ export default function ProfileHeader({
       {/* Cover Image Container */}
       <div ref={coverRef} className="h-64 md:h-80 lg:h-96 w-full relative overflow-hidden group">
         {form.coverUrl && user.useCoverImage !== false ? (
-          <motion.img
-            initial={{ scale: 1.1 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 1.5 }}
-            src={form.coverUrl}
-            alt="Cover"
-            className="w-full h-full object-cover"
-          />
+          isCoverVideo ? (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              src={form.coverUrl}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <motion.img
+              initial={{ scale: 1.1 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 1.5 }}
+              src={form.coverUrl}
+              alt="Cover"
+              className="w-full h-full object-cover"
+            />
+          )
         ) : (
           <div
             className="w-full h-full"
@@ -81,10 +96,10 @@ export default function ProfileHeader({
         {/* Edit Cover Button */}
         {editing && (
           <label className="absolute top-3 right-3 md:top-4 md:right-4 px-3 py-2 md:px-4 md:py-2 bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-white text-xs md:text-sm font-medium cursor-pointer hover:bg-black/70 active:bg-black/80 transition-all flex items-center gap-1.5 md:gap-2 min-h-[44px] touch-manipulation">
-            <Camera size={14} className="md:w-4 md:h-4" /> <span className="hidden sm:inline">Đổi ảnh bìa</span><span className="sm:hidden">Đổi bìa</span>
+            <Camera size={14} className="md:w-4 md:h-4" /> <span className="hidden sm:inline">Đổi ảnh/video bìa</span><span className="sm:hidden">Đổi bìa</span>
             <input
               type="file"
-              accept="image/*"
+              accept={getAcceptedMediaTypes(true)}
               className="hidden"
               onChange={onCoverChange}
               disabled={avatarUploading}
@@ -140,7 +155,7 @@ export default function ProfileHeader({
                   </motion.div>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept={getAcceptedMediaTypes(true)}
                     className="hidden"
                     onChange={onAvatarClick}
                   />

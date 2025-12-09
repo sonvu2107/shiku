@@ -190,12 +190,30 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
     }
   };
 
-  const handleAvatarClick = (e) => {
+  const handleAvatarClick = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelectedAvatarFile(file);
-      setShowAvatarCropper(true);
+    if (!file) return;
+
+    // GIF: Upload trực tiếp không qua crop để giữ animation
+    // (Canvas crop chỉ lấy frame đầu tiên, sẽ mất animation)
+    if (file.type === 'image/gif') {
+      try {
+        setAvatarUploading(true);
+        const { url } = await uploadImage(file);
+        setForm(f => ({ ...f, avatarUrl: url }));
+        setUser(prev => prev ? { ...prev, avatarUrl: url } : null);
+        showSuccess('Đã cập nhật avatar GIF!');
+      } catch (err) {
+        showError('Tải lên thất bại: ' + err.message);
+      } finally {
+        setAvatarUploading(false);
+      }
+      return;
     }
+
+    // Các định dạng khác: Mở cropper như bình thường
+    setSelectedAvatarFile(file);
+    setShowAvatarCropper(true);
   };
 
   const handleFormSubmit = async (filteredData) => {

@@ -29,6 +29,7 @@ import {
   MessageCircle
 } from "lucide-react";
 import { cn } from "../utils/cn";
+import { isVideoUrl, getAcceptedMediaTypes } from "../utils/mediaUtils";
 import { SpotifyPreview } from "./SpotifyEmbed";
 import { StatusEditor } from "./StatusBadge";
 
@@ -376,16 +377,27 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                 {/* Cover Photo */}
                 <SpotlightCard>
                   <label className="block text-sm font-bold uppercase text-neutral-500 mb-4">
-                    Ảnh bìa
+                    Ảnh/Video bìa
                   </label>
                   <div className="relative group">
                     <div className="w-full h-32 md:h-40 bg-neutral-100 dark:bg-neutral-800 rounded-xl overflow-hidden border border-neutral-200 dark:border-neutral-700">
                       {previewCover ? (
-                        <img
-                          src={previewCover}
-                          alt="Cover preview"
-                          className="w-full h-full object-cover"
-                        />
+                        isVideoUrl(previewCover) ? (
+                          <video
+                            src={previewCover}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <img
+                            src={previewCover}
+                            alt="Cover preview"
+                            className="w-full h-full object-cover"
+                          />
+                        )
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-neutral-400 dark:text-neutral-500">
                           <ImageIcon className="w-8 h-8" />
@@ -395,11 +407,11 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                     <label className="absolute inset-0 bg-black/50 dark:bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-xl">
                       <div className="flex flex-col items-center gap-2">
                         <Camera className="w-6 h-6 text-white" />
-                        <span className="text-white text-xs font-bold">Tải ảnh lên</span>
+                        <span className="text-white text-xs font-bold">Tải ảnh/video lên</span>
                       </div>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept={getAcceptedMediaTypes(true)}
                         className="hidden"
                         onChange={handleCoverUpload}
                         disabled={uploadingCover}
