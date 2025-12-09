@@ -11,6 +11,7 @@ import {
   Users, UserPlus, UserCheck, UserX, Search, Clock,
   Send, UserMinus, MessageCircle, Zap
 } from 'lucide-react';
+import Avatar from '../components/Avatar';
 
 // --- UI COMPONENTS ---
 const GridPattern = () => (
@@ -160,10 +161,11 @@ export default function Friends() {
     return (
       <SpotlightCard key={userData._id} className="p-4">
         <div className="flex items-center gap-4 mb-3">
-          <img
-            src={userData.avatarUrl || generateAvatarUrl(userData.name)}
-            className="w-12 h-12 rounded-full bg-neutral-200 cursor-pointer hover:opacity-80 transition-opacity"
-            alt=""
+          <Avatar
+            src={userData.avatarUrl}
+            name={userData.name}
+            size={48}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/user/${userData._id}`);

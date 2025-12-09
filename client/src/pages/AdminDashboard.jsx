@@ -4,6 +4,7 @@ import APIMonitoring from "../components/APIMonitoring";
 import RoleManagement from "../components/RoleManagement";
 import AutoLikeBot from "../components/AutoLikeBot";
 import VerifiedBadge from "../components/VerifiedBadge";
+import Avatar from "../components/Avatar";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { api } from "../api";
 import { useNavigate } from "react-router-dom";
@@ -545,7 +546,7 @@ export default function AdminDashboard() {
                                           <div key={u._id} className="flex justify-between items-center p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-700/50 shadow-sm">
                                              <div className="flex gap-3 items-center">
                                                 <span className="font-black text-neutral-300">#{i + 1}</span>
-                                                <img src={getUserAvatarUrl(u, AVATAR_SIZES.SMALL)} className="w-8 h-8 rounded-full bg-neutral-200" alt="" />
+                                                <Avatar src={u.avatarUrl} name={u.name} size={32} className="" />
                                                 <div>
                                                    <div className="font-bold text-sm">{u.name}</div>
                                                    <div className="text-xs text-neutral-500">{u.role}</div>
@@ -613,7 +614,7 @@ export default function AdminDashboard() {
                                              <tr key={u._id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                                                 <td className="px-4 py-3">
                                                    <div className="flex items-center gap-3">
-                                                      <img src={getUserAvatarUrl(u, AVATAR_SIZES.SMALL)} className="w-10 h-10 rounded-full bg-neutral-200 object-cover" alt="" />
+                                                      <Avatar src={u.avatarUrl} name={u.name} size={40} className="" />
                                                       <div className="min-w-0">
                                                          <div className="font-bold text-sm truncate flex items-center gap-1">
                                                             {u.name}
@@ -701,7 +702,7 @@ export default function AdminDashboard() {
                                        <div key={u._id} className="p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-xl transition-all border border-neutral-100 dark:border-neutral-800/50 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-sm hover:shadow-md">
                                           <div className="flex items-start justify-between mb-2">
                                              <div className="flex items-center gap-3 overflow-hidden flex-1">
-                                                <img src={getUserAvatarUrl(u, AVATAR_SIZES.SMALL)} className="w-10 h-10 rounded-full bg-neutral-200 object-cover flex-shrink-0" alt="" />
+                                                <Avatar src={u.avatarUrl} name={u.name} size={40} className="flex-shrink-0" />
                                                 <div className="min-w-0 flex-1">
                                                    <div className="font-bold text-sm truncate flex items-center gap-1">
                                                       {u.name}
@@ -835,7 +836,7 @@ export default function AdminDashboard() {
                                  <div key={u._id} className="flex items-center justify-between p-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-lg border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 transition-all">
                                     <div className="flex items-center gap-3">
                                        <div className="relative">
-                                          <img src={getUserAvatarUrl(u, AVATAR_SIZES.SMALL)} className="w-8 h-8 rounded-full bg-neutral-200" alt="" />
+                                          <Avatar src={u.avatarUrl} name={u.name} size={32} className="" />
                                           <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-neutral-900 rounded-full"></span>
                                        </div>
                                        <div>

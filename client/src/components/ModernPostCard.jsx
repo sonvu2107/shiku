@@ -10,6 +10,7 @@ import { cn } from "../utils/cn";
 import { api } from "../api";
 import UserName from "./UserName";
 import UserAvatar from "./UserAvatar";
+import Avatar from "./Avatar";
 import ReactMarkdown from "react-markdown";
 import Poll from "./Poll";
 import YouTubePlayer from "./YouTubePlayer";
@@ -908,10 +909,11 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           )}
 
           <form onSubmit={handleSubmitComment} className="flex items-center gap-2">
-            <img
-              src={getOptimizedImageUrl(user?.avatarUrl, 100) || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&length=2&background=cccccc&color=222222`}
-              alt={user?.name}
-              className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0"
+            <Avatar
+              src={user?.avatarUrl}
+              name={user?.name || 'User'}
+              size={32}
+              className="border border-gray-200 dark:border-gray-700 flex-shrink-0"
             />
             <div className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-3 md:px-4 py-1.5 md:py-2 relative">
               <input

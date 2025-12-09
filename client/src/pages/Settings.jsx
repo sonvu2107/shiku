@@ -6,23 +6,24 @@ import { removeAuthToken } from "../utils/auth";
 import { invalidateUserCache } from "../utils/userCache";
 import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Shield, Lock, Bell, Ban, Mail, Key, CheckCircle2, 
+import {
+  Shield, Lock, Bell, Ban, Mail, Key, CheckCircle2,
   AlertCircle, Loader2, LogOut, UserX, ChevronRight, User, FileText
 } from "lucide-react";
 import { cn } from "../utils/cn";
 import { useToast } from "../contexts/ToastContext";
+import Avatar from "../components/Avatar";
 
 export default function Settings() {
   const navigate = useNavigate();
   const { showError } = useToast();
-  
+
   // ==================== STATE MANAGEMENT ====================
   const [activeTab, setActiveTab] = useState("privacy"); // Mặc định vào tab bảo mật
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [loadingBlocked, setLoadingBlocked] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
-  
+
   // Email change states
   const [newEmail, setNewEmail] = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
@@ -97,7 +98,7 @@ export default function Settings() {
     try {
       await api("/api/auth/update-profile", {
         method: "PUT",
-        body: { password: newPassword } 
+        body: { password: newPassword }
       });
       setPasswordSuccess("Đổi mật khẩu thành công!");
       setCurrentPassword("");
@@ -149,12 +150,12 @@ export default function Settings() {
           } catch (err) { console.warn('Keepalive cleanup failed:', err); }
         })()
       ];
-      
+
       await Promise.race([
         Promise.allSettled(cleanupPromises),
         new Promise(resolve => setTimeout(resolve, 2000))
       ]);
-      
+
       // Xóa token khỏi localStorage
       removeAuthToken();
       // Clear user cache
@@ -173,13 +174,13 @@ export default function Settings() {
 
   return (
     <PageLayout>
-      <PageHeader 
-        title="Cài đặt" 
-        subtitle="Quản lý tài khoản và quyền riêng tư của bạn" 
+      <PageHeader
+        title="Cài đặt"
+        subtitle="Quản lý tài khoản và quyền riêng tư của bạn"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
+
         {/* --- LEFT SIDEBAR (MENU) --- */}
         <div className="lg:col-span-3 space-y-6">
           <div className="bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl rounded-2xl p-2 border border-neutral-200 dark:border-neutral-800 shadow-sm sticky top-24">
@@ -189,8 +190,8 @@ export default function Settings() {
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
                   "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all mb-1 last:mb-0",
-                  activeTab === tab.id 
-                    ? "bg-black dark:bg-white text-white dark:text-black shadow-md" 
+                  activeTab === tab.id
+                    ? "bg-black dark:bg-white text-white dark:text-black shadow-md"
                     : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-200"
                 )}
               >
@@ -217,20 +218,20 @@ export default function Settings() {
 
           {/* Logout Button */}
           <div className="bg-red-50 dark:bg-red-900/10 rounded-2xl p-2 border border-red-100 dark:border-red-900/30">
-            <button 
-               onClick={handleLogout}
-               disabled={logoutLoading}
-               className="w-full flex items-center justify-center gap-3 text-red-600 dark:text-red-400 text-sm font-bold px-4 py-3 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
+            <button
+              onClick={handleLogout}
+              disabled={logoutLoading}
+              className="w-full flex items-center justify-center gap-3 text-red-600 dark:text-red-400 text-sm font-bold px-4 py-3 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
             >
-               {logoutLoading ? (
-                 <>
-                   <Loader2 size={18} className="animate-spin" /> Đang đăng xuất...
-                 </>
-               ) : (
-                 <>
-                   <LogOut size={18} /> Đăng xuất
-                 </>
-               )}
+              {logoutLoading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" /> Đang đăng xuất...
+                </>
+              ) : (
+                <>
+                  <LogOut size={18} /> Đăng xuất
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -238,7 +239,7 @@ export default function Settings() {
         {/* --- RIGHT CONTENT --- */}
         <div className="lg:col-span-9">
           <AnimatePresence mode="wait">
-            
+
             {/* SECURITY / PRIVACY TAB */}
             {activeTab === "privacy" && (
               <motion.div
@@ -259,29 +260,29 @@ export default function Settings() {
                       <p className="text-sm text-neutral-500 dark:text-neutral-400">Email dùng để đăng nhập và nhận thông báo.</p>
                     </div>
                   </div>
-                  
+
                   <form onSubmit={handleUpdateEmail} className="space-y-4 max-w-lg">
                     <div className="relative group">
-                       <input 
-                         type="email" 
-                         placeholder="Nhập email mới" 
-                         value={newEmail}
-                         onChange={e => setNewEmail(e.target.value)}
-                         className="w-full bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-neutral-500 transition-all text-neutral-900 dark:text-white"
-                       />
+                      <input
+                        type="email"
+                        placeholder="Nhập email mới"
+                        value={newEmail}
+                        onChange={e => setNewEmail(e.target.value)}
+                        className="w-full bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-neutral-500 transition-all text-neutral-900 dark:text-white"
+                      />
                     </div>
-                    {emailSuccess && <p className="text-green-600 text-sm flex items-center gap-2"><CheckCircle2 size={14}/> {emailSuccess}</p>}
-                    {emailError && <p className="text-red-600 text-sm flex items-center gap-2"><AlertCircle size={14}/> {emailError}</p>}
-                    
+                    {emailSuccess && <p className="text-green-600 text-sm flex items-center gap-2"><CheckCircle2 size={14} /> {emailSuccess}</p>}
+                    {emailError && <p className="text-red-600 text-sm flex items-center gap-2"><AlertCircle size={14} /> {emailError}</p>}
+
                     <div className="flex justify-end">
-                       <button 
-                         type="submit" 
-                         disabled={emailLoading || !newEmail}
-                         className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg font-bold text-sm disabled:opacity-50 hover:scale-105 transition-transform flex items-center gap-2"
-                       >
-                         {emailLoading && <Loader2 className="animate-spin w-4 h-4"/>}
-                         Lưu thay đổi
-                       </button>
+                      <button
+                        type="submit"
+                        disabled={emailLoading || !newEmail}
+                        className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg font-bold text-sm disabled:opacity-50 hover:scale-105 transition-transform flex items-center gap-2"
+                      >
+                        {emailLoading && <Loader2 className="animate-spin w-4 h-4" />}
+                        Lưu thay đổi
+                      </button>
                     </div>
                   </form>
                 </SpotlightCard>
@@ -300,34 +301,34 @@ export default function Settings() {
 
                   <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-lg">
                     <div className="space-y-3">
-                       <input 
-                         type="password" 
-                         placeholder="Mật khẩu hiện tại" 
-                         value={currentPassword}
-                         onChange={e => setCurrentPassword(e.target.value)}
-                         className="w-full bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-neutral-500 transition-all text-neutral-900 dark:text-white"
-                       />
-                       <input 
-                         type="password" 
-                         placeholder="Mật khẩu mới" 
-                         value={newPassword}
-                         onChange={e => setNewPassword(e.target.value)}
-                         className="w-full bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-neutral-500 transition-all text-neutral-900 dark:text-white"
-                       />
+                      <input
+                        type="password"
+                        placeholder="Mật khẩu hiện tại"
+                        value={currentPassword}
+                        onChange={e => setCurrentPassword(e.target.value)}
+                        className="w-full bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-neutral-500 transition-all text-neutral-900 dark:text-white"
+                      />
+                      <input
+                        type="password"
+                        placeholder="Mật khẩu mới"
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                        className="w-full bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-neutral-500 transition-all text-neutral-900 dark:text-white"
+                      />
                     </div>
 
-                    {passwordSuccess && <p className="text-green-600 text-sm flex items-center gap-2"><CheckCircle2 size={14}/> {passwordSuccess}</p>}
-                    {passwordError && <p className="text-red-600 text-sm flex items-center gap-2"><AlertCircle size={14}/> {passwordError}</p>}
+                    {passwordSuccess && <p className="text-green-600 text-sm flex items-center gap-2"><CheckCircle2 size={14} /> {passwordSuccess}</p>}
+                    {passwordError && <p className="text-red-600 text-sm flex items-center gap-2"><AlertCircle size={14} /> {passwordError}</p>}
 
                     <div className="flex justify-end">
-                       <button 
-                         type="submit" 
-                         disabled={passwordLoading || !currentPassword || !newPassword}
-                         className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg font-bold text-sm disabled:opacity-50 hover:scale-105 transition-transform flex items-center gap-2"
-                       >
-                         {passwordLoading && <Loader2 className="animate-spin w-4 h-4"/>}
-                         Đổi mật khẩu
-                       </button>
+                      <button
+                        type="submit"
+                        disabled={passwordLoading || !currentPassword || !newPassword}
+                        className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg font-bold text-sm disabled:opacity-50 hover:scale-105 transition-transform flex items-center gap-2"
+                      >
+                        {passwordLoading && <Loader2 className="animate-spin w-4 h-4" />}
+                        Đổi mật khẩu
+                      </button>
                     </div>
                   </form>
                 </SpotlightCard>
@@ -342,48 +343,48 @@ export default function Settings() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
               >
-                 <SpotlightCard className="min-h-[500px]">
-                    <div className="flex items-center justify-between mb-8">
-                       <div>
-                          <h3 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-                             <UserX size={24} /> Danh sách chặn
-                          </h3>
-                          <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">Những người này sẽ không thể liên lạc với bạn.</p>
-                       </div>
-                       <div className="bg-neutral-100 dark:bg-neutral-800 px-3 py-1 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                          {blockedUsers.length} người
-                       </div>
+                <SpotlightCard className="min-h-[500px]">
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <h3 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
+                        <UserX size={24} /> Danh sách chặn
+                      </h3>
+                      <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">Những người này sẽ không thể liên lạc với bạn.</p>
                     </div>
+                    <div className="bg-neutral-100 dark:bg-neutral-800 px-3 py-1 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                      {blockedUsers.length} người
+                    </div>
+                  </div>
 
-                    {loadingBlocked ? (
-                       <div className="py-20 flex justify-center"><Loader2 className="animate-spin w-8 h-8 text-neutral-400"/></div>
-                    ) : blockedUsers.length > 0 ? (
-                       <div className="grid gap-4">
-                          {blockedUsers.map(user => (
-                             <div key={user._id} className="flex items-center justify-between p-4 rounded-xl bg-neutral-50 dark:bg-black/40 border border-neutral-100 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors">
-                                <div className="flex items-center gap-4">
-                                   <img src={getUserAvatarUrl(user, AVATAR_SIZES.SMALL)} alt="" className="w-12 h-12 rounded-full object-cover bg-neutral-200" />
-                                   <div>
-                                      <h4 className="font-bold text-neutral-900 dark:text-white">{user.name}</h4>
-                                      <p className="text-xs text-neutral-500">Đã chặn</p>
-                                   </div>
-                                </div>
-                                <button 
-                                   onClick={() => unblockUser(user._id)}
-                                   className="px-4 py-2 text-xs font-bold text-red-600 border border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                >
-                                   Gỡ chặn
-                                </button>
-                             </div>
-                          ))}
-                       </div>
-                    ) : (
-                       <div className="text-center py-20 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl">
-                          <Shield size={48} className="mx-auto text-neutral-300 mb-4" />
-                          <p className="text-neutral-500 font-medium">Danh sách chặn trống</p>
-                       </div>
-                    )}
-                 </SpotlightCard>
+                  {loadingBlocked ? (
+                    <div className="py-20 flex justify-center"><Loader2 className="animate-spin w-8 h-8 text-neutral-400" /></div>
+                  ) : blockedUsers.length > 0 ? (
+                    <div className="grid gap-4">
+                      {blockedUsers.map(user => (
+                        <div key={user._id} className="flex items-center justify-between p-4 rounded-xl bg-neutral-50 dark:bg-black/40 border border-neutral-100 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors">
+                          <div className="flex items-center gap-4">
+                            <Avatar src={user.avatarUrl} name={user.name} size={48} className="" />
+                            <div>
+                              <h4 className="font-bold text-neutral-900 dark:text-white">{user.name}</h4>
+                              <p className="text-xs text-neutral-500">Đã chặn</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => unblockUser(user._id)}
+                            className="px-4 py-2 text-xs font-bold text-red-600 border border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          >
+                            Gỡ chặn
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-20 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl">
+                      <Shield size={48} className="mx-auto text-neutral-300 mb-4" />
+                      <p className="text-neutral-500 font-medium">Danh sách chặn trống</p>
+                    </div>
+                  )}
+                </SpotlightCard>
               </motion.div>
             )}
 

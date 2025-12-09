@@ -5,6 +5,7 @@ import { SpotlightCard } from "../ui/SpotlightCard";
 import { generateAvatarUrl } from "../../utils/avatarUtils";
 import { PROFILE_MESSAGES } from "../../constants/profile";
 import { api } from "../../api";
+import Avatar from "../Avatar";
 
 /**
  * FriendsTab - Component showing Friends tab in user profile
@@ -20,22 +21,23 @@ export default function FriendsTab({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {friendsLoading ? (
-        [1,2,3,4,5,6].map(i => <div key={i} className="h-24 bg-neutral-100 dark:bg-neutral-900 rounded-2xl animate-pulse"/>)
+        [1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-24 bg-neutral-100 dark:bg-neutral-900 rounded-2xl animate-pulse" />)
       ) : friends.length > 0 ? (
         friends.map(friend => (
           <SpotlightCard key={friend._id} className="p-4">
             <div className="flex items-center gap-4 mb-3">
-              <img 
-                src={friend.avatarUrl || generateAvatarUrl(friend.name)} 
-                className="w-12 h-12 rounded-full bg-neutral-200 cursor-pointer hover:opacity-80 transition-opacity" 
-                alt=""
+              <Avatar
+                src={friend.avatarUrl}
+                name={friend.name}
+                size={48}
+                className="bg-neutral-200 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/user/${friend._id}`);
                 }}
               />
               <div className="flex-1 min-w-0">
-                <div 
+                <div
                   className="font-bold cursor-pointer hover:text-blue-500 transition-colors truncate"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -76,7 +78,7 @@ export default function FriendsTab({
               >
                 <UserCheck size={16} /> {removingFriendId === friend._id ? "Đang xử lý..." : "Đã kết bạn"}
               </button>
-              
+
               {/* Message button */}
               <button
                 onClick={(e) => {

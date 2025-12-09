@@ -10,6 +10,7 @@ import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSy
 import { motion } from "framer-motion";
 import { cn } from "../utils/cn";
 import BackToTop from "../components/BackToTop";
+import Avatar from "../components/Avatar";
 
 /**
  * Explore - Trang khám phá nội dung (Redesigned)
@@ -207,10 +208,11 @@ export default function Explore({ user }) {
                            users.map((user) => (
                               <SpotlightCard key={user._id} className="flex flex-col items-center p-6 text-center hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors group" onClick={() => navigate(`/user/${user._id}`)}>
                                  <div className="relative mb-4">
-                                    <img
-                                       src={getUserAvatarUrl(user, AVATAR_SIZES.MEDIUM)}
-                                       alt={user.name}
-                                       className="w-20 h-20 rounded-full object-cover border-4 border-neutral-100 dark:border-neutral-800 group-hover:border-white dark:group-hover:border-neutral-600 transition-colors"
+                                    <Avatar
+                                       src={user.avatarUrl}
+                                       name={user.name || 'User'}
+                                       size={80}
+                                       className="border-4 border-neutral-100 dark:border-neutral-800 group-hover:border-white dark:group-hover:border-neutral-600 transition-colors"
                                     />
                                     {/* Online dot (optional) */}
                                  </div>
@@ -337,13 +339,12 @@ export default function Explore({ user }) {
                                           {/* Owner Info */}
                                           {group.owner && (
                                              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-neutral-100 dark:border-neutral-800">
-                                                <div className="w-6 h-6 rounded-full overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex-shrink-0">
-                                                   <img
-                                                      src={getUserAvatarUrl(group.owner, AVATAR_SIZES.SMALL)}
-                                                      alt={group.owner?.name || 'Owner'}
-                                                      className="w-full h-full object-cover"
-                                                   />
-                                                </div>
+                                                <Avatar
+                                                   src={group.owner.avatarUrl}
+                                                   name={group.owner?.name || 'Owner'}
+                                                   size={24}
+                                                   className="flex-shrink-0"
+                                                />
                                                 <div className="flex-1 min-w-0">
                                                    <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500">Chủ sở hữu</p>
                                                    <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300 truncate">

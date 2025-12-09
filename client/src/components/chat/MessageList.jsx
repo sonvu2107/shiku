@@ -5,6 +5,7 @@ import { api } from "../../api";
 import ImageViewer from "../ImageViewer";
 import { useToast } from "../../contexts/ToastContext";
 import { parseLinks } from "../../utils/linkParser.jsx";
+import Avatar from "../Avatar";
 
 /**
  * MessageList - Component for display message list in chat
@@ -429,19 +430,12 @@ export default function MessageList({
         {/* Avatar for received messages */}
         {!isOwn && showAvatar && showSenderInfo && (
           <div className="flex-shrink-0 mr-2">
-            {message.sender.avatarUrl ? (
-              <img
-                src={message.sender.avatarUrl}
-                alt={message.sender.nickname || message.sender.name}
-                className="w-8 h-8 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs font-semibold">
-                  {(message.sender.nickname || message.sender.name || 'U').charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
+            <Avatar
+              src={message.sender.avatarUrl}
+              name={message.sender.nickname || message.sender.name || 'User'}
+              size={32}
+              className=""
+            />
           </div>
         )}
 
@@ -723,24 +717,14 @@ export default function MessageList({
                       const avatarUrl = readerUser?.avatarUrl;
                       const name = readerUser?.name || 'User';
 
-                      return avatarUrl ? (
-                        <img
+                      return (
+                        <Avatar
                           key={readerUser?._id || idx}
                           src={avatarUrl}
-                          alt={name}
-                          title={`${name} đã xem`}
-                          className="w-4 h-4 rounded-full border border-white dark:border-gray-800 object-cover"
+                          name={name}
+                          size={16}
+                          className="border border-white dark:border-gray-800"
                         />
-                      ) : (
-                        <div
-                          key={readerUser?._id || idx}
-                          title={`${name} đã xem`}
-                          className="w-4 h-4 rounded-full border border-white dark:border-gray-800 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center"
-                        >
-                          <span className="text-white text-[8px] font-semibold">
-                            {name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
                       );
                     })}
                     {lastReadUsers.length > 3 && (
@@ -769,19 +753,12 @@ export default function MessageList({
         {/* Avatar for sent messages */}
         {isOwn && showSenderInfo && (
           <div className="flex-shrink-0 ml-2">
-            {currentUser.avatarUrl ? (
-              <img
-                src={currentUser.avatarUrl}
-                alt="Bạn"
-                className="w-8 h-8 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs font-semibold">
-                  {currentUser.name?.charAt(0).toUpperCase() || 'B'}
-                </span>
-              </div>
-            )}
+            <Avatar
+              src={currentUser.avatarUrl}
+              name={currentUser.name || 'Bạn'}
+              size={32}
+              className=""
+            />
           </div>
         )}
       </motion.div>

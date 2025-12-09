@@ -3,6 +3,7 @@ import { X, ChevronLeft, ChevronRight, Heart, ThumbsUp, Laugh, Frown, Angry, Smi
 import { api } from '../api';
 import StoryAnalytics from './StoryAnalytics';
 import VerifiedBadge from './VerifiedBadge';
+import Avatar from './Avatar';
 
 /**
  * StoryViewer - Component xem stories fullscreen
@@ -285,10 +286,11 @@ export default function StoryViewer({
           {/* Author Info */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="relative group cursor-pointer">
-              <img
-                src={author?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(author?.name || 'User')}`}
-                alt={author?.name}
-                className="w-10 h-10 rounded-full border border-white/20 shadow-sm"
+              <Avatar
+                src={author?.avatarUrl}
+                name={author?.name || 'User'}
+                size={40}
+                className="border border-white/20 shadow-sm"
               />
             </div>
             <div className="text-white min-w-0 flex-1 drop-shadow-md">
@@ -500,10 +502,11 @@ export default function StoryViewer({
                 viewersList.map((view, idx) => (
                   <div key={idx} className="flex items-center justify-between p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-2xl transition-colors">
                     <div className="flex items-center gap-3">
-                      <img
-                        src={view.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(view.user?.name || 'User')}`}
-                        alt={view.user?.name}
-                        className="w-10 h-10 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
+                      <Avatar
+                        src={view.user?.avatarUrl}
+                        name={view.user?.name || 'User'}
+                        size={40}
+                        className="border border-neutral-200 dark:border-neutral-700"
                       />
                       <div>
                         <p className="font-bold text-sm dark:text-white">{view.user?.name}</p>
@@ -545,10 +548,11 @@ export default function StoryViewer({
                   return (
                     <div key={idx} className="flex items-center justify-between p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-2xl transition-colors">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={reaction.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(reaction.user?.name || 'User')}`}
-                          alt={reaction.user?.name}
-                          className="w-10 h-10 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
+                        <Avatar
+                          src={reaction.user?.avatarUrl}
+                          name={reaction.user?.name || 'User'}
+                          size={40}
+                          className="border border-neutral-200 dark:border-neutral-700"
                         />
                         <div>
                           <p className="font-bold text-sm dark:text-white">{reaction.user?.name}</p>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, User, Edit3, Trash2, Users } from "lucide-react";
 import { chatAPI } from "../../chatAPI";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../../utils/avatarUtils";
+import Avatar from "../Avatar";
 
 /**
  * GroupMembersModal - Modal to manage members and nicknames in group chats
@@ -13,15 +14,15 @@ import { getUserAvatarUrl, AVATAR_SIZES } from "../../utils/avatarUtils";
  * @param {Function} props.onMembersUpdated - Callback when members are updated
  * @returns {JSX.Element} Component group members modal
  */
-export default function GroupMembersModal({ 
-  isOpen, 
-  onClose, 
-  conversation, 
+export default function GroupMembersModal({
+  isOpen,
+  onClose,
+  conversation,
   currentUser,
-  onMembersUpdated 
+  onMembersUpdated
 }) {
   // ==================== STATE MANAGEMENT ====================
-  
+
   const [members, setMembers] = useState([]); // List of members
   const [editingMember, setEditingMember] = useState(null); // Member currently editing nickname
   const [newNickname, setNewNickname] = useState(""); // New nickname input
@@ -51,7 +52,7 @@ export default function GroupMembersModal({
 
   const loadMembers = () => {
     if (!conversation?.participants) return;
-    
+
     const activeMembers = conversation.participants.filter(p => !p.leftAt);
     setMembers(activeMembers);
   };
@@ -93,16 +94,16 @@ export default function GroupMembersModal({
     try {
       setLoading(true);
       setError("");
-      
+
       await chatAPI.setNickname(conversation._id, editingMember.user._id, newNickname.trim());
-      
+
       // Update local state
-      setMembers(prev => prev.map(member => 
-        member.user._id === editingMember.user._id 
+      setMembers(prev => prev.map(member =>
+        member.user._id === editingMember.user._id
           ? { ...member, nickname: newNickname.trim() }
           : member
       ));
-      
+
       setEditingMember(null);
       setNewNickname("");
       onMembersUpdated?.();
@@ -121,16 +122,16 @@ export default function GroupMembersModal({
     try {
       setLoading(true);
       setError("");
-      
+
       await chatAPI.removeNickname(conversation._id, member.user._id);
-      
+
       // Update local state
-      setMembers(prev => prev.map(m => 
-        m.user._id === member.user._id 
+      setMembers(prev => prev.map(m =>
+        m.user._id === member.user._id
           ? { ...m, nickname: null }
           : m
       ));
-      
+
       onMembersUpdated?.();
     } catch (error) {
       console.error("Error removing nickname:", error);
@@ -203,10 +204,11 @@ export default function GroupMembersModal({
                   <div className="flex items-center space-x-3">
                     {/* Avatar */}
                     <div className="relative">
-                      <img
-                        src={getUserAvatarUrl(member.user, AVATAR_SIZES.MEDIUM)}
-                        alt={getDisplayName(member)}
-                        className="w-12 h-12 rounded-full object-cover"
+                      <Avatar
+                        src={member.user?.avatarUrl}
+                        name={getDisplayName(member)}
+                        size={48}
+                        className=""
                       />
                       {member.user?.isOnline && (
                         <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>

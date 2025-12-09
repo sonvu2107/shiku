@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { getUserSuggestions } from "../utils/mentions";
 import { useNavigate } from "react-router-dom";
+import Avatar from "./Avatar";
 
 /**
  * MentionAutocomplete - Dropdown suggestions component when typing @mentions
@@ -163,19 +164,17 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
         <div
           key={user._id}
           className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${index === selectedIndex
-              ? "bg-blue-50 dark:bg-blue-900/20"
-              : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            ? "bg-blue-50 dark:bg-blue-900/20"
+            : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
             }`}
           onMouseEnter={() => setSelectedIndex(index)}
           onClick={() => handleSelectUser(user)}
         >
-          <img
-            src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&size=32`}
-            alt={user.name}
-            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-            onError={(e) => {
-              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&size=32`;
-            }}
+          <Avatar
+            src={user.avatarUrl}
+            name={user.name || 'User'}
+            size={32}
+            className="flex-shrink-0"
           />
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-neutral-900 dark:text-white truncate">

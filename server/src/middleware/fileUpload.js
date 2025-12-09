@@ -20,14 +20,16 @@ const storage = multer.memoryStorage();
 const fileSizeLimits = {
   image: 5 * 1024 * 1024, // 5MB
   video: 50 * 1024 * 1024, // 50MB
-  document: 10 * 1024 * 1024 // 10MB
+  document: 10 * 1024 * 1024, // 10MB
+  avatar: 10 * 1024 * 1024 // 10MB for avatar (supports image and video)
 };
 
 // Các loại file được phép
 const allowedTypes = {
   image: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
   video: ['video/mp4', 'video/webm', 'video/quicktime'],
-  document: ['application/pdf', 'text/plain']
+  document: ['application/pdf', 'text/plain'],
+  avatar: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'] // Avatar supports both image and video
 };
 
 // Magic bytes cho các loại file phổ biến
@@ -57,14 +59,14 @@ const magicBytes = {
 const checkMagicBytes = (buffer, expectedType) => {
   const expectedBytes = magicBytes[expectedType];
   if (!expectedBytes) return false;
-  
+
   // Nếu expectedBytes là array của arrays (như MP4)
   if (Array.isArray(expectedBytes[0])) {
-    return expectedBytes.some(bytes => 
+    return expectedBytes.some(bytes =>
       bytes.every((byte, index) => buffer[index] === byte)
     );
   }
-  
+
   // Nếu expectedBytes là array đơn giản
   return expectedBytes.every((byte, index) => buffer[index] === byte);
 };
@@ -92,7 +94,7 @@ const getRealFileType = async (buffer) => {
  */
 export const validateFile = async (file, category = 'image') => {
   const errors = [];
-  
+
   // Kiểm tra file có tồn tại
   if (!file || !file.buffer) {
     errors.push('Không có file được tải lên');
@@ -108,7 +110,7 @@ export const validateFile = async (file, category = 'image') => {
   // Kiểm tra file type thực tế bằng magic bytes
   const realFileType = await getRealFileType(file.buffer);
   const allowedMimes = allowedTypes[category] || allowedTypes.image;
-  
+
   if (!allowedMimes.includes(realFileType.mime)) {
     errors.push(`Loại file không được phép. Chỉ chấp nhận: ${allowedMimes.join(', ')}`);
   }
@@ -117,7 +119,7 @@ export const validateFile = async (file, category = 'image') => {
   if (realFileType.mime === 'image/jpeg' && !checkMagicBytes(file.buffer, 'image/jpeg')) {
     errors.push('File JPEG không hợp lệ');
   }
-  
+
   if (realFileType.mime === 'image/png' && !checkMagicBytes(file.buffer, 'image/png')) {
     errors.push('File PNG không hợp lệ');
   }
@@ -133,7 +135,7 @@ export const validateFile = async (file, category = 'image') => {
     const ext = mime.split('/')[1];
     return ext === 'jpeg' ? 'jpg' : ext;
   });
-  
+
   const fileExtension = realFileType.ext;
   if (!allowedExtensions.includes(fileExtension)) {
     errors.push(`Extension file không được phép. Chỉ chấp nhận: ${allowedExtensions.join(', ')}`);
@@ -162,7 +164,7 @@ export const uploadConfig = {
       ...allowedTypes.video,
       ...allowedTypes.document
     ];
-    
+
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -187,7 +189,7 @@ export const uploadSingle = (category = 'image') => {
         }
 
         const validation = await validateFile(req.file, category);
-        
+
         if (!validation.isValid) {
           return res.status(400).json({
             success: false,
@@ -237,7 +239,7 @@ export const uploadMultiple = (category = 'image', maxFiles = 10) => {
         );
 
         const invalidFiles = validationResults.filter(result => !result.isValid);
-        
+
         if (invalidFiles.length > 0) {
           const allErrors = invalidFiles.flatMap(result => result.errors);
           return res.status(400).json({
@@ -288,7 +290,7 @@ export const uploadMultipleOptional = (category = 'image', maxFiles = 10) => {
         );
 
         const invalidFiles = validationResults.filter(result => !result.isValid);
-        
+
         if (invalidFiles.length > 0) {
           const allErrors = invalidFiles.flatMap(result => result.errors);
           return res.status(400).json({
@@ -360,8 +362,8 @@ export const uploadToCloudinary = async (file, folder = 'blog', category = 'imag
         }
       );
       // Pipe buffer vào stream
-  const bufferStream = Readable.from(file.buffer);
-  bufferStream.pipe(stream);
+      const bufferStream = Readable.from(file.buffer);
+      bufferStream.pipe(stream);
     });
   } catch (error) {
     console.error('Cloudinary upload error:', error);

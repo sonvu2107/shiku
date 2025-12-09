@@ -4,6 +4,7 @@ import { chatAPI } from '../../chatAPI';
 import { uploadImage } from '../../api';
 import GroupMembersModal from './GroupMembersModal';
 import { useToast } from '../../contexts/ToastContext';
+import Avatar from '../Avatar';
 
 /**
  * GroupSettingsModal - Modal group chat settings
@@ -16,21 +17,21 @@ import { useToast } from '../../contexts/ToastContext';
  * @param {Function} props.onUpdateConversation - Callback to update conversation
  * @returns {JSX.Element|null} Component modal or null if not visible
  */
-const GroupSettingsModal = ({ 
-  conversation, 
-  currentUser, 
-  isOpen, 
-  onClose, 
-  onUpdateConversation 
+const GroupSettingsModal = ({
+  conversation,
+  currentUser,
+  isOpen,
+  onClose,
+  onUpdateConversation
 }) => {
   const { showError } = useToast();
   // ==================== STATE MANAGEMENT ====================
-  
+
   // UI states
   const [activeTab, setActiveTab] = useState('info'); // Current tab: info, members, permissions
   const [loading, setLoading] = useState(false); // Loading state
   const [showMembersModal, setShowMembersModal] = useState(false); // Show members management modal
-  
+
   // Data states
   const [conversationDetails, setConversationDetails] = useState(null); // Conversation details
 
@@ -119,7 +120,7 @@ const GroupSettingsModal = ({
   const isGroupAdmin = () => {
     if (!conversationDetails?.participants) return false;
     const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
-    const userParticipant = conversationDetails.participants.find(p => 
+    const userParticipant = conversationDetails.participants.find(p =>
       (p.user._id === currentUserId || p.user.id === currentUserId) && !p.leftAt
     );
     return userParticipant?.role === 'admin';
@@ -149,32 +150,29 @@ const GroupSettingsModal = ({
         <div className="flex border-b">
           <button
             onClick={() => setActiveTab('info')}
-            className={`flex-1 py-3 px-4 text-sm font-medium ${
-              activeTab === 'info' 
-                ? 'text-blue-600 border-b-2 border-blue-600' 
+            className={`flex-1 py-3 px-4 text-sm font-medium ${activeTab === 'info'
+                ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             Thông tin
           </button>
           <button
             onClick={() => setActiveTab('members')}
-            className={`flex-1 py-3 px-4 text-sm font-medium ${
-              activeTab === 'members' 
-                ? 'text-blue-600 border-b-2 border-blue-600' 
+            className={`flex-1 py-3 px-4 text-sm font-medium ${activeTab === 'members'
+                ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             Thành viên
           </button>
           {isGroupAdmin() && (
             <button
               onClick={() => setActiveTab('permissions')}
-              className={`flex-1 py-3 px-4 text-sm font-medium ${
-                activeTab === 'permissions' 
-                  ? 'text-blue-600 border-b-2 border-blue-600' 
+              className={`flex-1 py-3 px-4 text-sm font-medium ${activeTab === 'permissions'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               Quyền
             </button>
@@ -206,7 +204,7 @@ const GroupSettingsModal = ({
                           <Users className="w-10 h-10 text-white" />
                         </div>
                       )}
-                      
+
                       {isGroupAdmin() && (
                         <>
                           <label
@@ -275,15 +273,16 @@ const GroupSettingsModal = ({
                       <span>Quản lý biệt danh</span>
                     </button>
                   </div>
-                  
+
                   <div className="space-y-2">
                     {conversationDetails?.participants.map((participant) => (
                       <div key={participant.user._id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
                         <div className="flex items-center space-x-3">
-                          <img
+                          <Avatar
                             src={participant.user.avatarUrl}
-                            alt={participant.user.name}
-                            className="w-10 h-10 rounded-full object-cover"
+                            name={participant.user.name}
+                            size={40}
+                            className=""
                           />
                           <div>
                             <p className="font-medium text-sm">{participant.user.name}</p>
@@ -296,7 +295,7 @@ const GroupSettingsModal = ({
                             )}
                           </div>
                         </div>
-                        
+
                         {participant.role !== 'admin' && canManageMembers() && (
                           <button
                             onClick={() => handleRemoveMember(participant.user._id)}
@@ -339,10 +338,11 @@ const GroupSettingsModal = ({
                       {conversationDetails?.participants?.filter(p => !p.leftAt).map((participant) => (
                         <div key={participant.user._id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                           <div className="flex items-center space-x-3">
-                            <img
+                            <Avatar
                               src={participant.user.avatarUrl}
-                              alt={participant.user.name}
-                              className="w-8 h-8 rounded-full object-cover"
+                              name={participant.user.name}
+                              size={32}
+                              className=""
                             />
                             <div>
                               <p className="font-medium text-sm">{participant.user.name}</p>
@@ -351,7 +351,7 @@ const GroupSettingsModal = ({
                               </p>
                             </div>
                           </div>
-                          
+
                           {participant.user._id !== (currentUser?.user?._id || currentUser?._id) && (
                             <select
                               value={participant.role}

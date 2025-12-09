@@ -7,6 +7,7 @@ import { MoreVertical, X } from 'lucide-react';
 import { getUserAvatarUrl } from '../../../utils/avatarUtils.js';
 import { loadUser } from '../../../utils/userCache.js';
 import { getCombatStats } from '../utils/helpers.js';
+import Avatar from '../../../components/Avatar';
 
 const IdentityHeader = memo(function IdentityHeader({ cultivation, currentRealm }) {
   const [user, setUser] = useState(null);
@@ -46,15 +47,16 @@ const IdentityHeader = memo(function IdentityHeader({ cultivation, currentRealm 
     <div className="flex items-center gap-5 border-b-2 border-amber-500/20 pb-5 mb-6 relative">
       {/* Decorative line */}
       <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent"></div>
-      
+
       {/* Avatar */}
       <div className="relative">
         <div className="w-18 h-18 lg:w-20 lg:h-20 rounded-full bg-slate-800 border-2 border-amber-500/50 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.2)] overflow-hidden ring-2 ring-amber-500/20" style={{ width: '4.5rem', height: '4.5rem' }}>
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={displayName}
-              className="w-full h-full object-cover"
+          {user?.avatarUrl ? (
+            <Avatar
+              src={user.avatarUrl}
+              name={displayName}
+              size={72}
+              className=""
             />
           ) : (
             <span className="text-3xl lg:text-4xl">{currentRealm?.icon || '👤'}</span>

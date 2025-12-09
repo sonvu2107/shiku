@@ -8,6 +8,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 import { useToast } from "../contexts/ToastContext";
+import Avatar from "../components/Avatar";
 
 // --- SUB-COMPONENTS ---
 
@@ -72,7 +73,12 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
           {/* Original ticket message */}
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
-              <img src={ticket.user?.avatarUrl || `https://ui-avatars.com/api/?name=${ticket.user?.name}`} alt="" className="w-full h-full object-cover" />
+              <Avatar
+                src={ticket.user?.avatarUrl}
+                name={ticket.user?.name || 'User'}
+                size={32}
+                className=""
+              />
             </div>
             <div className="flex-1">
               <div className="bg-white dark:bg-neutral-800 p-4 rounded-2xl rounded-tl-none shadow-sm border border-gray-200 dark:border-gray-700/50 inline-block max-w-[90%]">
@@ -85,7 +91,12 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
           {ticket.replies?.map((reply, idx) => (
             <div key={idx} className={`flex gap-3 ${reply.isStaff ? 'flex-row-reverse' : ''}`}>
               <div className={`w-8 h-8 rounded-full flex-shrink-0 overflow-hidden ${reply.isStaff ? 'bg-blue-100' : 'bg-gray-200'}`}>
-                <img src={reply.user?.avatarUrl || `https://ui-avatars.com/api/?name=${reply.user?.name}`} alt="" className="w-full h-full object-cover" />
+                <Avatar
+                  src={reply.user?.avatarUrl}
+                  name={reply.user?.name || 'User'}
+                  size={32}
+                  className=""
+                />
               </div>
               <div className={`flex-1 flex flex-col ${reply.isStaff ? 'items-end' : 'items-start'}`}>
                 <div className={`p-4 rounded-2xl shadow-sm inline-block max-w-[90%] ${reply.isStaff
@@ -365,9 +376,12 @@ export default function AdminFeedback() {
                       </td>
                       <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden">
-                            <img src={ticket.user?.avatarUrl || `https://ui-avatars.com/api/?name=${ticket.user?.name}`} alt="" className="w-full h-full object-cover" />
-                          </div>
+                          <Avatar
+                            src={ticket.user?.avatarUrl}
+                            name={ticket.user?.name || 'User'}
+                            size={24}
+                            className=""
+                          />
                           <span className="truncate max-w-[150px]">{ticket.user?.name}</span>
                         </div>
                       </td>

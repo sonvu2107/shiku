@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { motion } from "framer-motion";
 import ModernPostCard from "../components/ModernPostCard";
 import { useSavedPosts } from "../hooks/useSavedPosts";
 import { generateAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
+import { isVideoUrl } from "../utils/mediaUtils";
 import UserAvatar, { UserTitle, UserBadge } from "../components/UserAvatar";
 import ProfileEffect from "../components/ProfileEffect";
 import CultivationBadge from "../components/CultivationBadge";
@@ -513,17 +514,28 @@ export default function UserProfile() {
 
       {/* --- 1. HEADER SECTION --- */}
       <div className="relative">
-        {/* Cover Image */}
+        {/* Cover Image/Video */}
         <div ref={coverRef} className="h-64 md:h-80 lg:h-96 w-full relative overflow-hidden group">
           {user.coverUrl && user.useCoverImage !== false ? (
-            <motion.img
-              initial={{ scale: 1.1 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 1.5 }}
-              src={user.coverUrl}
-              alt="Cover"
-              className="w-full h-full object-cover"
-            />
+            isVideoUrl(user.coverUrl) ? (
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                src={user.coverUrl}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <motion.img
+                initial={{ scale: 1.1 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 1.5 }}
+                src={user.coverUrl}
+                alt="Cover"
+                className="w-full h-full object-cover"
+              />
+            )
           ) : (() => {
             // Theme color configurations
             const themeColors = {

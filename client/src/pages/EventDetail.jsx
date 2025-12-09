@@ -28,6 +28,7 @@ import { PageLayout, SpotlightCard } from "../components/ui/DesignSystem";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { cn } from "../utils/cn";
 import { useToast } from "../contexts/ToastContext";
+import Avatar from "../components/Avatar";
 
 /**
  * EventDetail - Event detail page (Redesigned)
@@ -247,7 +248,12 @@ export default function EventDetail() {
                {/* CREATOR INFO */}
                <SpotlightCard className="p-5">
                   <div className="flex items-start gap-4 mb-4">
-                     <img src={getUserAvatarUrl(event.creator, AVATAR_SIZES.MEDIUM)} className="w-16 h-16 rounded-full object-cover bg-neutral-200 border-2 border-neutral-200 dark:border-neutral-800 flex-shrink-0" alt={event.creator.name} />
+                     <Avatar
+                        src={event.creator.avatarUrl}
+                        name={event.creator.name}
+                        size={64}
+                        className="border-2 border-neutral-200 dark:border-neutral-800 flex-shrink-0"
+                     />
                      <div className="flex-1 min-w-0">
                         <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">Tổ chức bởi</div>
                         <Link to={`/user/${event.creator._id}`} className="font-bold text-lg hover:text-blue-500 dark:hover:text-blue-400 transition-colors block truncate">{event.creator.name}</Link>
@@ -418,7 +424,12 @@ export default function EventDetail() {
                         <div className="flex flex-wrap gap-2">
                            {event.attendees.slice(0, 12).map(user => (
                               <Link key={user._id} to={`/user/${user._id}`} title={user.name}>
-                                 <img src={getUserAvatarUrl(user, AVATAR_SIZES.SMALL)} className="w-10 h-10 rounded-full border-2 border-white dark:border-black hover:scale-110 transition-transform" alt="" />
+                                 <Avatar
+                                    src={user.avatarUrl}
+                                    name={user.name}
+                                    size={40}
+                                    className="border-2 border-white dark:border-black hover:scale-110 transition-transform"
+                                 />
                               </Link>
                            ))}
                            {event.attendees.length > 12 && (

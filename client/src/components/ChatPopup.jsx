@@ -11,6 +11,7 @@ import { X, Phone, Video, ChevronDown, ThumbsUp, Heart, Laugh, Angry, Frown, Smi
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { useToast } from "../contexts/ToastContext";
 import { parseLinks } from "../utils/linkParser.jsx";
+import Avatar from "./Avatar";
 
 // Custom CSS for enhanced shadows
 const customStyles = `
@@ -312,8 +313,8 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   const avatar = isChatbot
     ? null
     : isGroup
-      ? conversation.groupAvatar || getUserAvatarUrl({ name: conversation.groupName || 'Group' }, AVATAR_SIZES.MEDIUM)
-      : getUserAvatarUrl(conversation?.otherParticipants?.[0]?.user, AVATAR_SIZES.MEDIUM);
+      ? { url: conversation.groupAvatar || null, name: conversation.groupName || 'Group' }
+      : { url: conversation?.otherParticipants?.[0]?.user?.avatarUrl || null, name: conversation?.otherParticipants?.[0]?.user?.name || 'User' };
 
   const getOtherUserOnlineStatus = () => {
     if (isGroup || isChatbot) return isChatbot ? true : false;
@@ -355,8 +356,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
               <Bot size={minimized ? 22 : 16} />
             </div>
           ) : (
-            <img src={avatar} alt={name} className={`rounded-full object-cover ${minimized ? 'w-12 h-12' : 'w-7 h-7 sm:w-9 sm:h-9'
-              }`} />
+            <Avatar src={avatar?.url} name={avatar?.name || name} size={minimized ? 48 : 36} className="" />
           )}
           {/* Online status indicator for private conversations */}
           {!isGroup && !isChatbot && getOtherUserOnlineStatus() && !minimized && (
@@ -685,24 +685,14 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                                     const avatarUrl = readerUser?.avatarUrl;
                                     const name = readerUser?.name || 'User';
 
-                                    return avatarUrl ? (
-                                      <img
+                                    return (
+                                      <Avatar
                                         key={readerUser?._id || idx}
                                         src={avatarUrl}
-                                        alt={name}
-                                        title={`${name} đã xem`}
-                                        className="w-3.5 h-3.5 rounded-full border border-white dark:border-gray-800 object-cover"
+                                        name={name}
+                                        size={14}
+                                        className="border border-white dark:border-gray-800"
                                       />
-                                    ) : (
-                                      <div
-                                        key={readerUser?._id || idx}
-                                        title={`${name} đã xem`}
-                                        className="w-3.5 h-3.5 rounded-full border border-white dark:border-gray-800 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center"
-                                      >
-                                        <span className="text-white text-[7px] font-semibold">
-                                          {name.charAt(0).toUpperCase()}
-                                        </span>
-                                      </div>
                                     );
                                   })}
                                   {lastReadUsers.length > 2 && (
@@ -729,10 +719,11 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                 return (
                   <div key={msg._id || idx} className="mb-2 flex justify-start">
                     <div className="flex items-start gap-2 max-w-[75%]">
-                      <img
+                      <Avatar
                         src={senderAvatar}
-                        alt={senderName}
-                        className="w-7 h-7 rounded-full object-cover mt-1 flex-shrink-0"
+                        name={senderName}
+                        size={28}
+                        className="mt-1 flex-shrink-0"
                       />
                       <div className="flex flex-col items-start min-w-0 flex-1">
                         <div className="text-xs text-gray-700 dark:text-gray-300 font-semibold mb-1">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, BarChart3, Eye, Heart, Users, TrendingUp, Clock, ThumbsUp, Laugh, Frown, Angry, Smile, Loader2 } from 'lucide-react';
 import { api } from '../api';
+import Avatar from './Avatar';
 
 /**
  * StoryAnalytics - Component showing analytics for a story
@@ -18,10 +19,10 @@ export default function StoryAnalytics({ storyId, onClose }) {
 
   const loadAnalytics = async () => {
     if (!storyId) return;
-    
+
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await api(`/api/stories/${storyId}/analytics`);
       setAnalytics(response.analytics);
@@ -109,11 +110,10 @@ export default function StoryAnalytics({ storyId, onClose }) {
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  activeTab === id
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === id
                     ? 'bg-blue-100 text-blue-700'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                }`}
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 {label}
@@ -197,15 +197,16 @@ export default function StoryAnalytics({ storyId, onClose }) {
                   {analytics?.pagination?.hasMore ? 'Có thêm dữ liệu...' : 'Đã tải hết'}
                 </span>
               </div>
-              
+
               {analytics?.views && analytics.views.length > 0 ? (
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {analytics.views.map((view, index) => (
                     <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <img
-                        src={view.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(view.user?.name || 'User')}`}
-                        alt={view.user?.name}
-                        className="w-10 h-10 rounded-full"
+                      <Avatar
+                        src={view.user?.avatarUrl}
+                        name={view.user?.name || 'User'}
+                        size={40}
+                        className=""
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -241,17 +242,18 @@ export default function StoryAnalytics({ storyId, onClose }) {
                   {analytics?.pagination?.hasMore ? 'Có thêm dữ liệu...' : 'Đã tải hết'}
                 </span>
               </div>
-              
+
               {analytics?.reactions && analytics.reactions.length > 0 ? (
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {analytics.reactions.map((reaction, index) => {
                     const { Icon, color } = reactionIcons[reaction.type] || { Icon: Heart, color: 'text-red-500' };
                     return (
                       <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <img
-                          src={reaction.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(reaction.user?.name || 'User')}`}
-                          alt={reaction.user?.name}
-                          className="w-10 h-10 rounded-full"
+                        <Avatar
+                          src={reaction.user?.avatarUrl}
+                          name={reaction.user?.name || 'User'}
+                          size={40}
+                          className=""
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">

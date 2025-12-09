@@ -4,6 +4,7 @@ import { X, UserPlus } from 'lucide-react';
 import { chatAPI } from '../../chatAPI';
 import { getUserAvatarUrl, AVATAR_SIZES } from '../../utils/avatarUtils';
 import { useToast } from '../../contexts/ToastContext';
+import Avatar from '../Avatar';
 
 /**
  * AddMembersModal - Modal add member to group chat
@@ -152,10 +153,11 @@ const AddMembersModal = ({
                   {searchResults.map((user) => (
                     <div key={user._id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg border border-gray-100">
                       <div className="flex items-center space-x-3">
-                        <img
-                          src={getUserAvatarUrl(user, AVATAR_SIZES.MEDIUM)}
-                          alt={user.name}
-                          className="w-10 h-10 rounded-full object-cover"
+                        <Avatar
+                          src={user.avatarUrl}
+                          name={user.name}
+                          size={40}
+                          className=""
                         />
                         <div>
                           <p className="font-medium text-sm">{user.name}</p>

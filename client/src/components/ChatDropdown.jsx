@@ -4,6 +4,7 @@ import { api } from "../api";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { chatbotAPI } from "../services/chatbotAPI";
 import { useChat } from "../contexts/ChatContext";
+import Avatar from "./Avatar";
 
 /**
  * ChatDropdown - Dropdown shows list of conversations
@@ -15,11 +16,11 @@ import { useChat } from "../contexts/ChatContext";
 export default function ChatDropdown({ onOpenChat }) {
   // ==================== STATE MANAGEMENT ====================
   const { unreadCount, refreshUnreadCount } = useChat();
-  
+
   // UI states
   const [open, setOpen] = useState(false); // Dropdown open/close state
   const [loading, setLoading] = useState(false); // Loading state
-  
+
   // Data states
   const [conversations, setConversations] = useState([]); // List of conversations
   const wrapperRef = useRef(null);
@@ -58,7 +59,7 @@ export default function ChatDropdown({ onOpenChat }) {
         conv => conv.conversationType !== 'chatbot'
       );
       setConversations(filteredConversations);
-      
+
       // Update unread message count
       refreshUnreadCount();
     } catch (err) {
@@ -109,11 +110,11 @@ export default function ChatDropdown({ onOpenChat }) {
     const isGroup = conv.conversationType === "group";
 
     if (isGroup) {
-      return conv.groupAvatar || getUserAvatarUrl({ name: conv.groupName || 'Group' }, AVATAR_SIZES.MEDIUM);
+      return { url: conv.groupAvatar || null, name: conv.groupName || 'Group' };
     }
 
     const otherUser = conv.otherParticipants?.[0]?.user;
-    return getUserAvatarUrl(otherUser, AVATAR_SIZES.MEDIUM);
+    return { url: otherUser?.avatarUrl || null, name: otherUser?.name || 'User' };
   };
 
   const getName = (conv) => {
@@ -171,60 +172,58 @@ export default function ChatDropdown({ onOpenChat }) {
                   conversations
                     .filter(conv => conv.conversationType !== 'chatbot') // Ensure chatbot conversations are excluded
                     .map((conv) => {
-                    const avatar = getAvatar(conv);
-                    const name = getName(conv);
-                    const isUnread = conv.unreadCount > 0;
+                      const avatar = getAvatar(conv);
+                      const name = getName(conv);
+                      const isUnread = conv.unreadCount > 0;
 
-                    return (
-                      <div
-                        key={conv._id}
-                        className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 transition-colors relative ${isUnread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
-                        onClick={() => {
-                          setOpen(false);
-                          onOpenChat(conv);
-                        }}
-                      >
-                        <div className="relative">
-                          <img
-                            src={avatar}
-                            alt={name}
-                            className="w-12 h-12 rounded-full object-cover"
-                            onError={(e) => {
-                              e.target.src = getUserAvatarUrl({ name: name }, AVATAR_SIZES.MEDIUM);
-                            }}
-                          />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className={`text-sm truncate ${isUnread ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-900 dark:text-white'}`}>
-                            {name}
+                      return (
+                        <div
+                          key={conv._id}
+                          className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 transition-colors relative ${isUnread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                          onClick={() => {
+                            setOpen(false);
+                            onOpenChat(conv);
+                          }}
+                        >
+                          <div className="relative">
+                            <Avatar
+                              src={avatar.url}
+                              name={avatar.name}
+                              size={48}
+                              className=""
+                            />
                           </div>
-                          <div className={`text-xs truncate ${isUnread ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                            {conv.lastMessage?.messageType === "emote" ? (
-                              <span className="text-lg">{conv.lastMessage.emote}</span>
-                            ) : conv.lastMessage?.messageType === "image" ? (
-                              "Đã gửi một hình ảnh"
-                            ) : (
-                              conv.lastMessage?.content || "Chưa có tin nhắn"
+
+                          <div className="flex-1 min-w-0">
+                            <div className={`text-sm truncate ${isUnread ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-900 dark:text-white'}`}>
+                              {name}
+                            </div>
+                            <div className={`text-xs truncate ${isUnread ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                              {conv.lastMessage?.messageType === "emote" ? (
+                                <span className="text-lg">{conv.lastMessage.emote}</span>
+                              ) : conv.lastMessage?.messageType === "image" ? (
+                                "Đã gửi một hình ảnh"
+                              ) : (
+                                conv.lastMessage?.content || "Chưa có tin nhắn"
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-1">
+                            <div className={`text-[10px] ${isUnread ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                              {conv.lastActivity
+                                ? new Date(conv.lastActivity).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                                : conv.updatedAt
+                                  ? new Date(conv.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                                  : ""}
+                            </div>
+                            {isUnread && (
+                              <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
                             )}
                           </div>
                         </div>
-                        
-                        <div className="flex flex-col items-end gap-1">
-                          <div className={`text-[10px] ${isUnread ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                            {conv.lastActivity
-                              ? new Date(conv.lastActivity).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-                              : conv.updatedAt
-                              ? new Date(conv.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-                              : ""}
-                          </div>
-                          {isUnread && (
-                            <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
+                      );
+                    })
                 )}
               </>
             )}

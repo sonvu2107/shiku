@@ -47,6 +47,7 @@ import { getAccessToken } from '../utils/tokenManager.js';
 import { cn } from '../utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '../contexts/ToastContext';
+import Avatar from '../components/Avatar';
 
 // --- UI COMPONENTS (Đồng bộ Design System) ---
 
@@ -1015,10 +1016,11 @@ const GroupDetail = () => {
                               <div className="space-y-3">
                                  {group.members?.filter(m => ['owner', 'admin'].includes(m.role)).map(member => (
                                     <div key={member.user._id} className="flex items-center gap-3">
-                                       <img
-                                          src={getUserAvatarUrl(member.user, AVATAR_SIZES.SMALL)}
-                                          className="w-8 h-8 rounded-full bg-neutral-200"
-                                          alt=""
+                                       <Avatar
+                                          src={member.user.avatarUrl}
+                                          name={member.user?.name || member.user?.fullName || 'User'}
+                                          size={32}
+                                          className=""
                                        />
                                        <div className="text-sm font-medium">
                                           {member.user?.name || member.user?.fullName || member.user?.username || 'Unknown'}
@@ -1143,10 +1145,11 @@ const GroupDetail = () => {
                                  }}>
                                     {/* Avatar with role badge */}
                                     <div className="relative flex-shrink-0">
-                                       <img
-                                          src={getUserAvatarUrl(member.user, AVATAR_SIZES.MEDIUM)}
-                                          className="w-14 h-14 rounded-full bg-neutral-200 dark:bg-neutral-800 border-2 border-neutral-200 dark:border-neutral-700"
-                                          alt=""
+                                       <Avatar
+                                          src={member.user.avatarUrl}
+                                          name={member.user?.name || member.user?.fullName || 'User'}
+                                          size={56}
+                                          className="border-2 border-neutral-200 dark:border-neutral-700"
                                        />
                                        <div className={cn(
                                           "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white dark:border-neutral-900 flex items-center justify-center",
@@ -1291,10 +1294,11 @@ const GroupDetail = () => {
                               {pendingRequests.map((req) => (
                                  <SpotlightCard key={req._id} className="p-5">
                                     <div className="flex items-center gap-4">
-                                       <img
-                                          src={getUserAvatarUrl(req.user, AVATAR_SIZES.SMALL)}
-                                          className="w-12 h-12 rounded-full bg-neutral-200"
-                                          alt=""
+                                       <Avatar
+                                          src={req.user?.avatarUrl}
+                                          name={req.user?.name || req.user?.fullName || 'User'}
+                                          size={48}
+                                          className=""
                                        />
                                        <div className="flex-1 min-w-0">
                                           <div className="font-bold text-base mb-1">{req.user?.name || req.user?.fullName || req.user?.username || 'Người dùng'}</div>

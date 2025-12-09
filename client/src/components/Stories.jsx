@@ -3,6 +3,7 @@ import { Plus, Play } from 'lucide-react';
 import { api } from '../api';
 import StoryCreator from './StoryCreator';
 import StoryViewer from './StoryViewer';
+import Avatar from './Avatar';
 
 /**
  * Stories - Component displaying stories feed
@@ -151,10 +152,11 @@ function Stories({ user }) {
                     onClick={() => setShowStoryCreator(true)}
                     className="block w-[80px] h-[80px] rounded-full overflow-hidden relative group hover:scale-105 transition-all duration-200 border-2 border-gray-300 dark:border-gray-600"
                   >
-                    <img
-                      src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`}
-                      alt={user.name}
-                      className="w-full h-full object-cover"
+                    <Avatar
+                      src={user.avatarUrl}
+                      name={user.name}
+                      size={80}
+                      className="w-full h-full"
                     />
                   </button>
                   {/* Plus Icon Circle - Outside the border */}
@@ -248,10 +250,11 @@ function Stories({ user }) {
                   {/* User Avatar with Ring */}
                   <div className="absolute top-1 left-1">
                     <div className={`w-6 h-6 rounded-full ring-2 ${viewed ? 'ring-gray-400' : 'ring-blue-500'} ring-offset-1 ring-offset-transparent overflow-hidden`}>
-                      <img
-                        src={author.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name || 'User')}`}
-                        alt={author.name}
-                        className="w-full h-full object-cover"
+                      <Avatar
+                        src={author.avatarUrl}
+                        name={author.name || 'User'}
+                        size={24}
+                        className="w-full h-full"
                       />
                     </div>
                   </div>

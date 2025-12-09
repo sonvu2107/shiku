@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { cn } from '../utils/cn';
 import { getUserAvatarUrl, AVATAR_SIZES } from '../utils/avatarUtils';
 import { useToast } from '../contexts/ToastContext';
+import Avatar from '../components/Avatar';
 
 // --- UI COMPONENTS (Đồng bộ Design System) ---
 
@@ -136,13 +137,12 @@ const SpotlightGroupCard = ({ group, onJoin, onLeave, userRole, isJoining, isLea
                {/* Owner Info - Chủ sở hữu */}
                {group.owner && (
                   <div className="flex items-center gap-2 mb-5 pb-3 border-b border-neutral-100 dark:border-neutral-800">
-                     <div className="w-6 h-6 rounded-full overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex-shrink-0">
-                        <img
-                           src={getUserAvatarUrl(group.owner, AVATAR_SIZES.SMALL)}
-                           alt={group.owner?.name || group.owner?.fullName || group.owner?.username || 'Owner'}
-                           className="w-full h-full object-cover"
-                        />
-                     </div>
+                     <Avatar
+                        src={group.owner.avatarUrl}
+                        name={group.owner?.name || group.owner?.fullName || 'Owner'}
+                        size={24}
+                        className="flex-shrink-0"
+                     />
                      <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500">Chủ sở hữu</p>
                         <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300 truncate">

@@ -194,6 +194,41 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check if file is video
+    const isVideo = file.type.startsWith('video/');
+
+    // Check file size limits
+    const maxSize = isVideo ? 10 * 1024 * 1024 : 5 * 1024 * 1024; // 10MB for video, 5MB for images
+    if (file.size > maxSize) {
+      showError(`File quá lớn. Tối đa ${isVideo ? '10MB' : '5MB'} cho ${isVideo ? 'video' : 'ảnh'}`);
+      return;
+    }
+
+    // Video: Chỉ admin mới được upload video avatar
+    if (isVideo) {
+      // Kiểm tra quyền admin
+      const isAdmin = user?.role === 'admin' ||
+        Object.keys(user?.roleData?.permissions || {}).some(k => k.startsWith('admin.') && user?.roleData?.permissions[k]);
+
+      if (!isAdmin) {
+        showError('⚠️ Tính năng avatar video đang trong giai đoạn thử nghiệm và chỉ dành cho Admin. Vui lòng sử dụng ảnh thay thế.');
+        return;
+      }
+
+      try {
+        setAvatarUploading(true);
+        const { url } = await uploadImage(file);
+        setForm(f => ({ ...f, avatarUrl: url }));
+        setUser(prev => prev ? { ...prev, avatarUrl: url } : null);
+        showSuccess('Đã cập nhật avatar video! (Tính năng thử nghiệm)');
+      } catch (err) {
+        showError('Tải lên thất bại: ' + err.message);
+      } finally {
+        setAvatarUploading(false);
+      }
+      return;
+    }
+
     // GIF: Upload trực tiếp không qua crop để giữ animation
     // (Canvas crop chỉ lấy frame đầu tiên, sẽ mất animation)
     if (file.type === 'image/gif') {
@@ -211,7 +246,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
       return;
     }
 
-    // Các định dạng khác: Mở cropper như bình thường
+    // Các định dạng ảnh khác: Mở cropper như bình thường
     setSelectedAvatarFile(file);
     setShowAvatarCropper(true);
   };
