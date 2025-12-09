@@ -8,6 +8,7 @@ import { generateAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import UserAvatar, { UserTitle, UserBadge } from "../components/UserAvatar";
 import ProfileEffect from "../components/ProfileEffect";
 import CultivationBadge from "../components/CultivationBadge";
+import StatusBadge from "../components/StatusBadge";
 import SpotifyEmbed from "../components/SpotifyEmbed";
 import { cn } from "../utils/cn";
 import { useToast } from "../contexts/ToastContext";
@@ -626,11 +627,16 @@ export default function UserProfile() {
               </div>
 
               {user.nickname && (
-                <p className="text-neutral-500 dark:text-neutral-400 text-lg font-medium mb-4">{user.nickname}</p>
+                <p className="text-neutral-500 dark:text-neutral-400 text-lg font-medium mb-2">{user.nickname}</p>
               )}
-              {!user.nickname && (
-                <div className="mb-4"></div>
+
+              {/* Status Badge */}
+              {user.statusUpdate?.text && (
+                <div className="mb-4 flex justify-center md:justify-start">
+                  <StatusBadge status={user.statusUpdate} size="md" />
+                </div>
               )}
+              {!user.statusUpdate?.text && <div className="mb-4"></div>}
 
               {/* Stats Row (Mobile - Grid 2 columns) */}
               <div className="grid grid-cols-2 md:hidden gap-4 mb-6 max-w-xs mx-auto md:mx-0">
