@@ -103,14 +103,21 @@ export default function MessageList({
   // Close options menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (showOptionsMenu && !e.target.closest('.message-options-menu')) {
-        setShowOptionsMenu(null);
-        setHoveredMessageId(null);
-        // Clear any pending timeout
-        if (hoverTimeoutRef.current) {
-          clearTimeout(hoverTimeoutRef.current);
-          hoverTimeoutRef.current = null;
-        }
+      if (!showOptionsMenu) return;
+
+      const menu = dropdownRefs.current[showOptionsMenu];
+      const btn = buttonRefs.current[showOptionsMenu];
+
+      // Check if click is inside menu or button using refs
+      if (menu && menu.contains(e.target)) return;
+      if (btn && btn.contains(e.target)) return;
+
+      setShowOptionsMenu(null);
+      setHoveredMessageId(null);
+      // Clear any pending timeout
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+        hoverTimeoutRef.current = null;
       }
     };
 
@@ -333,31 +340,9 @@ export default function MessageList({
     return styles;
   };
 
-  // Update dropdown position when menu opens (desktop only)
-  useEffect(() => {
-    if (showOptionsMenu && !isMobile) {
-      // Use double requestAnimationFrame to ensure DOM is fully rendered and measured
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const buttonEl = buttonRefs.current[showOptionsMenu];
-          const dropdownEl = dropdownRefs.current[showOptionsMenu];
-
-          if (buttonEl && dropdownEl) {
-            const position = calculateDropdownPosition(buttonEl, dropdownEl);
-
-            // Apply styles
-            Object.keys(position).forEach(key => {
-              if (key === 'marginTop' || key === 'marginBottom') {
-                dropdownEl.style[key] = `${position[key]}px`;
-              } else {
-                dropdownEl.style[key] = position[key] === 'auto' ? 'auto' : `${position[key]}px`;
-              }
-            });
-          }
-        });
-      });
-    }
-  }, [showOptionsMenu, isMobile]);
+  // NOTE: Dynamic dropdown positioning disabled - now using simple CSS absolute positioning
+  // This was causing conflicts with the absolute positioning approach
+  // useEffect(() => {...}, [showOptionsMenu, isMobile]);
 
   // Calculate which message is the last one each user has read (Facebook-style)
   // Map: messageId -> array of users who have this as their last read message
@@ -599,24 +584,7 @@ export default function MessageList({
 
             {/* Hover actions: Options button + Emoji picker */}
             {!message.isDeleted && message.messageType !== 'system' && (hoveredMessageId === message._id || showOptionsMenu === message._id) && (
-              <div
-                className="flex items-center gap-1 message-options-menu"
-                onMouseEnter={() => {
-                  if (hoverTimeoutRef.current) {
-                    clearTimeout(hoverTimeoutRef.current);
-                    hoverTimeoutRef.current = null;
-                  }
-                  setHoveredMessageId(message._id);
-                }}
-                onMouseLeave={() => {
-                  if (showOptionsMenu !== message._id) {
-                    hoverTimeoutRef.current = setTimeout(() => {
-                      setHoveredMessageId(null);
-                      hoverTimeoutRef.current = null;
-                    }, 300);
-                  }
-                }}
-              >
+              <div className={`absolute top-1 z-10 flex items-center gap-1 ${isOwn ? '-left-16' : '-right-16'}`}>
                 {/* Options button (Edit/Delete) - only for own messages */}
                 {isOwn && (
                   <div className="relative">
@@ -626,36 +594,46 @@ export default function MessageList({
                         else delete buttonRefs.current[message._id];
                       }}
                       onClick={(e) => {
+                        e.stopPropagation();
+                        // Clear any pending timeout to prevent flickering
+                        if (hoverTimeoutRef.current) {
+                          clearTimeout(hoverTimeoutRef.current);
+                          hoverTimeoutRef.current = null;
+                        }
+                        setHoveredMessageId(message._id);
+
                         if (showOptionsMenu === message._id) {
                           setShowOptionsMenu(null);
                         } else {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setDropdownPosition({
-                            top: rect.top - 4,
-                            left: rect.left
-                          });
                           setShowOptionsMenu(message._id);
                         }
                       }}
-                      className="p-1 flex items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onMouseEnter={() => {
+                        if (hoverTimeoutRef.current) {
+                          clearTimeout(hoverTimeoutRef.current);
+                          hoverTimeoutRef.current = null;
+                        }
+                        setHoveredMessageId(message._id);
+                      }}
+                      className="message-options-button p-1 flex items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                       title="Tùy chọn"
                     >
                       <MoreHorizontal size={14} className="text-gray-500 dark:text-gray-400" />
                     </button>
 
-                    {/* Dropdown menu - using fixed positioning */}
+                    {/* Dropdown menu - using absolute positioning */}
                     {showOptionsMenu === message._id && (
                       <div
                         ref={(el) => {
                           if (el) dropdownRefs.current[message._id] = el;
                           else delete dropdownRefs.current[message._id];
                         }}
-                        className="fixed bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px] z-[9999] message-options-menu"
-                        style={{
-                          top: `${dropdownPosition.top}px`,
-                          left: `${dropdownPosition.left}px`,
-                          transform: 'translateY(-100%)'
-                        }}
+                        className="absolute message-options-menu bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px] z-[9999]"
+                        style={{ bottom: '100%', left: 0, marginBottom: '4px' }}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onMouseEnter={() => setHoveredMessageId(message._id)}
                       >
                         {message.messageType !== 'image' && message.messageType !== 'emote' && (
                           <button
