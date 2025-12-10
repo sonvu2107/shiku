@@ -7,6 +7,7 @@
 import { useState, useEffect, memo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
 import { CultivationProvider, useCultivation } from '../hooks/useCultivation.jsx';
 import { CULTIVATION_REALMS } from '../services/cultivationAPI.js';
 import { api } from '../api';
@@ -46,16 +47,17 @@ const CultivationContent = memo(function CultivationContent() {
   const [clickCooldown, setClickCooldown] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [logExpanded, setLogExpanded] = useState(false);
-  const [passiveExpStatus, setPassiveExpStatus] = useState({ 
-    pendingExp: 0, 
-    multiplier: 1, 
-    minutesElapsed: 0 
+  const [passiveExpStatus, setPassiveExpStatus] = useState({
+    pendingExp: 0,
+    multiplier: 1,
+    minutesElapsed: 0
   });
   const [collectingPassiveExp, setCollectingPassiveExp] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const [flashOpacity, setFlashOpacity] = useState(0);
   const [isBreakingThrough, setIsBreakingThrough] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [modalMsg, setModalMsg] = useState("");
   const logEndRef = useRef(null);
 
@@ -148,7 +150,7 @@ const CultivationContent = memo(function CultivationContent() {
       }
       if (notification.breakthroughSuccess === undefined || notification.breakthroughSuccess === null) {
         addLog(
-          notification.message, 
+          notification.message,
           notification.type === 'success' ? 'success' : notification.type === 'error' ? 'danger' : 'normal'
         );
       }
@@ -162,13 +164,13 @@ const CultivationContent = memo(function CultivationContent() {
     if (clickCooldown || checkingIn || isBreakingThrough) return;
 
     setClickCooldown(true);
-    
+
     // Tính toán exp và linh thạch dựa trên cảnh giới
     const realmLevel = cultivation?.realm?.level || 1;
-    
+
     // Backend cho phép: level 1 = 10, level 2 = 20, level 3 = 50, level 4 = 100, level 5+ = 200
     const maxExpAllowed = Math.min(200, Math.max(10, realmLevel * 20));
-    
+
     // Tính toán exp dựa trên exp yêu cầu cho mỗi cảnh giới
     // Mục tiêu: khoảng 50-200 lần bấm để lên cảnh giới tiếp theo
     // Level 1: cần 100 exp -> 1-3 exp/lần (33-100 lần)
@@ -190,12 +192,12 @@ const CultivationContent = memo(function CultivationContent() {
       10: { min: 100, max: 200 }, // Tiên Nhân: 100-200 exp
       11: { min: 100, max: 200 }  // Thiên Đế: 100-200 exp
     };
-    
+
     const range = expRanges[realmLevel] || expRanges[1];
     const baseExpMin = range.min;
     const baseExpMax = Math.min(maxExpAllowed, range.max);
     const expGain = Math.floor(Math.random() * (baseExpMax - baseExpMin + 1)) + baseExpMin;
-    
+
     const rect = e.currentTarget.getBoundingClientRect();
     spawnParticle(rect.left + rect.width / 2, rect.top, `+${expGain} Tu Vi`, 'cyan');
 
@@ -362,25 +364,71 @@ const CultivationContent = memo(function CultivationContent() {
             THIÊN ĐẠO CÁC
           </h1>
 
-          <div className="w-8 sm:w-16"></div>
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="sm:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-purple-900/50 text-purple-300 border border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.2)] active:scale-95 transition-transform"
+          >
+            <Menu size={20} />
+          </button>
         </div>
 
         <div className="mb-4 sm:mb-6 md:mb-8">
-          <div className="grid grid-cols-4 gap-2 sm:hidden">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-tight transition-all ${activeTab === tab.id
-                  ? 'bg-purple-900/50 text-purple-300 border border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.3)]'
-                  : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 active:bg-slate-800/50'
-                  }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          
+          {/* Mobile Slide-in Menu */}
+          <AnimatePresence>
+            {mobileMenuOpen && (
+              <>
+                {/* Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="sm:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+                  onClick={() => setMobileMenuOpen(false)}
+                />
+
+                {/* Menu Panel */}
+                <motion.div
+                  initial={{ x: '100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '100%' }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                  className="sm:hidden fixed top-0 right-0 h-full w-1/2 bg-[#0a0a1a]/98 backdrop-blur-xl border-l border-purple-500/30 z-50 shadow-[0_0_50px_rgba(168,85,247,0.3)]"
+                >
+                  {/* Menu Header */}
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-purple-500/20">
+                    <span className="text-amber-400 font-title text-lg tracking-widest">MENU</span>
+                    <button
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-9 h-9 flex items-center justify-center rounded-lg text-purple-300 hover:bg-purple-900/50 active:scale-95 transition-all"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="py-3 px-2">
+                    {tabs.map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          setActiveTab(tab.id);
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`w-full px-4 py-3 mb-1 text-left text-sm font-bold uppercase tracking-wide rounded-lg transition-all ${activeTab === tab.id
+                          ? 'bg-purple-900/60 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+                          : 'text-slate-400 active:bg-slate-800/50'
+                          }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+
           <div className="hidden sm:flex justify-center gap-2 md:gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0">
             {tabs.map((tab) => (
               <button
@@ -419,7 +467,7 @@ const CultivationContent = memo(function CultivationContent() {
               logEndRef={logEndRef}
             />
           )}
-          
+
           {activeTab === 'stats' && <StatsTab />}
           {activeTab === 'quests' && <QuestsTab onCheckIn={handleCheckIn} checkingIn={checkingIn} />}
           {activeTab === 'shop' && <ShopTab />}
@@ -447,10 +495,10 @@ const CultivationContent = memo(function CultivationContent() {
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-[#0f172a] border-2 border-amber-600 rotate-45 flex items-center justify-center z-10">
                 <span className="text-xl font-bold text-amber-500 -rotate-45">✓</span>
               </div>
-              
+
               <h3 className="text-2xl font-bold text-amber-500 mb-4 font-title mt-4 tracking-wider">ĐỘ KIẾP THÀNH CÔNG</h3>
               <p className="text-slate-300 mb-8 font-serif text-sm leading-relaxed">{modalMsg}</p>
-              
+
               <motion.button
                 onClick={() => setModalOpen(false)}
                 className="px-8 py-3 bg-gradient-to-r from-amber-800 to-amber-700 hover:from-amber-700 hover:to-amber-600 text-amber-100 rounded-lg border border-amber-600 font-bold uppercase text-xs tracking-wider shadow-lg"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Heart, ThumbsUp, Laugh, Frown, Angry, Smile, Eye, Trash2, BarChart3 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Heart, ThumbsUp, Laugh, Frown, Angry, Smile, Eye, Trash2, BarChart3, Volume2, VolumeX } from 'lucide-react';
 import { api } from '../api';
 import StoryAnalytics from './StoryAnalytics';
 import VerifiedBadge from './VerifiedBadge';
@@ -19,12 +19,14 @@ export default function StoryViewer({
   const [currentIndex, setCurrentIndex] = useState(initialStoryIndex);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Video starts muted for autoplay
   const [showReactions, setShowReactions] = useState(false);
   const [viewersList, setViewersList] = useState([]);
   const [showViewers, setShowViewers] = useState(false);
   const [reactionsList, setReactionsList] = useState([]);
   const [showReactionsList, setShowReactionsList] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showOwnerMenu, setShowOwnerMenu] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const progressInterval = useRef(null);
@@ -317,6 +319,17 @@ export default function StoryViewer({
 
           {/* Right Controls */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Mute/Unmute Button - Only show for videos */}
+            {currentStory?.mediaType === 'video' && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
+                className="text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 backdrop-blur-md"
+                title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
+              >
+                {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+              </button>
+            )}
+
             {/* Pause/Play Button */}
             <button
               onClick={(e) => { e.stopPropagation(); setIsPaused(!isPaused); }}
@@ -331,12 +344,37 @@ export default function StoryViewer({
 
             {/* More options menu for owner */}
             {isOwner && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowViewers(!showViewers); }}
-                className="text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 backdrop-blur-md"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
-              </button>
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowOwnerMenu(!showOwnerMenu); }}
+                  className="text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 backdrop-blur-md"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
+                </button>
+
+                {/* Owner Dropdown Menu */}
+                {showOwnerMenu && (
+                  <div className="absolute right-0 top-full mt-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden shadow-2xl min-w-[180px] z-50">
+                    {/* Analytics */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowOwnerMenu(false); setShowAnalytics(true); }}
+                      className="w-full px-4 py-3 flex items-center gap-3 text-white hover:bg-white/10 transition-colors text-left"
+                    >
+                      <BarChart3 size={18} />
+                      <span className="text-sm font-medium">Thống kê</span>
+                    </button>
+
+                    {/* Delete */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowOwnerMenu(false); handleDelete(); }}
+                      className="w-full px-4 py-3 flex items-center gap-3 text-red-400 hover:bg-red-500/20 transition-colors text-left border-t border-white/10"
+                    >
+                      <Trash2 size={18} />
+                      <span className="text-sm font-medium">Xóa story</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Close */}
@@ -388,7 +426,7 @@ export default function StoryViewer({
               src={currentStory.mediaUrl}
               autoPlay
               playsInline
-              muted
+              muted={isMuted}
               className="w-full h-full object-contain"
               onLoadedMetadata={() => setProgress(0)}
             />
@@ -445,34 +483,18 @@ export default function StoryViewer({
             </div>
           )}
 
-          {/* Owner actions */}
+          {/* Owner: Show view count indicator at bottom */}
           {isOwner && (
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center">
               <button
                 onClick={loadViewers}
-                className="bg-white/10 backdrop-blur-md text-white rounded-xl px-4 py-3 flex items-center gap-2 hover:bg-white/20 transition-all border border-white/10 flex-1 justify-center"
+                className="bg-white/10 backdrop-blur-md text-white rounded-full px-4 py-2 flex items-center gap-2 hover:bg-white/20 transition-all border border-white/10"
                 disabled={loading}
               >
-                <Eye size={18} />
-                <span className="text-sm font-bold">
-                  {currentStory.viewCount || 0}
+                <Eye size={16} />
+                <span className="text-sm font-medium">
+                  {currentStory.viewCount || 0} lượt xem
                 </span>
-              </button>
-
-              <button
-                onClick={() => setShowAnalytics(true)}
-                className="bg-white/10 backdrop-blur-md text-white rounded-xl px-4 py-3 flex items-center gap-2 hover:bg-white/20 transition-all border border-white/10 flex-1 justify-center"
-              >
-                <BarChart3 size={18} />
-                <span className="text-sm font-bold">Thống kê</span>
-              </button>
-
-              <button
-                onClick={handleDelete}
-                className="bg-red-500/20 backdrop-blur-md text-red-400 rounded-xl px-4 py-3 flex items-center gap-2 hover:bg-red-500/30 transition-all border border-red-500/20 flex-1 justify-center"
-              >
-                <Trash2 size={18} />
-                <span className="text-sm font-bold">Xóa</span>
               </button>
             </div>
           )}

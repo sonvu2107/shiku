@@ -122,7 +122,7 @@ const QuestsTab = memo(function QuestsTab({ onCheckIn, checkingIn }) {
 
       {/* Lịch Điểm Danh 7 Ngày */}
       <div className="spirit-tablet rounded-xl p-5 lg:p-6 border border-amber-500/30">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <h3 className="font-bold text-gold font-title tracking-wide text-lg lg:text-xl">ĐIỂM DANH HÀNG NGÀY</h3>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-amber-400">Streak: {cultivation.loginStreak || 0} ngày</span>

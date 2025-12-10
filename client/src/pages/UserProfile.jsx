@@ -763,7 +763,7 @@ export default function UserProfile() {
                       : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/20"
                   )}
                 >
-                  <tab.icon size={14} className="md:w-4 md:h-4" strokeWidth={2.5} />
+                  <tab.icon size={14} className="hidden md:block md:w-4 md:h-4" strokeWidth={2.5} />
                   <span className="whitespace-nowrap">{tab.label}</span>
                 </button>
               ))}

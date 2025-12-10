@@ -332,7 +332,7 @@ export default function Groups() {
                            : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900"
                      )}
                   >
-                     <tab.icon size={16} className="flex-shrink-0" />
+                     <tab.icon size={16} className="flex-shrink-0 hidden md:block" />
                      <span>{tab.label}</span>
                      {tab.count > 0 && (
                         <span className={cn(

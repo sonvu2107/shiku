@@ -40,7 +40,7 @@ const InventoryTab = memo(function InventoryTab() {
       if (item.type?.startsWith('equipment_')) {
         const equipmentType = item.metadata?.equipmentType || item.type.replace('equipment_', '');
         let slot = null;
-        
+
         // Xác định slot dựa trên equipment type và subtype
         if (equipmentType === 'weapon') {
           slot = 'weapon';
@@ -64,7 +64,7 @@ const InventoryTab = memo(function InventoryTab() {
         } else if (equipmentType === 'power_item') {
           slot = 'powerItem';
         }
-        
+
         if (isEquipped) {
           // Unequip từ slot
           await unequipEquipment(slot);
@@ -125,11 +125,11 @@ const InventoryTab = memo(function InventoryTab() {
   const filteredItems = activeCategory === 'all'
     ? inventory
     : inventory.filter(item => {
-        if (activeCategory.startsWith('equipment_')) {
-          return item.type === activeCategory;
-        }
+      if (activeCategory.startsWith('equipment_')) {
         return item.type === activeCategory;
-      });
+      }
+      return item.type === activeCategory;
+    });
 
   // Check if item is equipped
   const isItemEquipped = (item) => {
@@ -137,21 +137,21 @@ const InventoryTab = memo(function InventoryTab() {
     if (item.type === 'badge') return equipped.badge === item.itemId;
     if (item.type === 'avatar_frame') return equipped.avatarFrame === item.itemId;
     if (item.type === 'profile_effect') return equipped.profileEffect === item.itemId;
-    
+
     // Check equipment slots
     if (item.type?.startsWith('equipment_')) {
       const equipmentType = item.metadata?.equipmentType || item.type.replace('equipment_', '');
       // So sánh với cả itemId và metadata._id
       const itemIdStr = item.itemId?.toString() || String(item.itemId);
       const metadataIdStr = item.metadata?._id?.toString?.() || item.metadata?._id?.toString() || String(item.metadata?._id || '');
-      
+
       // Helper function để so sánh ID
       const compareId = (equippedId) => {
         if (!equippedId) return false;
         const equippedIdStr = equippedId?.toString?.() || equippedId?.toString() || String(equippedId);
         return equippedIdStr === itemIdStr || equippedIdStr === metadataIdStr;
       };
-      
+
       // Map equipment types to equipped slots
       if (equipmentType === 'weapon') return compareId(equipped.weapon);
       if (equipmentType === 'magic_treasure') return compareId(equipped.magicTreasure);
@@ -173,7 +173,7 @@ const InventoryTab = memo(function InventoryTab() {
       }
       if (equipmentType === 'power_item') return compareId(equipped.powerItem);
     }
-    
+
     return item.equipped;
   };
 
@@ -190,93 +190,95 @@ const InventoryTab = memo(function InventoryTab() {
       </div>
 
       {/* Equipped Items Summary */}
-      {(equipped.title || equipped.badge || equipped.avatarFrame || equipped.profileEffect || 
-        equipped.weapon || equipped.magicTreasure || equipped.helmet || equipped.chest || 
+      {(equipped.title || equipped.badge || equipped.avatarFrame || equipped.profileEffect ||
+        equipped.weapon || equipped.magicTreasure || equipped.helmet || equipped.chest ||
         equipped.shoulder || equipped.gloves || equipped.boots || equipped.belt ||
         equipped.ring || equipped.necklace || equipped.earring || equipped.bracelet || equipped.powerItem) && (
-        <div className="bg-gradient-to-r from-emerald-900/20 to-teal-900/20 border border-emerald-500/30 rounded-xl p-3">
-          <p className="text-xs text-emerald-400 mb-2 uppercase tracking-wider">Đang trang bị</p>
-          <div className="flex flex-wrap gap-2">
-            {equipped.title && (
-              <span className="px-2 py-1 bg-amber-900/30 border border-amber-500/30 rounded text-xs text-amber-300">
-                {inventory.find(i => i.itemId === equipped.title)?.name || equipped.title}
-              </span>
-            )}
-            {equipped.badge && (
-              <span className="px-2 py-1 bg-cyan-900/30 border border-cyan-500/30 rounded text-xs text-cyan-300">
-                {inventory.find(i => i.itemId === equipped.badge)?.name || equipped.badge}
-              </span>
-            )}
-            {equipped.avatarFrame && (
-              <span className="px-2 py-1 bg-purple-900/30 border border-purple-500/30 rounded text-xs text-purple-300">
-                {inventory.find(i => i.itemId === equipped.avatarFrame)?.name || equipped.avatarFrame}
-              </span>
-            )}
-            {equipped.profileEffect && (
-              <span className="px-2 py-1 bg-pink-900/30 border border-pink-500/30 rounded text-xs text-pink-300">
-                {inventory.find(i => i.itemId === equipped.profileEffect)?.name || equipped.profileEffect}
-              </span>
-            )}
-            {/* Equipment items */}
-            {equipped.weapon && (
-              <span className="px-2 py-1 bg-red-900/30 border border-red-500/30 rounded text-xs text-red-300">
-                 {inventory.find(i => i.itemId === equipped.weapon?.toString())?.name || 'Vũ Khí'}
-              </span>
-            )}
-            {equipped.magicTreasure && (
-              <span className="px-2 py-1 bg-blue-900/30 border border-blue-500/30 rounded text-xs text-blue-300">
-                 {inventory.find(i => i.itemId === equipped.magicTreasure?.toString())?.name || 'Pháp Bảo'}
-              </span>
-            )}
-            {equipped.helmet && (
-              <span className="px-2 py-1 bg-slate-700/30 border border-slate-500/30 rounded text-xs text-slate-300">
-                 {inventory.find(i => i.itemId === equipped.helmet?.toString())?.name || 'Mũ'}
-              </span>
-            )}
-            {equipped.chest && (
-              <span className="px-2 py-1 bg-slate-700/30 border border-slate-500/30 rounded text-xs text-slate-300">
-                 {inventory.find(i => i.itemId === equipped.chest?.toString())?.name || 'Giáp Ngực'}
-              </span>
-            )}
-            {equipped.ring && (
-              <span className="px-2 py-1 bg-yellow-900/30 border border-yellow-500/30 rounded text-xs text-yellow-300">
-                 {inventory.find(i => i.itemId === equipped.ring?.toString())?.name || 'Nhẫn'}
-              </span>
-            )}
-            {equipped.necklace && (
-              <span className="px-2 py-1 bg-yellow-900/30 border border-yellow-500/30 rounded text-xs text-yellow-300">
-                 {inventory.find(i => i.itemId === equipped.necklace?.toString())?.name || 'Dây Chuyền'}
-              </span>
-            )}
-            {equipped.powerItem && (
-              <span className="px-2 py-1 bg-purple-900/30 border border-purple-500/30 rounded text-xs text-purple-300">
-                 {inventory.find(i => i.itemId === equipped.powerItem?.toString())?.name || 'Linh Khí'}
-              </span>
-            )}
+          <div className="bg-gradient-to-r from-emerald-900/20 to-teal-900/20 border border-emerald-500/30 rounded-xl p-3">
+            <p className="text-xs text-emerald-400 mb-2 uppercase tracking-wider">Đang trang bị</p>
+            <div className="flex flex-wrap gap-2">
+              {equipped.title && (
+                <span className="px-2 py-1 bg-amber-900/30 border border-amber-500/30 rounded text-xs text-amber-300">
+                  {inventory.find(i => i.itemId === equipped.title)?.name || equipped.title}
+                </span>
+              )}
+              {equipped.badge && (
+                <span className="px-2 py-1 bg-cyan-900/30 border border-cyan-500/30 rounded text-xs text-cyan-300">
+                  {inventory.find(i => i.itemId === equipped.badge)?.name || equipped.badge}
+                </span>
+              )}
+              {equipped.avatarFrame && (
+                <span className="px-2 py-1 bg-purple-900/30 border border-purple-500/30 rounded text-xs text-purple-300">
+                  {inventory.find(i => i.itemId === equipped.avatarFrame)?.name || equipped.avatarFrame}
+                </span>
+              )}
+              {equipped.profileEffect && (
+                <span className="px-2 py-1 bg-pink-900/30 border border-pink-500/30 rounded text-xs text-pink-300">
+                  {inventory.find(i => i.itemId === equipped.profileEffect)?.name || equipped.profileEffect}
+                </span>
+              )}
+              {/* Equipment items */}
+              {equipped.weapon && (
+                <span className="px-2 py-1 bg-red-900/30 border border-red-500/30 rounded text-xs text-red-300">
+                  {inventory.find(i => i.itemId === equipped.weapon?.toString())?.name || 'Vũ Khí'}
+                </span>
+              )}
+              {equipped.magicTreasure && (
+                <span className="px-2 py-1 bg-blue-900/30 border border-blue-500/30 rounded text-xs text-blue-300">
+                  {inventory.find(i => i.itemId === equipped.magicTreasure?.toString())?.name || 'Pháp Bảo'}
+                </span>
+              )}
+              {equipped.helmet && (
+                <span className="px-2 py-1 bg-slate-700/30 border border-slate-500/30 rounded text-xs text-slate-300">
+                  {inventory.find(i => i.itemId === equipped.helmet?.toString())?.name || 'Mũ'}
+                </span>
+              )}
+              {equipped.chest && (
+                <span className="px-2 py-1 bg-slate-700/30 border border-slate-500/30 rounded text-xs text-slate-300">
+                  {inventory.find(i => i.itemId === equipped.chest?.toString())?.name || 'Giáp Ngực'}
+                </span>
+              )}
+              {equipped.ring && (
+                <span className="px-2 py-1 bg-yellow-900/30 border border-yellow-500/30 rounded text-xs text-yellow-300">
+                  {inventory.find(i => i.itemId === equipped.ring?.toString())?.name || 'Nhẫn'}
+                </span>
+              )}
+              {equipped.necklace && (
+                <span className="px-2 py-1 bg-yellow-900/30 border border-yellow-500/30 rounded text-xs text-yellow-300">
+                  {inventory.find(i => i.itemId === equipped.necklace?.toString())?.name || 'Dây Chuyền'}
+                </span>
+              )}
+              {equipped.powerItem && (
+                <span className="px-2 py-1 bg-purple-900/30 border border-purple-500/30 rounded text-xs text-purple-300">
+                  {inventory.find(i => i.itemId === equipped.powerItem?.toString())?.name || 'Linh Khí'}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Category Filter */}
-      <div className="flex flex-wrap gap-2 pb-2">
-        {categories.map(cat => {
-          const count = cat.id === 'all' ? inventory.length : inventory.filter(i => i.type === cat.id).length;
-          if (count === 0 && cat.id !== 'all') return null;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === cat.id
-                ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300'
-                : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
-                }`}
-            >
-              {cat.icon && <span className="mr-1.5 inline-flex items-center">{cat.icon}</span>}
-              {cat.label}
-              {count > 0 && <span className="ml-1 opacity-60">({count})</span>}
-            </button>
-          );
-        })}
+      {/* Category Filter - Horizontal scroll on mobile */}
+      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-2 min-w-max sm:flex-wrap sm:min-w-0">
+          {categories.map(cat => {
+            const count = cat.id === 'all' ? inventory.length : inventory.filter(i => i.type === cat.id).length;
+            if (count === 0 && cat.id !== 'all') return null;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === cat.id
+                  ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300'
+                  : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
+                  }`}
+              >
+                {cat.icon && <span className="mr-1.5 inline-flex items-center">{cat.icon}</span>}
+                {cat.label}
+                {count > 0 && <span className="ml-1 opacity-60">({count})</span>}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {filteredItems.length === 0 ? (
@@ -306,8 +308,8 @@ const InventoryTab = memo(function InventoryTab() {
                 onMouseLeave={handleMouseLeave}
                 onMouseMove={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
-                  setTooltipPosition({ 
-                    x: rect.right, 
+                  setTooltipPosition({
+                    x: rect.right,
                     y: rect.top,
                     left: rect.left,
                     right: rect.right,
@@ -374,22 +376,22 @@ const InventoryTab = memo(function InventoryTab() {
                         resistance: { label: 'Kháng Cự', color: 'text-teal-400' },
                         luck: { label: 'Vận Khí', color: 'text-indigo-400' }
                       };
-                      
+
                       const statsToShow = Object.entries(stats)
                         .filter(([key, value]) => {
                           // Bỏ qua elemental_damage (là object/Map)
                           if (key === 'elemental_damage') return false;
                           // Chỉ hiển thị stats có giá trị > 0 và là number (không phải object/array)
-                          return value != null && 
-                                 value !== 0 && 
-                                 typeof value === 'number' && 
-                                 !isNaN(value) &&
-                                 isFinite(value);
+                          return value != null &&
+                            value !== 0 &&
+                            typeof value === 'number' &&
+                            !isNaN(value) &&
+                            isFinite(value);
                         })
                         .slice(0, 5); // Hiển thị tối đa 5 stats đầu tiên
-                      
+
                       if (statsToShow.length === 0) return null;
-                      
+
                       return (
                         <div className="text-[10px] text-slate-400 mt-1 space-y-0.5">
                           {statsToShow.map(([stat, value]) => {
@@ -398,7 +400,7 @@ const InventoryTab = memo(function InventoryTab() {
                             const numValue = typeof value === 'number' ? value : (typeof value === 'string' ? parseFloat(value) : 0);
                             const displayValue = numValue > 0 ? `+${numValue.toLocaleString()}` : numValue.toLocaleString();
                             const suffix = (stat === 'crit_rate' || stat === 'criticalRate' || stat === 'crit_damage' || stat === 'dodge' || stat === 'evasion' || stat === 'hit_rate') ? '%' : '';
-                            
+
                             return (
                               <p key={stat}>
                                 {statInfo.label}: <span className={statInfo.color}>{displayValue}{suffix}</span>
@@ -432,10 +434,10 @@ const InventoryTab = memo(function InventoryTab() {
 
       {/* Tooltip Portal */}
       {hoveredItem && (
-        <ItemTooltip 
-          item={hoveredItem} 
-          stats={hoveredItem.metadata?.stats || hoveredItem.stats} 
-          position={tooltipPosition} 
+        <ItemTooltip
+          item={hoveredItem}
+          stats={hoveredItem.metadata?.stats || hoveredItem.stats}
+          position={tooltipPosition}
         />
       )}
     </div>

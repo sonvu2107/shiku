@@ -44,31 +44,44 @@ const IdentityHeader = memo(function IdentityHeader({ cultivation, currentRealm 
   }, [showDetails]);
 
   return (
-    <div className="flex items-center gap-5 border-b-2 border-amber-500/20 pb-5 mb-6 relative">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 border-b-2 border-amber-500/20 pb-4 sm:pb-5 mb-5 sm:mb-6 relative">
       {/* Decorative line */}
       <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent"></div>
 
       {/* Avatar */}
-      <div className="relative">
-        <div className="w-18 h-18 lg:w-20 lg:h-20 rounded-full bg-slate-800 border-2 border-amber-500/50 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.2)] overflow-hidden ring-2 ring-amber-500/20" style={{ width: '4.5rem', height: '4.5rem' }}>
-          {user?.avatarUrl ? (
-            <Avatar
-              src={user.avatarUrl}
-              name={displayName}
-              size={72}
-              className=""
-            />
-          ) : (
-            <span className="text-3xl lg:text-4xl">{currentRealm?.icon || '👤'}</span>
-          )}
+      <div className="flex items-center gap-4 sm:gap-0 sm:block">
+        <div className="relative">
+          <div className="w-14 h-14 sm:w-[4.5rem] sm:h-[4.5rem] lg:w-20 lg:h-20 rounded-full bg-slate-800 border-2 border-amber-500/50 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.2)] overflow-hidden ring-2 ring-amber-500/20">
+            {user?.avatarUrl ? (
+              <Avatar
+                src={user.avatarUrl}
+                name={displayName}
+                size={72}
+                className=""
+              />
+            ) : (
+              <span className="text-3xl lg:text-4xl">{currentRealm?.icon || '👤'}</span>
+            )}
+          </div>
+          <div className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 bg-slate-950 border sm:border-2 border-amber-500/60 text-[7px] sm:text-[9px] lg:text-[10px] text-amber-500 px-1 sm:px-1.5 lg:px-2 py-0.5 sm:py-0.5 lg:py-1 rounded font-bold uppercase tracking-[0.05em] sm:tracking-[0.1em] shadow-lg">
+            Lv.{currentRealm?.level || 1}
+          </div>
         </div>
-        <div className="absolute -bottom-1 -right-1 bg-slate-950 border-2 border-amber-500/60 text-[9px] lg:text-[10px] text-amber-500 px-2 py-1 rounded font-bold uppercase tracking-[0.1em] shadow-lg">
-          Lv.{currentRealm?.level || 1}
+
+        {/* Mobile: Tên & Cảnh Giới inline with avatar */}
+        <div className="sm:hidden flex-1 min-w-0">
+          <h3 className="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-200 to-amber-100 font-title tracking-[0.05em] mb-1 leading-tight truncate">
+            {displayName}
+          </h3>
+          <p className="text-xs text-slate-400 font-cultivation italic flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_4px_rgba(16,185,129,0.6)]"></span>
+            <span className="tracking-wide">{currentRealm?.name || 'Phàm Nhân'}</span>
+          </p>
         </div>
       </div>
 
-      {/* Tên & Cảnh Giới */}
-      <div className="flex-1 min-w-0">
+      {/* Tên & Cảnh Giới - Desktop only */}
+      <div className="hidden sm:block flex-1 min-w-0">
         <h3 className="text-lg lg:text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-200 to-amber-100 font-title tracking-[0.05em] mb-2 leading-tight">
           {displayName}
         </h3>
@@ -78,24 +91,24 @@ const IdentityHeader = memo(function IdentityHeader({ cultivation, currentRealm 
         </p>
       </div>
 
-      {/* Thông Số Tu Vi & Linh Thạch - Bên phải, không có ô */}
-      <div className="flex flex-col gap-3 text-right">
-        <div className="flex items-center gap-3 justify-end">
-          <p className="text-[11px] text-emerald-300/80 uppercase tracking-[0.15em] font-semibold">Tu Vi:</p>
-          <h3 className="text-base lg:text-lg font-bold text-emerald-100 font-mono tabular-nums">
+      {/* Thông Số Tu Vi & Linh Thạch */}
+      <div className="flex justify-between sm:justify-end sm:flex-col sm:gap-3 sm:text-right w-full sm:w-auto">
+        <div className="flex items-center gap-2 sm:gap-3 sm:justify-end">
+          <p className="text-[10px] sm:text-[11px] text-emerald-300/80 uppercase tracking-[0.1em] sm:tracking-[0.15em] font-semibold">Tu Vi:</p>
+          <h3 className="text-sm sm:text-base lg:text-lg font-bold text-emerald-100 font-mono tabular-nums">
             {cultivation.exp?.toLocaleString() || 0}
           </h3>
         </div>
-        <div className="flex items-center gap-3 justify-end">
-          <p className="text-[11px] text-amber-300/80 uppercase tracking-[0.15em] font-semibold">Linh Thạch:</p>
-          <h3 className="text-base lg:text-lg font-bold text-amber-100 font-mono tabular-nums">
+        <div className="flex items-center gap-2 sm:gap-3 sm:justify-end">
+          <p className="text-[10px] sm:text-[11px] text-amber-300/80 uppercase tracking-[0.1em] sm:tracking-[0.15em] font-semibold">Linh Thạch:</p>
+          <h3 className="text-sm sm:text-base lg:text-lg font-bold text-amber-100 font-mono tabular-nums">
             {cultivation.spiritStones?.toLocaleString() || 0}
           </h3>
         </div>
       </div>
 
-      {/* Nút Menu Chi Tiết */}
-      <div className="relative stats-details-menu">
+      {/* Nút Menu Chi Tiết - Góc phải trên mobile, inline trên desktop */}
+      <div className="absolute top-0 right-0 sm:relative sm:top-auto sm:right-auto stats-details-menu">
         <button
           onClick={(e) => {
             e.stopPropagation();

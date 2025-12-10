@@ -995,7 +995,7 @@ const GroupDetail = () => {
                                     activeTab === tab.id ? "bg-black dark:bg-white text-white dark:text-black shadow-md" : "text-neutral-500 hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/20"
                                  )}
                               >
-                                 <tab.icon size={14} className="md:w-4 md:h-4 flex-shrink-0" strokeWidth={2.5} />
+                                 <tab.icon size={14} className="hidden md:block md:w-4 md:h-4 flex-shrink-0" strokeWidth={2.5} />
                                  <span className="truncate">{tab.label}</span>
                               </button>
                            ))}

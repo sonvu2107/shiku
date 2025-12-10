@@ -330,7 +330,7 @@ export default function Friends() {
                         : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 active:bg-neutral-200 dark:active:bg-neutral-800"
                     )}
                   >
-                    <tab.icon size={14} className="md:w-4 md:h-4 flex-shrink-0" />
+                    <tab.icon size={14} className="hidden md:block md:w-4 md:h-4 flex-shrink-0" />
                     <span className="truncate">{tab.label}</span>
                     {tab.count > 0 && (
                       <span className={cn(

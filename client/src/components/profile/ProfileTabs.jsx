@@ -40,7 +40,7 @@ export default function ProfileTabs({ activeTab, onTabChange }) {
                   : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/20"
               )}
             >
-              <Icon size={14} className="flex-shrink-0" strokeWidth={2.5} />
+              <Icon size={14} className="flex-shrink-0 hidden md:block" strokeWidth={2.5} />
               {/* Show short label on mobile, full label on larger screens */}
               <span className="sm:hidden whitespace-nowrap">{mobileLabels[tab.id]}</span>
               <span className="hidden sm:inline whitespace-nowrap">{tab.label}</span>

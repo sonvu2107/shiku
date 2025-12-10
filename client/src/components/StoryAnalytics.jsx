@@ -88,8 +88,7 @@ export default function StoryAnalytics({ storyId, onClose }) {
         {/* Header */}
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-blue-600" />
-            <h3 className="font-semibold text-gray-900">Thống kê Story</h3>
+            <h3 className="font-bold text-lg text-gray-900">Thống kê</h3>
           </div>
           <button
             onClick={onClose}
@@ -101,7 +100,7 @@ export default function StoryAnalytics({ storyId, onClose }) {
 
         {/* Tabs */}
         <div className="border-b border-gray-200">
-          <nav className="flex space-x-1 px-4">
+          <nav className="flex px-4 py-2 gap-2">
             {[
               { id: 'overview', label: 'Tổng quan', icon: BarChart3 },
               { id: 'viewers', label: 'Người xem', icon: Users },
@@ -110,12 +109,12 @@ export default function StoryAnalytics({ storyId, onClose }) {
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === id
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors ${activeTab === id
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                   }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4 hidden md:block" />
                 {label}
               </button>
             ))}

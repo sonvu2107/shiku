@@ -189,12 +189,12 @@ export default function NotificationHistory() {
         <span className="font-medium">Quay lại</span>
       </button>
 
-      {/* Header */}
+      {/* Header - Desktop: hiển thị actions, Mobile: ẩn actions */}
       <PageHeader
         title="Lịch sử thông báo"
         subtitle="Quản lý và theo dõi tất cả thông báo của bạn"
         action={
-          <div className="flex flex-wrap gap-3">
+          <div className="hidden md:flex flex-wrap gap-3">
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
@@ -218,6 +218,33 @@ export default function NotificationHistory() {
         }
       />
 
+      {/* Mobile Floating Action Bar - Chỉ hiển thị trên mobile khi có unread hoặc selected */}
+      {(unreadCount > 0 || selectedNotifications.length > 0) && (
+        <div className="md:hidden fixed bottom-20 left-0 right-0 z-40 px-4">
+          <div className="bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl rounded-2xl p-3 shadow-xl border border-neutral-200 dark:border-neutral-800 flex gap-2">
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="flex-1 px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white font-semibold text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors flex items-center justify-center gap-2 min-h-[44px] touch-manipulation"
+              >
+                <CheckCheck size={16} />
+                <span className="whitespace-nowrap">Đọc tất cả ({unreadCount})</span>
+              </button>
+            )}
+
+            {selectedNotifications.length > 0 && (
+              <button
+                onClick={deleteSelected}
+                className="flex-1 px-3 py-2.5 rounded-xl bg-red-600 text-white font-semibold text-xs hover:bg-red-700 active:bg-red-800 transition-colors flex items-center justify-center gap-2 min-h-[44px] touch-manipulation"
+              >
+                <Trash2 size={16} />
+                <span className="whitespace-nowrap">Xóa ({selectedNotifications.length})</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Filter Tabs */}
       <div className="sticky top-24 z-30 mb-8">
         <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl rounded-full p-1.5 flex gap-2 shadow-sm border border-neutral-200 dark:border-neutral-800 max-w-md">
@@ -230,7 +257,7 @@ export default function NotificationHistory() {
               key={tab.key}
               onClick={() => setFilter(tab.key)}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all duration-300",
+                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all duration-300 min-h-[44px] touch-manipulation",
                 filter === tab.key
                   ? "bg-black dark:bg-white text-white dark:text-black shadow-md"
                   : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-black/5 dark:hover:bg-white/10"
@@ -266,7 +293,7 @@ export default function NotificationHistory() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-neutral-500 dark:text-neutral-400">
+              <span className="hidden sm:inline text-sm text-neutral-500 dark:text-neutral-400">
                 Đã chọn:
               </span>
               <span className="px-3 py-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-full text-sm font-bold">

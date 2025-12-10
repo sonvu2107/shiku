@@ -21,20 +21,20 @@ const ShopTab = memo(function ShopTab() {
   }, [loadShop]);
 
   const handleMouseEnter = (item, e) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      setTooltipPosition({
-          x: rect.right,
-          y: rect.top,
-          left: rect.left,
-          right: rect.right,
-          top: rect.top,
-          bottom: rect.bottom
-      });
-      setHoveredItem(item);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPosition({
+      x: rect.right,
+      y: rect.top,
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      bottom: rect.bottom
+    });
+    setHoveredItem(item);
   };
 
   const handleMouseLeave = () => {
-      setHoveredItem(null);
+    setHoveredItem(null);
   };
 
   const handleBuy = async (itemId) => {
@@ -65,35 +65,35 @@ const ShopTab = memo(function ShopTab() {
   // Sub Categories mapping
   const subCategories = {
     equipment: [
-        { id: 'all', label: 'Tất cả' },
-        { id: 'equipment_weapon', label: 'Vũ Khí' },
-        { id: 'equipment_armor', label: 'Giáp' },
-        { id: 'equipment_accessory', label: 'Trang Sức' },
-        { id: 'equipment_magic_treasure', label: 'Pháp Bảo' },
-        { id: 'equipment_power_item', label: 'Linh Khí' }
+      { id: 'all', label: 'Tất cả' },
+      { id: 'equipment_weapon', label: 'Vũ Khí' },
+      { id: 'equipment_armor', label: 'Giáp' },
+      { id: 'equipment_accessory', label: 'Trang Sức' },
+      { id: 'equipment_magic_treasure', label: 'Pháp Bảo' },
+      { id: 'equipment_power_item', label: 'Linh Khí' }
     ],
     cosmetic: [
-        { id: 'all', label: 'Tất cả' },
-        { id: 'avatar_frame', label: 'Khung Avatar' },
-        { id: 'profile_effect', label: 'Hiệu Ứng' }
+      { id: 'all', label: 'Tất cả' },
+      { id: 'avatar_frame', label: 'Khung Avatar' },
+      { id: 'profile_effect', label: 'Hiệu Ứng' }
     ],
     consumable_group: [
-        { id: 'all', label: 'Tất cả' },
-        { id: 'exp_boost', label: 'Đan Dược Tu Luyện' },
-        { id: 'breakthrough_boost', label: 'Đan Dược Độ Kiếp' },
-        { id: 'consumable', label: 'Tiêu Hao' }
+      { id: 'all', label: 'Tất cả' },
+      { id: 'exp_boost', label: 'Đan Dược Tu Luyện' },
+      { id: 'breakthrough_boost', label: 'Đan Dược Độ Kiếp' },
+      { id: 'consumable', label: 'Tiêu Hao' }
     ],
     companion: [
-        { id: 'all', label: 'Tất cả' },
-        { id: 'pet', label: 'Linh Thú' },
-        { id: 'mount', label: 'Tọa Kỵ' }
+      { id: 'all', label: 'Tất cả' },
+      { id: 'pet', label: 'Linh Thú' },
+      { id: 'mount', label: 'Tọa Kỵ' }
     ]
   };
 
   // Helper to check item type against category
   const checkCategory = (item, category) => {
     if (category === 'all') return true;
-    
+
     if (category === 'equipment') {
       return item.type?.startsWith('equipment_');
     }
@@ -115,7 +115,7 @@ const ShopTab = memo(function ShopTab() {
 
     // Then filter by sub category if applicable
     if (subCategories[activeCategory] && subCategory !== 'all') {
-        return item.type === subCategory;
+      return item.type === subCategory;
     }
 
     return true;
@@ -125,40 +125,43 @@ const ShopTab = memo(function ShopTab() {
     <div className="space-y-3 pb-2">
       <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">VẠN BẢO CÁC</h3>
 
-      {/* Main Categories */}
-      <div className="flex flex-wrap gap-2 pb-2 border-b border-white/10 mb-2">
-        {parentCategories.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => {
+      {/* Main Categories - Horizontal scroll on mobile */}
+      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 border-b border-white/10 mb-2 scrollbar-hide">
+        <div className="flex gap-2 min-w-max sm:flex-wrap sm:min-w-0">
+          {parentCategories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => {
                 setActiveCategory(cat.id);
                 setSubCategory('all'); // Reset sub category when changing parent
-            }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === cat.id
-              ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300'
-              : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
-              }`}
-          >
-            {cat.label}
-          </button>
-        ))}
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === cat.id
+                ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300'
+                : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
+                }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Sub Categories (Only show if active category has children) */}
       {subCategories[activeCategory] && (
-        <div className="flex flex-wrap gap-2 pb-2 animate-in fade-in slide-in-from-top-2 duration-300">
-           {subCategories[activeCategory].map(sub => (
-               <button
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 animate-in fade-in slide-in-from-top-2 duration-300 scrollbar-hide">
+          <div className="flex gap-2 min-w-max sm:flex-wrap sm:min-w-0">
+            {subCategories[activeCategory].map(sub => (
+              <button
                 key={sub.id}
                 onClick={() => setSubCategory(sub.id)}
                 className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all ${subCategory === sub.id
                   ? 'bg-slate-700 text-amber-300 border border-amber-500/30'
                   : 'bg-slate-800/30 text-slate-400 border border-transparent hover:bg-slate-700/50'
-                }`}
-               >
-                   {sub.label}
-               </button>
-           ))}
+                  }`}
+              >
+                {sub.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -176,8 +179,8 @@ const ShopTab = memo(function ShopTab() {
               onMouseLeave={handleMouseLeave}
               onMouseMove={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
-                setTooltipPosition({ 
-                  x: rect.right, 
+                setTooltipPosition({
+                  x: rect.right,
                   y: rect.top,
                   left: rect.left,
                   right: rect.right,
@@ -282,10 +285,10 @@ const ShopTab = memo(function ShopTab() {
 
       {/* Tooltip Portal */}
       {hoveredItem && (
-        <ItemTooltip 
-          item={hoveredItem} 
-          stats={hoveredItem.stats || hoveredItem.metadata?.stats} 
-          position={tooltipPosition} 
+        <ItemTooltip
+          item={hoveredItem}
+          stats={hoveredItem.stats || hoveredItem.metadata?.stats}
+          position={tooltipPosition}
         />
       )}
     </div>

@@ -143,7 +143,7 @@ export default function Media() {
                            : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-white/5"
                      )}
                   >
-                     <f.icon size={16} className="flex-shrink-0" />
+                     <f.icon size={16} className="flex-shrink-0 hidden md:block" />
                      <span>{f.label}</span>
                   </button>
                ))}
