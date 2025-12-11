@@ -92,6 +92,161 @@ router.post("/register",
         },
         accessToken: tokens.accessToken
       });
+
+      // Capture variables cho closure
+      const userEmail = email;
+      const userName = name;
+      console.log("[DEBUG][AUTH-SECURE] Registration successful, scheduling welcome email for:", userEmail);
+
+      // Gửi welcome email bất đồng bộ (không chờ response)
+      setImmediate(async () => {
+        console.log("[DEBUG][AUTH-SECURE] setImmediate triggered for:", userEmail);
+        try {
+          const logoUrl = "https://shiku.click/assets/shiku-logo.svg";
+          const loginLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/login`;
+          const profileLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/settings`;
+
+          const welcomeEmailHtml = `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chào mừng đến với Shiku</title>
+    <style>
+        body { margin: 0; padding: 0; min-width: 100%; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; background-color: #f9f9f9; }
+        table { border-spacing: 0; border-collapse: collapse; }
+        td { padding: 0; }
+        img { border: 0; }
+        
+        @media only screen and (max-width: 600px) {
+            .container { width: 100% !important; }
+            .content-padding { padding: 20px !important; }
+            .button { width: 100% !important; display: block !important; text-align: center !important; }
+            .col-split { display: block !important; width: 100% !important; padding-bottom: 20px; }
+        }
+    </style>
+</head>
+<body style="background-color: #f9f9f9; margin: 0; padding: 0;">
+
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f9f9f9; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                
+                <table class="container" width="600" border="0" cellpadding="0" cellspacing="0" style="background-color: #ffffff; max-width: 600px; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    
+                    <!-- HEADER: Logo -->
+                    <tr>
+                        <td align="center" style="padding: 40px 0 20px 0;">
+                            <img src="${logoUrl}" alt="Shiku" width="120" style="display: block; color: #000000; font-weight: bold;">
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding: 0 40px;">
+                            <div style="height: 1px; width: 100%; background-color: #eeeeee;"></div>
+                        </td>
+                    </tr>
+
+                    <!-- BODY -->
+                    <tr>
+                        <td class="content-padding" style="padding: 40px 40px 30px 40px; text-align: left; color: #1a1a1a;">
+                            
+                            <h1 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: #000000;">
+                                Chào mừng bạn đến với Shiku!
+                            </h1>
+
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #444444;">
+                                Xin chào <strong>${sanitizeHtml(userName)}</strong>,
+                            </p>
+                            
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #444444;">
+                                Rất vui vì bạn đã trở thành một phần của cộng đồng Shiku. Tài khoản của bạn đã được kích hoạt và sẵn sàng để sử dụng.
+                            </p>
+                            
+                            <p style="margin: 0 0 30px 0; font-size: 16px; line-height: 1.6; color: #444444;">
+                                Tại Shiku, chúng tôi tin vào sự kết nối và chia sẻ. Hãy bắt đầu khám phá ngay!
+                            </p>
+
+                            <!-- CTA BUTTON -->
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td align="left">
+                                        <a href="${loginLink}" class="button" target="_blank" style="background-color: #000000; color: #ffffff; text-decoration: none; padding: 16px 32px; font-size: 16px; font-weight: bold; display: inline-block; border-radius: 2px;">
+                                            Truy cập tài khoản ngay &rarr;
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- 3 CỘT TÍNH NĂNG -->
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-top: 1px solid #eeeeee; padding-top: 30px;">
+                                <tr>
+                                    <td style="padding-top: 30px;">
+                                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                            <tr>
+                                                <td class="col-split" valign="top" width="33%" style="padding-right: 10px;">
+                                                    <h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold;">01. Kết nối</h3>
+                                                    <p style="margin: 0; font-size: 13px; color: #666666; line-height: 1.5;">Tìm kiếm và kết nối với bạn bè mới.</p>
+                                                </td>
+                                                <td class="col-split" valign="top" width="33%" style="padding-right: 10px;">
+                                                    <h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold;">02. Chia sẻ</h3>
+                                                    <p style="margin: 0; font-size: 13px; color: #666666; line-height: 1.5;">Đăng bài, chia sẻ khoảnh khắc đáng nhớ.</p>
+                                                </td>
+                                                <td class="col-split" valign="top" width="33%">
+                                                    <h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold;">03. Tu luyện</h3>
+                                                    <p style="margin: 0; font-size: 13px; color: #666666; line-height: 1.5;">Tham gia hệ thống tu luyện độc đáo.</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+
+                    <!-- FOOTER -->
+                    <tr>
+                        <td style="background-color: #fafafa; padding: 30px 40px; text-align: left; border-top: 1px solid #eeeeee;">
+                            <p style="margin: 0 0 10px 0; font-size: 12px; color: #999999; line-height: 1.5;">
+                                Hãy cập nhật thông tin cá nhân để trải nghiệm tốt hơn.
+                            </p>
+                            <p style="margin: 0 0 20px 0; font-size: 12px; line-height: 1.5;">
+                                <a href="${profileLink}" style="color: #000000; text-decoration: underline; margin-right: 10px;">Cập nhật hồ sơ</a>
+                                <a href="mailto:support@shiku.click" style="color: #000000; text-decoration: underline;">Liên hệ hỗ trợ</a>
+                            </p>
+                            
+                            <div style="height: 1px; width: 100%; background-color: #e0e0e0; margin-bottom: 20px;"></div>
+
+                            <p style="margin: 0; font-size: 12px; color: #bbbbbb; text-align: center;">
+                                © ${new Date().getFullYear()} Shiku. Mạng xã hội của bạn.<br>
+                                Bạn nhận được email này vì đã đăng ký tài khoản tại Shiku.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>`;
+
+          console.log("[INFO][AUTH-SECURE] Sending welcome email to:", userEmail);
+          await sendEmail({
+            to: userEmail,
+            subject: "Chào mừng đến với Shiku!",
+            html: welcomeEmailHtml,
+            timeout: 25000
+          });
+          console.log("[INFO][AUTH-SECURE] Welcome email sent successfully to:", userEmail);
+        } catch (emailError) {
+          console.error("[ERROR][AUTH-SECURE] Welcome email sending failed:", emailError.message, emailError);
+        }
+      });
     } catch (error) {
       // Log register failed
       logSecurityEvent(LOG_LEVELS.WARN, SECURITY_EVENTS.REGISTER_FAILED, {
@@ -475,92 +630,108 @@ router.post("/forgot-password",
         try {
           const resetLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`;
 
-          // Template email chuyên nghiệp
+          // Template email chuyên nghiệp - Light theme với logo
+          const logoUrl = "https://shiku.click/assets/shiku-logo.svg";
           const emailHtml = `
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Đặt lại mật khẩu Shiku</title>
-  <!--[if mso]>
-  <style type="text/css">
-    table {border-collapse:collapse;border-spacing:0;margin:0;}
-    div, td {padding:0;}
-    div {margin:0 !important;}
-  </style>
-  <![endif]-->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đặt lại mật khẩu - Shiku</title>
+    <style>
+        body { margin: 0; padding: 0; min-width: 100%; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; background-color: #f9f9f9; }
+        table { border-spacing: 0; border-collapse: collapse; }
+        td { padding: 0; }
+        img { border: 0; }
+        
+        @media only screen and (max-width: 600px) {
+            .container { width: 100% !important; }
+            .content-padding { padding: 20px !important; }
+            .button { width: 100% !important; display: block !important; text-align: center !important; }
+        }
+    </style>
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0; padding: 0; background-color: #f5f5f5;">
-    <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-          <!-- Header -->
-          <tr>
-            <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">Shiku</h1>
-              <p style="margin: 8px 0 0; color: #ffffff; font-size: 14px; opacity: 0.9;">Mạng xã hội của bạn</p>
+<body style="background-color: #f9f9f9; margin: 0; padding: 0;">
+
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f9f9f9; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                
+                <table class="container" width="600" border="0" cellpadding="0" cellspacing="0" style="background-color: #ffffff; max-width: 600px; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    
+                    <!-- HEADER: Logo -->
+                    <tr>
+                        <td align="center" style="padding: 40px 0 20px 0;">
+                            <img src="${logoUrl}" alt="Shiku" width="120" style="display: block; color: #000000; font-weight: bold;">
+                        </td>
+                    </tr>
+
+                    <!-- DIVIDER -->
+                    <tr>
+                        <td align="center" style="padding: 0 40px;">
+                            <div style="height: 1px; width: 100%; background-color: #eeeeee;"></div>
+                        </td>
+                    </tr>
+
+                    <!-- BODY -->
+                    <tr>
+                        <td class="content-padding" style="padding: 40px 40px 30px 40px; text-align: left; color: #1a1a1a;">
+                            
+                            <h1 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: #000000;">
+                                Đặt lại mật khẩu của bạn
+                            </h1>
+
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #444444;">
+                                Xin chào,
+                            </p>
+                            
+                            <p style="margin: 0 0 30px 0; font-size: 16px; line-height: 1.6; color: #444444;">
+                                Chúng tôi nhận được yêu cầu khôi phục mật khẩu cho tài khoản Shiku của bạn. Đừng lo lắng, chuyện này xảy ra thường xuyên mà. Bạn chỉ cần bấm vào nút bên dưới để tạo mật khẩu mới.
+                            </p>
+
+                            <!-- BUTTON -->
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td align="left">
+                                        <a href="${resetLink}" class="button" target="_blank" style="background-color: #000000; color: #ffffff; text-decoration: none; padding: 16px 32px; font-size: 16px; font-weight: bold; display: inline-block; border-radius: 2px;">
+                                            Tạo mật khẩu mới &rarr;
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 30px 0 0 0; font-size: 14px; line-height: 1.5; color: #888888;">
+                                <em>Liên kết này sẽ hết hạn sau <strong>30 phút</strong>. Nếu bạn không yêu cầu thay đổi, cứ bỏ qua email này nhé, tài khoản của bạn vẫn an toàn.</em>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- FOOTER -->
+                    <tr>
+                        <td style="background-color: #fafafa; padding: 30px 40px; text-align: left; border-top: 1px solid #eeeeee;">
+                            <p style="margin: 0 0 10px 0; font-size: 12px; color: #999999; line-height: 1.5;">
+                                Nếu nút bên trên không hoạt động, hãy copy đường dẫn này dán vào trình duyệt:
+                            </p>
+                            <p style="margin: 0 0 20px 0; font-size: 12px; line-height: 1.5; word-break: break-all;">
+                                <a href="${resetLink}" style="color: #000000; text-decoration: underline;">${resetLink}</a>
+                            </p>
+                            
+                            <div style="height: 1px; width: 100%; background-color: #e0e0e0; margin-bottom: 20px;"></div>
+
+                            <p style="margin: 0; font-size: 12px; color: #bbbbbb; text-align: center;">
+                                © ${new Date().getFullYear()} Shiku. Mạng xã hội của bạn.<br>
+                                Email này được gửi tự động, vui lòng không trả lời.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
             </td>
-          </tr>
-          
-          <!-- Content -->
-          <tr>
-            <td style="padding: 40px 40px 30px;">
-              <h2 style="margin: 0 0 20px; color: #1a1a1a; font-size: 24px; font-weight: 600; line-height: 1.3;">Đặt lại mật khẩu</h2>
-              <p style="margin: 0 0 20px; color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-                Chào bạn,
-              </p>
-              <p style="margin: 0 0 30px; color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-                Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản Shiku của bạn. Nhấn vào nút bên dưới để tạo mật khẩu mới:
-              </p>
-              
-              <!-- Button -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                <tr>
-                  <td align="center" style="padding: 0 0 30px;">
-                    <a href="${resetLink}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">
-                      Đặt lại mật khẩu
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              
-              <!-- Alternative Link -->
-              <p style="margin: 0 0 30px; color: #8a8a8a; font-size: 14px; line-height: 1.6;">
-                Hoặc copy và dán link này vào trình duyệt:<br>
-                <a href="${resetLink}" style="color: #667eea; text-decoration: none; word-break: break-all;">${resetLink}</a>
-              </p>
-              
-              <!-- Warning -->
-              <div style="padding: 20px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 30px 0;">
-                <p style="margin: 0; color: #856404; font-size: 14px; line-height: 1.6;">
-                  <strong>⚠️ Lưu ý:</strong> Link này chỉ có hiệu lực trong <strong>30 phút</strong>. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này. Tài khoản của bạn vẫn an toàn.
-                </p>
-              </div>
-              
-              <p style="margin: 30px 0 0; color: #8a8a8a; font-size: 14px; line-height: 1.6;">
-                Nếu bạn gặp vấn đề, vui lòng liên hệ với chúng tôi qua email <a href="mailto:support@shiku.click" style="color: #667eea; text-decoration: none;">support@shiku.click</a>
-              </p>
-            </td>
-          </tr>
-          
-          <!-- Footer -->
-          <tr>
-            <td style="padding: 30px 40px; background-color: #f8f9fa; border-radius: 0 0 12px 12px; border-top: 1px solid #e9ecef;">
-              <p style="margin: 0 0 10px; color: #6c757d; font-size: 12px; text-align: center; line-height: 1.5;">
-                © ${new Date().getFullYear()} Shiku. Tất cả quyền được bảo lưu.
-              </p>
-              <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center; line-height: 1.5;">
-                Email này được gửi từ <strong>support@shiku.click</strong>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
+        </tr>
+    </table>
+
 </body>
 </html>`;
 
