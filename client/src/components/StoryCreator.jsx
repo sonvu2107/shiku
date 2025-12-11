@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Image as ImageIcon, Video, Type } from 'lucide-react';
 import { api } from '../api';
 
@@ -15,6 +15,20 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
   const [uploading, setUploading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+
+  // Hide FloatingDock on desktop when modal is open
+  useEffect(() => {
+    const isDesktop = window.innerWidth >= 768;
+    if (isDesktop) {
+      const floatingDock = document.querySelector('[class*="fixed bottom-6"]');
+      if (floatingDock) floatingDock.style.display = 'none';
+    }
+
+    return () => {
+      const floatingDock = document.querySelector('[class*="fixed bottom-6"]');
+      if (floatingDock) floatingDock.style.display = '';
+    };
+  }, []);
 
   /**
    * Handle file selection
@@ -145,10 +159,10 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
               <div className="flex flex-col items-center gap-4 pointer-events-none">
                 <div className="flex gap-4">
                   <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
-                     <ImageIcon size={32} />
+                    <ImageIcon size={32} />
                   </div>
                   <div className="w-16 h-16 bg-purple-50 dark:bg-purple-900/20 rounded-2xl flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform delay-75">
-                     <Video size={32} />
+                    <Video size={32} />
                   </div>
                 </div>
                 <div>
@@ -156,7 +170,7 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">Kéo thả hoặc nhấn để tải lên</p>
                 </div>
                 <div className="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-full text-xs font-bold text-neutral-500 dark:text-neutral-400">
-                   Tối đa 50MB
+                  Tối đa 50MB
                 </div>
               </div>
             </div>
@@ -176,7 +190,7 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
                     className="w-full h-full object-contain"
                   />
                 )}
-                
+
                 {/* Caption Overlay Preview */}
                 {caption && (
                   <div className="absolute bottom-8 left-4 right-4 pointer-events-none">
@@ -203,56 +217,54 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
 
               {/* Caption Input */}
               <div className="space-y-2">
-                 <label className="text-sm font-bold text-neutral-900 dark:text-white ml-1">Thêm chú thích</label>
-                 <div className="relative">
-                    <Type className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
-                    <input
-                      type="text"
-                      value={caption}
-                      onChange={(e) => setCaption(e.target.value)}
-                      placeholder="Nhập nội dung..."
-                      className="w-full pl-12 pr-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
-                      maxLength={100}
-                    />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400">
-                       {caption.length}/100
-                    </div>
-                 </div>
+                <label className="text-sm font-bold text-neutral-900 dark:text-white ml-1">Thêm chú thích</label>
+                <div className="relative">
+                  <Type className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
+                  <input
+                    type="text"
+                    value={caption}
+                    onChange={(e) => setCaption(e.target.value)}
+                    placeholder="Nhập nội dung..."
+                    className="w-full pl-12 pr-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                    maxLength={100}
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400">
+                    {caption.length}/100
+                  </div>
+                </div>
               </div>
 
               {/* Visibility Selection */}
               <div className="space-y-2">
-                 <label className="text-sm font-bold text-neutral-900 dark:text-white ml-1">Quyền riêng tư</label>
-                 <div className="flex gap-2">
-                    <button
-                       onClick={() => setVisibility('public')}
-                       className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border ${
-                          visibility === 'public' 
-                             ? 'bg-black dark:bg-white text-white dark:text-black border-transparent' 
-                             : 'bg-transparent text-neutral-500 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800'
-                       }`}
-                    >
-                       Công khai
-                    </button>
-                    <button
-                       onClick={() => setVisibility('friends')}
-                       className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border ${
-                          visibility === 'friends' 
-                             ? 'bg-black dark:bg-white text-white dark:text-black border-transparent' 
-                             : 'bg-transparent text-neutral-500 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800'
-                       }`}
-                    >
-                       Bạn bè
-                    </button>
-                 </div>
+                <label className="text-sm font-bold text-neutral-900 dark:text-white ml-1">Quyền riêng tư</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setVisibility('public')}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border ${visibility === 'public'
+                      ? 'bg-black dark:bg-white text-white dark:text-black border-transparent'
+                      : 'bg-transparent text-neutral-500 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                      }`}
+                  >
+                    Công khai
+                  </button>
+                  <button
+                    onClick={() => setVisibility('friends')}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border ${visibility === 'friends'
+                      ? 'bg-black dark:bg-white text-white dark:text-black border-transparent'
+                      : 'bg-transparent text-neutral-500 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                      }`}
+                  >
+                    Bạn bè
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
           {error && (
             <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium flex items-center gap-2">
-               <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-               {error}
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              {error}
             </div>
           )}
         </div>

@@ -1497,4 +1497,261 @@ router.post("/clear-test-reactions", authRequired, adminRequired, strictAdminRat
   }
 });
 
+/**
+ * POST /auto-like-posts - Auto like posts using test accounts
+ * Bot tự động thêm emotes vào posts bằng các tài khoản test
+ */
+router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimit, async (req, res, next) => {
+  try {
+    const {
+      maxPostsPerUser = 10,
+      likeProbability = 1,
+      selectedUsers = [],
+      emoteTypes = ['👍', '❤️', '😂', '😮', '😢', '😡'],
+      forceOverride = false
+    } = req.body;
+
+    if (!selectedUsers || selectedUsers.length === 0) {
+      return res.status(400).json({ error: "Vui lòng chọn ít nhất một tài khoản test" });
+    }
+
+    // Get test users by email
+    const testUsers = await User.find({
+      email: { $in: selectedUsers }
+    }).select('_id email name').lean();
+
+    if (testUsers.length === 0) {
+      return res.status(404).json({ error: "Không tìm thấy tài khoản test nào" });
+    }
+
+    // Get available posts (published posts only)
+    const posts = await Post.find({
+      status: 'published',
+      group: { $exists: false }  // Exclude group posts
+    })
+      .select('_id title emotes')
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    if (posts.length === 0) {
+      return res.status(404).json({ error: "Không có bài viết nào để like" });
+    }
+
+    let totalLikes = 0;
+    const results = [];
+
+    // Process each test user
+    for (const testUser of testUsers) {
+      let userLikes = 0;
+      let postsProcessed = 0;
+      let availablePosts = 0;
+
+      // Shuffle posts for each user
+      const shuffledPosts = [...posts].sort(() => Math.random() - 0.5);
+      const postsToProcess = shuffledPosts.slice(0, maxPostsPerUser);
+
+      for (const post of postsToProcess) {
+        // Check probability
+        if (Math.random() > likeProbability) continue;
+
+        // Check if user already liked this post
+        const existingEmote = post.emotes?.find(
+          e => e.user?.toString() === testUser._id.toString()
+        );
+
+        if (existingEmote && !forceOverride) {
+          availablePosts++;
+          continue; // Skip if already liked and not forcing override
+        }
+
+        // Random emote type
+        const emoteType = emoteTypes[Math.floor(Math.random() * emoteTypes.length)];
+
+        try {
+          if (forceOverride || !existingEmote) {
+            // Remove existing emote from this user if forcing override
+            await Post.updateOne(
+              { _id: post._id },
+              {
+                $pull: { emotes: { user: testUser._id } }
+              }
+            );
+
+            // Add new emote
+            await Post.updateOne(
+              { _id: post._id },
+              {
+                $push: { emotes: { user: testUser._id, type: emoteType } }
+              }
+            );
+
+            userLikes++;
+            totalLikes++;
+          }
+        } catch (err) {
+          console.error(`[ADMIN] Error liking post ${post._id} for ${testUser.email}:`, err);
+        }
+
+        postsProcessed++;
+      }
+
+      results.push({
+        user: testUser.email,
+        likesGiven: userLikes,
+        postsProcessed,
+        availablePosts,
+        viewsGiven: 0
+      });
+    }
+
+    // Audit log
+    await AuditLog.logAction(req.user._id, 'admin_auto_like', {
+      result: 'success',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      details: {
+        action: 'auto_like_posts',
+        totalLikes,
+        usersProcessed: results.length,
+        forceOverride
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Đã thêm ${totalLikes} lượt thích từ ${testUsers.length} tài khoản`,
+      totalLikes,
+      totalViews: 0,
+      usersProcessed: testUsers.length,
+      postsAvailable: posts.length,
+      results
+    });
+
+  } catch (error) {
+    console.error('[ADMIN] Auto-like error:', error);
+    next(error);
+  }
+});
+
+/**
+ * POST /auto-view-posts - Auto view posts using test accounts
+ * Bot tự động tăng lượt xem cho posts
+ */
+router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimit, async (req, res, next) => {
+  try {
+    const {
+      maxViewsPerUser = 10,
+      selectedUsers = [],
+      loopCount = 1  // Số vòng lặp (mỗi vòng chạy qua tất cả users)
+    } = req.body;
+
+    // Giới hạn loopCount để tránh abuse (max 10 vòng)
+    const actualLoopCount = Math.min(Math.max(1, parseInt(loopCount) || 1), 10);
+
+    if (!selectedUsers || selectedUsers.length === 0) {
+      return res.status(400).json({ error: "Vui lòng chọn ít nhất một tài khoản test" });
+    }
+
+    // Get test users by email
+    const testUsers = await User.find({
+      email: { $in: selectedUsers }
+    }).select('_id email name').lean();
+
+    if (testUsers.length === 0) {
+      return res.status(404).json({ error: "Không tìm thấy tài khoản test nào" });
+    }
+
+    // Get available posts
+    const posts = await Post.find({
+      status: 'published',
+      group: { $exists: false }
+    })
+      .select('_id title views')
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    if (posts.length === 0) {
+      return res.status(404).json({ error: "Không có bài viết nào để xem" });
+    }
+
+    let totalViews = 0;
+    const results = [];
+    const userViewsMap = new Map(); // Track views per user across all loops
+
+    // Initialize user map
+    for (const testUser of testUsers) {
+      userViewsMap.set(testUser.email, { viewsGiven: 0, postsProcessed: 0 });
+    }
+
+    // Run multiple loops
+    for (let loop = 0; loop < actualLoopCount; loop++) {
+      // Process each test user in each loop
+      for (const testUser of testUsers) {
+        // Shuffle posts for each user in each loop
+        const shuffledPosts = [...posts].sort(() => Math.random() - 0.5);
+        const postsToProcess = shuffledPosts.slice(0, maxViewsPerUser);
+
+        for (const post of postsToProcess) {
+          try {
+            // Increment view count
+            await Post.updateOne(
+              { _id: post._id },
+              { $inc: { views: 1 } }
+            );
+
+            const userData = userViewsMap.get(testUser.email);
+            userData.viewsGiven++;
+            userData.postsProcessed++;
+            totalViews++;
+          } catch (err) {
+            console.error(`[ADMIN] Error viewing post ${post._id} for ${testUser.email}:`, err);
+          }
+        }
+      }
+    }
+
+    // Build results from accumulated data
+    for (const testUser of testUsers) {
+      const userData = userViewsMap.get(testUser.email);
+      results.push({
+        user: testUser.email,
+        likesGiven: 0,
+        viewsGiven: userData.viewsGiven,
+        postsProcessed: userData.postsProcessed,
+        availablePosts: posts.length
+      });
+    }
+
+    // Audit log
+    await AuditLog.logAction(req.user._id, 'admin_auto_view', {
+      result: 'success',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      details: {
+        action: 'auto_view_posts',
+        totalViews,
+        usersProcessed: results.length,
+        loopCount: actualLoopCount
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Đã thêm ${totalViews} lượt xem từ ${testUsers.length} tài khoản (${actualLoopCount} vòng lặp)`,
+      totalLikes: 0,
+      totalViews,
+      usersProcessed: testUsers.length,
+      postsAvailable: posts.length,
+      loopCount: actualLoopCount,
+      results
+    });
+
+  } catch (error) {
+    console.error('[ADMIN] Auto-view error:', error);
+    next(error);
+  }
+});
+
 export default router;

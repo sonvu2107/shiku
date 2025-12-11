@@ -199,10 +199,11 @@ export default function Landing() {
       <nav className="fixed top-0 w-full z-50 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-white/70 dark:bg-black/70 backdrop-blur-2xl transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center text-white dark:text-black font-bold shadow-lg transition-transform group-hover:rotate-12">
-              S
-            </div>
-            <span className="font-bold text-xl tracking-tighter">Shiku</span>
+            <img
+              src="/assets/shiku-logo.svg"
+              alt="Shiku"
+              className="w-24 h-24 transition-transform group-hover:rotate-12"
+            />
           </div>
           <div className="flex items-center gap-4">
             <Link to="/login" className="text-sm font-semibold hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors">Đăng nhập</Link>

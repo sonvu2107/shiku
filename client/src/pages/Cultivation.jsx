@@ -352,25 +352,31 @@ const CultivationContent = memo(function CultivationContent() {
 
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-amber-400 transition-colors text-xs sm:text-sm"
-          >
-            <span>←</span>
-            <span className="hidden sm:inline">Trở về</span>
-          </Link>
+          {/* Left side - fixed width for centering */}
+          <div className="w-20 sm:w-24">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-amber-400 transition-colors text-xs sm:text-sm"
+            >
+              <span>←</span>
+              <span className="hidden sm:inline">Trở về</span>
+            </Link>
+          </div>
 
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-title text-transparent bg-clip-text bg-gradient-to-b from-amber-200 to-amber-600 tracking-[0.1em] sm:tracking-[0.15em] drop-shadow-sm text-center">
+          <h1 className="flex-1 text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-title text-transparent bg-clip-text bg-gradient-to-b from-amber-200 to-amber-600 tracking-[0.1em] sm:tracking-[0.15em] drop-shadow-sm text-center">
             THIÊN ĐẠO CÁC
           </h1>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="sm:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-purple-900/50 text-purple-300 border border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.2)] active:scale-95 transition-transform"
-          >
-            <Menu size={20} />
-          </button>
+          {/* Right side - fixed width for centering */}
+          <div className="w-20 sm:w-24 flex justify-end">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="sm:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-purple-900/50 text-purple-300 border border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.2)] active:scale-95 transition-transform"
+            >
+              <Menu size={20} />
+            </button>
+          </div>
         </div>
 
         <div className="mb-4 sm:mb-6 md:mb-8">

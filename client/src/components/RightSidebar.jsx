@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Plus, ArrowRight, TrendingUp, Hash, Loader2, Check, ExternalLink } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { Plus, ArrowRight, Loader2, Check, UserPlus } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { api } from '../api';
 import UserName from './UserName';
 import UserAvatar from './UserAvatar';
-import { useTrendingTags } from '../hooks/useTrendingTags';
+import OnlineFriends from './OnlineFriends';
 import { useToast } from '../contexts/ToastContext';
 
 /**
@@ -17,13 +17,6 @@ function RightSidebar({ user }) {
   const [loading, setLoading] = useState(true);
   const [sendingRequests, setSendingRequests] = useState(new Set()); // Track which requests are being sent
   const [sentRequests, setSentRequests] = useState(new Set()); // Track which requests were sent successfully
-  const navigate = useNavigate();
-
-  // OPTIMIZATION: Sử dụng React Query hook với caching tự động
-  const { data: trendingTags, isLoading: tagsLoading } = useTrendingTags(3);
-
-  // Fallback nếu chưa có data
-  const displayTags = trendingTags || [];
 
   // Animation variants - OPTIMIZED: reduced stagger delay
   const containerVariants = {
@@ -66,10 +59,6 @@ function RightSidebar({ user }) {
       loadData();
     }
   }, [user, loadData]);
-
-  const handleTagClick = (tag) => {
-    navigate(`/explore?q=${encodeURIComponent(tag)}`);
-  };
 
   /**
    * Send a friend request - reuses logic from Friends.jsx
@@ -154,7 +143,10 @@ function RightSidebar({ user }) {
         className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden"
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-neutral-800">
-          <h3 className="font-bold text-neutral-900 dark:text-white">Gợi ý kết bạn</h3>
+          <div className="flex items-center gap-2">
+            <UserPlus size={18} className="text-neutral-900 dark:text-white" />
+            <h3 className="font-bold text-neutral-900 dark:text-white">Gợi ý kết bạn</h3>
+          </div>
           <Link
             to="/friends?tab=suggestions"
             className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center gap-1 transition-colors"
@@ -210,10 +202,10 @@ function RightSidebar({ user }) {
                       onClick={() => handleAddFriend(friend._id)}
                       disabled={isSending || isSent}
                       className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 shadow-sm ${isSent
-                          ? 'bg-green-500 dark:bg-green-600 text-white cursor-default'
-                          : isSending
-                            ? 'bg-neutral-400 dark:bg-neutral-600 text-white cursor-wait'
-                            : 'bg-black dark:bg-neutral-800 text-white dark:text-white hover:bg-neutral-800 dark:hover:bg-neutral-700'
+                        ? 'bg-green-500 dark:bg-green-600 text-white cursor-default'
+                        : isSending
+                          ? 'bg-neutral-400 dark:bg-neutral-600 text-white cursor-wait'
+                          : 'bg-black dark:bg-neutral-800 text-white dark:text-white hover:bg-neutral-800 dark:hover:bg-neutral-700'
                         }`}
                       title={isSent ? 'Đã gửi lời mời' : isSending ? 'Đang gửi...' : 'Gửi lời mời kết bạn'}
                     >
@@ -233,65 +225,14 @@ function RightSidebar({ user }) {
         </div>
       </motion.div>
 
-      {/* Trending Tags */}
+      {/* Online Friends */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
         className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-neutral-800">
-          <div className="flex items-center gap-2">
-            <TrendingUp size={18} className="text-neutral-900 dark:text-white" />
-            <h3 className="font-bold text-neutral-900 dark:text-white">Tags xu hướng</h3>
-          </div>
-          <Link
-            to="/explore"
-            className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center gap-1 transition-colors"
-          >
-            Xem thêm
-            <ArrowRight size={14} />
-          </Link>
-        </div>
-        <div className="p-5 space-y-2">
-          {tagsLoading ? (
-            <div className="text-center py-4">
-              <Loader2 size={20} className="animate-spin text-neutral-400 mx-auto" />
-            </div>
-          ) : displayTags.length === 0 ? (
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center py-4">
-              Chưa có tag xu hướng
-            </p>
-          ) : (
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="space-y-1"
-            >
-              {displayTags.map(({ tag, count }, index) => (
-                <motion.div
-                  key={tag}
-                  variants={itemVariants}
-                  onClick={() => handleTagClick(tag)}
-                  className="flex items-center justify-between p-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-all group"
-                >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 group-hover:bg-white dark:group-hover:bg-black border border-transparent group-hover:border-neutral-200 dark:group-hover:border-neutral-700 flex items-center justify-center transition-all">
-                      <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 group-hover:text-black dark:group-hover:text-white">#{index + 1}</span>
-                    </div>
-                    <span className="font-medium text-neutral-700 dark:text-neutral-200 truncate group-hover:text-black dark:group-hover:text-white transition-colors">
-                      {tag}
-                    </span>
-                  </div>
-                  <span className="text-xs text-neutral-400 dark:text-neutral-500 font-medium ml-2 flex-shrink-0 bg-neutral-50 dark:bg-neutral-900 px-2 py-1 rounded-md">
-                    {count}
-                  </span>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </div>
+        <OnlineFriends user={user} minimal={true} />
       </motion.div>
 
       {/* Footer Links */}

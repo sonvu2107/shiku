@@ -201,6 +201,7 @@ typings/
 
 # Test files and scripts
 script_test/
+scripts/
 test-*.js
 *-test.js
 test-*.bat

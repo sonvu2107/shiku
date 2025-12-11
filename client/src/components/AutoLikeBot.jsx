@@ -14,6 +14,7 @@ export default function AutoLikeBot() {
     emoteTypes: ["👍", "❤️", "😂", "😮", "😢", "😡"],
     maxViewsPerUser: 8,
     forceOverride: false, // Option to override old reactions
+    loopCount: 1, // Number of loops for view bot
   });
   const [results, setResults] = useState(null);
   const [error, setError] = useState("");
@@ -56,7 +57,7 @@ export default function AutoLikeBot() {
           emoteTypes: config.emoteTypes,
           enableAutoView: false, // Only like, no view
           maxViewsPerUser: 0,
-          forceOverride: config.forceOverride, 
+          forceOverride: config.forceOverride,
         },
       });
       setResults(res);
@@ -85,6 +86,7 @@ export default function AutoLikeBot() {
         body: {
           maxViewsPerUser: config.maxViewsPerUser,
           selectedUsers,
+          loopCount: config.loopCount,
         },
       });
       setResults(res);
@@ -152,22 +154,20 @@ export default function AutoLikeBot() {
         <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-1 mb-6 md:mb-8">
           <button
             onClick={() => setBotMode("like")}
-            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-semibold transition-all text-sm sm:text-base ${
-              botMode === "like"
-                ? "bg-white dark:bg-gray-600 text-black dark:text-white shadow-sm"
-                : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
-            }`}
+            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-semibold transition-all text-sm sm:text-base ${botMode === "like"
+              ? "bg-white dark:bg-gray-600 text-black dark:text-white shadow-sm"
+              : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
+              }`}
           >
             <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="text-xs sm:text-sm">Auto Like Bot</span>
           </button>
           <button
             onClick={() => setBotMode("view")}
-            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-semibold transition-all text-sm sm:text-base ${
-              botMode === "view"
-                ? "bg-white dark:bg-gray-600 text-black dark:text-white shadow-sm"
-                : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
-            }`}
+            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-semibold transition-all text-sm sm:text-base ${botMode === "view"
+              ? "bg-white dark:bg-gray-600 text-black dark:text-white shadow-sm"
+              : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
+              }`}
           >
             <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="text-xs sm:text-sm">Auto View Bot</span>
@@ -239,11 +239,10 @@ export default function AutoLikeBot() {
                               : [...config.emoteTypes, emote];
                             setConfig((p) => ({ ...p, emoteTypes: list }));
                           }}
-                          className={`px-2 py-2 md:px-3 md:py-2 rounded-lg text-lg border transition-all touch-target ${
-                            config.emoteTypes.includes(emote)
-                              ? "bg-black dark:bg-blue-600 text-white border-black dark:border-blue-600"
-                              : "bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-500"
-                          }`}
+                          className={`px-2 py-2 md:px-3 md:py-2 rounded-lg text-lg border transition-all touch-target ${config.emoteTypes.includes(emote)
+                            ? "bg-black dark:bg-blue-600 text-white border-black dark:border-blue-600"
+                            : "bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-500"
+                            }`}
                         >
                           {emote}
                         </button>
@@ -271,27 +270,51 @@ export default function AutoLikeBot() {
               )}
 
               {botMode === "view" && (
-                <div>
-                  <label className="block text-xs md:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                    Số bài viết tối đa mỗi tài khoản (View)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={config.maxViewsPerUser}
-                    onChange={(e) =>
-                      setConfig((p) => ({
-                        ...p,
-                        maxViewsPerUser: parseInt(e.target.value),
-                      }))
-                    }
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-gray-600 dark:text-white touch-target"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Mỗi tài khoản sẽ xem {config.maxViewsPerUser} bài viết để tăng lượt xem của bài viết.
-                  </p>
-                </div>
+                <>
+                  <div>
+                    <label className="block text-xs md:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      Số bài viết tối đa mỗi tài khoản (View)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={config.maxViewsPerUser}
+                      onChange={(e) =>
+                        setConfig((p) => ({
+                          ...p,
+                          maxViewsPerUser: parseInt(e.target.value),
+                        }))
+                      }
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-gray-600 dark:text-white touch-target"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Mỗi tài khoản sẽ xem {config.maxViewsPerUser} bài viết để tăng lượt xem.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs md:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      Số vòng lặp (1-10)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={config.loopCount}
+                      onChange={(e) =>
+                        setConfig((p) => ({
+                          ...p,
+                          loopCount: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)),
+                        }))
+                      }
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-gray-600 dark:text-white touch-target"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Tổng views dự kiến: {config.maxViewsPerUser * config.loopCount} views/tài khoản
+                    </p>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -376,11 +399,10 @@ export default function AutoLikeBot() {
             <button
               onClick={runAutoLikeBot}
               disabled={loading || isRunning || selectedUsers.length === 0}
-              className={`w-full py-3 md:py-2.5 font-medium rounded-lg text-white text-sm md:text-base transition-all flex items-center justify-center gap-2 touch-target ${
-                loading || isRunning || selectedUsers.length === 0
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-black dark:bg-blue-600 hover:bg-gray-900 dark:hover:bg-blue-700 shadow-md"
-              }`}
+              className={`w-full py-3 md:py-2.5 font-medium rounded-lg text-white text-sm md:text-base transition-all flex items-center justify-center gap-2 touch-target ${loading || isRunning || selectedUsers.length === 0
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-black dark:bg-blue-600 hover:bg-gray-900 dark:hover:bg-blue-700 shadow-md"
+                }`}
             >
               {loading ? (
                 <>
@@ -398,11 +420,10 @@ export default function AutoLikeBot() {
             <button
               onClick={runAutoViewBot}
               disabled={loading || isRunning || selectedUsers.length === 0}
-              className={`w-full py-3 md:py-2.5 font-medium rounded-lg text-white text-sm md:text-base transition-all flex items-center justify-center gap-2 touch-target ${
-                loading || isRunning || selectedUsers.length === 0
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-black dark:bg-blue-600 hover:bg-gray-900 dark:hover:bg-blue-700 shadow-md"
-              }`}
+              className={`w-full py-3 md:py-2.5 font-medium rounded-lg text-white text-sm md:text-base transition-all flex items-center justify-center gap-2 touch-target ${loading || isRunning || selectedUsers.length === 0
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-black dark:bg-blue-600 hover:bg-gray-900 dark:hover:bg-blue-700 shadow-md"
+                }`}
             >
               {loading ? (
                 <>
