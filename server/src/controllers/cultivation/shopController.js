@@ -1,0 +1,208 @@
+import mongoose from "mongoose";
+import Cultivation, { SHOP_ITEMS } from "../../models/Cultivation.js";
+import Equipment from "../../models/Equipment.js";
+
+/**
+ * GET /shop - Lấy danh sách vật phẩm trong shop
+ */
+export const getShop = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const cultivation = await Cultivation.getOrCreate(userId);
+
+        const shopItems = SHOP_ITEMS.map(item => {
+            if (item.type === 'technique') {
+                const isOwned = cultivation.learnedTechniques?.some(t => t.techniqueId === item.id) || false;
+                return { ...item, owned: isOwned, canAfford: cultivation.spiritStones >= item.price };
+            }
+
+            const isOwned = cultivation.inventory.some(i => {
+                if (i.itemId && i.itemId.toString() === item.id) return true;
+                if (i._id && i._id.toString() === item.id) return true;
+                return false;
+            });
+
+            return { ...item, owned: isOwned, canAfford: cultivation.spiritStones >= item.price };
+        });
+
+        const availableEquipment = await Equipment.find({
+            is_active: true,
+            price: { $gt: 0 }
+        }).lean();
+
+        const equipmentItems = availableEquipment.map(eq => {
+            let elementalDamage = {};
+            if (eq.stats?.elemental_damage instanceof Map) {
+                elementalDamage = Object.fromEntries(eq.stats.elemental_damage);
+            } else if (eq.stats?.elemental_damage) {
+                elementalDamage = eq.stats.elemental_damage;
+            }
+
+            const eqId = eq._id.toString();
+            const isOwned = cultivation.inventory.some(i => {
+                if (i.itemId && i.itemId.toString() === eqId) return true;
+                if (i.metadata?._id) {
+                    const metadataId = i.metadata._id.toString();
+                    if (metadataId === eqId) return true;
+                }
+                if (i._id && i._id.toString() === eqId) return true;
+                return false;
+            });
+
+            return {
+                id: eqId,
+                name: eq.name,
+                type: `equipment_${eq.type}`,
+                equipmentType: eq.type,
+                subtype: eq.subtype || null,
+                rarity: eq.rarity,
+                price: eq.price,
+                img: eq.img,
+                description: eq.description,
+                level_required: eq.level_required,
+                stats: { ...eq.stats, elemental_damage: elementalDamage },
+                special_effect: eq.special_effect,
+                skill_bonus: eq.skill_bonus,
+                energy_regen: eq.energy_regen,
+                lifesteal: eq.lifesteal,
+                true_damage: eq.true_damage,
+                buff_duration: eq.buff_duration,
+                owned: isOwned,
+                canAfford: cultivation.spiritStones >= eq.price,
+                canUse: cultivation.realmLevel >= eq.level_required
+            };
+        });
+
+        const allItems = [...shopItems, ...equipmentItems];
+
+        res.json({
+            success: true,
+            data: { items: allItems, spiritStones: cultivation.spiritStones }
+        });
+    } catch (error) {
+        console.error("[CULTIVATION] Error getting shop:", error);
+        next(error);
+    }
+};
+
+/**
+ * POST /shop/buy/:itemId - Mua vật phẩm
+ */
+export const buyItem = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { itemId } = req.params;
+
+        const cultivation = await Cultivation.getOrCreate(userId);
+
+        // Check if equipment (valid ObjectId)
+        if (mongoose.Types.ObjectId.isValid(itemId)) {
+            const equipment = await Equipment.findById(itemId);
+
+            if (!equipment) {
+                return res.status(400).json({ success: false, message: "Trang bị không tồn tại" });
+            }
+
+            if (!equipment.is_active) {
+                return res.status(400).json({ success: false, message: "Trang bị này đã bị vô hiệu hóa" });
+            }
+
+            if (equipment.price <= 0) {
+                return res.status(400).json({ success: false, message: "Trang bị này không được bán" });
+            }
+
+            if (cultivation.realmLevel < equipment.level_required) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Cần đạt cảnh giới cấp ${equipment.level_required} để mua trang bị này`
+                });
+            }
+
+            const itemIdStr = itemId.toString();
+            const alreadyOwned = cultivation.inventory.some(i => {
+                if (i.itemId && i.itemId.toString() === itemIdStr) return true;
+                if (i.metadata?._id) {
+                    const metadataId = i.metadata._id.toString();
+                    if (metadataId === itemIdStr) return true;
+                }
+                if (i._id && i._id.toString() === itemIdStr) return true;
+                return false;
+            });
+
+            if (alreadyOwned) {
+                return res.status(400).json({ success: false, message: "Bạn đã sở hữu trang bị này rồi" });
+            }
+
+            if (cultivation.spiritStones < equipment.price) {
+                return res.status(400).json({ success: false, message: "Không đủ linh thạch để mua" });
+            }
+
+            cultivation.spendSpiritStones(equipment.price);
+
+            const inventoryItem = {
+                itemId: equipment._id.toString(),
+                name: equipment.name,
+                type: `equipment_${equipment.type}`,
+                quantity: 1,
+                equipped: false,
+                acquiredAt: new Date(),
+                metadata: {
+                    _id: equipment._id,
+                    equipmentType: equipment.type,
+                    subtype: equipment.subtype,
+                    rarity: equipment.rarity,
+                    level_required: equipment.level_required,
+                    stats: equipment.stats,
+                    special_effect: equipment.special_effect,
+                    skill_bonus: equipment.skill_bonus,
+                    energy_regen: equipment.energy_regen,
+                    lifesteal: equipment.lifesteal,
+                    true_damage: equipment.true_damage,
+                    buff_duration: equipment.buff_duration,
+                    img: equipment.img,
+                    description: equipment.description
+                }
+            };
+
+            cultivation.inventory.push(inventoryItem);
+            await cultivation.save();
+
+            return res.json({
+                success: true,
+                message: `Đã mua ${equipment.name}!`,
+                data: { spiritStones: cultivation.spiritStones, inventory: cultivation.inventory, item: inventoryItem }
+            });
+        }
+
+        // Normal item purchase
+        try {
+            const result = cultivation.buyItem(itemId);
+            await cultivation.save();
+
+            const responseData = { spiritStones: cultivation.spiritStones, inventory: cultivation.inventory };
+
+            if (result && result.type === 'technique') {
+                responseData.learnedTechnique = result.learnedTechnique;
+                const techniqueItem = SHOP_ITEMS.find(t => t.id === itemId && t.type === 'technique');
+                if (techniqueItem) {
+                    responseData.skill = techniqueItem.skill;
+                }
+            } else {
+                responseData.item = result;
+            }
+
+            res.json({
+                success: true,
+                message: result && result.type === 'technique'
+                    ? `Đã học công pháp ${result.name}!`
+                    : `Đã mua ${result?.name || 'vật phẩm'}!`,
+                data: responseData
+            });
+        } catch (buyError) {
+            return res.status(400).json({ success: false, message: buyError.message });
+        }
+    } catch (error) {
+        console.error("[CULTIVATION] Error buying item:", error);
+        next(error);
+    }
+};

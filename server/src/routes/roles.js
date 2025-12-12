@@ -20,6 +20,12 @@ import { staleWhileRevalidate } from "../middleware/cacheHeaders.js";
 const router = express.Router();
 
 /**
+ * Helper to check if user is a FULL admin (role === 'admin')
+ * Only full admins can create/modify roles with admin permissions
+ */
+const isFullAdmin = (user) => user?.role === 'admin';
+
+/**
  * Middleware kiểm tra quyền admin
  * Cho phép users có role "admin" HOẶC có bất kỳ permission admin.* nào
  */
@@ -151,6 +157,14 @@ router.post("/", authRequired, adminRequired, async (req, res, next) => {
   try {
     const { name, displayName, description, iconUrl, color, permissions } = req.body;
 
+    // SECURITY: Only full admin can create roles
+    if (!isFullAdmin(req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: "Chỉ admin toàn quyền mới có thể tạo role mới"
+      });
+    }
+
     // Validation
     if (!name || !displayName) {
       return res.status(400).json({
@@ -159,8 +173,17 @@ router.post("/", authRequired, adminRequired, async (req, res, next) => {
       });
     }
 
+    // SECURITY: Block creating role named "admin"
+    const lowerName = name.toLowerCase();
+    if (lowerName === 'admin') {
+      return res.status(400).json({
+        success: false,
+        error: "Không thể tạo role với tên 'admin'"
+      });
+    }
+
     // Kiểm tra role đã tồn tại
-    const existingRole = await Role.findOne({ name: name.toLowerCase() });
+    const existingRole = await Role.findOne({ name: lowerName });
     if (existingRole) {
       return res.status(400).json({
         success: false,
@@ -168,14 +191,28 @@ router.post("/", authRequired, adminRequired, async (req, res, next) => {
       });
     }
 
+    // SECURITY: Filter out dangerous permissions from new role
+    let safePermissions = {};
+    if (permissions) {
+      safePermissions = { ...permissions };
+      // Block core admin permissions that could lead to privilege escalation
+      const blockedPermissions = ['role', 'admin', 'full_admin', 'super_admin', 'canManageRoles', 'canAccessAdmin'];
+      Object.keys(safePermissions).forEach(key => {
+        // Block any permission that contains blocked keywords
+        if (blockedPermissions.some(blocked => key.toLowerCase().includes(blocked))) {
+          delete safePermissions[key];
+        }
+      });
+    }
+
     // Tạo role mới
     const newRole = new Role({
-      name: name.toLowerCase(),
+      name: lowerName,
       displayName,
       description: description || "",
       iconUrl: iconUrl || "",
       color: color || "#3B82F6",
-      permissions: permissions || {},
+      permissions: safePermissions,
       createdBy: req.user._id
     });
 
@@ -209,39 +246,52 @@ router.put("/:id", authRequired, adminRequired, async (req, res, next) => {
       });
     }
 
-    // Cho phép chỉnh sửa hiển thị của role mặc định (icon, màu, mô tả)
-    // Và cho phép update admin.* permissions, nhưng không cho đổi permissions hệ thống quan trọng
-    if (role.isDefault) {
-      // Chỉ cho phép cập nhật displayName, description, iconUrl, color
-      if (displayName) role.displayName = displayName;
-      if (description !== undefined) role.description = description;
-      if (iconUrl !== undefined) role.iconUrl = iconUrl;
-      if (color) role.color = color;
+    // SECURITY: Only full admin can modify permissions
+    if (permissions && !isFullAdmin(req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: "Chỉ admin toàn quyền mới có thể thay đổi quyền hạn của role"
+      });
+    }
 
-      // Cho phép update admin.* permissions cho role mặc định
-      if (permissions) {
-        const protectedKeys = ['canModerateContent', 'canBanUsers', 'canManageRoles', 'canAccessAdmin'];
-        const safePermissions = { ...permissions };
-        // Xóa các protected keys - không cho phép thay đổi qua API
-        protectedKeys.forEach(key => delete safePermissions[key]);
-        // Chỉ update các admin.* permissions
+    // SECURITY: Block modifying the 'admin' role itself
+    if (role.name === 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: "Không thể chỉnh sửa role 'admin' hệ thống"
+      });
+    }
+
+    // Cho phép chỉnh sửa hiển thị (không cần isFullAdmin)
+    if (displayName) role.displayName = displayName;
+    if (description !== undefined) role.description = description;
+    if (iconUrl !== undefined) role.iconUrl = iconUrl;
+    if (color) role.color = color;
+
+    // SECURITY: Process permissions with restrictions (only if isFullAdmin already checked above)
+    if (permissions && isFullAdmin(req.user)) {
+      // Block dangerous permission keys
+      const blockedPermissions = ['role', 'admin', 'full_admin', 'super_admin', 'canManageRoles'];
+      const safePermissions = { ...permissions };
+
+      Object.keys(safePermissions).forEach(key => {
+        if (blockedPermissions.some(blocked => key.toLowerCase().includes(blocked))) {
+          delete safePermissions[key];
+        }
+      });
+
+      if (role.isDefault) {
+        // For default roles, only update admin.* permissions
         Object.keys(safePermissions).forEach(key => {
           if (key.startsWith('admin.')) {
             role.permissions[key] = safePermissions[key];
           }
         });
-        role.markModified('permissions');
+      } else {
+        // Custom roles can have any safe permission
+        role.permissions = { ...role.permissions, ...safePermissions };
       }
-    } else {
-      // Role tùy chỉnh có thể đổi tất cả
-      if (displayName) role.displayName = displayName;
-      if (description !== undefined) role.description = description;
-      if (iconUrl !== undefined) role.iconUrl = iconUrl;
-      if (color) role.color = color;
-      if (permissions) {
-        role.permissions = { ...role.permissions, ...permissions };
-        role.markModified('permissions'); // Required for Mixed type
-      }
+      role.markModified('permissions');
     }
 
     await role.save();
@@ -264,6 +314,14 @@ router.put("/:id", authRequired, adminRequired, async (req, res, next) => {
  */
 router.delete("/:id", authRequired, adminRequired, async (req, res, next) => {
   try {
+    // SECURITY: Only full admin can delete roles
+    if (!isFullAdmin(req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: "Chỉ admin toàn quyền mới có thể xóa role"
+      });
+    }
+
     console.log(`[INFO][ROLES] DELETE role request for ID: ${req.params.id}`);
 
     const role = await Role.findById(req.params.id);
@@ -272,6 +330,14 @@ router.delete("/:id", authRequired, adminRequired, async (req, res, next) => {
       return res.status(404).json({
         success: false,
         error: "Không tìm thấy role"
+      });
+    }
+
+    // SECURITY: Block deleting the 'admin' role
+    if (role.name === 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: "Không thể xóa role 'admin' hệ thống"
       });
     }
 
