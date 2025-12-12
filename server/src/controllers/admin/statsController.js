@@ -276,3 +276,132 @@ export const updateOfflineUsers = async (req, res, next) => {
         next(e);
     }
 };
+
+/**
+ * GET /stats/daily - Lấy thống kê theo từng ngày (14 ngày gần nhất)
+ */
+export const getDailyStats = async (req, res, next) => {
+    try {
+        const days = Math.min(365, Math.max(7, parseInt(req.query.days) || 14));
+        const now = new Date();
+        const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+        startDate.setHours(0, 0, 0, 0);
+
+        // Get daily posts count
+        const [dailyPosts, dailyUsers, dailyComments] = await Promise.all([
+            Post.aggregate([
+                { $match: { createdAt: { $gte: startDate } } },
+                {
+                    $group: {
+                        _id: {
+                            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+                        },
+                        count: { $sum: 1 },
+                        views: { $sum: "$views" },
+                        emotes: { $sum: { $size: { $ifNull: ["$emotes", []] } } }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]),
+            User.aggregate([
+                { $match: { createdAt: { $gte: startDate } } },
+                {
+                    $group: {
+                        _id: {
+                            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+                        },
+                        count: { $sum: 1 }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]),
+            Comment.aggregate([
+                { $match: { createdAt: { $gte: startDate } } },
+                {
+                    $group: {
+                        _id: {
+                            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+                        },
+                        count: { $sum: 1 }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ])
+        ]);
+
+        // Create a map for each metric
+        const postsMap = new Map(dailyPosts.map(d => [d._id, d]));
+        const usersMap = new Map(dailyUsers.map(d => [d._id, d.count]));
+        const commentsMap = new Map(dailyComments.map(d => [d._id, d.count]));
+
+        // Generate complete date range with data
+        const chartData = [];
+        for (let i = 0; i < days; i++) {
+            const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+            const dateStr = date.toISOString().split('T')[0];
+            const dayLabel = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+
+            const postData = postsMap.get(dateStr) || { count: 0, views: 0, emotes: 0 };
+
+            chartData.push({
+                date: dateStr,
+                label: dayLabel,
+                posts: postData.count || 0,
+                views: postData.views || 0,
+                emotes: postData.emotes || 0,
+                users: usersMap.get(dateStr) || 0,
+                comments: commentsMap.get(dateStr) || 0
+            });
+        }
+
+        // Get actual totals from database (using countDocuments for accuracy)
+        const [totalPosts, totalUsers, totalComments, emotesData] = await Promise.all([
+            Post.countDocuments({}),
+            User.countDocuments({}),
+            Comment.countDocuments({}),
+            Post.aggregate([
+                {
+                    $group: {
+                        _id: null,
+                        totalEmotes: { $sum: { $size: { $ifNull: ["$emotes", []] } } }
+                    }
+                }
+            ])
+        ]);
+
+        const allTimeTotals = {
+            posts: totalPosts,
+            users: totalUsers,
+            comments: totalComments,
+            emotes: emotesData[0]?.totalEmotes || 0
+        };
+
+        // Period totals: sum from chartData
+        const periodTotals = {
+            posts: chartData.reduce((sum, d) => sum + d.posts, 0),
+            users: chartData.reduce((sum, d) => sum + d.users, 0),
+            comments: chartData.reduce((sum, d) => sum + d.comments, 0),
+            emotes: chartData.reduce((sum, d) => sum + d.emotes, 0)
+        };
+
+        // Baseline: calculated as allTimeTotals - periodTotals to ensure accuracy
+        // This guarantees: baseline + periodTotals = allTimeTotals
+        const baseline = {
+            posts: allTimeTotals.posts - periodTotals.posts,
+            users: allTimeTotals.users - periodTotals.users,
+            comments: allTimeTotals.comments - periodTotals.comments,
+            emotes: allTimeTotals.emotes - periodTotals.emotes
+        };
+
+        res.json({
+            success: true,
+            days,
+            chartData,
+            allTimeTotals,
+            baseline,
+            periodTotals
+        });
+    } catch (e) {
+        next(e);
+    }
+};

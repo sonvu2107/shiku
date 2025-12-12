@@ -3,6 +3,7 @@ import AdminFeedback from "./AdminFeedback";
 import APIMonitoring from "../components/APIMonitoring";
 import RoleManagement from "../components/RoleManagement";
 import AutoLikeBot from "../components/AutoLikeBot";
+import AdminCharts from "../components/AdminCharts";
 import VerifiedBadge from "../components/VerifiedBadge";
 import Avatar from "../components/Avatar";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
@@ -558,12 +559,14 @@ export default function AdminDashboard() {
                                     </div>
                                  </SpotlightCard>
                               </div>
-                           </>
-                        )}
-                     </motion.div>
-                  )}
+                               {/* Charts Section */}
+                               <AdminCharts />
+                            </>
+                         )}
+                      </motion.div>
+                   )}
 
-                  {/* 2. USERS MANAGEMENT TAB */}
+                   {/* 2. USERS MANAGEMENT TAB */}
                   {activeTab === "users" && (
                      <motion.div key="users" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                         <SpotlightCard className="min-h-[600px]">

@@ -1359,6 +1359,84 @@ router.get("/analytics", authRequired, async (req, res, next) => {
   }
 });
 
+// Get user daily analytics for charts
+router.get("/analytics/daily", authRequired, async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const days = Math.min(365, Math.max(7, parseInt(req.query.days) || 30));
+    const now = new Date();
+    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    startDate.setHours(0, 0, 0, 0);
+
+    // Get daily posts aggregation for this user
+    const dailyPosts = await Post.aggregate([
+      { $match: { author: userId, createdAt: { $gte: startDate } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 },
+          views: { $sum: "$views" },
+          emotes: { $sum: { $size: { $ifNull: ["$emotes", []] } } }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Create map for lookup
+    const postsMap = new Map(dailyPosts.map(d => [d._id, d]));
+
+    // Generate complete date range
+    const chartData = [];
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayLabel = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+
+      const postData = postsMap.get(dateStr) || { count: 0, views: 0, emotes: 0 };
+
+      chartData.push({
+        date: dateStr,
+        label: dayLabel,
+        posts: postData.count || 0,
+        views: postData.views || 0,
+        emotes: postData.emotes || 0
+      });
+    }
+
+    // Get all-time totals for this user
+    const allPosts = await Post.find({ author: userId }).select('views emotes').lean();
+    const allTimeTotals = {
+      posts: allPosts.length,
+      views: allPosts.reduce((sum, p) => sum + (p.views || 0), 0),
+      emotes: allPosts.reduce((sum, p) => sum + (Array.isArray(p.emotes) ? p.emotes.length : 0), 0)
+    };
+
+    // Calculate period totals and baseline
+    const periodTotals = {
+      posts: chartData.reduce((sum, d) => sum + d.posts, 0),
+      views: chartData.reduce((sum, d) => sum + d.views, 0),
+      emotes: chartData.reduce((sum, d) => sum + d.emotes, 0)
+    };
+
+    const baseline = {
+      posts: allTimeTotals.posts - periodTotals.posts,
+      views: allTimeTotals.views - periodTotals.views,
+      emotes: allTimeTotals.emotes - periodTotals.emotes
+    };
+
+    res.json({
+      success: true,
+      days,
+      chartData,
+      allTimeTotals,
+      baseline,
+      periodTotals
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ==================== SAVED POSTS ====================
 
 // Batch check if posts are saved by current user

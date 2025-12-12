@@ -4,6 +4,7 @@ import { AnalyticsCardSkeleton } from "../ui/Skeleton";
 import Select from "../ui/Select";
 import Button from "../ui/Button";
 import { ANALYTICS_PERIODS, PROFILE_MESSAGES } from "../../constants/profile";
+import ProfileCharts from "./ProfileCharts";
 
 /**
  * AnalyticsTab - Component showing analytics overview for user's posts
@@ -47,7 +48,7 @@ export default function AnalyticsTab({
       {analyticsLoading ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1,2,3,4].map(i => (
+            {[1, 2, 3, 4].map(i => (
               <AnalyticsCardSkeleton key={i} />
             ))}
           </div>
@@ -67,7 +68,7 @@ export default function AnalyticsTab({
                 <Eye className="w-8 h-8 text-neutral-400" />
               </div>
             </SpotlightCard>
-            
+
             <SpotlightCard className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -79,7 +80,7 @@ export default function AnalyticsTab({
                 <FileText className="w-8 h-8 text-neutral-400" />
               </div>
             </SpotlightCard>
-            
+
             <SpotlightCard className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -91,7 +92,7 @@ export default function AnalyticsTab({
                 <TrendingUp className="w-8 h-8 text-neutral-400" />
               </div>
             </SpotlightCard>
-            
+
             <SpotlightCard className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -104,6 +105,9 @@ export default function AnalyticsTab({
               </div>
             </SpotlightCard>
           </div>
+
+          {/* Charts Section */}
+          <ProfileCharts />
 
           {/* Recent Posts */}
           {analytics.recentPosts && analytics.recentPosts.length > 0 && (
@@ -128,7 +132,7 @@ export default function AnalyticsTab({
                           {post.title || "Không có tiêu đề"}
                         </h5>
                         <p className="text-sm text-neutral-500">
-                          {new Date(post.createdAt).toLocaleDateString('vi-VN')} • 
+                          {new Date(post.createdAt).toLocaleDateString('vi-VN')} •
                           <span className={`ml-1 ${post.status === 'published' ? 'text-green-600' : 'text-orange-600'}`}>
                             {post.status === 'published' ? 'Công khai' : 'Riêng tư'}
                           </span>
@@ -168,7 +172,7 @@ export default function AnalyticsTab({
                           {post.title || "Không có tiêu đề"}
                         </h5>
                         <p className="text-sm text-neutral-500">
-                          {new Date(post.createdAt).toLocaleDateString('vi-VN')} • 
+                          {new Date(post.createdAt).toLocaleDateString('vi-VN')} •
                           <span className={`ml-1 ${post.status === 'published' ? 'text-green-600' : 'text-orange-600'}`}>
                             {post.status === 'published' ? 'Công khai' : 'Riêng tư'}
                           </span>

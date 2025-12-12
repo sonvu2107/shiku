@@ -27,6 +27,7 @@ import {
   getOnlineUsers,
   getTotalVisitors,
   updateOfflineUsers,
+  getDailyStats,
   // Audit
   getAuditLogs,
   getSuspiciousActivities,
@@ -113,6 +114,7 @@ router.delete("/users/:id", authRequired, adminRequired, deleteUser);
 // ============================================================
 
 router.get("/stats", adminRateLimit, statsCache, authRequired, adminRequired, getStats);
+router.get("/stats/daily", adminRateLimit, statsCache, authRequired, adminRequired, getDailyStats);
 router.get("/online-users", adminRateLimit, noCache, authRequired, adminRequired, getOnlineUsers);
 router.get("/total-visitors", authRequired, adminRequired, getTotalVisitors);
 router.post("/update-offline-users", authRequired, adminRequired, updateOfflineUsers);
