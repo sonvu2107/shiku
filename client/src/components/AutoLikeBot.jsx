@@ -487,7 +487,7 @@ export default function AutoLikeBot() {
                         <span className="text-red-600 dark:text-red-400 text-xs">Lỗi: {r.error}</span>
                       ) : (
                         <span className="text-green-600 dark:text-green-400 text-xs">
-                          {r.likesGiven} likes • {r.viewsGiven || 0} views • {r.postsProcessed} bài viết • {r.availablePosts || 0} posts khả dụng
+                          {r.likesGiven} likes • {r.viewsGiven || 0} views • {r.postsProcessed} bài xử lý • {r.skippedPosts || 0} bài đã like
                         </span>
                       )}
                     </div>

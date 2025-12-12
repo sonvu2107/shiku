@@ -30,7 +30,10 @@ export const autoLikePosts = async (req, res, next) => {
 
         const posts = await Post.find({
             status: 'published',
-            group: { $exists: false }
+            $or: [
+                { group: null },
+                { group: { $exists: false } }
+            ]
         })
             .select('_id title emotes')
             .sort({ createdAt: -1 })
@@ -47,12 +50,14 @@ export const autoLikePosts = async (req, res, next) => {
         for (const testUser of testUsers) {
             let userLikes = 0;
             let postsProcessed = 0;
-            let availablePosts = 0;
+            let skippedPosts = 0;
 
             const shuffledPosts = [...posts].sort(() => Math.random() - 0.5);
             const postsToProcess = shuffledPosts.slice(0, maxPostsPerUser);
 
             for (const post of postsToProcess) {
+                postsProcessed++;
+
                 if (Math.random() > likeProbability) continue;
 
                 const existingEmote = post.emotes?.find(
@@ -60,7 +65,7 @@ export const autoLikePosts = async (req, res, next) => {
                 );
 
                 if (existingEmote && !forceOverride) {
-                    availablePosts++;
+                    skippedPosts++;
                     continue;
                 }
 
@@ -84,15 +89,13 @@ export const autoLikePosts = async (req, res, next) => {
                 } catch (err) {
                     console.error(`[ADMIN] Error liking post ${post._id} for ${testUser.email}:`, err);
                 }
-
-                postsProcessed++;
             }
 
             results.push({
                 user: testUser.email,
                 likesGiven: userLikes,
                 postsProcessed,
-                availablePosts,
+                skippedPosts,
                 viewsGiven: 0
             });
         }
@@ -152,7 +155,10 @@ export const autoViewPosts = async (req, res, next) => {
 
         const posts = await Post.find({
             status: 'published',
-            group: { $exists: false }
+            $or: [
+                { group: null },
+                { group: { $exists: false } }
+            ]
         })
             .select('_id title views')
             .sort({ createdAt: -1 })
