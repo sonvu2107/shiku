@@ -14,6 +14,7 @@ import express from 'express';
 import Event from '../models/Event.js';
 import User from '../models/User.js';
 import { authRequired, authOptional } from '../middleware/auth.js';
+import { responseCache, invalidateByPattern } from '../middleware/responseCache.js';
 
 const router = express.Router();
 
@@ -22,20 +23,20 @@ const router = express.Router();
  * @desc    Lấy danh sách sự kiện với phân trang và tìm kiếm
  * @access  Public
  */
-router.get('/', authOptional, async (req, res) => {
+router.get('/', authOptional, responseCache({ ttlSeconds: 60, prefix: 'events' }), async (req, res) => {
   try {
     const {
       page = 1,
       limit = 10,
       search = '',
-      filter = 'all', 
+      filter = 'all',
       sortBy = 'date',
       sortOrder = 'asc'
     } = req.query;
 
     // Xây dựng query
     let query = { isActive: true };
-    
+
     // Lọc theo loại sự kiện
     if (filter === 'upcoming') {
       query.date = { $gte: new Date() };
@@ -47,7 +48,7 @@ router.get('/', authOptional, async (req, res) => {
         { attendees: req.user._id }
       ];
     }
-    
+
     // Tìm kiếm theo tên, mô tả, địa điểm
     if (search) {
       query.$or = [
@@ -120,7 +121,7 @@ router.get('/', authOptional, async (req, res) => {
 router.post('/:id/join', authRequired, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
-    
+
     if (!event) {
       return res.status(404).json({
         success: false,
@@ -172,7 +173,7 @@ router.post('/:id/join', authRequired, async (req, res) => {
 router.post('/:id/leave', authRequired, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
-    
+
     if (!event) {
       return res.status(404).json({
         success: false,
@@ -224,7 +225,7 @@ router.post('/:id/leave', authRequired, async (req, res) => {
 router.post('/:id/interested', authRequired, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
-    
+
     if (!event) {
       return res.status(404).json({
         success: false,
@@ -267,7 +268,7 @@ router.post('/:id/interested', authRequired, async (req, res) => {
 router.post('/:id/decline', authRequired, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
-    
+
     if (!event) {
       return res.status(404).json({
         success: false,
@@ -310,7 +311,7 @@ router.post('/:id/decline', authRequired, async (req, res) => {
 router.post('/:id/invite', authRequired, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
-    
+
     if (!event) {
       return res.status(404).json({
         success: false,
@@ -460,6 +461,9 @@ router.post('/', authRequired, async (req, res) => {
       message: 'Tạo sự kiện thành công',
       event
     });
+
+    // Invalidate events cache
+    invalidateByPattern('events:*').catch(() => { });
   } catch (error) {
     console.error('Error creating event:', error);
     res.status(500).json({
@@ -477,7 +481,7 @@ router.post('/', authRequired, async (req, res) => {
 router.put('/:id', authRequired, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
-    
+
     if (!event) {
       return res.status(404).json({
         success: false,
@@ -525,6 +529,9 @@ router.put('/:id', authRequired, async (req, res) => {
       message: 'Cập nhật sự kiện thành công',
       event
     });
+
+    // Invalidate events cache
+    invalidateByPattern('events:*').catch(() => { });
   } catch (error) {
     console.error('Error updating event:', error);
     res.status(500).json({
@@ -542,7 +549,7 @@ router.put('/:id', authRequired, async (req, res) => {
 router.delete('/:id', authRequired, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
-    
+
     if (!event) {
       return res.status(404).json({
         success: false,
@@ -563,7 +570,7 @@ router.delete('/:id', authRequired, async (req, res) => {
       // Với sự kiện đã diễn ra, chỉ có thể ẩn khỏi timeline
       event.isHidden = true;
       await event.save();
-      
+
       return res.json({
         success: true,
         message: 'Sự kiện đã được ẩn khỏi dòng thời gian'
@@ -578,6 +585,9 @@ router.delete('/:id', authRequired, async (req, res) => {
       success: true,
       message: 'Xóa sự kiện thành công'
     });
+
+    // Invalidate events cache
+    invalidateByPattern('events:*').catch(() => { });
   } catch (error) {
     console.error('Error deleting event:', error);
     res.status(500).json({

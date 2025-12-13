@@ -17,6 +17,7 @@ import User from '../models/User.js';
 import { authRequired } from '../middleware/auth.js';
 import { withCache, userCache, invalidateCacheByPrefix } from '../utils/cache.js';
 import { apiLimiter } from '../middleware/rateLimit.js';
+import { responseCache, invalidateByPattern } from '../middleware/responseCache.js';
 
 const router = express.Router();
 
@@ -92,7 +93,7 @@ router.post('/send-request', authRequired, async (req, res) => {
       .populate('from', 'name nickname email avatarUrl')
       .populate('to', 'name nickname email avatarUrl');
 
-    res.json({ 
+    res.json({
       message: 'Đã gửi lời mời kết bạn',
       friendRequest: populatedRequest
     });
@@ -144,10 +145,13 @@ router.post('/accept-request/:requestId', authRequired, async (req, res) => {
       .populate('from', 'name nickname email avatarUrl')
       .populate('to', 'name nickname email avatarUrl');
 
-    res.json({ 
+    res.json({
       message: 'Đã chấp nhận lời mời kết bạn',
       friendRequest: populatedRequest
     });
+
+    // Invalidate friend suggestions cache for both users
+    invalidateByPattern('friendsug:*').catch(() => { });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -235,7 +239,7 @@ router.get('/list', authRequired, async (req, res) => {
   try {
     const userId = req.user._id.toString();
     const cacheKey = `friends:list:${userId}`;
-    
+
     // Cache for 30 seconds (friends list changes infrequently)
     const friends = await withCache(userCache, cacheKey, async () => {
       // OPTIMIZATION: Use aggregation instead of populate for better performance
@@ -271,7 +275,7 @@ router.get('/list', authRequired, async (req, res) => {
       ]);
 
       const friendsList = result[0]?.friends?.filter(f => f) || [];
-      
+
       // Ensure default values
       return friendsList.map(friend => ({
         ...friend,
@@ -291,7 +295,7 @@ router.get('/list', authRequired, async (req, res) => {
  * Tìm users chưa là bạn bè và chưa có lời mời pending
  * @returns {Array} Danh sách gợi ý kết bạn
  */
-router.get('/suggestions', authRequired, async (req, res) => {
+router.get('/suggestions', authRequired, responseCache({ ttlSeconds: 60, prefix: 'friendsug', varyByUser: true }), async (req, res) => {
   try {
     const userId = req.user._id.toString(); // Convert to string
     const user = await User.findById(userId);
@@ -304,13 +308,13 @@ router.get('/suggestions', authRequired, async (req, res) => {
       ]
     });
 
-    const pendingUserIds = pendingRequests.map(req => 
+    const pendingUserIds = pendingRequests.map(req =>
       req.from.toString() === userId ? req.to.toString() : req.from.toString()
     );
 
     const suggestions = await User.find({
-      _id: { 
-        $nin: [...user.friends, userId, ...pendingUserIds] 
+      _id: {
+        $nin: [...user.friends, userId, ...pendingUserIds]
       }
     }).select('name nickname email avatarUrl isOnline lastSeen cultivationCache displayBadgeType')
       .limit(10)
@@ -385,6 +389,9 @@ router.delete('/remove/:friendId', authRequired, async (req, res) => {
     });
 
     res.json({ message: 'Đã bỏ kết bạn' });
+
+    // Invalidate friend suggestions cache for both users
+    invalidateByPattern('friendsug:*').catch(() => { });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -407,7 +414,7 @@ router.get('/search', authRequired, async (req, res) => {
 
     // Escape regex special characters
     const escapedQuery = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    
+
     const users = await User.find({
       _id: { $ne: userId },
       $or: [
@@ -432,7 +439,7 @@ router.get('/search', authRequired, async (req, res) => {
 router.get('/search-friends', authRequired, async (req, res) => {
   try {
     const { q } = req.query;
-    
+
     if (!q || q.trim().length < 2) {
       return res.status(400).json({ message: "Từ khóa tìm kiếm quá ngắn" });
     }
@@ -454,7 +461,7 @@ router.get('/search-friends', authRequired, async (req, res) => {
     }));
 
     // Filter friends by search query
-    const filteredFriends = friends.filter(friend => 
+    const filteredFriends = friends.filter(friend =>
       friend.name.toLowerCase().includes(q.toLowerCase()) ||
       friend.email.toLowerCase().includes(q.toLowerCase())
     );

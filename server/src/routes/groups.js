@@ -20,11 +20,12 @@ import { authRequired, authOptional } from '../middleware/auth.js';
 import { withCache, userCache, invalidateCacheByPrefix } from '../utils/cache.js';
 import multer from 'multer';
 import { v2 as cloudinaryV2 } from 'cloudinary';
+import { responseCache, invalidateByPattern } from '../middleware/responseCache.js';
 
 const router = express.Router();
 
 // Cấu hình multer cho upload ảnh vào memory
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
@@ -68,7 +69,7 @@ const uploadToCloudinary = (buffer, folder = 'groups') => {
  * @desc    Lấy danh sách nhóm với phân trang và tìm kiếm
  * @access  Public (chỉ hiển thị public groups) - nhưng cần authOptional để tính userRole
  */
-router.get('/', authOptional, async (req, res) => {
+router.get('/', authOptional, responseCache({ ttlSeconds: 60, prefix: 'groups' }), async (req, res) => {
   try {
     const {
       page = 1,
@@ -81,15 +82,15 @@ router.get('/', authOptional, async (req, res) => {
 
     // Xây dựng query
     let query = { isActive: true };
-    
+
     // Loại bỏ nhóm bí mật khỏi danh sách công khai (chỉ hiển thị public và private)
     query['settings.type'] = { $in: ['public', 'private'] };
-    
+
     // Lọc theo loại nhóm cụ thể nếu được chỉ định
     if (type !== 'all' && (type === 'public' || type === 'private')) {
       query['settings.type'] = type;
     }
-    
+
     // Tìm kiếm theo tên, mô tả, tags - escape regex to prevent NoSQL injection
     if (search) {
       const safeSearch = escapeRegex(search);
@@ -144,7 +145,7 @@ router.get('/', authOptional, async (req, res) => {
     // Đếm tổng số nhóm
     const total = await Group.countDocuments(query);
 
-    
+
 
     res.json({
       success: true,
@@ -177,14 +178,14 @@ router.get('/my-groups', authRequired, async (req, res) => {
     const userId = req.user._id;
     const userIdStr = userId.toString();
     const { page = 1, limit = 10, role = 'all' } = req.query;
-    
+
     const cacheKey = `my-groups:${userIdStr}:${page}:${limit}:${role}`;
-    
+
     // Cache for 60 seconds
     const result = await withCache(userCache, cacheKey, async () => {
       // OPTIMIZATION: Use aggregation pipeline instead of find + populate
       const matchStage = { isActive: true };
-      
+
       if (role !== 'all') {
         matchStage['members'] = {
           $elemMatch: {
@@ -252,7 +253,7 @@ router.get('/my-groups', authRequired, async (req, res) => {
         if (ownerId === userIdStr) {
           return { ...group, userRole: 'owner' };
         }
-        
+
         const member = group.members?.[0];
         return {
           ...group,
@@ -292,7 +293,7 @@ router.get('/my-groups', authRequired, async (req, res) => {
 router.get('/:id', authOptional, async (req, res) => {
   try {
     console.log('[INFO][GROUPS] Group ID:', req.params.id);
-    
+
     const group = await Group.findById(req.params.id)
       .populate('owner', 'name avatarUrl')
       .populate('members.user', 'name avatarUrl')
@@ -311,7 +312,7 @@ router.get('/:id', authOptional, async (req, res) => {
     const userId = req.user?._id;
     const isOwner = userId && group.owner._id.toString() === userId.toString();
     const isMember = userId && group.isMember(userId);
-    
+
     let canView = false;
     if (group.settings.type === 'public') {
       canView = true; // Public groups can be viewed by anyone
@@ -477,6 +478,9 @@ router.post('/', authRequired, upload.fields([
       message: 'Tạo nhóm thành công',
       data: group
     });
+
+    // Invalidate groups cache
+    invalidateByPattern('groups:*').catch(() => { });
   } catch (error) {
     console.error('[ERROR][GROUPS] Error creating group:', error);
     res.status(500).json({
@@ -497,7 +501,7 @@ router.put('/:id', authRequired, upload.fields([
 ]), async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
-    
+
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -508,7 +512,7 @@ router.put('/:id', authRequired, upload.fields([
     // Kiểm tra quyền chỉnh sửa
     const isOwner = group.owner.toString() === req.user._id.toString();
     const isAdmin = group.isAdmin(req.user._id);
-    
+
     if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
@@ -531,7 +535,7 @@ router.put('/:id', authRequired, upload.fields([
     if (description !== undefined) {
       group.description = description || '';
     }
-    
+
     // Xử lý tags
     if (tags !== undefined) {
       if (Array.isArray(tags)) {
@@ -541,7 +545,7 @@ router.put('/:id', authRequired, upload.fields([
         group.tags = tagsArray;
       }
     }
-    
+
     // Xử lý location
     if (location !== undefined) {
       try {
@@ -598,6 +602,9 @@ router.put('/:id', authRequired, upload.fields([
       message: 'Cập nhật nhóm thành công',
       data: group
     });
+
+    // Invalidate groups cache
+    invalidateByPattern('groups:*').catch(() => { });
   } catch (error) {
     console.error('[ERROR][GROUPS] Error updating group:', error);
     res.status(500).json({
@@ -615,7 +622,7 @@ router.put('/:id', authRequired, upload.fields([
 router.delete('/:id', authRequired, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
-    
+
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -639,6 +646,9 @@ router.delete('/:id', authRequired, async (req, res) => {
       success: true,
       message: 'Xóa nhóm thành công'
     });
+
+    // Invalidate groups cache
+    invalidateByPattern('groups:*').catch(() => { });
   } catch (error) {
     console.error('[ERROR][GROUPS] Error deleting group:', error);
     res.status(500).json({
@@ -656,7 +666,7 @@ router.delete('/:id', authRequired, async (req, res) => {
 router.post('/:id/join', authRequired, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
-    
+
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -686,7 +696,7 @@ router.post('/:id/join', authRequired, async (req, res) => {
     if (group.settings.type === 'public' && group.settings.joinApproval === 'anyone') {
       // Tự động tham gia
       await group.addMember(userId, 'member');
-      
+
       res.json({
         success: true,
         message: 'Tham gia nhóm thành công',
@@ -743,7 +753,7 @@ router.post('/:id/join-requests/cancel', authRequired, async (req, res) => {
 router.post('/:id/leave', authRequired, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
-    
+
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -793,7 +803,7 @@ router.get('/:id/join-requests', authRequired, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id)
       .populate('joinRequests.user', 'name avatarUrl');
-    
+
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -829,7 +839,7 @@ router.get('/:id/join-requests', authRequired, async (req, res) => {
 router.post('/:id/join-requests/:requestId/approve', authRequired, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
-    
+
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -868,7 +878,7 @@ router.post('/:id/join-requests/:requestId/approve', authRequired, async (req, r
 router.post('/:id/join-requests/:requestId/reject', authRequired, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
-    
+
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -907,7 +917,7 @@ router.post('/:id/join-requests/:requestId/reject', authRequired, async (req, re
 router.post('/:id/ban', authRequired, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
-    
+
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -948,7 +958,7 @@ router.post('/:id/ban', authRequired, async (req, res) => {
 router.post('/:id/unban', authRequired, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
-    
+
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -989,7 +999,7 @@ router.post('/:id/unban', authRequired, async (req, res) => {
 router.delete('/:id/members/:userId', authRequired, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
-    
+
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -1036,7 +1046,7 @@ router.delete('/:id/members/:userId', authRequired, async (req, res) => {
 router.put('/:id/members/:userId/role', authRequired, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
-    
+
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -1046,13 +1056,13 @@ router.put('/:id/members/:userId/role', authRequired, async (req, res) => {
 
     const { role, permissions = {} } = req.body;
     const targetUserId = req.params.userId;
-    
+
     // Kiểm tra quyền thay đổi vai trò dựa trên vai trò hiện tại và vai trò mới
     const currentUser = req.user._id;
     const isOwner = group.owner.toString() === currentUser.toString();
     const isAdmin = group.isAdmin(currentUser);
     const isModerator = group.isModerator(currentUser);
-    
+
     // Lấy vai trò hiện tại của người bị thay đổi
     const targetMember = group.members.find(m => m.user.toString() === targetUserId);
     if (!targetMember) {
@@ -1061,14 +1071,14 @@ router.put('/:id/members/:userId/role', authRequired, async (req, res) => {
         message: 'Không tìm thấy thành viên'
       });
     }
-    
+
     const currentRole = targetMember.role;
-    
+
     // Quy tắc phân quyền:
     // - Owner có thể thay đổi bất kỳ ai thành bất kỳ role nào
     // - Admin có thể thăng/hạ moderator và member, nhưng không thể động đến admin khác
     // - Moderator không thể thay đổi vai trò của ai
-    
+
     if (!isOwner) {
       if (!isAdmin) {
         return res.status(403).json({
@@ -1076,7 +1086,7 @@ router.put('/:id/members/:userId/role', authRequired, async (req, res) => {
           message: 'Bạn không có quyền thay đổi vai trò thành viên'
         });
       }
-      
+
       // Admin không thể thay đổi vai trò của admin khác
       if (currentRole === 'admin') {
         return res.status(403).json({
@@ -1084,7 +1094,7 @@ router.put('/:id/members/:userId/role', authRequired, async (req, res) => {
           message: 'Chỉ chủ sở hữu mới có thể thay đổi vai trò của quản trị viên'
         });
       }
-      
+
       // Admin không thể thăng ai lên admin
       if (role === 'admin') {
         return res.status(403).json({
@@ -1117,7 +1127,7 @@ router.put('/:id/members/:userId/role', authRequired, async (req, res) => {
 router.get('/:id/analytics', authRequired, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
-    
+
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -1134,7 +1144,7 @@ router.get('/:id/analytics', authRequired, async (req, res) => {
     }
 
     const { period = '30d' } = req.query;
-    
+
     // Calculate date range based on period
     let startDate = new Date();
     switch (period) {
@@ -1165,7 +1175,7 @@ router.get('/:id/analytics', authRequired, async (req, res) => {
       .sort({ createdAt: -1 });
 
     // Get posts from the specified period
-    const recentPosts = allPosts.filter(post => 
+    const recentPosts = allPosts.filter(post =>
       new Date(post.createdAt) >= startDate
     );
 
@@ -1187,19 +1197,19 @@ router.get('/:id/analytics', authRequired, async (req, res) => {
       }));
 
     // Get comments count
-    const totalComments = await Comment.countDocuments({ 
-      post: { $in: allPosts.map(p => p._id) } 
+    const totalComments = await Comment.countDocuments({
+      post: { $in: allPosts.map(p => p._id) }
     });
 
     // Get recent comments count
-    const recentComments = await Comment.countDocuments({ 
+    const recentComments = await Comment.countDocuments({
       post: { $in: recentPosts.map(p => p._id) },
       createdAt: { $gte: startDate }
     });
 
     // Calculate member growth
     const totalMembers = group.members?.length || 0;
-    const recentMembers = group.members?.filter(m => 
+    const recentMembers = group.members?.filter(m =>
       new Date(m.joinedAt) >= startDate
     ).length || 0;
 

@@ -203,15 +203,37 @@ app.use((req, res, next) => {
   // Referrer-Policy - additional enforcement
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-  // Cache control for API responses - prevent caching of sensitive data
+  // Cache control for API responses
   if (req.path.startsWith('/api/')) {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    // Allow caching for public feed endpoints (posts, groups public list)
+    const cachablePaths = [
+      '/api/posts/feed',
+      '/api/posts/smart-feed',
+      '/api/posts/slug/',
+      '/api/groups'
+    ];
+
+    const isCachable = req.method === 'GET' && cachablePaths.some(p => req.path.startsWith(p));
+
+    if (isCachable) {
+      // Allow CDN/browser to cache public feeds
+      // max-age=10: browser cache 10s
+      // s-maxage=30: CDN cache 30s
+      // stale-while-revalidate=60: serve stale while fetching fresh
+      res.setHeader('Cache-Control', 'public, max-age=10, s-maxage=30, stale-while-revalidate=60');
+    } else {
+      // Prevent caching for sensitive/private data
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
   }
 
   next();
 });
+
+// Enable strong ETag for conditional GET requests (304 Not Modified)
+app.set('etag', 'strong');
 
 // Parse JSON after CORS
 app.use(express.json({ limit: "10mb" }));
@@ -745,27 +767,105 @@ import { socketRateLimitMiddleware, applyRateLimitToSocket } from './middleware/
 // Track connected users to prevent memory leaks
 const connectedUsers = new Map();
 
+// ============================================================
+// COUNT-BASED PRESENCE HELPERS
+// ============================================================
+
+// Track sockets per user (presence by user, not by socket)
+const userSockets = new Map(); // userId(string) -> Set(socketId)
+
+function addUserSocket(userId, socketId) {
+  const uid = userId.toString();
+  let set = userSockets.get(uid);
+  if (!set) {
+    set = new Set();
+    userSockets.set(uid, set);
+  }
+  const before = set.size;
+  set.add(socketId);
+  return { uid, before, after: set.size };
+}
+
+function removeUserSocket(userId, socketId) {
+  const uid = userId.toString();
+  const set = userSockets.get(uid);
+  if (!set) return { uid, before: 0, after: 0 };
+  const before = set.size;
+  set.delete(socketId);
+  const after = set.size;
+  if (after === 0) userSockets.delete(uid);
+  return { uid, before, after };
+}
+
+async function getFriendIdsLean(userId) {
+  const u = await User.findById(userId).select("friends").lean();
+  return Array.isArray(u?.friends) ? u.friends : [];
+}
+
+// Cache friends list to avoid DB query on every presence flip
+const friendsCache = new Map(); // userId -> { exp, ids }
+
+async function getFriendIdsCached(userId, ttlMs = 120_000) {
+  const uid = userId.toString();
+  const hit = friendsCache.get(uid);
+  const t = Date.now();
+  if (hit && hit.exp > t) return hit.ids;
+
+  const ids = await getFriendIdsLean(userId);
+  friendsCache.set(uid, { exp: t + ttlMs, ids });
+  return ids;
+}
+
+// Emit batched with ONE setImmediate chain (no callback spam)
+function emitBatchedToFriends(friendIds, event, payload) {
+  const BATCH = 50;
+  let i = 0;
+
+  const run = () => {
+    const batch = friendIds.slice(i, i + BATCH);
+    for (const fid of batch) {
+      if (!fid) continue;
+      io.to(`user-${fid}`).emit(event, payload);
+    }
+    i += BATCH;
+    if (i < friendIds.length) setImmediate(run);
+  };
+
+  setImmediate(run);
+}
+
 // Socket rate limiting middleware - MUST be first
 io.use(socketRateLimitMiddleware);
 
 // Socket authentication middleware
 io.use(async (socket, next) => {
   try {
-    const token = socket.handshake.auth.token;
+    const token = socket.handshake?.auth?.token;
+    if (!token) return next();
 
-    if (token) {
-      try {
-        const jwt = await import("jsonwebtoken");
-        const payload = jwt.default.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(payload.id).select("-password");
+    try {
+      const jwt = await import("jsonwebtoken");
+      const payload = jwt.default.verify(token, process.env.JWT_SECRET);
 
-        if (user) {
-          socket.userId = user._id;
-          socket.user = user;
-        }
-      } catch (error) {
-        // Invalid token, continue without authentication
+      // Only fetch minimal fields needed for socket layer (RAM optimization)
+      const user = await User.findById(payload.id)
+        .select("_id role roleData.permissions name avatarUrl")
+        .lean();
+
+      if (user) {
+        socket.userId = user._id;
+
+        // Store a LIGHTWEIGHT user object (plain JS, not mongoose doc)
+        socket.user = {
+          _id: user._id,
+          role: user.role,
+          roleData: user.roleData ? { permissions: user.roleData.permissions } : undefined,
+          name: user.name,
+          avatarUrl: user.avatarUrl
+        };
       }
+    } catch (err) {
+      // invalid token -> unauthenticated socket
     }
 
     next();
@@ -778,50 +878,38 @@ io.on("connection", async (socket) => {
   // Apply rate limiting to all socket events
   applyRateLimitToSocket(socket);
 
-  // Store connection info
+  // Calculate hasAdminAccess once on connect
+  const perms = socket.user?.roleData?.permissions || null;
+  const hasAdminAccess = !!(socket.user && (
+    socket.user.role === "admin" ||
+    (perms && Object.keys(perms).some(k => k.startsWith("admin.") && perms[k]))
+  ));
+
+  // Store minimal connection info (RAM optimization)
   connectedUsers.set(socket.id, {
     userId: socket.userId,
-    user: socket.user,
+    role: socket.user?.role || null,
+    hasAdminAccess,
     joinedRooms: new Set(),
-    connectedAt: new Date()
+    connectedAt: Date.now()
   });
 
-  // Cập nhật trạng thái online khi user kết nối
+  // Cập nhật trạng thái online khi user kết nối (count-based presence)
   if (socket.userId) {
     try {
-      await User.findByIdAndUpdate(socket.userId, {
-        isOnline: true,
-        lastSeen: new Date()
-      });
+      const { before } = addUserSocket(socket.userId, socket.id);
 
-      // Thông báo cho tất cả bạn bè về trạng thái online
-      const user = await User.findById(socket.userId).populate('friends', '_id');
-      if (user && user.friends) {
-        //  FIX BLOCKING forEach: Use setImmediate to yield event loop
-        // Batch emit in chunks to prevent blocking
-        const friends = user.friends;
-        const BATCH_SIZE = 50; // Process 50 friends at a time
+      // Only do DB update + notify when first socket connects
+      if (before === 0) {
+        // Only set isOnline, not lastSeen (lastSeen is set on disconnect)
+        await User.findByIdAndUpdate(socket.userId, { isOnline: true });
 
-        for (let i = 0; i < friends.length; i += BATCH_SIZE) {
-          const batch = friends.slice(i, i + BATCH_SIZE);
+        const friends = await getFriendIdsCached(socket.userId);
 
-          // Yield to event loop between batches
-          setImmediate(() => {
-            batch.forEach(friend => {
-              if (friend && friend._id) {
-                try {
-                  io.to(`user-${friend._id}`).emit('friend-online', {
-                    userId: socket.userId,
-                    isOnline: true,
-                    lastSeen: new Date()
-                  });
-                } catch (err) {
-                  // Silent error - don't break the loop
-                }
-              }
-            });
-          });
-        }
+        emitBatchedToFriends(friends, "friend-online", {
+          userId: socket.userId,
+          isOnline: true
+        });
       }
     } catch (error) {
       // Error updating user online status
@@ -852,10 +940,15 @@ io.on("connection", async (socket) => {
       socket.to(roomName).emit("call-offer", {
         offer,
         conversationId,
-        caller: socket.userId || socket.user?._id || socket.user?.id || "unknown", // User ID của người gọi
-        callerSocketId: socket.id, // Socket ID của người gọi để kiểm tra
-        callerInfo: socket.user || {}, // Thông tin đầy đủ người gọi
-        isVideo: isVideo || false // Phân biệt voice/video call
+        caller: socket.userId,
+        callerSocketId: socket.id,
+        // Only send public safe info (RAM optimization)
+        callerInfo: {
+          _id: socket.userId,
+          name: socket.user?.name,
+          avatarUrl: socket.user?.avatarUrl
+        },
+        isVideo: isVideo || false
       });
     } catch (error) {
       // Silent error handling
@@ -956,8 +1049,9 @@ io.on("connection", async (socket) => {
 
   socket.on("join-api-monitoring", () => {
     try {
-      // SECURITY: Only allow admin to join API monitoring room
-      if (!socket.user || socket.user.role !== 'admin') {
+      // SECURITY: Use cached hasAdminAccess from connect (RAM optimization)
+      const userInfo = connectedUsers.get(socket.id);
+      if (!userInfo?.hasAdminAccess) {
         socket.emit('error', {
           code: 'FORBIDDEN',
           message: 'Admin access required for API monitoring'
@@ -966,10 +1060,7 @@ io.on("connection", async (socket) => {
       }
 
       socket.join("api-monitoring");
-      const userInfo = connectedUsers.get(socket.id);
-      if (userInfo) {
-        userInfo.joinedRooms.add("api-monitoring");
-      }
+      userInfo.joinedRooms.add("api-monitoring");
     } catch (error) {
       // Silent error handling
     }
@@ -978,16 +1069,9 @@ io.on("connection", async (socket) => {
   // Join admin dashboard room for realtime stats updates
   socket.on("join-admin-dashboard", () => {
     try {
-      // SECURITY: Only allow users with admin permissions
-      const hasAdminAccess = socket.user && (
-        socket.user.role === 'admin' ||
-        (socket.user.roleData?.permissions &&
-          Object.keys(socket.user.roleData.permissions).some(
-            k => k.startsWith('admin.') && socket.user.roleData.permissions[k]
-          ))
-      );
-
-      if (!hasAdminAccess) {
+      // SECURITY: Use cached hasAdminAccess from connect (RAM optimization)
+      const userInfo = connectedUsers.get(socket.id);
+      if (!userInfo?.hasAdminAccess) {
         socket.emit('error', {
           code: 'FORBIDDEN',
           message: 'Admin access required for dashboard updates'
@@ -996,10 +1080,7 @@ io.on("connection", async (socket) => {
       }
 
       socket.join("admin-dashboard");
-      const userInfo = connectedUsers.get(socket.id);
-      if (userInfo) {
-        userInfo.joinedRooms.add("admin-dashboard");
-      }
+      userInfo.joinedRooms.add("admin-dashboard");
 
       // Emit initial connection confirmation
       socket.emit('admin:connected', {
@@ -1159,58 +1240,39 @@ io.on("connection", async (socket) => {
     // Socket error
   });
 
-  // Xử lý khi user disconnect với cleanup
+  // Xử lý khi user disconnect với cleanup (count-based presence)
   socket.on("disconnect", async (reason) => {
-    // Cập nhật trạng thái offline khi user ngắt kết nối
     const userInfo = connectedUsers.get(socket.id);
-    if (userInfo && userInfo.userId) {
-      try {
-        // Validate userId before query
-        if (!mongoose.Types.ObjectId.isValid(userInfo.userId)) {
-          console.warn('[WARN][SOCKET] Invalid userId on disconnect:', userInfo.userId);
-          connectedUsers.delete(socket.id);
-          return;
-        }
 
+    // Always remove from connectedUsers first (avoid double handling)
+    connectedUsers.delete(socket.id);
+
+    if (!userInfo?.userId) return;
+
+    try {
+      if (!mongoose.Types.ObjectId.isValid(userInfo.userId)) return;
+
+      const { after } = removeUserSocket(userInfo.userId, socket.id);
+
+      // Only set offline/notify when last socket disconnects
+      if (after === 0) {
+        const lastSeen = new Date();
         await User.findByIdAndUpdate(userInfo.userId, {
           isOnline: false,
-          lastSeen: new Date()
+          lastSeen
         });
 
-        // Thông báo cho tất cả bạn bè về trạng thái offline
-        const user = await User.findById(userInfo.userId).populate('friends', '_id');
-        if (user && user.friends && Array.isArray(user.friends)) {
-          //  FIX BLOCKING forEach: Batch emit with setImmediate
-          const friends = user.friends;
-          const BATCH_SIZE = 50;
+        const friends = await getFriendIdsCached(userInfo.userId);
 
-          for (let i = 0; i < friends.length; i += BATCH_SIZE) {
-            const batch = friends.slice(i, i + BATCH_SIZE);
-
-            setImmediate(() => {
-              batch.forEach(friend => {
-                if (friend && friend._id) {
-                  try {
-                    io.to(`user-${friend._id}`).emit('friend-offline', {
-                      userId: userInfo.userId,
-                      isOnline: false,
-                      lastSeen: new Date()
-                    });
-                  } catch (err) {
-                    // Silent error handling
-                  }
-                }
-              });
-            });
-          }
-        }
-      } catch (error) {
-        console.error('[ERROR][SOCKET] Error updating user offline status:', error.message);
+        emitBatchedToFriends(friends, "friend-offline", {
+          userId: userInfo.userId,
+          isOnline: false,
+          lastSeen
+        });
       }
+    } catch (err) {
+      console.error("[ERROR][SOCKET] Error updating offline:", err.message);
     }
-
-    // Clean up user tracking
-    connectedUsers.delete(socket.id);
   });
 });
 
@@ -1219,15 +1281,17 @@ io.on("connection", async (socket) => {
 setInterval(() => {
   // Yield to event loop immediately
   setImmediate(() => {
-    const now = new Date();
+    const now = Date.now();
     const staleThreshold = 5 * 60 * 1000; // 5 minutes
 
-    for (const [socketId, userInfo] of connectedUsers.entries()) {
-      if (now - userInfo.connectedAt > staleThreshold) {
-        if (process.env.NODE_ENV === 'development') {
-          // Cleaning up stale connection
-        }
+    for (const [socketId, info] of connectedUsers.entries()) {
+      if (now - info.connectedAt > staleThreshold) {
         connectedUsers.delete(socketId);
+
+        // Also clean userSockets mapping to prevent "online ghost"
+        if (info?.userId) {
+          removeUserSocket(info.userId, socketId);
+        }
       }
     }
   });
@@ -1244,7 +1308,7 @@ setInterval(() => {
 
     // Log memory stats every 5 minutes (only in development)
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[INFO][MEMORY] Heap: ${heapUsedMB}MB/${heapTotalMB}MB, RSS: ${rssMB}MB, Connected: ${connectedUsers.size}`);
+      console.log(`[INFO][MEMORY] Heap: ${heapUsedMB}MB/${heapTotalMB}MB, RSS: ${rssMB}MB, Sockets: ${connectedUsers.size}, Users: ${userSockets.size}`);
     }
 
     // Warning if memory usage is high

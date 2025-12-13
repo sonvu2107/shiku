@@ -20,6 +20,7 @@ import { authRequired, authOptional } from "../middleware/auth.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
 import { paginate } from "../utils/paginate.js";
 import { withCache, postCache, invalidateCache } from "../utils/cache.js";
+import { responseCache, invalidateByPattern } from "../middleware/responseCache.js";
 import { generateSmartFeed } from "../utils/smartFeed.js";
 import mongoose from "mongoose";
 import { addExpForAction, addExpForReceiver } from "../services/cultivationService.js";
@@ -393,7 +394,7 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
  * Uses engagement scoring, friend posts, trending, personalized, and fresh content
  * Algorithm: 40% friends + 30% trending + 20% personalized + 10% fresh
  */
-router.get("/feed/smart", authOptional, async (req, res, next) => {
+router.get("/feed/smart", authOptional, responseCache({ ttlSeconds: 30, prefix: "smart", varyByUser: true }), async (req, res, next) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
@@ -480,7 +481,7 @@ router.get("/feed/smart", authOptional, async (req, res, next) => {
 });
 
 // Combined feed endpoint - Optimized single query for published + private
-router.get("/feed", authOptional, async (req, res, next) => {
+router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed" }), async (req, res, next) => {
   try {
     const { page = 1, limit = 20, tag, q, sort = "newest" } = req.query;
     const pg = Math.max(1, Number(page) || 1);
@@ -716,28 +717,19 @@ router.get("/feed-legacy", authOptional, async (req, res, next) => {
 });
 
 // List with filters & search
-router.get("/", authOptional, async (req, res, next) => {
+router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" }), async (req, res, next) => {
   try {
     const { page = 1, limit = 20, tag, author, q, status = "published", sort = "newest" } = req.query;
     const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
     const pageNum = Math.max(1, parseInt(page) || 1);
 
-    // OPTIMIZATION: Cache for common requests (public or logged-in homepage)
-    const isHomepageFeed = !tag && !author && !q && status === "published" && sort === "newest";
-    const userId = req.user?._id?.toString() || 'public';
-    const cacheKey = `posts:feed:${userId}:page${pageNum}:limit${sanitizedLimit}`;
-
-    if (isHomepageFeed) {
-      const cached = postCache.get(cacheKey);
-      if (cached) {
-        return res.json(cached);
-      }
-    }
+    // NOTE: responseCache middleware handles caching at a higher level
+    // Removed old postCache.get() to avoid conflict
 
     // Get blocked list first (cache per user for 60s)
     let blockedIds = [];
     if (req.user) {
-      const blockedCacheKey = `blocked:${userId}`;
+      const blockedCacheKey = `blocked:${req.user._id}`;
       let cachedBlocked = postCache.get(blockedCacheKey);
       if (!cachedBlocked) {
         const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
@@ -748,6 +740,9 @@ router.get("/", authOptional, async (req, res, next) => {
     }
 
     const filter = {};
+
+    // Determine if this is a homepage feed (no specific filters)
+    const isHomepageFeed = !author && !tag && !q && status === "published";
 
     // Determine sort option
     let sortOption = { createdAt: -1 }; // Default newest
@@ -870,11 +865,7 @@ router.get("/", authOptional, async (req, res, next) => {
       pages: Math.ceil(total / sanitizedLimit)
     };
 
-    // OPTIMIZATION: Cache homepage page 1 for 5 seconds, other pages for 30 seconds
-    if (isHomepageFeed) {
-      const cacheTTL = pageNum === 1 ? 5 : 30;
-      postCache.set(cacheKey, response, cacheTTL);
-    }
+    // NOTE: responseCache middleware handles caching, removed old postCache.set()
 
     res.json(response);
   } catch (e) {
@@ -1108,9 +1099,13 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
       }
     }
 
-    // Invalidate cache for this user's posts
+    // Invalidate both in-memory and Redis cache for posts
     invalidateCache(postCache, `my-posts:${req.user._id.toString()}`);
     invalidateCache(postCache, `posts:`);
+    // Also invalidate Redis cache
+    invalidateByPattern("feed:*").catch(() => { });
+    invalidateByPattern("posts:*").catch(() => { });
+    invalidateByPattern("smart:*").catch(() => { });
 
     // Cộng exp cho việc đăng bài
     try {
@@ -1178,9 +1173,12 @@ router.put("/:id", authRequired, checkBanStatus, async (req, res, next) => {
 
     await post.save();
 
-    // Invalidate cache for this user's posts and general posts
+    // Invalidate both in-memory and Redis cache
     invalidateCache(postCache, `my-posts:${post.author.toString()}`);
     invalidateCache(postCache, `posts:`);
+    invalidateByPattern("feed:*").catch(() => { });
+    invalidateByPattern("posts:*").catch(() => { });
+    invalidateByPattern("smart:*").catch(() => { });
 
     res.json({ post });
   } catch (e) {
@@ -1199,9 +1197,12 @@ router.delete("/:id", authRequired, async (req, res, next) => {
     await Comment.deleteMany({ post: post._id });
     await post.deleteOne();
 
-    // Invalidate cache for this user's posts and general posts
+    // Invalidate both in-memory and Redis cache
     invalidateCache(postCache, `my-posts:${post.author.toString()}`);
     invalidateCache(postCache, `posts:`);
+    invalidateByPattern("feed:*").catch(() => { });
+    invalidateByPattern("posts:*").catch(() => { });
+    invalidateByPattern("smart:*").catch(() => { });
 
     res.json({ ok: true });
   } catch (e) {
