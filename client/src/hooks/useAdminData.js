@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../api';
+import { io } from 'socket.io-client';
 
 /**
  * Custom hook for admin data management
+ * Features: Pagination, WebSocket realtime updates, server-side search/filter
  */
 export function useAdminData() {
   // ==================== STATE ====================
-  
+
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -15,6 +17,28 @@ export function useAdminData() {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [securityAlerts, setSecurityAlerts] = useState([]);
+
+  // ==================== PAGINATION STATE ====================
+
+  const [userPagination, setUserPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
+  const [userFilters, setUserFilters] = useState({
+    search: '',
+    role: '',
+    banned: ''
+  });
+  const [usersLoading, setUsersLoading] = useState(false);
+
+  // WebSocket ref
+  const socketRef = useRef(null);
+  const isSocketConnected = useRef(false);
 
   // ==================== API FUNCTIONS ====================
 
@@ -22,26 +46,74 @@ export function useAdminData() {
     try {
       const res = await api("/api/admin/stats");
       setStats(res.stats);
-      setError(null); // Clear error on success
+      setError(null);
     } catch (e) {
       console.error("Error loading stats:", e);
       setError("Không thể tải thống kê");
     }
   }, []);
 
-  const loadUsers = useCallback(async () => {
+  /**
+   * Load users with pagination and filters
+   */
+  const loadUsers = useCallback(async (options = {}) => {
+    const {
+      page = userPagination.page,
+      limit = userPagination.limit,
+      search = userFilters.search,
+      role = userFilters.role,
+      banned = userFilters.banned
+    } = options;
+
+    setUsersLoading(true);
     try {
-      // Reduce limit to improve performance - only load what's needed for display
-      // Use pagination on frontend if needed for large user bases
-      const res = await api("/api/admin/users?page=1&limit=100");
+      const params = new URLSearchParams();
+      params.set('page', page.toString());
+      params.set('limit', limit.toString());
+      if (search) params.set('search', search);
+      if (role) params.set('role', role);
+      if (banned) params.set('banned', banned);
+
+      const res = await api(`/api/admin/users?${params.toString()}`);
       setUsers(res.users || []);
-      setError(null); // Clear error on success
+
+      if (res.pagination) {
+        setUserPagination({
+          page: res.pagination.page,
+          limit: res.pagination.limit,
+          total: res.pagination.total,
+          totalPages: res.pagination.totalPages,
+          hasNextPage: res.pagination.hasNextPage,
+          hasPrevPage: res.pagination.hasPrevPage
+        });
+      }
+      setError(null);
     } catch (e) {
       console.error("Error loading users:", e);
-      setUsers([]); // Reset to empty array on error
+      setUsers([]);
       setError("Không thể tải danh sách người dùng");
+    } finally {
+      setUsersLoading(false);
     }
-  }, []);
+  }, [userPagination.page, userPagination.limit, userFilters]);
+
+  /**
+   * Change user page
+   */
+  const goToPage = useCallback((page) => {
+    if (page >= 1 && page <= userPagination.totalPages) {
+      loadUsers({ page });
+    }
+  }, [loadUsers, userPagination.totalPages]);
+
+  /**
+   * Update user filters (debounced search should be handled in component)
+   */
+  const updateUserFilters = useCallback((newFilters) => {
+    setUserFilters(prev => ({ ...prev, ...newFilters }));
+    // Reset to page 1 when filters change
+    loadUsers({ page: 1, ...newFilters });
+  }, [loadUsers]);
 
   const loadOnlineUsers = useCallback(async () => {
     try {
@@ -50,7 +122,7 @@ export function useAdminData() {
       setLastUpdate(new Date());
     } catch (e) {
       console.error("Error loading online users:", e);
-      setOnlineUsers([]); // Reset to empty array on error
+      setOnlineUsers([]);
       setError("Không thể tải danh sách người online");
     }
   }, []);
@@ -61,13 +133,12 @@ export function useAdminData() {
       setTotalVisitors(res.totalVisitors || 0);
       setVisitorStats(res);
     } catch (e) {
-      // Silent handling for visitors loading error
       setError("Không thể tải thống kê người truy cập");
     }
   }, []);
 
   // ==================== OPTIMIZED SINGLE USER LOAD ====================
-  
+
   const loadSingleUser = useCallback(async (userId) => {
     try {
       const res = await api(`/api/admin/users/${userId}`);
@@ -78,7 +149,7 @@ export function useAdminData() {
   }, []);
 
   const updateSingleUserInState = useCallback((userId, updatedUserData) => {
-    setUsers(prev => prev.map(u => 
+    setUsers(prev => prev.map(u =>
       u._id === userId ? { ...u, ...updatedUserData } : u
     ));
   }, []);
@@ -88,11 +159,11 @@ export function useAdminData() {
   const refreshAllData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       await Promise.all([
         loadStats(),
-        loadUsers(),
+        loadUsers({ page: 1 }),
         loadOnlineUsers(),
         loadTotalVisitors()
       ]);
@@ -101,60 +172,119 @@ export function useAdminData() {
     } finally {
       setLoading(false);
     }
-  }, []); // Remove dependencies to avoid infinite loops
+  }, []);
 
   const updateOfflineUsers = useCallback(async () => {
     try {
       await api("/api/admin/update-offline-users", { method: "POST" });
-      await loadOnlineUsers(); // Refresh online users after update
+      await loadOnlineUsers();
     } catch (e) {
-      // Silent handling for offline users update error
+      // Silent handling
     }
   }, [loadOnlineUsers]);
+
+  // ==================== WEBSOCKET SETUP ====================
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    // Connect to socket
+    const socket = io(import.meta.env.VITE_API_URL || window.location.origin, {
+      auth: { token },
+      transports: ['websocket', 'polling']
+    });
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      isSocketConnected.current = true;
+      // Join admin dashboard room
+      socket.emit('join-admin-dashboard');
+    });
+
+    socket.on('disconnect', () => {
+      isSocketConnected.current = false;
+    });
+
+    // Listen for realtime admin updates
+    socket.on('admin:stats-update', (data) => {
+      if (data.stats) {
+        setStats(data.stats);
+      }
+      setLastUpdate(new Date());
+    });
+
+    // Listen for security alerts
+    socket.on('security:alert', (alert) => {
+      setSecurityAlerts(prev => [alert, ...prev].slice(0, 20)); // Keep last 20
+    });
+
+    socket.on('admin:online-users-update', (data) => {
+      if (data.onlineUsers) {
+        setOnlineUsers(data.onlineUsers);
+      }
+      if (data.count !== undefined) {
+        // Just update count without full list
+        setLastUpdate(new Date());
+      }
+    });
+
+    return () => {
+      socket.off('security:alert');
+      socket.off('admin:stats-update');
+      socket.off('admin:online-users-update');
+      socket.disconnect();
+      socketRef.current = null;
+      isSocketConnected.current = false;
+    };
+  }, []);
 
   // ==================== EFFECTS ====================
 
   // Initial load only once
   useEffect(() => {
     refreshAllData();
-  }, []); // Empty dependency array - only run once
+  }, []);
 
-  // Auto refresh every 60 seconds when page is visible
+  // Fallback polling (only if WebSocket not connected)
   useEffect(() => {
     let interval;
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Clear interval when page is hidden
         if (interval) clearInterval(interval);
       } else {
-        // Refresh immediately when page becomes visible
-        loadStats();
-        loadOnlineUsers(); // Only refresh critical data
-        // Set up interval for visible page
-        interval = setInterval(() => {
+        // Only poll if WebSocket not connected
+        if (!isSocketConnected.current) {
           loadStats();
-          loadOnlineUsers(); // Only auto-refresh time-sensitive data
-        }, 60000); // 60 seconds
+          loadOnlineUsers();
+        }
+        interval = setInterval(() => {
+          if (!isSocketConnected.current) {
+            loadStats();
+            loadOnlineUsers();
+          }
+        }, 60000);
       }
     };
 
-    // Initial setup
     if (!document.hidden) {
       interval = setInterval(() => {
-        loadStats();
-        loadOnlineUsers(); // Only auto-refresh time-sensitive data
+        if (!isSocketConnected.current) {
+          loadStats();
+          loadOnlineUsers();
+        }
       }, 60000);
     }
 
-    // Listen for visibility changes
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []); // Remove dependencies to avoid infinite loops
+  }, []);
 
   // ==================== CLEAR FUNCTIONS ====================
 
@@ -174,7 +304,18 @@ export function useAdminData() {
     lastUpdate,
     loading,
     error,
+
+    // Security Alerts
+    securityAlerts,
+    dismissAlert: (id) => setSecurityAlerts(prev => prev.filter(a => a.id !== id)),
     
+    // Pagination
+    userPagination,
+    userFilters,
+    usersLoading,
+    goToPage,
+    updateUserFilters,
+
     // Functions
     refreshAllData,
     updateOfflineUsers,
@@ -185,6 +326,6 @@ export function useAdminData() {
     loadSingleUser,
     updateSingleUserInState,
     clearError,
-    setUsers // Expose setUsers for optimistic updates
+    setUsers
   };
 }

@@ -367,6 +367,35 @@ export const unauthorizedAccessLogger = (req, res, next) => {
 };
 
 /**
+ * Emit security alert to admin dashboard via Socket.IO
+ * @param {Object} io - Socket.IO instance
+ * @param {string} eventType - Security event type
+ * @param {Object} data - Alert data
+ */
+export const emitSecurityAlert = (io, eventType, data) => {
+  if (!io) return;
+  
+  const severityMap = {
+    [SECURITY_EVENTS.SQL_INJECTION_ATTEMPT]: 'critical',
+    [SECURITY_EVENTS.XSS_ATTEMPT]: 'critical',
+    [SECURITY_EVENTS.RATE_LIMIT_EXCEEDED]: 'medium',
+    [SECURITY_EVENTS.UNAUTHORIZED_ACCESS]: 'high',
+    [SECURITY_EVENTS.SUSPICIOUS_ACTIVITY]: 'high',
+    [SECURITY_EVENTS.LOGIN_FAILED]: 'low'
+  };
+
+  const alert = {
+    id: Date.now().toString(),
+    type: eventType,
+    severity: severityMap[eventType] || 'medium',
+    ip: data.ip || 'Unknown',
+    timestamp: new Date().toISOString(),
+    details: data
+  };
+
+  io.to('admin-dashboard').emit('security:alert', alert);
+};
+/**
  * Cleanup old log files (older than 30 days)
  */
 export const cleanupOldLogs = async () => {

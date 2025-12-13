@@ -126,7 +126,7 @@ const corsOptions = {
       }
       return callback(new Error('Not allowed by CORS'));
     }
-    
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -196,13 +196,13 @@ app.use((req, res, next) => {
   // Remove server identification
   res.removeHeader('X-Powered-By');
   res.removeHeader('Server');
-  
+
   // Permissions-Policy (feature policy) - comprehensive list
   res.setHeader('Permissions-Policy', 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), interest-cohort=()');
 
   // Referrer-Policy - additional enforcement
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
+
   // Cache control for API responses - prevent caching of sensitive data
   if (req.path.startsWith('/api/')) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -263,7 +263,7 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
     checks: {}
   };
-  
+
   // Check MongoDB connection
   try {
     const mongoState = mongoose.connection.readyState;
@@ -284,7 +284,7 @@ app.get("/health", (req, res) => {
     health.checks.mongodb = { status: 'unhealthy', error: error.message };
     health.status = 'degraded';
   }
-  
+
   // Check Redis connection (if enabled)
   try {
     const redisConnected = isRedisConnected();
@@ -298,7 +298,7 @@ app.get("/health", (req, res) => {
 
   // Add response time
   health.responseTime = `${Date.now() - startTime}ms`;
-  
+
   // Minimal info in production to prevent fingerprinting
   if (isProduction) {
     return res.status(health.status === 'healthy' ? 200 : 503).json({
@@ -433,7 +433,7 @@ app.post("/api/clear-rate-limit", async (req, res) => {
   try {
     // Import auth middleware
     const { authRequired } = await import('./middleware/auth.js');
-    
+
     // Check admin role
     await new Promise((resolve, reject) => {
       authRequired(req, res, (err) => {
@@ -777,7 +777,7 @@ io.use(async (socket, next) => {
 io.on("connection", async (socket) => {
   // Apply rate limiting to all socket events
   applyRateLimitToSocket(socket);
-  
+
   // Store connection info
   connectedUsers.set(socket.id, {
     userId: socket.userId,
@@ -933,16 +933,16 @@ io.on("connection", async (socket) => {
       if (!userId) {
         return;
       }
-      
+
       // SECURITY: Only allow user to join their own room
       if (!socket.userId || socket.userId.toString() !== userId.toString()) {
-        socket.emit('error', { 
-          code: 'FORBIDDEN', 
-          message: 'Cannot join another user\'s room' 
+        socket.emit('error', {
+          code: 'FORBIDDEN',
+          message: 'Cannot join another user\'s room'
         });
         return;
       }
-      
+
       socket.join(`user-${userId}`);
       const userInfo = connectedUsers.get(socket.id);
       if (userInfo) {
@@ -958,18 +958,54 @@ io.on("connection", async (socket) => {
     try {
       // SECURITY: Only allow admin to join API monitoring room
       if (!socket.user || socket.user.role !== 'admin') {
-        socket.emit('error', { 
-          code: 'FORBIDDEN', 
-          message: 'Admin access required for API monitoring' 
+        socket.emit('error', {
+          code: 'FORBIDDEN',
+          message: 'Admin access required for API monitoring'
         });
         return;
       }
-      
+
       socket.join("api-monitoring");
       const userInfo = connectedUsers.get(socket.id);
       if (userInfo) {
         userInfo.joinedRooms.add("api-monitoring");
       }
+    } catch (error) {
+      // Silent error handling
+    }
+  });
+
+  // Join admin dashboard room for realtime stats updates
+  socket.on("join-admin-dashboard", () => {
+    try {
+      // SECURITY: Only allow users with admin permissions
+      const hasAdminAccess = socket.user && (
+        socket.user.role === 'admin' ||
+        (socket.user.roleData?.permissions &&
+          Object.keys(socket.user.roleData.permissions).some(
+            k => k.startsWith('admin.') && socket.user.roleData.permissions[k]
+          ))
+      );
+
+      if (!hasAdminAccess) {
+        socket.emit('error', {
+          code: 'FORBIDDEN',
+          message: 'Admin access required for dashboard updates'
+        });
+        return;
+      }
+
+      socket.join("admin-dashboard");
+      const userInfo = connectedUsers.get(socket.id);
+      if (userInfo) {
+        userInfo.joinedRooms.add("admin-dashboard");
+      }
+
+      // Emit initial connection confirmation
+      socket.emit('admin:connected', {
+        message: 'Connected to admin dashboard updates',
+        timestamp: new Date()
+      });
     } catch (error) {
       // Silent error handling
     }
@@ -1073,7 +1109,7 @@ io.on("connection", async (socket) => {
       // SECURITY: Verify user has access to poll's post
       const Poll = (await import("./models/Poll.js")).default;
       const Post = (await import("./models/Post.js")).default;
-      
+
       const poll = await Poll.findById(pollId).select("post").lean();
       if (!poll) {
         return;

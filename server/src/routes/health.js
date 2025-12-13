@@ -9,6 +9,7 @@
 
 import express from 'express';
 import mongoose from 'mongoose';
+import os from 'os';
 import { authRequired } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -134,7 +135,7 @@ router.get('/detailed', authRequired, async (req, res) => {
       platform: {
         os: process.platform,
         arch: process.arch,
-        cpuCount: require('os').cpus().length
+        cpuCount: os.cpus().length
       }
     });
 

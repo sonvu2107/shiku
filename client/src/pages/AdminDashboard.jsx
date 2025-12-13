@@ -4,6 +4,10 @@ import APIMonitoring from "../components/APIMonitoring";
 import RoleManagement from "../components/RoleManagement";
 import AutoLikeBot from "../components/AutoLikeBot";
 import AdminCharts from "../components/AdminCharts";
+import Pagination from '../components/admin/Pagination';
+import SystemHealth from '../components/admin/SystemHealth';
+import SecurityAlerts from '../components/admin/SecurityAlerts';
+import MobileQuickActions from '../components/admin/MobileQuickActions';
 import VerifiedBadge from "../components/VerifiedBadge";
 import Avatar from "../components/Avatar";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
@@ -68,7 +72,14 @@ export default function AdminDashboard() {
       clearError: clearDataError,
       loadStats,
       loadOnlineUsers,
-      setUsers
+      setUsers,
+      // Pagination
+      userPagination,
+      usersLoading,
+      goToPage,
+      securityAlerts,
+      dismissAlert,
+      updateUserFilters
    } = useAdminData();
 
    // Admin actions management
@@ -762,6 +773,13 @@ export default function AdminDashboard() {
                                     );
                                  })}
                            </div>
+
+                           {/* Pagination Controls */}
+                           <Pagination
+                              pagination={userPagination}
+                              onPageChange={goToPage}
+                              loading={usersLoading}
+                           />
                         </SpotlightCard>
                      </motion.div>
                   )}
@@ -801,6 +819,11 @@ export default function AdminDashboard() {
                               <div className="text-sm text-neutral-600 dark:text-neutral-400">Tổng người dùng</div>
                            </SpotlightCard>
                         </div>
+
+                        {/* System Health */}
+                        <SpotlightCard>
+                           <SystemHealth />
+                        </SpotlightCard>
 
                         {/* Detailed Time Stats */}
                         {visitorStats && visitorStats.timeStats && (
@@ -1008,6 +1031,16 @@ export default function AdminDashboard() {
                </AnimatePresence>
             </div>
          </div>
+         {/* Mobile Quick Actions Bar */}
+         <MobileQuickActions 
+            stats={stats}
+            onlineCount={onlineUsers?.length || 0}
+            onBanUser={async (email, reason) => {
+               setBanForm(prev => ({ ...prev, email, reason }));
+               await handleBanSubmit({ email, reason, userId: null });
+            }}
+            loading={actionLoading}
+         />
       </PageLayout>
    );
 }
