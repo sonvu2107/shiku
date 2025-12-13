@@ -174,12 +174,25 @@ async function expire(key, seconds) {
   }
 }
 
+/**
+ * Get Redis connection status for health check
+ */
+function getConnectionStatus() {
+  return {
+    connected: isConnected,
+    enabled: config.enabled,
+    status: config.enabled ? (isConnected ? 'connected' : 'disconnected') : 'disabled',
+    keyPrefix: config.keyPrefix
+  };
+}
+
 // ============================================================
 // EXPORTS
 // ============================================================
 
 export {
   initializeRedis,
+  getConnectionStatus,
   getClient,
   isRedisConnected,
   closeConnection,
