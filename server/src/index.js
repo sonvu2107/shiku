@@ -23,7 +23,7 @@ import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { requestTimeout } from "./middleware/timeout.js";
 import { authOptional } from "./middleware/auth.js";
 import { correlationIdMiddleware } from "./middleware/correlationId.js";
-import { isRedisConnected } from "./services/redisClient.js";
+import { isRedisConnected, initializeRedis } from "./services/redisClient.js";
 import User from "./models/User.js";
 import { getClientAgent } from "./utils/clientAgent.js";
 import { buildCookieOptions } from "./utils/cookieOptions.js";
