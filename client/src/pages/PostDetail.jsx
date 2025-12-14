@@ -367,6 +367,14 @@ export default function PostDetail() {
   return (
     <div className="min-h-screen bg-[#F5F7FA] dark:bg-black transition-colors duration-300 pt-16 sm:pt-20 pb-16 sm:pb-32">
       <div className="max-w-3xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
+        {/* Back to Home Button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-3 sm:mb-4 inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+          Quay lại
+        </button>
         <div className="bg-white dark:bg-[#111] rounded-xl sm:rounded-[32px] px-3 sm:px-5 pt-3 sm:pt-4 pb-3 sm:pb-6 mb-3 sm:mb-6
             shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
             border border-transparent dark:border-white/5 relative">
