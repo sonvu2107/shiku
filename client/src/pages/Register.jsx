@@ -177,9 +177,28 @@ export default function Register({ setUser }) {
 
   const validateStep1 = () => {
     if (!name.trim()) {
-      setError("Vui lòng nhập họ và tên");
+      setError("Vui lòng nhập tên hiển thị");
       return false;
     }
+
+    // Giới hạn độ dài tên: 2-50 ký tự
+    if (name.trim().length < 2) {
+      setError("Tên phải có ít nhất 2 ký tự");
+      return false;
+    }
+    if (name.trim().length > 50) {
+      setError("Tên không được quá 50 ký tự");
+      return false;
+    }
+
+    // Chỉ cho phép chữ cái (bao gồm tiếng Việt), số và dấu cách
+    // Không cho phép ký tự đặc biệt như @, #, $, %, etc.
+    const nameRegex = /^[\p{L}\p{N}\s]+$/u;
+    if (!nameRegex.test(name.trim())) {
+      setError("Tên chỉ được chứa chữ cái, số và dấu cách");
+      return false;
+    }
+
     if (!dateOfBirth) {
       setError("Vui lòng chọn ngày tháng năm sinh");
       return false;

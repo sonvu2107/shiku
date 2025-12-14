@@ -112,6 +112,24 @@ tempRouter.post("/register-token", async (req, res, next) => {
       return res.status(400).json({ error: "Vui lòng điền đầy đủ thông tin!" });
     }
 
+    // ==================== VALIDATE NAME ====================
+    const trimmedName = name.trim();
+
+    // Giới hạn độ dài: 2-50 ký tự
+    if (trimmedName.length < 2) {
+      return res.status(400).json({ error: "Tên phải có ít nhất 2 ký tự" });
+    }
+    if (trimmedName.length > 50) {
+      return res.status(400).json({ error: "Tên không được quá 50 ký tự" });
+    }
+
+    // Chỉ cho phép chữ cái (bao gồm tiếng Việt), số và dấu cách
+    // Không cho phép ký tự đặc biệt như @, #, $, %, etc.
+    const nameRegex = /^[\p{L}\p{N}\s]+$/u;
+    if (!nameRegex.test(trimmedName)) {
+      return res.status(400).json({ error: "Tên chỉ được chứa chữ cái, số và dấu cách" });
+    }
+
     const exists = await User.findOne({ email: email.toLowerCase() });
     if (exists) {
       return res.status(400).json({ error: "Email này đã được đăng ký!" });
