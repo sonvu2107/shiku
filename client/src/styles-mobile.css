@@ -132,6 +132,12 @@
     @apply bg-transparent;
   }
 
+  /* Disable transform effects on touch devices to prevent jank */
+  .emote-btn:hover,
+  .comment-emote-btn:hover {
+    transform: none;
+  }
+
   /* Show touch feedback */
   .touch-feedback:active {
     @apply scale-95 bg-gray-100;
