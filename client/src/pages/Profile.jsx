@@ -68,7 +68,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
   const userId = user?.id || user?._id || null;
   const profileData = useProfileData(userId);
   const {
-    data: { posts = [], friends = [], analytics = null, recentImages = [] },
+    data: { posts = [], friends = [], friendsPagination = null, analytics = null, recentImages = [] },
     loading: { posts: postsLoading = false, friends: friendsLoading = false, analytics: analyticsLoading = false },
     loadPosts,
     loadFriends,
@@ -394,8 +394,10 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
           {activeTab === "friends" && (
             <FriendsTab
               friends={friends}
+              pagination={friendsPagination}
               friendsLoading={friendsLoading}
               onRemoveFriend={loadFriends}
+              onPageChange={loadFriends}
             />
           )}
 

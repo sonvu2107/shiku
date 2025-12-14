@@ -10,6 +10,7 @@ export function useProfileData(userId) {
   const [data, setData] = useState({
     posts: [],
     friends: [],
+    friendsPagination: null,
     analytics: null,
     recentImages: [],
   });
@@ -31,7 +32,7 @@ export function useProfileData(userId) {
   // ======= EXTRACT RECENT IMAGES =======
   const extractRecentImages = useCallback((posts) => {
     const allImages = [];
-    
+
     posts.forEach(post => {
       // Add coverUrl if present
       if (post.coverUrl) {
@@ -42,7 +43,7 @@ export function useProfileData(userId) {
           createdAt: post.createdAt
         });
       }
-      
+
       // Add images from the files array
       if (post.files && Array.isArray(post.files)) {
         post.files.forEach(file => {
@@ -57,7 +58,7 @@ export function useProfileData(userId) {
         });
       }
     });
-    
+
     // Sort by creation time (newest first) and take the first 12 images
     return allImages
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -85,7 +86,7 @@ export function useProfileData(userId) {
       const privatePosts = privateData?.posts || privateData?.items || [];
       const publicPosts = publicData?.posts || publicData?.items || [];
       const allPosts = [...privatePosts, ...publicPosts];
-      
+
       console.log("[useProfileData] API Response - privateData:", privateData);
       console.log("[useProfileData] API Response - publicData:", publicData);
       console.log("[useProfileData] Extracted - privatePosts:", privatePosts.length, "publicPosts:", publicPosts.length);
@@ -114,20 +115,26 @@ export function useProfileData(userId) {
     }
   }, [userId, extractRecentImages]);
 
-  // ======= LOAD FRIENDS (from old Profile) =======
-  const loadFriends = useCallback(async () => {
-    // API does not require userId because the backend derives it from the token
+  // ======= LOAD FRIENDS (updated for pagination) =======
+  const loadFriends = useCallback(async (page = 1) => {
+    if (!userId) return;
+
     setLoading(l => ({ ...l, friends: true }));
     setErrors(e => ({ ...e, friends: null }));
 
     try {
-      const response = await api(`/api/friends/list`);
+      // Use the new endpoint for specific user friends with pagination
+      const response = await api(`/api/friends/user/${userId}?page=${page}&limit=12`);
+
       const friendsList = response.friends || [];
+      const pagination = response.pagination || null;
+
       setData(d => ({
         ...d,
         friends: friendsList,
+        friendsPagination: pagination,
       }));
-      console.log("[useProfileData] Loaded friends:", friendsList.length);
+      console.log("[useProfileData] Loaded friends:", friendsList.length, "Page:", page);
     } catch (err) {
       console.error("Error loading friends:", err);
       setErrors(e => ({
@@ -137,7 +144,7 @@ export function useProfileData(userId) {
     } finally {
       setLoading(l => ({ ...l, friends: false }));
     }
-  }, []);
+  }, [userId]);
 
   // ======= LOAD ANALYTICS (from old Profile) =======
   const loadAnalytics = useCallback(
@@ -171,20 +178,20 @@ export function useProfileData(userId) {
   // ======= LOAD RECENT IMAGES (optional, extracted from posts) =======
   const loadRecentImages = useCallback(async () => {
     if (!userId) return;
-    
+
     setLoading(l => ({ ...l, recentImages: true }));
     setErrors(e => ({ ...e, recentImages: null }));
-    
+
     try {
       // Load posts first to extract images
       const [publicData, privateData] = await Promise.all([
         api(`/api/posts?author=${userId}&status=published&limit=100`),
         api(`/api/posts?author=${userId}&status=private&limit=100`)
       ]);
-      
+
       const allPosts = [...(privateData?.items || []), ...(publicData?.items || [])];
       const images = extractRecentImages(allPosts);
-      
+
       setData(d => ({ ...d, recentImages: images }));
     } catch (err) {
       console.error("Failed to load recent images:", err);

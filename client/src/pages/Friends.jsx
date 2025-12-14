@@ -12,6 +12,7 @@ import {
   Send, UserMinus, MessageCircle, Zap
 } from 'lucide-react';
 import Avatar from '../components/Avatar';
+import Pagination from '../components/admin/Pagination';
 
 // --- UI COMPONENTS ---
 const GridPattern = () => (
@@ -30,6 +31,13 @@ export default function Friends() {
   const [sentRequests, setSentRequests] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
+  const [pagination, setPagination] = useState({
+    friends: { page: 1, limit: 12, totalPages: 1, total: 0 },
+    requests: { page: 1, limit: 12, totalPages: 1, total: 0 },
+    sent: { page: 1, limit: 12, totalPages: 1, total: 0 },
+    suggestions: { page: 1, limit: 12, totalPages: 1, total: 0 }
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [processingIds, setProcessingIds] = useState(new Set());
@@ -68,17 +76,41 @@ export default function Friends() {
     setLoading(false);
   };
 
-  const loadFriends = async () => {
-    try { const res = await api('/api/friends/list'); setFriends(res.friends || []); } catch (_) { }
+  const loadFriends = async (page = 1) => {
+    try {
+      const res = await api(`/api/friends/list?page=${page}&limit=12`);
+      setFriends(res.friends || []);
+      if (res.pagination) {
+        setPagination(prev => ({ ...prev, friends: res.pagination }));
+      }
+    } catch (_) { }
   };
-  const loadRequests = async () => {
-    try { const res = await api('/api/friends/requests'); setRequests(res.requests || []); } catch (_) { }
+  const loadRequests = async (page = 1) => {
+    try {
+      const res = await api(`/api/friends/requests?page=${page}&limit=12`);
+      setRequests(res.requests || []);
+      if (res.pagination) {
+        setPagination(prev => ({ ...prev, requests: res.pagination }));
+      }
+    } catch (_) { }
   };
-  const loadSentRequests = async () => {
-    try { const res = await api('/api/friends/sent-requests'); setSentRequests(res.requests || []); } catch (_) { }
+  const loadSentRequests = async (page = 1) => {
+    try {
+      const res = await api(`/api/friends/sent-requests?page=${page}&limit=12`);
+      setSentRequests(res.requests || []);
+      if (res.pagination) {
+        setPagination(prev => ({ ...prev, sent: res.pagination }));
+      }
+    } catch (_) { }
   };
-  const loadSuggestions = async () => {
-    try { const res = await api('/api/friends/suggestions'); setSuggestions(res.suggestions || []); } catch (_) { }
+  const loadSuggestions = async (page = 1) => {
+    try {
+      const res = await api(`/api/friends/suggestions?page=${page}&limit=12`);
+      setSuggestions(res.suggestions || []);
+      if (res.pagination) {
+        setPagination(prev => ({ ...prev, suggestions: res.pagination }));
+      }
+    } catch (_) { }
   };
   const searchUsers = async () => {
     try {
@@ -280,6 +312,29 @@ export default function Friends() {
     );
   };
 
+
+
+  const getPaginationForActiveTab = () => {
+    switch (activeTab) {
+      case 'friends': return pagination.friends;
+      case 'requests': return pagination.requests;
+      case 'sent': return pagination.sent;
+      case 'suggestions': return pagination.suggestions;
+      default: return null;
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    switch (activeTab) {
+      case 'friends': loadFriends(newPage); break;
+      case 'requests': loadRequests(newPage); break;
+      case 'sent': loadSentRequests(newPage); break;
+      case 'suggestions': loadSuggestions(newPage); break;
+    }
+  };
+
+  const currentPagination = getPaginationForActiveTab();
+
   return (
     <PageLayout className="relative overflow-x-hidden bg-white dark:bg-black">
       <GridPattern />
@@ -428,6 +483,16 @@ export default function Friends() {
                     </motion.div>
                   )
               )}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {!searchQuery.trim() && currentPagination && currentPagination.totalPages > 1 && (
+            <div className="mt-8">
+              <Pagination
+                pagination={currentPagination}
+                onPageChange={handlePageChange}
+              />
             </div>
           )}
         </div>

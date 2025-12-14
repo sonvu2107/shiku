@@ -194,15 +194,36 @@ router.post('/reject-request/:requestId', authRequired, async (req, res) => {
  */
 router.get('/requests', authRequired, async (req, res) => {
   try {
-    const userId = req.user._id.toString(); // Convert to string
+    const userId = req.user._id.toString();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
 
-    const requests = await FriendRequest.find({
+    const query = {
       to: userId,
       status: 'pending'
-    }).populate('from', 'name nickname email avatarUrl isOnline lastSeen')
-      .sort({ createdAt: -1 });
+    };
 
-    res.json({ requests });
+    const [requests, total] = await Promise.all([
+      FriendRequest.find(query)
+        .populate('from', 'name nickname email avatarUrl isOnline lastSeen')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      FriendRequest.countDocuments(query)
+    ]);
+
+    res.json({
+      requests,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -215,15 +236,36 @@ router.get('/requests', authRequired, async (req, res) => {
  */
 router.get('/sent-requests', authRequired, async (req, res) => {
   try {
-    const userId = req.user._id.toString(); // Convert to string
+    const userId = req.user._id.toString();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
 
-    const sentRequests = await FriendRequest.find({
+    const query = {
       from: userId,
       status: 'pending'
-    }).populate('to', 'name nickname email avatarUrl isOnline lastSeen')
-      .sort({ createdAt: -1 });
+    };
 
-    res.json({ requests: sentRequests });
+    const [sentRequests, total] = await Promise.all([
+      FriendRequest.find(query)
+        .populate('to', 'name nickname email avatarUrl isOnline lastSeen')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      FriendRequest.countDocuments(query)
+    ]);
+
+    res.json({
+      requests: sentRequests,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -238,53 +280,156 @@ router.get('/sent-requests', authRequired, async (req, res) => {
 router.get('/list', authRequired, async (req, res) => {
   try {
     const userId = req.user._id.toString();
-    const cacheKey = `friends:list:${userId}`;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const cacheKey = `friends:list:${userId}:${page}:${limit}`;
 
-    // Cache for 30 seconds (friends list changes infrequently)
-    const friends = await withCache(userCache, cacheKey, async () => {
-      // OPTIMIZATION: Use aggregation instead of populate for better performance
+    // Cache for 30 seconds
+    const data = await withCache(userCache, cacheKey, async () => {
       const result = await User.aggregate([
         { $match: { _id: new mongoose.Types.ObjectId(userId) } },
-        // Only project friends array
         { $project: { friends: 1 } },
-        // Unwind friends array
         { $unwind: { path: '$friends', preserveNullAndEmptyArrays: true } },
-        // Lookup friend details
+        { $match: { friends: { $exists: true, $ne: null } } },
         {
-          $lookup: {
-            from: 'users',
-            localField: 'friends',
-            foreignField: '_id',
-            as: 'friendData',
-            pipeline: [
-              { $project: { name: 1, nickname: 1, email: 1, avatarUrl: 1, isOnline: 1, lastSeen: 1 } }
+          $facet: {
+            data: [
+              { $skip: (page - 1) * limit },
+              { $limit: limit },
+              {
+                $lookup: {
+                  from: 'users',
+                  localField: 'friends',
+                  foreignField: '_id',
+                  as: 'friendData',
+                  pipeline: [
+                    { $project: { name: 1, nickname: 1, email: 1, avatarUrl: 1, isOnline: 1, lastSeen: 1 } }
+                  ]
+                }
+              },
+              { $unwind: '$friendData' },
+              { $replaceRoot: { newRoot: '$friendData' } }
+            ],
+            totalCount: [
+              { $count: 'count' }
             ]
           }
-        },
-        // Unwind friendData
-        { $unwind: { path: '$friendData', preserveNullAndEmptyArrays: true } },
-        // Group back to array
-        {
-          $group: {
-            _id: null,
-            friends: { $push: '$friendData' }
-          }
-        },
-        // Project final result
-        { $project: { _id: 0, friends: 1 } }
+        }
       ]);
 
-      const friendsList = result[0]?.friends?.filter(f => f) || [];
+      const friendsList = result[0]?.data || [];
+      const total = result[0]?.totalCount[0]?.count || 0;
 
       // Ensure default values
-      return friendsList.map(friend => ({
+      const processedFriends = friendsList.map(friend => ({
         ...friend,
         isOnline: friend.isOnline || false,
         lastSeen: friend.lastSeen || new Date()
       }));
-    }, 30 * 1000); // 30 seconds cache
 
-    res.json({ friends });
+      return {
+        friends: processedFriends,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: page * limit < total,
+          hasPrevPage: page > 1
+        }
+      };
+    }, 30 * 1000);
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+/**
+ * GET /user/:userId - Lấy danh sách bạn bè của user khác (có pagination)
+ * @param {string} req.params.userId - ID của user cần lấy danh sách bạn bè
+ * @returns {Array} Danh sách bạn bè
+ */
+router.get('/user/:userId', authRequired, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user._id.toString();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+
+    // Check blockage
+    const currentUser = await User.findById(currentUserId).select('blockedUsers');
+    const targetUser = await User.findById(userId).select('friends blockedUsers privacySettings');
+
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const iBlockedThem = (currentUser.blockedUsers || []).map(id => id.toString()).includes(userId);
+    const theyBlockedMe = (targetUser.blockedUsers || []).map(id => id.toString()).includes(currentUserId);
+
+    if (theyBlockedMe) {
+      return res.status(403).json({ message: 'Không thể xem danh sách bạn bè' });
+    }
+
+    const cacheKey = `friends:list:${userId}:${page}:${limit}`;
+
+    const data = await withCache(userCache, cacheKey, async () => {
+      const result = await User.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(userId) } },
+        { $project: { friends: 1 } },
+        { $unwind: { path: '$friends', preserveNullAndEmptyArrays: true } },
+        { $match: { friends: { $exists: true, $ne: null } } },
+        {
+          $facet: {
+            data: [
+              { $skip: (page - 1) * limit },
+              { $limit: limit },
+              {
+                $lookup: {
+                  from: 'users',
+                  localField: 'friends',
+                  foreignField: '_id',
+                  as: 'friendData',
+                  pipeline: [
+                    { $project: { name: 1, nickname: 1, email: 1, avatarUrl: 1, isOnline: 1, lastSeen: 1 } }
+                  ]
+                }
+              },
+              { $unwind: '$friendData' },
+              { $replaceRoot: { newRoot: '$friendData' } }
+            ],
+            totalCount: [
+              { $count: 'count' }
+            ]
+          }
+        }
+      ]);
+
+      const friendsList = result[0]?.data || [];
+      const total = result[0]?.totalCount[0]?.count || 0;
+
+      const processedFriends = friendsList.map(friend => ({
+        ...friend,
+        isOnline: friend.isOnline || false,
+        lastSeen: friend.lastSeen || new Date()
+      }));
+
+      return {
+        friends: processedFriends,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: page * limit < total,
+          hasPrevPage: page > 1
+        }
+      };
+    }, 30 * 1000);
+
+    res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -298,6 +443,8 @@ router.get('/list', authRequired, async (req, res) => {
 router.get('/suggestions', authRequired, responseCache({ ttlSeconds: 60, prefix: 'friendsug', varyByUser: true }), async (req, res) => {
   try {
     const userId = req.user._id.toString(); // Convert to string
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
     const user = await User.findById(userId);
 
     // Tìm người dùng không phải bạn bè và không có lời mời pending
@@ -312,13 +459,20 @@ router.get('/suggestions', authRequired, responseCache({ ttlSeconds: 60, prefix:
       req.from.toString() === userId ? req.to.toString() : req.from.toString()
     );
 
-    const suggestions = await User.find({
+    const query = {
       _id: {
         $nin: [...user.friends, userId, ...pendingUserIds]
       }
-    }).select('name nickname email avatarUrl isOnline lastSeen cultivationCache displayBadgeType')
-      .limit(10)
-      .lean();
+    };
+
+    const [suggestions, total] = await Promise.all([
+      User.find(query)
+        .select('name nickname email avatarUrl isOnline lastSeen cultivationCache displayBadgeType')
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      User.countDocuments(query)
+    ]);
 
     // Ensure all suggestions have default values for isOnline and lastSeen
     const suggestionsWithDefaults = suggestions.map(suggestion => ({
@@ -327,7 +481,17 @@ router.get('/suggestions', authRequired, responseCache({ ttlSeconds: 60, prefix:
       lastSeen: suggestion.lastSeen || new Date()
     }));
 
-    res.json({ suggestions: suggestionsWithDefaults });
+    res.json({
+      suggestions: suggestionsWithDefaults,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
