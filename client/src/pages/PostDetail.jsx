@@ -867,7 +867,7 @@ export default function PostDetail() {
         </div>
 
         {/* Comments */}
-        <div id="comments-section" className="max-w-3xl mx-auto px-2 sm:px-4">
+        <div id="comments-section">
           <div className="bg-white dark:bg-[#111] rounded-xl sm:rounded-[32px] p-3 sm:p-5 mb-3 sm:mb-6
             shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
             border border-transparent dark:border-white/5">

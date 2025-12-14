@@ -931,7 +931,7 @@ function CommentSection({ postId, initialComments = [], user }) {
             </div>
 
             {/* Comment Actions */}
-            <div className="flex items-center gap-2 sm:gap-4 mt-1.5 sm:mt-1.5 ml-0.5 sm:ml-2 flex-wrap">
+            <div className="flex items-center gap-1 sm:gap-2 mt-1.5 sm:mt-1.5 ml-0.5 sm:ml-2 flex-wrap">
               <span className="text-[10px] sm:text-xs text-neutral-400 font-medium flex-shrink-0 whitespace-nowrap">
                 {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
               </span>

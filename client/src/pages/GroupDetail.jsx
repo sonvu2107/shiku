@@ -795,17 +795,6 @@ const GroupDetail = () => {
          <NoiseOverlay />
          <GridPattern />
 
-         {/* Back Button */}
-         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-4">
-            <button
-               onClick={() => navigate(-1)}
-               className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-               <ArrowLeft size={18} />
-               Quay lại
-            </button>
-         </div>
-
          {/* --- 1. IMMERSIVE HEADER --- */}
          <div className="relative">
             {/* Cover */}
@@ -827,13 +816,13 @@ const GroupDetail = () => {
                {/* Back Button */}
                <button
                   onClick={() => navigate('/groups')}
-                  className="absolute top-4 left-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-md transition-colors z-20"
+                  className="absolute top-20 left-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-md transition-colors z-20"
                >
                   <ArrowLeft size={20} />
                </button>
 
                {/* Badge Type */}
-               <div className="absolute top-4 left-16 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-white text-xs font-bold border border-white/10">
+               <div className="absolute top-20 left-16 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-white text-xs font-bold border border-white/10">
                   <GroupTypeIcon size={12} />
                   <span className="uppercase tracking-wider">{group.settings?.type === 'public' ? 'Công khai' : group.settings?.type === 'private' ? 'Riêng tư' : 'Bí mật'}</span>
                </div>
