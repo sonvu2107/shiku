@@ -789,8 +789,15 @@ function CommentSection({ postId, initialComments = [], user }) {
     const isUpdating = updatingComment.get(comment._id);
     const isSubmittingReply = submittingReply.get(comment._id);
 
+    // Giới hạn indent tối đa 3 cấp để tránh tràn màn hình
+    const effectiveLevel = Math.min(level, 3);
+    // Mobile: indent nhỏ hơn, Desktop: indent lớn hơn
+    const indentClass = effectiveLevel > 0
+      ? `ml-2 sm:ml-3 md:ml-4 pl-2 sm:pl-3 border-l-2 border-neutral-200 dark:border-neutral-800`
+      : "";
+
     return (
-      <div key={comment._id} data-comment-id={comment._id} className={`${level > 0 ? "ml-0.5 sm:ml-4 md:ml-6 lg:ml-8 pl-1.5 sm:pl-4 border-l-2 border-neutral-100 dark:border-neutral-800" : ""}`}>
+      <div key={comment._id} data-comment-id={comment._id} className={`${indentClass} overflow-hidden`}>
         {/* Main Comment */}
         <div className="flex gap-2 sm:gap-3 py-1.5 sm:py-1.5 group/comment">
           <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="focus:outline-none flex-shrink-0 touch-manipulation">
@@ -809,8 +816,8 @@ function CommentSection({ postId, initialComments = [], user }) {
               className="sm:hidden"
             />
           </Link>
-          <div className="flex-1 min-w-0">
-            <div className={`${editingComment === comment._id ? 'w-full' : 'w-fit max-w-full'} bg-neutral-100/80 dark:bg-neutral-900/80 backdrop-blur-sm rounded-xl sm:rounded-2xl rounded-tl-none px-2.5 sm:px-4 py-2 sm:py-3 border border-transparent dark:border-neutral-800`}>
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <div className={`${editingComment === comment._id ? 'w-full' : 'w-fit max-w-full'} bg-neutral-100/80 dark:bg-neutral-900/80 backdrop-blur-sm rounded-xl sm:rounded-2xl rounded-tl-none px-2.5 sm:px-4 py-2 sm:py-3 border border-transparent dark:border-neutral-800 overflow-hidden`}>
               <div className="flex items-center justify-between mb-1 sm:mb-1 gap-2">
                 <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="font-bold text-xs sm:text-sm text-neutral-900 dark:text-white hover:underline truncate touch-manipulation">
                   <UserName user={comment.author} maxLength={18} />
@@ -934,8 +941,8 @@ function CommentSection({ postId, initialComments = [], user }) {
                 onClick={() => handleLikeComment(comment._id)}
                 disabled={isLiking}
                 className={`flex items-center gap-1.5 sm:gap-1.5 text-xs font-bold transition-colors min-h-[44px] sm:min-h-0 px-2 sm:px-0 -ml-2 sm:ml-0 touch-manipulation disabled:opacity-50 ${comment.likes?.some(like => like._id === user?._id || like.user?._id === user?._id)
-                    ? 'text-red-600 dark:text-red-500'
-                    : 'text-neutral-500 active:text-neutral-900 dark:active:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-300'
+                  ? 'text-red-600 dark:text-red-500'
+                  : 'text-neutral-500 active:text-neutral-900 dark:active:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-300'
                   }`}
               >
                 {isLiking ? (
@@ -1160,7 +1167,7 @@ function CommentSection({ postId, initialComments = [], user }) {
 
   return (
     <ComponentErrorBoundary>
-      <div className="max-w-4xl mx-auto px-2 sm:px-0" style={{ overflow: 'visible' }}>
+      <div className="max-w-4xl mx-auto px-2 sm:px-0 overflow-hidden">
 
         {/* Comment Input */}
         <div className="mb-4 sm:mb-8 flex gap-2 sm:gap-4">
@@ -1308,7 +1315,11 @@ function CommentSection({ postId, initialComments = [], user }) {
 
 // Memoize component để tối ưu performance
 export default React.memo(CommentSection, (prevProps, nextProps) => {
-  // Re-render khi postId hoặc user._id thay đổi
+  // Re-render khi postId hoặc user status thay đổi
+  // Kiểm tra cả sự tồn tại của user (null -> có user) và user id thay đổi
+  const prevUserId = prevProps.user?._id || prevProps.user?.id || null;
+  const nextUserId = nextProps.user?._id || nextProps.user?.id || null;
+
   return prevProps.postId === nextProps.postId &&
-    prevProps.user?._id === nextProps.user?._id;
+    prevUserId === nextUserId;
 });
