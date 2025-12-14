@@ -25,7 +25,7 @@ function BackToTop() {
   const scrollToTop = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Thử nhiều cách để đảm bảo hoạt động trên mọi trình duyệt
     if (window.scrollTo) {
       window.scrollTo({
@@ -34,7 +34,7 @@ function BackToTop() {
         behavior: 'smooth'
       });
     }
-    
+
     // Fallback cho các trình duyệt cũ
     if (document.documentElement) {
       document.documentElement.scrollTo({
@@ -43,7 +43,7 @@ function BackToTop() {
         behavior: 'smooth'
       });
     }
-    
+
     if (document.body) {
       document.body.scrollTo({
         top: 0,
@@ -64,7 +64,7 @@ function BackToTop() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={scrollToTop}
-          className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-[9999] p-3 bg-black dark:bg-neutral-700 text-white dark:text-white rounded-full shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+          className="fixed bottom-20 right-4 z-[9999] p-3 bg-black dark:bg-neutral-700 text-white dark:text-white rounded-full shadow-lg hover:shadow-xl transition-shadow cursor-pointer md:hidden"
           aria-label="Cuộn lên đầu trang"
         >
           <ArrowUp size={24} />
