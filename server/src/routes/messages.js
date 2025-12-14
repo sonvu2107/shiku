@@ -103,6 +103,15 @@ router.get("/conversations", authRequired, async (req, res) => {
 
     // Format conversations with unread count
     const formattedConversations = conversations.map((conv) => {
+      // Decrypt lastMessage content if exists
+      let decryptedLastMessage = conv.lastMessage;
+      if (conv.lastMessage && conv.lastMessage.content) {
+        decryptedLastMessage = {
+          ...conv.lastMessage,
+          content: decrypt(conv.lastMessage.content)
+        };
+      }
+
       // Với chatbot conversation, không có otherParticipants
       if (conv.conversationType === 'chatbot') {
         return {
@@ -113,7 +122,7 @@ router.get("/conversations", authRequired, async (req, res) => {
           groupAvatar: conv.groupAvatar,
           participants: conv.participants,
           otherParticipants: [], // Chatbot không có other participants
-          lastMessage: conv.lastMessage,
+          lastMessage: decryptedLastMessage,
           lastActivity: conv.lastActivity,
           unreadCount: 0, // Chatbot messages không có unread count
           createdAt: conv.createdAt
@@ -131,7 +140,7 @@ router.get("/conversations", authRequired, async (req, res) => {
         groupAvatar: conv.groupAvatar,
         participants: conv.participants,
         otherParticipants,
-        lastMessage: conv.lastMessage,
+        lastMessage: decryptedLastMessage,
         lastActivity: conv.lastActivity,
         unreadCount: unreadCountMap.get(conv._id.toString()) || 0,
         createdAt: conv.createdAt
