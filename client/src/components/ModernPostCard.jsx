@@ -27,7 +27,7 @@ const emoteMap = {
 };
 const emotes = Object.keys(emoteMap);
 
-const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedChange, hideActionsMenu = false }) => {
+const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedChange, hideActionsMenu = false, isFirst = false }) => {
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
 
@@ -641,6 +641,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             <LazyImage
               src={getOptimizedImageUrl(displayMedia.url, 800)}
               alt={post.title}
+              priority={isFirst}
               className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
               style={{ aspectRatio: '16/9', minHeight: '200px' }}
             />

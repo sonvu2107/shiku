@@ -971,6 +971,7 @@ function Home({ user, setUser }) {
                             onUpdate={refetchPosts}
                             isSaved={savedMap[post._id]}
                             onSavedChange={updateSavedState}
+                            isFirst={index === 0}
                           />
                         </motion.div>
                       );

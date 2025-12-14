@@ -124,18 +124,72 @@
     @apply min-h-[44px] min-w-[44px];
   }
 
-  .hover\:scale-105:hover {
-    @apply scale-100;
+  /* ===== DISABLE HOVER TRANSFORM EFFECTS ===== */
+  /* These cause jank when scrolling on mobile */
+
+  .hover\:scale-105:hover,
+  .hover\:scale-110:hover,
+  .hover\:scale-\[1\.02\]:hover,
+  .hover\:scale-\[1\.01\]:hover {
+    transform: none !important;
+  }
+
+  .hover\:-translate-y-1:hover,
+  .hover\:-translate-y-0\.5:hover {
+    transform: none !important;
+  }
+
+  /* Group hover transforms */
+  .group:hover .group-hover\:scale-105,
+  .group:hover .group-hover\:scale-110,
+  .group:hover .group-hover\:scale-100 {
+    transform: none !important;
   }
 
   .hover\:bg-gray-50:hover {
     @apply bg-transparent;
   }
 
-  /* Disable transform effects on touch devices to prevent jank */
+  /* Disable transform effects on emote buttons */
   .emote-btn:hover,
   .comment-emote-btn:hover {
     transform: none;
+  }
+
+  /* ===== REDUCE BACKDROP BLUR INTENSITY ===== */
+  /* Heavy backdrop-blur is GPU intensive on mobile */
+
+  .backdrop-blur-xl {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  .backdrop-blur-2xl {
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+
+  .backdrop-blur-3xl {
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+  }
+
+  /* ===== SHORTEN LONG TRANSITIONS ===== */
+  /* Long duration transitions feel sluggish on mobile */
+
+  .duration-700 {
+    transition-duration: 300ms !important;
+  }
+
+  .duration-500 {
+    transition-duration: 200ms !important;
+  }
+
+  /* ===== DISABLE DECORATIVE ANIMATIONS ===== */
+  /* Keep animate-pulse for loading skeletons but disable decorative ones */
+
+  .animate-pulse:not([class*="skeleton"]):not([class*="loading"]) {
+    animation: none !important;
   }
 
   /* Show touch feedback */
@@ -143,6 +197,7 @@
     @apply scale-95 bg-gray-100;
   }
 }
+
 
 /* ==================== LANDSCAPE MOBILE ==================== */
 @media (max-width: 896px) and (orientation: landscape) {

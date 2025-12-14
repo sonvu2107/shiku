@@ -8,6 +8,7 @@ import React, { useState, useRef, useEffect } from 'react';
  * @param {string} props.alt - Alt text
  * @param {string} props.className - CSS classes
  * @param {Object} props.style - Inline styles
+ * @param {boolean} props.priority - If true, skip lazy loading (for LCP images)
  * @param {Function} props.onLoad - On load callback
  * @param {Function} props.onError - On error callback
  * @returns {JSX.Element} Lazy loaded image component
@@ -17,16 +18,21 @@ export default function LazyImageSimple({
   alt = '',
   className = '',
   style = {},
+  priority = false,
   onLoad,
   onError,
   ...props
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isInView, setIsInView] = useState(false);
+  // If priority, start in view immediately (skip lazy loading)
+  const [isInView, setIsInView] = useState(priority);
   const [hasError, setHasError] = useState(false);
   const imgRef = useRef();
 
   useEffect(() => {
+    // Skip observer if priority image (already in view)
+    if (priority) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -35,8 +41,8 @@ export default function LazyImageSimple({
         }
       },
       {
-        rootMargin: '50px',
-        threshold: 0.1
+        rootMargin: '100px', // Increased for earlier loading
+        threshold: 0.01 // Lower threshold for faster trigger
       }
     );
 
@@ -45,7 +51,7 @@ export default function LazyImageSimple({
     }
 
     return () => observer.disconnect();
-  }, []);
+  }, [priority]);
 
   const handleLoad = () => {
     setIsLoaded(true);
@@ -89,12 +95,15 @@ export default function LazyImageSimple({
           alt={alt}
           onLoad={handleLoad}
           onError={handleError}
-          className="w-full h-full object-cover transition-opacity duration-500 ease-out"
+          loading={priority ? 'eager' : 'lazy'}
+          fetchpriority={priority ? 'high' : 'auto'}
+          decoding={priority ? 'sync' : 'async'}
+          className="w-full h-full object-cover transition-opacity duration-300 ease-out"
           style={{
             opacity: isLoaded ? 1 : 0,
             filter: isLoaded ? 'blur(0px)' : 'blur(10px)',
             transform: isLoaded ? 'scale(1)' : 'scale(1.1)',
-            transition: 'opacity 0.5s ease-out, filter 0.5s ease-out, transform 0.5s ease-out'
+            transition: 'opacity 0.3s ease-out, filter 0.3s ease-out, transform 0.3s ease-out'
           }}
         />
       )}
@@ -122,3 +131,4 @@ export default function LazyImageSimple({
     </div>
   );
 }
+

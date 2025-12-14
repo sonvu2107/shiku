@@ -301,12 +301,17 @@ export const updateOfflineUsers = async (req, res, next) => {
 export const getDailyStats = async (req, res, next) => {
     try {
         const days = Math.min(365, Math.max(7, parseInt(req.query.days) || 14));
-        const cacheKey = `${DAILY_STATS_CACHE_KEY}:${days}`;
+        const forceRefresh = req.query.force === 'true';
 
-        // Use withSWR: returns cached data immediately, revalidates in background
-        const result = await withSWR(cacheKey, async () => {
-            return await fetchDailyStatsFromDB(days);
-        }, 600, 120); // 10 min TTL, 2 min stale time
+        // Temporarily bypass cache for testing timezone fix
+        // TODO: Remove this after confirming fix works
+        const result = await fetchDailyStatsFromDB(days);
+
+        // Debug log to verify timezone calculation
+        if (result.chartData && result.chartData.length > 0) {
+            const lastDay = result.chartData[result.chartData.length - 1];
+            console.log(`[DAILY-STATS] Last day in chart: ${lastDay.label} (${lastDay.date}), Users: ${lastDay.users}`);
+        }
 
         res.json(result);
     } catch (e) {
@@ -318,17 +323,29 @@ export const getDailyStats = async (req, res, next) => {
  * Internal function to fetch daily stats from database
  */
 async function fetchDailyStatsFromDB(days) {
+    // Use Vietnam timezone (UTC+7) for consistent date calculations
+    const vietnamTimezone = "Asia/Ho_Chi_Minh";
+    const vietnamOffset = 7 * 60 * 60 * 1000; // 7 hours in milliseconds
+
+    // Calculate current time in Vietnam
     const now = new Date();
-    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    startDate.setHours(0, 0, 0, 0);
+    const nowInVietnam = new Date(now.getTime() + vietnamOffset);
+
+    // Calculate start date (days ago from today in Vietnam timezone)
+    const startDateInVietnam = new Date(nowInVietnam);
+    startDateInVietnam.setUTCHours(0, 0, 0, 0);
+    startDateInVietnam.setUTCDate(startDateInVietnam.getUTCDate() - days + 1);
+
+    // Convert back to UTC for MongoDB query
+    const startDateUTC = new Date(startDateInVietnam.getTime() - vietnamOffset);
 
     const [dailyPosts, dailyUsers, dailyComments] = await Promise.all([
         Post.aggregate([
-            { $match: { createdAt: { $gte: startDate } } },
+            { $match: { createdAt: { $gte: startDateUTC } } },
             {
                 $group: {
                     _id: {
-                        $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+                        $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: vietnamTimezone }
                     },
                     count: { $sum: 1 },
                     views: { $sum: "$views" },
@@ -338,11 +355,11 @@ async function fetchDailyStatsFromDB(days) {
             { $sort: { _id: 1 } }
         ]),
         User.aggregate([
-            { $match: { createdAt: { $gte: startDate } } },
+            { $match: { createdAt: { $gte: startDateUTC } } },
             {
                 $group: {
                     _id: {
-                        $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+                        $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: vietnamTimezone }
                     },
                     count: { $sum: 1 }
                 }
@@ -350,11 +367,11 @@ async function fetchDailyStatsFromDB(days) {
             { $sort: { _id: 1 } }
         ]),
         Comment.aggregate([
-            { $match: { createdAt: { $gte: startDate } } },
+            { $match: { createdAt: { $gte: startDateUTC } } },
             {
                 $group: {
                     _id: {
-                        $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+                        $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: vietnamTimezone }
                     },
                     count: { $sum: 1 }
                 }
@@ -369,9 +386,13 @@ async function fetchDailyStatsFromDB(days) {
 
     const chartData = [];
     for (let i = 0; i < days; i++) {
-        const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+        // Generate each date in Vietnam timezone
+        const date = new Date(startDateInVietnam.getTime() + i * 24 * 60 * 60 * 1000);
         const dateStr = date.toISOString().split('T')[0];
-        const dayLabel = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+        // Format label as dd-mm in Vietnam style
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const dayLabel = `${day}-${month}`;
 
         const postData = postsMap.get(dateStr) || { count: 0, views: 0, emotes: 0 };
 
