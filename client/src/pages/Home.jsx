@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../contexts/ToastContext";
 import { useChat } from "../contexts/ChatContext";
 import BackToTop from "../components/BackToTop";
+import PullToRefresh from "../components/PullToRefresh";
 
 // --- VISUAL COMPONENTS FROM LANDING PAGE ---
 const NoiseOverlay = () => (
@@ -906,120 +907,123 @@ function Home({ user, setUser }) {
           <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
             <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 md:gap-8">
               {/* Center Column - Main Feed */}
-              <div className="space-y-6 min-w-0">
-                {/* Stories Section */}
-                <Stories user={user} />
+              <div className="space-y-3 sm:space-y-4 min-w-0">
+                {/* Pull to Refresh - Mobile only */}
+                <PullToRefresh onRefresh={refetchPosts} disabled={loading}>
+                  {/* Stories Section */}
+                  <Stories user={user} />
 
-                {/* Posts Feed */}
-                {loading ? (
-                  <div className="space-y-6">
-                    {[1, 2, 3].map(i => (
-                      <LoadingSkeleton key={i} />
-                    ))}
-                  </div>
-                ) : error ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                    className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-2xl p-6 md:p-8 text-center transition-colors duration-300 shadow-md"
-                  >
-                    <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-800/50 rounded-full flex items-center justify-center">
-                      <AlertCircle size={24} className="text-red-500 dark:text-red-400" />
+                  {/* Posts Feed */}
+                  {loading ? (
+                    <div className="space-y-3 sm:space-y-4">
+                      {[1, 2, 3].map(i => (
+                        <LoadingSkeleton key={i} />
+                      ))}
                     </div>
-                    <h3 className="text-lg font-bold text-red-900 dark:text-red-300 mb-2">Có lỗi xảy ra</h3>
-                    <p className="text-base text-red-600 dark:text-red-400 mb-6 break-words px-2">{error}</p>
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                      <button
-                        onClick={loadInitial}
-                        className="px-6 py-3 bg-red-600 dark:bg-red-700 text-white rounded-xl font-semibold text-base hover:bg-red-700 dark:hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg"
-                        aria-label="Thử tải lại bài viết"
-                      >
-                        Thử lại
-                      </button>
-                      <button
-                        onClick={() => {
-                          setError(null);
-                          navigate(0);
-                        }}
-                        className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl font-semibold text-base hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
-                      >
-                        Tải lại trang
-                      </button>
-                    </div>
-                  </motion.div>
-                ) : items.length > 0 ? (
-                  <div className="space-y-6">
-                    {items.map((post, index) => {
-                      const isLastPost = index === items.length - 1;
-
-                      return (
-                        <motion.div
-                          key={post._id}
-                          ref={isLastPost ? lastPostElementRef : null}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{
-                            duration: 0.5,
-                            delay: (index % 5) * 0.1,
-                            ease: [0.25, 0.1, 0.25, 1]
-                          }}
+                  ) : error ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-2xl p-6 md:p-8 text-center transition-colors duration-300 shadow-md"
+                    >
+                      <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-800/50 rounded-full flex items-center justify-center">
+                        <AlertCircle size={24} className="text-red-500 dark:text-red-400" />
+                      </div>
+                      <h3 className="text-lg font-bold text-red-900 dark:text-red-300 mb-2">Có lỗi xảy ra</h3>
+                      <p className="text-base text-red-600 dark:text-red-400 mb-6 break-words px-2">{error}</p>
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <button
+                          onClick={loadInitial}
+                          className="px-6 py-3 bg-red-600 dark:bg-red-700 text-white rounded-xl font-semibold text-base hover:bg-red-700 dark:hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                          aria-label="Thử tải lại bài viết"
                         >
-                          <ModernPostCard
-                            post={post}
-                            user={user}
-                            onUpdate={refetchPosts}
-                            isSaved={savedMap[post._id]}
-                            onSavedChange={updateSavedState}
-                            isFirst={index === 0}
-                          />
-                        </motion.div>
-                      );
-                    })}
-
-                    {/* Loading more indicator */}
-                    {loadingMore && (
-                      <div className="flex justify-center py-8">
-                        <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300 text-base">
-                          <Loader2 size={20} className="animate-spin text-gray-600 dark:text-gray-300" />
-                          <span className="font-semibold">Đang tải thêm bài viết...</span>
-                        </div>
+                          Thử lại
+                        </button>
+                        <button
+                          onClick={() => {
+                            setError(null);
+                            navigate(0);
+                          }}
+                          className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl font-semibold text-base hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
+                        >
+                          Tải lại trang
+                        </button>
                       </div>
-                    )}
+                    </motion.div>
+                  ) : items.length > 0 ? (
+                    <div className="space-y-3 sm:space-y-4">
+                      {items.map((post, index) => {
+                        const isLastPost = index === items.length - 1;
 
-                    {/* End of feed message */}
-                    {!hasMore && items.length > 0 && (
-                      <div className="text-center py-8">
-                        <div className="inline-flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 rounded-full text-gray-600 dark:text-gray-300 text-sm font-semibold">
-                          <span>✨</span>
-                          <span>Bạn đã xem hết tất cả bài viết!</span>
+                        return (
+                          <motion.div
+                            key={post._id}
+                            ref={isLastPost ? lastPostElementRef : null}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{
+                              duration: 0.5,
+                              delay: (index % 5) * 0.1,
+                              ease: [0.25, 0.1, 0.25, 1]
+                            }}
+                          >
+                            <ModernPostCard
+                              post={post}
+                              user={user}
+                              onUpdate={refetchPosts}
+                              isSaved={savedMap[post._id]}
+                              onSavedChange={updateSavedState}
+                              isFirst={index === 0}
+                            />
+                          </motion.div>
+                        );
+                      })}
+
+                      {/* Loading more indicator */}
+                      {loadingMore && (
+                        <div className="flex justify-center py-8">
+                          <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300 text-base">
+                            <Loader2 size={20} className="animate-spin text-gray-600 dark:text-gray-300" />
+                            <span className="font-semibold">Đang tải thêm bài viết...</span>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="bg-white dark:bg-[#111] rounded-2xl shadow-md dark:shadow-lg border border-transparent dark:border-white/5 p-12 text-center transition-colors duration-300"
-                  >
-                    <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center">
-                      <Sparkles size={32} className="text-blue-500 dark:text-blue-400" />
+                      )}
+
+                      {/* End of feed message */}
+                      {!hasMore && items.length > 0 && (
+                        <div className="text-center py-8">
+                          <div className="inline-flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 rounded-full text-gray-600 dark:text-gray-300 text-sm font-semibold">
+                            <span>✨</span>
+                            <span>Bạn đã xem hết tất cả bài viết!</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Chưa có bài viết nào</h3>
-                    <p className="text-base text-gray-600 dark:text-gray-300 mb-6">Hãy là người đầu tiên chia sẻ điều gì đó thú vị!</p>
-                    {user && (
-                      <Link
-                        to="/create-post"
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:scale-105 transition-transform shadow-lg"
-                      >
-                        <Plus size={18} className="text-white dark:text-black" />
-                        Tạo bài viết đầu tiên
-                      </Link>
-                    )}
-                  </motion.div>
-                )}
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="bg-white dark:bg-[#111] rounded-2xl shadow-md dark:shadow-lg border border-transparent dark:border-white/5 p-12 text-center transition-colors duration-300"
+                    >
+                      <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center">
+                        <Sparkles size={32} className="text-blue-500 dark:text-blue-400" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Chưa có bài viết nào</h3>
+                      <p className="text-base text-gray-600 dark:text-gray-300 mb-6">Hãy là người đầu tiên chia sẻ điều gì đó thú vị!</p>
+                      {user && (
+                        <Link
+                          to="/create-post"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:scale-105 transition-transform shadow-lg"
+                        >
+                          <Plus size={18} className="text-white dark:text-black" />
+                          Tạo bài viết đầu tiên
+                        </Link>
+                      )}
+                    </motion.div>
+                  )}
+                </PullToRefresh>
               </div>
 
               {/* Right Sidebar - Friend Suggestions, Profile Activity, Upcoming Events */}

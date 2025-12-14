@@ -8,9 +8,9 @@ import { api } from "../api.js";
  * @param {Object} options - Query options
  * @param {string} options.sortBy - Sort order: 'recommended' | 'newest' | 'oldest' | 'mostViewed' | 'leastViewed'
  * @param {string} options.searchQuery - Search query string
- * @param {number} options.limit - Posts per page (default: 20)
+ * @param {number} options.limit - Posts per page (default: 8 for fast initial load)
  */
-export function usePosts({ sortBy = 'recommended', searchQuery = '', limit = 20 } = {}) {
+export function usePosts({ sortBy = 'recommended', searchQuery = '', limit = 8 } = {}) {
     return useInfiniteQuery({
         queryKey: ['posts', { sortBy, searchQuery }],
         queryFn: async ({ pageParam = 1 }) => {

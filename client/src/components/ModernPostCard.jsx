@@ -492,9 +492,11 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     <div
       onClick={() => navigate(`/post/${post.slug || post._id}`)}
       className="group relative bg-white dark:bg-[#111] rounded-2xl md:rounded-[32px] px-3 md:px-5 pt-3 md:pt-4 pb-4 md:pb-6 mb-4 md:mb-6 cursor-pointer
-      shadow-[0_4px_20px_rgb(0,0,0,0.04)] md:shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.3)] dark:md:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-      hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] md:hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)] dark:md:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
-      transition-all duration-300 ease-out md:hover:-translate-y-1 md:hover:scale-[1.01] border border-transparent dark:border-white/5 active:scale-[0.99]"
+      shadow-[0_2px_12px_rgba(0,0,0,0.04)] md:shadow-[0_4px_16px_rgba(0,0,0,0.04)] dark:shadow-none
+      hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] md:hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]
+      transition-all duration-300 ease-out md:hover:-translate-y-1.5 md:hover:scale-[1.015]
+      border border-neutral-100 dark:border-neutral-800/60 hover:border-neutral-200 dark:hover:border-neutral-700
+      active:scale-[0.99]"
     >
       {/* 1. Header: User Info */}
       <div className="flex justify-between items-start mb-2 md:mb-3">

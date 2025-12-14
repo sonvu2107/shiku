@@ -103,6 +103,7 @@ function CommentSection({ postId, initialComments = [], user }) {
   const [lightboxGallery, setLightboxGallery] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [fetchingComments, setFetchingComments] = useState(true); // Fetching comments
+  const [visibleCommentsCount, setVisibleCommentsCount] = useState(3); // Progressive loading - show 3 first
 
   // Edit system
   const [editingComment, setEditingComment] = useState(null); // ID comment being edited
@@ -1282,7 +1283,20 @@ function CommentSection({ postId, initialComments = [], user }) {
               <p className="text-neutral-500 text-sm mt-2">Đang tải bình luận...</p>
             </div>
           ) : comments.length > 0 ? (
-            comments.map((comment) => renderComment(comment))
+            <>
+              {/* Progressive loading - show first N comments */}
+              {comments.slice(0, visibleCommentsCount).map((comment) => renderComment(comment))}
+
+              {/* Load more button */}
+              {comments.length > visibleCommentsCount && (
+                <button
+                  onClick={() => setVisibleCommentsCount(prev => prev + 5)}
+                  className="w-full py-3 text-sm font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 rounded-xl transition-colors touch-manipulation"
+                >
+                  Xem thêm {Math.min(5, comments.length - visibleCommentsCount)} bình luận ({comments.length - visibleCommentsCount} còn lại)
+                </button>
+              )}
+            </>
           ) : (
             <div className="text-center py-10 sm:py-12 bg-neutral-50 dark:bg-neutral-900/30 rounded-2xl sm:rounded-3xl border border-dashed border-neutral-200 dark:border-neutral-800 px-4 sm:px-0">
               <div className="text-neutral-400 mb-2 text-sm sm:text-base">Chưa có bình luận nào</div>

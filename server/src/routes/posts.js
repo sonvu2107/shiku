@@ -1373,16 +1373,29 @@ router.get("/analytics/daily", authRequired, async (req, res, next) => {
   try {
     const userId = req.user._id;
     const days = Math.min(365, Math.max(7, parseInt(req.query.days) || 30));
+
+    // Use Vietnam timezone (UTC+7) for consistent date calculations
+    const vietnamTimezone = "Asia/Ho_Chi_Minh";
+    const vietnamOffset = 7 * 60 * 60 * 1000; // 7 hours in milliseconds
+
+    // Calculate current time in Vietnam
     const now = new Date();
-    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    startDate.setHours(0, 0, 0, 0);
+    const nowInVietnam = new Date(now.getTime() + vietnamOffset);
+
+    // Calculate start date (days ago from today in Vietnam timezone)
+    const startDateInVietnam = new Date(nowInVietnam);
+    startDateInVietnam.setUTCHours(0, 0, 0, 0);
+    startDateInVietnam.setUTCDate(startDateInVietnam.getUTCDate() - days + 1);
+
+    // Convert back to UTC for MongoDB query
+    const startDateUTC = new Date(startDateInVietnam.getTime() - vietnamOffset);
 
     // Get daily posts aggregation for this user
     const dailyPosts = await Post.aggregate([
-      { $match: { author: userId, createdAt: { $gte: startDate } } },
+      { $match: { author: userId, createdAt: { $gte: startDateUTC } } },
       {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: vietnamTimezone } },
           count: { $sum: 1 },
           views: { $sum: "$views" },
           emotes: { $sum: { $size: { $ifNull: ["$emotes", []] } } }
@@ -1394,12 +1407,16 @@ router.get("/analytics/daily", authRequired, async (req, res, next) => {
     // Create map for lookup
     const postsMap = new Map(dailyPosts.map(d => [d._id, d]));
 
-    // Generate complete date range
+    // Generate complete date range using Vietnam timezone
     const chartData = [];
     for (let i = 0; i < days; i++) {
-      const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const date = new Date(startDateInVietnam.getTime() + i * 24 * 60 * 60 * 1000);
       const dateStr = date.toISOString().split('T')[0];
-      const dayLabel = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+
+      // Format label as dd-mm
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const dayLabel = `${day}-${month}`;
 
       const postData = postsMap.get(dateStr) || { count: 0, views: 0, emotes: 0 };
 

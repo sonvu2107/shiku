@@ -1293,24 +1293,26 @@ const GroupDetail = () => {
                         ) : pendingRequests && pendingRequests.length > 0 ? (
                            <div className="space-y-4">
                               {pendingRequests.map((req) => (
-                                 <SpotlightCard key={req._id} className="p-5">
-                                    <div className="flex items-center gap-4">
+                                 <SpotlightCard key={req._id} className="p-4 sm:p-5">
+                                    <div className="flex items-center gap-3 sm:gap-4">
+                                       {/* User Info */}
                                        <Avatar
                                           src={req.user?.avatarUrl}
                                           name={req.user?.name || req.user?.fullName || 'User'}
-                                          size={48}
-                                          className=""
+                                          size={40}
+                                          className="flex-shrink-0"
                                        />
                                        <div className="flex-1 min-w-0">
-                                          <div className="font-bold text-base mb-1">{req.user?.name || req.user?.fullName || req.user?.username || 'Người dùng'}</div>
-                                          <div className="text-xs text-neutral-500 font-bold uppercase tracking-wider mb-2">
+                                          <div className="font-bold text-sm sm:text-base truncate">{req.user?.name || req.user?.fullName || req.user?.username || 'Người dùng'}</div>
+                                          <div className="text-[10px] sm:text-xs text-neutral-500 font-medium">
                                              {new Date(req.requestedAt).toLocaleString('vi-VN')}
                                           </div>
                                           {req.message && (
-                                             <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-2 line-clamp-2">{req.message}</p>
+                                             <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 line-clamp-1 sm:line-clamp-2">{req.message}</p>
                                           )}
                                        </div>
-                                       <div className="flex gap-2 flex-shrink-0">
+                                       {/* Action Buttons */}
+                                       <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">
                                           <button
                                              onClick={async () => {
                                                 try {
@@ -1323,9 +1325,9 @@ const GroupDetail = () => {
                                                    showSuccess('Đã duyệt yêu cầu tham gia');
                                                 } catch (e) { showError(e.message || 'Lỗi duyệt yêu cầu'); }
                                              }}
-                                             className="px-4 py-2 bg-green-600 text-white rounded-full font-bold text-sm hover:bg-green-700 transition-colors flex items-center gap-2"
+                                             className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-full font-bold text-xs sm:text-sm hover:bg-green-700 active:bg-green-800 transition-colors flex items-center gap-1.5 touch-manipulation min-h-[36px] sm:min-h-[40px]"
                                           >
-                                             <UserCheck size={16} /> Duyệt
+                                             <UserCheck size={14} className="hidden sm:block" /> Duyệt
                                           </button>
                                           <button
                                              onClick={async () => {
@@ -1339,9 +1341,9 @@ const GroupDetail = () => {
                                                    showSuccess('Đã từ chối yêu cầu tham gia');
                                                 } catch (e) { showError(e.message || 'Lỗi từ chối yêu cầu'); }
                                              }}
-                                             className="px-4 py-2 bg-red-600 text-white rounded-full font-bold text-sm hover:bg-red-700 transition-colors flex items-center gap-2"
+                                             className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-red-600 text-white rounded-full font-bold text-xs sm:text-sm hover:bg-red-700 active:bg-red-800 transition-colors flex items-center gap-1.5 touch-manipulation min-h-[36px] sm:min-h-[40px]"
                                           >
-                                             <UserX size={16} /> Từ chối
+                                             <UserX size={14} className="hidden sm:block" /> Từ chối
                                           </button>
                                        </div>
                                     </div>

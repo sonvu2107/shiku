@@ -301,17 +301,12 @@ export const updateOfflineUsers = async (req, res, next) => {
 export const getDailyStats = async (req, res, next) => {
     try {
         const days = Math.min(365, Math.max(7, parseInt(req.query.days) || 14));
-        const forceRefresh = req.query.force === 'true';
+        const cacheKey = `${DAILY_STATS_CACHE_KEY}:${days}`;
 
-        // Temporarily bypass cache for testing timezone fix
-        // TODO: Remove this after confirming fix works
-        const result = await fetchDailyStatsFromDB(days);
-
-        // Debug log to verify timezone calculation
-        if (result.chartData && result.chartData.length > 0) {
-            const lastDay = result.chartData[result.chartData.length - 1];
-            console.log(`[DAILY-STATS] Last day in chart: ${lastDay.label} (${lastDay.date}), Users: ${lastDay.users}`);
-        }
+        // Use withSWR: returns cached data immediately, revalidates in background
+        const result = await withSWR(cacheKey, async () => {
+            return await fetchDailyStatsFromDB(days);
+        }, 600, 120); // 10 min TTL, 2 min stale time
 
         res.json(result);
     } catch (e) {

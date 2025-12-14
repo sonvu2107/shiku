@@ -1219,6 +1219,7 @@ router.get('/:id/analytics', authRequired, async (req, res) => {
     const avgViewsPerPost = totalPosts > 0 ? Math.round(totalViews / totalPosts) : 0;
 
     // Calculate posts by day for the period using aggregation (avoid per-day loop)
+    const vietnamTimezone = "Asia/Ho_Chi_Minh";
     const postsByDayAgg = await Post.aggregate([
       {
         $match: {
@@ -1228,7 +1229,7 @@ router.get('/:id/analytics', authRequired, async (req, res) => {
       },
       {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: vietnamTimezone } },
           count: { $sum: 1 }
         }
       }

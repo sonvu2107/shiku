@@ -96,7 +96,7 @@ export default function LazyImageSimple({
           onLoad={handleLoad}
           onError={handleError}
           loading={priority ? 'eager' : 'lazy'}
-          fetchpriority={priority ? 'high' : 'auto'}
+          fetchPriority={priority ? 'high' : 'auto'}
           decoding={priority ? 'sync' : 'async'}
           className="w-full h-full object-cover transition-opacity duration-300 ease-out"
           style={{
