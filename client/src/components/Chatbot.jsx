@@ -47,25 +47,25 @@ export default function Chatbot({ variant = 'floating', onClose, allowMinimize, 
   useEffect(() => {
     let isMounted = true;
     let timeoutId = null;
-    
+
     const loadChatHistory = async () => {
       // For 'popup' or 'embedded' variants, always load history on mount
       // For 'floating' variant, only load when opened and not minimized
-      const shouldLoad = (variant === 'popup' || variant === 'embedded') 
-        ? true 
+      const shouldLoad = (variant === 'popup' || variant === 'embedded')
+        ? true
         : (variant === 'floating' && isOpen && !isMinimized);
-      
+
       if (!shouldLoad) {
         setIsLoadingHistory(false);
         return;
       }
-      
+
       try {
         setIsLoadingHistory(true);
         const response = await chatbotAPI.getHistory();
-        
+
         if (!isMounted) return; // Component unmounted — do not update state
-        
+
         if (response.success && response.data.messages && response.data.messages.length > 0) {
           // Convert messages from the database into the component format
           // Use the timestamp to create a unique ID so IDs remain stable across reloads
@@ -90,8 +90,8 @@ export default function Chatbot({ variant = 'floating', onClose, allowMinimize, 
       } catch (error) {
         console.error('Error loading chat history:', error);
         if (!isMounted) return;
-        
-      // If an error occurs, fall back to the default welcome message
+
+        // If an error occurs, fall back to the default welcome message
         setMessages([
           {
             id: Date.now(),
@@ -134,7 +134,7 @@ export default function Chatbot({ variant = 'floating', onClose, allowMinimize, 
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    
+
     if (!inputMessage.trim() || isLoading || isLoadingHistory) return;
 
     const userMessageText = inputMessage.trim();
@@ -151,7 +151,7 @@ export default function Chatbot({ variant = 'floating', onClose, allowMinimize, 
 
     try {
       const response = await chatbotAPI.sendMessage(userMessageText);
-      
+
       const botMessage = {
         id: Date.now() + 1,
         text: response.message,
@@ -162,10 +162,11 @@ export default function Chatbot({ variant = 'floating', onClose, allowMinimize, 
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
-      
+
+      // Use the friendly error message from API, or fallback to a warm default
       const errorMessage = {
         id: Date.now() + 1,
-        text: 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau.',
+        text: error.message || 'Mình gặp chút trục trặc, bạn thử hỏi lại sau vài giây nhé 😊',
         sender: 'bot',
         timestamp: new Date(),
         isError: true,
@@ -283,56 +284,56 @@ export default function Chatbot({ variant = 'floating', onClose, allowMinimize, 
         </div>
       )}
 
-          {/* Messages */}
-          {(!isEmbedded && !isMinimized) || isEmbedded ? (
-            <>
-              <div className="chatbot-messages custom-scrollbar" role="log" aria-live="polite">
-                {isLoadingHistory ? (
-                  <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
-                    Đang tải lịch sử chat...
-                  </div>
-                ) : messages.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
-                    Bắt đầu cuộc trò chuyện với trợ lý AI
-                  </div>
-                ) : (
-                  <>
-                    {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`chatbot-message ${message.sender} ${message.isError ? 'error' : ''}`}
-                      >
-                        {message.sender === 'bot' && (
-                          <div className="message-avatar">
-                            <Bot size={16} />
-                          </div>
-                        )}
-                        <div className="message-content">
-                          <div className="message-text">{message.text}</div>
-                          <div className="message-time">{formatTime(message.timestamp)}</div>
-                        </div>
-                      </div>
-                    ))}
-                    {isLoading && (
-                      <div className="chatbot-message bot">
-                        <div className="message-avatar">
-                          <Bot size={16} />
-                        </div>
-                        <div className="message-content">
-                          <div className="message-text">
-                            <div className="typing-indicator">
-                              <span></span>
-                              <span></span>
-                              <span></span>
-                            </div>
-                          </div>
-                        </div>
+      {/* Messages */}
+      {(!isEmbedded && !isMinimized) || isEmbedded ? (
+        <>
+          <div className="chatbot-messages custom-scrollbar" role="log" aria-live="polite">
+            {isLoadingHistory ? (
+              <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
+                Đang tải lịch sử chat...
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
+                Bắt đầu cuộc trò chuyện với trợ lý AI
+              </div>
+            ) : (
+              <>
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`chatbot-message ${message.sender} ${message.isError ? 'error' : ''}`}
+                  >
+                    {message.sender === 'bot' && (
+                      <div className="message-avatar">
+                        <Bot size={16} />
                       </div>
                     )}
-                  </>
+                    <div className="message-content">
+                      <div className="message-text">{message.text}</div>
+                      <div className="message-time">{formatTime(message.timestamp)}</div>
+                    </div>
+                  </div>
+                ))}
+                {isLoading && (
+                  <div className="chatbot-message bot">
+                    <div className="message-avatar">
+                      <Bot size={16} />
+                    </div>
+                    <div className="message-content">
+                      <div className="message-text">
+                        <div className="typing-indicator">
+                          <span></span>
+                          <span></span>
+                          <span></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
-                <div ref={messagesEndRef} />
-              </div>
+              </>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
 
           {/* Input */}
           <form onSubmit={handleSendMessage} className="chatbot-input-form" aria-label="Gửi tin nhắn đến trợ lý AI">

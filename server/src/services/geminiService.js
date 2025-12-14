@@ -16,12 +16,12 @@ class GeminiService {
     this.sessionLastActivity = new Map(); // Track last activity
     this.SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
     this.MAX_SESSIONS = 1000; // Maximum concurrent sessions
-    
+
     // Cleanup interval for expired sessions
     this.cleanupInterval = setInterval(() => {
       this.cleanupExpiredSessions();
     }, 5 * 60 * 1000); // Run every 5 minutes
-    
+
     // Allow process to exit even if interval is running
     this.cleanupInterval.unref();
   }
@@ -32,7 +32,7 @@ class GeminiService {
   cleanupExpiredSessions() {
     const now = Date.now();
     let cleanedCount = 0;
-    
+
     for (const [userId, lastActivity] of this.sessionLastActivity.entries()) {
       if (now - lastActivity > this.SESSION_TIMEOUT) {
         this.chatSessions.delete(userId);
@@ -40,7 +40,7 @@ class GeminiService {
         cleanedCount++;
       }
     }
-    
+
     if (cleanedCount > 0) {
       console.log(`[INFO][GEMINI] Cleaned up ${cleanedCount} expired sessions`);
     }
@@ -49,15 +49,15 @@ class GeminiService {
   /**
    * Khởi tạo model Gemini với system instruction về Shiku
    */
-  initializeModel(modelName = 'gemini-2.0-flash') {
+  initializeModel(modelName = 'gemini-2.5-flash') {
     if (!this.genAI) {
       throw new Error('Gemini API key is not configured');
     }
-    
+
     // Lấy system instruction về Shiku
     const systemInstruction = getSystemInstruction();
-    
-    this.model = this.genAI.getGenerativeModel({ 
+
+    this.model = this.genAI.getGenerativeModel({
       model: modelName,
       systemInstruction: systemInstruction,
     });
@@ -71,7 +71,7 @@ class GeminiService {
   getChatSession(userId, dbHistory = null) {
     // Update last activity
     this.sessionLastActivity.set(userId, Date.now());
-    
+
     // Enforce max sessions limit
     if (this.chatSessions.size >= this.MAX_SESSIONS && !this.chatSessions.has(userId)) {
       // Remove oldest session
@@ -82,19 +82,19 @@ class GeminiService {
         this.sessionLastActivity.delete(oldestSession[0]);
       }
     }
-    
+
     // Nếu đã có session, không cần tạo lại
     if (this.chatSessions.has(userId)) {
       return this.chatSessions.get(userId);
     }
-    
+
     if (!this.model) {
       this.initializeModel();
     }
-    
+
     // Sử dụng chat history từ database nếu có, nếu không thì dùng initial history
     let history = getInitialChatHistory();
-    
+
     if (dbHistory && dbHistory.length > 0) {
       // Chuyển đổi database history sang format của Gemini
       // Bỏ qua message chào mừng đầu tiên nếu đã có history từ database
@@ -103,19 +103,23 @@ class GeminiService {
         parts: [{ text: msg.content }],
       }));
     }
-    
+
     const chat = this.model.startChat({
       history: history,
     });
-    
+
     this.chatSessions.set(userId, chat);
     return chat;
   }
 
   /**
    * Gửi tin nhắn và nhận phản hồi
+   * Có retry logic cho lỗi 429 (rate limit)
    */
-  async sendMessage(userId, message) {
+  async sendMessage(userId, message, retryCount = 0) {
+    const MAX_RETRIES = 1;
+    const RETRY_DELAY = 1000; // 1 second
+
     try {
       if (!this.model) {
         this.initializeModel();
@@ -125,18 +129,39 @@ class GeminiService {
       const result = await chat.sendMessage(message);
       const response = await result.response;
       const text = response.text();
-      
+
       return {
         success: true,
         text: text,
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error('[ERROR][GEMINI] Error sending message to Gemini:', error);
-      // Return generic error to client, log detailed error server-side
-      throw new Error('Không thể nhận phản hồi từ AI. Vui lòng thử lại sau.');
+      const errorMessage = error.message || '';
+      console.error('[ERROR][GEMINI] Error sending message to Gemini:', errorMessage);
+
+      // Retry once on 429 (rate limit) errors
+      if (errorMessage.includes('429') && retryCount < MAX_RETRIES) {
+        console.log(`[INFO][GEMINI] Rate limited, retrying in ${RETRY_DELAY}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        return this.sendMessage(userId, message, retryCount + 1);
+      }
+
+      // Friendly error messages based on error type
+      if (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('limit')) {
+        throw new Error('Mình đang hơi bận, bạn thử hỏi lại sau vài giây nhé! 😊');
+      }
+      if (errorMessage.includes('API key') || errorMessage.includes('401') || errorMessage.includes('403')) {
+        throw new Error('Có vấn đề với cấu hình AI. Vui lòng thử lại sau.');
+      }
+      if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+        throw new Error('Mình đang được cập nhật, thử lại sau một chút nhé! 🔧');
+      }
+
+      // Generic friendly fallback
+      throw new Error('Mình gặp chút trục trặc, bạn thử hỏi lại sau vài giây nhé 😊');
     }
   }
+
 
   /**
    * Xóa chat session của user (để reset cuộc trò chuyện)
@@ -169,7 +194,7 @@ class GeminiService {
       const result = await this.model.generateContent(message);
       const response = await result.response;
       const text = response.text();
-      
+
       return {
         success: true,
         text: text,
@@ -191,16 +216,16 @@ class GeminiService {
       }
 
       // Thêm context về Shiku vào prompt
-      const shikuContext = context 
+      const shikuContext = context
         ? `Context về Shiku: ${context}\n\n`
         : '';
-      
+
       const fullPrompt = `${shikuContext}Prompt: ${prompt}\n\nLưu ý: Hãy trả lời dựa trên kiến thức về Shiku - mạng xã hội kết nối bạn bè.`;
 
       const result = await this.model.generateContent(fullPrompt);
       const response = await result.response;
       const text = response.text();
-      
+
       return {
         success: true,
         text: text,
