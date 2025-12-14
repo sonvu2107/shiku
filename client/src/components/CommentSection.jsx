@@ -797,7 +797,7 @@ function CommentSection({ postId, initialComments = [], user }) {
       : "";
 
     return (
-      <div key={comment._id} data-comment-id={comment._id} className={`${indentClass} overflow-hidden`}>
+      <div key={comment._id} data-comment-id={comment._id} className={indentClass}>
         {/* Main Comment */}
         <div className="flex gap-2 sm:gap-3 py-1.5 sm:py-1.5 group/comment">
           <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="focus:outline-none flex-shrink-0 touch-manipulation">
@@ -816,8 +816,8 @@ function CommentSection({ postId, initialComments = [], user }) {
               className="sm:hidden"
             />
           </Link>
-          <div className="flex-1 min-w-0 overflow-hidden">
-            <div className={`${editingComment === comment._id ? 'w-full' : 'w-fit max-w-full'} bg-neutral-100/80 dark:bg-neutral-900/80 backdrop-blur-sm rounded-xl sm:rounded-2xl rounded-tl-none px-2.5 sm:px-4 py-2 sm:py-3 border border-transparent dark:border-neutral-800 overflow-hidden`}>
+          <div className="flex-1 min-w-0">
+            <div className={`${editingComment === comment._id ? 'w-full' : 'w-fit max-w-full'} bg-neutral-100/80 dark:bg-neutral-900/80 backdrop-blur-sm rounded-xl sm:rounded-2xl rounded-tl-none px-2.5 sm:px-4 py-2 sm:py-3 border border-transparent dark:border-neutral-800`}>
               <div className="flex items-center justify-between mb-1 sm:mb-1 gap-2">
                 <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="font-bold text-xs sm:text-sm text-neutral-900 dark:text-white hover:underline truncate touch-manipulation">
                   <UserName user={comment.author} maxLength={18} />
@@ -980,7 +980,7 @@ function CommentSection({ postId, initialComments = [], user }) {
                 </button>
 
                 {showDropdown === comment._id && (
-                  <div className="fixed sm:absolute left-0 sm:left-0 right-0 sm:right-auto bottom-0 sm:bottom-auto sm:top-full sm:mt-1 sm:max-w-[200px] bg-white dark:bg-neutral-900 border-t sm:border border-neutral-100 dark:border-neutral-800 rounded-t-2xl sm:rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-bottom sm:zoom-in-95 duration-200">
+                  <div className="absolute right-0 bottom-full mb-1 min-w-[140px] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-[9999] overflow-hidden">
                     {user && (user._id?.toString() === comment.author?._id?.toString() || user.id?.toString() === comment.author?._id?.toString()) && (
                       <button
                         onClick={() => handleEditComment(comment)}
@@ -1167,7 +1167,7 @@ function CommentSection({ postId, initialComments = [], user }) {
 
   return (
     <ComponentErrorBoundary>
-      <div className="max-w-4xl mx-auto px-2 sm:px-0 overflow-hidden">
+      <div className="max-w-4xl mx-auto px-2 sm:px-0 overflow-x-hidden">
 
         {/* Comment Input */}
         <div className="mb-4 sm:mb-8 flex gap-2 sm:gap-4">
