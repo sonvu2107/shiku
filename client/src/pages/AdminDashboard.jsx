@@ -559,9 +559,9 @@ export default function AdminDashboard() {
                                              <div className="flex gap-3 items-center">
                                                 <span className="font-black text-neutral-300">#{i + 1}</span>
                                                 <Avatar src={u.avatarUrl} name={u.name} size={32} className="" />
-                                                <div>
-                                                   <div className="font-bold text-sm">{u.name}</div>
-                                                   <div className="text-xs text-neutral-500">{u.role}</div>
+                                                <div className="min-w-0 max-w-[120px]">
+                                                   <div className="font-bold text-sm truncate">{u.name}</div>
+                                                   <div className="text-xs text-neutral-500 truncate">{u.role}</div>
                                                 </div>
                                              </div>
                                              <div className="text-sm font-bold text-green-500">{u.postCount} bài</div>
@@ -570,14 +570,14 @@ export default function AdminDashboard() {
                                     </div>
                                  </SpotlightCard>
                               </div>
-                               {/* Charts Section */}
-                               <AdminCharts />
-                            </>
-                         )}
-                      </motion.div>
-                   )}
+                              {/* Charts Section */}
+                              <AdminCharts />
+                           </>
+                        )}
+                     </motion.div>
+                  )}
 
-                   {/* 2. USERS MANAGEMENT TAB */}
+                  {/* 2. USERS MANAGEMENT TAB */}
                   {activeTab === "users" && (
                      <motion.div key="users" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                         <SpotlightCard className="min-h-[600px]">
@@ -629,7 +629,7 @@ export default function AdminDashboard() {
                                                 <td className="px-4 py-3">
                                                    <div className="flex items-center gap-3">
                                                       <Avatar src={u.avatarUrl} name={u.name} size={40} className="" />
-                                                      <div className="min-w-0">
+                                                      <div className="min-w-0 max-w-[180px]">
                                                          <div className="font-bold text-sm truncate flex items-center gap-1">
                                                             {u.name}
                                                             <VerifiedBadge role={u.role?.name || u.role} isVerified={u.isVerified} />
@@ -865,9 +865,9 @@ export default function AdminDashboard() {
                                           <Avatar src={u.avatarUrl} name={u.name} size={32} className="" />
                                           <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-neutral-900 rounded-full"></span>
                                        </div>
-                                       <div>
-                                          <div className="font-bold text-sm text-neutral-900 dark:text-white">{u.name}</div>
-                                          <div className="text-xs text-neutral-500">{u.email}</div>
+                                       <div className="min-w-0 max-w-[150px]">
+                                          <div className="font-bold text-sm text-neutral-900 dark:text-white truncate">{u.name}</div>
+                                          <div className="text-xs text-neutral-500 truncate">{u.email}</div>
                                        </div>
                                     </div>
                                     <div className="text-xs font-mono text-neutral-400">{new Date(u.lastSeen).toLocaleTimeString()}</div>
@@ -952,9 +952,9 @@ export default function AdminDashboard() {
                               <div className="space-y-2">
                                  {users.filter(u => u.isBanned).map(u => (
                                     <div key={u._id} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-200 dark:border-red-800/50 shadow-sm">
-                                       <div>
-                                          <div className="font-bold text-sm text-red-800 dark:text-red-300">{u.name}</div>
-                                          <div className="text-xs text-red-600/70">{u.banReason} • {u.banExpiresAt ? `Hết hạn: ${new Date(u.banExpiresAt).toLocaleDateString()}` : "Vĩnh viễn"}</div>
+                                       <div className="min-w-0 flex-1">
+                                          <div className="font-bold text-sm text-red-800 dark:text-red-300 truncate max-w-[200px]">{u.name}</div>
+                                          <div className="text-xs text-red-600/70 truncate">{u.banReason} • {u.banExpiresAt ? `Hết hạn: ${new Date(u.banExpiresAt).toLocaleDateString()}` : "Vĩnh viễn"}</div>
                                        </div>
                                        <button
                                           onClick={async () => {
@@ -1032,7 +1032,7 @@ export default function AdminDashboard() {
             </div>
          </div>
          {/* Mobile Quick Actions Bar */}
-         <MobileQuickActions 
+         <MobileQuickActions
             stats={stats}
             onlineCount={onlineUsers?.length || 0}
             onBanUser={async (email, reason) => {

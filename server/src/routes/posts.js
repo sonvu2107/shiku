@@ -1060,9 +1060,8 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
       return res.status(400).json({ error: "Vui lòng nhập tiêu đề" });
     }
 
-    if ((!sanitized.content || sanitized.content.length === 0) && !req.body.hasPoll) {
-      return res.status(400).json({ error: "Vui lòng nhập nội dung hoặc tạo poll" });
-    }
+
+    // Content, poll, and media are all optional - only title is required
 
     // Extract mentions from title and content
     const { extractMentionedUsers } = await import("../utils/mentions.js");

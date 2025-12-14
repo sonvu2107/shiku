@@ -100,12 +100,8 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
       return;
     }
 
-    // Content is optional if poll or media is present
-    if (!hasPoll && !content.trim() && files.length === 0) {
-      setErr("Vui lòng nhập nội dung, thêm ảnh/video hoặc tạo bình chọn");
-      showError("Vui lòng nhập nội dung, thêm ảnh/video hoặc tạo bình chọn");
-      return;
-    }
+    // Content, poll, and media are all optional - only title is required
+    // (validation for title is already done above)
 
     // Validate poll nếu có
     if (hasPoll) {
@@ -797,7 +793,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                     </button>
                     <button
                       type="submit"
-                      disabled={loading || !title.trim() || (!hasPoll && !content.trim() && files.length === 0)}
+                      disabled={loading || !title.trim()}
                       className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold hover:scale-105 transition-all duration-200 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
                       {loading ? "Đang đăng..." : "Đăng bài"}
