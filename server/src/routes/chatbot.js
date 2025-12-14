@@ -18,6 +18,7 @@ import Message from '../models/Message.js';
 import Conversation from '../models/Conversation.js';
 import { getOrCreateChatbotConversation, formatChatbotConversation } from '../utils/chatbotConversation.js';
 import { getOrCreateAIUser } from '../utils/aiUser.js';
+import { encrypt } from '../services/encryptionService.js';
 
 const router = express.Router();
 
@@ -57,9 +58,9 @@ router.post('/message', authRequired, async (req, res) => {
         conversation: conversation._id,
         isDeleted: false
       })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .lean();
 
       // Lấy AI user để phân biệt messages từ AI
       const aiUser = await getOrCreateAIUser();
@@ -80,7 +81,7 @@ router.post('/message', authRequired, async (req, res) => {
         // Xóa session cũ nếu có để tạo lại với history mới nhất
         geminiService.clearChatSession(userId);
       }
-      
+
       // Tạo session mới với history từ conversation
       geminiService.getChatSession(userId, dbHistory);
     } catch (error) {
@@ -101,9 +102,9 @@ router.post('/message', authRequired, async (req, res) => {
       // Lưu tin nhắn user và AI vào Message model
       try {
         const aiUser = await getOrCreateAIUser();
-        
+
         const userMessage = new Message({
-          content: message,
+          content: encrypt(message),
           sender: userId,
           conversation: conversation._id,
           messageType: 'text'
@@ -111,7 +112,7 @@ router.post('/message', authRequired, async (req, res) => {
         await userMessage.save();
 
         const aiMessage = new Message({
-          content: botResponse.text,
+          content: encrypt(botResponse.text),
           sender: aiUser._id,
           conversation: conversation._id,
           messageType: 'text'
@@ -150,19 +151,19 @@ router.post('/message', authRequired, async (req, res) => {
     try {
       // Lấy AI user
       const aiUser = await getOrCreateAIUser();
-      
-      // Lưu tin nhắn user
+
+      // Lưu tin nhắn user - encrypt
       const userMessage = new Message({
-        content: message,
+        content: encrypt(message),
         sender: userId,
         conversation: conversation._id,
         messageType: 'text'
       });
       await userMessage.save();
 
-      // Lưu tin nhắn AI với AI user làm sender
+      // Lưu tin nhắn AI với AI user làm sender - encrypt
       const aiMessage = new Message({
-        content: response.text,
+        content: encrypt(response.text),
         sender: aiUser._id,
         conversation: conversation._id,
         messageType: 'text'
@@ -212,23 +213,23 @@ router.post('/message', authRequired, async (req, res) => {
 router.post('/reset', authRequired, async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
-    
+
     // Xóa chat session trong memory
     const cleared = geminiService.clearChatSession(userId);
-    
+
     // Tìm chatbot conversation
     const conversation = await getOrCreateChatbotConversation(userId);
-    
+
     // Xóa tất cả messages trong conversation (đánh dấu là deleted thay vì xóa thật)
     try {
       await Message.updateMany(
         { conversation: conversation._id },
-        { 
+        {
           isDeleted: true,
           deletedAt: new Date()
         }
       );
-      
+
       // Reset lastMessage và lastActivity
       conversation.lastMessage = null;
       conversation.lastActivity = new Date();
@@ -236,7 +237,7 @@ router.post('/reset', authRequired, async (req, res) => {
     } catch (error) {
       console.error('[ERROR][CHATBOT] Error clearing conversation messages:', error);
     }
-    
+
     // Giữ backward compatibility: Xóa ChatHistory
     try {
       const chatHistory = await ChatHistory.findOrCreate(userId);
@@ -244,7 +245,7 @@ router.post('/reset', authRequired, async (req, res) => {
     } catch (error) {
       console.error('[ERROR][CHATBOT] Error clearing chat history:', error);
     }
-    
+
     res.json({
       success: true,
       message: 'Chat session cleared successfully',
@@ -300,17 +301,17 @@ router.post('/generate', authRequired, async (req, res) => {
 router.get('/history', authRequired, async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
-    
+
     // Tìm hoặc tạo chatbot conversation
     const conversation = await getOrCreateChatbotConversation(userId);
-    
+
     // Lấy messages từ conversation
     const messages = await Message.find({
       conversation: conversation._id,
       isDeleted: false
     })
-    .sort({ createdAt: 1 }) // Sắp xếp từ cũ đến mới
-    .lean();
+      .sort({ createdAt: 1 }) // Sắp xếp từ cũ đến mới
+      .lean();
 
     // Lấy AI user để phân biệt messages từ AI
     const aiUser = await getOrCreateAIUser();
@@ -325,7 +326,7 @@ router.get('/history', authRequired, async (req, res) => {
         timestamp: msg.createdAt
       };
     });
-    
+
     res.json({
       success: true,
       data: {
@@ -351,13 +352,13 @@ router.get('/history', authRequired, async (req, res) => {
 router.get('/conversation', authRequired, async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
-    
+
     // Tìm hoặc tạo chatbot conversation
     const conversation = await getOrCreateChatbotConversation(userId);
-    
+
     // Format conversation
     const formattedConversation = formatChatbotConversation(conversation, userId);
-    
+
     res.json({
       success: true,
       data: formattedConversation,
@@ -405,7 +406,7 @@ router.get('/status', authRequired, async (req, res) => {
  */
 function checkStatusSuggestion(message) {
   const lowerMessage = message.toLowerCase().trim();
-  
+
   // Kiểm tra các từ khóa về gợi ý status
   const statusKeywords = [
     'gợi ý status',
@@ -418,7 +419,7 @@ function checkStatusSuggestion(message) {
     'nội dung bài viết',
     'nội dung status'
   ];
-  
+
   const hasStatusKeyword = statusKeywords.some(keyword => lowerMessage.includes(keyword));
   if (!hasStatusKeyword) return null;
 
@@ -502,7 +503,7 @@ function checkStatusSuggestion(message) {
     'Cuộc sống đẹp nhất khi ta biết trân trọng những điều nhỏ bé xung quanh. 🌸💕',
     'Đừng sợ thất bại, hãy sợ việc không dám thử. 💪🔥'
   ];
-  
+
   const randomIndex = Math.floor(Math.random() * generalSuggestions.length);
   return generalSuggestions[randomIndex];
 }

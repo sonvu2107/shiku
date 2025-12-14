@@ -19,6 +19,7 @@ import Message from "../models/Message.js";
 import Conversation from "../models/Conversation.js";
 import User from "../models/User.js";
 import { v2 as cloudinary } from "cloudinary";
+import { encrypt, decrypt } from "../services/encryptionService.js";
 
 const router = express.Router();
 
@@ -192,6 +193,13 @@ router.get("/conversations/:conversationId/messages", authRequired, async (req, 
       .skip((parseInt(page) - 1) * parseInt(limit))
       .lean();
 
+    // Decrypt message content for client
+    messages.forEach(msg => {
+      if (msg.content) {
+        msg.content = decrypt(msg.content);
+      }
+    });
+
     // Get total count for pagination
     const totalMessages = await Message.countDocuments(query);
 
@@ -297,8 +305,11 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
       }
     }
 
+    // Encrypt message content before saving
+    const encryptedContent = content ? encrypt(content) : content;
+
     const messageData = {
-      content,
+      content: encryptedContent,
       sender: req.user._id,
       conversation: conversationId,
       messageType,
@@ -326,8 +337,13 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
     const io = req.app.get('io');
 
     // Ensure message has conversationId field for client
+    // Decrypt content for socket emission
+    const messageObj = message.toObject();
+    if (messageObj.content) {
+      messageObj.content = decrypt(messageObj.content);
+    }
     const socketMessageData = {
-      ...message.toObject(),
+      ...messageObj,
       conversationId: conversationId
     };
 
@@ -422,18 +438,18 @@ router.put("/conversations/:conversationId/messages/:messageId", authRequired, a
       return res.status(404).json({ message: 'Không tìm thấy tin nhắn hoặc bạn không có quyền sửa' });
     }
 
-    // Update message
-    message.content = content.trim();
+    // Update message - encrypt new content
+    message.content = encrypt(content.trim());
     message.isEdited = true;
     message.editedAt = new Date();
     await message.save();
 
-    // Emit realtime update
+    // Emit realtime update - send decrypted content to client
     const io = req.app.get('io');
     io.to(`conversation-${conversationId}`).emit('message-edited', {
       messageId,
       conversationId,
-      content: message.content,
+      content: content.trim(), // Send plaintext to client
       isEdited: true,
       editedAt: message.editedAt
     });
@@ -442,7 +458,7 @@ router.put("/conversations/:conversationId/messages/:messageId", authRequired, a
       message: 'Đã sửa tin nhắn',
       data: {
         _id: message._id,
-        content: message.content,
+        content: content.trim(), // Return plaintext to client
         isEdited: message.isEdited,
         editedAt: message.editedAt
       }
@@ -534,8 +550,11 @@ router.post("/conversations/:conversationId/messages/image", authRequired, async
       ]
     });
 
+    // Encrypt content for image message
+    const encryptedContent = encrypt(content || 'Đã gửi một hình ảnh');
+
     const message = new Message({
-      content: content || 'Đã gửi một hình ảnh',
+      content: encryptedContent,
       sender: req.user._id,
       conversation: conversationId,
       messageType: 'image',
@@ -556,10 +575,16 @@ router.post("/conversations/:conversationId/messages/image", authRequired, async
     });
 
     // Emit realtime message to conversation room
+    // Decrypt content for socket emission
     const io = req.app.get('io');
-    io.to(`conversation-${conversationId}`).emit('new-message', message);
+    const messageObj = message.toObject();
+    messageObj.content = decrypt(messageObj.content);
+    io.to(`conversation-${conversationId}`).emit('new-message', messageObj);
 
-    res.status(201).json(message);
+    // Return with decrypted content
+    const responseObj = message.toObject();
+    responseObj.content = decrypt(responseObj.content);
+    res.status(201).json(responseObj);
   } catch (error) {
     res.status(500).json({ message: "Lỗi server" });
   }
