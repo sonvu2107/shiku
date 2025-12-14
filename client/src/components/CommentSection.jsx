@@ -67,10 +67,10 @@ const emojiList = [
  */
 function CommentSection({ postId, initialComments = [], user }) {
   // ==================== STATE MANAGEMENT ====================
-  
+
   // Toast notifications
   const { showSuccess, showError } = useToast();
-  
+
   // Comments data
   const [comments, setComments] = useState([]); // Organized list of comments
   const [newComment, setNewComment] = useState(""); // New comment content
@@ -80,7 +80,7 @@ function CommentSection({ postId, initialComments = [], user }) {
   const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false); // Show mention autocomplete
   const newCommentTextareaRef = useRef(null); // Ref for newComment textarea
   const commentsContainerRef = useRef(null); // Ref for comments container (for scrolling)
-  
+
   // Reply system
   const [replyingTo, setReplyingTo] = useState(null); // ID comment being replied to
   const [replyContent, setReplyContent] = useState(""); // Reply content
@@ -89,7 +89,7 @@ function CommentSection({ postId, initialComments = [], user }) {
   const [replyCursorPosition, setReplyCursorPosition] = useState(0); // Cursor position in reply
   const [showReplyMentionAutocomplete, setShowReplyMentionAutocomplete] = useState(false); // Show mention autocomplete for reply
   const replyTextareaRef = useRef(null); // Ref for reply textarea
-  
+
   // UI states - Separate loading states for better UX
   const [loading, setLoading] = useState(false); // General loading state
   const [submittingComment, setSubmittingComment] = useState(false); // Submitting new comment
@@ -103,21 +103,21 @@ function CommentSection({ postId, initialComments = [], user }) {
   const [lightboxGallery, setLightboxGallery] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [fetchingComments, setFetchingComments] = useState(true); // Fetching comments
-  
+
   // Edit system
   const [editingComment, setEditingComment] = useState(null); // ID comment being edited
   const [editContent, setEditContent] = useState(""); // Edit content
   const [editImages, setEditImages] = useState([]); // Edit images
   const [showDropdown, setShowDropdown] = useState(null); // ID comment showing dropdown
-  
+
   // Emote system
   const [showEmotePicker, setShowEmotePicker] = useState(null); // ID comment showing emote picker
-  
+
   // Emoji picker system
   const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Show emoji picker for new comment
   const [showReplyEmojiPicker, setShowReplyEmojiPicker] = useState(null); // ID comment showing emoji picker for reply
   const [showEditEmojiPicker, setShowEditEmojiPicker] = useState(null); // ID comment showing emoji picker for edit
-  
+
   // Debounce timer for mention autocomplete
   const mentionDebounceTimer = useRef(null);
 
@@ -194,14 +194,14 @@ function CommentSection({ postId, initialComments = [], user }) {
   // Handle mention autocomplete
   const handleMentionSelect = (user, startPosition, endPosition) => {
     if (!newCommentTextareaRef.current) return;
-    
+
     const before = newComment.substring(0, startPosition);
     const after = newComment.substring(endPosition);
     const mention = `@${user.name} `;
-    
+
     const newContent = before + mention + after;
     setNewComment(newContent);
-    
+
     // Set cursor position after mention
     setTimeout(() => {
       if (newCommentTextareaRef.current) {
@@ -211,7 +211,7 @@ function CommentSection({ postId, initialComments = [], user }) {
         setNewCommentCursorPosition(newCursorPos);
       }
     }, 0);
-    
+
     setShowMentionAutocomplete(false);
   };
 
@@ -219,21 +219,21 @@ function CommentSection({ postId, initialComments = [], user }) {
   const handleNewCommentChange = (e) => {
     const value = e.target.value;
     const cursorPos = e.target.selectionStart;
-    
+
     setNewComment(value);
     setNewCommentCursorPosition(cursorPos);
-    
+
     // Clear previous debounce timer
     if (mentionDebounceTimer.current) {
       clearTimeout(mentionDebounceTimer.current);
     }
-    
+
     // Debounce mention autocomplete check
     mentionDebounceTimer.current = setTimeout(() => {
       // Check if we should show autocomplete (user typed @)
       const textBeforeCursor = value.substring(0, cursorPos);
       const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-      
+
       if (lastAtIndex !== -1) {
         const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
         // Show autocomplete if @ is followed by valid characters or empty
@@ -245,7 +245,7 @@ function CommentSection({ postId, initialComments = [], user }) {
           }
         }
       }
-      
+
       setShowMentionAutocomplete(false);
     }, 150); // 150ms debounce
   };
@@ -256,7 +256,7 @@ function CommentSection({ postId, initialComments = [], user }) {
       // Let MentionAutocomplete handle these keys
       return;
     }
-    
+
     // Keyboard shortcut: Cmd/Ctrl + Enter to submit
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
@@ -265,7 +265,7 @@ function CommentSection({ postId, initialComments = [], user }) {
       }
       return;
     }
-    
+
     // Close autocomplete on Escape
     if (e.key === "Escape") {
       setShowMentionAutocomplete(false);
@@ -273,16 +273,16 @@ function CommentSection({ postId, initialComments = [], user }) {
   };
 
   // ==================== Reply Mention Handlers ====================
-  
+
   // Handle mention select for reply
   const handleReplyMentionSelect = (user, startPosition, endPosition) => {
     const before = replyContent.substring(0, startPosition);
     const after = replyContent.substring(endPosition);
     const mention = `@${user.name} `;
-    
+
     const newContent = before + mention + after;
     setReplyContent(newContent);
-    
+
     // Set cursor position after mention
     setTimeout(() => {
       if (replyTextareaRef.current) {
@@ -292,7 +292,7 @@ function CommentSection({ postId, initialComments = [], user }) {
         setReplyCursorPosition(newCursorPos);
       }
     }, 0);
-    
+
     setShowReplyMentionAutocomplete(false);
   };
 
@@ -300,14 +300,14 @@ function CommentSection({ postId, initialComments = [], user }) {
   const handleReplyContentChange = (e) => {
     const value = e.target.value;
     const cursorPos = e.target.selectionStart;
-    
+
     setReplyContent(value);
     setReplyCursorPosition(cursorPos);
-    
+
     // Check if we should show autocomplete (user typed @)
     const textBeforeCursor = value.substring(0, cursorPos);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-    
+
     if (lastAtIndex !== -1) {
       const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
       // Show autocomplete if @ is followed by valid characters or empty
@@ -319,7 +319,7 @@ function CommentSection({ postId, initialComments = [], user }) {
         }
       }
     }
-    
+
     setShowReplyMentionAutocomplete(false);
   };
 
@@ -329,11 +329,11 @@ function CommentSection({ postId, initialComments = [], user }) {
       // Let MentionAutocomplete handle these keys
       return;
     }
-    
+
     // Keyboard shortcut: Cmd/Ctrl + Enter to submit
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && replyingTo) {
       e.preventDefault();
-      const parentComment = comments.find(c => c._id === replyingTo) || 
+      const parentComment = comments.find(c => c._id === replyingTo) ||
         comments.reduce((found, c) => {
           if (found) return found;
           const reply = c.replies?.find(r => r._id === replyingTo);
@@ -344,7 +344,7 @@ function CommentSection({ postId, initialComments = [], user }) {
       }
       return;
     }
-    
+
     // Close autocomplete on Escape
     if (e.key === "Escape") {
       setShowReplyMentionAutocomplete(false);
@@ -357,24 +357,24 @@ function CommentSection({ postId, initialComments = [], user }) {
 
     setShowMentionAutocomplete(false); // Close autocomplete when submitting
     setSubmittingComment(true);
-    
+
     // Store content for optimistic update
     const commentContent = newComment;
     const commentImages = [...newCommentImages];
-    
+
     try {
       let requestBody;
-      
+
       if (newCommentImages.length > 0) {
         // With image - use FormData
         const formData = new FormData();
         formData.append('content', newComment);
-        
+
         // Add images to form data
         newCommentImages.forEach((image, index) => {
           formData.append('files', image.file);
         });
-        
+
         requestBody = formData;
       } else {
         // Without image - use JSON
@@ -391,7 +391,7 @@ function CommentSection({ postId, initialComments = [], user }) {
         { ...response.comment, replies: [] },
         ...prev
       ]);
-      
+
       // Clear form
       setNewComment("");
       setNewCommentCursorPosition(0);
@@ -401,10 +401,10 @@ function CommentSection({ postId, initialComments = [], user }) {
       setNewCommentImages([]);
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = "";
-      
+
       // Show success message
       showSuccess("Bình luận đã được đăng thành công!");
-      
+
       // Scroll to new comment after a short delay
       setTimeout(() => {
         if (commentsContainerRef.current) {
@@ -414,7 +414,7 @@ function CommentSection({ postId, initialComments = [], user }) {
           }
         }
       }, 100);
-      
+
       // Focus back to textarea
       setTimeout(() => {
         if (newCommentTextareaRef.current) {
@@ -468,7 +468,7 @@ function CommentSection({ postId, initialComments = [], user }) {
 
       // Auto expand replies to show them immediately
       setExpandedReplies((prev) => new Set([...prev, parentId]));
-      
+
       // Show success message
       showSuccess("Phản hồi đã được đăng thành công!");
     } catch (error) {
@@ -497,21 +497,21 @@ function CommentSection({ postId, initialComments = [], user }) {
     }
 
     if (updatingComment.get(commentId)) return;
-    
+
     setUpdatingComment(prev => new Map(prev).set(commentId, true));
     try {
       let requestBody;
-      
+
       if (editImages.length > 0) {
         // With image - use FormData
         const formData = new FormData();
         formData.append('content', editContent);
-        
+
         // Add images to form data
         editImages.forEach((image, index) => {
           formData.append('files', image.file);
         });
-        
+
         requestBody = formData;
       } else {
         // Without image - use JSON
@@ -533,7 +533,7 @@ function CommentSection({ postId, initialComments = [], user }) {
       setEditingComment(null);
       setEditContent("");
       setEditImages([]);
-      
+
       showSuccess("Bình luận đã được cập nhật!");
     } catch (error) {
       const errorMessage = error?.message || "Lỗi hệ thống";
@@ -617,7 +617,7 @@ function CommentSection({ postId, initialComments = [], user }) {
 
   async function handleDeleteComment(commentId) {
     if (deletingComments.has(commentId)) return;
-    
+
     setDeletingComments(prev => new Set([...prev, commentId]));
     try {
       await api(`/api/comments/${commentId}`, {
@@ -642,7 +642,7 @@ function CommentSection({ postId, initialComments = [], user }) {
    */
   async function handleLikeComment(commentId) {
     if (!user || likingComments.has(commentId)) return;
-    
+
     // Find current comment for optimistic update
     const findComment = (comments) => {
       for (const comment of comments) {
@@ -654,31 +654,31 @@ function CommentSection({ postId, initialComments = [], user }) {
       }
       return null;
     };
-    
+
     const currentComment = findComment(comments);
     if (!currentComment) return;
-    
+
     const isLiked = currentComment.likes?.some(like => like._id === user._id || like.user?._id === user._id);
     const currentLikeCount = currentComment.likeCount || 0;
-    
+
     // Optimistic update
     setLikingComments(prev => new Set([...prev, commentId]));
     setComments(prev =>
       prev.map((comment) =>
         updateCommentInTree(comment, commentId, {
-          likes: isLiked 
+          likes: isLiked
             ? (currentComment.likes || []).filter(like => like._id !== user._id && like.user?._id !== user._id)
             : [...(currentComment.likes || []), { _id: user._id, user: { _id: user._id } }],
           likeCount: isLiked ? Math.max(0, currentLikeCount - 1) : currentLikeCount + 1
         })
       )
     );
-    
+
     try {
       const res = await api(`/api/comments/${commentId}/like`, {
         method: "POST"
       });
-      
+
       // Update with server response
       setComments(prev =>
         prev.map((comment) =>
@@ -715,7 +715,7 @@ function CommentSection({ postId, initialComments = [], user }) {
    */
   async function handleEmoteComment(commentId, emoteType) {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       const res = await api(`/api/comments/${commentId}/emote`, {
@@ -723,12 +723,12 @@ function CommentSection({ postId, initialComments = [], user }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: emoteType })
       });
-      
+
       // Update comment in state
       setComments(prev =>
         prev.map((comment) =>
           updateCommentInTree(comment, commentId, {
-            emotes: res.comment.emotes || 
+            emotes: res.comment.emotes ||
               // Fallback: remove old emote of user and add new emote
               comment.emotes
                 .filter(emote => emote.user._id !== user._id)
@@ -737,7 +737,7 @@ function CommentSection({ postId, initialComments = [], user }) {
           })
         )
       );
-      
+
       setShowEmotePicker(null);
     } catch (error) {
       const errorMessage = error?.message || "Lỗi hệ thống";
@@ -754,9 +754,9 @@ function CommentSection({ postId, initialComments = [], user }) {
    */
   const renderEmojiPicker = (onSelect, isOpen, onClose, position = "left") => {
     if (!isOpen) return null;
-    
+
     const positionClass = position === "right" ? "right-0 sm:right-0" : "left-0 sm:left-0";
-    
+
     return (
       <div className={`fixed sm:absolute bottom-0 sm:bottom-full left-0 right-0 sm:right-auto sm:mb-2 sm:w-[320px] sm:max-w-[360px] bg-white dark:bg-neutral-900 rounded-t-3xl sm:rounded-2xl shadow-2xl border-t sm:border border-neutral-200 dark:border-neutral-800 z-50 overflow-hidden animate-in fade-in slide-in-from-bottom sm:zoom-in-95 duration-200`}>
         <div className="p-3 sm:p-3 max-h-[50vh] sm:max-h-[280px] overflow-y-auto">
@@ -794,14 +794,14 @@ function CommentSection({ postId, initialComments = [], user }) {
         {/* Main Comment */}
         <div className="flex gap-2 sm:gap-3 py-1.5 sm:py-1.5 group/comment">
           <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="focus:outline-none flex-shrink-0 touch-manipulation">
-            <UserAvatar 
+            <UserAvatar
               user={comment.author}
               size={40}
               showFrame={true}
               showBadge={true}
               className="hidden sm:block"
             />
-            <UserAvatar 
+            <UserAvatar
               user={comment.author}
               size={32}
               showFrame={true}
@@ -816,7 +816,7 @@ function CommentSection({ postId, initialComments = [], user }) {
                   <UserName user={comment.author} maxLength={18} />
                 </Link>
               </div>
-              
+
               {editingComment === comment._id ? (
                 <div className="mt-2">
                   <div className="relative emoji-picker-container">
@@ -848,7 +848,7 @@ function CommentSection({ postId, initialComments = [], user }) {
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Current Images Display */}
                   {comment.images && comment.images.length > 0 && (
                     <div className="mt-3">
@@ -866,7 +866,7 @@ function CommentSection({ postId, initialComments = [], user }) {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Image Upload for Edit */}
                   <div className="mt-3">
                     <CommentImageUpload
@@ -874,7 +874,7 @@ function CommentSection({ postId, initialComments = [], user }) {
                       maxImages={5}
                     />
                   </div>
-                  
+
                   <div className="flex gap-2 sm:gap-2 mt-3 justify-end">
                     <button
                       onClick={cancelEdit}
@@ -900,11 +900,11 @@ function CommentSection({ postId, initialComments = [], user }) {
                 </div>
               ) : (
                 <div className="text-neutral-800 dark:text-neutral-200 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">
-                  <MentionText 
-                    text={comment.content} 
+                  <MentionText
+                    text={comment.content}
                     mentionedUsers={comment.mentions || []}
                   />
-                  
+
                   {/* Display Images */}
                   {comment.images && comment.images.length > 0 && (
                     <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2">
@@ -933,18 +933,17 @@ function CommentSection({ postId, initialComments = [], user }) {
               <button
                 onClick={() => handleLikeComment(comment._id)}
                 disabled={isLiking}
-                className={`flex items-center gap-1.5 sm:gap-1.5 text-xs font-bold transition-colors min-h-[44px] sm:min-h-0 px-2 sm:px-0 -ml-2 sm:ml-0 touch-manipulation disabled:opacity-50 ${
-                  comment.likes?.some(like => like._id === user?._id || like.user?._id === user?._id) 
-                    ? 'text-red-600 dark:text-red-500' 
+                className={`flex items-center gap-1.5 sm:gap-1.5 text-xs font-bold transition-colors min-h-[44px] sm:min-h-0 px-2 sm:px-0 -ml-2 sm:ml-0 touch-manipulation disabled:opacity-50 ${comment.likes?.some(like => like._id === user?._id || like.user?._id === user?._id)
+                    ? 'text-red-600 dark:text-red-500'
                     : 'text-neutral-500 active:text-neutral-900 dark:active:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-300'
-                }`}
+                  }`}
               >
                 {isLiking ? (
                   <Loader2 size={16} className="sm:w-3.5 sm:h-3.5 animate-spin" />
                 ) : (
-                  <Heart 
-                    size={16} 
-                    className={`sm:w-3.5 sm:h-3.5 ${comment.likes?.some(like => like._id === user?._id || like.user?._id === user?._id) ? 'fill-current' : ''}`} 
+                  <Heart
+                    size={16}
+                    className={`sm:w-3.5 sm:h-3.5 ${comment.likes?.some(like => like._id === user?._id || like.user?._id === user?._id) ? 'fill-current' : ''}`}
                   />
                 )}
                 {comment.likeCount > 0 && <span className="text-xs sm:text-xs">{comment.likeCount}</span>}
@@ -1007,14 +1006,14 @@ function CommentSection({ postId, initialComments = [], user }) {
             {replyingTo === comment._id && user && (
               <div className="mt-3 sm:mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
                 <form onSubmit={(e) => handleSubmitReply(e, comment._id, comment.author)} className="flex gap-2 sm:gap-3">
-                  <UserAvatar 
+                  <UserAvatar
                     user={user}
                     size={36}
                     showFrame={true}
                     showBadge={false}
                     className="sm:hidden"
                   />
-                  <UserAvatar 
+                  <UserAvatar
                     user={user}
                     size={32}
                     showFrame={true}
@@ -1036,7 +1035,7 @@ function CommentSection({ postId, initialComments = [], user }) {
                         autoFocus
                         style={{ minHeight: '48px' }}
                       />
-                      
+
                       {/* Mention Autocomplete for Reply */}
                       {showReplyMentionAutocomplete && (
                         <div className="absolute bottom-full left-0 mb-2" style={{ zIndex: 100 }}>
@@ -1048,7 +1047,7 @@ function CommentSection({ postId, initialComments = [], user }) {
                           />
                         </div>
                       )}
-                      
+
                       <div className="absolute right-2 bottom-2 flex items-center gap-1.5 sm:gap-1 emoji-picker-container relative">
                         <button
                           type="button"
@@ -1074,7 +1073,7 @@ function CommentSection({ postId, initialComments = [], user }) {
                         />
                       </div>
                     </div>
-                    
+
                     {replyImages.length > 0 && (
                       <div className="mt-2 grid grid-cols-4 gap-2 sm:gap-2">
                         {replyImages.map((img, idx) => (
@@ -1162,17 +1161,17 @@ function CommentSection({ postId, initialComments = [], user }) {
   return (
     <ComponentErrorBoundary>
       <div className="max-w-4xl mx-auto px-2 sm:px-0" style={{ overflow: 'visible' }}>
-        
+
         {/* Comment Input */}
         <div className="mb-4 sm:mb-8 flex gap-2 sm:gap-4">
-          <UserAvatar 
+          <UserAvatar
             user={user}
             size={40}
             showFrame={true}
             showBadge={true}
             className="hidden sm:block"
           />
-          <UserAvatar 
+          <UserAvatar
             user={user}
             size={32}
             showFrame={true}
@@ -1194,7 +1193,7 @@ function CommentSection({ postId, initialComments = [], user }) {
                   rows={Math.max(2, newComment.split('\n').length)}
                   style={{ minHeight: '48px', maxHeight: '200px' }}
                 />
-                
+
                 {/* Mention Autocomplete */}
                 {showMentionAutocomplete && (
                   <div className="absolute bottom-full left-0 mb-2" style={{ zIndex: 100 }}>
@@ -1206,7 +1205,7 @@ function CommentSection({ postId, initialComments = [], user }) {
                     />
                   </div>
                 )}
-                
+
                 <div className="px-2 sm:px-2 pb-2 sm:pb-2 flex items-center justify-between">
                   <div className="flex items-center gap-1 sm:gap-1 emoji-picker-container relative">
                     <button
@@ -1249,13 +1248,13 @@ function CommentSection({ postId, initialComments = [], user }) {
                 </div>
               </div>
             </form>
-            
+
             {newCommentImages.length > 0 && (
               <div className="mt-3 grid grid-cols-4 sm:grid-cols-5 gap-2 sm:gap-2 animate-in fade-in zoom-in-95 duration-200">
                 {newCommentImages.map((img, idx) => (
                   <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-neutral-200 dark:border-neutral-800 group">
                     <img src={img.preview} className="w-full h-full object-cover" />
-                    <button 
+                    <button
                       onClick={() => setNewCommentImages(prev => prev.filter((_, i) => i !== idx))}
                       className="absolute top-1 right-1 p-1.5 sm:p-1 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 bg-black/50 text-white rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation"
                     >
@@ -1309,8 +1308,7 @@ function CommentSection({ postId, initialComments = [], user }) {
 
 // Memoize component để tối ưu performance
 export default React.memo(CommentSection, (prevProps, nextProps) => {
-  // Re-render chỉ khi postId, initialComments hoặc user._id thay đổi
+  // Re-render khi postId hoặc user._id thay đổi
   return prevProps.postId === nextProps.postId &&
-         prevProps.user?._id === nextProps.user?._id &&
-         prevProps.initialComments === nextProps.initialComments;
+    prevProps.user?._id === nextProps.user?._id;
 });
