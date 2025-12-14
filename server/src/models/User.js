@@ -139,9 +139,17 @@ const UserSchema = new mongoose.Schema({
       avatarFrame: { type: String, default: null },
       profileEffect: { type: String, default: null }
     }
-  } // Cache cultivation info để hiển thị badge và trang bị nhanh
+  }, // Cache cultivation info để hiển thị badge và trang bị nhanh
+
+  // ==================== ONBOARDING (USER MỚI) ====================
+  firstLoginAt: { type: Date }, // Thời điểm đăng nhập lần đầu (set khi register)
+  firstPostAt: { type: Date }, // Thời điểm đăng bài đầu tiên
+  welcomeShown: { type: Boolean, default: false }, // Đã hiện welcome modal chưa
+  onboardingCompletedAt: { type: Date } // Thời điểm hoàn thành onboarding
 }, {
-  timestamps: true // Tự động thêm createdAt và updatedAt
+  timestamps: true, // Tự động thêm createdAt và updatedAt
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // ==================== INDEX CƠ SỞ DỮ LIỆU ====================
@@ -177,5 +185,16 @@ UserSchema.methods.getRemainingBanTime = function () {
   if (!this.banExpiresAt) return -1;
   return Math.max(0, Math.ceil((this.banExpiresAt - new Date()) / (1000 * 60)));
 };
+
+// ==================== VIRTUAL: isNewUser ====================
+/**
+ * User mới = trong vòng 7 ngày kể từ firstLoginAt hoặc createdAt
+ */
+UserSchema.virtual('isNewUser').get(function () {
+  const referenceDate = this.firstLoginAt || this.createdAt;
+  if (!referenceDate) return false;
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  return referenceDate > sevenDaysAgo;
+});
 
 export default mongoose.model("User", UserSchema);

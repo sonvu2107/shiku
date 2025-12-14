@@ -1,13 +1,29 @@
 /**
- * Uploads Routes
+ * Legacy Upload Routes - Server-proxied Cloudinary uploads
  * 
- * Routes xử lý upload file (ảnh, video):
- * - Upload single/multiple files
- * - Validate file type và size
- * - Magic bytes validation
- * - Upload lên Cloudinary
+ * @module routes/uploads
+ * @description
+ * Traditional upload flow where files are sent to the server first,
+ * then streamed to Cloudinary. Used as fallback when direct upload fails.
  * 
- * @module uploads
+ * ENDPOINTS:
+ * - POST /api/uploads       → Single file upload
+ * - POST /api/uploads/media → Multiple files upload
+ * 
+ * UPLOAD FLOW:
+ * ┌──────────┐     ┌──────────┐     ┌─────────────┐
+ * │  Client  │ ──→ │  Server  │ ──→ │  Cloudinary │
+ * │          │     │  (proxy) │     │             │
+ * └──────────┘     └──────────┘     └─────────────┘
+ *      1. Upload        2. Validate &       3. Stored
+ *         to server        stream
+ * 
+ * VALIDATION:
+ * - MIME type check against allowlist
+ * - Magic bytes verification (prevents file spoofing)
+ * - Size limits: 10MB for images, 50MB for videos
+ * 
+ * @see routes/uploads.direct.js for direct upload (recommended)
  */
 
 import express from "express";
@@ -18,7 +34,7 @@ import { authRequired } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// File type validation
+/** Allowed MIME types for upload */
 const allowedMimeTypes = [
   'image/jpeg',
   'image/png',
@@ -29,9 +45,9 @@ const allowedMimeTypes = [
   'video/quicktime'
 ];
 
-// File size limits
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB for images
+/** File size limits */
+const MAX_FILE_SIZE = 50 * 1024 * 1024;    // 50MB for videos
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;   // 10MB for images
 
 // Magic bytes validation
 const validateFileType = (buffer, mimeType) => {
@@ -100,7 +116,6 @@ const validateFileSize = (file) => {
 const uploadFile = (file) => {
   return new Promise((resolve, reject) => {
     const isVideo = file.mimetype.startsWith("video");
-    const isGif = file.mimetype === "image/gif";
 
     const uploadOptions = {
       folder: "blog",
@@ -119,7 +134,7 @@ const uploadFile = (file) => {
 
         resolve({
           url: result.secure_url,
-          type: isGif ? "gif" : (isVideo ? "video" : "image"),
+          type: isVideo ? "video" : "image",
         });
       }
     );

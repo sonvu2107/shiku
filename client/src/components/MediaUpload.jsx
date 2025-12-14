@@ -5,6 +5,7 @@ import { Upload, X, Image, Video, File, AlertCircle, CheckCircle } from "lucide-
 /**
  * MediaUpload - Component for uploading media files to Cloudinary
  * Supports images, video, and other file types
+ * NOW SUPPORTS: Direct Upload to Cloudinary (Opt-in via VITE_DIRECT_UPLOAD)
  */
 export default function MediaUpload({ onUploadSuccess, onClose }) {
   const [files, setFiles] = useState([]);
@@ -12,6 +13,9 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
   const [dragActive, setDragActive] = useState(false);
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
+
+  // Feature Flag for Direct Upload
+  const USE_DIRECT_UPLOAD = import.meta.env.VITE_DIRECT_UPLOAD === 'true';
 
   // Supported file types
   const supportedTypes = {
@@ -40,8 +44,7 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
 
   const validateFile = (file) => {
     const maxSize = 50 * 1024 * 1024; // 50MB
-    const fileType = getFileType(file.type);
-    
+
     if (file.size > maxSize) {
       return `File quá lớn. Kích thước tối đa là ${formatFileSize(maxSize)}`;
     }
@@ -63,12 +66,13 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
       if (error) {
         newErrors[file.name] = error;
       } else {
+        const type = getFileType(file.type);
         validFiles.push({
           file,
           id: Date.now() + index,
-          type: getFileType(file.type),
-          size: file.size,
-          preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+          type: type,
+          // Fix: treat gif as image for preview
+          preview: (type === 'image' || file.type === 'image/gif') ? URL.createObjectURL(file) : null
         });
       }
     });
@@ -91,7 +95,7 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFiles(e.dataTransfer.files);
     }
@@ -113,10 +117,74 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
     });
   };
 
-  const uploadFiles = async (filesToUpload) => {
+  /**
+   * Helper: Generate thumbnail/poster url manually if needed
+   */
+  const getThumbnailUrl = (url, type) => {
+    if (!url.includes('/upload/')) return url; // Not a cloudinary url or already transformed
+
+    // Simple basic transform injection
+    // Default: w_480,h_480,c_fill,q_auto
+    const transform = "w_480,h_480,c_fill,q_auto";
+    const insertIdx = url.indexOf('/upload/') + 8;
+    return url.slice(0, insertIdx) + transform + '/' + url.slice(insertIdx);
+  };
+
+  /**
+   * Direct Upload Logic
+   */
+  const directUploadOne = async (fileData) => {
+    const { file, type } = fileData;
+
+    // 1. Get Signature
+    const { config } = await api(`/api/uploads/direct/sign?folder=blog&category=${type === 'video' ? 'video' : 'image'}`);
+
+    // 2. Upload to Cloudinary directly
     const formData = new FormData();
-    
-    // Thêm tất cả files vào FormData với tên "files"
+    formData.append('file', file);
+    formData.append('api_key', config.apiKey);
+    formData.append('timestamp', config.timestamp);
+    formData.append('signature', config.signature);
+    formData.append('folder', config.folder);
+    if (config.allowed_formats) {
+      // Cloudinary expects comma separated string if strictly enforced, but usually configured in sign
+      // here we just rely on signature
+    }
+
+    const cloudName = config.cloudName;
+    const resourceType = config.resource_type; // 'image' or 'video'
+
+    const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!uploadRes.ok) {
+      const err = await uploadRes.json();
+      throw new Error(err.error?.message || 'Direct upload failed');
+    }
+
+    const asset = await uploadRes.json();
+
+    // 3. Confirm with Backend
+    const confirmRes = await api('/api/uploads/direct/confirm', {
+      method: 'POST',
+      body: JSON.stringify({
+        public_id: asset.public_id,
+        resource_type: resourceType,
+        category: type === 'video' ? 'video' : 'image',
+        originalName: file.name
+      })
+    });
+
+    return confirmRes; // { success: true, media: {...} }
+  };
+
+  /**
+   * Legacy Upload Logic
+   */
+  const legacyUploadFiles = async (filesToUpload) => {
+    const formData = new FormData();
     filesToUpload.forEach(fileData => {
       formData.append('files', fileData.file);
     });
@@ -127,12 +195,12 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
     });
 
     if (response.files && response.files.length > 0) {
-      // Tạo media records cho tất cả files đã upload
+      // Create media records
       const mediaPromises = response.files.map((uploadResult, index) => {
         const fileData = filesToUpload[index];
         const mediaData = {
           url: uploadResult.url,
-          thumbnail: uploadResult.url, // Sử dụng URL gốc làm thumbnail
+          thumbnail: uploadResult.url,
           originalName: fileData.file.name,
           title: fileData.file.name.split('.')[0],
           type: uploadResult.type,
@@ -146,8 +214,7 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
         });
       });
 
-      const mediaResults = await Promise.all(mediaPromises);
-      return mediaResults;
+      return await Promise.all(mediaPromises);
     } else {
       throw new Error(response.error || 'Upload failed');
     }
@@ -160,26 +227,31 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
     setErrors({});
 
     try {
-      // Upload tất cả files cùng lúc
-      const results = await uploadFiles(files);
+      // Use centralized upload helper (supports direct + fallback)
+      const { uploadMediaFiles } = await import("../api");
+      const filesToUpload = files.map(f => f.file);
+      const uploaded = await uploadMediaFiles(filesToUpload, { folder: "blog" });
+      // uploaded = [{url, type, thumbnail}, ...]
 
-      // Check if all uploads were successful
-      const failedUploads = results.filter(result => !result.success);
-      
-      if (failedUploads.length > 0) {
-        setErrors({ submit: `${failedUploads.length} file upload thất bại` });
-      } else {
-        // Clear files and close modal
-        setFiles([]);
-        if (onUploadSuccess) {
-          onUploadSuccess(results);
+      // Transform to match expected format for parent component
+      const results = uploaded.map(item => ({
+        success: true,
+        media: {
+          url: item.url,
+          type: item.type,
+          thumbnail: item.thumbnail
         }
-        if (onClose) {
-          onClose();
-        }
+      }));
+
+      setFiles([]);
+      if (onUploadSuccess) {
+        onUploadSuccess(results);
+      }
+      if (onClose) {
+        onClose();
       }
     } catch (error) {
-      // Silent handling for upload error
+      console.error("Upload Error:", error);
       setErrors({ submit: error.message || 'Có lỗi xảy ra khi upload' });
     } finally {
       setUploading(false);
@@ -200,7 +272,9 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-semibold text-gray-900">Tải lên Media</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Tải lên Media {USE_DIRECT_UPLOAD ? '(Direct)' : ''}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -213,11 +287,10 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
         <div className="p-6">
           {/* Upload Area */}
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              dragActive
-                ? "border-blue-500 bg-blue-50"
-                : "border-gray-300 hover:border-gray-400"
-            }`}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${dragActive
+              ? "border-blue-500 bg-blue-50"
+              : "border-gray-300 hover:border-gray-400"
+              }`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
@@ -272,7 +345,7 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
                         {fileData.file.name}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {formatFileSize(fileData.size)} • {fileData.type}
+                        {formatFileSize(fileData.file.size)} • {fileData.type}
                       </p>
                     </div>
                     <button

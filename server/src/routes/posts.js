@@ -24,6 +24,7 @@ import { responseCache, invalidateByPattern } from "../middleware/responseCache.
 import { generateSmartFeed } from "../utils/smartFeed.js";
 import mongoose from "mongoose";
 import { addExpForAction, addExpForReceiver } from "../services/cultivationService.js";
+import WelcomeService from "../services/WelcomeService.js";
 
 const PLAIN_SANITIZE_OPTIONS = { allowedTags: [], allowedAttributes: {} };
 const CONTENT_SANITIZE_OPTIONS = {
@@ -1112,6 +1113,14 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
       await addExpForAction(req.user._id, 'post', { description: 'Đăng bài viết mới' });
     } catch (expError) {
       console.error('[POSTS] Error adding exp:', expError);
+    }
+
+    // Mark first post for new user onboarding
+    try {
+      await WelcomeService.markFirstPost(req.user._id, post._id);
+    } catch (welcomeError) {
+      // Silent fail - don't break post creation
+      console.error('[POSTS] Error marking first post:', welcomeError);
     }
 
     res.json({ post });

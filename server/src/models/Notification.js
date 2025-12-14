@@ -28,7 +28,9 @@ const notificationSchema = new mongoose.Schema({
       "system", // thông báo hệ thống
       "admin_message", // thông báo broadcast từ admin
       "pk_challenge", // bị thách đấu PK
-      "pk_result" // kết quả trận đấu PK
+      "pk_result", // kết quả trận đấu PK
+      "welcome", // thông báo chào mừng user mới
+      "new_member" // thông báo có user mới tham gia
     ],
     required: true
   },
@@ -68,7 +70,7 @@ notificationSchema.index({ recipient: 1, read: 1 });
 notificationSchema.index({ recipient: 1, read: 1, createdAt: -1 });
 
 // Trợ giúp: đếm thông báo chưa đọc (lightweight counter)
-notificationSchema.statics.countUnread = function(recipientId) {
+notificationSchema.statics.countUnread = function (recipientId) {
   return this.countDocuments({ recipient: recipientId, read: false });
 };
 

@@ -20,7 +20,7 @@ import UserAvatar from "./UserAvatar";
  */
 export default function FriendRequestCard({ request, onAccept, onReject }) {
   // ==================== DESTRUCTURING & HOOKS ====================
-  
+
   const { from, createdAt, status } = request; // Destructure request data
   const navigate = useNavigate(); // Navigation hook
 
@@ -29,18 +29,18 @@ export default function FriendRequestCard({ request, onAccept, onReject }) {
       {/* User Info Section */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Avatar */}
-        <div 
+        <div
           className="cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
           onClick={() => navigate(`/user/${from._id}`)}
         >
-          <UserAvatar 
+          <UserAvatar
             user={from}
             size={48}
             showFrame={true}
             showBadge={true}
             className="hidden sm:block"
           />
-          <UserAvatar 
+          <UserAvatar
             user={from}
             size={40}
             showFrame={true}
@@ -48,18 +48,18 @@ export default function FriendRequestCard({ request, onAccept, onReject }) {
             className="sm:hidden"
           />
         </div>
-        
+
         {/* User Details */}
         <div className="flex-1 min-w-0">
           {/* User Name */}
-          <Link 
+          <Link
             to={`/user/${from._id}`}
             className="font-semibold text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 text-sm sm:text-base truncate block transition-colors"
             title={from.nickname || from.name}
           >
-            <UserName user={from} />
+            <UserName user={from} maxLength={20} />
           </Link>
-          
+
           {/* Request Date */}
           <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
             <Clock size={12} className="sm:w-3.5 sm:h-3.5" />
@@ -83,7 +83,7 @@ export default function FriendRequestCard({ request, onAccept, onReject }) {
             <span className="hidden sm:inline">Chấp nhận</span>
             <span className="sm:hidden">OK</span>
           </button>
-          
+
           {/* Reject Button */}
           <button
             onClick={() => onReject(request._id)}

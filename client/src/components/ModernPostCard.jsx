@@ -516,13 +516,13 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             />
           </Link>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 max-w-full overflow-hidden">
               <Link
                 to={`/user/${post.author?._id}`}
-                className="font-bold text-sm md:text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 truncate"
+                className="font-bold text-sm md:text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 max-w-full overflow-hidden"
                 onClick={e => e.stopPropagation()}
               >
-                <UserName user={post.author} maxLength={20} />
+                <UserName user={post.author} maxLength={18} />
               </Link>
             </div>
             <div className="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1 md:gap-1.5 mt-0.5">

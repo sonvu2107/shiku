@@ -69,6 +69,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const Terms = lazy(() => import("./pages/Terms.jsx"));
 
+
 // Import các utilities và services (giữ nguyên - cần thiết ngay)
 import { api } from "./api.js";
 import { ensureCSRFToken } from "./utils/csrfToken.js";
@@ -474,6 +475,7 @@ export default function App() {
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/terms" element={<Terms />} />
+
                   <Route path="/about" element={<About />} />
                   <Route path="/support" element={<Support user={user} />} />
                   <Route path="/cultivation" element={<ProtectedRoute user={user}><Cultivation /></ProtectedRoute>} />
@@ -550,6 +552,7 @@ export default function App() {
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/terms" element={<Terms />} />
+
 
                     {/* Catch-all route - redirect về trang chủ */}
                     <Route path="*" element={<Navigate to="/" />} />

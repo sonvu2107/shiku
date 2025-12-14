@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import Cultivation from "../models/Cultivation.js";
+import WelcomeService from "../services/WelcomeService.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import {
   registerSchema,
@@ -245,6 +246,25 @@ router.post("/register",
           console.log("[INFO][AUTH-SECURE] Welcome email sent successfully to:", userEmail);
         } catch (emailError) {
           console.error("[ERROR][AUTH-SECURE] Welcome email sending failed:", emailError.message, emailError);
+        }
+
+        // ==================== WELCOME SERVICE ====================
+        try {
+          // Đánh dấu firstLoginAt
+          await WelcomeService.ensureFirstLogin(user._id);
+
+          // Tạo welcome notification
+          await WelcomeService.createWelcomeNotification(user._id);
+
+          // Broadcast new member (throttled 5 phút)
+          await WelcomeService.broadcastNewMember({
+            io: req.app.get("io"),
+            newUser: user
+          });
+
+          console.log("[INFO][AUTH-SECURE] Welcome service completed for:", userEmail);
+        } catch (welcomeError) {
+          console.error("[ERROR][AUTH-SECURE] Welcome service error:", welcomeError.message);
         }
       });
     } catch (error) {

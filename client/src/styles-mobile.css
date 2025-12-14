@@ -1,6 +1,14 @@
 /* Mobile Optimization Styles */
 /* Thêm vào file styles.css hiện tại */
 
+/* Fix horizontal scroll on mobile */
+html,
+body {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+  width: 100% !important;
+}
+
 /* ==================== MOBILE BREAKPOINTS ==================== */
 @media (max-width: 640px) {
 

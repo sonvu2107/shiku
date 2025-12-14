@@ -52,18 +52,14 @@ export default function EditPost() {
     if (!selectedFiles.length) return;
     setUploading(true);
     try {
-      const formData = new FormData();
-      selectedFiles.forEach(f => formData.append("files", f));
-
-      // Upload files via the API helper using FormData
-      const data = await api("/api/uploads/media", {
-        method: "POST",
-        body: formData
-      }); // {files: [{url, type}, ...]}
+      // Use unified upload helper (supports direct + fallback)
+      const { uploadMediaFiles } = await import("../api");
+      const uploaded = await uploadMediaFiles(selectedFiles, { folder: "blog" });
+      // uploaded = [{url, type, thumbnail}, ...]
 
       setPost(prev => {
         const updated = { ...prev };
-        updated.files = [...(updated.files || []), ...data.files];
+        updated.files = [...(updated.files || []), ...uploaded];
         // Always set coverUrl to the first file in `files` (regardless of type)
         if (updated.files.length > 0) {
           updated.coverUrl = updated.files[0].url;
@@ -305,7 +301,6 @@ export default function EditPost() {
             onChange={e => setPost({ ...post, youtubeUrl: e.target.value })}
             className="w-full px-4 py-3 bg-transparent border border-neutral-200 dark:border-neutral-800 rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500"
             placeholder="Dán link YouTube vào đây... (VD: https://youtube.com/watch?v=...)"
-          />
           />
           {post.youtubeUrl && !isValidYouTubeUrl(post.youtubeUrl) && (
             <p className="text-xs text-red-500 font-medium mt-2">

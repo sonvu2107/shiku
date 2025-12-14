@@ -235,25 +235,14 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
 
     setUploading(true);
     try {
-      // Create a FormData object for multiple files
-      const formData = new FormData();
-      selectedFiles.forEach(f => formData.append("files", f));
-
-      // Upload files via API helper using FormData
-      const data = await api("/api/uploads/media", {
-        method: "POST",
-        body: formData
-      });
+      // Use unified upload helper (supports direct + fallback)
+      const { uploadMediaFiles } = await import("../api");
+      const uploaded = await uploadMediaFiles(selectedFiles, { folder: "blog" });
 
       // Append uploaded files to state
-      if (data.files) {
+      if (uploaded && uploaded.length) {
         setFiles(prev => {
-          const newFiles = [...prev, ...data.files];
-          // Auto-select first image as cover if no cover is set
-          if (!coverUrl) {
-            const firstImage = newFiles.find(f => f.type === "image");
-            // setCoverUrl(firstImage?.url); // Commented out - can implement later
-          }
+          const newFiles = [...prev, ...uploaded];
           return newFiles;
         });
       }

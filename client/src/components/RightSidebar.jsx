@@ -190,7 +190,7 @@ function RightSidebar({ user }) {
                         to={`/user/${friend._id}`}
                         className="block text-sm font-bold text-neutral-900 dark:text-white hover:underline truncate"
                       >
-                        <UserName user={friend} />
+                        <UserName user={friend} maxLength={18} />
                       </Link>
                       <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
                         @{friend.name.toLowerCase().replace(/\s+/g, '')}

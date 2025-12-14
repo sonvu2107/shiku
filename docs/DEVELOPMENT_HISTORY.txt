@@ -1,0 +1,376 @@
+# LICH SU PHAT TRIEN DU AN SHIKU
+# Development History - Shiku Social Network
+# Tu 09/09/2025 den 14/12/2025
+
+================================================================================
+                            TONG QUAN DU AN
+================================================================================
+
+Ten du an    : Shiku - Mang xa hoi hien dai
+Ngay bat dau : 09/09/2025
+Phien ban    : v2.1 Stable
+Tac gia      : Son Vu (@sonvu2107)
+Website      : https://shiku.click
+Repository   : https://github.com/sonvu2107/shiku
+
+================================================================================
+                        GIAI DOAN 1: KHOI TAO (09/2025)
+================================================================================
+
+[09/09/2025] - KHOI TAO DU AN
+  - Initial commit for Railway deploy
+  - Thiet lap cau truc du an co ban
+  - Cau hinh deployment cho Railway
+
+[10/09/2025] - TINH NANG CO BAN
+  - feat: Implement reset password functionality
+  - feat: Add email sending utility
+
+[11/09/2025] - BAI VIET & EMOTES
+  - Update more posts limit
+  - feat: Add emote list
+  - Fix Setting UI
+  - Remake Post UI
+  - Add logo tick for verified users
+
+[12/09/2025] - MEDIA UPLOAD
+  - Update: Upload video/change image to preview
+  - Quick Fix: Avatar in ChatPopup
+
+[13/09/2025] - UI CAI TIEN
+  - Update UI Post
+  - Call Function (prototype)
+
+[14/09/2025] - MOBILE & ERRORS
+  - Fix error F5/404
+  - Errors check
+
+[15/09/2025] - MOBILE OPTIMIZATION
+  - Enhance mobile responsiveness across components
+  - Add infinite scroll optimizations
+  - Improve error handling
+  - Rate limiting for posts API
+  - WebRTC call functionality improvements
+
+[16/09/2025] - SECURITY & EVENTS
+  - Add comprehensive security implementation
+  - Implement authentication routes with enhanced security
+  - Event management features (join, leave, interested, declined)
+  - Fix trust proxy and rate limiting for Railway
+
+[18/09/2025] - PROFILE & BUGS
+  - Fix: Update Profile
+  - Fix: Some bugs
+
+[22/09/2025] - AUTHENTICATION
+  - Refactor authentication and token management
+
+[23/09/2025] - CSRF PROTECTION
+  - Add CSRF protection and token management
+  - Fix send notification
+  - Fix CROSS-ORIGIN CSRF
+
+[25/09/2025] - CORS & DEBUGGING
+  - Enhance CORS configuration
+  - Add debugging endpoints
+
+[27/09/2025] - API STATS & RATE LIMITING
+  - Enhance API rate limiting
+  - User profile customization
+  - Fix hour key handling in API stats
+
+[28/09/2025] - SEO
+  - Enhance SEO and add sitemap functionality
+
+[29/09/2025] - SOCIAL SHARING
+  - Add Open Graph and Twitter Card meta tags
+  - Add structured data for SEO
+  - Update sitemap.xml
+  - Comment image support
+
+[30/09/2025] - UI/UX IMPROVEMENTS
+  - Enhanced emote gif
+  - Update emote for chat
+  - Update darkmode/lightmode
+  - Fixed block function
+  - Update story analyze
+
+================================================================================
+                      GIAI DOAN 2: TINH NANG NANG CAO (10/2025)
+================================================================================
+
+[02/10/2025] - ADMIN & POST CARD
+  - Fixed post card
+  - Fixed admin permission
+
+[06/10/2025] - POLL & SAFARI FIX
+  - feat: Implement Poll feature with real-time voting
+  - Enhance CallModal with network status detection
+  - Fix Safari compatibility issues
+  - Enhance API for Safari compatibility
+
+[09/10/2025] - CODE SPLITTING
+  - feat(core): implement Phase 1 Code Splitting
+  - Bundle optimization
+  - CSRF token fixes for mobile
+
+[10/10/2025] - CSRF & COOKIES
+  - Fixed CSRF token issues
+  - Debug logging improvements
+  - Cookie handling with Partitioned attribute
+
+[11/10/2025] - QUICK FIXES
+  - Multiple quick fixes for production
+
+[17/10/2025] - VERSION 2.1 RELEASE
+  - Shiku v2.1 - Full Security & Stability Overhaul
+  - CSRF, Cookie, Token, Safari, Realtime improvements
+  - Enhanced project structure
+  - New hooks for API monitoring, events, friends
+  - Chat context optimization
+
+[18/10/2025] - EMAIL & TOKEN
+  - Refactor email transport
+  - Add email sending timeout
+  - Debug refresh token issues
+
+[30/10/2025] - ADMIN DASHBOARD
+  - Update Shiku UI
+  - Cleanup assets
+  - Update server config
+
+[31/10/2025] - KEEPALIVE & STORY
+  - Implement keepalive functionality
+  - Enhanced StoryViewer with new UI
+  - Improved AdminDashboard
+  - Extend audit log schema
+
+================================================================================
+                       GIAI DOAN 3: TOI UU HOA (11/2025)
+================================================================================
+
+[01/11/2025] - DARK MODE
+  - Enhanced dark mode support across pages
+  - Fixed UI issues
+
+[03/11/2025] - UI REDESIGN
+  - Update new UI for PostCard/Detail, Home, Navbar
+
+[05/11/2025] - MESSAGE & INTERACTION
+  - Updated remove and edit message
+  - Enhance user interaction and UI components
+
+[06/11/2025] - SMART FEED
+  - feat: Implement smart feed feature
+  - Personalized content
+  - Engagement scoring
+
+[11/11/2025] - PERFORMANCE
+  - Optimize performance
+  - Enhance user experience
+
+[17/11/2025] - SEO ENHANCEMENTS
+  - Improve SEO handling for public and private pages
+  - Enhance SEO functionality in Home component
+  - Update SEO and accessibility features
+
+[18/11/2025] - SEO INTEGRATION
+  - Integrate SEO enhancements across multiple pages
+
+[19/11/2025] - BACKEND/FRONTEND OPTIMIZATION
+  - Optimize database interactions
+  - Optimize Backend/Frontend for Free Tier
+  - Fix Smart Feed Pagination
+  - Optimize image loading and LCP performance
+  - React upgrade to version 19.2.0
+
+[20/11/2025] - TOUR & UI
+  - Add Tour page
+  - Enhance UI components for better UX
+  - Implement sidebar collapse functionality
+
+[21/11/2025] - SEARCH & NOTIFICATIONS
+  - Add Search and Terms pages
+  - Notification sound for new messages
+
+[22/11/2025] - MENTIONS & EMOJI
+  - Implement mention functionality in comments
+  - Add emoji picker to CommentSection
+
+[23/11/2025] - SERVICE CLEANUP
+  - Implement robust service cleanup on logout
+  - Graceful shutdown handling
+  - Enhance authentication flow with retry logic
+
+[28/11/2025] - CLEANUP
+  - Delete unnecessary files and directories
+
+================================================================================
+             GIAI DOAN 4: HE THONG TU LUYEN & ADMIN (12/2025)
+================================================================================
+
+[01/12/2025] - DATABASE MONITORING
+  - Add database monitoring utility
+  - MongoDB connection pool stats
+  - Slow query detection
+  - Health metrics
+
+[01/12/2025] - CULTIVATION SYSTEM
+  - Implement passive experience collection
+  - Profile effects updates
+  - Fixed upload avatar
+
+[02/12/2025] - BATTLE SYSTEM
+  - feat: add battle system
+  - Combat stats
+  - PK challenges
+  - Notifications
+
+[03/12/2025] - EQUIPMENT SYSTEM
+  - Add equipment management
+  - Equipping and unequipping functionality
+  - Breakthrough mechanics
+
+[04/12/2025] - UI ENHANCEMENTS
+  - Add dark mode toggle to MobileMenu
+  - Enhance cultivation and tooltip functionality
+  - UI improvements
+
+[05/12/2025] - CULTIVATION MECHANICS
+  - Enhance cultivation mechanics
+  - Realm-based experience
+  - Breakthrough system improvements
+  - ObjectId validation middleware
+
+[06/12/2025] - MAJOR UI UPDATE
+  - Add new loading screen
+  - Enhance UI and animations
+  - Floating dock navigation
+  - Comprehensive post creator
+  - Story viewer components
+  - Spotify music integration
+  - YouTube Music Player integration
+  - BackToTop component
+  - Security headers and policies
+
+[07/12/2025] - VITE & GALLERY
+  - Implement comprehensive Vite configuration
+  - Build optimizations
+  - Code splitting
+  - Gallery components
+  - Profile effects
+  - Secure authentication system
+
+[08/12/2025] - ROLE MANAGEMENT
+  - Implement comprehensive role management
+  - Admin dashboard for roles
+  - API routes for roles
+  - Authentication middleware updates
+
+[08/12/2025] - SOCIAL FEATURES
+  - Core social features
+  - Client pages for profiles, posts, events, chat
+
+[09/12/2025] - MESSAGING
+  - Core messaging functionality
+  - Conversations and messages
+  - GIF and video support for avatar/banner
+  - MessageList with infinite scroll
+  - Auto-scroll, editing, deletion, reactions
+
+[10/12/2025] - CULTIVATION & MEDIA
+  - Initial pages for cultivation, social, stories
+  - Media and notification features
+
+[11/12/2025] - SECURE AUTH
+  - Implement secure user authentication
+  - Registration, token management
+  - Welcome email functionality
+
+[11/12/2025] - SIDEBAR & AUTO-LIKE BOT
+  - Add RightSidebar with friend suggestions
+  - Cultivation, Tour, Landing pages
+  - AutoLikeBot component
+  - StoryCreator enhancements
+
+[12/12/2025] - ADMIN TOOLS
+  - Implement new admin tools for post interaction
+  - Cultivation game module
+  - Dedicated routes and controllers
+
+[13/12/2025] - ADMIN BOT
+  - Introduce admin bot for automated liking, viewing
+  - Reaction clearing
+  - Updated charts for admin and user
+
+[13/12/2025] - ADMIN DASHBOARD
+  - Real-time stats
+  - User management
+  - System health monitoring
+  - Security alerts
+  - Redis cache for stats
+
+[13/12/2025] - API ROUTES
+  - Add initial API routes for friends, groups, posts, events
+  - Response caching
+  - Rate limiting middleware
+
+[14/12/2025] - DOCUMENTATION
+  - Update readme for new information
+
+================================================================================
+                         THONG KE PHAT TRIEN
+================================================================================
+
+Tong so commits        : 231+
+Thoi gian phat trien   : 97 ngay (09/09/2025 - 14/12/2025)
+Cac phien ban chinh    : v2.1 Stable
+
+TINH NANG DA HOAN THANH:
+------------------------
+[x] He thong xac thuc (JWT, CSRF, Cookies)
+[x] Quan ly nguoi dung & Profile
+[x] Bai viet, Comment, Like, Share
+[x] Chat realtime (1-1, nhom)
+[x] Stories (24h)
+[x] Groups & Events
+[x] He thong tu luyen (Cultivation)
+[x] Battle PvP
+[x] Equipment & Shop
+[x] AI Chatbot (Gemini)
+[x] Admin Dashboard
+[x] Auto-like/view Bot
+[x] Role Management
+[x] API Monitoring
+[x] SEO Optimization
+[x] Mobile Responsive
+[x] Dark/Light Mode
+[x] Poll/Voting
+[x] Mentions & Emoji
+[x] Media Upload (Cloudinary)
+[x] Redis Caching
+[x] WebRTC Calls (UI)
+
+================================================================================
+                          CAC MOC QUAN TRONG
+================================================================================
+
+09/09/2025 - Du an bat dau
+17/10/2025 - Phien ban v2.1 Stable Release
+01/12/2025 - He thong tu luyen bat dau
+13/12/2025 - Admin Dashboard hoan thien
+14/12/2025 - Documentation update
+
+================================================================================
+                              GHI CHU
+================================================================================
+
+- Du an duoc phat trien boi Son Vu (sonvu2107)
+- Su dung React 19 + Vite + TailwindCSS cho Frontend
+- Su dung Node.js + Express + MongoDB cho Backend
+- Deploy tren Railway (Backend) va Netlify (Frontend)
+- Tich hop nhieu dich vu: Cloudinary, Redis, Gemini AI
+
+================================================================================
+                          END OF DOCUMENT
+================================================================================

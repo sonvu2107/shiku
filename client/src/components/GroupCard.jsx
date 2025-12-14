@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Users, 
-  MapPin, 
-  Calendar, 
-  MoreVertical, 
-  Settings, 
-  UserPlus, 
+import {
+  Users,
+  MapPin,
+  Calendar,
+  MoreVertical,
+  Settings,
+  UserPlus,
   UserMinus,
   Shield,
   Eye,
@@ -28,13 +28,13 @@ import UserName from './UserName';
  * @param {boolean} showActions - Whether to show action buttons
  * @param {string} userRole - User's role in the group (owner, admin, member, null)
  */
-const GroupCard = ({ 
-  group, 
-  onJoin, 
-  onLeave, 
-  onEdit, 
-  showActions = true, 
-  userRole = null 
+const GroupCard = ({
+  group,
+  onJoin,
+  onLeave,
+  onEdit,
+  showActions = true,
+  userRole = null
 }) => {
   const [isJoining, setIsJoining] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -43,7 +43,7 @@ const GroupCard = ({
   // Handle join group
   const handleJoin = async () => {
     if (!onJoin) return;
-    
+
     setIsJoining(true);
     try {
       await onJoin(group._id);
@@ -57,7 +57,7 @@ const GroupCard = ({
   // Handle leave group
   const handleLeave = async () => {
     if (!onLeave) return;
-    
+
     setIsLeaving(true);
     try {
       await onLeave(group._id);
@@ -107,13 +107,13 @@ const GroupCard = ({
   // Check participation status
   const isMember = !!userRole; // Already a member (has userRole)
   const isOwner = userRole === 'owner';
-  
+
   // Check if can join (not a member yet)
   const canJoin = !userRole;
-  
+
   // Check if can leave (already a member but not owner)
   const canLeave = userRole && userRole !== 'owner';
-  
+
   // Check if can edit (owner or admin)
   const canEdit = userRole === 'owner' || userRole === 'admin';
 
@@ -122,8 +122,8 @@ const GroupCard = ({
       {/* Cover Image */}
       <div className="relative h-32 sm:h-40 md:h-48 lg:h-56 bg-gradient-to-r from-blue-500 to-purple-600">
         {group.coverImage ? (
-          <img 
-            src={group.coverImage} 
+          <img
+            src={group.coverImage}
             alt={`Cover của ${group.name}`}
             className="w-full h-full object-cover"
           />
@@ -132,7 +132,7 @@ const GroupCard = ({
             <Users className="w-12 h-12 text-white opacity-50" />
           </div>
         )}
-        
+
         {/* Group Type Badge */}
         <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/60 dark:bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium">
           {getGroupTypeIcon()}
@@ -143,8 +143,8 @@ const GroupCard = ({
         <div className="absolute -bottom-8 left-4">
           <div className="w-16 h-16 rounded-full border-4 border-white dark:border-gray-800 overflow-hidden bg-gray-200 dark:bg-gray-700 shadow-lg">
             {group.avatar ? (
-              <img 
-                src={group.avatar} 
+              <img
+                src={group.avatar}
                 alt={`Avatar của ${group.name}`}
                 className="w-full h-full object-cover"
               />
@@ -166,7 +166,7 @@ const GroupCard = ({
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
-              
+
               {showMenu && (
                 <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900/50 py-1 z-10 min-w-[120px] border border-gray-200 dark:border-gray-700">
                   {canEdit && (
@@ -198,7 +198,7 @@ const GroupCard = ({
       {/* Content */}
       <div className="pt-10 p-4">
         {/* Group Name */}
-        <Link 
+        <Link
           to={`/groups/${group._id}`}
           className="block"
         >
@@ -220,7 +220,7 @@ const GroupCard = ({
             <Users className="w-4 h-4" />
             <span>{group.stats?.memberCount || 0} thành viên</span>
           </div>
-          
+
           {group.stats?.postCount > 0 && (
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
@@ -262,8 +262,8 @@ const GroupCard = ({
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
                 {group.owner?.avatarUrl ? (
-                  <img 
-                    src={group.owner.avatarUrl} 
+                  <img
+                    src={group.owner.avatarUrl}
                     alt={group.owner?.name || group.owner?.fullName || group.owner?.username || 'User'}
                     className="w-full h-full object-cover"
                   />
@@ -278,7 +278,7 @@ const GroupCard = ({
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Tạo bởi</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  <UserName user={group.owner} />
+                  <UserName user={group.owner} maxLength={15} />
                 </p>
               </div>
             </div>
@@ -290,9 +290,9 @@ const GroupCard = ({
                   <Shield className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
                 )}
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400 capitalize">
-                  {userRole === 'owner' ? 'Chủ sở hữu' : 
-                   userRole === 'admin' ? 'Quản trị viên' : 
-                   userRole === 'moderator' ? 'Điều hành viên' : 'Thành viên'}
+                  {userRole === 'owner' ? 'Chủ sở hữu' :
+                    userRole === 'admin' ? 'Quản trị viên' :
+                      userRole === 'moderator' ? 'Điều hành viên' : 'Thành viên'}
                 </span>
               </div>
             )}
@@ -312,7 +312,7 @@ const GroupCard = ({
                 {isJoining ? 'Đang tham gia...' : 'Tham gia nhóm'}
               </button>
             )}
-            
+
             {isMember && !isOwner && (
               <div className="flex gap-2 flex-1">
                 <Link

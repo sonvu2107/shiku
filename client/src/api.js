@@ -178,18 +178,162 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
 }
 
 
+// ============================================================================
+// UPLOAD HELPERS
+// ============================================================================
+// 
+// These functions handle media uploads with two strategies:
+// 1. DIRECT UPLOAD (preferred): Browser → Cloudinary → Server confirm
+// 2. LEGACY UPLOAD (fallback):  Browser → Server → Cloudinary
+// 
+// Direct upload reduces server load by not proxying large files.
+// Controlled via VITE_DIRECT_UPLOAD environment variable.
+// 
+// USAGE:
+//   await uploadImage(file)        - Single file (images/videos)
+//   await uploadMediaFiles(files)  - Multiple files
+// ============================================================================
+
+/** Check if direct upload is enabled via environment variable */
+const DIRECT_ENABLED = () => import.meta.env.VITE_DIRECT_UPLOAD === "true";
+
+/**
+ * Inject Cloudinary transformation into URL
+ * @param {string} url - Cloudinary URL
+ * @param {string} transform - Transformation string (e.g., "w_480,h_480,c_fill")
+ * @returns {string} URL with transformation
+ */
+const injectTransform = (url, transform) => {
+  if (!url || !url.includes("/upload/")) return url;
+  return url.replace("/upload/", `/upload/${transform}/`);
+};
+
+/**
+ * Generate thumbnail URL for media
+ * @param {string} url - Original Cloudinary URL
+ * @param {string} mimeType - MIME type of the file
+ * @returns {string} Thumbnail URL with optimizations
+ */
+const makeThumbnailUrl = (url, mimeType) => {
+  const isVideo = mimeType?.startsWith("video/");
+  return isVideo
+    ? injectTransform(url, "so_0,w_480,h_480,c_fill,f_jpg,q_auto")  // Video: first frame
+    : injectTransform(url, "w_480,h_480,c_fill,f_auto,q_auto");     // Image: optimized
+};
+
+/**
+ * Determine if we should fallback to legacy upload on error
+ * Policy violations (size/format) should NOT fallback - they'd fail anyway
+ * Technical errors (network/server) SHOULD fallback
+ * @param {Error} err - The error that occurred
+ * @returns {boolean} True if should try legacy upload
+ */
+const shouldFallbackLegacy = (err) => {
+  const msg = String(err?.message || err || "").toLowerCase();
+  const status = err?.status || err?.response?.status;
+
+  // Policy violations - don't fallback, legacy would reject too
+  if (
+    msg.includes("policy") ||
+    msg.includes("too large") ||
+    msg.includes("file quá lớn") ||
+    msg.includes("not allowed") ||
+    msg.includes("format")
+  ) return false;
+
+  if (status === 400 || status === 413) return false;
+
+  // Technical errors - try legacy as fallback
+  if (status >= 500) return true;
+  if (status === 408 || status === 429) return true;
+  if (msg.includes("invalid signature") || msg.includes("failed to fetch") || msg.includes("network")) return true;
+
+  return true;
+};
+
+/**
+ * Direct upload to Cloudinary (sign → upload → confirm)
+ * @param {File} file - File to upload
+ * @param {Object} options - Upload options
+ * @returns {Promise<Object>} - { url, type, thumbnail, public_id }
+ */
+async function directUploadToCloudinary(file, { folder = "blog", category } = {}) {
+  const cat = category || (file.type.startsWith("video/") ? "video" : "image");
+
+  // 1. Sign (auth + csrf handled by api())
+  const sign = await api(
+    `/api/uploads/direct/sign?category=${encodeURIComponent(cat)}&folder=${encodeURIComponent(folder)}`,
+    { method: "GET" }
+  );
+
+  if (!sign?.config) {
+    throw new Error("Invalid sign response");
+  }
+
+  const config = sign.config;
+
+  // 2. Upload directly to Cloudinary
+  const endpoint = `https://api.cloudinary.com/v1_1/${config.cloudName}/${config.resource_type}/upload`;
+  const form = new FormData();
+  form.append("file", file);
+  form.append("api_key", config.apiKey);
+  form.append("timestamp", String(config.timestamp));
+  form.append("folder", config.folder);
+  form.append("signature", config.signature);
+
+  const cloudRes = await fetch(endpoint, { method: "POST", body: form });
+  const cloudJson = await cloudRes.json();
+
+  if (!cloudRes.ok) {
+    const e = new Error(cloudJson?.error?.message || "Cloudinary upload failed");
+    e.status = cloudRes.status;
+    throw e;
+  }
+
+  // 3. Confirm with backend
+  const confirm = await api("/api/uploads/direct/confirm", {
+    method: "POST",
+    body: JSON.stringify({
+      public_id: cloudJson.public_id,
+      resource_type: cloudJson.resource_type,
+      category: cat,
+      originalName: file.name
+    }),
+  });
+
+  if (!confirm?.success || !confirm?.media?.url) {
+    const e = new Error(confirm?.message || "Confirm failed");
+    e.status = 400;
+    throw e;
+  }
+
+  const url = confirm.media.url;
+  const type = file.type.startsWith("video/") ? "video" : "image";
+
+  return {
+    url,
+    type,
+    thumbnail: makeThumbnailUrl(url, file.type),
+    public_id: confirm.media.public_id,
+  };
+}
+
+// ==================== UPLOAD FUNCTIONS ====================
+
 /**
  * Upload hình ảnh lên server với automatic compression
+ * Supports direct upload to Cloudinary with fallback to legacy
  * @param {File} file - File hình ảnh cần upload
  * @param {Object} options - Tùy chọn upload
  * @param {boolean} options.skipCompression - Bỏ qua compression (default: false)
  * @param {number} options.maxWidth - Max width cho compression (default: 1920)
  * @param {number} options.quality - Chất lượng nén 0-1 (default: 0.85)
+ * @param {string} options.folder - Cloudinary folder (default: "blog")
  * @returns {Promise<Object>} Response chứa URL của hình ảnh đã upload
  * @throws {Error} Lỗi nếu upload thất bại
  */
 export async function uploadImage(file, options = {}) {
-  const { skipCompression = false, maxWidth = 1920, quality = 0.85 } = options;
+  const { skipCompression = false, maxWidth = 1920, quality = 0.85, folder = "blog" } = options;
 
   let fileToUpload = file;
 
@@ -201,23 +345,85 @@ export async function uploadImage(file, options = {}) {
   if (!skipCompression && file.type.startsWith('image/') && !isGif && !isVideo) {
     try {
       const compressedFile = await compressImage(file, { maxWidth, quality });
-      // Only use compressed file if it's smaller
       if (compressedFile.size < file.size) {
-        console.log(`[uploadImage] Compressed: ${(file.size / 1024).toFixed(1)}KB → ${(compressedFile.size / 1024).toFixed(1)}KB (${Math.round((1 - compressedFile.size / file.size) * 100)}% smaller)`);
         fileToUpload = compressedFile;
       }
-    } catch (err) {
-      console.warn('[uploadImage] Compression failed, using original:', err.message);
+    } catch {
+      // Compression failed, use original file
     }
   }
 
-  // Tạo FormData để upload file
+  // Direct upload to Cloudinary (if enabled via VITE_DIRECT_UPLOAD)
+  if (DIRECT_ENABLED()) {
+    try {
+      const direct = await directUploadToCloudinary(fileToUpload, {
+        folder,
+        category: isVideo ? "video" : "image"
+      });
+
+      return {
+        success: true,
+        url: direct.url,
+        type: direct.type,
+        thumbnail: direct.thumbnail,
+        public_id: direct.public_id
+      };
+    } catch (err) {
+      if (!shouldFallbackLegacy(err)) throw err;
+      // Fallback to legacy on technical errors
+    }
+  }
+
+  // Legacy upload via server
   const form = new FormData();
   form.append("file", fileToUpload);
 
-  // Sử dụng api() function để tự động handle authentication
-  return await api("/api/uploads/", {
-    method: "POST",
-    body: form
-  });
+  const res = await api("/api/uploads/", { method: "POST", body: form });
+
+  return {
+    ...res,
+    type: fileToUpload.type.startsWith("video/") ? "video" : "image",
+    thumbnail: makeThumbnailUrl(res?.url, fileToUpload.type),
+  };
 }
+
+/**
+ * Upload multiple media files (images/videos)
+ * Supports direct upload to Cloudinary with fallback to legacy
+ * @param {File[]|FileList} files - Array of files to upload
+ * @param {Object} options - Upload options
+ * @param {string} options.folder - Cloudinary folder (default: "blog")
+ * @returns {Promise<Array>} Array of upload results [{url, type, thumbnail}, ...]
+ */
+export async function uploadMediaFiles(files, options = {}) {
+  const { folder = "blog" } = options;
+  const list = Array.from(files || []);
+  if (!list.length) return [];
+
+  // Direct upload to Cloudinary (if enabled via VITE_DIRECT_UPLOAD)
+  if (DIRECT_ENABLED()) {
+    try {
+      const results = await Promise.all(
+        list.map((f) => directUploadToCloudinary(f, { folder }))
+      );
+      return results;
+    } catch (err) {
+      if (!shouldFallbackLegacy(err)) throw err;
+      // Fallback to legacy on technical errors
+    }
+  }
+
+  // Legacy multi upload via server
+  const form = new FormData();
+  list.forEach((f) => form.append("files", f));
+
+  const res = await api("/api/uploads/media", { method: "POST", body: form });
+  if (!res?.files?.length) throw new Error(res?.error || "Upload failed");
+
+  return res.files.map((x, idx) => ({
+    url: x.url,
+    type: list[idx].type.startsWith("video/") ? "video" : "image",
+    thumbnail: makeThumbnailUrl(x.url, list[idx].type),
+  }));
+}
+

@@ -11,6 +11,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import WelcomeService from "../services/WelcomeService.js";
 import { generateTokenPair, resetRateLimit } from "../middleware/jwtSecurity.js";
 import { buildCookieOptions } from "../utils/cookieOptions.js";
 
@@ -319,6 +320,25 @@ tempRouter.post("/register-token", async (req, res, next) => {
         console.log("[INFO][AUTH-TOKEN] Welcome email sent successfully to:", userEmail);
       } catch (emailError) {
         console.error("[ERROR][AUTH-TOKEN] Welcome email sending failed:", emailError.message);
+      }
+
+      // ==================== WELCOME SERVICE ====================
+      try {
+        // Đánh dấu firstLoginAt
+        await WelcomeService.ensureFirstLogin(user._id);
+
+        // Tạo welcome notification
+        await WelcomeService.createWelcomeNotification(user._id);
+
+        // Broadcast new member (throttled 5 phút)
+        await WelcomeService.broadcastNewMember({
+          io: req.app.get("io"),
+          newUser: user
+        });
+
+        console.log("[INFO][AUTH-TOKEN] Welcome service completed for:", userEmail);
+      } catch (welcomeError) {
+        console.error("[ERROR][AUTH-TOKEN] Welcome service error:", welcomeError.message);
       }
     });
   } catch (e) {

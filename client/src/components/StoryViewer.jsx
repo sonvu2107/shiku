@@ -187,7 +187,7 @@ export default function StoryViewer({
   const handleDelete = async () => {
     if (!isOwner || !currentStory) return;
 
-    if (!confirm('Bạn có chắc muốn xóa story này?')) return;
+    if (!confirm('Bạn có chắc muốn xóa tin này?')) return;
 
     try {
       await api(`/api/stories/${currentStory._id}`, { method: 'DELETE' });
@@ -209,7 +209,7 @@ export default function StoryViewer({
       }, 0);
 
     } catch (err) {
-      alert('Lỗi xóa story: ' + err.message);
+      alert('Lỗi xóa tin: ' + err.message);
     }
   };
 
@@ -370,7 +370,7 @@ export default function StoryViewer({
                       className="w-full px-4 py-3 flex items-center gap-3 text-red-400 hover:bg-red-500/20 transition-colors text-left border-t border-white/10"
                     >
                       <Trash2 size={18} />
-                      <span className="text-sm font-medium">Xóa story</span>
+                      <span className="text-sm font-medium">Xóa tin</span>
                     </button>
                   </div>
                 )}

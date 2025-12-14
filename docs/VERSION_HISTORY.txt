@@ -1,0 +1,325 @@
+# SHIKU - VERSION HISTORY (SEMVER)
+# Lich su phien ban theo chuan Semantic Versioning
+
+================================================================================
+                              QUY UOC VERSION
+================================================================================
+
+MAJOR (x.0.0) : Thay doi kien truc / bao mat / he thong lon
+MINOR (0.x.0) : Them tinh nang lon
+PATCH (0.0.x) : Fix, toi uu, chinh UI
+
+================================================================================
+
+## v1.0.0 - PROJECT BOOTSTRAP
+   Ngay: 09/09/2025
+   Loai: MAJOR - Initial Public Build
+
+   - Khoi tao project
+   - Thiet lap Railway deploy
+   - Cau truc Backend/Frontend co ban
+   - Auth nen tang
+   - Post, Profile, UI skeleton
+
+   >> MOC SINH RA SHIKU
+
+--------------------------------------------------------------------------------
+
+## v1.1.0 - CORE SOCIAL FEATURES
+   Ngay: 10-14/09/2025
+   Loai: MINOR
+
+   - Reset password + email service
+   - Bai viet, comment, reaction
+   - Emote system
+   - UI Post remake
+   - Upload anh/video
+   - Fix F5 / 404
+   - Mobile responsive nen tang
+
+--------------------------------------------------------------------------------
+
+## v1.2.0 - REALTIME & MOBILE OPTIMIZATION
+   Ngay: 15-18/09/2025
+   Loai: MINOR
+
+   - Infinite scroll
+   - WebRTC call (prototype)
+   - Rate limiting
+   - Event system (join / leave)
+   - Profile update fix
+   - Bugfix dien rong
+
+--------------------------------------------------------------------------------
+
+## v1.3.0 - SECURITY FOUNDATION
+   Ngay: 22-25/09/2025
+   Loai: MINOR
+
+   - Refactor authentication
+   - JWT + CSRF token management
+   - Cookie security
+   - CORS handling
+   - Debug endpoints
+
+   >> BAN v1 DAU TIEN DU AN TOAN DE MO USER
+
+--------------------------------------------------------------------------------
+
+## v1.4.0 - SEO & SHARING
+   Ngay: 27-30/09/2025
+   Loai: MINOR
+
+   - API stats
+   - Sitemap
+   - OpenGraph / Twitter Card
+   - Structured data
+   - Comment image
+   - Dark / Light mode
+   - Story analytics
+
+--------------------------------------------------------------------------------
+
+## v1.5.0 - ADMIN & MODERATION
+   Ngay: 02-06/10/2025
+   Loai: MINOR
+
+   - Admin permission
+   - Poll voting realtime
+   - Safari compatibility
+   - CallModal network detect
+
+--------------------------------------------------------------------------------
+
+## v1.6.0 - PERFORMANCE & CODEBASE UPGRADE
+   Ngay: 09-11/10/2025
+   Loai: MINOR
+
+   - Code splitting (Phase 1)
+   - Bundle optimization
+   - CSRF mobile fix
+   - Cookie Partitioned
+   - Production hotfixes
+
+================================================================================
+                           MAJOR RELEASE 2.0
+================================================================================
+
+## v2.0.0 - SECURITY & ARCHITECTURE OVERHAUL
+   Ngay: 17/10/2025
+   Loai: MAJOR RELEASE
+
+   - Auth, CSRF, Cookie, Token rewrite
+   - Safari fixes hoan chinh
+   - Realtime stability
+   - API hooks
+   - Chat context refactor
+   - Project structure clean
+
+   >> SHIKU CHUYEN TU "APP THU NGHIEM" -> "SAN PHAM THAT"
+
+--------------------------------------------------------------------------------
+
+## v2.0.1 - EMAIL & TOKEN STABILITY
+   Ngay: 18/10/2025
+   Loai: PATCH
+
+   - Email transport refactor
+   - Timeout handling
+   - Refresh token debug
+
+--------------------------------------------------------------------------------
+
+## v2.0.2 - ADMIN DASHBOARD CORE
+   Ngay: 30-31/10/2025
+   Loai: PATCH
+
+   - AdminDashboard UI
+   - Keepalive system
+   - Audit log schema
+   - StoryViewer moi
+
+--------------------------------------------------------------------------------
+
+## v2.1.0 - UI REDESIGN & SMART FEED
+   Ngay: 01-06/11/2025
+   Loai: MINOR
+
+   - Dark mode toan he thong
+   - UI PostCard / Navbar moi
+   - Smart Feed ca nhan hoa
+   - Interaction & message edit/remove
+
+--------------------------------------------------------------------------------
+
+## v2.1.1 - SEO & PERFORMANCE OPTIMIZATION
+   Ngay: 11-19/11/2025
+   Loai: PATCH
+
+   - SEO public/private
+   - Database optimization
+   - Smart feed pagination
+   - LCP & image loading
+   - React 19.2.0 upgrade
+   - Free-tier optimization
+
+--------------------------------------------------------------------------------
+
+## v2.1.2 - UX & SOCIAL ENHANCEMENTS
+   Ngay: 20-28/11/2025
+   Loai: PATCH
+
+   - Tour page
+   - Sidebar collapse
+   - Search
+   - Mention + Emoji picker
+   - Notification sound
+   - Service cleanup
+   - Graceful shutdown
+
+================================================================================
+                        MAJOR FEATURE: CULTIVATION
+================================================================================
+
+## v2.2.0 - CULTIVATION SYSTEM
+   Ngay: 01-05/12/2025
+   Loai: MINOR (Major Feature)
+
+   - Passive EXP
+   - Realm system
+   - Breakthrough mechanics
+   - Equipment system
+   - PK / Battle
+   - Database monitoring
+   - Health metrics
+
+   >> SHIKU TRO THANH SOCIAL + GAME
+
+--------------------------------------------------------------------------------
+
+## v2.2.1 - UI & MEDIA EXPANSION
+   Ngay: 06-07/12/2025
+   Loai: PATCH
+
+   - Loading screen
+   - Floating dock
+   - Story Creator
+   - Spotify / YouTube Music
+   - Gallery
+   - Security headers
+   - Vite build optimization
+
+--------------------------------------------------------------------------------
+
+## v2.3.0 - ROLE & MESSAGING SYSTEM
+   Ngay: 08-10/12/2025
+   Loai: MINOR
+
+   - Role management
+   - Admin role dashboard
+   - Messaging core
+   - Infinite scroll chat
+   - Reactions
+   - GIF / Video avatar
+
+--------------------------------------------------------------------------------
+
+## v2.3.1 - SECURE AUTH & SOCIAL PAGES
+   Ngay: 11/12/2025
+   Loai: PATCH
+
+   - Secure register/login
+   - Welcome email
+   - Cultivation pages
+   - AutoLikeBot
+   - RightSidebar
+
+--------------------------------------------------------------------------------
+
+## v2.4.0 - ADMIN INTELLIGENCE SYSTEM
+   Ngay: 12-13/12/2025
+   Loai: MINOR
+
+   - Admin bot
+   - Reaction cleaner
+   - Realtime charts
+   - Redis cache stats
+   - User & system monitoring
+   - API caching & rate limit
+
+--------------------------------------------------------------------------------
+
+## v2.4.1 - DOCUMENTATION & CLEANUP
+   Ngay: 14/12/2025
+   Loai: PATCH
+
+   - README update
+   - Docs sync
+   - Development history
+
+================================================================================
+                          PHIEN BAN HIEN TAI
+================================================================================
+
+   +-------------------------------------------+
+   |                                           |
+   |           v2.4.1 STABLE                   |
+   |                                           |
+   |   Release Date: 14/12/2025                |
+   |   Status: Production Ready                |
+   |                                           |
+   +-------------------------------------------+
+
+================================================================================
+                            TONG KET VERSIONS
+================================================================================
+
+MAJOR RELEASES:
+  - v1.0.0 (09/09/2025) : Project Bootstrap
+  - v2.0.0 (17/10/2025) : Security & Architecture Overhaul
+
+MINOR RELEASES (Features):
+  - v1.1.0 : Core Social
+  - v1.2.0 : Realtime & Mobile
+  - v1.3.0 : Security Foundation
+  - v1.4.0 : SEO & Sharing
+  - v1.5.0 : Admin & Moderation
+  - v1.6.0 : Performance
+  - v2.1.0 : UI Redesign & Smart Feed
+  - v2.2.0 : Cultivation System
+  - v2.3.0 : Role & Messaging
+  - v2.4.0 : Admin Intelligence
+
+PATCH RELEASES (Fixes):
+  - v2.0.1, v2.0.2
+  - v2.1.1, v2.1.2
+  - v2.2.1
+  - v2.3.1
+  - v2.4.1
+
+================================================================================
+                            ROADMAP (DU KIEN)
+================================================================================
+
+v2.5.0 - VIDEO CALL INTEGRATION
+  - WebRTC full implementation
+  - Group video calls
+  - Screen sharing
+
+v2.6.0 - MARKETPLACE
+  - User marketplace
+  - Item trading
+  - Virtual currency
+
+v3.0.0 - MOBILE APP
+  - React Native app
+  - Push notifications
+  - Offline support
+
+================================================================================
+                              END OF DOCUMENT
+================================================================================
+
+Tac gia: Son Vu (@sonvu2107)
+Website: https://shiku.click
+Repository: https://github.com/sonvu2107/shiku

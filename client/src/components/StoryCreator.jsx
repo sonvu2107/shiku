@@ -62,20 +62,15 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
   };
 
   /**
-   * Upload file to server
+   * Upload file to server using unified helper
    */
   const uploadMedia = async () => {
     if (!mediaFile) return null;
 
-    const formData = new FormData();
-    formData.append('file', mediaFile);
-
     try {
-      const response = await api('/api/uploads', {
-        method: 'POST',
-        body: formData
-      });
-
+      // Use unified upload helper (supports direct + fallback)
+      const { uploadImage } = await import('../api');
+      const response = await uploadImage(mediaFile, { folder: "blog" });
       return response.url;
     } catch (err) {
       throw new Error("Lỗi upload file: " + err.message);

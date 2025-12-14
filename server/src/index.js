@@ -35,6 +35,7 @@ import authTokenRoutes from "./routes/auth-token.js"; // Token validation routes
 import postRoutes from "./routes/posts.js"; // Blog post routes
 import commentRoutes from "./routes/comments.js"; // Comment routes
 import uploadRoutes from "./routes/uploads.js"; // File upload routes
+import uploadDirectRoutes from "./routes/uploads.direct.js"; // Direct upload routes
 import adminRoutes from "./routes/admin.js"; // Admin management routes
 import friendRoutes from "./routes/friends.js"; // Friend system routes
 import userRoutes from "./routes/users.js"; // User profile routes
@@ -57,6 +58,7 @@ import securityMonitoringRoutes from "./routes/securityMonitoring.js"; // Securi
 import cultivationRoutes from "./routes/cultivation.js"; // Cultivation/Tu Tiên routes
 import battleRoutes from "./routes/battle.js"; // Battle/PK routes
 import equipmentRoutes from "./routes/equipment.js"; // Equipment management routes
+import welcomeRoutes from "./routes/welcome.js"; // Welcome/onboarding routes
 
 // Environment variables are loaded via `import 'dotenv/config'` at the top
 
@@ -716,6 +718,7 @@ app.use("/api/auth-token", requestTimeout(60000), authLimiter, authTokenRoutes);
 app.use("/api/posts", postsLimiter, postRoutes); // Blog posts CRUD with specific rate limiting
 app.use("/api/comments", commentRoutes); // Comments system
 app.use("/api/uploads", uploadLimiter, uploadRoutes); // File uploads
+app.use("/api/uploads", uploadLimiter, uploadDirectRoutes); // Direct File uploads
 app.use("/api/admin", apiLimiter, adminRoutes); // Admin panel with rate limiting
 app.use("/api/friends", friendRoutes); // Friend system
 app.use("/api/users", userRoutes); // User profiles
@@ -738,6 +741,7 @@ app.use("/api/security", securityMonitoringRoutes); // Security monitoring route
 app.use("/api/cultivation", apiLimiter, cultivationRoutes); // Tu Tiên system routes
 app.use("/api/battle", apiLimiter, battleRoutes); // Battle/PK routes
 app.use("/api/equipment", apiLimiter, equipmentRoutes); // Equipment management routes
+app.use("/api/welcome", welcomeRoutes); // Welcome/onboarding routes
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);

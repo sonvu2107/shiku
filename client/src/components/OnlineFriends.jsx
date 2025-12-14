@@ -217,7 +217,7 @@ export default function OnlineFriends({ user, minimal = false }) {
                 <p className={minimal
                   ? "font-bold text-neutral-900 dark:text-white text-sm truncate group-hover:text-black dark:group-hover:text-white transition-colors"
                   : "font-medium text-gray-900 dark:text-gray-100 text-sm truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"}>
-                  <UserName user={friend} />
+                  <UserName user={friend} maxLength={18} />
                 </p>
                 <p className={minimal ? "text-xs text-neutral-500 dark:text-neutral-400 truncate" : "text-xs text-gray-500 dark:text-gray-400 truncate"}>
                   @{friend.name?.toLowerCase().replace(/\s+/g, '') || 'user'}

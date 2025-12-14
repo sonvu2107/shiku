@@ -30,13 +30,9 @@ export default function ImageUpload({ onUpload, accept = "image/*", className = 
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await api('/api/uploads', {
-        method: 'POST',
-        body: formData
-      });
+      // Use unified upload helper (supports direct + fallback)
+      const { uploadImage } = await import('../api');
+      const response = await uploadImage(file, { folder: "avatars" });
 
       if (response.success && response.url) {
         onUpload(response.url);
@@ -89,7 +85,7 @@ export default function ImageUpload({ onUpload, accept = "image/*", className = 
         onChange={handleFileChange}
         className="hidden"
       />
-      
+
       {uploading ? (
         <div className="flex flex-col items-center justify-center h-full">
           <Loader2 size={32} className="animate-spin text-blue-600 mb-2" />
