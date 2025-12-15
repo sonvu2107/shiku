@@ -435,7 +435,7 @@ export default function PostDetail() {
                   {p.author?.role === 'admin' && <VerifiedBadge user={p.author} />}
                 </Link>
                 <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] md:text-xs text-gray-400 dark:text-gray-500 font-medium mt-0.5">
-                  <span className="truncate max-w-[80px] sm:max-w-[100px] md:max-w-none">{timeAgo}</span>
+                  <span>{timeAgo}</span>
                   {p.status === 'private' && (
                     <span className="flex items-center gap-0.5 bg-gray-50 dark:bg-white/5 px-1 sm:px-1.5 py-0.5 rounded text-gray-500 text-[9px] sm:text-[10px]">
                       🔒 <span className="hidden sm:inline">Riêng tư</span>
