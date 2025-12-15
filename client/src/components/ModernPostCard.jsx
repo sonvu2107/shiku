@@ -29,7 +29,7 @@ const emotes = Object.keys(emoteMap);
 
 // ThumbsUp Icon Component
 const ThumbsUpIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M7 10v12" />
     <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
   </svg>
@@ -829,7 +829,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             }}
             className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-500 dark:text-gray-400 transition-colors active:scale-95 touch-manipulation"
           >
-            <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+            <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
             <span className="hidden sm:inline text-[13px] sm:text-sm font-semibold">
               {post.commentCount || "Bình luận"}
             </span>
@@ -852,7 +852,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             }}
             className="p-2 sm:p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors active:scale-95 touch-manipulation"
           >
-            <Share2 className="w-5 h-5" />
+            <Share2 className="w-5 h-5" strokeWidth={2.5} />
           </button>
         </div>
 
@@ -866,7 +866,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               : "text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 hover:text-yellow-500"
           )}
         >
-          <Bookmark className={cn("w-5 h-5", saved && "fill-current")} />
+          <Bookmark className={cn("w-5 h-5", saved && "fill-current")} strokeWidth={2.5} />
         </button>
       </div>
 
