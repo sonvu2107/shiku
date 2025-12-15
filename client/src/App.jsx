@@ -141,7 +141,7 @@ export default function App() {
     let cancelled = false;
     let timeoutId = null;
     const startTime = Date.now();
-    const MIN_LOADING_TIME = 5000; // 5 giây
+    const MIN_LOADING_TIME = 0; // Tắt loading delay
 
     const checkAuth = async () => {
       try {
