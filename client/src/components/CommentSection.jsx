@@ -774,29 +774,36 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
   const renderEmojiPicker = (onSelect, isOpen, onClose, position = "left") => {
     if (!isOpen) return null;
 
-    const positionClass = position === "right" ? "right-0 sm:right-0" : "left-0 sm:left-0";
+    const positionClass = position === "right" ? "sm:right-0" : "sm:left-0";
 
     return (
-      <div className={`fixed sm:absolute bottom-0 sm:bottom-full left-0 right-0 sm:right-auto sm:mb-2 sm:w-[320px] sm:max-w-[360px] bg-white dark:bg-neutral-900 rounded-t-3xl sm:rounded-2xl shadow-2xl border-t sm:border border-neutral-200 dark:border-neutral-800 z-50 overflow-hidden animate-in fade-in slide-in-from-bottom sm:zoom-in-95 duration-200`}>
-        <div className="p-3 sm:p-3 max-h-[50vh] sm:max-h-[280px] overflow-y-auto">
-          <div className="grid grid-cols-10 sm:grid-cols-8 gap-1.5 sm:gap-1">
-            {emojiList.map((emoji, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => {
-                  onSelect(emoji);
-                  onClose();
-                }}
-                className="w-11 h-11 sm:w-10 sm:h-10 flex items-center justify-center text-2xl active:bg-neutral-100 dark:active:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors touch-manipulation"
-                title={emoji}
-              >
-                {emoji}
-              </button>
-            ))}
+      <>
+        {/* Mobile: Bottom sheet style */}
+        <div
+          className="fixed inset-0 bg-black/20 z-[9998] sm:hidden"
+          onClick={onClose}
+        />
+        <div className={`fixed bottom-0 left-0 right-0 sm:absolute sm:bottom-full ${positionClass} sm:left-auto sm:right-auto sm:mb-2 sm:w-[320px] sm:max-w-[360px] bg-white dark:bg-neutral-900 rounded-t-3xl sm:rounded-2xl shadow-2xl border-t sm:border border-neutral-200 dark:border-neutral-800 z-[9999] overflow-hidden animate-in fade-in slide-in-from-bottom sm:zoom-in-95 duration-200`}>
+          <div className="p-3 sm:p-3 max-h-[50vh] sm:max-h-[280px] overflow-y-auto">
+            <div className="grid grid-cols-10 sm:grid-cols-8 gap-1.5 sm:gap-1">
+              {emojiList.map((emoji, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => {
+                    onSelect(emoji);
+                    onClose();
+                  }}
+                  className="w-11 h-11 sm:w-10 sm:h-10 flex items-center justify-center text-2xl active:bg-neutral-100 dark:active:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors touch-manipulation"
+                  title={emoji}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   };
 
@@ -1201,7 +1208,7 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
 
   return (
     <ComponentErrorBoundary>
-      <div className="max-w-4xl mx-auto px-2 sm:px-0 overflow-x-hidden">
+      <div className="max-w-4xl mx-auto px-2 sm:px-0">
 
         {/* Comment Input */}
         <div className="mb-4 sm:mb-8 flex gap-2 sm:gap-4">

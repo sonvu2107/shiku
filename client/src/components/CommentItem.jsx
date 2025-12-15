@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { api } from "../api";
-import { 
-  Heart, 
-  MessageCircle, 
-  MoreHorizontal, 
-  ThumbsUp, 
-  Smile, 
-  Frown, 
-  Laugh, 
+import {
+  Heart,
+  MessageCircle,
+  MoreHorizontal,
+  ThumbsUp,
+  Smile,
+  Frown,
+  Laugh,
   Angry,
   ChevronDown,
   ChevronUp
@@ -37,18 +37,18 @@ const emoteConfig = {
  * @param {boolean} showReplies - Show replies or not
  * @param {Function} onToggleReplies - Callback toggle replies
  */
-export default function CommentItem({ 
-  comment, 
-  user, 
-  onReply, 
-  onEdit, 
-  onDelete, 
+export default function CommentItem({
+  comment,
+  user,
+  onReply,
+  onEdit,
+  onDelete,
   isReply = false,
   showReplies = false,
   onToggleReplies
 }) {
   // ==================== STATE MANAGEMENT ====================
-  
+
   const [isLiked, setIsLiked] = useState(comment.likes?.some(like => like._id === user?._id) || false);
   const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
   const [emoteCount, setEmoteCount] = useState(comment.emoteCount || 0);
@@ -63,13 +63,13 @@ export default function CommentItem({
    */
   const handleLike = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       const res = await api(`/api/comments/${comment._id}/like`, {
         method: "POST"
       });
-      
+
       setIsLiked(res.isLiked);
       setLikeCount(res.likeCount);
     } catch (error) {
@@ -84,14 +84,14 @@ export default function CommentItem({
    */
   const handleEmote = async (emoteType) => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       const res = await api(`/api/comments/${comment._id}/emote`, {
         method: "POST",
         body: { type: emoteType }
       });
-      
+
       setEmoteCount(res.emoteCount);
       setShowEmotePicker(false);
     } catch (error) {
@@ -116,18 +116,18 @@ export default function CommentItem({
       {/* Comment Content */}
       <div className="flex gap-3">
         {/* Avatar */}
-        <UserAvatar 
+        <UserAvatar
           user={comment.author}
           size={32}
           showFrame={true}
           showBadge={true}
         />
-        
+
         {/* Comment Body */}
         <div className="flex-1 min-w-0">
           {/* Author & Time */}
           <div className="flex items-center gap-2 mb-1">
-            <UserName 
+            <UserName
               user={comment.author}
               className="font-medium text-gray-900"
             />
@@ -138,23 +138,22 @@ export default function CommentItem({
               <span className="text-xs text-gray-400">(đã chỉnh sửa)</span>
             )}
           </div>
-          
+
           {/* Comment Text */}
           <div className="text-gray-800 mb-2 whitespace-pre-wrap">
             {comment.content}
           </div>
-          
+
           {/* Actions */}
           <div className="flex items-center gap-4">
             {/* Like Button */}
             <button
               onClick={handleLike}
               disabled={loading || !user}
-              className={`flex items-center gap-1 text-sm transition-colors ${
-                isLiked 
-                  ? 'text-blue-600 font-medium' 
+              className={`flex items-center gap-1 text-sm transition-colors ${isLiked
+                  ? 'text-blue-600 font-medium'
                   : 'text-gray-500 hover:text-blue-600'
-              }`}
+                }`}
             >
               <ThumbsUp size={16} className={isLiked ? 'fill-current' : ''} />
               {likeCount > 0 && <span>{likeCount}</span>}
@@ -165,11 +164,10 @@ export default function CommentItem({
               <button
                 onClick={() => setShowEmotePicker(!showEmotePicker)}
                 disabled={loading || !user}
-                className={`flex items-center gap-1 text-sm transition-colors ${
-                  userEmote 
-                    ? 'text-red-600 font-medium' 
+                className={`flex items-center gap-1 text-sm transition-colors ${userEmote
+                    ? 'text-red-600 font-medium'
                     : 'text-gray-500 hover:text-red-600'
-                }`}
+                  }`}
               >
                 <Smile size={16} />
                 {emoteCount > 0 && <span>{emoteCount}</span>}
@@ -177,7 +175,7 @@ export default function CommentItem({
 
               {/* Emote Picker */}
               {showEmotePicker && (
-                <div className="absolute top-8 left-0 bg-white border rounded-lg shadow-lg p-2 z-20">
+                <div className="absolute bottom-full left-0 mb-2 bg-white dark:bg-neutral-800 border dark:border-neutral-700 rounded-lg shadow-lg p-2 z-[100]">
                   <div className="flex gap-2">
                     {Object.entries(emoteConfig).map(([type, config]) => {
                       const Icon = config.icon;
@@ -186,11 +184,10 @@ export default function CommentItem({
                         <button
                           key={type}
                           onClick={() => handleEmote(type)}
-                          className={`p-2 rounded-full transition-colors ${
-                            isActive 
-                              ? `${config.bgColor} ${config.color}` 
+                          className={`p-2 rounded-full transition-colors ${isActive
+                              ? `${config.bgColor} ${config.color}`
                               : 'hover:bg-gray-100'
-                          }`}
+                            }`}
                           title={type}
                         >
                           <Icon size={20} />
@@ -255,7 +252,7 @@ export default function CommentItem({
               {Object.entries(emoteConfig).map(([type, config]) => {
                 const typeEmotes = comment.emotes.filter(emote => emote.type === type);
                 if (typeEmotes.length === 0) return null;
-                
+
                 const Icon = config.icon;
                 return (
                   <div
