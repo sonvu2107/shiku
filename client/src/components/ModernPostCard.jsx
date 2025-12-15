@@ -734,7 +734,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 "flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full transition-all duration-200 active:scale-95 group/btn touch-manipulation",
                 uiUserEmote
                   ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
-                  : "hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-500 dark:text-gray-400"
+                  : "hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-300"
               )}
             >
               {uiUserEmote ? (
@@ -758,7 +758,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               <span className="hidden sm:inline text-[13px] sm:text-sm font-semibold">
                 {totalEmotes > 0 ? totalEmotes.toLocaleString() : "Thích"}
               </span>
-              <span className="sm:hidden text-[13px] font-semibold opacity-80">
+              <span className="sm:hidden text-[13px] font-semibold">
                 {totalEmotes > 0 ? totalEmotes.toLocaleString() : ""}
               </span>
             </button>
@@ -827,13 +827,13 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               e.stopPropagation();
               navigate(`/post/${post.slug || post._id}`);
             }}
-            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-500 dark:text-gray-400 transition-colors active:scale-95 touch-manipulation"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-300 transition-colors active:scale-95 touch-manipulation"
           >
             <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
             <span className="hidden sm:inline text-[13px] sm:text-sm font-semibold">
               {post.commentCount || "Bình luận"}
             </span>
-            <span className="sm:hidden text-[11px] font-semibold opacity-80">
+            <span className="sm:hidden text-[13px] font-semibold">
               {(post.commentCount || 0) > 0 ? post.commentCount : ""}
             </span>
           </button>
@@ -850,7 +850,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 showError("Không thể sao chép liên kết");
               });
             }}
-            className="p-2 sm:p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors active:scale-95 touch-manipulation"
+            className="p-2 sm:p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-colors active:scale-95 touch-manipulation"
           >
             <Share2 className="w-5 h-5" strokeWidth={2.5} />
           </button>
@@ -863,7 +863,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             "p-2 sm:p-2.5 rounded-full transition-all duration-200 active:scale-90 touch-manipulation",
             saved
               ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-500/10"
-              : "text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 hover:text-yellow-500"
+              : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 hover:text-yellow-500"
           )}
         >
           <Bookmark className={cn("w-5 h-5", saved && "fill-current")} strokeWidth={2.5} />

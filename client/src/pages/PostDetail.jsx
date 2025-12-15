@@ -879,7 +879,7 @@ export default function PostDetail() {
                 })()}
                 {showEmotePopup && (
                   <div
-                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 emote-picker bg-white dark:bg-gray-800 rounded-2xl shadow-xl z-20 border border-gray-200 dark:border-gray-700 px-2 py-2.5 sm:px-3 sm:py-2"
+                    className="absolute bottom-full left-0 mb-2 emote-picker bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl shadow-lg md:shadow-xl z-20 border border-gray-200 dark:border-gray-700 p-1.5 md:p-2 flex gap-0.5 md:gap-1"
                     onMouseEnter={() => {
                       if (window.innerWidth >= 768) {
                         if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
@@ -892,37 +892,46 @@ export default function PostDetail() {
                     }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="flex items-center justify-around gap-1.5 sm:gap-2">
-                      {emotes.map((e) => {
-                        const myEmote = emotesState.find(em => {
-                          const emoteUserId = em.user?._id || em.user;
-                          const currentUserId = user?.id || user?._id;
-                          return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
-                        });
-                        const isActive = myEmote?.type === e;
-                        return (
-                          <button
-                            key={e}
-                            className={cn(
-                              "w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 touch-manipulation",
-                              isActive
-                                ? 'bg-blue-100 dark:bg-blue-500/20 ring-2 ring-blue-500'
-                                : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
-                            )}
-                            type="button"
-                            onClick={() => {
-                              emote(e);
-                              if (window.innerWidth < 768) {
-                                setTimeout(() => setShowEmotePopup(false), 100);
-                              }
+                    {emotes.map((e) => {
+                      const myEmote = emotesState.find(em => {
+                        const emoteUserId = em.user?._id || em.user;
+                        const currentUserId = user?.id || user?._id;
+                        return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
+                      });
+                      const isActive = myEmote?.type === e;
+                      return (
+                        <button
+                          key={e}
+                          className={cn(
+                            "emote-btn transition-all hover:scale-110 active:scale-95 p-1 md:p-0 touch-manipulation",
+                            isActive ? 'opacity-100 ring-2 ring-blue-500 rounded-full' : 'opacity-90'
+                          )}
+                          type="button"
+                          onClick={() => {
+                            emote(e);
+                            if (window.innerWidth < 768) {
+                              setTimeout(() => setShowEmotePopup(false), 100);
+                            }
+                          }}
+                          onMouseDown={(ev) => ev.preventDefault()}
+                          title={isActive ? `Bỏ cảm xúc ${e}` : `Thả cảm xúc ${e}`}
+                        >
+                          <img
+                            src={`/assets/${emoteMap[e]}`}
+                            alt={e}
+                            width={28}
+                            height={28}
+                            className="w-7 h-7 md:w-8 md:h-8"
+                            loading="lazy"
+                            onError={(ev) => {
+                              ev.target.style.display = 'none';
+                              if (ev.target.nextSibling) ev.target.nextSibling.style.display = 'flex';
                             }}
-                            onMouseDown={(e) => e.preventDefault()}
-                          >
-                            <img src={`/assets/${emoteMap[e]}`} alt={e} className="w-6 h-6 sm:w-7 sm:h-7" />
-                          </button>
-                        );
-                      })}
-                    </div>
+                          />
+                          <span className="hidden w-7 h-7 md:w-8 md:h-8 items-center justify-center text-xl md:text-2xl">{e}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
