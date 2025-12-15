@@ -87,6 +87,7 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
   const [replyContent, setReplyContent] = useState(""); // Reply content
   const [replyImages, setReplyImages] = useState([]); // Reply images
   const [expandedReplies, setExpandedReplies] = useState(new Set()); // Set of comments with expanded replies
+  const [fullExpandedReplies, setFullExpandedReplies] = useState(new Set()); // Set of comments with ALL replies shown
   const [replyCursorPosition, setReplyCursorPosition] = useState(0); // Cursor position in reply
   const [showReplyMentionAutocomplete, setShowReplyMentionAutocomplete] = useState(false); // Show mention autocomplete for reply
   const replyTextareaRef = useRef(null); // Ref for reply textarea
@@ -475,6 +476,7 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
 
       // Auto expand replies to show them immediately
       setExpandedReplies((prev) => new Set([...prev, parentId]));
+      setFullExpandedReplies((prev) => new Set([...prev, parentId]));
 
       // Show success message
       showSuccess("Phản hồi đã được đăng thành công!");
@@ -806,10 +808,9 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
     const isUpdating = updatingComment.get(comment._id);
     const isSubmittingReply = submittingReply.get(comment._id);
 
-    // Giới hạn indent tối đa 3 cấp để tránh tràn màn hình
-    const effectiveLevel = Math.min(level, 3);
-    // Mobile: indent nhỏ hơn, Desktop: indent lớn hơn
-    const indentClass = effectiveLevel > 0
+    // Giới hạn độ sâu hiển thị: từ level 2 trở đi sẽ không indent thêm nữa (thẳng hàng)
+    const shouldIndent = level > 0 && level < 2;
+    const indentClass = shouldIndent
       ? `ml-2 sm:ml-3 md:ml-4 pl-2 sm:pl-3 border-l-2 border-neutral-200 dark:border-neutral-800`
       : "";
 
@@ -1153,16 +1154,32 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
               </button>
             )}
 
-            {/* Nested Replies */}
-            {isExpanded && hasReplies && (
-              <div className="mt-1.5 space-y-1.5">
-                {comment.replies.map((reply) =>
-                  renderComment(reply, level + 1)
-                )}
-              </div>
-            )}
+
           </div>
         </div>
+
+        {/* Nested Replies */}
+        {isExpanded && hasReplies && (
+          <div className={`mt-1.5 space-y-1.5 ${level === 0 ? 'pl-10 sm:pl-[52px]' : ''}`}>
+            {(fullExpandedReplies.has(comment._id)
+              ? comment.replies
+              : comment.replies.slice(0, 3)
+            ).map((reply) =>
+              renderComment(reply, level + 1)
+            )}
+
+            {/* Show more replies button */}
+            {!fullExpandedReplies.has(comment._id) && comment.replies.length > 3 && (
+              <button
+                onClick={() => setFullExpandedReplies(prev => new Set([...prev, comment._id]))}
+                className="flex items-center gap-1 ml-2 sm:ml-4 mt-2 text-xs font-bold text-neutral-500 hover:text-neutral-900 transition-colors"
+              >
+                <div className="w-4 h-[1px] bg-neutral-300"></div>
+                Xem thêm {comment.replies.length - 3} phản hồi khác...
+              </button>
+            )}
+          </div>
+        )}
       </div>
     );
   };
