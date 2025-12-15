@@ -364,8 +364,29 @@ export const deleteUser = async (req, res, next) => {
             return res.status(403).json({ error: "Chỉ admin toàn quyền mới có thể xóa tài khoản admin khác" });
         }
 
-        await Post.deleteMany({ author: user._id });
-        await Comment.deleteMany({ author: user._id });
+        // Get all comments by this user to update commentCount on posts
+        const userComments = await Comment.find({ author: user._id }).select('post').lean();
+
+        // Group comments by post and count
+        const postCommentCounts = {};
+        for (const comment of userComments) {
+            if (comment.post) {
+                const postId = comment.post.toString();
+                postCommentCounts[postId] = (postCommentCounts[postId] || 0) + 1;
+            }
+        }
+
+        // Update commentCount for each affected post
+        const updatePromises = Object.entries(postCommentCounts).map(([postId, count]) =>
+            Post.findByIdAndUpdate(postId, { $inc: { commentCount: -count } })
+        );
+
+        await Promise.all([
+            ...updatePromises,
+            Post.deleteMany({ author: user._id }),
+            Comment.deleteMany({ author: user._id })
+        ]);
+
         await user.deleteOne();
 
         res.json({ message: "User deleted successfully" });

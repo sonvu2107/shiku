@@ -493,10 +493,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       onClick={() => navigate(`/post/${post.slug || post._id}`)}
       className="group relative bg-white dark:bg-[#111] rounded-2xl md:rounded-[32px] px-3 md:px-5 pt-3 md:pt-4 pb-4 md:pb-6 mb-4 md:mb-6 cursor-pointer
       shadow-[0_2px_12px_rgba(0,0,0,0.04)] md:shadow-[0_4px_16px_rgba(0,0,0,0.04)] dark:shadow-none
-      hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] md:hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]
-      transition-all duration-300 ease-out md:hover:-translate-y-1.5 md:hover:scale-[1.015]
-      border border-neutral-100 dark:border-neutral-800/60 hover:border-neutral-200 dark:hover:border-neutral-700
-      active:scale-[0.99]"
+      border border-neutral-100 dark:border-neutral-800/60"
     >
       {/* 1. Header: User Info */}
       <div className="flex justify-between items-start mb-2 md:mb-3">

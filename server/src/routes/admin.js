@@ -141,4 +141,71 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
 router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimit, autoViewPosts);
 router.post("/clear-test-reactions", authRequired, adminRequired, strictAdminRateLimit, clearTestReactions);
 
+// ============================================================
+// DATA INTEGRITY ROUTES
+// ============================================================
+
+/**
+ * POST /sync-comment-counts - Sync commentCount for all posts
+ * Recounts actual comments and updates Post.commentCount
+ * Also removes orphan comments (comments with deleted authors)
+ */
+router.post("/sync-comment-counts", authRequired, adminRequired, strictAdminRateLimit, async (req, res, next) => {
+  try {
+    const Post = mongoose.model('Post');
+    const Comment = mongoose.model('Comment');
+    const User = mongoose.model('User');
+
+    // Step 1: Find and delete orphan comments (comments with non-existent authors)
+    const allUsers = await User.find({}).select('_id').lean();
+    const userIds = new Set(allUsers.map(u => u._id.toString()));
+
+    const allComments = await Comment.find({}).select('_id author post').lean();
+    const orphanCommentIds = allComments
+      .filter(c => !c.author || !userIds.has(c.author.toString()))
+      .map(c => c._id);
+
+    let orphansDeleted = 0;
+    if (orphanCommentIds.length > 0) {
+      const deleteResult = await Comment.deleteMany({ _id: { $in: orphanCommentIds } });
+      orphansDeleted = deleteResult.deletedCount;
+    }
+
+    // Step 2: Recount comments for each post
+    const posts = await Post.find({}).select('_id commentCount').lean();
+    let postsUpdated = 0;
+
+    for (const post of posts) {
+      const actualCount = await Comment.countDocuments({ post: post._id });
+      if (post.commentCount !== actualCount) {
+        await Post.findByIdAndUpdate(post._id, { commentCount: actualCount });
+        postsUpdated++;
+      }
+    }
+
+    await AuditLog.logAction(req.user._id, 'admin_auto_like', {
+      result: 'success',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      details: {
+        action: 'sync_comment_counts',
+        orphansDeleted,
+        postsUpdated,
+        totalPosts: posts.length
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Đã đồng bộ comment count`,
+      orphansDeleted,
+      postsUpdated,
+      totalPosts: posts.length
+    });
+  } catch (error) {
+    console.error('[ERROR][ADMIN] Sync comment counts error:', error);
+    next(error);
+  }
+});
+
 export default router;

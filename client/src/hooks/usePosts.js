@@ -149,3 +149,46 @@ export function usePrefetchPosts() {
         });
     };
 }
+
+/**
+ * Hook to update a post's comment count in cache
+ * Updates both the infinite query cache and invalidates for refetch
+ * @returns {Function} updateCommentCount(postId, delta) - postId: string, delta: number (+1 or -1)
+ */
+export function useUpdatePostCommentCount() {
+    const queryClient = useQueryClient();
+
+    return (postId, delta) => {
+        // Update the post in all cached pages
+        queryClient.setQueriesData({ queryKey: ["posts"] }, (oldData) => {
+            if (!oldData?.pages) return oldData;
+
+            return {
+                ...oldData,
+                pages: oldData.pages.map(page => ({
+                    ...page,
+                    items: page.items.map(post =>
+                        post._id === postId
+                            ? { ...post, commentCount: Math.max(0, (post.commentCount || 0) + delta) }
+                            : post
+                    )
+                }))
+            };
+        });
+
+        // Also invalidate to ensure fresh data on next visit
+        queryClient.invalidateQueries({ queryKey: ["posts"] });
+    };
+}
+
+/**
+ * Hook to invalidate posts cache (simple invalidation)
+ * Useful when you just want to mark cache as stale
+ */
+export function useInvalidatePosts() {
+    const queryClient = useQueryClient();
+
+    return () => {
+        queryClient.invalidateQueries({ queryKey: ["posts"] });
+    };
+}

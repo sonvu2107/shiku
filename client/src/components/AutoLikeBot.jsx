@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../api";
-import { Heart, Users, Settings, Play, BarChart3, CheckCircle, Eye } from "lucide-react";
+import { Heart, Users, Settings, Play, BarChart3, CheckCircle, Eye, Wrench, RefreshCw, MessageCircle } from "lucide-react";
 
 export default function AutoLikeBot() {
   const [isRunning, setIsRunning] = useState(false);
@@ -19,6 +19,8 @@ export default function AutoLikeBot() {
   const [results, setResults] = useState(null);
   const [error, setError] = useState("");
   const [clearingReactions, setClearingReactions] = useState(false);
+  const [syncingComments, setSyncingComments] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
 
   useEffect(() => {
     loadTestUsers();
@@ -129,6 +131,29 @@ export default function AutoLikeBot() {
       setError(err.message || "Đã xảy ra lỗi khi xóa cảm xúc.");
     } finally {
       setClearingReactions(false);
+    }
+  };
+
+  const syncCommentCounts = async () => {
+    if (!confirm("Đồng bộ số lượng comment cho tất cả bài viết? Hành động này sẽ xóa các comment mồ côi (tác giả đã bị xóa) và cập nhật lại số đếm.")) {
+      return;
+    }
+
+    setSyncingComments(true);
+    setSyncResult(null);
+    setError("");
+
+    try {
+      const res = await api("/api/admin/sync-comment-counts", {
+        method: "POST",
+        body: {}
+      });
+
+      setSyncResult(res);
+    } catch (err) {
+      setError(err.message || "Đã xảy ra lỗi khi đồng bộ comment counts.");
+    } finally {
+      setSyncingComments(false);
     }
   };
 
@@ -446,6 +471,70 @@ export default function AutoLikeBot() {
             {error}
           </div>
         )}
+
+        {/* Maintenance Tools Section */}
+        <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Wrench className="w-4 h-4 md:w-5 md:h-5 text-gray-800 dark:text-gray-200" />
+            <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">Công Cụ Bảo Trì</h3>
+          </div>
+
+          <div className="bg-gray-100 dark:bg-gray-700 rounded-xl p-4 space-y-4">
+            {/* Sync Comment Counts */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 font-medium text-gray-900 dark:text-white text-sm">
+                  <MessageCircle className="w-4 h-4" />
+                  Đồng bộ Comment Count
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Xóa comment mồ côi và cập nhật lại số lượng comment trên tất cả bài viết
+                </p>
+              </div>
+              <button
+                onClick={syncCommentCounts}
+                disabled={syncingComments}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-purple-400 text-sm font-medium touch-target"
+              >
+                {syncingComments ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Đang đồng bộ...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    Sync Now
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Sync Result */}
+            {syncResult && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                <div className="flex items-center gap-2 text-green-700 dark:text-green-400 font-medium text-sm">
+                  <CheckCircle className="w-4 h-4" />
+                  {syncResult.message}
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                  <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <div className="font-bold text-lg text-gray-900 dark:text-white">{syncResult.orphansDeleted || 0}</div>
+                    <div className="text-gray-500 dark:text-gray-400">Comment đã xóa</div>
+                  </div>
+                  <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <div className="font-bold text-lg text-gray-900 dark:text-white">{syncResult.postsUpdated || 0}</div>
+                    <div className="text-gray-500 dark:text-gray-400">Bài đã cập nhật</div>
+                  </div>
+                  <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <div className="font-bold text-lg text-gray-900 dark:text-white">{syncResult.totalPosts || 0}</div>
+                    <div className="text-gray-500 dark:text-gray-400">Tổng bài viết</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Results - Mobile Responsive */}
         {results && (

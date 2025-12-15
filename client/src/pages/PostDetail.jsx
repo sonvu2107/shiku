@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from "react";
+import React, { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import MenuActions from "../components/MenuActions";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { api } from "../api";
@@ -18,6 +18,7 @@ import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 import { cn } from "../utils/cn";
 import { useToast } from "../contexts/ToastContext";
+import { useUpdatePostCommentCount } from "../hooks/usePosts";
 
 
 /**
@@ -69,6 +70,7 @@ export default function PostDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
+  const updatePostCommentCount = useUpdatePostCommentCount();
   const [data, setDataRaw] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
@@ -316,9 +318,11 @@ export default function PostDetail() {
   }
 
   // Handle comment count change (delta: +1 for add, -1 for delete)
-  function handleCommentCountChange(delta) {
-    setData((prev) => {
+  const handleCommentCountChange = useCallback((delta) => {
+    setDataRaw((prev) => {
       if (!prev) return prev;
+      // Also update posts cache directly with the postId
+      updatePostCommentCount(prev.post._id, delta);
       return {
         ...prev,
         post: {
@@ -327,7 +331,7 @@ export default function PostDetail() {
         }
       };
     });
-  }
+  }, [updatePostCommentCount]);
 
   // Loading skeleton
   if (loading || !data) {
