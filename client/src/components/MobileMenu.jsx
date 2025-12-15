@@ -136,23 +136,25 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop - GPU accelerated */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 bg-black/70 z-[9999] md:hidden"
+            transition={{ duration: 0.1 }}
+            className="fixed inset-0 bg-black/60 z-[9999] md:hidden"
+            style={{ willChange: 'opacity' }}
             onClick={() => setIsOpen(false)}
           />
 
-          {/* Drawer */}
+          {/* Drawer - GPU accelerated with faster animation */}
           <motion.div
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
-            transition={{ type: "tween", duration: 0.2 }}
+            transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
             className="fixed top-0 left-0 h-full w-[75%] max-w-[280px] bg-white dark:bg-neutral-900 shadow-xl z-[10000] md:hidden flex flex-col border-r border-neutral-200 dark:border-neutral-800"
+            style={{ willChange: 'transform' }}
           >
             {/* Header with User Profile */}
             <div className="pt-4 px-5 pb-3 flex-shrink-0">
@@ -242,7 +244,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-neutral-100 dark:border-neutral-800/50 bg-white/50 dark:bg-black/20 backdrop-blur-md space-y-2">
+            <div className="p-4 border-t border-neutral-100 dark:border-neutral-800/50 bg-white dark:bg-neutral-900 space-y-2">
               {/* Dark Mode Toggle */}
               <button
                 onClick={() => setDarkMode && setDarkMode(!darkMode)}

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
 
 /**
@@ -16,25 +16,32 @@ export default function PullToRefresh({ onRefresh, children, disabled = false })
 
     const containerRef = useRef(null);
     const startYRef = useRef(0);
-    const pullThreshold = 80; // Khoảng cách cần kéo để trigger refresh
+    const pullingRef = useRef(false); // Sync ref for event handlers
+    const pullThreshold = 80;
+
+    // Sync pulling state với ref để event handlers luôn có giá trị mới nhất
+    useEffect(() => {
+        pullingRef.current = pulling;
+    }, [pulling]);
 
     const handleTouchStart = useCallback((e) => {
         if (disabled || refreshing) return;
 
-        // Chỉ trigger khi scroll ở top
         const scrollTop = window.scrollY || document.documentElement.scrollTop;
         if (scrollTop > 10) return;
 
         startYRef.current = e.touches[0].clientY;
         setPulling(true);
+        pullingRef.current = true;
     }, [disabled, refreshing]);
 
     const handleTouchMove = useCallback((e) => {
-        if (!pulling || disabled || refreshing) return;
+        if (!pullingRef.current || disabled || refreshing) return;
 
         const scrollTop = window.scrollY || document.documentElement.scrollTop;
         if (scrollTop > 10) {
             setPulling(false);
+            pullingRef.current = false;
             setPullDistance(0);
             return;
         }
@@ -42,18 +49,24 @@ export default function PullToRefresh({ onRefresh, children, disabled = false })
         const currentY = e.touches[0].clientY;
         const distance = Math.max(0, currentY - startYRef.current);
 
-        // Giảm dần khi kéo xa (resistance effect)
+        // Nếu đang kéo xuống, ngăn chặn browser native pull-to-refresh
+        // Chỉ preventDefault khi event có thể cancel được (chưa bắt đầu scroll)
+        if (distance > 0 && e.cancelable) {
+            e.preventDefault();
+        }
+
         const dampedDistance = Math.min(distance * 0.5, 120);
         setPullDistance(dampedDistance);
-    }, [pulling, disabled, refreshing]);
+    }, [disabled, refreshing]);
 
     const handleTouchEnd = useCallback(async () => {
-        if (!pulling) return;
+        if (!pullingRef.current) return;
         setPulling(false);
+        pullingRef.current = false;
 
         if (pullDistance >= pullThreshold && onRefresh && !refreshing) {
             setRefreshing(true);
-            setPullDistance(60); // Giữ indicator visible
+            setPullDistance(60);
 
             try {
                 await onRefresh();
@@ -66,19 +79,36 @@ export default function PullToRefresh({ onRefresh, children, disabled = false })
         } else {
             setPullDistance(0);
         }
-    }, [pulling, pullDistance, onRefresh, refreshing, pullThreshold]);
+    }, [pullDistance, onRefresh, refreshing, pullThreshold]);
 
-    // Tính toán progress (0-1) cho animation
+    // Sử dụng native event listeners với { passive: false } để có thể gọi preventDefault()
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        container.addEventListener('touchstart', handleTouchStart, { passive: true });
+        container.addEventListener('touchmove', handleTouchMove, { passive: false }); // passive: false để gọi được preventDefault()
+        container.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+        return () => {
+            container.removeEventListener('touchstart', handleTouchStart);
+            container.removeEventListener('touchmove', handleTouchMove);
+            container.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+
     const progress = Math.min(pullDistance / pullThreshold, 1);
     const showIndicator = pullDistance > 10 || refreshing;
 
     return (
         <div
             ref={containerRef}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
             className="relative"
+            style={{
+                // Ngăn chặn browser native pull-to-refresh
+                overscrollBehaviorY: 'contain',
+                touchAction: 'pan-y pinch-zoom'
+            }}
         >
             {/* Pull indicator */}
             {showIndicator && (
@@ -90,12 +120,12 @@ export default function PullToRefresh({ onRefresh, children, disabled = false })
                     }}
                 >
                     <div className={`
-            flex items-center gap-2 px-4 py-2 
-            bg-white dark:bg-neutral-900 
-            border border-neutral-200 dark:border-neutral-800 
-            rounded-full shadow-lg
-            ${refreshing ? 'animate-pulse' : ''}
-          `}>
+                        flex items-center gap-2 px-4 py-2 
+                        bg-white dark:bg-neutral-900 
+                        border border-neutral-200 dark:border-neutral-800 
+                        rounded-full shadow-lg
+                        ${refreshing ? 'animate-pulse' : ''}
+                    `}>
                         <RefreshCw
                             size={16}
                             className={`text-neutral-600 dark:text-neutral-400 ${refreshing ? 'animate-spin' : ''}`}

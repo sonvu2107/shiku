@@ -175,16 +175,16 @@ export default function Events() {
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex gap-1 overflow-x-auto no-scrollbar p-1 border-t md:border-t-0 md:border-l border-neutral-200 dark:border-neutral-800">
+            <div className="flex justify-evenly sm:justify-start gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar p-0.5 sm:p-1 border-t md:border-t-0 md:border-l border-neutral-200 dark:border-neutral-800 w-full sm:w-auto">
                {filters.map(f => (
                   <button
                      key={f.id}
                      onClick={() => setFilter(f.id)}
                      className={cn(
-                        "px-4 py-1.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
+                        "flex-1 sm:flex-none px-2.5 sm:px-4 py-1.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap touch-manipulation",
                         filter === f.id
-                           ? "bg-neutral-100 dark:bg-neutral-800 text-black dark:text-white"
-                           : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300"
+                           ? "bg-black dark:bg-white text-white dark:text-black"
+                           : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
                      )}
                   >
                      {f.label}
