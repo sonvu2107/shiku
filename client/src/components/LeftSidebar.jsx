@@ -174,25 +174,22 @@ function LeftSidebar({ user, setUser }) {
     window.location.reload();
   };
 
-  // Navigation menu items
+  // Navigation menu items - Simplified for "Social Feed" vibe
   const menuItems = user ? [
     { icon: Home, label: "Trang chủ", path: "/", show: true, exact: true },
     { icon: Compass, label: "Khám phá", path: "/explore", show: true },
     { icon: Sparkles, label: "Tu Tiên", path: "/cultivation", show: true, highlight: true },
-    { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
     { icon: Image, label: "Media", path: "/media", show: true },
-    { icon: Bookmark, label: "Bài đã lưu", path: "/saved", show: true },
-    { icon: Users, label: "Bạn bè", path: "/friends", show: true },
     { icon: UserCheck, label: "Nhóm", path: "/groups", show: true },
-    { icon: User, label: "Trang cá nhân", path: "/profile", show: true },
-    { icon: Settings, label: "Cài đặt", path: "/settings", show: true },
-    { icon: HelpCircle, label: "Trợ giúp", path: "/support", show: true },
+    { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
+    // Admin item kept but pushed to bottom or managed by role
     { icon: Crown, label: "Admin", path: "/admin", show: user.role === "admin" || Object.keys(user.roleData?.permissions || {}).some(k => k.startsWith('admin.') && user.roleData?.permissions[k]), isAdmin: true },
   ] : [
     { icon: Home, label: "Trang chủ", path: "/", show: true, exact: true },
     { icon: Compass, label: "Khám phá", path: "/explore", show: true },
     { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
     { icon: Image, label: "Media", path: "/media", show: true },
+    // Help moved to navbar/footer usually, but keeping minimal public items is fine
     { icon: HelpCircle, label: "Trợ giúp", path: "/support", show: true },
   ];
 

@@ -31,7 +31,8 @@ import {
   UserCheck,    // Icon groups
   Settings,     // Icon settings
   Moon,         // Icon dark mode
-  Sun           // Icon light mode
+  Sun,          // Icon light mode
+  Bookmark      // Icon saved
 } from "lucide-react";
 
 /**
@@ -606,6 +607,12 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
                             <span className="font-medium">Admin</span>
                           </Link>
                         )}
+                        <Link to="/saved" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors" onClick={() => setShowProfileMenu(false)}>
+                          <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-500">
+                            <Bookmark size={16} />
+                          </div>
+                          <span className="font-medium">Bài viết đã lưu</span>
+                        </Link>
                         <Link to="/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors" onClick={() => setShowProfileMenu(false)}>
                           <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-500">
                             <Settings size={16} />

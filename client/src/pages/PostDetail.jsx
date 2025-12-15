@@ -91,6 +91,7 @@ export default function PostDetail() {
 
   const [showEmoteList, setShowEmoteList] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [showMoreEmotes, setShowMoreEmotes] = useState(false);
 
   const setData = (updater) => {
     setDataRaw(updater);
@@ -393,47 +394,53 @@ export default function PostDetail() {
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
           Quay lại
         </button>
-        <div className="bg-white dark:bg-[#111] rounded-xl sm:rounded-[32px] px-3 sm:px-5 pt-3 sm:pt-4 pb-3 sm:pb-6 mb-3 sm:mb-6
-            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-            border border-transparent dark:border-white/5 relative">
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl sm:rounded-2xl md:rounded-3xl px-3 sm:px-4 md:px-5 pt-3 sm:pt-4 md:pt-5 pb-3 sm:pb-5 md:pb-6 mb-3 sm:mb-5
+            shadow-sm hover:shadow-lg transition-all duration-300
+            border border-gray-100 dark:border-neutral-800/80 relative">
           {/* HEADER */}
-          <div className="flex items-center justify-between mb-2.5 sm:mb-4 px-0 sm:px-1">
+          {/* HEADER - Match ModernPostCard */}
+          <div className="flex items-center justify-between mb-3 sm:mb-4 px-0">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <Link to={`/user/${p.author?._id}`} className="relative flex-shrink-0">
-                <UserAvatar
-                  user={p.author}
-                  size={48}
-                  showFrame={true}
-                  showBadge={true}
-                  className="hidden sm:block"
-                />
-                <UserAvatar
-                  user={p.author}
-                  size={36}
-                  showFrame={true}
-                  showBadge={true}
-                  className="sm:hidden"
-                />
+              <Link to={`/user/${p.author?._id}`} className="relative flex-shrink-0 group/avatar">
+                <div className="ring-2 ring-transparent group-hover/avatar:ring-blue-100 dark:group-hover/avatar:ring-blue-900/50 rounded-full transition-all">
+                  <UserAvatar
+                    user={p.author}
+                    size={36}
+                    showFrame={true}
+                    showBadge={true}
+                    className="sm:hidden rounded-full"
+                  />
+                  <UserAvatar
+                    user={p.author}
+                    size={42}
+                    showFrame={true}
+                    showBadge={true}
+                    className="hidden sm:block md:hidden rounded-full"
+                  />
+                  <UserAvatar
+                    user={p.author}
+                    size={48}
+                    showFrame={true}
+                    showBadge={true}
+                    className="hidden md:block rounded-full"
+                  />
+                </div>
               </Link>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 flex flex-col">
                 <Link
                   to={`/user/${p.author?._id}`}
-                  className="font-bold text-xs sm:text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1 sm:gap-1.5"
+                  className="font-bold text-[14px] sm:text-[15px] md:text-base text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 line-clamp-1"
                 >
-                  <UserName user={p.author} maxLength={18} />
+                  <UserName user={p.author} maxLength={20} />
                   {p.author?.role === 'admin' && <VerifiedBadge user={p.author} />}
                 </Link>
-                <div className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1 sm:gap-1.5 mt-0.5 flex-wrap">
-                  {timeAgo && <span className="whitespace-nowrap">{timeAgo}</span>}
-                  {timeAgo && <span>•</span>}
-                  <span className={cn(
-                    "px-1 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[10px] font-semibold whitespace-nowrap",
-                    p.status === 'private'
-                      ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-                      : "bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
-                  )}>
-                    {statusLabel}
-                  </span>
+                <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] md:text-xs text-gray-400 dark:text-gray-500 font-medium mt-0.5">
+                  <span className="truncate max-w-[80px] sm:max-w-[100px] md:max-w-none">{timeAgo}</span>
+                  {p.status === 'private' && (
+                    <span className="flex items-center gap-0.5 bg-gray-50 dark:bg-white/5 px-1 sm:px-1.5 py-0.5 rounded text-gray-500 text-[9px] sm:text-[10px]">
+                      🔒 <span className="hidden sm:inline">Riêng tư</span>
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -458,17 +465,17 @@ export default function PostDetail() {
             )}
           </div>
 
-          {/* TITLE */}
+          {/* TITLE - Match ModernPostCard */}
           {p.title && (
-            <h1 className="px-0 sm:px-1 mb-2 sm:mb-3 text-lg sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight break-words">
+            <h1 className="mb-2 sm:mb-3 text-base sm:text-lg md:text-2xl font-bold text-gray-900 dark:text-gray-50 leading-snug break-words">
               {p.title}
             </h1>
           )}
 
-          {/* CONTENT */}
+          {/* CONTENT - Match ModernPostCard */}
           {p.content && (
-            <div className="px-0 sm:px-1 mb-2.5 sm:mb-4">
-              <div className="prose dark:prose-invert max-w-none text-xs sm:text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed prose-p:mb-2 sm:prose-p:mb-3 prose-headings:mb-2 prose-headings:mt-4">
+            <div className="mb-3 sm:mb-4">
+              <div className="prose dark:prose-invert max-w-none text-[13px] sm:text-[14px] md:text-[15px] leading-[1.6] sm:leading-relaxed text-gray-700 dark:text-gray-300 font-normal prose-p:mb-2 prose-headings:mb-2 prose-headings:mt-4">
                 <MarkdownWithMentions
                   content={p.content}
                   mentionedUsers={p.mentions || []}
@@ -645,79 +652,164 @@ export default function PostDetail() {
 
           {/* Popup danh sách người đã thả emote */}
           {showEmoteList && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-3 sm:p-4" onClick={() => setShowEmoteList(false)}>
-              <div className="bg-white dark:bg-[#111] text-gray-900 dark:text-white rounded-xl sm:rounded-2xl shadow-2xl p-0 w-full max-w-[95vw] sm:w-[500px] relative max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                {/* Header tabs */}
-                <div className="flex items-center border-b border-gray-200 dark:border-gray-800 px-3 sm:px-6 pt-4 sm:pt-5 pb-2 gap-2 overflow-x-auto scrollbar-hide flex-shrink-0">
+            <div
+              data-emote-list-modal
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-2 sm:p-4"
+              onClick={() => setShowEmoteList(false)}
+            >
+              <div
+                className="bg-white dark:bg-[#242526] text-gray-900 dark:text-white rounded-lg shadow-2xl w-full max-w-[min(92vw,400px)] sm:max-w-[520px] relative flex flex-col overflow-hidden"
+                style={{ height: 'min(75vh, 450px)' }}
+                onClick={e => e.stopPropagation()}
+              >
+                {/* Header - Facebook style */}
+                <div className="flex items-center justify-between px-2 sm:px-3 py-2 border-b border-gray-200 dark:border-[#3e4042] flex-shrink-0">
+                  {/* Tabs - evenly distributed on mobile */}
+                  <div className="flex items-center justify-around sm:justify-start sm:gap-1 flex-1 min-w-0">
+                    {/* Tab "Tất cả" */}
+                    <button
+                      className={cn(
+                        "flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 text-xs sm:text-sm font-medium whitespace-nowrap transition-colors relative",
+                        activeTab === 'all'
+                          ? 'text-blue-500 dark:text-blue-400'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3a3b3c] rounded-md'
+                      )}
+                      onClick={() => setActiveTab('all')}
+                    >
+                      <span>Tất cả</span>
+                      {activeTab === 'all' && (
+                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-0.5 bg-blue-500 dark:bg-blue-400 rounded-full" />
+                      )}
+                    </button>
+
+                    {/* First 3 emotes as tabs */}
+                    {Object.entries(counts)
+                      .filter(([_, count]) => count > 0)
+                      .slice(0, 3)
+                      .map(([emo]) => (
+                        <button
+                          key={emo}
+                          className={cn(
+                            "flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-1 sm:py-1.5 text-xs sm:text-sm font-medium whitespace-nowrap transition-colors relative",
+                            activeTab === emo
+                              ? 'text-blue-500 dark:text-blue-400'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3a3b3c] rounded-md'
+                          )}
+                          onClick={() => setActiveTab(emo)}
+                        >
+                          <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-gray-100 dark:bg-[#3a3b3c] flex items-center justify-center">
+                            <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-5 h-5 sm:w-4 sm:h-4" />
+                          </div>
+                          <span className="text-[10px] sm:text-xs">{counts[emo]}</span>
+                          {activeTab === emo && (
+                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-0.5 bg-blue-500 dark:bg-blue-400 rounded-full" />
+                          )}
+                        </button>
+                      ))}
+
+                    {/* "Xem thêm" dropdown for remaining emotes */}
+                    {Object.entries(counts).filter(([_, count]) => count > 0).length > 3 && (
+                      <div className="relative">
+                        <button
+                          className={cn(
+                            "flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium whitespace-nowrap transition-colors rounded-md",
+                            Object.entries(counts).filter(([_, c]) => c > 0).slice(3).some(([e]) => activeTab === e)
+                              ? 'text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3a3b3c]'
+                          )}
+                          onClick={() => setShowMoreEmotes(!showMoreEmotes)}
+                        >
+                          <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-gray-100 dark:bg-[#3a3b3c] flex items-center justify-center">
+                            <svg className={cn("w-4 h-4 transition-transform text-gray-500", showMoreEmotes && "rotate-180")} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                          <span className="hidden sm:inline">Thêm</span>
+                        </button>
+
+                        {/* Dropdown menu */}
+                        {showMoreEmotes && (
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 mt-1 bg-white dark:bg-[#242526] border border-gray-200 dark:border-[#3e4042] rounded-lg shadow-lg py-1 z-20 min-w-[100px]">
+                            {Object.entries(counts)
+                              .filter(([_, count]) => count > 0)
+                              .slice(3)
+                              .map(([emo]) => (
+                                <button
+                                  key={emo}
+                                  className={cn(
+                                    "flex items-center gap-2 w-full px-3 py-1.5 text-sm font-medium transition-colors",
+                                    activeTab === emo
+                                      ? 'text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10'
+                                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3a3b3c]'
+                                  )}
+                                  onClick={() => {
+                                    setActiveTab(emo);
+                                    setShowMoreEmotes(false);
+                                  }}
+                                >
+                                  <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-5 h-5" />
+                                  <span className="text-xs">{counts[emo]}</span>
+                                </button>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Close button */}
                   <button
-                    className={cn("font-semibold px-2.5 sm:px-3 py-1.5 rounded whitespace-nowrap flex-shrink-0 text-sm sm:text-base touch-manipulation", activeTab === 'all' ? 'bg-gray-100 dark:bg-gray-800' : '')}
-                    onClick={() => setActiveTab('all')}
+                    className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3a3b3c] rounded-full transition-colors ml-1 flex-shrink-0"
+                    onClick={() => setShowEmoteList(false)}
+                    aria-label="Đóng"
                   >
-                    Tất cả
+                    <X size={18} />
                   </button>
-                  {Object.entries(counts)
-                    .filter(([_, count]) => count > 0)
-                    .map(([emo]) => (
-                      <button
-                        key={emo}
-                        className={cn("flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded whitespace-nowrap flex-shrink-0 text-sm sm:text-base touch-manipulation", activeTab === emo ? 'bg-gray-100 dark:bg-gray-800' : '')}
-                        onClick={() => setActiveTab(emo)}
-                      >
-                        <img src={`/assets/${emoteMap[emo]}`} alt={emo} className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                        <span>{counts[emo]}</span>
-                      </button>
-                    ))}
                 </div>
 
-                {/* Close button */}
-                <button className="absolute top-2 sm:top-3 right-2 sm:right-4 text-xl sm:text-2xl text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white p-2 touch-manipulation" onClick={() => setShowEmoteList(false)} aria-label="Đóng">
-                  &#10005;
-                </button>
-
-                {/* User list */}
-                <div className="px-3 sm:px-6 py-3 max-h-[60vh] overflow-y-auto custom-scrollbar flex-1">
-                  {(() => {
-                    let emoteUsers;
-                    if (activeTab === "all") {
-                      emoteUsers = emotesState;
-                    } else {
-                      emoteUsers = emotesState.filter(e => e.type === activeTab);
-                    }
-                    if (emoteUsers.length === 0) return <div className="text-gray-400 dark:text-gray-500 text-sm sm:text-base py-4 text-center">Chưa có ai thả cảm xúc này.</div>;
-                    return emoteUsers.map((e, idx) => {
-                      const emoteUser = e.user || {};
-                      return (
-                        <div key={idx} className="flex gap-2 sm:gap-3 py-2 border-b border-gray-200 dark:border-gray-800 items-center">
-                          <UserAvatar
-                            user={emoteUser}
-                            size={40}
-                            showFrame={true}
-                            showBadge={true}
-                            className="hidden sm:block"
-                          />
-                          <UserAvatar
-                            user={emoteUser}
-                            size={32}
-                            showFrame={true}
-                            showBadge={true}
-                            className="sm:hidden"
-                          />
-                          <UserName user={emoteUser} className="font-semibold text-xs sm:text-sm text-gray-900 dark:text-white min-w-0 flex-1" />
-                          <div className="flex-shrink-0">
-                            <img src={`/assets/${emoteMap[e.type]}`} alt={e.type} className="w-4 h-4 sm:w-5 sm:h-5 ml-1 sm:ml-2" />
+                {/* User list - Fixed height */}
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <div className="px-2 py-1">
+                    {(() => {
+                      let emoteUsers;
+                      if (activeTab === "all") {
+                        emoteUsers = emotesState;
+                      } else {
+                        emoteUsers = emotesState.filter(e => e.type === activeTab);
+                      }
+                      if (emoteUsers.length === 0) return <div className="text-gray-500 dark:text-gray-400 text-sm py-8 text-center">Chưa có ai thả cảm xúc này.</div>;
+                      return emoteUsers.map((e, idx) => {
+                        const emoteUser = e.user || {};
+                        return (
+                          <div key={idx} className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-[#3a3b3c] rounded-lg transition-colors cursor-pointer">
+                            {/* Avatar */}
+                            <UserAvatar
+                              user={emoteUser}
+                              size={36}
+                              showFrame={true}
+                              showBadge={false}
+                            />
+                            {/* Name */}
+                            <div className="min-w-0 flex-1">
+                              <span className="font-medium text-sm text-gray-900 dark:text-white block truncate">
+                                {emoteUser.name || 'Người dùng'}
+                              </span>
+                            </div>
+                            {/* Emote icon on right */}
+                            <img src={`/assets/${emoteMap[e.type]}`} alt={e.type} className="w-6 h-6 flex-shrink-0" />
                           </div>
-                        </div>
-                      );
-                    });
-                  })()}
+                        );
+                      });
+                    })()}
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ACTION BAR */}
-          <div className="flex items-center justify-between px-0 sm:px-1 pt-1 gap-0.5 sm:gap-2">
-            <div className="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0">
+          {/* ACTION BAR - Match ModernPostCard */}
+          <div className="flex items-center justify-between pt-2 sm:pt-2.5 border-t border-gray-50 dark:border-white/5 mt-1 sm:mt-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
               {/* Emote/Like Button với Popup */}
               <div
                 className="relative"
@@ -729,7 +821,7 @@ export default function PostDetail() {
                 }}
                 onMouseLeave={() => {
                   if (window.innerWidth >= 768) {
-                    emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1200);
+                    emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 500);
                   }
                 }}
               >
@@ -787,7 +879,7 @@ export default function PostDetail() {
                 })()}
                 {showEmotePopup && (
                   <div
-                    className="absolute bottom-full left-0 md:left-1/2 md:-translate-x-1/2 mb-2 emote-picker bg-white dark:bg-gray-800 rounded-xl shadow-lg z-20 border border-gray-200 dark:border-gray-700 p-2 flex gap-1 w-max max-w-[calc(100vw-2rem)]"
+                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 emote-picker bg-white dark:bg-gray-800 rounded-2xl shadow-xl z-20 border border-gray-200 dark:border-gray-700 px-2 py-2.5 sm:px-3 sm:py-2"
                     onMouseEnter={() => {
                       if (window.innerWidth >= 768) {
                         if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
@@ -795,38 +887,42 @@ export default function PostDetail() {
                     }}
                     onMouseLeave={() => {
                       if (window.innerWidth >= 768) {
-                        emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1200);
+                        emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 500);
                       }
                     }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {emotes.map((e) => {
-                      const myEmote = emotesState.find(em => {
-                        const emoteUserId = em.user?._id || em.user;
-                        const currentUserId = user?.id || user?._id;
-                        return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
-                      });
-                      const isActive = myEmote?.type === e;
-                      return (
-                        <button
-                          key={e}
-                          className={cn(
-                            "transition-all hover:scale-110 active:scale-95 touch-manipulation",
-                            isActive ? 'opacity-100 ring-2 ring-blue-500 rounded-full' : 'opacity-90'
-                          )}
-                          type="button"
-                          onClick={() => {
-                            emote(e);
-                            if (window.innerWidth < 768) {
-                              setTimeout(() => setShowEmotePopup(false), 100);
-                            }
-                          }}
-                          onMouseDown={(e) => e.preventDefault()}
-                        >
-                          <img src={`/assets/${emoteMap[e]}`} alt={e} className="w-7 h-7 sm:w-8 sm:h-8" />
-                        </button>
-                      );
-                    })}
+                    <div className="flex items-center justify-around gap-1.5 sm:gap-2">
+                      {emotes.map((e) => {
+                        const myEmote = emotesState.find(em => {
+                          const emoteUserId = em.user?._id || em.user;
+                          const currentUserId = user?.id || user?._id;
+                          return emoteUserId === currentUserId || emoteUserId?.toString() === currentUserId?.toString();
+                        });
+                        const isActive = myEmote?.type === e;
+                        return (
+                          <button
+                            key={e}
+                            className={cn(
+                              "w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 touch-manipulation",
+                              isActive
+                                ? 'bg-blue-100 dark:bg-blue-500/20 ring-2 ring-blue-500'
+                                : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                            )}
+                            type="button"
+                            onClick={() => {
+                              emote(e);
+                              if (window.innerWidth < 768) {
+                                setTimeout(() => setShowEmotePopup(false), 100);
+                              }
+                            }}
+                            onMouseDown={(e) => e.preventDefault()}
+                          >
+                            <img src={`/assets/${emoteMap[e]}`} alt={e} className="w-6 h-6 sm:w-7 sm:h-7" />
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -885,10 +981,10 @@ export default function PostDetail() {
         </div>
 
         {/* Comments */}
+        {/* Comments - Match ModernPostCard card style */}
         <div id="comments-section">
-          <div className="bg-white dark:bg-[#111] rounded-xl sm:rounded-[32px] p-3 sm:p-5 mb-3 sm:mb-6
-            shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-            border border-transparent dark:border-white/5">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl sm:rounded-2xl md:rounded-3xl p-3 sm:p-4 md:p-5 mb-3 sm:mb-5
+            shadow-sm border border-gray-100 dark:border-neutral-800/80">
             <h2 className="text-base sm:text-xl font-bold mb-2.5 sm:mb-4 text-gray-900 dark:text-white">Bình luận</h2>
             {(() => {
               // Xác định quyền bình luận nếu bài đăng thuộc về một nhóm
@@ -1025,6 +1121,6 @@ export default function PostDetail() {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

@@ -110,27 +110,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
     window.location.reload();
   };
 
-  const menuItems = user ? [
-    { icon: Home, label: "Trang chủ", path: "/", show: true },
-    { icon: Compass, label: "Khám phá", path: "/explore", show: true },
-    { icon: Sparkles, label: "Tu Tiên", path: "/cultivation", show: true, highlight: true },
-    { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
-    { icon: Image, label: "Media", path: "/media", show: true },
-    { icon: Bookmark, label: "Bài đã lưu", path: "/saved", show: true },
-    { icon: Users, label: "Bạn bè", path: "/friends", show: true },
-    { icon: UserCheck, label: "Nhóm", path: "/groups", show: true },
-    { icon: MessageCircle, label: "Chat", path: "/chat", show: false },
-    { icon: Bell, label: "Thông báo", path: "/notifications", show: false },
-    { icon: User, label: "Trang cá nhân", path: "/profile", show: true },
-    { icon: Settings, label: "Cài đặt", path: "/settings", show: true },
-    { icon: HelpCircle, label: "Trợ giúp", path: "/support", show: true },
-    { icon: Crown, label: "Admin", path: "/admin", show: user.role === "admin" || Object.keys(user.roleData?.permissions || {}).some(k => k.startsWith('admin.') && user.roleData?.permissions[k]), isAdmin: true },
-  ] : [
-    { icon: Home, label: "Trang chủ", path: "/", show: true },
-    { icon: Compass, label: "Khám phá", path: "/explore", show: true },
-    { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
-    { icon: Image, label: "Media", path: "/media", show: true },
-  ];
+
 
   const menuContent = typeof document !== 'undefined' ? createPortal(
     <AnimatePresence>
@@ -187,16 +167,22 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
               )}
             </div>
 
-            {/* Menu Items */}
-            <div className="flex-1 overflow-y-auto px-4 py-1 no-scrollbar">
+            {/* Menu Items - Grouped */}
+            <div className="flex-1 overflow-y-auto px-4 py-1 no-scrollbar space-y-2">
+              {/* Group 1: Social / Browse */}
               <div className="space-y-1">
-                {menuItems.map((item, index) => {
+                {[
+                  { icon: Home, label: "Trang chủ", path: "/", show: true },
+                  { icon: Compass, label: "Khám phá", path: "/explore", show: true },
+                  { icon: Sparkles, label: "Tu Tiên", path: "/cultivation", show: true, highlight: true },
+                  { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
+                  { icon: Image, label: "Media", path: "/media", show: true },
+                ].map((item) => {
                   if (!item.show) return null;
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
                   const isCultivation = item.path === '/cultivation';
 
-                  // Xử lý click cho Tu Tiên - hiện popup xác nhận
                   const handleClick = (e) => {
                     if (isCultivation) {
                       e.preventDefault();
@@ -211,6 +197,109 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
                       key={item.path}
                       to={isCultivation ? "#" : item.path}
                       onClick={handleClick}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group",
+                        isActive
+                          ? "bg-black dark:bg-white shadow-md shadow-black/5"
+                          : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white"
+                      )}
+                    >
+                      <Icon
+                        size={20}
+                        strokeWidth={isActive ? 2.5 : 2}
+                        className={cn(
+                          "transition-transform group-hover:scale-110",
+                          isActive && "scale-110"
+                        )}
+                        style={isActive ? { color: darkMode ? '#000000' : '#ffffff' } : undefined}
+                      />
+                      <span
+                        className={cn(
+                          "font-medium text-[15px]",
+                          isActive && "font-bold",
+                          isActive ? "text-white dark:text-black" : ""
+                        )}
+                      >
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-neutral-100 dark:border-neutral-800/60 mx-2" />
+
+              {/* Group 2: Personal / My Content */}
+              <div className="space-y-1">
+                {[
+                  { icon: Bookmark, label: "Bài đã lưu", path: "/saved", show: true },
+                  { icon: Users, label: "Bạn bè", path: "/friends", show: true },
+                  { icon: UserCheck, label: "Nhóm", path: "/groups", show: true },
+                  { icon: MessageCircle, label: "Chat", path: "/chat", show: false }, // Hidden by default config
+                  { icon: Bell, label: "Thông báo", path: "/notifications", show: false }, // Hidden by default config
+                ].map((item) => {
+                  if (!item.show) return null;
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setIsOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group",
+                        isActive
+                          ? "bg-black dark:bg-white shadow-md shadow-black/5"
+                          : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white"
+                      )}
+                    >
+                      <Icon
+                        size={20}
+                        strokeWidth={isActive ? 2.5 : 2}
+                        className={cn(
+                          "transition-transform group-hover:scale-110",
+                          isActive && "scale-110"
+                        )}
+                        style={isActive ? { color: darkMode ? '#000000' : '#ffffff' } : undefined}
+                      />
+                      <span
+                        className={cn(
+                          "font-medium text-[15px]",
+                          isActive && "font-bold",
+                          isActive ? "text-white dark:text-black" : ""
+                        )}
+                      >
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-neutral-100 dark:border-neutral-800/60 mx-2" />
+
+              {/* Group 3: Account / System */}
+              <div className="space-y-1">
+                {[
+                  { icon: User, label: "Trang cá nhân", path: "/profile", show: true },
+                  { icon: Settings, label: "Cài đặt", path: "/settings", show: true },
+                  { icon: HelpCircle, label: "Trợ giúp", path: "/support", show: true },
+                  { icon: Crown, label: "Admin", path: "/admin", show: user && (user.role === "admin" || Object.keys(user.roleData?.permissions || {}).some(k => k.startsWith('admin.') && user.roleData?.permissions[k])), isAdmin: true },
+                ].map((item) => {
+                  // Clean check for show
+                  if (item.show === false) return null;
+
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setIsOpen(false)}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group",
                         isActive

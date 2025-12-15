@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { MoreVertical, Lock, Globe, Edit, Trash2, Bookmark, BookmarkCheck } from "lucide-react";
+import { MoreHorizontal, Lock, Globe, Edit, Trash2, Bookmark, BookmarkCheck } from "lucide-react";
 
 /**
  * MenuActions - Dropdown menu with actions for a post
@@ -15,12 +15,12 @@ import { MoreVertical, Lock, Globe, Edit, Trash2, Bookmark, BookmarkCheck } from
  */
 export default function MenuActions({ onToggleStatus, onEdit, onDelete, onSave, isPrivate, saved }) {
   // ==================== STATE MANAGEMENT ====================
-  
+
   const [open, setOpen] = useState(false); // Open/closed state of the menu
   const menuRef = useRef(); // Ref used to detect clicks outside the menu
 
   // ==================== EFFECTS ====================
-  
+
   // Close menu when clicking outside
   React.useEffect(() => {
     function handleClick(e) {
@@ -39,7 +39,7 @@ export default function MenuActions({ onToggleStatus, onEdit, onDelete, onSave, 
         onClick={() => setOpen((v) => !v)}
         title="Tùy chọn"
       >
-        <MoreVertical size={22} />
+        <MoreHorizontal size={22} />
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-50 flex flex-col py-1 overflow-hidden">

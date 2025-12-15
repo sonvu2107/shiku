@@ -810,15 +810,11 @@ function Home({ user, setUser }) {
                       // Use flushSync for immediate state update
                       setDarkMode(prev => !prev);
                     }}
-                    className="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-75"
+                    className="p-2.5 rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white transition-all"
                     title={darkMode ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
                     aria-label={darkMode ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
                   >
-                    {darkMode ? (
-                      <Sun size={20} className="text-gray-600 dark:text-gray-300" />
-                    ) : (
-                      <Moon size={20} className="text-gray-600 dark:text-gray-300" />
-                    )}
+                    {darkMode ? <Moon size={20} /> : <Sun size={20} />}
                   </button>
 
                   {/* 2. Friends */}

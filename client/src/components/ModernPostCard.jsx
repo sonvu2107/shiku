@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, memo, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Plus, Minus, Star, X, Smile, Image as ImageIcon, Send, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Star, X, Smile, Image as ImageIcon, Send, Loader2, Play } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getOptimizedImageUrl } from "../utils/imageOptimization";
 import LazyImage from "./LazyImageSimple";
@@ -26,6 +26,14 @@ const emoteMap = {
   "😡": "angry.gif"
 };
 const emotes = Object.keys(emoteMap);
+
+// ThumbsUp Icon Component
+const ThumbsUpIcon = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M7 10v12" />
+    <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
+  </svg>
+);
 
 const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedChange, hideActionsMenu = false, isFirst = false }) => {
   const navigate = useNavigate();
@@ -154,6 +162,14 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           setShowMainMenu(false);
         }
       }
+      if (showEmotePopup && !event.target.closest('.emote-picker') && !event.target.closest('.emote-trigger')) {
+        if (window.innerWidth < 768) {
+          setShowEmotePopup(false);
+        }
+      }
+      if (showCommentEmojiPicker && !event.target.closest('.comment-emoji-picker-container')) {
+        setShowCommentEmojiPicker(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -162,10 +178,10 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
     };
-  }, [showMainMenu]);
+  }, [showMainMenu, showEmotePopup, showCommentEmojiPicker]);
 
   // Get the emote the current user has left
-  const getUserEmote = React.useMemo(() => {
+  const getUserEmote = useMemo(() => {
     if (!user || typeof user !== 'object') return null;
     const currentUserRawId = user._id ?? user.id;
     if (!currentUserRawId) return null;
@@ -289,7 +305,6 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         if (emotePopupTimeout.current) {
           clearTimeout(emotePopupTimeout.current);
         }
-        // Không gọi onUpdate để tránh reload
       }
     } catch (e) {
       // Revert optimistic update
@@ -352,7 +367,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       const found = Array.isArray(post.files)
         ? post.files.find(f => f.url === post.coverUrl)
         : null;
-      if (found) return { url: post.coverUrl, type: found.type };
+      if (found) return { url: post.coverUrl, type: found.type, thumbnail: found.thumbnail };
       return { url: post.coverUrl, type: "image" };
     }
     if (Array.isArray(post.files) && post.files.length > 0) {
@@ -360,23 +375,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     }
     return null;
   }, [post.coverUrl, post.files]);
-  const statusLabel = post.status === 'private' ? 'Riêng tư' : 'Công khai';
 
-  // Close emote popup when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showEmotePopup && !event.target.closest('.emote-picker') && !event.target.closest('.emote-trigger')) {
-        if (window.innerWidth < 768) {
-          setShowEmotePopup(false);
-        }
-      }
-      if (showCommentEmojiPicker && !event.target.closest('.comment-emoji-picker-container')) {
-        setShowCommentEmojiPicker(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showEmotePopup, showCommentEmojiPicker]);
+  const isPrivate = post.status === 'private';
 
   // Emoji list for comment input
   const emojiList = [
@@ -389,17 +389,9 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨',
     '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩',
     '😫', '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️',
-    '💩', '🤡', '👹', '👺', '👻', '👽', '👾', '🤖', '😺', '😸',
-    '😹', '😻', '😼', '😽', '🙀', '😿', '😾', '🙈', '🙉', '🙊',
     '💋', '💌', '💘', '💝', '💖', '💗', '💓', '💞', '💕', '💟',
-    '❣️', '💔', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
-    '🤎', '💯', '💢', '💥', '💫', '💦', '💨', '🕳️', '💣', '💬',
-    '👁️‍🗨️', '🗨️', '🗯️', '💭', '💤', '👋', '🤚', '🖐️', '✋', '🖖',
-    '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉',
-    '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜',
-    '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💪', '🦾', '🦿',
-    '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🫀', '🫁', '🦷', '🦴',
-    '👀', '👁️', '👅', '👄', '💋', '🩸'
+    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '👍', '👎',
+    '👏', '🙌', '🤝', '🙏', '💪', '👋', '✌️', '🤘', '🤙', '✨'
   ];
 
   // Render emoji picker for comment
@@ -407,9 +399,9 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
     if (!showCommentEmojiPicker) return null;
 
     return (
-      <div className="absolute bottom-full right-0 mb-2 w-[calc(100vw-2rem)] sm:w-[360px] max-w-[360px] bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 z-[9999] overflow-hidden animate-in fade-in zoom-in-95 duration-200 comment-emoji-picker-container">
-        <div className="p-3 max-h-[280px] overflow-y-auto">
-          <div className="grid grid-cols-8 gap-1">
+      <div className="absolute bottom-full right-0 mb-2 w-[calc(100vw-2rem)] sm:w-[320px] max-w-[320px] bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 z-[9999] overflow-hidden animate-in fade-in zoom-in-95 duration-200 comment-emoji-picker-container">
+        <div className="p-2 sm:p-3 max-h-[220px] sm:max-h-[260px] overflow-y-auto">
+          <div className="grid grid-cols-8 gap-0.5 sm:gap-1">
             {emojiList.map((emoji, index) => (
               <button
                 key={index}
@@ -418,7 +410,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                   setCommentContent(prev => prev + emoji);
                   setShowCommentEmojiPicker(false);
                 }}
-                className="w-10 h-10 flex items-center justify-center text-2xl hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+                className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-xl sm:text-2xl hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
                 title={emoji}
               >
                 {emoji}
@@ -491,185 +483,203 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   return (
     <div
       onClick={() => navigate(`/post/${post.slug || post._id}`)}
-      className="group relative bg-white dark:bg-black px-4 md:px-6 py-6 border-b border-neutral-100 dark:border-neutral-800 cursor-pointer transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/40"
+      className="group relative bg-white dark:bg-[#1a1a1a] rounded-xl sm:rounded-2xl md:rounded-3xl border border-gray-100 dark:border-neutral-800/80 shadow-sm hover:shadow-lg transition-all duration-300 my-3 sm:my-4 md:my-5 mx-2 sm:mx-0 overflow-hidden cursor-pointer"
     >
-      {/* 1. Header: User Info */}
-      <div className="flex justify-between items-start mb-2 md:mb-3">
-        <div className="flex items-center gap-2 md:gap-3" onClick={e => e.stopPropagation()}>
-          <Link to={`/user/${post.author?._id}`} className="relative flex-shrink-0">
-            <UserAvatar
-              user={post.author}
-              size={36}
-              showFrame={true}
-              showBadge={true}
-              className="md:hidden"
-            />
-            <UserAvatar
-              user={post.author}
-              size={40}
-              showFrame={true}
-              showBadge={true}
-              className="hidden md:block"
-            />
-          </Link>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 max-w-full overflow-hidden">
-              <Link
-                to={`/user/${post.author?._id}`}
-                className="font-bold text-sm md:text-base text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 max-w-full overflow-hidden"
-                onClick={e => e.stopPropagation()}
-              >
-                <UserName user={post.author} maxLength={18} />
-              </Link>
+      {/* 1. Header */}
+      <div className="px-3 sm:px-4 md:px-5 pt-3 sm:pt-4 md:pt-5 pb-2 flex justify-between items-start">
+        <div className="flex items-center gap-2 sm:gap-3" onClick={e => e.stopPropagation()}>
+          <Link to={`/user/${post.author?._id}`} className="relative group/avatar flex-shrink-0">
+            <div className="ring-2 ring-transparent group-hover/avatar:ring-blue-100 dark:group-hover/avatar:ring-blue-900/50 rounded-full transition-all">
+              {/* Mobile: 36px, Tablet: 40px, Desktop: 44px */}
+              <UserAvatar
+                user={post.author}
+                size={36}
+                showFrame={true}
+                showBadge={true}
+                className="sm:hidden rounded-full"
+              />
+              <UserAvatar
+                user={post.author}
+                size={40}
+                showFrame={true}
+                showBadge={true}
+                className="hidden sm:block md:hidden rounded-full"
+              />
+              <UserAvatar
+                user={post.author}
+                size={44}
+                showFrame={true}
+                showBadge={true}
+                className="hidden md:block rounded-full"
+              />
             </div>
-            <div className="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1 md:gap-1.5 mt-0.5">
-              {timeAgo && <span className="truncate max-w-[120px] md:max-w-none">{timeAgo}</span>}
-              {timeAgo && <span>•</span>}
-              <span className={cn(
-                "px-1.5 md:px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-semibold flex-shrink-0",
-                post.status === 'private'
-                  ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-                  : "bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
-              )}>
-                {statusLabel}
-              </span>
+          </Link>
+          <div className="flex flex-col min-w-0">
+            <Link
+              to={`/user/${post.author?._id}`}
+              className="font-bold text-[14px] sm:text-[15px] md:text-base text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-1"
+              onClick={e => e.stopPropagation()}
+            >
+              <UserName user={post.author} maxLength={20} />
+            </Link>
+            {/* Mobile: more compact metadata */}
+            <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] md:text-xs text-gray-400 dark:text-gray-500 font-medium">
+              <span className="truncate max-w-[80px] sm:max-w-[100px] md:max-w-none">{timeAgo}</span>
+              {isPrivate && (
+                <span className="flex items-center gap-0.5 bg-gray-50 dark:bg-white/5 px-1 sm:px-1.5 py-0.5 rounded text-gray-500 text-[9px] sm:text-[10px]">
+                  🔒 <span className="hidden sm:inline">Riêng tư</span>
+                </span>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Menu Button */}
         {!hideActionsMenu && user && user._id && user._id !== post.author?._id && (
-          <div className="flex items-center gap-1">
+          <div className="relative" onClick={e => e.stopPropagation()}>
             <button
+              ref={mainMenuButtonRef}
               onClick={(e) => {
                 e.stopPropagation();
-                handleInterested(true);
+                setShowMainMenu(!showMainMenu);
               }}
-              className={cn(
-                "w-9 h-9 flex items-center justify-center rounded-full transition-colors",
-                interestStatus === true
-                  ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
-                  : "text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
-              )}
-              title="Quan tâm"
+              className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-full transition-colors"
             >
-              <Star size={18} className={cn(interestStatus === true && "fill-current")} />
+              <MoreHorizontal size={18} className="sm:w-5 sm:h-5" />
             </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleInterested(false);
-              }}
-              className={cn(
-                "w-9 h-9 flex items-center justify-center rounded-full transition-colors",
-                interestStatus === false
-                  ? "text-red-500 bg-red-50 dark:bg-red-900/20"
-                  : "text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
+            <AnimatePresence>
+              {showMainMenu && (
+                <motion.div
+                  ref={mainMenuRef}
+                  initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                  className="absolute right-0 top-full mt-1 bg-white dark:bg-neutral-800 shadow-xl border border-gray-100 dark:border-neutral-700 rounded-xl py-1 z-20 w-44 sm:w-48"
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleInterested(true);
+                      setShowMainMenu(false);
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2",
+                      interestStatus === true && "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20"
+                    )}
+                  >
+                    <Star size={14} className={cn("sm:w-4 sm:h-4", interestStatus === true && "fill-current")} />
+                    <span>Quan tâm bài viết</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleInterested(false);
+                      setShowMainMenu(false);
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2",
+                      interestStatus === false && "text-red-600 bg-red-50 dark:bg-red-900/20"
+                    )}
+                  >
+                    <X size={14} className="sm:w-4 sm:h-4" />
+                    <span>Không quan tâm</span>
+                  </button>
+                </motion.div>
               )}
-              title="Không quan tâm"
-            >
-              <X size={18} />
-            </button>
+            </AnimatePresence>
           </div>
         )}
       </div>
 
-      {/* 2. Title */}
-      {post.title && (
-        <h3 className="mb-2 md:mb-3 text-base md:text-lg font-bold text-gray-900 dark:text-white leading-tight line-clamp-2 break-words">
-          {post.title}
-        </h3>
-      )}
-
-      {/* 3. Content */}
-      {post.content && (
-        <div className="mb-3 md:mb-4">
-          <div className="prose dark:prose-invert max-w-none text-sm md:text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed prose-p:mb-2 prose-headings:mb-2 prose-headings:mt-3 prose-headings:text-base md:prose-headings:text-lg prose-p:line-clamp-3 prose-p:break-words prose-strong:font-bold prose-em:italic prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800 prose-pre:p-3 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-ul:list-disc prose-ol:list-decimal prose-li:ml-4 prose-blockquote:border-l-4 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-700 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-400">
+      {/* 2. Content Body */}
+      <div className="px-3 sm:px-4 md:px-5 pb-2 sm:pb-3">
+        {/* Title - Mobile: smaller */}
+        {post.title && (
+          <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-gray-50 mb-1.5 sm:mb-2 leading-snug line-clamp-2">
+            {post.title}
+          </h3>
+        )}
+        {/* Content - Mobile: smaller font, better line-height */}
+        {post.content && (
+          <div className="prose dark:prose-invert max-w-none text-[13px] sm:text-[14px] md:text-[15px] leading-[1.6] sm:leading-relaxed text-gray-700 dark:text-gray-300 font-normal prose-p:mb-2 prose-headings:mb-2 prose-headings:mt-3 prose-p:line-clamp-4 sm:prose-p:line-clamp-3">
             <ReactMarkdown
               components={{
-                // Limit heading sizes for preview
-                h1: ({ children }) => <h1 className="text-lg md:text-xl font-bold mb-2 mt-3">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-base md:text-lg font-bold mb-2 mt-3">{children}</h2>,
-                h3: ({ children }) => <h3 className="text-sm md:text-base font-bold mb-2 mt-2">{children}</h3>,
-                // Limit paragraphs to 3 lines
-                p: ({ children }) => <p className="line-clamp-3 break-words mb-2">{children}</p>,
-                // Style code blocks
+                h1: ({ children }) => <h1 className="text-base sm:text-lg md:text-xl font-bold mb-2 mt-3">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-sm sm:text-base md:text-lg font-bold mb-2 mt-3">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-[13px] sm:text-sm md:text-base font-bold mb-2 mt-2">{children}</h3>,
+                p: ({ children }) => <p className="line-clamp-4 sm:line-clamp-3 break-words mb-2">{children}</p>,
                 code: ({ node, inline, ...props }) => {
                   if (inline) {
-                    return <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm" {...props} />;
+                    return <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-xs sm:text-sm" {...props} />;
                   }
-                  return <code className="block bg-gray-100 dark:bg-gray-800 p-3 rounded-lg overflow-x-auto my-2" {...props} />;
+                  return <code className="block bg-gray-100 dark:bg-gray-800 p-2 sm:p-3 rounded-lg overflow-x-auto my-2 text-xs sm:text-sm" {...props} />;
                 },
-                // Style links
                 a: ({ children, href }) => (
                   <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
                     {children}
                   </a>
-                ),
-                // Limit list items
-                li: ({ children }) => <li className="ml-4">{children}</li>,
-                // Style blockquotes
-                blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-gray-300 dark:border-gray-700 pl-4 my-2 italic text-gray-600 dark:text-gray-400">
-                    {children}
-                  </blockquote>
                 ),
               }}
             >
               {post.content}
             </ReactMarkdown>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* 4. Media */}
+      {/* 3. Media - Mobile: more breathing room */}
       {displayMedia && (
-        <div className={`rounded-xl md:rounded-3xl overflow-hidden bg-gray-100 dark:bg-black mb-3 md:mb-4 relative ${displayMedia.type !== 'video' ? 'group/media' : ''}`}>
-          {displayMedia.type === 'video' ? (
-            <video
-              src={displayMedia.url}
-              className="w-full max-h-[500px] object-contain bg-black"
-              controls
-              controlsList="nodownload"
-              playsInline
-              preload="metadata"
-              poster={displayMedia.thumbnail || undefined}
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <LazyImage
-              src={getOptimizedImageUrl(displayMedia.url, 800)}
-              alt={post.title}
-              priority={isFirst}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
-              style={{ aspectRatio: '16/9', minHeight: '200px' }}
-            />
-          )}
+        <div className="mt-1 mb-2 sm:mb-3 px-2 sm:px-3">
+          <div className={cn(
+            "relative w-full overflow-hidden rounded-lg sm:rounded-xl md:rounded-2xl bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-neutral-800/50",
+            displayMedia.type !== 'video' && 'group/media'
+          )}>
+            {displayMedia.type === 'video' ? (
+              <video
+                src={displayMedia.url}
+                className="w-full max-h-[300px] sm:max-h-[400px] md:max-h-[500px] object-contain bg-black"
+                controls
+                controlsList="nodownload"
+                playsInline
+                preload="metadata"
+                poster={displayMedia.thumbnail || undefined}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <LazyImage
+                src={getOptimizedImageUrl(displayMedia.url, 800)}
+                alt={post.title || "Post media"}
+                priority={isFirst}
+                className="w-full h-auto object-cover transition-transform duration-500 group-hover/media:scale-[1.02] max-h-[300px] sm:max-h-[450px] md:max-h-[550px]"
+              />
+            )}
+          </div>
         </div>
       )}
 
       {/* Poll Section */}
       {post.hasPoll && (
-        <div className="mb-3 md:mb-4" onClick={e => e.stopPropagation()}>
+        <div className="px-3 sm:px-4 mb-2 sm:mb-3" onClick={e => e.stopPropagation()}>
           <Poll post={post} user={user} />
         </div>
       )}
 
       {/* YouTube Music Player */}
       {post.youtubeUrl && (
-        <div className="mb-3 md:mb-4" onClick={e => e.stopPropagation()}>
+        <div className="px-3 sm:px-4 mb-2 sm:mb-3" onClick={e => e.stopPropagation()}>
           <YouTubePlayer key={`yt-${post._id}`} url={post.youtubeUrl} variant="full" />
         </div>
       )}
 
-      {/* 5. Action Bar (Floating Style) */}
-      <div className="flex items-center justify-between" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-0.5 md:gap-1">
-          {/* Emote/Like Button with Popup */}
+      {/* 4. Action Bar - Mobile: larger touch targets, subtle counts */}
+      <div
+        className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 flex items-center justify-between border-t border-gray-50 dark:border-white/5 mt-1 sm:mt-2"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-1 sm:gap-2">
+          {/* Emote Button */}
           <div
             className="relative emote-trigger"
-            role="button"
-            tabIndex={0}
-            aria-label="Thả cảm xúc"
-            title={uiUserEmote ? "Bỏ cảm xúc" : "Thả cảm xúc"}
             onMouseEnter={() => {
               if (window.innerWidth >= 768) {
                 if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
@@ -678,39 +688,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             }}
             onMouseLeave={() => {
               if (window.innerWidth >= 768) {
-                emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1200);
-              }
-            }}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (e.target.closest('.emote-picker')) {
-                return;
-              }
-
-              if (window.innerWidth < 768) {
-                setShowEmotePopup(prev => !prev);
-                return;
-              }
-
-              if (uiUserEmote) {
-                setLocalUserEmote(null);
-                handleEmote(uiUserEmote);
-              } else {
-                setLocalUserEmote('👍');
-                handleEmote('👍');
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                if (uiUserEmote) {
-                  setLocalUserEmote(null);
-                  handleEmote(uiUserEmote);
-                } else {
-                  setLocalUserEmote('👍');
-                  handleEmote('👍');
-                }
+                emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 500);
               }
             }}
           >
@@ -719,34 +697,39 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               {showHeartAnimation && (
                 <motion.div
                   key={heartAnimationKey.current}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{
-                    scale: [0, 1.3, 1],
-                    opacity: [0, 1, 1, 0],
-                    y: [0, -30, -50],
-                    rotate: [0, -10, 10, 0]
-                  }}
+                  initial={{ scale: 0, opacity: 0, y: 0 }}
+                  animate={{ scale: 1.5, opacity: 1, y: -40 }}
                   exit={{ opacity: 0, scale: 0 }}
-                  transition={{
-                    duration: 0.8,
-                    ease: "easeOut"
-                  }}
-                  className="absolute -top-8 left-1/2 -translate-x-1/2 pointer-events-none z-50"
+                  className="absolute -top-6 left-2 pointer-events-none z-50 text-red-500"
                 >
-                  <Heart
-                    size={32}
-                    className="text-red-500 fill-red-500 drop-shadow-lg"
-                  />
+                  <Heart fill="currentColor" size={24} />
                 </motion.div>
               )}
             </AnimatePresence>
 
             <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (window.innerWidth < 768) {
+                  setShowEmotePopup(prev => !prev);
+                  return;
+                }
+
+                if (uiUserEmote) {
+                  setLocalUserEmote(null);
+                  handleEmote(uiUserEmote);
+                } else {
+                  setLocalUserEmote('👍');
+                  handleEmote('👍');
+                }
+              }}
               className={cn(
-                "flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2 md:py-2.5 rounded-full transition-all active:scale-90 touch-manipulation",
+                "flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full transition-all duration-200 active:scale-95 group/btn touch-manipulation",
                 uiUserEmote
-                  ? "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-500"
-                  : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800"
+                  ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                  : "hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-500 dark:text-gray-400"
               )}
             >
               {uiUserEmote ? (
@@ -754,32 +737,25 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                   <img
                     src={`/assets/${emoteMap[uiUserEmote]}`}
                     alt={uiUserEmote}
-                    width={20}
-                    height={20}
-                    className="w-5 h-5 md:w-[22px] md:h-[22px]"
+                    className="w-5 h-5 sm:w-6 sm:h-6"
                     loading="lazy"
                     onError={(e) => {
                       e.target.style.display = 'none';
+                      if (e.target.nextSibling) e.target.nextSibling.style.display = 'inline';
                     }}
                   />
-                  <span className="font-bold text-xs md:text-sm">
-                    {uiUserEmote === '👍' && 'Đã thích'}
-                    {uiUserEmote === '❤️' && 'Yêu thích'}
-                    {uiUserEmote === '😂' && 'Haha'}
-                    {uiUserEmote === '😮' && 'Wow'}
-                    {uiUserEmote === '😢' && 'Buồn'}
-                    {uiUserEmote === '😡' && 'Phẫn nộ'}
-                    {totalEmotes > 0 && ` • ${totalEmotes.toLocaleString()}`}
-                  </span>
+                  <span className="hidden text-lg sm:text-xl">{uiUserEmote}</span>
                 </>
               ) : (
-                <>
-                  <ThumbsUp size={20} strokeWidth={2} className="md:w-[22px] md:h-[22px]" />
-                  <span className="font-bold text-xs md:text-sm">
-                    {totalEmotes > 0 ? totalEmotes.toLocaleString() : 'Thích'}
-                  </span>
-                </>
+                <ThumbsUpIcon className="w-5 h-5 sm:w-6 sm:h-6 group-hover/btn:scale-110 transition-transform" />
               )}
+              {/* Mobile: subtle count; Desktop: full text */}
+              <span className="hidden sm:inline text-[13px] sm:text-sm font-semibold">
+                {totalEmotes > 0 ? totalEmotes.toLocaleString() : "Thích"}
+              </span>
+              <span className="sm:hidden text-[11px] font-semibold opacity-80">
+                {totalEmotes > 0 ? totalEmotes.toLocaleString() : ""}
+              </span>
             </button>
 
             {/* Emote Popup */}
@@ -793,7 +769,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 }}
                 onMouseLeave={() => {
                   if (window.innerWidth >= 768) {
-                    emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 1200);
+                    emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 500);
                   }
                 }}
                 onClick={(e) => e.stopPropagation()}
@@ -826,10 +802,13 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                         height={28}
                         className="w-7 h-7 md:w-8 md:h-8"
                         loading="lazy"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
+                        onError={(ev) => {
+                          // Fallback to emoji text if GIF fails
+                          ev.target.style.display = 'none';
+                          if (ev.target.nextSibling) ev.target.nextSibling.style.display = 'flex';
                         }}
                       />
+                      <span className="hidden w-7 h-7 md:w-8 md:h-8 items-center justify-center text-xl md:text-2xl">{e}</span>
                     </button>
                   );
                 })}
@@ -837,19 +816,24 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             )}
           </div>
 
-          {/* Comment */}
+          {/* Comment Button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/post/${post.slug || post._id}`);
             }}
-            className="flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2 md:py-2.5 rounded-full hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90 touch-manipulation"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-500 dark:text-gray-400 transition-colors active:scale-95 touch-manipulation"
           >
-            <MessageCircle size={20} className="md:w-[22px] md:h-[22px]" />
-            <span className="font-bold text-xs md:text-sm">{post.commentCount || 0}</span>
+            <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="hidden sm:inline text-[13px] sm:text-sm font-semibold">
+              {post.commentCount || "Bình luận"}
+            </span>
+            <span className="sm:hidden text-[11px] font-semibold opacity-80">
+              {(post.commentCount || 0) > 0 ? post.commentCount : ""}
+            </span>
           </button>
 
-          {/* Share */}
+          {/* Share Button */}
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -861,31 +845,35 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 showError("Không thể sao chép liên kết");
               });
             }}
-            className="flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2 md:py-2.5 rounded-full hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/20 dark:hover:text-green-400 text-gray-600 dark:text-gray-400 transition-all active:scale-90 touch-manipulation"
+            className="p-2 sm:p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors active:scale-95 touch-manipulation"
           >
-            <Share2 size={20} className="md:w-[22px] md:h-[22px]" />
+            <Share2 className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Save Button */}
         <button
           onClick={handleSave}
           className={cn(
-            "p-2 md:p-3 rounded-full transition-all active:scale-90 touch-manipulation",
+            "p-2 sm:p-2.5 rounded-full transition-all duration-200 active:scale-90 touch-manipulation",
             saved
-              ? "bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-500"
-              : "hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-500/20 dark:hover:text-yellow-500 text-gray-400"
+              ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-500/10"
+              : "text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 hover:text-yellow-500"
           )}
         >
-          <Bookmark size={20} className={cn("md:w-[22px] md:h-[22px]", saved ? "fill-current" : "")} strokeWidth={saved ? 0 : 2} />
+          <Bookmark className={cn("w-5 h-5", saved && "fill-current")} />
         </button>
       </div>
 
-      {/* Comment Input Section */}
+      {/* 5. Comment Input Section */}
       {user && (
-        <div className="mt-2 md:mt-3 pt-2 md:pt-3 px-3 md:px-0 border-t border-gray-100 dark:border-gray-800" onClick={e => e.stopPropagation()}>
+        <div
+          className="px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 border-t border-gray-100 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-900/30"
+          onClick={e => e.stopPropagation()}
+        >
           {/* Image Previews */}
           {commentImages.length > 0 && (
-            <div className="mb-2 ml-10 grid grid-cols-3 gap-2">
+            <div className="mb-2 ml-9 sm:ml-10 grid grid-cols-3 gap-1.5 sm:gap-2">
               {commentImages.map((img, idx) => (
                 <div key={idx} className="relative group">
                   <div className="w-full rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-50 dark:bg-gray-800 aspect-square">
@@ -897,84 +885,92 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                       URL.revokeObjectURL(img.preview);
                       setCommentImages(prev => prev.filter((_, i) => i !== idx));
                     }}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <X size={12} />
+                    <X size={10} />
                   </button>
                 </div>
               ))}
             </div>
           )}
 
-          <form onSubmit={handleSubmitComment} className="flex items-center gap-2">
+          <form onSubmit={handleSubmitComment} className="flex items-center gap-2 sm:gap-3">
+            <Avatar
+              src={user?.avatarUrl}
+              name={user?.name || 'User'}
+              size={28}
+              className="border border-gray-200 dark:border-gray-700 flex-shrink-0 sm:hidden"
+            />
             <Avatar
               src={user?.avatarUrl}
               name={user?.name || 'User'}
               size={32}
-              className="border border-gray-200 dark:border-gray-700 flex-shrink-0"
+              className="border border-gray-200 dark:border-gray-700 flex-shrink-0 hidden sm:block"
             />
-            <div className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-3 md:px-4 py-1.5 md:py-2 relative">
+            <div className="flex-1 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-full px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-blue-900/50 transition-all">
               <input
                 ref={commentTextareaRef}
                 type="text"
                 value={commentContent}
                 onChange={(e) => setCommentContent(e.target.value)}
-                placeholder="Nói lên suy nghĩ của bạn..."
+                placeholder="Viết bình luận..."
                 disabled={submittingComment}
-                className="flex-1 bg-transparent border-none outline-none text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50"
+                className="flex-1 bg-transparent border-none outline-none text-xs sm:text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 disabled:opacity-50"
               />
-              <label className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer" title="Thêm ảnh">
-                <ImageIcon size={18} className="text-gray-500 dark:text-gray-400" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    if (files.length === 0) return;
+              <div className="flex items-center gap-0.5 sm:gap-1 border-l border-gray-100 dark:border-neutral-700 pl-1.5 sm:pl-2">
+                <label className="p-1 sm:p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer" title="Thêm ảnh">
+                  <ImageIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400 hover:text-blue-500" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length === 0) return;
 
-                    const newImages = files.slice(0, 3 - commentImages.length).map(file => ({
-                      file,
-                      preview: URL.createObjectURL(file),
-                      id: Math.random().toString(36).substr(2, 9)
-                    }));
+                      const newImages = files.slice(0, 3 - commentImages.length).map(file => ({
+                        file,
+                        preview: URL.createObjectURL(file),
+                        id: Math.random().toString(36).substr(2, 9)
+                      }));
 
-                    setCommentImages(prev => [...prev, ...newImages]);
-                    if (e.target) e.target.value = "";
-                  }}
-                  className="hidden"
-                />
-              </label>
-              <div className="comment-emoji-picker-container relative">
+                      setCommentImages(prev => [...prev, ...newImages]);
+                      if (e.target) e.target.value = "";
+                    }}
+                    className="hidden"
+                  />
+                </label>
+                <div className="comment-emoji-picker-container relative">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowCommentEmojiPicker(!showCommentEmojiPicker);
+                    }}
+                    className={cn(
+                      "p-1 sm:p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors",
+                      showCommentEmojiPicker && "text-yellow-500"
+                    )}
+                    title="Thêm emoji"
+                  >
+                    <Smile size={16} className={cn("sm:w-[18px] sm:h-[18px] text-gray-400", showCommentEmojiPicker && "text-yellow-500")} />
+                  </button>
+                  {renderCommentEmojiPicker()}
+                </div>
                 <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowCommentEmojiPicker(!showCommentEmojiPicker);
-                  }}
-                  className={cn(
-                    "p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors",
-                    showCommentEmojiPicker && "text-blue-500"
-                  )}
-                  title="Thêm emoji"
+                  type="submit"
+                  disabled={(!commentContent.trim() && commentImages.length === 0) || submittingComment}
+                  className="p-1 sm:p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
+                  title="Gửi"
                 >
-                  <Smile size={18} className={cn("text-gray-500 dark:text-gray-400", showCommentEmojiPicker && "text-blue-500")} />
+                  {submittingComment ? (
+                    <Loader2 size={16} className="sm:w-[18px] sm:h-[18px] text-blue-500 animate-spin" />
+                  ) : (
+                    <Send size={16} className="sm:w-[18px] sm:h-[18px] text-blue-500" />
+                  )}
                 </button>
-                {renderCommentEmojiPicker()}
               </div>
-              <button
-                type="submit"
-                disabled={(!commentContent.trim() && commentImages.length === 0) || submittingComment}
-                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                title="Gửi"
-              >
-                {submittingComment ? (
-                  <Loader2 size={18} className="text-blue-500 animate-spin" />
-                ) : (
-                  <Send size={18} className="text-blue-500" />
-                )}
-              </button>
             </div>
           </form>
         </div>
