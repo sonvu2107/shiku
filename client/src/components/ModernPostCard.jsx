@@ -483,7 +483,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   return (
     <div
       onClick={() => navigate(`/post/${post.slug || post._id}`)}
-      className="group relative bg-white dark:bg-[#1a1a1a] rounded-xl sm:rounded-2xl md:rounded-3xl border border-gray-100 dark:border-neutral-800/80 shadow-sm hover:shadow-lg transition-all duration-300 my-3 sm:my-4 md:my-5 mx-2 sm:mx-0 overflow-hidden cursor-pointer"
+      className="group relative bg-white dark:bg-[#1a1a1a] rounded-xl sm:rounded-2xl md:rounded-3xl border border-gray-100 dark:border-neutral-800/80 shadow-sm hover:shadow-lg transition-all duration-300 my-3 sm:my-4 md:my-5 sm:mx-0 cursor-pointer"
     >
       {/* 1. Header */}
       <div className="px-3 sm:px-4 md:px-5 pt-3 sm:pt-4 md:pt-5 pb-2 flex justify-between items-start">
@@ -524,7 +524,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             </Link>
             {/* Mobile: more compact metadata */}
             <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] md:text-xs text-gray-400 dark:text-gray-500 font-medium">
-              <span className="truncate max-w-[80px] sm:max-w-[100px] md:max-w-none">{timeAgo}</span>
+              <span>{timeAgo}</span>
               {isPrivate && (
                 <span className="flex items-center gap-0.5 bg-gray-50 dark:bg-white/5 px-1 sm:px-1.5 py-0.5 rounded text-gray-500 text-[9px] sm:text-[10px]">
                   🔒 <span className="hidden sm:inline">Riêng tư</span>
@@ -949,12 +949,12 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                       setShowCommentEmojiPicker(!showCommentEmojiPicker);
                     }}
                     className={cn(
-                      "p-1 sm:p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors",
+                      "flex items-center justify-center p-1 sm:p-1.5 sm:hover:bg-gray-100 dark:sm:hover:bg-gray-700 sm:rounded-full transition-colors",
                       showCommentEmojiPicker && "text-yellow-500"
                     )}
                     title="Thêm emoji"
                   >
-                    <Smile size={16} className={cn("sm:w-[18px] sm:h-[18px] text-gray-400", showCommentEmojiPicker && "text-yellow-500")} />
+                    <Smile size={14} className={cn("sm:w-[18px] sm:h-[18px] text-gray-400", showCommentEmojiPicker && "text-yellow-500")} />
                   </button>
                   {renderCommentEmojiPicker()}
                 </div>

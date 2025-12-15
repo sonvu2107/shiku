@@ -586,7 +586,7 @@ function Home({ user, setUser }) {
         <p className="sr-only">Nơi chia sẻ câu chuyện hàng ngày, khám phá cộng đồng xung quanh bạn.</p>
 
         {/* Mobile Navbar - chỉ hiện trên mobile, fixed top */}
-        <nav className="md:hidden fixed top-0 left-0 right-0 z-50" role="navigation" aria-label="Điều hướng chính">
+        <nav className="md:hidden fixed top-0 left-0 right-0 z-[110]" role="navigation" aria-label="Điều hướng chính">
           <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
         </nav>
 
