@@ -5,7 +5,7 @@ import { Upload, X, Image, Loader2 } from "lucide-react";
  * CommentImageUpload - Component upload image for comment
  * Supports multiple files, preview images before upload
  */
-export default function CommentImageUpload({ onImagesChange, maxImages = 5, className = "" }) {
+export default function CommentImageUpload({ onImagesChange, maxImages = 5, className = "", minimal = false }) {
   const [selectedImages, setSelectedImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
@@ -103,8 +103,8 @@ export default function CommentImageUpload({ onImagesChange, maxImages = 5, clas
         </button>
       )}
 
-      {/* Image Previews */}
-      {selectedImages.length > 0 && (
+      {/* Image Previews - Only show when not in minimal mode */}
+      {!minimal && selectedImages.length > 0 && (
         <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2 animate-in fade-in zoom-in-95 duration-200">
           {selectedImages.map((image) => (
             <div key={image.id} className="relative group">

@@ -1109,8 +1109,15 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
                     {replyImages.length > 0 && (
                       <div className="mt-2 grid grid-cols-4 gap-2 sm:gap-2">
                         {replyImages.map((img, idx) => (
-                          <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                          <div key={idx} className="relative aspect-square rounded-lg overflow-hidden group">
                             <img src={img.preview} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setReplyImages(prev => prev.filter((_, i) => i !== idx))}
+                              className="absolute top-1 right-1 p-1.5 min-w-[28px] min-h-[28px] bg-black/50 text-white rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation"
+                            >
+                              <X size={14} />
+                            </button>
                           </div>
                         ))}
                       </div>
