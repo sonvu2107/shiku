@@ -41,18 +41,22 @@ export default function BackgroundControls({ config, onChange }) {
               {/* Type Selector */}
               <div className="space-y-2">
                 <label className="text-xs text-neutral-400 uppercase font-semibold tracking-wider">Effect Type</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['galaxy', 'gridscan', 'lightrays'].map((t) => (
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'none', label: 'Tĩnh' },
+                    { id: 'galaxy', label: 'Galaxy' },
+                    { id: 'gridscan', label: 'GridScan' },
+                    { id: 'lightrays', label: 'LightRays' }
+                  ].map((t) => (
                     <button
-                      key={t}
-                      onClick={() => handleTypeChange(t)}
-                      className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
-                        config.type === t
+                      key={t.id}
+                      onClick={() => handleTypeChange(t.id)}
+                      className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${config.type === t.id
                           ? 'bg-white text-black shadow-lg'
                           : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white'
-                      }`}
+                        }`}
                     >
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                      {t.label}
                     </button>
                   ))}
                 </div>

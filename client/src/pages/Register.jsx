@@ -47,7 +47,7 @@ export default function Register({ setUser }) {
   const navigate = useNavigate();
 
   const [backgroundConfig, setBackgroundConfig] = useState({
-    type: 'galaxy',
+    type: 'none',
     galaxy: {
       mouseInteraction: true,
       mouseRepulsion: true,

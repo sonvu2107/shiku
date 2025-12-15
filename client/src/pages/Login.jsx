@@ -41,7 +41,7 @@ export default function Login({ setUser }) {
   const { showSuccess, showError } = useToast();
 
   const [backgroundConfig, setBackgroundConfig] = useState({
-    type: 'galaxy',
+    type: 'none',
     galaxy: {
       mouseInteraction: true,
       mouseRepulsion: true,

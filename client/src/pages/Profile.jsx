@@ -344,7 +344,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
         avatarUploading={avatarUploading}
         analytics={analytics}
         analyticsLoading={analyticsLoading}
-        friendsCount={friends.length}
+        friendsCount={friendsPagination?.total ?? friends.length}
         friendsLoading={friendsLoading}
         onEditToggle={() => setEditing(!editing)}
         onCustomizeClick={() => setShowCustomization(true)}

@@ -315,6 +315,20 @@ export default function PostDetail() {
     return counts;
   }
 
+  // Handle comment count change (delta: +1 for add, -1 for delete)
+  function handleCommentCountChange(delta) {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        post: {
+          ...prev.post,
+          commentCount: Math.max(0, (prev.post.commentCount || 0) + delta)
+        }
+      };
+    });
+  }
+
   // Loading skeleton
   if (loading || !data) {
     return (
@@ -881,6 +895,7 @@ export default function PostDetail() {
                     postId={p._id}
                     initialComments={data.comments || []}
                     user={user}
+                    onCommentCountChange={handleCommentCountChange}
                   />
                 );
               }
@@ -902,6 +917,7 @@ export default function PostDetail() {
                     postId={p._id}
                     initialComments={data.comments || []}
                     user={user}
+                    onCommentCountChange={handleCommentCountChange}
                   />
                 );
               }

@@ -64,8 +64,9 @@ const emojiList = [
  * @param {string} postId - ID of the post
  * @param {Array} initialComments - Initial list of comments (optional)
  * @param {Object} user - Current user information
+ * @param {Function} onCommentCountChange - Callback when comment count changes (delta: +1 for add, -1 for delete)
  */
-function CommentSection({ postId, initialComments = [], user }) {
+function CommentSection({ postId, initialComments = [], user, onCommentCountChange }) {
   // ==================== STATE MANAGEMENT ====================
 
   // Toast notifications
@@ -406,6 +407,11 @@ function CommentSection({ postId, initialComments = [], user }) {
       // Show success message
       showSuccess("Bình luận đã được đăng thành công!");
 
+      // Notify parent about comment count change
+      if (onCommentCountChange) {
+        onCommentCountChange(1); // +1 for new comment
+      }
+
       // Scroll to new comment after a short delay
       setTimeout(() => {
         if (commentsContainerRef.current) {
@@ -472,6 +478,11 @@ function CommentSection({ postId, initialComments = [], user }) {
 
       // Show success message
       showSuccess("Phản hồi đã được đăng thành công!");
+
+      // Notify parent about comment count change
+      if (onCommentCountChange) {
+        onCommentCountChange(1); // +1 for new reply
+      }
     } catch (error) {
       const errorMessage = error?.message || "Lỗi hệ thống";
       showError("Lỗi khi trả lời: " + errorMessage);
@@ -626,6 +637,11 @@ function CommentSection({ postId, initialComments = [], user }) {
       });
       setComments((prev) => removeCommentFromTree(prev, commentId));
       showSuccess("Bình luận đã được xóa!");
+
+      // Notify parent about comment count change
+      if (onCommentCountChange) {
+        onCommentCountChange(-1); // -1 for deleted comment
+      }
     } catch (error) {
       const errorMessage = error?.message || "Lỗi hệ thống";
       showError("Lỗi khi xóa bình luận: " + errorMessage);

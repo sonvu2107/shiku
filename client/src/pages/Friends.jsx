@@ -190,6 +190,9 @@ export default function Friends() {
     const userData = type === 'request' ? user.from : (type === 'sent' ? user.to : user);
     const requestId = type === 'request' ? user._id : null; // request object has _id
 
+    // Skip rendering if userData is null (e.g., deleted user)
+    if (!userData) return null;
+
     return (
       <SpotlightCard key={userData._id} className="p-4">
         <div className="flex items-center gap-4 mb-3">
