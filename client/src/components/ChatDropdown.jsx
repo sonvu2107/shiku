@@ -4,6 +4,7 @@ import { api } from "../api";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { chatbotAPI } from "../services/chatbotAPI";
 import { useChat } from "../contexts/ChatContext";
+import socketService from "../socket";
 import Avatar from "./Avatar";
 
 /**
@@ -29,6 +30,60 @@ export default function ChatDropdown({ onOpenChat }) {
     if (open) {
       loadConversations();
     }
+  }, [open]);
+
+  // Listen for socket events to update conversation list in real-time when open
+  useEffect(() => {
+    if (!open || !socketService.socket) return;
+
+    const handleNewMessage = (message) => {
+      setConversations(prev => {
+        const conversationId = message.conversationId || message.conversation;
+        const exists = prev.find(c => c._id === conversationId);
+
+        if (exists) {
+          // Update existing conversation
+          return prev.map(c =>
+            c._id === conversationId
+              ? { ...c, lastMessage: message, lastActivity: message.createdAt || new Date().toISOString(), unreadCount: c.unreadCount + 1 }
+              : c
+          ).sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity));
+        } else {
+          // New conversation (would require fetching details, for now ignore or just refresh)
+          // For simplicity, we can trigger reload or ignore if it's strictly a dropdown update
+          // Just refreshing unread count is good
+          refreshUnreadCount();
+          return prev;
+        }
+      });
+      refreshUnreadCount();
+    };
+
+    const handleMessageDeleted = (data) => {
+      setConversations(prev =>
+        prev.map(c => {
+          if (c.lastMessage && c.lastMessage._id === data.messageId) {
+            return {
+              ...c,
+              lastMessage: {
+                ...c.lastMessage,
+                isDeleted: true,
+                content: 'Tin nhắn đã được thu hồi'
+              }
+            };
+          }
+          return c;
+        })
+      );
+    };
+
+    socketService.socket.on('new-message', handleNewMessage);
+    socketService.socket.on('message-deleted', handleMessageDeleted);
+
+    return () => {
+      socketService.socket.off('new-message', handleNewMessage);
+      socketService.socket.off('message-deleted', handleMessageDeleted);
+    };
   }, [open]);
 
   // Close on outside click & on Escape

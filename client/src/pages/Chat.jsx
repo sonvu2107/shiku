@@ -142,6 +142,7 @@ export default function Chat() {
     let socketRef = null;
     let handleNewMessage = null;
     let handleReactionsUpdated = null;
+    let handleMessageDeleted = null;
 
     const setup = async () => {
       if (!selectedConversation) return;
@@ -169,8 +170,19 @@ export default function Chat() {
         setMessages(prev => prev.map(m => m._id === data.messageId ? { ...m, reactions: data.reactions } : m));
       };
 
+      handleMessageDeleted = (data) => {
+        if (!selectedConversation) return;
+        if (data.conversationId !== selectedConversation._id) return;
+        setMessages(prev => prev.map(m =>
+          m._id === data.messageId
+            ? { ...m, isDeleted: true, content: data.content || 'Tin nhắn đã được thu hồi' }
+            : m
+        ));
+      };
+
       socketRef.on("new-message", handleNewMessage);
       socketRef.on("message-reactions-updated", handleReactionsUpdated);
+      socketRef.on("message-deleted", handleMessageDeleted);
     };
 
     setup();
@@ -182,6 +194,9 @@ export default function Chat() {
       }
       if (socketRef && handleReactionsUpdated) {
         socketRef.off("message-reactions-updated", handleReactionsUpdated);
+      }
+      if (socketRef && handleMessageDeleted) {
+        socketRef.off("message-deleted", handleMessageDeleted);
       }
     };
   }, [selectedConversation?._id]);
@@ -297,6 +312,25 @@ export default function Chat() {
               ? { ...conv, lastMessage: message, lastActivity: message.createdAt }
               : conv
           ).sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity))
+        );
+      });
+
+      // Setup global message deleted listener
+      socket.on('message-deleted', (data) => {
+        setConversations(prev =>
+          prev.map(conv => {
+            if (conv.lastMessage && conv.lastMessage._id === data.messageId) {
+              return {
+                ...conv,
+                lastMessage: {
+                  ...conv.lastMessage,
+                  isDeleted: true,
+                  content: data.content || 'Tin nhắn đã được thu hồi'
+                }
+              };
+            }
+            return conv;
+          })
         );
       });
 

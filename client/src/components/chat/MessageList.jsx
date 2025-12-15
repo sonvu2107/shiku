@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Users, ChevronUp, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Edit2, Trash2, X, Check, CheckCheck } from "lucide-react";
+import { User, Users, ChevronUp, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Trash2, X, Check, CheckCheck } from "lucide-react";
 import { api } from "../../api";
 import ImageViewer from "../ImageViewer";
 import { useToast } from "../../contexts/ToastContext";
@@ -34,12 +34,10 @@ export default function MessageList({
 
   const [showScrollButton, setShowScrollButton] = useState(false); // Show scroll to bottom button
   const [imageViewer, setImageViewer] = useState({ isOpen: false, imageUrl: null, alt: "" }); // Image viewer state
-  const [editingMessageId, setEditingMessageId] = useState(null); // ID of the message being edited
-  const [editContent, setEditContent] = useState(""); // Edit content
   const [showOptionsMenu, setShowOptionsMenu] = useState(null); // ID of the message showing options menu
-  const [hoveredMessageId, setHoveredMessageId] = useState(null); // ID of the message being hovered
+  const [selectedMessageId, setSelectedMessageId] = useState(null); // ID of message with open reaction menu (click-based)
+  const [deletedMessageIds, setDeletedMessageIds] = useState([]); // Optimistic deleted message IDs
   const [isMobile, setIsMobile] = useState(false); // Detect mobile device
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 }); // Position for fixed dropdown
 
   // ==================== REFS ====================
 
@@ -47,7 +45,6 @@ export default function MessageList({
   const topRef = useRef(null); // Ref for top of the container
   const prevMessagesLength = useRef(messages.length); // Previous number of messages
   const prevScrollHeight = useRef(0); // Previous scroll height
-  const hoverTimeoutRef = useRef(null); // Timeout for hiding hover button
   const dropdownRefs = useRef({}); // Refs for dropdown menus by message ID
   const buttonRefs = useRef({}); // Refs for option buttons by message ID
 
@@ -101,39 +98,30 @@ export default function MessageList({
     container.scrollTop = container.scrollHeight;
   }, [messages[messages.length - 1]?._id]);
 
-  // Close options menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!showOptionsMenu) return;
+      // Check if click is on a message bubble (has class message-bubble)
+      if (e.target.closest('.message-bubble')) return;
 
-      const menu = dropdownRefs.current[showOptionsMenu];
-      const btn = buttonRefs.current[showOptionsMenu];
+      // Close selectedMessageId if open
+      if (selectedMessageId) {
+        setSelectedMessageId(null);
+      }
 
-      // Check if click is inside menu or button using refs
-      if (menu && menu.contains(e.target)) return;
-      if (btn && btn.contains(e.target)) return;
-
-      setShowOptionsMenu(null);
-      setHoveredMessageId(null);
-      // Clear any pending timeout
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-        hoverTimeoutRef.current = null;
+      // Close options menu if open
+      if (showOptionsMenu) {
+        const menu = dropdownRefs.current[showOptionsMenu];
+        const btn = buttonRefs.current[showOptionsMenu];
+        if (menu && menu.contains(e.target)) return;
+        if (btn && btn.contains(e.target)) return;
+        setShowOptionsMenu(null);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showOptionsMenu]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    };
-  }, []);
+  }, [showOptionsMenu, selectedMessageId]);
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -152,11 +140,11 @@ export default function MessageList({
   };
 
   const reactionConfig = {
-    like: { Icon: ThumbsUp, color: 'text-blue-500', bg: 'bg-blue-50' },
-    love: { Icon: Heart, color: 'text-red-500', bg: 'bg-red-50' },
-    laugh: { Icon: Laugh, color: 'text-yellow-500', bg: 'bg-yellow-50' },
-    angry: { Icon: Angry, color: 'text-orange-500', bg: 'bg-orange-50' },
-    sad: { Icon: Frown, color: 'text-gray-500', bg: 'bg-gray-50' },
+    like: { Icon: ThumbsUp, color: 'text-blue-500', bg: 'bg-blue-50', emoji: '👍' },
+    love: { Icon: Heart, color: 'text-red-500', bg: 'bg-red-50', emoji: '❤️' },
+    laugh: { Icon: Laugh, color: 'text-yellow-500', bg: 'bg-yellow-50', emoji: '😆' },
+    angry: { Icon: Angry, color: 'text-orange-500', bg: 'bg-orange-50', emoji: '😡' },
+    sad: { Icon: Frown, color: 'text-gray-500', bg: 'bg-gray-50', emoji: '😢' },
   };
 
   const toggleReaction = async (messageId, type) => {
@@ -175,47 +163,14 @@ export default function MessageList({
     } catch (_) { }
   };
 
-  const handleEditMessage = (message) => {
-    setEditingMessageId(message._id);
-    setEditContent(message.content);
-    setShowOptionsMenu(null);
-  };
 
-  const handleSaveEdit = async (messageId) => {
-    if (!editContent.trim()) return;
-
-    try {
-      const convId = conversation._id;
-      await api(`/api/messages/conversations/${convId}/messages/${messageId}`, {
-        method: 'PUT',
-        body: { content: editContent }
-      });
-
-      // Update message locally
-      const idx = messages.findIndex(m => m._id === messageId);
-      if (idx !== -1) {
-        messages[idx].content = editContent;
-        messages[idx].isEdited = true;
-      }
-
-      setEditingMessageId(null);
-      setEditContent("");
-
-      if (onEditMessage) {
-        onEditMessage(messageId, editContent);
-      }
-    } catch (error) {
-      showError('Không thể sửa tin nhắn');
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingMessageId(null);
-    setEditContent("");
-  };
 
   const handleDeleteMessage = async (messageId) => {
     if (!confirm('Bạn có chắc muốn thu hồi tin nhắn này?')) return;
+
+    // Optimistic update
+    setDeletedMessageIds(prev => [...prev, messageId]);
+    setShowOptionsMenu(null);
 
     try {
       const convId = conversation._id;
@@ -223,20 +178,20 @@ export default function MessageList({
         method: 'DELETE'
       });
 
-      // Update message locally
+      // Update message locally (for consistency after refresh)
       const idx = messages.findIndex(m => m._id === messageId);
       if (idx !== -1) {
         messages[idx].isDeleted = true;
         messages[idx].content = 'Tin nhắn đã được thu hồi';
       }
 
-      setShowOptionsMenu(null);
-
       if (onDeleteMessage) {
         onDeleteMessage(messageId);
       }
     } catch (error) {
       showError('Không thể thu hồi tin nhắn');
+      // Revert optimistic update on error
+      setDeletedMessageIds(prev => prev.filter(id => id !== messageId));
     }
   };
 
@@ -382,6 +337,8 @@ export default function MessageList({
   const renderMessage = (message, index) => {
     if (!currentUser || !message) return null;
 
+    const isDeleted = message.isDeleted || deletedMessageIds.includes(message._id);
+
     // Handle system messages differently
     if (message.messageType === 'system') {
       return (
@@ -448,24 +405,6 @@ export default function MessageList({
             ? 'ml-16 md:ml-12'
             : 'mr-6 md:mr-12'
             }`}
-          onMouseEnter={() => {
-            // Clear any pending timeout
-            if (hoverTimeoutRef.current) {
-              clearTimeout(hoverTimeoutRef.current);
-              hoverTimeoutRef.current = null;
-            }
-            setHoveredMessageId(message._id);
-          }}
-          onMouseLeave={() => {
-            // Hide if menu is not open, but with delay
-            if (showOptionsMenu !== message._id) {
-              // Add delay before hiding to allow moving mouse to button
-              hoverTimeoutRef.current = setTimeout(() => {
-                setHoveredMessageId(null);
-                hoverTimeoutRef.current = null;
-              }, 300); // 300ms delay
-            }
-          }}
         >
           {/* Sender name for group chats */}
           {showSenderInfo && !isOwn && conversation.conversationType === 'group' && (
@@ -474,75 +413,34 @@ export default function MessageList({
             </div>
           )}
 
-          {/* Message bubble with hover actions wrapper */}
-          <div className={`flex items-center gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+          {/* Message bubble with click-to-select */}
+          <div className={`flex items-center gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'} relative`}>
             {/* Message bubble */}
             <motion.div
               title={formatMessageTime(message.createdAt)}
-              className={`relative px-4 py-2 rounded-3xl shadow-sm transition-all duration-200 ${isOwn
-                ? 'bg-blue-500 dark:bg-blue-600 text-white hover:shadow-md'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:shadow-md'
-                } break-words overflow-wrap-anywhere`}
-              style={{
-                borderTopRightRadius: isOwn && isLastInGroup ? '8px' : '24px',
-                borderTopLeftRadius: !isOwn && isLastInGroup ? '8px' : '24px',
+              onClick={() => {
+                if (!isDeleted && message.messageType !== 'system') {
+                  setSelectedMessageId(selectedMessageId === message._id ? null : message._id);
+                  setShowOptionsMenu(null);
+                }
               }}
-              whileHover={{ scale: 1.02 }}
+              className={`message-bubble relative px-4 py-2.5 rounded-2xl shadow-sm transition-all duration-200 cursor-pointer ${isOwn
+                ? 'bg-blue-600 text-white border border-blue-600'
+                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
+                } break-words overflow-wrap-anywhere ${selectedMessageId === message._id ? 'ring-2 ring-blue-300 ring-offset-1' : ''}`}
+              style={{
+                borderBottomRightRadius: isOwn ? '4px' : '16px',
+                borderBottomLeftRadius: !isOwn ? '4px' : '16px',
+              }}
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.15 }}
             >
               {/* Message content */}
-              {editingMessageId === message._id ? (
-                // Edit mode
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 min-w-[250px]">
-                  <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
-                    <span>Chỉnh sửa tin nhắn</span>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                  <div className="flex items-end gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
-                    <input
-                      type="text"
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="flex-1 bg-transparent text-sm text-gray-900 dark:text-gray-100 focus:outline-none"
-                      placeholder="Nhập tin nhắn..."
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSaveEdit(message._id);
-                        } else if (e.key === 'Escape') {
-                          handleCancelEdit();
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={handleCancelEdit}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
-                      title="Hủy"
-                    >
-                      <Smile size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleSaveEdit(message._id)}
-                      disabled={!editContent.trim()}
-                      className="text-blue-500 hover:text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed p-1"
-                      title="Gửi"
-                    >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ) : message.isDeleted ? (
+              {isDeleted ? (
                 // Deleted message
                 <p className="text-sm leading-relaxed italic text-gray-600 dark:text-gray-300">
-                  {message.content}
+                  {message.isDeleted ? message.content : 'Tin nhắn đã được thu hồi'}
                 </p>
               ) : message.messageType === 'image' ? (
                 <div>
@@ -576,128 +474,84 @@ export default function MessageList({
               )}
             </motion.div>
 
-            {/* Hover actions: Options button + Emoji picker */}
-            {!message.isDeleted && message.messageType !== 'system' && (hoveredMessageId === message._id || showOptionsMenu === message._id) && (
-              <div className={`absolute top-1 z-10 flex items-center gap-1 ${isOwn ? '-left-16' : '-right-16'}`}>
-                {/* Options button (Edit/Delete) - only for own messages */}
-                {isOwn && (
-                  <div className="relative">
-                    <button
-                      ref={(el) => {
-                        if (el) buttonRefs.current[message._id] = el;
-                        else delete buttonRefs.current[message._id];
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Clear any pending timeout to prevent flickering
-                        if (hoverTimeoutRef.current) {
-                          clearTimeout(hoverTimeoutRef.current);
-                          hoverTimeoutRef.current = null;
-                        }
-                        setHoveredMessageId(message._id);
-
-                        if (showOptionsMenu === message._id) {
-                          setShowOptionsMenu(null);
-                        } else {
-                          setShowOptionsMenu(message._id);
-                        }
-                      }}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onMouseEnter={() => {
-                        if (hoverTimeoutRef.current) {
-                          clearTimeout(hoverTimeoutRef.current);
-                          hoverTimeoutRef.current = null;
-                        }
-                        setHoveredMessageId(message._id);
-                      }}
-                      className="message-options-button p-1 flex items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                      title="Tùy chọn"
-                    >
-                      <MoreHorizontal size={14} className="text-gray-500 dark:text-gray-400" />
-                    </button>
-
-                    {/* Dropdown menu - using absolute positioning */}
-                    {showOptionsMenu === message._id && (
-                      <div
-                        ref={(el) => {
-                          if (el) dropdownRefs.current[message._id] = el;
-                          else delete dropdownRefs.current[message._id];
-                        }}
-                        className="absolute message-options-menu bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px] z-[9999]"
-                        style={{ bottom: '100%', left: 0, marginBottom: '4px' }}
-                        onClick={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onMouseEnter={() => setHoveredMessageId(message._id)}
-                      >
-                        {message.messageType !== 'image' && message.messageType !== 'emote' && (
-                          <button
-                            onClick={() => handleEditMessage(message)}
-                            className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-200"
-                          >
-                            <Edit2 size={14} />
-                            Sửa tin nhắn
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDeleteMessage(message._id)}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
-                        >
-                          <Trash2 size={14} />
-                          Thu hồi
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Emoji picker button with popup */}
-                <div className="relative group">
-                  <button
-                    className="p-1 flex items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    title="Thả cảm xúc"
-                  >
-                    <Smile size={14} className="text-gray-500 dark:text-gray-400" />
-                  </button>
-                  {/* Reaction popup on hover */}
-                  <div className={`absolute hidden group-hover:flex top-0 -translate-y-full ${isOwn ? 'right-0' : 'left-0'} bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full shadow-lg px-2 py-1 gap-1 z-50`}>
-                    {Object.entries(reactionConfig).map(([type, cfg]) => (
+            {/* Click-to-show reaction popup */}
+            {selectedMessageId === message._id && !isDeleted && message.messageType !== 'system' && (
+              <div
+                className={`absolute bottom-full mb-2 z-20 bg-white dark:bg-gray-800 shadow-xl rounded-full p-1 flex items-center gap-1 border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in duration-200 max-w-[calc(100vw-2rem)] ${isOwn ? 'right-0 origin-bottom-right' : 'left-0 origin-bottom-left'}`}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
+              >
+                {/* Emoji reactions */}
+                <div className="flex gap-0.5">
+                  {Object.entries(reactionConfig).map(([type, cfg]) => {
+                    const hasReacted = (message.reactions || []).some(
+                      r => r.type === type && (r.user === currentUserId || r.user?._id === currentUserId)
+                    );
+                    return (
                       <button
                         key={type}
-                        onClick={() => toggleReaction(message._id, type)}
-                        className={`p-1 hover:scale-125 transition-transform ${cfg.color}`}
+                        onClick={() => {
+                          toggleReaction(message._id, type);
+                          setSelectedMessageId(null);
+                        }}
+                        className={`w-6 h-6 md:w-8 md:h-8 flex items-center justify-center text-sm md:text-lg rounded-full transition transform active:scale-110 hover:scale-110 ${hasReacted ? 'bg-blue-100 dark:bg-blue-900' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
                         title={type}
                       >
-                        <cfg.Icon size={16} />
+                        {cfg.emoji}
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
+
+                {/* Delete for own messages */}
+                {isOwn && (
+                  <button
+                    onClick={() => {
+                      handleDeleteMessage(message._id);
+                      setSelectedMessageId(null);
+                    }}
+                    className="p-1 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition"
+                    title="Thu hồi"
+                  >
+                    <Trash2 size={14} className="text-red-500" />
+                  </button>
+                )}
+
+                {/* Close button */}
+                <button
+                  onClick={() => setSelectedMessageId(null)}
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
+                  title="Đóng"
+                >
+                  <X size={12} className="text-gray-400" />
+                </button>
               </div>
             )}
+
+            {/* Single reaction emoji at corner (like reference design) */}
+            {!isDeleted && !!message.reactions?.length && (() => {
+              const lastReaction = message.reactions[message.reactions.length - 1];
+              const reactionType = lastReaction?.type;
+              const cfg = reactionConfig[reactionType];
+              if (!cfg) return null;
+
+              return (
+                <div className={`absolute -bottom-3 z-10 ${isOwn ? 'right-2' : 'left-2'}`}>
+                  <span className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs px-1.5 py-0.5 rounded-full shadow-sm text-lg leading-none block">
+                    {cfg.emoji}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Edited indicator */}
-          {message.isEdited && !message.isDeleted && editingMessageId !== message._id && (
+          {message.isEdited && !message.isDeleted && (
             <p className={`text-xs text-gray-400 dark:text-gray-500 mt-1 italic px-2 ${isOwn ? 'text-right' : 'text-left'
               }`}>
               Đã chỉnh sửa
             </p>
-          )}
-
-          {/* Reaction counters only - picker is now in hover menu */}
-          {!message.isDeleted && !editingMessageId && !!message.reactions?.length && (
-            <div className={`mt-1 px-2 flex flex-wrap gap-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-              {Object.entries(reactionConfig).map(([type, cfg]) => {
-                const count = (message.reactions || []).filter(r => r.type === type).length;
-                if (!count) return null;
-                const ActiveIcon = cfg.Icon;
-                return (
-                  <span key={type} className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
-                    <ActiveIcon size={12} /> {count}
-                  </span>
-                );
-              })}
-            </div>
           )}
 
           {/* Message status indicator - only for own messages */}
@@ -707,9 +561,10 @@ export default function MessageList({
             const hasAnyReader = (message.readBy || []).some(
               r => r.user !== currentUserId && r.user?._id !== currentUserId
             );
+            const hasReaction = message.reactions?.length > 0;
 
             return (
-              <div className="flex justify-end mt-1 px-2">
+              <div className={`flex justify-end px-2 ${hasReaction ? 'mt-4' : 'mt-1'}`}>
                 {lastReadUsers.length > 0 ? (
                   // Show avatars of users whose last-read is this message
                   <div className="flex -space-x-1">
@@ -779,6 +634,55 @@ export default function MessageList({
         )}
 
         <div ref={topRef} />
+
+        {/* Profile Header for private conversations */}
+        {conversation?.conversationType === 'private' && (() => {
+          // Get the other participant in private chat
+          const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
+          const otherParticipant = conversation.participants?.find(
+            p => (p.user?._id || p.user?.id) !== currentUserId
+          );
+          const otherUser = otherParticipant?.user;
+
+          if (!otherUser) return null;
+
+          return (
+            <div className="flex flex-col items-center py-8 mb-4">
+              {/* Avatar */}
+              <Avatar
+                src={otherUser.avatarUrl}
+                name={otherUser.name || 'User'}
+                size={80}
+                className="mb-3"
+              />
+
+              {/* Name */}
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {otherParticipant?.nickname || otherUser.name || 'Không tên'}
+              </h3>
+
+              {/* Username */}
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                @{otherUser.username || otherUser.name?.toLowerCase().replace(/\s+/g, '')}
+              </p>
+
+              {/* Join date */}
+              {otherUser.createdAt && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Đã tham gia vào tháng {new Date(otherUser.createdAt).getMonth() + 1} năm {new Date(otherUser.createdAt).getFullYear()}
+                </p>
+              )}
+
+              {/* View Profile button */}
+              <a
+                href={`/profile/${otherUser.username || otherUser._id}`}
+                className="mt-4 px-6 py-2 border border-gray-600 dark:border-gray-400 text-gray-800 dark:text-white rounded-full text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Xem trang cá nhân
+              </a>
+            </div>
+          );
+        })()}
 
         {/* Messages */}
         {messages.length === 0 && !loading ? (

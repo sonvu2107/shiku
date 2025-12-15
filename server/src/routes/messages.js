@@ -108,7 +108,9 @@ router.get("/conversations", authRequired, async (req, res) => {
       if (conv.lastMessage && conv.lastMessage.content) {
         decryptedLastMessage = {
           ...conv.lastMessage,
-          content: decrypt(conv.lastMessage.content)
+          content: conv.lastMessage.isDeleted
+            ? conv.lastMessage.content
+            : decrypt(conv.lastMessage.content)
         };
       }
 
@@ -183,8 +185,7 @@ router.get("/conversations/:conversationId/messages", authRequired, async (req, 
 
     // Build query - mongoose will auto-convert string to ObjectId
     let query = {
-      conversation: conversationId,
-      isDeleted: false
+      conversation: conversationId
     };
 
     // If before timestamp is provided, get messages before that time
@@ -205,7 +206,7 @@ router.get("/conversations/:conversationId/messages", authRequired, async (req, 
     // Decrypt message content for client
     messages.forEach(msg => {
       if (msg.content) {
-        msg.content = decrypt(msg.content);
+        msg.content = msg.isDeleted ? msg.content : decrypt(msg.content);
       }
     });
 
@@ -358,7 +359,7 @@ router.post("/conversations/:conversationId/messages", authRequired, async (req,
 
     io.to(`conversation-${conversationId}`).emit('new-message', socketMessageData);
 
-    res.status(201).json(message);
+    res.status(201).json(messageObj);
   } catch (error) {
     res.status(500).json({ message: "Lỗi server" });
   }

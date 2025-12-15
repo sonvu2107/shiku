@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Image, Smile, X } from "lucide-react";
 import { useToast } from "../../contexts/ToastContext";
@@ -33,20 +33,22 @@ const EMOTES = [
 export default function MessageInput({ onSendMessage }) {
   const { showError } = useToast();
   // ==================== STATE MANAGEMENT ====================
-  
+
   // Message states
   const [message, setMessage] = useState(''); // Text message content
   const [showEmotePicker, setShowEmotePicker] = useState(false); // Show emoji picker
   const [selectedImage, setSelectedImage] = useState(null); // Selected image file
   const [imagePreview, setImagePreview] = useState(null); // Image preview
-  
+
   // Refs
-  const fileInputRef = useRef(null); // Ref for file input
-  const textareaRef = useRef(null); // Ref for textarea
+  const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!message.trim() && !selectedImage) return;
+
 
     if (selectedImage) {
       // Send image message
@@ -57,7 +59,7 @@ export default function MessageInput({ onSendMessage }) {
       // Send text message
       await onSendMessage(message.trim(), 'text');
     }
-    
+
     setMessage('');
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -104,7 +106,7 @@ export default function MessageInput({ onSendMessage }) {
 
   const handleTextareaChange = (e) => {
     setMessage(e.target.value);
-    
+
     // Auto-resize textarea
     e.target.style.height = 'auto';
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
@@ -120,6 +122,7 @@ export default function MessageInput({ onSendMessage }) {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 relative">
+
       {/* Image preview */}
       <AnimatePresence>
         {imagePreview && (
@@ -162,19 +165,19 @@ export default function MessageInput({ onSendMessage }) {
             transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
             className="absolute bottom-full left-2 right-2 sm:left-4 sm:right-4 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg p-4 max-h-48 overflow-y-auto z-10 emote-picker-mobile"
           >
-          <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
-            {EMOTES.map((emote, index) => (
-            <button
-              key={index}
-              onClick={() => handleEmoteSelect(emote)}
-              className="p-2 text-xl sm:text-2xl hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 rounded-lg transition-colors touch-target"
-            >
-              {emote}
-            </button>
-            ))}
-          </div>
-        </motion.div>
-      )}
+            <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
+              {EMOTES.map((emote, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleEmoteSelect(emote)}
+                  className="p-2 text-xl sm:text-2xl hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 rounded-lg transition-colors touch-target"
+                >
+                  {emote}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Input area */}
@@ -192,17 +195,16 @@ export default function MessageInput({ onSendMessage }) {
             >
               <Image size={20} />
             </motion.button>
-            
+
             <motion.button
               type="button"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setShowEmotePicker(!showEmotePicker)}
-              className={`p-2 rounded-full transition-colors touch-target ${
-                showEmotePicker 
-                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' 
-                  : 'text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:bg-blue-100 dark:active:bg-blue-900/30'
-              }`}
+              className={`p-2 rounded-full transition-colors touch-target ${showEmotePicker
+                ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                : 'text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:bg-blue-100 dark:active:bg-blue-900/30'
+                }`}
               title="Chọn emote"
             >
               <Smile size={20} />

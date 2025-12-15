@@ -7,7 +7,7 @@ import { api } from "../api";
 import { getUserInfo } from "../utils/auth";
 import socketService from "../socket";
 import callManager from "../utils/callManager";
-import { X, Phone, Video, ChevronDown, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Edit2, Trash2, Bot, Check, CheckCheck } from "lucide-react";
+import { X, Phone, Video, ChevronDown, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Trash2, Bot, Check, CheckCheck } from "lucide-react";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { useToast } from "../contexts/ToastContext";
 import { parseLinks } from "../utils/linkParser.jsx";
@@ -120,11 +120,13 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   const [showEmotePicker, setShowEmotePicker] = useState(false); // Show emoji picker
 
   // Edit/Delete states
-  const [editingMessageId, setEditingMessageId] = useState(null); // ID of the message being edited
-  const [editContent, setEditContent] = useState(""); // Edit content
   const [showOptionsMenu, setShowOptionsMenu] = useState(null); // ID of the message showing options menu
   const [hoveredMessageId, setHoveredMessageId] = useState(null); // ID of the message being hovered
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 }); // Position for fixed dropdown
+
+  // Long-press reaction states (mobile)
+  const [longPressReactionId, setLongPressReactionId] = useState(null); // ID of message showing reaction picker via long-press
+  const longPressTimeoutRef = useRef(null); // Timeout ref for long-press detection
 
   // Refs
   const messagesEndRef = useRef(null); // Ref to scroll to the bottom of messages
@@ -232,39 +234,39 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
     setShowEmotePicker(false);
   };
 
-  const handleEditMessage = (message) => {
-    if (isChatbot) return;
-    setEditingMessageId(message._id);
-    setEditContent(message.content);
-    setShowOptionsMenu(null);
+
+
+  // Long-press handlers for mobile reaction picker
+  const handleTouchStart = (msgId) => {
+    // Clear any existing timeout
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+    }
+    // Set timeout for 500ms long-press
+    longPressTimeoutRef.current = setTimeout(() => {
+      setLongPressReactionId(msgId);
+      // Vibrate on supported devices for haptic feedback
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }, 500);
   };
 
-  const handleSaveEdit = async (messageId) => {
-    if (isChatbot || !editContent.trim()) return;
-
-    try {
-      await api(`/api/messages/conversations/${conversation._id}/messages/${messageId}`, {
-        method: 'PUT',
-        body: { content: editContent }
-      });
-
-      // Update message locally
-      setMessages(prev => prev.map(m =>
-        m._id === messageId
-          ? { ...m, content: editContent, isEdited: true }
-          : m
-      ));
-
-      setEditingMessageId(null);
-      setEditContent("");
-    } catch (error) {
-      showError('Không thể sửa tin nhắn');
+  const handleTouchEnd = () => {
+    // Clear the timeout if touch ended before long-press
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
     }
   };
 
-  const handleCancelEdit = () => {
-    setEditingMessageId(null);
-    setEditContent("");
+  const handleTouchMove = () => {
+    // Cancel long-press if user scrolls/moves
+    handleTouchEnd();
+  };
+
+  const closeLongPressReaction = () => {
+    setLongPressReactionId(null);
   };
 
   const handleDeleteMessage = async (messageId) => {
@@ -482,13 +484,18 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           setHoveredMessageId(null);
                         }
                       }}
+                      onTouchStart={() => handleTouchStart(msg._id)}
+                      onTouchEnd={handleTouchEnd}
+                      onTouchMove={handleTouchMove}
                     >
                       <div className="flex flex-col items-end max-w-[75%] relative">
-                        {/* Hover actions: Emoji picker + Options button in same row */}
+                        {/* Hover actions: Emoji picker + Options button - hidden on mobile, use long-press instead */}
                         {!msg.isDeleted && msg.messageType !== 'system' && (hoveredMessageId === msg._id || showOptionsMenu === msg._id) && (
-                          <div className="absolute top-1 -left-16 z-10 message-options-menu flex items-center gap-1">
-                            {/* Emoji picker button with popup */}
-                            <div className="relative group">
+                          <div className="absolute top-1 -left-16 z-10 message-options-menu hidden md:flex items-center gap-1">
+
+
+                            {/* Emoji picker button with popup - hidden on mobile, use long-press instead */}
+                            <div className="relative group hidden md:block">
                               <button
                                 className="p-1.5 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 shadow-sm"
                                 title="Thả cảm xúc"
@@ -496,7 +503,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                                 <Smile size={14} className="text-gray-600 dark:text-gray-300" />
                               </button>
                               {/* Reaction popup on hover */}
-                              <div className="absolute hidden group-hover:flex top-0 -translate-y-full right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full shadow-lg px-2 py-1 gap-1 z-50">
+                              <div className="absolute hidden group-hover:flex items-center top-0 -translate-y-full right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full shadow-lg px-2 py-1 gap-1 z-50">
                                 {[
                                   { type: 'like', Icon: ThumbsUp, color: 'text-blue-500' },
                                   { type: 'love', Icon: Heart, color: 'text-red-500' },
@@ -520,110 +527,36 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                                     <Icon size={16} />
                                   </button>
                                 ))}
+
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent popup handling
+                                    handleDeleteMessage(msg._id);
+                                  }}
+                                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-red-500 hover:text-red-600 transition-colors"
+                                  title="Thu hồi"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+
+                                <button
+                                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                                  title="Đóng"
+                                >
+                                  <X size={16} />
+                                </button>
                               </div>
                             </div>
 
-                            {/* Options button (Edit/Delete) */}
-                            <div className="relative">
-                              <button
-                                ref={(el) => {
-                                  if (el) optionsButtonRefs.current[msg._id] = el;
-                                }}
-                                onClick={(e) => {
-                                  if (showOptionsMenu === msg._id) {
-                                    setShowOptionsMenu(null);
-                                  } else {
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    setDropdownPosition({
-                                      top: rect.top - 4, // Position above button
-                                      left: rect.left
-                                    });
-                                    setShowOptionsMenu(msg._id);
-                                  }
-                                }}
-                                onMouseEnter={() => setHoveredMessageId(msg._id)}
-                                className="p-1.5 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 shadow-sm"
-                                title="Tùy chọn"
-                              >
-                                <MoreHorizontal size={14} className="text-gray-600 dark:text-gray-300" />
-                              </button>
 
-                              {/* Dropdown menu - using fixed positioning */}
-                              {showOptionsMenu === msg._id && (
-                                <div
-                                  className="fixed bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px] z-[9999] message-options-menu"
-                                  style={{
-                                    top: `${dropdownPosition.top}px`,
-                                    left: `${dropdownPosition.left}px`,
-                                    transform: 'translateY(-100%)'
-                                  }}
-                                  onMouseEnter={() => setHoveredMessageId(msg._id)}
-                                >
-                                  {msg.messageType !== 'image' && msg.messageType !== 'emote' && (
-                                    <button
-                                      onClick={() => handleEditMessage(msg)}
-                                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-200"
-                                    >
-                                      <Edit2 size={12} />
-                                      Sửa tin nhắn
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => handleDeleteMessage(msg._id)}
-                                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
-                                  >
-                                    <Trash2 size={12} />
-                                    Thu hồi
-                                  </button>
-                                </div>
-                              )}
-                            </div>
                           </div>
                         )}
 
-                        {editingMessageId === msg._id ? (
-                          // Edit mode
-                          <div className="bg-white dark:bg-gray-800 rounded-lg p-2 min-w-[200px] mb-1">
-                            <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
-                              <span>Chỉnh sửa tin nhắn</span>
-                              <button
-                                onClick={handleCancelEdit}
-                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                              >
-                                <X size={12} />
-                              </button>
-                            </div>
-                            <div className="flex items-end gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
-                              <input
-                                type="text"
-                                value={editContent}
-                                onChange={(e) => setEditContent(e.target.value)}
-                                className="flex-1 bg-transparent text-sm text-gray-900 dark:text-gray-100 focus:outline-none"
-                                placeholder="Nhập tin nhắn..."
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSaveEdit(msg._id);
-                                  } else if (e.key === 'Escape') {
-                                    handleCancelEdit();
-                                  }
-                                }}
-                              />
-                              <button
-                                onClick={() => handleSaveEdit(msg._id)}
-                                disabled={!editContent.trim()}
-                                className="text-blue-500 hover:text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed p-1"
-                                title="Gửi"
-                              >
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                        ) : msg.isDeleted ? (
-                          <div className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 italic break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
+                        {msg.isDeleted ? (
+                          <div
+                            className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 italic break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
+                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
+                          >
                             {msg.content}
                           </div>
                         ) : msg.messageType === "image" ? (
@@ -631,33 +564,34 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             src={msg.imageUrl}
                             alt="Ảnh"
                             className="max-w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
                             onClick={() => setImageViewer({ isOpen: true, imageUrl: msg.imageUrl, alt: "Ảnh" })}
                           />
                         ) : msg.messageType === "emote" ? (
                           <div
                             className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white flex items-center justify-center"
-                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() + " " + new Date(msg.createdAt).toLocaleDateString() : ""}
+                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
                           >
                             <span className="text-2xl">{msg.emote}</span>
                           </div>
                         ) : (
                           <div
                             className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
-                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() + " " + new Date(msg.createdAt).toLocaleDateString() : ""}
+                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
                           >
                             {parseLinks(msg.content, { linkClassName: "text-blue-200 hover:text-blue-100 underline break-all" })}
                           </div>
                         )}
 
                         {/* Edited indicator */}
-                        {msg.isEdited && !msg.isDeleted && editingMessageId !== msg._id && (
+                        {msg.isEdited && !msg.isDeleted && (
                           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic text-right">
                             Đã chỉnh sửa
                           </p>
                         )}
 
                         {/* Reaction counters only - picker is now in hover menu */}
-                        {!msg.isDeleted && editingMessageId !== msg._id && !!msg.reactions?.length && (
+                        {!msg.isDeleted && !!msg.reactions?.length && (
                           <div className="mt-1 flex justify-end flex-wrap gap-1">
                             {['like', 'love', 'laugh', 'angry', 'sad'].map((type) => {
                               const map = { like: ThumbsUp, love: Heart, laugh: Laugh, angry: Angry, sad: Frown };
@@ -717,7 +651,13 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                   );
                 }
                 return (
-                  <div key={msg._id || idx} className="mb-2 flex justify-start">
+                  <div
+                    key={msg._id || idx}
+                    className="mb-2 flex justify-start"
+                    onTouchStart={() => handleTouchStart(msg._id)}
+                    onTouchEnd={handleTouchEnd}
+                    onTouchMove={handleTouchMove}
+                  >
                     <div className="flex items-start gap-2 max-w-[75%]">
                       <Avatar
                         src={senderAvatar}
@@ -734,20 +674,28 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             src={msg.imageUrl}
                             alt="Ảnh"
                             className="max-w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
                             onClick={() => setImageViewer({ isOpen: true, imageUrl: msg.imageUrl, alt: "Ảnh" })}
                           />
                         ) : msg.messageType === "emote" ? (
-                          <div className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center">
+                          <div
+                            className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center"
+                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
+                          >
                             <span className="text-2xl">{msg.emote}</span>
                           </div>
                         ) : (
-                          <div className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
+                          <div
+                            className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
+                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
+                          >
                             {parseLinks(msg.content)}
                           </div>
                         )}
                         {/* Reactions row */}
                         <div className="mt-1 flex items-center gap-1">
-                          <div className="relative group">
+                          {/* Emoji button - hidden on mobile, use long-press instead */}
+                          <div className="relative group hidden md:block">
                             <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-100" title="Thả cảm xúc" tabIndex={0}>
                               <Smile size={16} />
                             </button>
@@ -897,18 +845,61 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
             </div>
           )}
         </>
-      )}
+      )
+      }
 
       {/* Image Viewer */}
-      {!isChatbot && (
-        <ImageViewer
-          isOpen={imageViewer.isOpen}
-          imageUrl={imageViewer.imageUrl}
-          alt={imageViewer.alt}
-          onClose={() => setImageViewer({ isOpen: false, imageUrl: null, alt: "" })}
-        />
-      )}
-    </div>
+      {
+        !isChatbot && (
+          <ImageViewer
+            isOpen={imageViewer.isOpen}
+            imageUrl={imageViewer.imageUrl}
+            alt={imageViewer.alt}
+            onClose={() => setImageViewer({ isOpen: false, imageUrl: null, alt: "" })}
+          />
+        )
+      }
+
+      {/* Long-press reaction popup for mobile */}
+      {
+        longPressReactionId && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+            onClick={closeLongPressReaction}
+          >
+            <div
+              className="bg-white dark:bg-gray-800 rounded-full px-4 py-3 shadow-xl flex items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {[
+                { type: 'like', Icon: ThumbsUp, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/30' },
+                { type: 'love', Icon: Heart, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/30' },
+                { type: 'laugh', Icon: Laugh, color: 'text-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/30' },
+                { type: 'angry', Icon: Angry, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/30' },
+                { type: 'sad', Icon: Frown, color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-700' }
+              ].map(({ type, Icon, color, bg }) => (
+                <button
+                  key={type}
+                  onClick={async () => {
+                    try {
+                      await api(`/api/messages/conversations/${conversation._id}/messages/${longPressReactionId}/react`, {
+                        method: "POST",
+                        body: { type }
+                      });
+                    } catch (e) { }
+                    closeLongPressReaction();
+                  }}
+                  className={`p-3 rounded-full ${bg} hover:scale-110 active:scale-95 transition-transform`}
+                  title={type}
+                >
+                  <Icon size={24} className={color} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )
+      }
+    </div >
   );
 }
 
