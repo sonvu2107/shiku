@@ -675,7 +675,7 @@ export default function MessageList({
 
               {/* View Profile button */}
               <a
-                href={`/profile/${otherUser.username || otherUser._id}`}
+                href={`/user/${otherUser._id}`}
                 className="mt-4 px-6 py-2 border border-gray-600 dark:border-gray-400 text-gray-800 dark:text-white rounded-full text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 Xem trang cá nhân

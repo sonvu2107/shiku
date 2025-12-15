@@ -851,33 +851,67 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
 
               {editingComment === comment._id ? (
                 <div className="mt-2">
-                  <div className="relative emoji-picker-container">
+                  <div className="relative bg-white dark:bg-black rounded-xl sm:rounded-2xl border border-neutral-200 dark:border-neutral-800 transition-all focus-within:ring-2 focus-within:ring-black/5 dark:focus-within:ring-white/10">
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full p-3 sm:p-3 bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
-                      rows="3"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-transparent border-none text-[15px] sm:text-sm text-neutral-900 dark:text-white placeholder-neutral-500 focus:ring-0 resize-none rounded-xl sm:rounded-2xl"
+                      rows={3}
                       placeholder="Chỉnh sửa bình luận..."
                       autoFocus
+                      style={{ minHeight: '80px', maxHeight: '200px' }}
                     />
-                    <div className="absolute right-2 bottom-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setShowEditEmojiPicker(showEditEmojiPicker === comment._id ? null : comment._id);
-                        }}
-                        className="p-2 sm:p-1.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg active:bg-neutral-100 dark:active:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors touch-manipulation"
-                        title="Thêm emoji"
-                      >
-                        <Smile size={18} className="sm:w-4 sm:h-4" />
-                      </button>
-                      {renderEmojiPicker(
-                        (emoji) => setEditContent(prev => prev + emoji),
-                        showEditEmojiPicker === comment._id,
-                        () => setShowEditEmojiPicker(null),
-                        "right"
-                      )}
+
+                    {/* Toolbar */}
+                    <div className="px-2 sm:px-3 pb-2 sm:pb-2 flex items-center justify-between">
+                      <div className="flex items-center gap-1 sm:gap-1 emoji-picker-container relative">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setShowEditEmojiPicker(showEditEmojiPicker === comment._id ? null : comment._id);
+                          }}
+                          className="p-1.5 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 rounded-lg active:bg-neutral-100 dark:active:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors touch-manipulation"
+                          title="Thêm emoji"
+                        >
+                          <Smile size={16} className="sm:w-[18px] sm:h-[18px]" />
+                        </button>
+                        {renderEmojiPicker(
+                          (emoji) => setEditContent(prev => prev + emoji),
+                          showEditEmojiPicker === comment._id,
+                          () => setShowEditEmojiPicker(null),
+                          "left"
+                        )}
+                        <CommentImageUpload
+                          onImagesChange={setEditImages}
+                          maxImages={5}
+                          minimal={true}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          className="px-3 py-1.5 min-h-[36px] sm:min-h-0 text-xs font-bold text-neutral-600 dark:text-neutral-400 active:bg-neutral-200 dark:active:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-800 rounded-full transition-colors touch-manipulation"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateComment(comment._id)}
+                          disabled={(!editContent.trim() && editImages.length === 0) || isUpdating}
+                          className="px-4 py-1.5 min-h-[36px] sm:min-h-0 bg-black dark:bg-white text-white dark:text-black text-xs font-bold rounded-full active:opacity-80 hover:opacity-80 disabled:opacity-50 transition-all touch-manipulation flex items-center gap-1.5"
+                        >
+                          {isUpdating ? (
+                            <>
+                              <Loader2 size={14} className="animate-spin" />
+                              <span>Lưu...</span>
+                            </>
+                          ) : (
+                            'Lưu'
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -885,13 +919,13 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
                   {comment.images && comment.images.length > 0 && (
                     <div className="mt-3">
                       <p className="text-xs font-bold text-neutral-500 mb-2 uppercase tracking-wider">Ảnh hiện tại</p>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-4 gap-2">
                         {comment.images.map((image, index) => (
-                          <div key={index} className="relative group rounded-lg overflow-hidden">
+                          <div key={index} className="relative group rounded-lg overflow-hidden aspect-square">
                             <img
                               src={image.url}
                               alt={image.alt || `Ảnh ${index + 1}`}
-                              className="w-full h-16 object-cover"
+                              className="w-full h-full object-cover"
                             />
                           </div>
                         ))}
@@ -899,36 +933,23 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
                     </div>
                   )}
 
-                  {/* Image Upload for Edit */}
-                  <div className="mt-3">
-                    <CommentImageUpload
-                      onImagesChange={setEditImages}
-                      maxImages={5}
-                    />
-                  </div>
-
-                  <div className="flex gap-2 sm:gap-2 mt-3 justify-end">
-                    <button
-                      onClick={cancelEdit}
-                      className="px-5 py-2.5 sm:px-4 sm:py-1.5 min-h-[44px] sm:min-h-0 text-xs sm:text-xs font-bold text-neutral-600 dark:text-neutral-400 active:bg-neutral-200 dark:active:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-800 rounded-full transition-colors touch-manipulation"
-                    >
-                      Hủy
-                    </button>
-                    <button
-                      onClick={() => handleUpdateComment(comment._id)}
-                      disabled={(!editContent.trim() && editImages.length === 0) || isUpdating}
-                      className="px-5 py-2.5 sm:px-4 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-black dark:bg-white text-white dark:text-black text-xs sm:text-xs font-bold rounded-full active:opacity-80 hover:opacity-80 disabled:opacity-50 transition-all touch-manipulation flex items-center gap-2"
-                    >
-                      {isUpdating ? (
-                        <>
-                          <Loader2 size={14} className="animate-spin" />
-                          <span>Đang lưu...</span>
-                        </>
-                      ) : (
-                        'Lưu'
-                      )}
-                    </button>
-                  </div>
+                  {/* New Images Preview */}
+                  {editImages.length > 0 && (
+                    <div className="mt-3 grid grid-cols-4 gap-2">
+                      {editImages.map((img, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden group">
+                          <img src={img.preview} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setEditImages(prev => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-1 right-1 p-1.5 min-w-[28px] min-h-[28px] bg-black/50 text-white rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-neutral-800 dark:text-neutral-200 text-[14px] sm:text-sm leading-relaxed whitespace-pre-wrap break-words">

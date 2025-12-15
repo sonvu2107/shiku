@@ -889,11 +889,6 @@ function Home({ user, setUser }) {
               >
                 <span className="hidden sm:inline-flex flex-shrink-0">{getSortIcon(sortBy)}</span>
                 <span className="whitespace-nowrap">{getSortLabel(sortBy)}</span>
-                {sortBy === 'recommended' && (
-                  <span className="relative inline-flex items-center text-[11px] px-2 sm:px-2.5 py-1 bg-gradient-to-r from-black via-neutral-800 to-black dark:from-white dark:via-neutral-200 dark:to-white text-white dark:text-black rounded-full font-black flex-shrink-0 shadow-lg shadow-black/20 dark:shadow-white/20 animate-pulse">
-                    <span>AI</span>
-                  </span>
-                )}
                 <ArrowUpDown size={14} className="opacity-60 dark:opacity-70 flex-shrink-0 text-neutral-600 dark:text-neutral-300 hidden sm:inline" />
               </button>
             </div>

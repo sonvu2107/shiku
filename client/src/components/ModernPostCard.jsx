@@ -559,7 +559,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                   initial={{ opacity: 0, scale: 0.95, y: -5 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                  className="absolute right-0 top-full mt-1 bg-white dark:bg-neutral-800 shadow-xl border border-gray-100 dark:border-neutral-700 rounded-xl py-1 z-20 w-44 sm:w-48"
+                  className="absolute right-0 top-full mt-1 bg-white dark:bg-neutral-800 shadow-xl border border-gray-100 dark:border-neutral-700 rounded-xl py-1 z-20 w-auto min-w-max"
                 >
                   <button
                     onClick={(e) => {
@@ -606,7 +606,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         )}
         {/* Content - Mobile: smaller font, better line-height */}
         {post.content && (
-          <div className="prose dark:prose-invert max-w-none text-[15px] sm:text-[14px] md:text-[15px] leading-[1.65] sm:leading-relaxed text-gray-700 dark:text-gray-300 font-normal prose-p:mb-2 prose-headings:mb-2 prose-headings:mt-3 prose-p:line-clamp-4 sm:prose-p:line-clamp-3">
+          <div className="prose dark:prose-invert max-w-none text-[16px] sm:text-[15px] md:text-base leading-[1.75] sm:leading-[1.7] text-neutral-800 dark:text-neutral-200 font-normal prose-p:mb-2.5 prose-headings:mb-2 prose-headings:mt-3 prose-p:line-clamp-4 sm:prose-p:line-clamp-3">
             <ReactMarkdown
               components={{
                 h1: ({ children }) => <h1 className="text-base sm:text-lg md:text-xl font-bold mb-2 mt-3">{children}</h1>,
