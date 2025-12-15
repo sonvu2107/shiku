@@ -31,8 +31,8 @@ const NoiseOverlay = () => (
 
 const GridPattern = () => {
   return (
-    <div className="fixed inset-0 z-0 h-full w-full bg-white dark:bg-black bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]">
-      <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-neutral-400 opacity-10 blur-[120px] dark:bg-white"></div>
+    <div className="fixed inset-0 z-0 h-full w-full bg-white dark:bg-black bg-[linear-gradient(to_right,#80808005_1px,transparent_1px),linear-gradient(to_bottom,#80808005_1px,transparent_1px)] bg-[size:24px_24px]">
+      <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-neutral-400 opacity-[0.02] blur-[120px] dark:bg-white dark:opacity-[0.015]"></div>
     </div>
   );
 };

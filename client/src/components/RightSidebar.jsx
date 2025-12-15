@@ -140,7 +140,7 @@ function RightSidebar({ user }) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden"
+        className="bg-transparent border border-neutral-200/60 dark:border-neutral-800/60 rounded-xl shadow-none overflow-hidden"
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-neutral-800">
           <div className="flex items-center gap-2">
@@ -230,7 +230,7 @@ function RightSidebar({ user }) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 overflow-hidden"
+        className="bg-transparent border border-neutral-200/60 dark:border-neutral-800/60 rounded-xl shadow-none overflow-hidden"
       >
         <OnlineFriends user={user} minimal={true} />
       </motion.div>

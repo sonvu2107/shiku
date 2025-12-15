@@ -491,9 +491,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   return (
     <div
       onClick={() => navigate(`/post/${post.slug || post._id}`)}
-      className="group relative bg-white dark:bg-[#111] rounded-2xl md:rounded-[32px] px-3 md:px-5 pt-3 md:pt-4 pb-4 md:pb-6 mb-4 md:mb-6 cursor-pointer
-      shadow-[0_2px_12px_rgba(0,0,0,0.04)] md:shadow-[0_4px_16px_rgba(0,0,0,0.04)] dark:shadow-none
-      border border-neutral-100 dark:border-neutral-800/60"
+      className="group relative bg-white dark:bg-black px-4 md:px-6 py-6 border-b border-neutral-100 dark:border-neutral-800 cursor-pointer transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/40"
     >
       {/* 1. Header: User Info */}
       <div className="flex justify-between items-start mb-2 md:mb-3">
@@ -748,7 +746,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 "flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2 md:py-2.5 rounded-full transition-all active:scale-90 touch-manipulation",
                 uiUserEmote
                   ? "bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-500"
-                  : "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400"
+                  : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800"
               )}
             >
               {uiUserEmote ? (

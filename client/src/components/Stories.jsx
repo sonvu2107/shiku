@@ -137,10 +137,7 @@ function Stories({ user }) {
 
   return (
     <>
-      <div className="bg-white dark:bg-[#111] rounded-[32px] p-5 mb-6
-      shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-      hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.6)]
-      transition-all duration-500 border border-transparent dark:border-white/5">
+      <div className="mb-6 px-1.5 md:px-0">
         <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
           {/* My Story - Create new story or view my story */}
           {user && (
