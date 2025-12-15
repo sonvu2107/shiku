@@ -28,7 +28,7 @@ export default function AutoLikeBot() {
 
   const loadTestUsers = async () => {
     try {
-      const response = await api("/api/admin/users?search=test&limit=20");
+      const response = await api("/api/admin/users?search=test&limit=50");
       const users = response.users.filter((u) =>
         u.email.match(/^test\d+@example\.com$/)
       );
@@ -485,10 +485,10 @@ export default function AutoLikeBot() {
               <div>
                 <div className="flex items-center gap-2 font-medium text-gray-900 dark:text-white text-sm">
                   <MessageCircle className="w-4 h-4" />
-                  Đồng bộ Comment Count
+                  Đồng bộ Comment
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Xóa comment mồ côi và cập nhật lại số lượng comment trên tất cả bài viết
+                  Xóa comment từ account bị xóa và cập nhật lại số lượng comment trên tất cả bài viết
                 </p>
               </div>
               <button

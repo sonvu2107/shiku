@@ -548,10 +548,10 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                           <button
                             type="button"
                             onClick={() => setFiles(files.filter((_, i) => i !== idx))}
-                            className="absolute -top-2 -right-2 bg-neutral-900 dark:bg-white text-white dark:text-black rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:scale-110"
+                            className="absolute top-1 right-1 bg-neutral-900/80 dark:bg-white/90 text-white dark:text-black rounded-full w-6 h-6 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shadow-lg hover:scale-110 touch-manipulation backdrop-blur-sm"
                             title="Xóa"
                           >
-                            <X size={14} strokeWidth={3} />
+                            <X size={12} strokeWidth={2.5} />
                           </button>
                         </div>
                       ))}
@@ -683,7 +683,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                                   const newOptions = pollOptions.filter((_, i) => i !== index);
                                   setPollOptions(newOptions);
                                 }}
-                                className="opacity-0 group-hover:opacity-100 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-opacity p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                                className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-opacity p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 touch-manipulation"
                                 title="Xóa lựa chọn này"
                               >
                                 <X size={16} strokeWidth={2.5} />

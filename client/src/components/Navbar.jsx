@@ -647,14 +647,14 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
               <div className="flex md:hidden items-center gap-1">
                 <button
                   onClick={() => navigate('/search')}
-                  className="p-2 rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 touch-manipulation"
                 >
                   <Search size={20} />
                 </button>
 
                 <button
                   onClick={() => navigate('/chat')}
-                  className="p-2 rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 relative"
+                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 relative touch-manipulation"
                 >
                   <MessageCircle size={20} />
                   {unreadCount > 0 && (
@@ -664,7 +664,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
 
                 <button
                   onClick={() => navigate('/notifications')}
-                  className="p-2 rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 touch-manipulation"
                 >
                   <Bell size={20} />
                 </button>

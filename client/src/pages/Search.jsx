@@ -267,7 +267,7 @@ export default function Search({ user }) {
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); removeFromHistory(item.id); }}
-                        className="p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-gray-400 hover:text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation"
                       >
                         <X size={18} />
                       </button>

@@ -268,16 +268,14 @@ export default function EditPost() {
                   />
                 )}
 
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPost({ ...post, files: post.files.filter((_, i) => i !== idx) })}
-                    className="p-2 bg-white/20 backdrop-blur-sm hover:bg-red-500 text-white rounded-full transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
+                {/* Delete Button - Top Right Corner */}
+                <button
+                  type="button"
+                  onClick={() => setPost({ ...post, files: post.files.filter((_, i) => i !== idx) })}
+                  className="absolute top-2 right-2 p-1.5 w-7 h-7 bg-black/60 backdrop-blur-sm hover:bg-red-500 text-white rounded-full transition-colors flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 touch-manipulation"
+                >
+                  <X size={14} />
+                </button>
 
                 {/* Cover Badge */}
                 {idx === 0 && (

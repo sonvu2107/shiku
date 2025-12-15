@@ -336,10 +336,10 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       {minimized && (
         <button
           onClick={(e) => {
-            e.stopPropagation(); // Ngăn không mở popup
+            e.stopPropagation();
             onClose();
           }}
-          className="absolute -top-1 -right-1 w-5 h-5 bg-gray-700 dark:bg-gray-600 hover:bg-gray-900 dark:hover:bg-gray-800 text-white rounded-full flex items-center justify-center z-10 transition-all shadow-md opacity-0 group-hover:opacity-100"
+          className="absolute -top-1 -right-1 w-6 h-6 bg-gray-700 dark:bg-gray-600 hover:bg-gray-900 dark:hover:bg-gray-800 text-white rounded-full flex items-center justify-center z-10 transition-all shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 touch-manipulation"
           title="Đóng"
         >
           <X size={12} />
@@ -369,7 +369,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
             {!isChatbot && (
               <div className="flex gap-0.5 sm:gap-1">
                 <button
-                  className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
+                  className="p-2 sm:p-2 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-manipulation"
                   onClick={() => {
                     if (isGroup) {
                       onShowInfo?.("Tính năng chưa khả dụng, sẽ cập nhật trong tương lai");
@@ -383,7 +383,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                   <Phone size={14} className="sm:w-4 sm:h-4" />
                 </button>
                 <button
-                  className="p-1.5 sm:p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-target"
+                  className="p-2 sm:p-2 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-manipulation"
                   onClick={() => {
                     if (isGroup) {
                       onShowInfo?.("Tính năng chưa khả dụng, sẽ cập nhật trong tương lai");

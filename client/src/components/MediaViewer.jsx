@@ -126,7 +126,7 @@ export default function MediaViewer({ media, onClose, gallery, index, onNavigate
                     e.stopPropagation();
                     handleImageZoom('out');
                   }}
-                  className="p-1.5 sm:p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors touch-target"
+                  className="p-2.5 sm:p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors touch-manipulation"
                   title="Thu nhỏ"
                 >
                   <ZoomOut size={18} />
@@ -136,7 +136,7 @@ export default function MediaViewer({ media, onClose, gallery, index, onNavigate
                     e.stopPropagation();
                     handleImageZoom('in');
                   }}
-                  className="p-1.5 sm:p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors touch-target"
+                  className="p-2.5 sm:p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors touch-manipulation"
                   title="Phóng to"
                 >
                   <ZoomIn size={18} />
@@ -146,7 +146,7 @@ export default function MediaViewer({ media, onClose, gallery, index, onNavigate
                     e.stopPropagation();
                     handleImageRotate();
                   }}
-                  className="p-1.5 sm:p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors touch-target"
+                  className="p-2.5 sm:p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors touch-manipulation"
                   title="Xoay"
                 >
                   <RotateCw size={18} />
@@ -222,7 +222,7 @@ export default function MediaViewer({ media, onClose, gallery, index, onNavigate
                       e.stopPropagation();
                       togglePlayPause();
                     }}
-                    className="p-1.5 sm:p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors touch-target"
+                    className="p-2.5 sm:p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors touch-manipulation"
                   >
                     {isPlaying ? <Pause size={16} /> : <Play size={16} />}
                   </button>
@@ -232,7 +232,7 @@ export default function MediaViewer({ media, onClose, gallery, index, onNavigate
                       e.stopPropagation();
                       toggleMute();
                     }}
-                    className="p-1.5 sm:p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors touch-target"
+                    className="p-2.5 sm:p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors touch-manipulation"
                   >
                     {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                   </button>

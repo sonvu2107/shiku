@@ -522,13 +522,13 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           <div className="flex flex-col min-w-0">
             <Link
               to={`/user/${post.author?._id}`}
-              className="font-bold text-[14px] sm:text-[15px] md:text-base text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-1"
+              className="font-bold text-[16px] sm:text-[15px] md:text-base text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-1"
               onClick={e => e.stopPropagation()}
             >
               <UserName user={post.author} maxLength={20} />
             </Link>
             {/* Mobile: more compact metadata */}
-            <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] md:text-xs text-gray-400 dark:text-gray-500 font-medium">
+            <div className="flex items-center gap-1 sm:gap-1.5 text-[12px] sm:text-[11px] md:text-xs text-gray-400 dark:text-gray-500 font-medium">
               <span>{timeAgo}</span>
               {isPrivate && (
                 <span className="flex items-center gap-0.5 bg-gray-50 dark:bg-white/5 px-1 sm:px-1.5 py-0.5 rounded text-gray-500 text-[9px] sm:text-[10px]">
@@ -548,7 +548,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 e.stopPropagation();
                 setShowMainMenu(!showMainMenu);
               }}
-              className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-full transition-colors"
+              className="p-2.5 sm:p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-full transition-colors"
             >
               <MoreHorizontal size={18} className="sm:w-5 sm:h-5" />
             </button>
@@ -600,13 +600,13 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       <div className="px-3 sm:px-4 md:px-5 pb-2 sm:pb-3">
         {/* Title - Mobile: smaller */}
         {post.title && (
-          <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-gray-50 mb-1.5 sm:mb-2 leading-snug line-clamp-2">
+          <h3 className="text-[18px] sm:text-lg md:text-xl font-bold text-gray-900 dark:text-gray-50 mb-1.5 sm:mb-2 leading-snug line-clamp-2">
             {post.title}
           </h3>
         )}
         {/* Content - Mobile: smaller font, better line-height */}
         {post.content && (
-          <div className="prose dark:prose-invert max-w-none text-[13px] sm:text-[14px] md:text-[15px] leading-[1.6] sm:leading-relaxed text-gray-700 dark:text-gray-300 font-normal prose-p:mb-2 prose-headings:mb-2 prose-headings:mt-3 prose-p:line-clamp-4 sm:prose-p:line-clamp-3">
+          <div className="prose dark:prose-invert max-w-none text-[15px] sm:text-[14px] md:text-[15px] leading-[1.65] sm:leading-relaxed text-gray-700 dark:text-gray-300 font-normal prose-p:mb-2 prose-headings:mb-2 prose-headings:mt-3 prose-p:line-clamp-4 sm:prose-p:line-clamp-3">
             <ReactMarkdown
               components={{
                 h1: ({ children }) => <h1 className="text-base sm:text-lg md:text-xl font-bold mb-2 mt-3">{children}</h1>,
@@ -758,7 +758,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               <span className="hidden sm:inline text-[13px] sm:text-sm font-semibold">
                 {totalEmotes > 0 ? totalEmotes.toLocaleString() : "Thích"}
               </span>
-              <span className="sm:hidden text-[11px] font-semibold opacity-80">
+              <span className="sm:hidden text-[13px] font-semibold opacity-80">
                 {totalEmotes > 0 ? totalEmotes.toLocaleString() : ""}
               </span>
             </button>
@@ -850,7 +850,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 showError("Không thể sao chép liên kết");
               });
             }}
-            className="p-2 sm:p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors active:scale-95 touch-manipulation"
+            className="p-2 sm:p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors active:scale-95 touch-manipulation"
           >
             <Share2 className="w-5 h-5" />
           </button>
@@ -890,7 +890,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                       URL.revokeObjectURL(img.preview);
                       setCommentImages(prev => prev.filter((_, i) => i !== idx));
                     }}
-                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 sm:p-0.5 min-w-[24px] min-h-[24px] sm:min-w-0 sm:min-h-0 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                   >
                     <X size={10} />
                   </button>
@@ -954,19 +954,19 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                       setShowCommentEmojiPicker(!showCommentEmojiPicker);
                     }}
                     className={cn(
-                      "flex items-center justify-center p-1 sm:p-1.5 sm:hover:bg-gray-100 dark:sm:hover:bg-gray-700 sm:rounded-full transition-colors",
+                      "flex items-center justify-center p-2 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 sm:hover:bg-gray-100 dark:sm:hover:bg-gray-700 rounded-full sm:rounded-full transition-colors touch-manipulation",
                       showCommentEmojiPicker && "text-yellow-500"
                     )}
                     title="Thêm emoji"
                   >
-                    <Smile size={14} className={cn("sm:w-[18px] sm:h-[18px] text-gray-400", showCommentEmojiPicker && "text-yellow-500")} />
+                    <Smile size={18} className={cn("sm:w-[18px] sm:h-[18px] text-gray-400", showCommentEmojiPicker && "text-yellow-500")} />
                   </button>
                   {renderCommentEmojiPicker()}
                 </div>
                 <button
                   type="submit"
                   disabled={(!commentContent.trim() && commentImages.length === 0) || submittingComment}
-                  className="p-1 sm:p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center touch-manipulation"
                   title="Gửi"
                 >
                   {submittingComment ? (

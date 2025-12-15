@@ -429,12 +429,12 @@ export default function PostDetail() {
               <div className="min-w-0 flex-1 flex flex-col">
                 <Link
                   to={`/user/${p.author?._id}`}
-                  className="font-bold text-[14px] sm:text-[15px] md:text-base text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 line-clamp-1"
+                  className="font-bold text-[16px] sm:text-[15px] md:text-base text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 line-clamp-1"
                 >
                   <UserName user={p.author} maxLength={20} />
                   {p.author?.role === 'admin' && <VerifiedBadge user={p.author} />}
                 </Link>
-                <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] md:text-xs text-gray-400 dark:text-gray-500 font-medium mt-0.5">
+                <div className="flex items-center gap-1 sm:gap-1.5 text-[12px] sm:text-[11px] md:text-xs text-gray-400 dark:text-gray-500 font-medium mt-0.5">
                   <span>{timeAgo}</span>
                   {p.status === 'private' && (
                     <span className="flex items-center gap-0.5 bg-gray-50 dark:bg-white/5 px-1 sm:px-1.5 py-0.5 rounded text-gray-500 text-[9px] sm:text-[10px]">
@@ -467,7 +467,7 @@ export default function PostDetail() {
 
           {/* TITLE - Match ModernPostCard */}
           {p.title && (
-            <h1 className="mb-2 sm:mb-3 text-base sm:text-lg md:text-2xl font-bold text-gray-900 dark:text-gray-50 leading-snug break-words">
+            <h1 className="mb-2 sm:mb-3 text-[18px] sm:text-lg md:text-2xl font-bold text-gray-900 dark:text-gray-50 leading-snug break-words">
               {p.title}
             </h1>
           )}
@@ -475,7 +475,7 @@ export default function PostDetail() {
           {/* CONTENT - Match ModernPostCard */}
           {p.content && (
             <div className="mb-3 sm:mb-4">
-              <div className="prose dark:prose-invert max-w-none text-[13px] sm:text-[14px] md:text-[15px] leading-[1.6] sm:leading-relaxed text-gray-700 dark:text-gray-300 font-normal prose-p:mb-2 prose-headings:mb-2 prose-headings:mt-4">
+              <div className="prose dark:prose-invert max-w-none text-[15px] sm:text-[14px] md:text-[15px] leading-[1.65] sm:leading-relaxed text-gray-700 dark:text-gray-300 font-normal prose-p:mb-2 prose-headings:mb-2 prose-headings:mt-4">
                 <MarkdownWithMentions
                   content={p.content}
                   mentionedUsers={p.mentions || []}

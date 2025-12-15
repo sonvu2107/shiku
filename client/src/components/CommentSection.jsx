@@ -836,7 +836,7 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
           <div className="flex-1 min-w-0">
             <div className={`${editingComment === comment._id ? 'w-full' : 'w-fit max-w-full'} bg-neutral-100/80 dark:bg-neutral-900/80 backdrop-blur-sm rounded-xl sm:rounded-2xl rounded-tl-none px-2.5 sm:px-4 py-2 sm:py-3 border border-transparent dark:border-neutral-800`}>
               <div className="flex items-center justify-between mb-1 sm:mb-1 gap-2">
-                <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="font-bold text-xs sm:text-sm text-neutral-900 dark:text-white hover:underline truncate touch-manipulation">
+                <Link to={comment.author?._id ? `/user/${comment.author._id}` : '#'} className="font-bold text-[14px] sm:text-sm text-neutral-900 dark:text-white hover:underline truncate touch-manipulation">
                   <UserName user={comment.author} maxLength={18} />
                 </Link>
               </div>
@@ -923,7 +923,7 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
                   </div>
                 </div>
               ) : (
-                <div className="text-neutral-800 dark:text-neutral-200 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">
+                <div className="text-neutral-800 dark:text-neutral-200 text-[14px] sm:text-sm leading-relaxed whitespace-pre-wrap break-words">
                   <MentionText
                     text={comment.content}
                     mentionedUsers={comment.mentions || []}
@@ -949,7 +949,7 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
 
             {/* Comment Actions */}
             <div className="flex items-center gap-1 sm:gap-2 mt-1.5 sm:mt-1.5 ml-0.5 sm:ml-2 flex-wrap">
-              <span className="text-[10px] sm:text-xs text-neutral-400 font-medium flex-shrink-0 whitespace-nowrap">
+              <span className="text-[12px] sm:text-xs text-neutral-400 font-medium flex-shrink-0 whitespace-nowrap">
                 {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
               </span>
 
@@ -1174,7 +1174,7 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
           <MessageCircle size={20} className="sm:w-6 sm:h-6" />
         </div>
         <h3 className="text-neutral-900 dark:text-white font-bold mb-2 text-base sm:text-lg">Đăng nhập để bình luận</h3>
-        <p className="text-neutral-500 text-xs sm:text-sm mb-5 sm:mb-4">Tham gia thảo luận cùng cộng đồng</p>
+        <p className="text-neutral-500 text-[14px] sm:text-sm mb-5 sm:mb-4">Tham gia thảo luận cùng cộng đồng</p>
         <Link to="/login" className="inline-block px-6 py-3 sm:py-2 min-h-[44px] sm:min-h-0 bg-black dark:bg-white text-white dark:text-black font-bold rounded-full text-sm hover:opacity-90 active:opacity-90 transition-opacity touch-manipulation">
           Đăng nhập ngay
         </Link>
@@ -1213,7 +1213,7 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
                   onSelect={(e) => setNewCommentCursorPosition(e.target.selectionStart)}
                   onClick={(e) => setNewCommentCursorPosition(e.target.selectionStart)}
                   placeholder="Viết bình luận..."
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-transparent border-none text-xs sm:text-base text-neutral-900 dark:text-white placeholder-neutral-500 focus:ring-0 resize-none rounded-xl sm:rounded-2xl"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-transparent border-none text-[15px] sm:text-base text-neutral-900 dark:text-white placeholder-neutral-500 focus:ring-0 resize-none rounded-xl sm:rounded-2xl"
                   rows={Math.max(2, newComment.split('\n').length)}
                   style={{ minHeight: '48px', maxHeight: '200px' }}
                 />

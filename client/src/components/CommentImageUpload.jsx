@@ -14,20 +14,20 @@ export default function CommentImageUpload({ onImagesChange, maxImages = 5, clas
     if (!files || files.length === 0) return;
 
     const newFiles = Array.from(files).slice(0, maxImages - selectedImages.length);
-    
+
     // Validate files
     const validFiles = newFiles.filter(file => {
       if (!file.type.startsWith('image/')) {
         alert(`File ${file.name} không phải là hình ảnh`);
         return false;
       }
-      
+
       const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
         alert(`File ${file.name} quá lớn. Kích thước tối đa là 5MB`);
         return false;
       }
-      
+
       return true;
     });
 
@@ -58,7 +58,7 @@ export default function CommentImageUpload({ onImagesChange, maxImages = 5, clas
     if (imageToRemove) {
       URL.revokeObjectURL(imageToRemove.preview);
     }
-    
+
     const newImages = selectedImages.filter(img => img.id !== id);
     setSelectedImages(newImages);
     onImagesChange(newImages);
@@ -118,9 +118,9 @@ export default function CommentImageUpload({ onImagesChange, maxImages = 5, clas
               <button
                 type="button"
                 onClick={() => removeImage(image.id)}
-                className="absolute top-1 right-1 bg-black/50 hover:bg-black text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all touch-target backdrop-blur-sm"
+                className="absolute top-1 right-1 bg-black/50 hover:bg-black text-white rounded-full p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all touch-manipulation backdrop-blur-sm"
               >
-                <X size={12} />
+                <X size={14} />
               </button>
             </div>
           ))}
