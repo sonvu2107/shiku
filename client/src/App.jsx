@@ -453,8 +453,8 @@ export default function App() {
               <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
             )}
 
-            {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat/cultivation/admin/gallery, không có story viewer đang mở, và không có video đang phát */}
-            {user && !shouldHideNavbar && location.pathname !== "/chat" && location.pathname !== "/cultivation" && !location.pathname.startsWith("/admin") && location.pathname !== "/gallery" && !isStoryViewerOpen && !isVideoPlaying && (
+            {/* Floating Dock - chỉ hiển thị khi user đã đăng nhập, không ở trang auth/landing/chat/cultivation/admin/gallery/home, không có story viewer đang mở, và không có video đang phát */}
+            {user && !shouldHideNavbar && location.pathname !== "/" && location.pathname !== "/chat" && location.pathname !== "/cultivation" && !location.pathname.startsWith("/admin") && location.pathname !== "/gallery" && !isStoryViewerOpen && !isVideoPlaying && (
               <FloatingDock />
             )}
 
