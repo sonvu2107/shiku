@@ -12,6 +12,8 @@ import {
   Settings,
   Crown,
   LogOut,
+  LogIn,
+  UserPlus,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -426,6 +428,38 @@ function LeftSidebar({ user, setUser }) {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Guest Action Section - Hiển thị khi chưa đăng nhập */}
+      {!user && (
+        <div className={`py-4 border-t border-neutral-800 dark:border-neutral-900 flex-shrink-0 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4'
+          }`}>
+          <div className={`flex ${isCollapsed ? 'flex-col gap-3' : 'flex-col gap-3'}`}>
+            <Link
+              to="/login"
+              className={`flex items-center justify-center rounded-xl transition-all duration-200 group relative ${isCollapsed
+                ? 'p-3 bg-neutral-800 hover:bg-neutral-700'
+                : 'gap-3 px-4 py-3 bg-neutral-800 hover:bg-neutral-700'
+                } text-white`}
+              title={isCollapsed ? "Đăng nhập" : undefined}
+            >
+              <LogIn size={20} />
+              {!isCollapsed && <span className="font-bold text-sm">Đăng nhập</span>}
+            </Link>
+
+            <Link
+              to="/register"
+              className={`flex items-center justify-center rounded-xl transition-all duration-200 group relative ${isCollapsed
+                ? 'p-3 bg-white text-black hover:bg-gray-200'
+                : 'gap-3 px-4 py-3 bg-white text-black hover:bg-gray-200'
+                }`}
+              title={isCollapsed ? "Đăng ký" : undefined}
+            >
+              <UserPlus size={20} />
+              {!isCollapsed && <span className="font-bold text-sm">Đăng ký</span>}
+            </Link>
+          </div>
         </div>
       )}
     </div>

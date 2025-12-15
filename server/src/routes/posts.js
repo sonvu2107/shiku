@@ -139,7 +139,7 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
               localField: "author",
               foreignField: "_id",
               as: "author",
-              pipeline: [{ $project: { name: 1, nickname: 1, avatarUrl: 1 } }]
+              pipeline: [{ $project: { name: 1, nickname: 1, avatarUrl: 1, role: 1, displayBadgeType: 1, cultivationCache: 1 } }]
             }
           },
           {
@@ -859,8 +859,67 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
         : Post.countDocuments(filter)
     ]);
 
+    // FIX NESTED POPULATE: Fetch all roles in ONE query instead of nested populate
+    const roleIds = new Set();
+    items.forEach(post => {
+      // Validate ObjectId before adding
+      if (post.author?.role && mongoose.Types.ObjectId.isValid(post.author.role)) {
+        roleIds.add(post.author.role.toString());
+      }
+      if (post.emotes) {
+        post.emotes.forEach(emote => {
+          if (emote.user?.role && mongoose.Types.ObjectId.isValid(emote.user.role)) {
+            roleIds.add(emote.user.role.toString());
+          }
+        });
+      }
+    });
+
+    // Single query for all roles (only if we have valid IDs)
+    let rolesMap = new Map();
+    if (roleIds.size > 0) {
+      const Role = mongoose.model('Role');
+      const roles = await Role.find({ _id: { $in: Array.from(roleIds) } })
+        .select("name displayName iconUrl")
+        .lean();
+      roles.forEach(r => rolesMap.set(r._id.toString(), r));
+    }
+
+    // Manually populate roles
+    const itemsWithRoles = items.map(post => {
+      const postCopy = { ...post };
+
+      // Populate author.role
+      if (postCopy.author?.role) {
+        const roleId = postCopy.author.role.toString();
+        postCopy.author = {
+          ...postCopy.author,
+          role: rolesMap.get(roleId) || postCopy.author.role
+        };
+      }
+
+      // Populate emotes.user.role
+      if (postCopy.emotes) {
+        postCopy.emotes = postCopy.emotes.map(emote => {
+          if (emote.user?.role) {
+            const roleId = emote.user.role.toString();
+            return {
+              ...emote,
+              user: {
+                ...emote.user,
+                role: rolesMap.get(roleId) || emote.user.role
+              }
+            };
+          }
+          return emote;
+        });
+      }
+
+      return postCopy;
+    });
+
     const response = {
-      items,
+      items: itemsWithRoles,
       total,
       page: pageNum,
       pages: Math.ceil(total / sanitizedLimit)

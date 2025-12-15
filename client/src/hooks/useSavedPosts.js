@@ -8,9 +8,11 @@ import { api } from '../api';
 /**
  * Check saved status for multiple posts in a single request
  * @param {Array} posts - Array of post objects with _id
+ * @param {Object} options - Options
+ * @param {boolean} options.enabled - Whether to fetch saved status (default: true)
  * @returns {{ savedMap: Record<string, boolean>, loading: boolean, error: Error | null, refetch: Function }}
  */
-export function useSavedPosts(posts) {
+export function useSavedPosts(posts, { enabled = true } = {}) {
   const [savedMap, setSavedMap] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -21,19 +23,24 @@ export function useSavedPosts(posts) {
 
   // OPTIMIZED: Wrap in useMemo to avoid recalculating on every render
   const postIdsKey = useMemo(() => {
-    if (!Array.isArray(posts)) return '';
+    if (!enabled || !Array.isArray(posts)) return '';
     return posts
       .map((p) => p?._id)
       .filter(Boolean)
       .sort()
       .join(',');
-  }, [posts]);
+  }, [posts, enabled]);
 
   // Track last fetched key to prevent duplicate fetches
   const lastFetchedKeyRef = useRef('');
 
   const fetchSavedStatus = useCallback(async () => {
-    // Skip if already fetched for this key
+    // Skip if disabled or already fetched for this key
+    if (!enabled) {
+      if (Object.keys(savedMap).length > 0) setSavedMap({});
+      return;
+    }
+
     if (lastFetchedKeyRef.current === postIdsKey && postIdsKey !== '') {
       return;
     }

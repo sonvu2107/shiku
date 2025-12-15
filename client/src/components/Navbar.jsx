@@ -84,6 +84,9 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
     setSearchHistory(localItems);
 
     (async () => {
+      // Only fetch from server if logged in
+      if (!user) return;
+
       try {
         const res = await api('/api/search/history');
         const serverItems = Array.isArray(res.items) ? res.items : [];

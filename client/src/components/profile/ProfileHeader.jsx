@@ -143,24 +143,22 @@ export default function ProfileHeader({
                 showTitle={false}
                 className="sm:hidden border-4 border-white dark:border-black rounded-full shadow-2xl"
               />
-              {editing && (
-                <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer backdrop-blur-sm rounded-full z-20">
-                  <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex flex-col items-center gap-2"
-                  >
-                    <Edit3 className="text-white w-8 h-8" />
-                    <span className="text-white text-xs font-bold">Chỉnh sửa</span>
-                  </motion.div>
-                  <input
-                    type="file"
-                    accept={getAcceptedMediaTypes(true)}
-                    className="hidden"
-                    onChange={onAvatarClick}
-                  />
-                </label>
-              )}
+              <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer backdrop-blur-sm rounded-full z-20">
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex flex-col items-center gap-2"
+                >
+                  <Edit3 className="text-white w-8 h-8" />
+                  <span className="text-white text-xs font-bold">Đổi ảnh</span>
+                </motion.div>
+                <input
+                  type="file"
+                  accept={getAcceptedMediaTypes(true)}
+                  className="hidden"
+                  onChange={onAvatarClick}
+                />
+              </label>
             </motion.div>
           </div>
 

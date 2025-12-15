@@ -125,7 +125,7 @@ export default function App() {
   // Danh sách các trang không hiển thị navbar
   // reset-password và forgot-password luôn ẩn navbar (bất kể đã đăng nhập hay chưa)
   const alwaysHideNavbarPages = ["/forgot-password", "/reset-password", "/about", "/cultivation"];
-  const conditionalHideNavbarPages = ["/login", "/register", "/", "/tour", "/terms", "/support"];
+  const conditionalHideNavbarPages = ["/login", "/register", "/welcome", "/tour", "/terms", "/support"];
   const shouldHideNavbar = alwaysHideNavbarPages.includes(location.pathname) ||
     (conditionalHideNavbarPages.includes(location.pathname) && !user);
 
@@ -503,11 +503,11 @@ export default function App() {
               <div className="w-full">
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
-                    {/* Trang chủ - Landing page nếu chưa đăng nhập, Home nếu đã đăng nhập */}
-                    <Route path="/" element={user ? <Home user={user} setUser={setUser} /> : <Landing />} />
+                    {/* Trang chủ - Home feed cho tất cả (guest và logged-in) */}
+                    <Route path="/" element={<Home user={user} setUser={setUser} />} />
 
-                    {/* Trang About - Public */}
-                    <Route path="/about" element={<About />} />
+                    {/* Landing page - cho marketing/SEO */}
+                    <Route path="/welcome" element={<Landing />} />
 
                     {/* Các trang được bảo vệ (cần đăng nhập) */}
                     <Route path="/home" element={<ProtectedRoute user={user}><Home user={user} setUser={setUser} /></ProtectedRoute>} />

@@ -247,6 +247,11 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
 
   // Add/remove emote for the post - Memoized with optimistic update
   const handleEmote = useCallback(async (emoteType) => {
+    // Login gate for guest users
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     if (emotingPost) return;
 
     const hadEmote = !!uiUserEmote;

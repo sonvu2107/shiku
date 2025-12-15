@@ -102,6 +102,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
           setUser(userData);
           setForm({
             ...userData,
+            birthday: userData.birthday ? (typeof userData.birthday === 'string' ? userData.birthday.split('T')[0] : new Date(userData.birthday).toISOString().split('T')[0]) : "",
             password: "",
             postsCount: userData.postsCount || 0,
             friendsCount: userData.friendsCount || 0,
@@ -218,9 +219,26 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
       try {
         setAvatarUploading(true);
         const { url } = await uploadImage(file);
+
+        // Cập nhật state local
         setForm(f => ({ ...f, avatarUrl: url }));
         setUser(prev => prev ? { ...prev, avatarUrl: url } : null);
-        showSuccess('Đã cập nhật avatar video! (Tính năng thử nghiệm)');
+
+        // TEXT: Gọi API lưu ngay lập tức (chỉ khi không đang chỉnh sửa)
+        if (!editing) {
+          try {
+            await api("/api/auth/update-profile", {
+              method: "PUT",
+              body: { avatarUrl: url }
+            });
+            showSuccess('Đã cập nhật avatar video! (Tính năng thử nghiệm)');
+          } catch (saveErr) {
+            showError('Lưu avatar thất bại: ' + saveErr.message);
+          }
+        } else {
+          showSuccess('Đã cập nhật preview avatar video!');
+        }
+
       } catch (err) {
         showError('Tải lên thất bại: ' + err.message);
       } finally {
@@ -235,9 +253,26 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
       try {
         setAvatarUploading(true);
         const { url } = await uploadImage(file);
+
+        // Cập nhật state local
         setForm(f => ({ ...f, avatarUrl: url }));
         setUser(prev => prev ? { ...prev, avatarUrl: url } : null);
-        showSuccess('Đã cập nhật avatar GIF!');
+
+        // TEXT: Gọi API lưu ngay lập tức (chỉ khi không đang chỉnh sửa)
+        if (!editing) {
+          try {
+            await api("/api/auth/update-profile", {
+              method: "PUT",
+              body: { avatarUrl: url }
+            });
+            showSuccess('Đã cập nhật avatar GIF!');
+          } catch (saveErr) {
+            showError('Lưu avatar thất bại: ' + saveErr.message);
+          }
+        } else {
+          showSuccess('Đã cập nhật preview avatar GIF!');
+        }
+
       } catch (err) {
         showError('Tải lên thất bại: ' + err.message);
       } finally {
@@ -267,6 +302,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
         setUser(userData);
         setForm({
           ...userData,
+          birthday: userData.birthday ? (typeof userData.birthday === 'string' ? userData.birthday.split('T')[0] : new Date(userData.birthday).toISOString().split('T')[0]) : "",
           password: "",
           postsCount: userData.postsCount || 0,
           friendsCount: userData.friendsCount || 0,
@@ -301,10 +337,23 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
 
       // Upload cropped image
       const { url } = await uploadImage(croppedFile);
-      setForm(f => ({ ...f, avatarUrl: url }));
 
-      // Update user object as well
+      // Cập nhật state local
+      setForm(f => ({ ...f, avatarUrl: url }));
       setUser(prev => prev ? { ...prev, avatarUrl: url } : null);
+
+      // TEXT: Gọi API lưu ngay lập tức (chỉ khi không đang chỉnh sửa)
+      if (!editing) {
+        try {
+          await api("/api/auth/update-profile", {
+            method: "PUT",
+            body: { avatarUrl: url }
+          });
+          showSuccess("Đã cập nhật avatar thành công!");
+        } catch (saveErr) {
+          showError('Lưu avatar thất bại: ' + saveErr.message);
+        }
+      }
 
       // Reset state
       setSelectedAvatarFile(null);
@@ -312,6 +361,45 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
       showError("Tải lên thất bại: " + err.message);
     } finally {
       setAvatarUploading(false);
+    }
+  };
+
+  const handleSaveAndToggleEdit = async () => {
+    if (editing) {
+      const updateData = { ...form };
+
+      // Fix website format
+      if (updateData.website && updateData.website !== "" && !updateData.website.startsWith('http://') && !updateData.website.startsWith('https://')) {
+        updateData.website = `https://${updateData.website}`;
+      }
+
+      // Fix birthday format (ensure YYYY-MM-DD if string)
+      if (updateData.birthday && typeof updateData.birthday === 'string' && updateData.birthday.includes('T')) {
+        updateData.birthday = updateData.birthday.split('T')[0];
+      }
+
+      const filteredData = {};
+      const clearableFields = ['nickname', 'bio', 'birthday', 'gender', 'hobbies', 'phone', 'location', 'website'];
+
+      Object.entries(updateData).forEach(([key, value]) => {
+        if (key === "name" || key === "email") { filteredData[key] = value; return; }
+        if ((key === "avatarUrl" || key === "coverUrl") && value !== "") { filteredData[key] = value; return; }
+
+        // Only send password if changed
+        if (key === "password") {
+          if (value !== "") filteredData[key] = value;
+          return;
+        }
+
+        if (clearableFields.includes(key)) { filteredData[key] = value || ""; return; }
+
+        if (value !== "") { filteredData[key] = value; }
+      });
+
+      await handleFormSubmit(filteredData);
+      // handleFormSubmit sets editing(false) on success
+    } else {
+      setEditing(true);
     }
   };
 
@@ -346,7 +434,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
         analyticsLoading={analyticsLoading}
         friendsCount={friendsPagination?.total ?? friends.length}
         friendsLoading={friendsLoading}
-        onEditToggle={() => setEditing(!editing)}
+        onEditToggle={handleSaveAndToggleEdit}
         onCustomizeClick={() => setShowCustomization(true)}
         onCoverChange={handleCoverChange}
         onAvatarClick={handleAvatarClick}
@@ -430,6 +518,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
               setUser(userData);
               setForm({
                 ...userData,
+                birthday: userData.birthday ? (typeof userData.birthday === 'string' ? userData.birthday.split('T')[0] : new Date(userData.birthday).toISOString().split('T')[0]) : "",
                 password: "",
                 postsCount: userData.postsCount || 0,
                 friendsCount: userData.friendsCount || 0,

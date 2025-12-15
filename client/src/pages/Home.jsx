@@ -96,7 +96,7 @@ function Home({ user, setUser }) {
   } = usePostsFlattened({ sortBy, searchQuery: q });
 
   const error = postsError?.message || null;
-  const { savedMap, updateSavedState } = useSavedPosts(items);
+  const { savedMap, updateSavedState } = useSavedPosts(items, { enabled: !!user });
 
   // Hàm chuyển sang chế độ sắp xếp tiếp theo
   const cycleSortBy = useCallback(() => {
@@ -1022,19 +1022,21 @@ function Home({ user, setUser }) {
                 </PullToRefresh>
               </div>
 
-              {/* Right Sidebar - Friend Suggestions, Profile Activity, Upcoming Events */}
-              <motion.aside
-                initial={{ x: 50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
-                className="hidden xl:block relative z-[1]"
-                role="complementary"
-                aria-label="Gợi ý bạn bè và hoạt động"
-              >
-                <div className="sticky top-20">
-                  <RightSidebar user={user} />
-                </div>
-              </motion.aside>
+              {/* Right Sidebar - Friend Suggestions, Profile Activity, Upcoming Events - Only for logged-in users */}
+              {user && (
+                <motion.aside
+                  initial={{ x: 50, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
+                  className="hidden xl:block relative z-[1]"
+                  role="complementary"
+                  aria-label="Gợi ý bạn bè và hoạt động"
+                >
+                  <div className="sticky top-20">
+                    <RightSidebar user={user} />
+                  </div>
+                </motion.aside>
+              )}
             </div>
           </div>
 
@@ -1042,12 +1044,14 @@ function Home({ user, setUser }) {
           <BackToTop />
         </main>
 
-        {/* Chat Popup Manager */}
-        <ChatPopupManager
-          conversations={openPopups}
-          onCloseConversation={closeChatPopup}
-          onShowInfo={showInfo}
-        />
+        {/* Chat Popup Manager - Only for logged-in users */}
+        {user && (
+          <ChatPopupManager
+            conversations={openPopups}
+            onCloseConversation={closeChatPopup}
+            onShowInfo={showInfo}
+          />
+        )}
       </div>
     </div>
   );
