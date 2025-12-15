@@ -491,7 +491,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                       <div className="flex flex-col items-end max-w-[75%] relative">
                         {/* Hover actions: Emoji picker + Options button - hidden on mobile, use long-press instead */}
                         {!msg.isDeleted && msg.messageType !== 'system' && (hoveredMessageId === msg._id || showOptionsMenu === msg._id) && (
-                          <div className="absolute top-1 -left-16 z-10 message-options-menu hidden md:flex items-center gap-1">
+                          <div className="absolute top-1 -left-10 z-10 message-options-menu hidden md:flex items-center gap-1">
 
 
                             {/* Emoji picker button with popup - hidden on mobile, use long-press instead */}
