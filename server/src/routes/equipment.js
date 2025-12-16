@@ -1,5 +1,5 @@
 import express from "express";
-import Equipment, { EQUIPMENT_TYPES, WEAPON_SUBTYPES, ARMOR_SUBTYPES, RARITY, ELEMENTAL_TYPES } from "../models/Equipment.js";
+import Equipment, { EQUIPMENT_TYPES, WEAPON_SUBTYPES, ARMOR_SUBTYPES, ACCESSORY_SUBTYPES, POWER_ITEM_SUBTYPES, RARITY, ELEMENTAL_TYPES } from "../models/Equipment.js";
 import { authRequired } from "../middleware/auth.js";
 import { adminRateLimit, strictAdminRateLimit } from "../middleware/adminSecurity.js";
 import AuditLog from "../models/AuditLog.js";
@@ -170,6 +170,12 @@ router.post("/admin/create", strictAdminRateLimit, authRequired, adminRequired, 
       }
       if (type === EQUIPMENT_TYPES.ARMOR && !Object.values(ARMOR_SUBTYPES).includes(subtype)) {
         return res.status(400).json({ error: "Armor subtype không hợp lệ" });
+      }
+      if (type === EQUIPMENT_TYPES.ACCESSORY && !Object.values(ACCESSORY_SUBTYPES).includes(subtype)) {
+        return res.status(400).json({ error: "Accessory subtype không hợp lệ" });
+      }
+      if (type === EQUIPMENT_TYPES.POWER_ITEM && !Object.values(POWER_ITEM_SUBTYPES).includes(subtype)) {
+        return res.status(400).json({ error: "Power Item subtype không hợp lệ" });
       }
     }
 
@@ -359,6 +365,7 @@ router.put("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, asyn
 /**
  * DELETE /api/equipment/admin/:id
  * Xóa equipment (soft delete - set is_active = false)
+ * Cũng xóa khỏi inventory và unequip của tất cả người dùng
  */
 router.delete("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, async (req, res, next) => {
   try {
@@ -368,9 +375,58 @@ router.delete("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, a
       return res.status(404).json({ error: "Equipment không tồn tại" });
     }
 
+    const equipmentId = equipment._id;
+    const equipmentIdStr = equipmentId.toString();
+
+    // Soft delete equipment
     equipment.is_active = false;
     equipment.updated_at = new Date();
     await equipment.save();
+
+    // Import Cultivation model
+    const Cultivation = mongoose.model('Cultivation');
+
+    // 1. Remove from all users' inventories
+    const inventoryResult = await Cultivation.updateMany(
+      {
+        $or: [
+          { 'inventory.itemId': equipmentIdStr },
+          { 'inventory.metadata._id': equipmentId }
+        ]
+      },
+      {
+        $pull: {
+          inventory: {
+            $or: [
+              { itemId: equipmentIdStr },
+              { 'metadata._id': equipmentId }
+            ]
+          }
+        }
+      }
+    );
+
+    // 2. Unequip from all users' equipped slots
+    // Build update for all possible equipment slots
+    const equipmentSlots = [
+      'weapon', 'magicTreasure', 'helmet', 'chest', 'shoulder',
+      'gloves', 'boots', 'belt', 'ring', 'necklace', 'earring', 'bracelet', 'powerItem'
+    ];
+
+    const unequipQuery = {};
+    equipmentSlots.forEach(slot => {
+      unequipQuery[`equipped.${slot}`] = equipmentId;
+    });
+
+    const unequipUpdate = {};
+    equipmentSlots.forEach(slot => {
+      unequipUpdate[`equipped.${slot}`] = null;
+    });
+
+    const equippedResult = await Cultivation.updateMany(
+      { $or: equipmentSlots.map(slot => ({ [`equipped.${slot}`]: equipmentId })) },
+      { $set: unequipUpdate }
+    );
 
     await AuditLog.logAction(req.user._id, 'delete_equipment', {
       targetId: equipment._id,
@@ -378,12 +434,16 @@ router.delete("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, a
       result: 'success',
       ipAddress: req.ip,
       clientAgent: getClientAgent(req),
-      details: { name: equipment.name }
+      details: {
+        name: equipment.name,
+        usersInventoryCleared: inventoryResult.modifiedCount || 0,
+        usersUnequipped: equippedResult.modifiedCount || 0
+      }
     });
 
     res.json({
       success: true,
-      message: "Xóa equipment thành công"
+      message: `Xóa equipment thành công. Đã xóa khỏi ${inventoryResult.modifiedCount || 0} túi đồ và tháo khỏi ${equippedResult.modifiedCount || 0} người dùng.`
     });
   } catch (error) {
     console.error("[EQUIPMENT] Error deleting equipment:", error);
@@ -451,6 +511,98 @@ router.get("/admin/list", adminRateLimit, authRequired, adminRequired, async (re
     });
   } catch (error) {
     console.error("[EQUIPMENT] Error fetching admin equipment list:", error);
+    next(error);
+  }
+});
+
+/**
+ * POST /api/equipment/admin/cleanup
+ * Dọn dẹp tất cả equipment đã bị xóa (is_active = false) khỏi inventory và equipped của tất cả người dùng
+ */
+router.post("/admin/cleanup", strictAdminRateLimit, authRequired, adminRequired, async (req, res, next) => {
+  try {
+    // Lấy tất cả equipment đã bị vô hiệu hóa
+    const inactiveEquipments = await Equipment.find({ is_active: false }).select('_id name').lean();
+
+    if (inactiveEquipments.length === 0) {
+      return res.json({
+        success: true,
+        message: "Không có equipment nào cần dọn dẹp",
+        data: { inactiveCount: 0, inventoryCleared: 0, unequipped: 0 }
+      });
+    }
+
+    const inactiveIds = inactiveEquipments.map(eq => eq._id);
+    const inactiveIdStrs = inactiveEquipments.map(eq => eq._id.toString());
+
+    const Cultivation = mongoose.model('Cultivation');
+
+    // 1. Remove from all users' inventories
+    const inventoryResult = await Cultivation.updateMany(
+      {
+        $or: [
+          { 'inventory.itemId': { $in: inactiveIdStrs } },
+          { 'inventory.metadata._id': { $in: inactiveIds } }
+        ]
+      },
+      {
+        $pull: {
+          inventory: {
+            $or: [
+              { itemId: { $in: inactiveIdStrs } },
+              { 'metadata._id': { $in: inactiveIds } }
+            ]
+          }
+        }
+      }
+    );
+
+    // 2. Unequip from all users' equipped slots
+    const equipmentSlots = [
+      'weapon', 'magicTreasure', 'helmet', 'chest', 'shoulder',
+      'gloves', 'boots', 'belt', 'ring', 'necklace', 'earring', 'bracelet', 'powerItem'
+    ];
+
+    const unequipUpdate = {};
+    equipmentSlots.forEach(slot => {
+      unequipUpdate[`equipped.${slot}`] = null;
+    });
+
+    const equippedResult = await Cultivation.updateMany(
+      { $or: equipmentSlots.map(slot => ({ [`equipped.${slot}`]: { $in: inactiveIds } })) },
+      { $set: unequipUpdate }
+    );
+
+    await AuditLog.logAction(req.user._id, 'cleanup_inactive_equipment', {
+      result: 'success',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      details: {
+        inactiveEquipmentCount: inactiveEquipments.length,
+        equipmentNames: inactiveEquipments.map(eq => eq.name),
+        usersInventoryCleared: inventoryResult.modifiedCount || 0,
+        usersUnequipped: equippedResult.modifiedCount || 0
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Dọn dẹp thành công! Đã xóa ${inactiveEquipments.length} equipment khỏi ${inventoryResult.modifiedCount || 0} túi đồ và tháo khỏi ${equippedResult.modifiedCount || 0} người dùng.`,
+      data: {
+        inactiveCount: inactiveEquipments.length,
+        equipmentNames: inactiveEquipments.map(eq => eq.name),
+        inventoryCleared: inventoryResult.modifiedCount || 0,
+        unequipped: equippedResult.modifiedCount || 0
+      }
+    });
+  } catch (error) {
+    console.error("[EQUIPMENT] Error cleaning up inactive equipment:", error);
+    await AuditLog.logAction(req.user._id, 'cleanup_inactive_equipment', {
+      result: 'failed',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      error: error.message
+    });
     next(error);
   }
 });

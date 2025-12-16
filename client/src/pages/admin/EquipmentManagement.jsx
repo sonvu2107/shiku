@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, Search, X, Save, ArrowLeft, Upload, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, X, Save, ArrowLeft, Upload, Image as ImageIcon, Loader2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import { RARITY_COLORS } from '../cultivation/utils/constants';
@@ -39,6 +39,19 @@ const ARMOR_SUBTYPES = {
   belt: 'Đai Lưng'
 };
 
+const ACCESSORY_SUBTYPES = {
+  ring: 'Nhẫn',
+  necklace: 'Dây Chuyền',
+  earring: 'Bông Tai',
+  bracelet: 'Vòng Tay'
+};
+
+const POWER_ITEM_SUBTYPES = {
+  spirit_stone: 'Linh Thạch',
+  spirit_pearl: 'Linh Châu',
+  spirit_seal: 'Linh Ấn'
+};
+
 const RARITY_OPTIONS = [
   { value: 'common', label: 'Phàm Phẩm', color: RARITY_COLORS.common },
   { value: 'uncommon', label: 'Tinh Phẩm', color: RARITY_COLORS.uncommon },
@@ -64,6 +77,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
   const fileInputRef = useRef(null);
   const [equipments, setEquipments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [cleaningUp, setCleaningUp] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -124,7 +138,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
     // Ẩn navbar
     const navbar = document.querySelector('nav');
     if (navbar) navbar.style.display = 'none';
-    
+
     // Ẩn floating dock
     const floatingDock = document.querySelector('[class*="fixed bottom-6"]');
     if (floatingDock) floatingDock.style.display = 'none';
@@ -144,11 +158,11 @@ const EquipmentManagement = memo(function EquipmentManagement() {
         limit: pagination.limit.toString(),
         ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== '' && v !== null && v !== undefined))
       });
-      
+
       console.log('[EquipmentManagement] Loading equipments with params:', params.toString());
       const response = await api(`/api/equipment/admin/list?${params}`);
       console.log('[EquipmentManagement] Response:', response);
-      
+
       if (response.success) {
         setEquipments(response.data || []);
         setPagination(prev => ({ ...prev, ...response.pagination }));
@@ -169,7 +183,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       const payload = {
         ...formData,
@@ -180,7 +194,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
           )
         }
       };
-      
+
       if (editingId) {
         await api(`/api/equipment/admin/${editingId}`, {
           method: 'PUT',
@@ -194,7 +208,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
         });
         alert('Tạo trang bị thành công!');
       }
-      
+
       resetForm();
       loadEquipments();
     } catch (error) {
@@ -241,7 +255,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
 
   const handleDelete = async (id) => {
     if (!confirm('Bạn có chắc muốn xóa trang bị này?')) return;
-    
+
     try {
       await api(`/api/equipment/admin/${id}`, { method: 'DELETE' });
       alert('Xóa trang bị thành công!');
@@ -282,6 +296,26 @@ const EquipmentManagement = memo(function EquipmentManagement() {
     }
   };
 
+  const handleCleanup = async () => {
+    if (!confirm('Bạn có chắc muốn dọn dẹp tất cả trang bị đã xóa khỏi túi đồ người dùng?')) return;
+
+    setCleaningUp(true);
+    try {
+      const response = await api('/api/equipment/admin/cleanup', { method: 'POST' });
+      if (response.success) {
+        alert(response.message);
+        loadEquipments();
+      } else {
+        alert('Lỗi: ' + (response.message || 'Không thể dọn dẹp'));
+      }
+    } catch (error) {
+      console.error('Cleanup error:', error);
+      alert('Lỗi khi dọn dẹp: ' + (error.message || 'Vui lòng thử lại'));
+    } finally {
+      setCleaningUp(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#050511] text-slate-200 p-6">
       <div className="max-w-7xl mx-auto">
@@ -302,17 +336,28 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                 Rèn Trang Bị
               </h1>
             </div>
-            <button
-              onClick={() => {
-                resetForm();
-                setShowForm(true);
-              }}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-lg transition-all shadow-lg hover:shadow-xl font-bold text-sm uppercase tracking-wide whitespace-nowrap"
-              style={{ zIndex: 50 }}
-            >
-              <Plus size={20} />
-              <span>Thêm Trang Bị</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleCleanup}
+                disabled={cleaningUp}
+                className="flex items-center gap-2 px-4 py-3 bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/50 rounded-lg transition-all font-medium text-sm whitespace-nowrap disabled:opacity-50"
+                title="Dọn dẹp trang bị đã xóa khỏi túi đồ"
+              >
+                {cleaningUp ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+                <span className="hidden sm:inline">Dọn dẹp</span>
+              </button>
+              <button
+                onClick={() => {
+                  resetForm();
+                  setShowForm(true);
+                }}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-lg transition-all shadow-lg hover:shadow-xl font-bold text-sm uppercase tracking-wide whitespace-nowrap"
+                style={{ zIndex: 50 }}
+              >
+                <Plus size={20} />
+                <span>Thêm Trang Bị</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -331,7 +376,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
               />
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm mb-2">Loại</label>
             <select
@@ -345,7 +390,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
               ))}
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm mb-2">Độ Hiếm</label>
             <select
@@ -359,7 +404,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
               ))}
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm mb-2">Trạng Thái</label>
             <select
@@ -381,7 +426,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
             <p className="mt-4 text-slate-400">Đang tải danh sách trang bị...</p>
           </div>
         )}
-        
+
         {!loading && equipments.length === 0 && (
           <div className="text-center py-12 bg-slate-800/30 rounded-xl border border-slate-700">
             <p className="text-slate-400 mb-4">Chưa có trang bị nào</p>
@@ -397,7 +442,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
             </button>
           </div>
         )}
-        
+
         {!loading && equipments.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {equipments.map((eq) => (
@@ -428,7 +473,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Level:</span>
@@ -463,7 +508,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                     </>
                   )}
                 </div>
-                
+
                 {!eq.is_active && (
                   <div className="mt-2 text-xs text-red-400">Đã vô hiệu hóa</div>
                 )}
@@ -536,7 +581,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                         className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm mb-2">Loại *</label>
                       <select
@@ -550,8 +595,8 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                         ))}
                       </select>
                     </div>
-                    
-                    {(formData.type === 'weapon' || formData.type === 'armor') && (
+
+                    {(formData.type === 'weapon' || formData.type === 'armor' || formData.type === 'accessory' || formData.type === 'power_item') && (
                       <div>
                         <label className="block text-sm mb-2">Phân Loại</label>
                         <select
@@ -566,10 +611,16 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           {formData.type === 'armor' && Object.entries(ARMOR_SUBTYPES).map(([value, label]) => (
                             <option key={value} value={value}>{label}</option>
                           ))}
+                          {formData.type === 'accessory' && Object.entries(ACCESSORY_SUBTYPES).map(([value, label]) => (
+                            <option key={value} value={value}>{label}</option>
+                          ))}
+                          {formData.type === 'power_item' && Object.entries(POWER_ITEM_SUBTYPES).map(([value, label]) => (
+                            <option key={value} value={value}>{label}</option>
+                          ))}
                         </select>
                       </div>
                     )}
-                    
+
                     <div>
                       <label className="block text-sm mb-2">Độ Hiếm *</label>
                       <select
@@ -583,7 +634,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                         ))}
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm mb-2">Cấp Yêu Cầu</label>
                       <input
@@ -594,7 +645,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                         className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm mb-2">Giá Bán (Linh Thạch)</label>
                       <input
@@ -606,10 +657,10 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                         className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm mb-2">Hình Ảnh</label>
-                      
+
                       {/* Preview ảnh */}
                       {formData.img && (
                         <div className="mb-3 relative">
@@ -631,7 +682,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           </button>
                         </div>
                       )}
-                      
+
                       {/* Upload button */}
                       <div className="flex items-center gap-3">
                         <input
@@ -641,31 +692,31 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
-                            
+
                             // Validate file type
                             if (!file.type.startsWith('image/')) {
                               alert('Vui lòng chọn file hình ảnh');
                               return;
                             }
-                            
+
                             // Validate file size (5MB max)
                             const maxSize = 5 * 1024 * 1024;
                             if (file.size > maxSize) {
                               alert('File quá lớn. Kích thước tối đa là 5MB');
                               return;
                             }
-                            
+
                             setUploadingImage(true);
                             try {
                               const formData = new FormData();
                               formData.append('file', file);
-                              
+
                               // Use the upload API endpoint
                               const response = await api('/api/uploads', {
                                 method: 'POST',
                                 body: formData
                               });
-                              
+
                               // Response format: { success: true, url: "...", type: "image" }
                               if (response && response.url) {
                                 updateFormData('img', response.url);
@@ -686,7 +737,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           }}
                           className="hidden"
                         />
-                        
+
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
@@ -705,7 +756,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                             </>
                           )}
                         </button>
-                        
+
                         {formData.img && (
                           <a
                             href={formData.img}
@@ -718,13 +769,13 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           </a>
                         )}
                       </div>
-                      
+
                       <p className="text-xs text-slate-400 mt-2">
                         Chọn ảnh để upload (JPG, PNG, GIF - tối đa 5MB)
                       </p>
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm mb-2">Mô Tả</label>
                     <textarea
@@ -748,7 +799,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm mb-2">Phòng Thủ</label>
                         <input
@@ -758,7 +809,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm mb-2">Khí Huyết</label>
                         <input
@@ -768,7 +819,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm mb-2">Tỷ Lệ Chí Mạng (%)</label>
                         <input
@@ -780,7 +831,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm mb-2">Sát Thương Chí Mạng (%)</label>
                         <input
@@ -792,7 +843,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm mb-2">Tốc Độ</label>
                         <input

@@ -38,6 +38,21 @@ const ARMOR_SUBTYPES = {
   BELT: 'belt'              // Đai lưng
 };
 
+// ==================== ACCESSORY SUBTYPES ====================
+const ACCESSORY_SUBTYPES = {
+  RING: 'ring',             // Nhẫn
+  NECKLACE: 'necklace',     // Dây chuyền
+  EARRING: 'earring',       // Bông tai
+  BRACELET: 'bracelet'      // Vòng tay
+};
+
+// ==================== POWER ITEM SUBTYPES ====================
+const POWER_ITEM_SUBTYPES = {
+  SPIRIT_STONE: 'spirit_stone',   // Linh thạch
+  SPIRIT_PEARL: 'spirit_pearl',   // Linh châu
+  SPIRIT_SEAL: 'spirit_seal'      // Linh ấn
+};
+
 // ==================== RARITY ====================
 const RARITY = {
   COMMON: 'common',
@@ -69,19 +84,19 @@ const EquipmentSchema = new mongoose.Schema({
     trim: true,
     index: true
   },
-  
+
   type: {
     type: String,
     enum: Object.values(EQUIPMENT_TYPES),
     required: true,
     index: true
   },
-  
+
   subtype: {
     type: String,
     required: false // Optional, dùng cho weapon và armor
   },
-  
+
   rarity: {
     type: String,
     enum: Object.values(RARITY),
@@ -89,7 +104,7 @@ const EquipmentSchema = new mongoose.Schema({
     default: RARITY.COMMON,
     index: true
   },
-  
+
   level_required: {
     type: Number,
     required: true,
@@ -97,7 +112,7 @@ const EquipmentSchema = new mongoose.Schema({
     min: 1,
     index: true
   },
-  
+
   price: {
     type: Number,
     required: false,
@@ -105,19 +120,19 @@ const EquipmentSchema = new mongoose.Schema({
     min: 0,
     index: true
   },
-  
+
   img: {
     type: String,
     required: false,
     default: null
   },
-  
+
   description: {
     type: String,
     required: false,
     default: ''
   },
-  
+
   // ==================== THÔNG SỐ SỨC MẠNH ====================
   stats: {
     attack: { type: Number, default: 0 },
@@ -135,57 +150,57 @@ const EquipmentSchema = new mongoose.Schema({
       default: {}
     }
   },
-  
+
   // ==================== THÔNG SỐ ĐẶC BIỆT ====================
   special_effect: {
     type: String,
     required: false,
     default: null
   },
-  
+
   skill_bonus: {
     type: Number,
     default: 0
   },
-  
+
   energy_regen: {
     type: Number,
     default: 0
   },
-  
+
   lifesteal: {
     type: Number,
     default: 0 // 0-1 (0% - 100%)
   },
-  
+
   true_damage: {
     type: Number,
     default: 0
   },
-  
+
   buff_duration: {
     type: Number,
     default: 0 // Tăng thời gian buff (giây)
   },
-  
+
   // ==================== ADMIN & METADATA ====================
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: false
   },
-  
+
   is_active: {
     type: Boolean,
     default: true,
     index: true
   },
-  
+
   created_at: {
     type: Date,
     default: Date.now
   },
-  
+
   updated_at: {
     type: Date,
     default: Date.now
@@ -206,7 +221,7 @@ EquipmentSchema.index({ name: 'text', description: 'text' }); // Text search
 /**
  * Tính tổng stats của equipment
  */
-EquipmentSchema.methods.getTotalStats = function() {
+EquipmentSchema.methods.getTotalStats = function () {
   const stats = this.stats || {};
   return {
     attack: stats.attack || 0,
@@ -230,14 +245,14 @@ EquipmentSchema.methods.getTotalStats = function() {
 /**
  * Format equipment cho response
  */
-EquipmentSchema.methods.toJSON = function() {
+EquipmentSchema.methods.toJSON = function () {
   const obj = this.toObject();
-  
+
   // Convert Map to Object for JSON
   if (obj.stats && obj.stats.elemental_damage instanceof Map) {
     obj.stats.elemental_damage = Object.fromEntries(obj.stats.elemental_damage);
   }
-  
+
   return obj;
 };
 
@@ -246,30 +261,30 @@ EquipmentSchema.methods.toJSON = function() {
 /**
  * Tìm equipment theo filters
  */
-EquipmentSchema.statics.findByFilters = function(filters = {}) {
+EquipmentSchema.statics.findByFilters = function (filters = {}) {
   const query = { is_active: true };
-  
+
   if (filters.type) {
     query.type = filters.type;
   }
-  
+
   if (filters.rarity) {
     query.rarity = filters.rarity;
   }
-  
+
   if (filters.level_required !== undefined) {
     query.level_required = { $lte: filters.level_required };
   }
-  
+
   if (filters.search) {
     query.$text = { $search: filters.search };
   }
-  
+
   return this.find(query);
 };
 
 const Equipment = mongoose.model('Equipment', EquipmentSchema);
 
 export default Equipment;
-export { EQUIPMENT_TYPES, WEAPON_SUBTYPES, ARMOR_SUBTYPES, RARITY, ELEMENTAL_TYPES };
+export { EQUIPMENT_TYPES, WEAPON_SUBTYPES, ARMOR_SUBTYPES, ACCESSORY_SUBTYPES, POWER_ITEM_SUBTYPES, RARITY, ELEMENTAL_TYPES };
 
