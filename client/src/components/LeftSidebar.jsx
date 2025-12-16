@@ -267,7 +267,7 @@ function LeftSidebar({ user, setUser }) {
       </div>
 
       {/* 2. Search Bar - Minimalist */}
-      <div className={`flex-shrink-0 mb-4 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4'}`}>
+      <div className={`flex-shrink-0 mt-4 mb-4 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4'}`}>
         <button
           onClick={() => navigate('/explore?focus=search')}
           className={`
