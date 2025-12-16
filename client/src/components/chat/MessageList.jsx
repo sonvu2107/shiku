@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { User, Users, ChevronUp, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Trash2, X, Check, CheckCheck } from "lucide-react";
+import { motion } from "framer-motion";
+import { User, Users, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Trash2, X, Check, CheckCheck } from "lucide-react";
 import { api } from "../../api";
 import ImageViewer from "../ImageViewer";
 import { useToast } from "../../contexts/ToastContext";
@@ -32,7 +32,6 @@ export default function MessageList({
   const { showError } = useToast();
   // ==================== STATE MANAGEMENT ====================
 
-  const [showScrollButton, setShowScrollButton] = useState(false); // Show scroll to bottom button
   const [imageViewer, setImageViewer] = useState({ isOpen: false, imageUrl: null, alt: "" }); // Image viewer state
   const [showOptionsMenu, setShowOptionsMenu] = useState(null); // ID of the message showing options menu
   const [selectedMessageId, setSelectedMessageId] = useState(null); // ID of message with open reaction menu (click-based)
@@ -63,10 +62,9 @@ export default function MessageList({
     if (!container) return;
 
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100);
+      const { scrollTop } = container;
+      // Infinite scroll: load more when reach top
       if (scrollTop === 0 && hasMore && !loading) {
-        // Save scrollHeight before loading more
         prevScrollHeight.current = container.scrollHeight;
         prevMessagesLength.current = messages.length;
         onLoadMore();
@@ -705,24 +703,6 @@ export default function MessageList({
           </div>
         )}
       </div>
-
-      {/* Scroll to bottom button */}
-      <AnimatePresence>
-        {showScrollButton && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={scrollToBottom}
-            className="absolute bottom-8 right-4 bg-gray-800 dark:bg-gray-700 text-white p-3 rounded-full shadow-xl hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors z-20 border border-gray-600 dark:border-gray-500"
-            title="Cuộn xuống tin nhắn mới nhất"
-          >
-            <ChevronUp size={22} className="transform rotate-180" />
-          </motion.button>
-        )}
-      </AnimatePresence>
 
       {/* Image Viewer */}
       <ImageViewer

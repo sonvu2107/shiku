@@ -915,7 +915,7 @@ export default function Chat() {
     <div className="h-full bg-white dark:bg-gray-900 pt-16 sm:pt-20">
       <div className="h-full flex flex-col sm:flex-row chat-mobile">
         {/* Sidebar - Ẩn khi showChatWindow = true trên mobile */}
-        <div className={`w-full sm:w-72 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800 chat-sidebar-mobile ${showChatWindow ? 'hidden sm:flex' : 'flex'}`}>
+        <div className={`w-full sm:w-80 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800 chat-sidebar-mobile ${showChatWindow ? 'hidden sm:flex' : 'flex'}`}>
           {/* Header */}
           <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between">

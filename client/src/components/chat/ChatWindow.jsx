@@ -90,7 +90,7 @@ export default function ChatWindow({
 
   return (
     <ComponentErrorBoundary>
-      <div className="flex flex-col h-full min-h-0">
+      <div className="relative flex flex-col h-full min-h-0">
         {conversation ? (
           <>
             {/* Header */}
@@ -111,7 +111,8 @@ export default function ChatWindow({
             {/* Messages scrollable */}
             <div
               ref={scrollContainerRef}
-              className="flex-1 overflow-y-auto min-h-0 bg-white dark:bg-gray-900 relative"
+              className="flex-1 overflow-y-auto min-h-0 bg-white dark:bg-gray-900"
+              style={{ scrollbarGutter: 'stable' }}
             >
               <MessageList
                 messages={messages}
@@ -122,25 +123,27 @@ export default function ChatWindow({
                 conversation={conversation}
               />
               <div ref={messagesEndRef} />
+            </div>
 
-              {/* Scroll to bottom button - sticky at bottom of scroll area */}
-              <AnimatePresence>
-                {showScrollButton && (
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, y: 20 }}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
+            {/* Scroll to bottom button - absolute, outside scroll container */}
+            <AnimatePresence>
+              {showScrollButton && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, y: 20 }}
+                  className="absolute inset-x-0 bottom-20 flex justify-center z-50 pointer-events-none"
+                >
+                  <button
                     onClick={scrollToBottom}
-                    className="sticky bottom-4 left-1/2 -translate-x-1/2 mx-auto block bg-gray-800 dark:bg-gray-700 text-white p-3 rounded-full shadow-xl hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors z-50 border border-gray-600 dark:border-gray-500"
+                    className="pointer-events-auto mr-2.5 bg-gray-800 dark:bg-gray-700 text-white p-3 rounded-full shadow-xl hover:bg-gray-700 dark:hover:bg-gray-600 hover:scale-110 active:scale-90 transition-all border border-gray-600 dark:border-gray-500"
                     title="Cuộn xuống tin nhắn mới nhất"
                   >
                     <ChevronDown size={22} />
-                  </motion.button>
-                )}
-              </AnimatePresence>
-            </div>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Input */}
             <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">

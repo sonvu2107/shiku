@@ -352,7 +352,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
     <div
       className={`bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col chat-popup-mobile transition-all duration-300 ${minimized
         ? `w-12 h-12 rounded-full hover:scale-110 hover:shadow-3xl cursor-pointer minimized relative group`
-        : 'w-72 sm:w-80 rounded-xl h-[450px]'
+        : 'relative w-72 sm:w-80 rounded-xl h-[450px]'
         }`}
       onClick={minimized ? () => setMinimized(false) : undefined}
     >
@@ -454,7 +454,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       {/* Chat content */}
       {!minimized && (
         <>
-          <div ref={scrollContainerRef} className={`flex-1 ${isChatbot ? 'overflow-hidden px-0 py-0 flex flex-col' : 'overflow-y-auto overflow-x-visible px-4 py-2 relative'} bg-white dark:bg-gray-900`}>
+          <div ref={scrollContainerRef} className={`flex-1 ${isChatbot ? 'overflow-hidden px-0 py-0 flex flex-col' : 'overflow-y-auto overflow-x-visible px-4 py-2'} bg-white dark:bg-gray-900`} style={{ scrollbarGutter: isChatbot ? undefined : 'stable' }}>
             {isChatbot ? (
               <div className="flex-1 flex flex-col min-h-0 h-full">
                 <Chatbot
@@ -769,18 +769,18 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
               })
             )}
             <div ref={messagesEndRef} />
-
-            {/* Scroll to bottom button */}
-            {showScrollButton && !isChatbot && (
-              <button
-                onClick={scrollToBottom}
-                className="sticky bottom-2 left-1/2 -translate-x-1/2 mx-auto block bg-gray-800 dark:bg-gray-700 text-white p-2 rounded-full shadow-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors z-50 border border-gray-600 dark:border-gray-500"
-                title="Cuộn xuống"
-              >
-                <ArrowDown size={16} />
-              </button>
-            )}
           </div>
+
+          {/* Scroll to bottom button - absolute, outside scroll container */}
+          {showScrollButton && !isChatbot && (
+            <button
+              onClick={scrollToBottom}
+              className="absolute left-1/2 -translate-x-1/2 bottom-20 bg-gray-800 dark:bg-gray-700 text-white p-2 rounded-full shadow-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors z-50 border border-gray-600 dark:border-gray-500"
+              title="Cuộn xuống"
+            >
+              <ArrowDown size={16} />
+            </button>
+          )}
 
           {/* Ô nhập */}
           {!minimized && !isChatbot && (
