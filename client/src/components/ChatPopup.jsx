@@ -7,7 +7,7 @@ import { api } from "../api";
 import { getUserInfo } from "../utils/auth";
 import socketService from "../socket";
 import callManager from "../utils/callManager";
-import { X, Phone, Video, ChevronDown, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Trash2, Bot, Check, CheckCheck } from "lucide-react";
+import { X, Phone, Video, ChevronDown, ThumbsUp, Heart, Laugh, Angry, Frown, Smile, MoreHorizontal, Trash2, Bot, Check, CheckCheck, ArrowDown } from "lucide-react";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { useToast } from "../contexts/ToastContext";
 import { parseLinks } from "../utils/linkParser.jsx";
@@ -113,6 +113,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   const [uploading, setUploading] = useState(false); // Image upload state
   const [imageViewer, setImageViewer] = useState({ isOpen: false, imageUrl: null, alt: "" }); // Image viewer state
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true); // Scroll control
+  const [showScrollButton, setShowScrollButton] = useState(false); // Show scroll to bottom button
 
   // Message states
   const [messages, setMessages] = useState([]); // List of messages
@@ -130,6 +131,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
   // Refs
   const messagesEndRef = useRef(null); // Ref to scroll to the bottom of messages
+  const scrollContainerRef = useRef(null); // Ref for scroll container
   const optionsButtonRefs = useRef({}); // Refs for options buttons
 
   // User info
@@ -192,8 +194,28 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
   useEffect(() => {
     if (shouldScrollToBottom) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setShowScrollButton(false);
     }
   }, [messages, shouldScrollToBottom]);
+
+  // Handle scroll to show/hide scroll button
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || isChatbot) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [isChatbot]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setShowScrollButton(false);
+  };
 
   const handleSend = async () => {
     if (isChatbot || !input.trim()) return;
@@ -432,7 +454,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       {/* Chat content */}
       {!minimized && (
         <>
-          <div className={`flex-1 ${isChatbot ? 'overflow-hidden px-0 py-0 flex flex-col' : 'overflow-y-auto overflow-x-visible px-4 py-2'} bg-white dark:bg-gray-900`}>
+          <div ref={scrollContainerRef} className={`flex-1 ${isChatbot ? 'overflow-hidden px-0 py-0 flex flex-col' : 'overflow-y-auto overflow-x-visible px-4 py-2 relative'} bg-white dark:bg-gray-900`}>
             {isChatbot ? (
               <div className="flex-1 flex flex-col min-h-0 h-full">
                 <Chatbot
@@ -747,6 +769,17 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
               })
             )}
             <div ref={messagesEndRef} />
+
+            {/* Scroll to bottom button */}
+            {showScrollButton && !isChatbot && (
+              <button
+                onClick={scrollToBottom}
+                className="sticky bottom-2 left-1/2 -translate-x-1/2 mx-auto block bg-gray-800 dark:bg-gray-700 text-white p-2 rounded-full shadow-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors z-50 border border-gray-600 dark:border-gray-500"
+                title="Cuộn xuống"
+              >
+                <ArrowDown size={16} />
+              </button>
+            )}
           </div>
 
           {/* Ô nhập */}

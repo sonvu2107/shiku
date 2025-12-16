@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, CheckCheck, Trash2, Bell } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
 import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
 import { motion } from "framer-motion";
@@ -26,6 +27,7 @@ export default function NotificationHistory() {
   const [selectedNotifications, setSelectedNotifications] = useState([]); // Thông báo đã chọn
 
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     loadNotifications(1, true);
@@ -67,6 +69,9 @@ export default function NotificationHistory() {
       setNotifications(prev =>
         prev.map(n => n._id === notificationId ? { ...n, read: true } : n)
       );
+      // Invalidate cache để navbar badge cập nhật
+      queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     } catch (error) {
       // Silent handling for mark as read error
     }
@@ -80,6 +85,9 @@ export default function NotificationHistory() {
       });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setSelectedNotifications([]);
+      // Invalidate cache để navbar badge cập nhật
+      queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     } catch (error) {
       // Silent handling for mark all as read error
     }
@@ -92,6 +100,9 @@ export default function NotificationHistory() {
       });
       setNotifications(prev => prev.filter(n => n._id !== notificationId));
       setSelectedNotifications(prev => prev.filter(id => id !== notificationId));
+      // Invalidate cache để navbar badge cập nhật
+      queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     } catch (error) {
       // Silent handling for notification deletion error
     }

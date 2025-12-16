@@ -58,6 +58,18 @@ const notificationSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // Danh sách người đã thả cảm xúc (dùng cho gộp reaction notifications)
+  reactors: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+    reactionType: String,
+    reactedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now
@@ -68,6 +80,8 @@ const notificationSchema = new mongoose.Schema({
 notificationSchema.index({ recipient: 1, createdAt: -1 });
 notificationSchema.index({ recipient: 1, read: 1 });
 notificationSchema.index({ recipient: 1, read: 1, createdAt: -1 });
+// Index để tìm nhanh reaction notification theo post (cho việc gộp)
+notificationSchema.index({ recipient: 1, type: 1, "data.post": 1 });
 
 // Trợ giúp: đếm thông báo chưa đọc (lightweight counter)
 notificationSchema.statics.countUnread = function (recipientId) {

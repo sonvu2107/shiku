@@ -13,9 +13,9 @@ export function useNotifications() {
       // API returns { notifications, total, unreadCount, page, pages }
       return response;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 3 * 60 * 1000, // Auto refetch every 3 minutes
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: 30 * 1000, // Auto refetch every 30 seconds
   });
 }
 
@@ -31,9 +31,9 @@ export function useUnreadNotificationsCount() {
       // API returns { unreadCount }
       return response;
     },
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 3 * 60 * 1000, // 3 minutes
-    refetchInterval: 2 * 60 * 1000, // Auto refetch every 2 minutes
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: 30 * 1000, // Auto refetch every 30 seconds
   });
 }
 

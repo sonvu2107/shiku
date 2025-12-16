@@ -15,7 +15,7 @@ import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 
 class NotificationService {
-  
+
   /**
    * Tạo thông báo mới
    * @param {Object} options - Tùy chọn thông báo
@@ -44,10 +44,26 @@ class NotificationService {
         message,
         data
       });
-      
+
       await notification.save();
-      
-      
+
+      // Emit socket event để client nhận realtime update
+      try {
+        const { getIO } = await import("../socket.js");
+        const io = getIO();
+        if (io) {
+          io.to(`user:${recipient}`).emit('new-notification', {
+            notificationId: notification._id,
+            type,
+            title,
+            message
+          });
+        }
+      } catch (socketError) {
+        // Silent fail nếu socket không available
+        console.warn("Could not emit new-notification:", socketError.message);
+      }
+
       return notification;
     } catch (error) {
       console.error("Error creating notification:", error);
@@ -63,7 +79,7 @@ class NotificationService {
    */
   static async createCommentNotification(comment, post, commenter) {
     if (post.author.toString() === commenter._id.toString()) return; // Không thông báo cho chính mình
-    
+
     await this.create({
       recipient: post.author,
       sender: commenter._id,
@@ -87,7 +103,7 @@ class NotificationService {
    */
   static async createReplyNotification(reply, parentComment, post, replier) {
     if (parentComment.author.toString() === replier._id.toString()) return; // Không thông báo cho chính mình
-    
+
     await this.create({
       recipient: parentComment.author,
       sender: replier._id,
@@ -103,35 +119,126 @@ class NotificationService {
   }
 
   /**
-   * Tạo thông báo khi có reaction mới
+   * Tạo/cập nhật thông báo khi có reaction mới
+   * Gộp nhiều reactions vào 1 notification cho mỗi bài viết
+   * Format: "User A và xx người khác đã thả cảm xúc bài viết của bạn"
    * @param {Object} post - Post object
    * @param {Object} reactor - User đã react
    * @param {string} reactionType - Loại reaction (like, love, haha, wow, sad, angry)
    */
   static async createReactionNotification(post, reactor, reactionType) {
-    if (post.author.toString() === reactor._id.toString()) return; // Không thông báo cho chính mình
-    
+    if (post.author.toString() === reactor._id.toString()) {
+      return; // Không thông báo cho chính mình
+    }
+
     const emojis = {
       like: "👍",
-      love: "❤️", 
+      love: "❤️",
       haha: "😂",
       wow: "😮",
       sad: "😢",
-      angry: "😠"
+      angry: "😠",
+      // Thêm emoji types khác nếu cần
+      "👍": "👍",
+      "❤️": "❤️",
+      "😂": "😂",
+      "😮": "😮",
+      "😢": "😢",
+      "😡": "😡"
     };
 
-    await this.create({
-      recipient: post.author,
-      sender: reactor._id,
-      type: "reaction",
-      title: "Phản ứng mới",
-      message: `${reactor.name} đã thả ${emojis[reactionType]} vào bài viết "${post.title}"`,
-      data: {
-        post: post._id,
-        url: `/post/${post.slug}`,
-        metadata: { reactionType }
+    try {
+      // Tìm notification reaction hiện có cho bài viết này (trong vòng 24h gần đây)
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      let existingNotification = await Notification.findOne({
+        recipient: post.author,
+        type: "reaction",
+        "data.post": post._id,
+        createdAt: { $gte: oneDayAgo }
+      });
+
+      if (existingNotification) {
+        // Kiểm tra xem reactor đã có trong danh sách chưa
+        const alreadyReacted = existingNotification.reactors?.some(
+          r => r.user.toString() === reactor._id.toString()
+        );
+
+        if (alreadyReacted) {
+          // Cập nhật reaction type nếu đã react
+          existingNotification.reactors = existingNotification.reactors.map(r =>
+            r.user.toString() === reactor._id.toString()
+              ? { ...r, reactionType, reactedAt: new Date() }
+              : r
+          );
+        } else {
+          // Thêm reactor mới vào đầu danh sách
+          existingNotification.reactors.unshift({
+            user: reactor._id,
+            reactionType,
+            reactedAt: new Date()
+          });
+        }
+
+        // Cập nhật message với format mới
+        const reactorCount = existingNotification.reactors.length;
+        const latestReactor = reactor.name;
+        const emoji = emojis[reactionType] || "👍";
+
+        if (reactorCount === 1) {
+          existingNotification.message = `${latestReactor} đã thả ${emoji} vào bài viết của bạn`;
+        } else {
+          existingNotification.message = `${latestReactor} và ${reactorCount - 1} người khác đã thả cảm xúc vào bài viết của bạn`;
+        }
+
+        // Cập nhật sender thành người react mới nhất
+        existingNotification.sender = reactor._id;
+        existingNotification.read = false; // Đánh dấu chưa đọc lại
+        existingNotification.createdAt = new Date(); // Cập nhật thời gian
+
+        await existingNotification.save();
+        return existingNotification;
+      } else {
+        // Tạo notification mới
+        const emoji = emojis[reactionType] || "👍";
+        const notification = await this.create({
+          recipient: post.author,
+          sender: reactor._id,
+          type: "reaction",
+          title: "Cảm xúc mới",
+          message: `${reactor.name} đã thả ${emoji} vào bài viết của bạn`,
+          data: {
+            post: post._id,
+            url: `/post/${post.slug}`,
+            metadata: { reactionType }
+          }
+        });
+
+        // Thêm reactor vào danh sách
+        notification.reactors = [{
+          user: reactor._id,
+          reactionType,
+          reactedAt: new Date()
+        }];
+        await notification.save();
+
+        return notification;
       }
-    });
+    } catch (error) {
+      console.error("Error creating/updating reaction notification:", error);
+      // Fallback: tạo notification đơn giản
+      return this.create({
+        recipient: post.author,
+        sender: reactor._id,
+        type: "reaction",
+        title: "Cảm xúc mới",
+        message: `${reactor.name} đã thả cảm xúc vào bài viết của bạn`,
+        data: {
+          post: post._id,
+          url: `/post/${post.slug}`,
+          metadata: { reactionType }
+        }
+      });
+    }
   }
 
   /**
@@ -207,7 +314,7 @@ class NotificationService {
    */
   static async createBanNotification(bannedUser, adminUser, reason, expiresAt) {
     const isPermament = !expiresAt;
-    const message = isPermament 
+    const message = isPermament
       ? `Bạn đã bị cấm vĩnh viễn. Lý do: ${reason}`
       : `Bạn đã bị cấm đến ${new Date(expiresAt).toLocaleString("vi-VN")}. Lý do: ${reason}`;
 
@@ -248,7 +355,7 @@ class NotificationService {
   static async createSystemNotification(title, message, targetRole = null) {
     const query = targetRole ? { role: targetRole } : {};
     const users = await User.find(query).select("_id");
-    
+
     const notifications = users.map(user => ({
       recipient: user._id,
       sender: null,
@@ -272,7 +379,7 @@ class NotificationService {
   static async createAdminBroadcast(adminUser, title, message) {
     const BATCH_SIZE = 500; // Xử lý 500 users mỗi batch
     const cursor = User.find({}).select("_id").cursor();
-    
+
     let batch = [];
     for (let doc = await cursor.next(); doc != null; doc = await cursor.next()) {
       batch.push({
@@ -289,12 +396,12 @@ class NotificationService {
       if (batch.length >= BATCH_SIZE) {
         await Notification.insertMany(batch);
         batch = []; // Giải phóng memory
-        
+
         // Nghỉ 50ms để tránh block CPU
         await new Promise(resolve => setTimeout(resolve, 50));
       }
     }
-    
+
     // Insert phần còn lại
     if (batch.length > 0) {
       await Notification.insertMany(batch);
@@ -311,16 +418,16 @@ class NotificationService {
    */
   static async getUserNotifications(userId, page = 1, limit = 20, filter = null) {
     const skip = (page - 1) * limit;
-    
+
     let query = { recipient: userId };
-    
+
     // Áp dụng filter
     if (filter === "unread") {
       query.read = false;
     } else if (filter === "read") {
       query.read = true;
     }
-    
+
     // Sử dụng .lean() để tăng hiệu năng
     const notifications = await Notification
       .find(query)
@@ -332,9 +439,9 @@ class NotificationService {
       .lean();
 
     const total = await Notification.countDocuments(query);
-    const unreadCount = await Notification.countDocuments({ 
-      recipient: userId, 
-      read: false 
+    const unreadCount = await Notification.countDocuments({
+      recipient: userId,
+      read: false
     });
 
     return {

@@ -182,7 +182,7 @@ export default function MessageInput({ onSendMessage }) {
 
       {/* Input area */}
       <form onSubmit={handleSubmit} className="p-3 sm:p-4">
-        <div className="flex items-end space-x-2 sm:space-x-3">
+        <div className="flex items-center gap-2">
           {/* Action buttons */}
           <div className="flex space-x-1">
             <motion.button

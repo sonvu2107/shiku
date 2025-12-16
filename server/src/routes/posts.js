@@ -1318,6 +1318,16 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
       }
     }
 
+    // Gửi notification cho tác giả bài viết (nếu không phải bỏ emote)
+    if (!existed) {
+      try {
+        const NotificationService = (await import("../services/NotificationService.js")).default;
+        await NotificationService.createReactionNotification(post, req.user, emote);
+      } catch (notifError) {
+        console.error('[POSTS] Error creating reaction notification:', notifError);
+      }
+    }
+
     res.json({ emotes: post.emotes });
   } catch (e) {
     next(e);

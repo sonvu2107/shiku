@@ -625,6 +625,7 @@ export default function MessageList({
       {/* Messages container */}
       <div
         ref={messagesContainerRef}
+        className="h-full overflow-y-auto pb-6"
       >
         {/* Load more indicator */}
         {loading && (
@@ -709,15 +710,16 @@ export default function MessageList({
       <AnimatePresence>
         {showScrollButton && (
           <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={scrollToBottom}
-            className="absolute bottom-4 right-4 bg-blue-500 dark:bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors z-10"
+            className="absolute bottom-8 right-4 bg-gray-800 dark:bg-gray-700 text-white p-3 rounded-full shadow-xl hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors z-20 border border-gray-600 dark:border-gray-500"
+            title="Cuộn xuống tin nhắn mới nhất"
           >
-            <ChevronUp size={20} className="transform rotate-180" />
+            <ChevronUp size={22} className="transform rotate-180" />
           </motion.button>
         )}
       </AnimatePresence>

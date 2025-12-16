@@ -54,7 +54,7 @@ export const ChatProvider = ({ children }) => {
       _id: conversationId,
       conversationType: conversation.conversationType || (conversation.otherParticipants?.length > 1 ? 'group' : 'private')
     };
-    
+
     setOpenPopups(prev => {
       // Check if conversation is already open in the latest state
       const isAlreadyOpen = prev.some(conv => conv._id === normalizedConversation._id);
@@ -100,19 +100,25 @@ export const ChatProvider = ({ children }) => {
 
       setUnreadCount(prev => prev + 1);
 
-      // Open chat popup if not already open
-      let conversation = message.conversation;
-      
-      if (typeof conversation === 'string') {
-          conversation = {
-              _id: conversation,
-              isGroup: false, 
-              otherParticipants: [{ user: message.sender }], // Fix structure: wrap sender in user object
-          };
+      // Don't open chat popup on mobile - mobile users use /chat page
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        return;
       }
-      
+
+      // Open chat popup if not already open (desktop only)
+      let conversation = message.conversation;
+
+      if (typeof conversation === 'string') {
+        conversation = {
+          _id: conversation,
+          isGroup: false,
+          otherParticipants: [{ user: message.sender }], // Fix structure: wrap sender in user object
+        };
+      }
+
       if (conversation && conversation._id) {
-          addChatPopup(conversation);
+        addChatPopup(conversation);
       }
     };
 

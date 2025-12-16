@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import ConversationList from "../components/chat/ConversationList";
@@ -15,6 +15,7 @@ import callManager from "../utils/callManager";
 import { getUserInfo } from "../utils/auth";
 import { chatbotAPI } from "../services/chatbotAPI";
 import { useToast } from "../contexts/ToastContext";
+import { useChat } from "../contexts/ChatContext";
 
 /**
  * Chat - Main chat page with real-time messaging
@@ -26,6 +27,7 @@ export default function Chat() {
 
   const location = useLocation(); // To handle state passed from `MessageButton`
   const { showInfo, showError } = useToast();
+  const { refreshUnreadCount } = useChat();
 
   // ==================== STATE MANAGEMENT ====================
 
@@ -61,6 +63,7 @@ export default function Chat() {
 
   // Mobile view state
   const [showChatWindow, setShowChatWindow] = useState(false); // Whether to show chat window on mobile
+  const userHasSelectedRef = useRef(false); // Track if user manually selected a conversation (prevents auto-restore override)
 
   useEffect(() => {
     loadCurrentUser();
@@ -202,8 +205,9 @@ export default function Chat() {
   }, [selectedConversation?._id]);
 
   // Khôi phục conversation đã chọn sau khi load conversations
+  // CHỈ chạy 1 lần khi load trang và user chưa chọn conversation nào
   useEffect(() => {
-    if (conversations.length > 0 && !selectedConversation) {
+    if (conversations.length > 0 && !selectedConversation && !userHasSelectedRef.current) {
       loadCurrentConversation();
     }
   }, [conversations.length, selectedConversation]);
@@ -735,10 +739,14 @@ export default function Chat() {
       return;
     }
     console.log('Selecting conversation:', conversation._id, conversation.conversationType);
+    // Mark that user has manually selected - prevents auto-restore from overriding
+    userHasSelectedRef.current = true;
     setSelectedConversation(conversation);
     setShowChatWindow(true); // Hiển thị chat window trên mobile
     // Save current conversation
     saveCurrentConversation(conversation._id);
+    // Refresh unread count to clear badge after opening conversation
+    refreshUnreadCount();
   };
 
   const handleBackToList = () => {

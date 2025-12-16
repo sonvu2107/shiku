@@ -34,6 +34,9 @@ import {
   Sun,          // Icon light mode
   Bookmark      // Icon saved
 } from "lucide-react";
+import { useUnreadNotificationsCount } from "../hooks/useNotifications";
+import { useQueryClient } from "@tanstack/react-query";
+import socketService from "../socket";
 
 /**
  * Navbar - Main navigation bar component of the application
@@ -44,6 +47,9 @@ import {
 function Navbar({ user, setUser, darkMode, setDarkMode }) {
   // ==================== STATE MANAGEMENT ====================
   const { openPopups, addChatPopup, closeChatPopup, unreadCount } = useChat();
+  const { data: notificationCountData, refetch: refetchNotificationCount } = useUnreadNotificationsCount();
+  const notificationUnreadCount = notificationCountData?.unreadCount || 0;
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -61,6 +67,25 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
   const [pendingRequests, setPendingRequests] = useState(0); // Number of pending friend requests
   const [showProfileMenu, setShowProfileMenu] = useState(false); // Profile menu dropdown
   // ==================== EFFECTS ====================
+
+  /**
+   * Listen for new notifications via socket for realtime updates
+   */
+  useEffect(() => {
+    if (!user || !socketService.socket) return;
+
+    const handleNewNotification = () => {
+      // Invalidate cache để refetch notification count
+      queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    };
+
+    socketService.socket.on('new-notification', handleNewNotification);
+
+    return () => {
+      socketService.socket?.off('new-notification', handleNewNotification);
+    };
+  }, [user, queryClient]);
 
   /**
    * Load number of pending friend requests when user is logged in
@@ -664,9 +689,12 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
 
                 <button
                   onClick={() => navigate('/notifications')}
-                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 touch-manipulation"
+                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 relative touch-manipulation"
                 >
                   <Bell size={20} />
+                  {notificationUnreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-black" />
+                  )}
                 </button>
 
                 <MobileMenu user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />

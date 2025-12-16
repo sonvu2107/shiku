@@ -263,8 +263,13 @@ app.use(requestTimeout(30000));
 // Setup __dirname cho ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Serve static uploaded files
-app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+// Serve static uploaded files with cache headers for better performance
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads"), {
+  maxAge: '7d',           // Cache static files for 7 days
+  etag: true,             // Enable ETag for conditional requests
+  lastModified: true,     // Enable Last-Modified header
+  immutable: false        // Files may be updated (set to true if files never change)
+}));
 
 // ==================== ROUTES SETUP ====================
 

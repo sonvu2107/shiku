@@ -57,7 +57,7 @@ if (typeof document !== 'undefined') {
  */
 export default function ChatPopupManager({ conversations = [], onCloseConversation, onShowInfo }) {
   // ==================== STATE MANAGEMENT ====================
-  
+
   const [callOpen, setCallOpen] = useState(false);
   const [isVideoCall, setIsVideoCall] = useState(true);
   const [incomingCall, setIncomingCall] = useState(null);
@@ -137,7 +137,9 @@ export default function ChatPopupManager({ conversations = [], onCloseConversati
 
   // ==================== RENDER ====================
 
-  if (conversations.length === 0) {
+  // Don't render chat popups on mobile - mobile users use /chat page
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  if (isMobile || conversations.length === 0) {
     return null;
   }
 
