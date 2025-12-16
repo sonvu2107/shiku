@@ -395,8 +395,15 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
  * Uses engagement scoring, friend posts, trending, personalized, and fresh content
  * Algorithm: 40% friends + 30% trending + 20% personalized + 10% fresh
  */
-router.get("/feed/smart", authOptional, responseCache({ ttlSeconds: 30, prefix: "smart", varyByUser: true }), async (req, res, next) => {
+router.get("/feed/smart", authOptional, async (req, res, next) => {
   try {
+    // Prevent browser caching để shuffle có tác dụng mỗi lần F5
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+
     const { page = 1, limit = 20 } = req.query;
     const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
     const userId = req.user?._id?.toString() || null;

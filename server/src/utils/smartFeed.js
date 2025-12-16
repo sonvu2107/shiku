@@ -66,6 +66,12 @@ export function calculateEngagementScore(post, commentsCount = 0, interestedPost
     }
   }
 
+  // ==================== RANDOM FACTOR ====================
+  // Thêm random factor ±15% để feed có sự đa dạng khi refresh
+  // Tạo trải nghiệm tươi mới mỗi lần load
+  const randomFactor = 0.85 + Math.random() * 0.3; // Random từ 0.85 đến 1.15 (±15%)
+  engagementScore *= randomFactor;
+
   // Score cuối cùng với time decay
   // Tránh chia cho 0 hoặc số rất nhỏ
   return engagementScore / Math.max(timeDecay, 0.1);
@@ -515,7 +521,20 @@ export function mixAndDeduplicatePosts(friendsPosts, trendingPosts, personalized
     }
   }
 
-  return mixedPosts;
+  // ==================== PARTIAL SHUFFLE ====================
+  // Shuffle 30% đầu tiên của feed để tạo sự đa dạng khi refresh
+  // Giữ chất lượng tổng thể nhưng vẫn có sự khác biệt
+  const shuffleCount = Math.max(Math.floor(mixedPosts.length * 0.3), 3);
+  const topPosts = mixedPosts.slice(0, shuffleCount);
+  const restPosts = mixedPosts.slice(shuffleCount);
+
+  // Fisher-Yates shuffle cho phần đầu
+  for (let i = topPosts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [topPosts[i], topPosts[j]] = [topPosts[j], topPosts[i]];
+  }
+
+  return [...topPosts, ...restPosts];
 }
 
 /**
@@ -556,14 +575,21 @@ export async function generateSmartFeed(userId, totalLimit = 20, page = 1) {
       }
     }
 
-    // Tính limits cho mỗi nguồn (theo phần trăm)
-    const friendsLimit = Math.ceil(sanitizedLimit * 0.4);  // 40%
-    const trendingLimit = Math.ceil(sanitizedLimit * 0.3); // 30%
-    const personalizedLimit = Math.ceil(sanitizedLimit * 0.2); // 20%
-    const freshLimit = Math.ceil(sanitizedLimit * 0.1);    // 10%
+    // ==================== OVER-FETCHING STRATEGY (PAGE 1) ====================
+    // Nếu là Page 1, ta lấy số lượng bài nhiều hơn (x2.5) để tạo pool random lớn hơn
+    // Các page sau giữ nguyên để đảm bảo pagination ổn định
+    const isFirstPage = sanitizedPage === 1;
+    const fetchMultiplier = isFirstPage ? 2.5 : 1;
 
-    // Tính skip cho mỗi nguồn (tỷ lệ với limits của chúng)
-    // Đảm bảo mỗi nguồn skip tỷ lệ dựa trên đóng góp của nó
+    // Tính limits cho mỗi nguồn (theo phần trăm) với multiplier
+    const friendsLimit = Math.ceil(sanitizedLimit * 0.4 * fetchMultiplier);  // 40%
+    const trendingLimit = Math.ceil(sanitizedLimit * 0.3 * fetchMultiplier); // 30%
+    const personalizedLimit = Math.ceil(sanitizedLimit * 0.2 * fetchMultiplier); // 20%
+    const freshLimit = Math.ceil(sanitizedLimit * 0.1 * fetchMultiplier);    // 10%
+
+    // Tính skip cho mỗi nguồn (tỷ lệ với limits GỐC)
+    // Lưu ý: Skip vẫn phải tính theo limit gốc để Page 2 match tiếp vào Page 1 (dù Page 1 random)
+    // Chấp nhận rủi ro nhỏ về duplicate/gap giữa Page 1 và 2 để đổi lấy trải nghiệm F5 tốt
     const friendsSkip = Math.floor(totalSkip * 0.4);
     const trendingSkip = Math.floor(totalSkip * 0.3);
     const personalizedSkip = Math.floor(totalSkip * 0.2);
@@ -614,13 +640,34 @@ export async function generateSmartFeed(userId, totalLimit = 20, page = 1) {
         })
         .sort({ createdAt: -1 })
         .skip(fillerSkip) // Bỏ qua filler posts cho pagination
-        .limit(sanitizedLimit - mixedFeed.length)
+        .limit((sanitizedLimit * fetchMultiplier) - mixedFeed.length) // Fetch thêm cho đủ pool
         .lean();
 
       mixedFeed.push(...fillerPosts);
     }
 
-    // Giới hạn theo số lượng yêu cầu
+    // ==================== FINAL SHUFFLE & SLICE ====================
+    // Shuffle toàn bộ pool nếu là Page 1 để tạo diversity tối đa
+    if (isFirstPage) {
+      for (let i = mixedFeed.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [mixedFeed[i], mixedFeed[j]] = [mixedFeed[j], mixedFeed[i]];
+      }
+    } else {
+      // Các page sau: giữ ổn định, chỉ shuffle nhẹ phần đầu
+      const finalFeed = mixedFeed.slice(0, sanitizedLimit);
+      const shuffleCount = Math.max(Math.floor(finalFeed.length * 0.7), 5);
+      const topPart = finalFeed.slice(0, shuffleCount);
+      const restPart = finalFeed.slice(shuffleCount);
+
+      for (let i = topPart.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [topPart[i], topPart[j]] = [topPart[j], topPart[i]];
+      }
+      return [...topPart, ...restPart];
+    }
+
+    // Cắt về đúng limit yêu cầu
     return mixedFeed.slice(0, sanitizedLimit);
 
   } catch (error) {
