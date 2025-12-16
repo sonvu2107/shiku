@@ -854,7 +854,7 @@ function Home({ user, setUser }) {
           <div className="sticky md:static top-[64px] md:top-0 z-[100] px-4 md:px-6 lg:px-8 py-2 md:py-2 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-white/70 dark:bg-black/70 backdrop-blur-2xl transition-colors duration-300">
             <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
               <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 overflow-hidden">
-                <h2 className="text-lg md:text-xl font-bold text-neutral-900 dark:text-white whitespace-nowrap flex-shrink-0">Bảng tin</h2>
+                <h2 className="text-lg font-semibold text-neutral-900 dark:text-white whitespace-nowrap flex-shrink-0">Bảng tin</h2>
                 {items.length > 0 && (
                   <span className="hidden text-xs sm:text-sm text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-900 px-3 py-1.5 rounded-full font-semibold whitespace-nowrap flex-shrink-0">
                     {items.length} bài viết

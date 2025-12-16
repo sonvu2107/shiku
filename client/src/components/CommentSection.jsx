@@ -1026,11 +1026,11 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
                 </button>
 
                 {showDropdown === comment._id && (
-                  <div className="absolute right-0 bottom-full mb-1 min-w-[140px] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-[9999] overflow-hidden">
+                  <div className="absolute right-0 bottom-full mb-1 w-fit bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-[9999] overflow-hidden">
                     {user && (user._id?.toString() === comment.author?._id?.toString() || user.id?.toString() === comment.author?._id?.toString()) && (
                       <button
                         onClick={() => handleEditComment(comment)}
-                        className="w-full px-5 py-4 sm:px-4 sm:py-2.5 text-left text-sm sm:text-xs font-bold text-neutral-700 dark:text-neutral-300 active:bg-neutral-50 dark:active:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors touch-manipulation min-h-[56px] sm:min-h-0"
+                        className="w-full px-3 py-3 sm:px-4 sm:py-2.5 text-left text-sm sm:text-xs font-bold text-neutral-700 dark:text-neutral-300 active:bg-neutral-50 dark:active:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors touch-manipulation whitespace-nowrap"
                       >
                         Chỉnh sửa
                       </button>
@@ -1045,7 +1045,7 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
                               setShowDropdown(null);
                             }
                           }}
-                          className="w-full px-5 py-4 sm:px-4 sm:py-2.5 text-left text-sm sm:text-xs font-bold text-red-600 active:bg-red-50 dark:active:bg-red-900/20 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors touch-manipulation min-h-[56px] sm:min-h-0"
+                          className="w-full px-3 py-3 sm:px-4 sm:py-2.5 text-left text-sm sm:text-xs font-bold text-red-600 active:bg-red-50 dark:active:bg-red-900/20 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors touch-manipulation whitespace-nowrap"
                         >
                           Xóa
                         </button>

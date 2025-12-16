@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Play } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Plus, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../api';
 import StoryCreator from './StoryCreator';
 import StoryViewer from './StoryViewer';
@@ -10,6 +10,7 @@ import Avatar from './Avatar';
  * Stories automatically delete after 24h, with view count and reactions
  */
 function Stories({ user }) {
+  const scrollContainerRef = useRef(null);
   const [storiesGroups, setStoriesGroups] = useState([]);
   const [myStories, setMyStories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -114,6 +115,41 @@ function Stories({ user }) {
     );
   };
 
+  // Scroll navigation state
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  // Check scroll position
+  const checkScrollPosition = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    setCanScrollLeft(scrollLeft > 0);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
+  }, []);
+
+  // Update scroll state on mount and when stories change
+  useEffect(() => {
+    checkScrollPosition();
+    // Re-check after a short delay to ensure DOM is updated
+    const timer = setTimeout(checkScrollPosition, 100);
+    return () => clearTimeout(timer);
+  }, [storiesGroups, myStories, checkScrollPosition]);
+
+  // Scroll handlers
+  const scrollLeft = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    container.scrollBy({ left: -200, behavior: 'smooth' });
+  }, []);
+
+  const scrollRight = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    container.scrollBy({ left: 200, behavior: 'smooth' });
+  }, []);
+
   if (loading) {
     return (
       <div className="bg-white dark:bg-[#111] rounded-[32px] p-5 mb-6
@@ -137,11 +173,38 @@ function Stories({ user }) {
 
   return (
     <>
-      <div className="mb-6 px-1.5 md:px-0">
-        <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+      <div className="mb-6 px-1.5 md:px-0 relative group/stories">
+        {/* Navigation Arrow - Left */}
+        {canScrollLeft && (
+          <button
+            onClick={scrollLeft}
+            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white dark:bg-neutral-800 rounded-full shadow-lg border border-neutral-200 dark:border-neutral-700 items-center justify-center text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-all opacity-0 group-hover/stories:opacity-100"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft size={18} />
+          </button>
+        )}
+
+        {/* Navigation Arrow - Right */}
+        {canScrollRight && (
+          <button
+            onClick={scrollRight}
+            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white dark:bg-neutral-800 rounded-full shadow-lg border border-neutral-200 dark:border-neutral-700 items-center justify-center text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-all opacity-0 group-hover/stories:opacity-100"
+            aria-label="Scroll right"
+          >
+            <ChevronRight size={18} />
+          </button>
+        )}
+
+        {/* Stories Container with Snap Scroll */}
+        <div
+          ref={scrollContainerRef}
+          onScroll={checkScrollPosition}
+          className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory scroll-smooth md:px-2"
+        >
           {/* My Story - Create new story or view my story */}
           {user && (
-            <div className="flex-shrink-0 relative">
+            <div className="flex-shrink-0 relative snap-start">
               {myStories.length === 0 ? (
                 // No story yet - show create button with round design
                 <>
@@ -216,7 +279,7 @@ function Stories({ user }) {
             if (!author || !latestStory) return null;
 
             return (
-              <div key={author._id || index} className="flex-shrink-0">
+              <div key={author._id || index} className="flex-shrink-0 snap-start">
                 <button
                   onClick={() => handleViewStory(storyGroup, 0)}
                   className="block w-[80px] h-[80px] rounded-full overflow-hidden relative group hover:scale-105 transition-all duration-200 border-2 border-blue-500"

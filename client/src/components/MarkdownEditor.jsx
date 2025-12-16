@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { 
-  Bold, Italic, Underline, Code, List, ListOrdered, 
+import {
+  Bold, Italic, Underline, Code, List, ListOrdered,
   CheckSquare, Link, Image as ImageIcon, Eye, Edit3,
   Heading1, Heading2, Heading3, Quote, Minus
 } from "lucide-react";
@@ -14,8 +14,9 @@ import MentionAutocomplete from "./MentionAutocomplete";
  * @param {Function} onChange - Callback when content changes
  * @param {string} placeholder - Placeholder text
  * @param {number} rows - Default number of textarea rows
+ * @param {boolean} compactMode - When true, hides toolbar and tips (simple textarea only)
  */
-export default function MarkdownEditor({ value = "", onChange, placeholder = "Viết nội dung của bạn...", rows = 12 }) {
+export default function MarkdownEditor({ value = "", onChange, placeholder = "Viết nội dung của bạn...", rows = 12, compactMode = false }) {
   const [showPreview, setShowPreview] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showTips, setShowTips] = useState(false);
@@ -35,9 +36,9 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
     const selectedText = value.substring(start, end);
     const textToInsert = placeholder || selectedText;
 
-    const newValue = 
-      value.substring(0, start) + 
-      before + textToInsert + after + 
+    const newValue =
+      value.substring(0, start) +
+      before + textToInsert + after +
       value.substring(end);
 
     onChange(newValue);
@@ -61,10 +62,10 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
     const lines = value.substring(0, start).split('\n');
     const currentLine = lines.length - 1;
     const lineStart = value.substring(0, start).lastIndexOf('\n') + 1;
-    
-    const newValue = 
-      value.substring(0, lineStart) + 
-      prefix + 
+
+    const newValue =
+      value.substring(0, lineStart) +
+      prefix +
       value.substring(lineStart);
 
     onChange(newValue);
@@ -101,14 +102,14 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
    */
   const handleMentionSelect = (user, startPosition, endPosition) => {
     if (!textareaRef.current) return;
-    
+
     const before = value.substring(0, startPosition);
     const after = value.substring(endPosition);
     const mention = `@${user.name} `;
-    
+
     const newContent = before + mention + after;
     onChange(newContent);
-    
+
     // Set cursor position after mention
     setTimeout(() => {
       if (textareaRef.current) {
@@ -118,7 +119,7 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
         setCursorPosition(newCursorPos);
       }
     }, 0);
-    
+
     setShowMentionAutocomplete(false);
   };
 
@@ -128,14 +129,14 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
   const handleTextareaChange = (e) => {
     const newValue = e.target.value;
     const cursorPos = e.target.selectionStart;
-    
+
     onChange(newValue);
     setCursorPosition(cursorPos);
-    
+
     // Check if we should show autocomplete (user typed @)
     const textBeforeCursor = newValue.substring(0, cursorPos);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-    
+
     if (lastAtIndex !== -1) {
       const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
       // Show autocomplete if @ is followed by valid characters or empty
@@ -147,7 +148,7 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
         }
       }
     }
-    
+
     setShowMentionAutocomplete(false);
   };
 
@@ -159,7 +160,7 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
       // Let MentionAutocomplete handle these keys
       return;
     }
-    
+
     // Close autocomplete on Escape
     if (e.key === "Escape") {
       setShowMentionAutocomplete(false);
@@ -225,7 +226,7 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
       .replace(/\n/gim, '<br />');
 
     return (
-      <div 
+      <div
         className="prose prose-neutral dark:prose-invert max-w-none p-4 min-h-[200px] text-neutral-900 dark:text-neutral-100"
         dangerouslySetInnerHTML={{ __html: html }}
       />
@@ -259,108 +260,110 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
 
   return (
     <div className="space-y-1.5">
-      {/* Toolbar - Compact */}
-      <div className="flex flex-wrap items-center gap-0.5 p-1.5 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
-        {/* Text Format */}
-        <div className="flex items-center gap-0.5 pr-1.5 border-r border-neutral-200 dark:border-neutral-800">
-          {textFormatButtons.map((btn, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={btn.action}
-              className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-              title={btn.label}
-            >
-              <btn.icon size={14} />
-            </button>
-          ))}
-        </div>
+      {/* Toolbar - Hidden in compact mode */}
+      {!compactMode && (
+        <div className="flex flex-wrap items-center gap-0.5 p-1.5 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
+          {/* Text Format */}
+          <div className="flex items-center gap-0.5 pr-1.5 border-r border-neutral-200 dark:border-neutral-800">
+            {textFormatButtons.map((btn, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={btn.action}
+                className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                title={btn.label}
+              >
+                <btn.icon size={14} />
+              </button>
+            ))}
+          </div>
 
-        {/* Headings */}
-        <div className="flex items-center gap-0.5 pr-1.5 border-r border-neutral-200 dark:border-neutral-800">
-          {headingButtons.map((btn, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={btn.action}
-              className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-              title={btn.label}
-            >
-              <btn.icon size={14} />
-            </button>
-          ))}
-        </div>
+          {/* Headings */}
+          <div className="flex items-center gap-0.5 pr-1.5 border-r border-neutral-200 dark:border-neutral-800">
+            {headingButtons.map((btn, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={btn.action}
+                className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                title={btn.label}
+              >
+                <btn.icon size={14} />
+              </button>
+            ))}
+          </div>
 
-        {/* Lists */}
-        <div className="flex items-center gap-0.5 pr-1.5 border-r border-neutral-200 dark:border-neutral-800">
-          {listButtons.map((btn, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={btn.action}
-              className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-              title={btn.label}
-            >
-              <btn.icon size={14} />
-            </button>
-          ))}
-        </div>
+          {/* Lists */}
+          <div className="flex items-center gap-0.5 pr-1.5 border-r border-neutral-200 dark:border-neutral-800">
+            {listButtons.map((btn, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={btn.action}
+                className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                title={btn.label}
+              >
+                <btn.icon size={14} />
+              </button>
+            ))}
+          </div>
 
-        {/* Other */}
-        <div className="flex items-center gap-0.5 pr-1.5 border-r border-neutral-200 dark:border-neutral-800">
-          {otherButtons.map((btn, idx) => (
+          {/* Other */}
+          <div className="flex items-center gap-0.5 pr-1.5 border-r border-neutral-200 dark:border-neutral-800">
+            {otherButtons.map((btn, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={btn.action}
+                className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                title={btn.label}
+              >
+                <btn.icon size={14} />
+              </button>
+            ))}
             <button
-              key={idx}
               type="button"
-              onClick={btn.action}
+              onClick={() => insertText("```\n", "\n```", "code here")}
               className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-              title={btn.label}
+              title="Code Block"
             >
-              <btn.icon size={14} />
+              <Code size={14} />
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => insertText("\n---\n", "")}
+              className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+              title="Horizontal Rule"
+            >
+              <Minus size={14} />
+            </button>
+          </div>
+
+          <div className="flex-1" />
+
+          {/* Image Upload */}
+          <label className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer" title="Chèn ảnh">
+            <ImageIcon size={14} />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              disabled={uploading}
+              className="hidden"
+            />
+          </label>
+
+          {/* Toggle Preview */}
           <button
             type="button"
-            onClick={() => insertText("```\n", "\n```", "code here")}
+            onClick={() => setShowPreview(!showPreview)}
             className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-            title="Code Block"
+            title={showPreview ? "Chế độ chỉnh sửa" : "Xem trước"}
           >
-            <Code size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={() => insertText("\n---\n", "")}
-            className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-            title="Horizontal Rule"
-          >
-            <Minus size={14} />
+            {showPreview ? <Edit3 size={14} /> : <Eye size={14} />}
           </button>
         </div>
-        
-        <div className="flex-1" />
-        
-        {/* Image Upload */}
-        <label className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer" title="Chèn ảnh">
-          <ImageIcon size={14} />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            disabled={uploading}
-            className="hidden"
-          />
-        </label>
-        
-        {/* Toggle Preview */}
-        <button
-          type="button"
-          onClick={() => setShowPreview(!showPreview)}
-          className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-          title={showPreview ? "Chế độ chỉnh sửa" : "Xem trước"}
-        >
-          {showPreview ? <Edit3 size={14} /> : <Eye size={14} />}
-        </button>
-      </div>
+      )}
 
       {/* Editor/Preview */}
       <div className="relative border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden bg-white dark:bg-black">
@@ -404,26 +407,28 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
         </div>
       )}
 
-      {/* Markdown Tips - Collapsible */}
-      <div className="text-xs">
-        <button
-          type="button"
-          onClick={() => setShowTips(!showTips)}
-          className="text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors flex items-center gap-1"
-        >
-          <span>{showTips ? "Ẩn" : "Hiện"} mẹo Markdown</span>
-        </button>
-        {showTips && (
-          <div className="mt-1.5 text-neutral-500 dark:text-neutral-400 space-y-0.5">
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-              <span><code className="px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px]">**text**</code> đậm</span>
-              <span><code className="px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px]">*text*</code> nghiêng</span>
-              <span><code className="px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px]">`code`</code> code</span>
-              <span><code className="px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px]">- [ ]</code> checklist</span>
+      {/* Markdown Tips - Collapsible - Hidden in compact mode */}
+      {!compactMode && (
+        <div className="text-xs">
+          <button
+            type="button"
+            onClick={() => setShowTips(!showTips)}
+            className="text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors flex items-center gap-1"
+          >
+            <span>{showTips ? "Ẩn" : "Hiện"} mẹo Markdown</span>
+          </button>
+          {showTips && (
+            <div className="mt-1.5 text-neutral-500 dark:text-neutral-400 space-y-0.5">
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                <span><code className="px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px]">**text**</code> đậm</span>
+                <span><code className="px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px]">*text*</code> nghiêng</span>
+                <span><code className="px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px]">`code`</code> code</span>
+                <span><code className="px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px]">- [ ]</code> checklist</span>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -97,14 +97,12 @@ export const resetPasswordSchema = Joi.object({
 // Schema validation cho tạo bài viết
 export const createPostSchema = Joi.object({
   title: Joi.string()
-    .min(1)
-    .max(100)
     .trim()
-    .required()
+    .max(100)
+    .allow('', null)
+    .optional()
     .messages({
-      'string.min': 'Tiêu đề không được để trống',
-      'string.max': 'Tiêu đề không được quá 100 ký tự',
-      'any.required': 'Tiêu đề là bắt buộc'
+      'string.max': 'Tiêu đề không được quá 100 ký tự'
     }),
   content: Joi.string()
     .min(1)

@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp } from "lucide-react";
 
 /**
  * BackToTop - Component tái sử dụng để cuộn lên đầu trang
  * Hiển thị nút khi scroll > 400px
+ * Ẩn ở trang Home (/)
  */
 function BackToTop() {
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const location = useLocation();
+
+  // Hide on Home page
+  const isHomePage = location.pathname === "/" || location.pathname === "/home";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -53,6 +59,9 @@ function BackToTop() {
     }
   };
 
+  // Don't render on Home page
+  if (isHomePage) return null;
+
   return (
     <AnimatePresence>
       {showScrollTop && (
@@ -64,7 +73,7 @@ function BackToTop() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={scrollToTop}
-          className="fixed bottom-4 right-4 z-[9999] p-3 bg-black dark:bg-neutral-700 text-white dark:text-white rounded-full shadow-lg hover:shadow-xl transition-shadow cursor-pointer md:hidden"
+          className="fixed bottom-4 right-4 z-[9999] p-3 bg-black dark:bg-neutral-700 text-white dark:text-white rounded-full shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
           aria-label="Cuộn lên đầu trang"
         >
           <ArrowUp size={24} />
@@ -75,4 +84,3 @@ function BackToTop() {
 }
 
 export default BackToTop;
-

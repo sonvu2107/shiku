@@ -600,15 +600,16 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       {/* 2. Content Body */}
       <div className="px-3 sm:px-4 md:px-5 pb-2 sm:pb-3">
         {/* Title - Mobile: smaller */}
-        {post.title && (
-          <h3 className="text-[18px] sm:text-lg md:text-xl font-bold text-gray-900 dark:text-gray-50 mb-1.5 sm:mb-2 leading-snug line-clamp-2">
+        {/* Hide title if it's auto-generated (title is prefix of content) */}
+        {post.title && !(post.content && post.content.trim().startsWith(post.title.replace(/…$/, '').trim())) && (
+          <h3 className="text-[17px] sm:text-lg md:text-xl font-bold text-gray-900 dark:text-gray-50 mb-1.5 sm:mb-2 leading-snug line-clamp-2">
             {post.title}
           </h3>
         )}
         {/* Content - Mobile: smaller font, better line-height */}
         {post.content && (
           <ContentWithSeeMore maxHeight={250}>
-            <div className="prose dark:prose-invert max-w-none text-[16px] sm:text-[15px] md:text-base leading-[1.75] sm:leading-[1.7] text-neutral-800 dark:text-neutral-200 font-normal prose-p:mb-2.5 prose-headings:mb-2 prose-headings:mt-3">
+            <div className="prose dark:prose-invert max-w-none text-[15px] leading-[1.6] text-neutral-800 dark:text-neutral-200 font-normal prose-p:mb-2 prose-headings:mb-2 prose-headings:mt-3">
               <ReactMarkdown
                 components={{
                   h1: ({ children }) => <h1 className="text-base sm:text-lg md:text-xl font-bold mb-2 mt-3">{children}</h1>,

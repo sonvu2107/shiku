@@ -1,16 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   Compass,
   Calendar,
   Image,
-  Bookmark,
   Users,
   UserCheck,
-  User,
-  Settings,
-  Crown,
   LogOut,
   LogIn,
   UserPlus,
@@ -20,7 +16,9 @@ import {
   Heart,
   Eye,
   HelpCircle,
-  Sparkles
+  Sparkles,
+  Search,
+  Crown
 } from 'lucide-react';
 import { removeAuthToken } from '../utils/auth';
 import { invalidateUserCache } from '../utils/userCache';
@@ -28,116 +26,81 @@ import { api } from '../api';
 import { getCachedRole, loadRoles } from '../utils/roleCache';
 import { useUserStats } from '../hooks/useUserStats';
 import UserAvatar, { UserTitle } from './UserAvatar';
-import CultivationBadge from './CultivationBadge';
 
 /**
- * LeftSidebar - Lefit sidebar component
- * Reuse menu items from MobileMenu
- * Includes logo, search, navigation menu, badges, user profile
+ * LeftSidebar - Modern Social Media Style
+ * Optimized for visual appeal and UX
  */
 function LeftSidebar({ user, setUser }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const [roleLabel, setRoleLabel] = useState('Basic Member');
+  const [roleLabel, setRoleLabel] = useState('Member');
 
-  // OPTIMIZATION: Sử dụng React Query hook thay vì manual API calls
+  // Lấy stats của user
   const userId = user?.id || user?._id;
-  const { data: stats, isLoading: statsLoading } = useUserStats(userId);
+  const { data: stats } = useUserStats(userId);
 
-  // Fallback nếu chưa có data
-  const displayStats = stats || {
+  const displayStats = useMemo(() => stats || {
     postCount: 0,
     friendCount: 0,
     likeCount: 0,
     viewCount: 0
-  };
+  }, [stats]);
 
-  // Collapse state - load from localStorage
+  // Xử lý state collapse
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
-      const saved = localStorage.getItem('sidebarCollapsed');
-      return saved === 'true';
+      return localStorage.getItem('sidebarCollapsed') === 'true';
     } catch {
       return false;
     }
   });
 
-  // Sync sidebar state với body và CSS variables
   useEffect(() => {
     document.body.setAttribute('data-sidebar-collapsed', isCollapsed);
-    document.documentElement.style.setProperty('--sidebar-width', isCollapsed ? '64px' : '256px');
-
+    document.documentElement.style.setProperty('--sidebar-width', isCollapsed ? '72px' : '280px');
     try {
       localStorage.setItem('sidebarCollapsed', String(isCollapsed));
-    } catch {
-      // Ignore localStorage errors
-    }
+    } catch { }
   }, [isCollapsed]);
 
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-  };
-
-  // Load role label
+  // Xử lý Role Label
   useEffect(() => {
     const updateRoleLabel = async () => {
-      if (!user || !user.role) {
-        setRoleLabel('Basic Member');
-        return;
-      }
+      if (!user?.role) return;
 
-      // If role is object (has displayName)
       if (typeof user.role === 'object' && user.role.displayName) {
         setRoleLabel(user.role.displayName);
         return;
       }
-
-      // If role is string, get role name
       const roleName = typeof user.role === 'string' ? user.role : (user.role.name || 'user');
 
-      // Handle default roles
-      if (roleName === 'user') {
-        setRoleLabel('Người dùng');
-        return;
-      }
-      if (roleName === 'admin') {
-        setRoleLabel('Admin');
+      const roleMap = { 'user': 'Thành viên', 'admin': 'Quản trị viên' };
+      if (roleMap[roleName]) {
+        setRoleLabel(roleMap[roleName]);
         return;
       }
 
-      // Try to get from cache or load from API
       try {
         const cachedRole = getCachedRole(roleName);
-        if (cachedRole && cachedRole.displayName) {
+        if (cachedRole?.displayName) {
           setRoleLabel(cachedRole.displayName);
         } else {
-          // Load roles và tìm displayName
           const roles = await loadRoles();
-          const roleData = roles[roleName];
-          if (roleData && roleData.displayName) {
-            setRoleLabel(roleData.displayName);
-          } else {
-            // Fallback: capitalize first letter
-            setRoleLabel(roleName.charAt(0).toUpperCase() + roleName.slice(1));
-          }
+          setRoleLabel(roles[roleName]?.displayName || roleName);
         }
-      } catch (err) {
-        // Fallback: capitalize first letter
-        setRoleLabel(roleName.charAt(0).toUpperCase() + roleName.slice(1));
+      } catch {
+        setRoleLabel(roleName);
       }
     };
-
     updateRoleLabel();
   }, [user?.role]);
 
+  // Logout Logic
   const handleLogout = async () => {
-    try {
-      await api("/api/auth/logout", { method: "POST" });
-    } catch (err) {
-      // Silent handling for logout error
-    }
+    try { await api("/api/auth/logout", { method: "POST" }); } catch { }
 
-    // Cleanup all services with robust error handling
+    // Cleanup services
     const cleanupPromises = [
       (async () => {
         try {
@@ -164,65 +127,127 @@ function LeftSidebar({ user, setUser }) {
       new Promise(resolve => setTimeout(resolve, 2000))
     ]);
 
-    // Clear all auth data
     removeAuthToken();
     invalidateUserCache();
-
-    // Reset user state and redirect
     if (setUser) setUser(null);
     navigate("/");
-
-    // Force reload to ensure clean state
     window.location.reload();
   };
 
-  // Navigation menu items - Simplified for "Social Feed" vibe
-  const menuItems = user ? [
-    { icon: Home, label: "Trang chủ", path: "/", show: true, exact: true },
-    { icon: Compass, label: "Khám phá", path: "/explore", show: true },
-    { icon: Sparkles, label: "Tu Tiên", path: "/cultivation", show: true, highlight: true },
-    { icon: Image, label: "Media", path: "/media", show: true },
-    { icon: UserCheck, label: "Nhóm", path: "/groups", show: true },
-    { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
-    // Admin item removed from Home sidebar to reduce clutter
-  ] : [
-    { icon: Home, label: "Trang chủ", path: "/", show: true, exact: true },
-    { icon: Compass, label: "Khám phá", path: "/explore", show: true },
-    { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
-    { icon: Image, label: "Media", path: "/media", show: true },
-    // Help moved to navbar/footer usually, but keeping minimal public items is fine
-    { icon: HelpCircle, label: "Trợ giúp", path: "/support", show: true },
-  ];
+  // Menu Config
+  const menuItems = useMemo(() => {
+    const common = [
+      { icon: Home, label: "Trang chủ", path: "/", exact: true },
+      { icon: Compass, label: "Khám phá", path: "/explore" },
+      { icon: Sparkles, label: "Tu Tiên Giới", path: "/cultivation", highlight: true },
+      { icon: Image, label: "Thư viện", path: "/media" },
+      { icon: UserCheck, label: "Cộng đồng", path: "/groups" },
+      { icon: Calendar, label: "Sự kiện", path: "/events" },
+    ];
 
-  const isActive = (path, exact = false) => {
-    if (exact) {
-      return location.pathname === path;
+    const adminItems = user?.role === 'admin' ? [
+      { icon: Crown, label: "Quản trị", path: "/admin", isAdmin: true }
+    ] : [];
+
+    if (!user) {
+      return [
+        { icon: Home, label: "Trang chủ", path: "/", exact: true },
+        { icon: Compass, label: "Khám phá", path: "/explore" },
+        { icon: Image, label: "Thư viện", path: "/media" },
+        { icon: HelpCircle, label: "Hỗ trợ", path: "/support" },
+      ];
     }
-    return location.pathname.startsWith(path);
+    return [...common, ...adminItems];
+  }, [user]);
+
+  const isActive = (path, exact) => exact ? location.pathname === path : location.pathname.startsWith(path);
+
+  // NavItem Component
+  const NavItem = ({ item }) => {
+    const active = isActive(item.path, item.exact);
+    const Icon = item.icon;
+
+    return (
+      <Link
+        to={item.path}
+        className={`
+          relative flex items-center group transition-all duration-300 ease-out
+          ${isCollapsed ? 'justify-center w-12 h-12 rounded-2xl mx-auto mb-2' : 'gap-4 px-4 py-3 rounded-2xl mx-2 mb-1'}
+          ${item.isAdmin
+            ? active
+              ? 'bg-red-500/20 text-red-400 font-semibold'
+              : 'text-red-400/70 hover:bg-red-500/10 hover:text-red-400'
+            : active
+              ? item.highlight
+                ? 'bg-gradient-to-r from-purple-600/20 to-indigo-600/20 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.15)]'
+                : 'bg-white/10 text-white font-semibold'
+              : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200'
+          }
+        `}
+      >
+        <div className={`relative transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
+          <Icon size={24} strokeWidth={active ? 2.5 : 2} />
+          {isCollapsed && active && (
+            <span className="absolute -right-1 -top-1 w-2.5 h-2.5 bg-current rounded-full ring-2 ring-neutral-900" />
+          )}
+        </div>
+
+        {!isCollapsed && (
+          <span className={`text-[15px] tracking-wide ${active ? 'font-bold' : 'font-medium'}`}>
+            {item.label}
+          </span>
+        )}
+
+        {/* Hover Tooltip cho Collapsed State */}
+        {isCollapsed && (
+          <div className="absolute left-full ml-4 px-3 py-1.5 bg-neutral-800 text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 translate-x-[-10px] group-hover:translate-x-0 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-neutral-700">
+            {item.label}
+            <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-neutral-800 rotate-45 border-l border-b border-neutral-700"></div>
+          </div>
+        )}
+      </Link>
+    );
   };
+
+  const StatItem = ({ icon: Icon, value, label, colorClass }) => (
+    <div className="flex flex-col items-center group cursor-default">
+      <div className={`p-2 rounded-full bg-neutral-800/50 mb-1 transition-colors ${colorClass}`}>
+        <Icon size={16} />
+      </div>
+      <span className="text-sm font-bold text-white">{value > 999 ? '999+' : value.toLocaleString('vi-VN')}</span>
+      <span className="text-[10px] text-neutral-500 uppercase font-medium tracking-wider">{label}</span>
+    </div>
+  );
 
   return (
     <div
-      className={`hidden lg:flex fixed left-0 top-0 h-screen bg-neutral-900 dark:bg-neutral-950 border-r border-neutral-800 dark:border-neutral-900 flex-col z-40 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-64'
-        }`}
-      onMouseEnter={() => {
-        // Optional: Auto-expand on hover when collapsed (uncomment if desired)
-        // if (isCollapsed) setIsCollapsed(false);
-      }}
+      className={`
+        hidden lg:flex flex-col fixed left-0 top-0 h-screen z-50
+        bg-neutral-950 border-r border-neutral-800/60
+        transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)]
+        ${isCollapsed ? 'w-[72px]' : 'w-[280px]'}
+      `}
     >
-      {/* Logo Section */}
-      <div className={`px-1 pt-3 pb-1 border-b border-neutral-800 dark:border-neutral-900 flex-shrink-0 flex justify-center items-center transition-all duration-300 ${isCollapsed ? 'px-2' : ''
-        }`}>
+      {/* Toggle Button - Centered on edge */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 p-1.5 bg-neutral-800 dark:bg-neutral-700 border border-neutral-700 dark:border-neutral-600 rounded-full text-neutral-300 hover:text-white hover:bg-neutral-700 dark:hover:bg-neutral-600 transition-all duration-200 shadow-lg"
+        aria-label={isCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+        title={isCollapsed ? "Mở rộng" : "Thu gọn"}
+      >
+        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+      </button>
+
+      {/* 1. Logo Section */}
+      <div className={`px-1 pt-3 pb-1 border-b border-neutral-800 dark:border-neutral-900 flex-shrink-0 flex justify-center items-center transition-all duration-300 ${isCollapsed ? 'px-2' : ''}`}>
         <Link
           to="/"
           className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
           onClick={(e) => {
-            // Scroll to top khi click vào logo
             if (location.pathname === '/') {
               e.preventDefault();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
-              // If not on the homepage, navigate and scroll to top after loading
               setTimeout(() => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }, 100);
@@ -241,234 +266,97 @@ function LeftSidebar({ user, setUser }) {
         </Link>
       </div>
 
-      {/* Toggle Button - Centered */}
-      <button
-        onClick={toggleCollapse}
-        className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 p-1.5 bg-neutral-800 dark:bg-neutral-700 border border-neutral-700 dark:border-neutral-600 rounded-full text-neutral-300 hover:text-white hover:bg-neutral-700 dark:hover:bg-neutral-600 transition-all duration-200 shadow-lg"
-        aria-label={isCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
-        title={isCollapsed ? "Mở rộng" : "Thu gọn"}
-      >
-        {isCollapsed ? (
-          <ChevronRight size={16} />
-        ) : (
-          <ChevronLeft size={16} />
-        )}
-      </button>
-
-      {/* Navigation Menu - Scrollable with hidden scroll */}
-      <div className="flex-1 overflow-y-auto py-4 scrollbar-hide">
-        <nav className={`space-y-1 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4'}`}>
-          {menuItems
-            .filter(item => item.show)
-            .map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path, item.exact);
-
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center rounded-xl transition-all duration-200 group relative ${isCollapsed
-                    ? 'justify-center px-2 py-3'
-                    : 'gap-3 px-4 py-3'
-                    } ${item.isAdmin
-                      ? 'text-red-400 hover:bg-red-900/20 border-l-4 border-red-500'
-                      : item.highlight
-                        ? active
-                          ? 'bg-gradient-to-r from-purple-900/50 to-blue-900/50 text-purple-300 border-l-4 border-purple-500'
-                          : 'text-purple-300 hover:bg-purple-900/20 hover:text-purple-200 border-l-4 border-transparent hover:border-purple-500/50'
-                        : active
-                          ? 'bg-neutral-800 dark:bg-neutral-800 text-white'
-                          : 'text-neutral-300 hover:bg-neutral-800/50 hover:text-white'
-                    }`}
-                  title={isCollapsed ? item.label : undefined}
-                >
-                  <Icon size={20} />
-                  {!isCollapsed && (
-                    <span className="font-medium text-sm flex-1">{item.label}</span>
-                  )}
-                  {/* Tooltip when collapsed */}
-                  {isCollapsed && (
-                    <span className="absolute left-full ml-2 px-3 py-2 bg-neutral-800 dark:bg-neutral-700 text-white text-sm rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50 shadow-lg">
-                      {item.label}
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-neutral-800 dark:bg-neutral-700 transform rotate-45"></span>
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-        </nav>
-
+      {/* 2. Search Bar - Minimalist */}
+      <div className={`flex-shrink-0 mb-4 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4'}`}>
+        <button
+          onClick={() => navigate('/explore?focus=search')}
+          className={`
+            w-full flex items-center bg-neutral-900/80 border border-neutral-800 hover:border-neutral-700 
+            text-neutral-400 hover:text-white transition-all duration-200 group
+            ${isCollapsed ? 'justify-center h-10 w-10 rounded-xl mx-auto' : 'gap-3 px-4 py-2.5 rounded-xl'}
+          `}
+        >
+          <Search size={20} className="group-hover:text-sky-400 transition-colors" />
+          {!isCollapsed && <span className="text-sm font-medium">Tìm kiếm...</span>}
+        </button>
       </div>
 
-      {/* Quick Stats Section - Hide on Home Page */}
-      {user && location.pathname !== '/' && (
-        <div className={`border-t border-neutral-800 dark:border-neutral-900 flex-shrink-0 transition-all duration-300 ${isCollapsed ? 'px-2 py-3' : 'px-4 py-3'
-          }`}>
-          {isCollapsed ? (
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-neutral-800/50">
-                <FileText size={16} className="text-blue-400" />
-                <span className="text-xs font-semibold text-white">{displayStats.postCount > 999 ? '999+' : displayStats.postCount}</span>
-              </div>
-              <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-neutral-800/50">
-                <Users size={16} className="text-green-400" />
-                <span className="text-xs font-semibold text-white">{displayStats.friendCount > 999 ? '999+' : displayStats.friendCount}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {/* Post Count */}
-              <Link
-                to="/profile"
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 transition-all duration-200 group"
-              >
-                <FileText size={18} className="text-blue-400 group-hover:scale-110 transition-transform" />
-                <span className="text-lg font-bold text-white">{displayStats.postCount > 999 ? '999+' : displayStats.postCount.toLocaleString('vi-VN')}</span>
-                <span className="text-xs text-neutral-400">Bài viết</span>
-              </Link>
+      {/* 3. Main Navigation */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-neutral-800 scrollbar-track-transparent py-2">
+        {menuItems.map((item) => <NavItem key={item.path} item={item} />)}
+      </nav>
 
-              {/* Friend Count */}
-              <Link
-                to="/friends"
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 transition-all duration-200 group"
-              >
-                <Users size={18} className="text-green-400 group-hover:scale-110 transition-transform" />
-                <span className="text-lg font-bold text-white">{displayStats.friendCount > 999 ? '999+' : displayStats.friendCount.toLocaleString('vi-VN')}</span>
-                <span className="text-xs text-neutral-400">Bạn bè</span>
-              </Link>
+      {/* 4. Stats & Profile Footer */}
+      <div className="flex-shrink-0 border-t border-neutral-800/60 bg-neutral-900/20 backdrop-blur-sm">
 
-              {/* Like Count */}
-              <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-neutral-800/50">
-                <Heart size={18} className="text-red-400" />
-                <span className="text-lg font-bold text-white">{displayStats.likeCount > 999 ? '999+' : displayStats.likeCount.toLocaleString('vi-VN')}</span>
-                <span className="text-xs text-neutral-400">Lượt thích</span>
-              </div>
-
-              {/* View Count */}
-              <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-neutral-800/50">
-                <Eye size={18} className="text-purple-400" />
-                <span className="text-lg font-bold text-white">{displayStats.viewCount > 999 ? '999+' : displayStats.viewCount.toLocaleString('vi-VN')}</span>
-                <span className="text-xs text-neutral-400">Lượt xem</span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* User Profile Section */}
-      {user && (
-        <div className={`py-4 border-t border-neutral-800 dark:border-neutral-900 flex-shrink-0 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4'
-          }`}>
-          {isCollapsed ? (
-            <div className="flex flex-col items-center gap-2">
-              <UserAvatar
-                user={user}
-                size={40}
-                showFrame={true}
-                showBadge={true}
-                className="cursor-pointer"
-                onClick={() => navigate('/profile')}
-              />
-              <button
-                onClick={handleLogout}
-                className="p-2 rounded-full text-neutral-400 hover:bg-neutral-800 hover:text-white transition-colors"
-                title="Đăng xuất"
-              >
-                <LogOut size={18} />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <UserAvatar
-                user={user}
-                size={40}
-                showFrame={true}
-                showBadge={true}
-                className="cursor-pointer flex-shrink-0"
-                onClick={() => navigate('/profile')}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-medium text-sm truncate mb-1">{user.name}</p>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {/* Role badge - chỉ hiển thị khi displayBadgeType = 'none' hoặc 'role' */}
-                  {(!user.displayBadgeType || user.displayBadgeType === 'none' || user.displayBadgeType === 'role') &&
-                    user.role && user.role !== "user" && (
-                      <span className="px-2 py-0.5 bg-neutral-800 text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
-                        {typeof user.role === 'string' ? user.role : (user.role.displayName || user.role.name || 'user')}
-                      </span>
-                    )}
-                  {/* Hiển thị cảnh giới tu tiên - nếu chọn realm hoặc both */}
-                  {(user.displayBadgeType === 'realm' || user.displayBadgeType === 'both' || user.displayBadgeType === 'cultivation') &&
-                    user.cultivationCache?.realmName && (
-                      <CultivationBadge
-                        cultivation={user.cultivationCache}
-                        size="sm"
-                        variant="gradient"
-                      />
-                    )}
-                  {/* Danh hiệu tu tiên - nếu chọn title hoặc both */}
-                  {(user.displayBadgeType === 'title' || user.displayBadgeType === 'both') && (
-                    <UserTitle user={user} className="text-[10px]" />
-                  )}
-                  {/* Fallback: hiển thị roleLabel nếu không có badge nào được chọn */}
-                  {(!user.displayBadgeType || user.displayBadgeType === 'none') &&
-                    (!user.role || user.role === "user") && (
-                      <span className="text-neutral-400 text-xs truncate">{roleLabel}</span>
-                    )}
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="p-2 rounded-full text-neutral-400 hover:bg-neutral-800 hover:text-white transition-colors flex-shrink-0"
-                title="Đăng xuất"
-              >
-                <LogOut size={18} />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Guest Action Section - Hiển thị khi chưa đăng nhập */}
-      {!user && (
-        <div className={`py-4 border-t border-neutral-800 dark:border-neutral-900 flex-shrink-0 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4'
-          }`}>
-          <div className={`flex ${isCollapsed ? 'flex-col gap-3' : 'flex-col gap-3'}`}>
-            <Link
-              to="/login"
-              className={`flex items-center justify-center rounded-xl transition-all duration-200 group relative ${isCollapsed
-                ? 'p-3 bg-neutral-800 hover:bg-neutral-700'
-                : 'gap-3 px-4 py-3 bg-neutral-800 hover:bg-neutral-700'
-                } text-white`}
-              title={isCollapsed ? "Đăng nhập" : undefined}
-            >
-              <LogIn size={20} />
-              {!isCollapsed && <span className="font-bold text-sm">Đăng nhập</span>}
-            </Link>
-
-            <Link
-              to="/register"
-              className={`flex items-center justify-center rounded-xl transition-all duration-200 group relative ${isCollapsed
-                ? 'p-3 bg-white text-black hover:bg-gray-200'
-                : 'gap-3 px-4 py-3 bg-white text-black hover:bg-gray-200'
-                }`}
-              title={isCollapsed ? "Đăng ký" : undefined}
-            >
-              <UserPlus size={20} />
-              {!isCollapsed && <span className="font-bold text-sm">Đăng ký</span>}
-            </Link>
+        {/* User Stats - Only show when expanded and not on Home */}
+        {user && !isCollapsed && location.pathname !== '/' && (
+          <div className="grid grid-cols-4 gap-2 px-4 py-4 border-b border-neutral-800/40">
+            <StatItem icon={FileText} value={displayStats.postCount} label="Bài" colorClass="group-hover:text-blue-400 group-hover:bg-blue-400/10" />
+            <StatItem icon={Users} value={displayStats.friendCount} label="Bạn" colorClass="group-hover:text-green-400 group-hover:bg-green-400/10" />
+            <StatItem icon={Heart} value={displayStats.likeCount} label="Thích" colorClass="group-hover:text-rose-400 group-hover:bg-rose-400/10" />
+            <StatItem icon={Eye} value={displayStats.viewCount} label="Xem" colorClass="group-hover:text-amber-400 group-hover:bg-amber-400/10" />
           </div>
+        )}
+
+        {/* User Profile / Login Action */}
+        <div className={`p-3 ${isCollapsed ? 'flex justify-center' : ''}`}>
+          {user ? (
+            <div className={`
+              flex items-center rounded-xl transition-colors duration-200
+              ${isCollapsed ? 'flex-col gap-3 w-full' : 'gap-3 p-2 hover:bg-neutral-800/50'}
+            `}>
+              <UserAvatar
+                user={user}
+                size={isCollapsed ? 40 : 44}
+                showBadge={!isCollapsed}
+                onClick={() => navigate('/profile')}
+                className="cursor-pointer ring-2 ring-transparent hover:ring-neutral-700 transition-all rounded-full"
+              />
+
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate('/profile')}>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-white truncate">{user.name}</h4>
+                    {user.cultivationCache?.realmName && (user.displayBadgeType === 'realm' || user.displayBadgeType === 'both') && (
+                      <div className="w-2 h-2 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 animate-pulse" title={user.cultivationCache.realmName} />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+                    <span className="truncate max-w-[100px]">{roleLabel}</span>
+                    {(user.displayBadgeType === 'title' || user.displayBadgeType === 'both') && <UserTitle user={user} className="scale-90 origin-left" />}
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleLogout}
+                className={`
+                  p-2 text-neutral-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors
+                  ${isCollapsed ? 'w-10 h-10 flex items-center justify-center' : ''}
+                `}
+                title="Đăng xuất"
+              >
+                <LogOut size={20} />
+              </button>
+            </div>
+          ) : (
+            // Guest View
+            <div className={`flex flex-col gap-2 ${isCollapsed ? 'items-center' : ''}`}>
+              <Link to="/login" className={`flex items-center justify-center bg-white text-black font-bold rounded-xl hover:bg-neutral-200 transition-colors ${isCollapsed ? 'w-10 h-10 p-0' : 'w-full py-2.5'}`}>
+                {isCollapsed ? <LogIn size={20} /> : "Đăng nhập"}
+              </Link>
+              <Link to="/register" className={`flex items-center justify-center bg-neutral-800 text-white font-bold rounded-xl hover:bg-neutral-700 transition-colors ${isCollapsed ? 'w-10 h-10 p-0' : 'w-full py-2.5'}`}>
+                {isCollapsed ? <UserPlus size={20} /> : "Đăng ký"}
+              </Link>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-// Memoize component để tối ưu performance
-export default React.memo(LeftSidebar, (prevProps, nextProps) => {
-  // Re-render chỉ khi user._id thay đổi
-  return prevProps.user?._id === nextProps.user?._id &&
-    prevProps.setUser === nextProps.setUser;
+export default React.memo(LeftSidebar, (prev, next) => {
+  return prev.user?._id === next.user?._id && prev.user?.role === next.user?.role;
 });
-

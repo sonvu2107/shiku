@@ -467,7 +467,8 @@ export default function PostDetail() {
           </div>
 
           {/* TITLE - Match ModernPostCard */}
-          {p.title && (
+          {/* Hide title if it's auto-generated (title is prefix of content) */}
+          {p.title && !(p.content && p.content.trim().startsWith(p.title.replace(/…$/, '').trim())) && (
             <h1 className="mb-2 sm:mb-3 text-[18px] sm:text-lg md:text-2xl font-bold text-gray-900 dark:text-gray-50 leading-snug break-words">
               {p.title}
             </h1>

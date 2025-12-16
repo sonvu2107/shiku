@@ -1112,22 +1112,39 @@ router.get("/edit/:id", authRequired, async (req, res, next) => {
 // Create
 router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
   try {
-    const { title, content, tags = [], coverUrl = "", status = "published", files = [], group = null, youtubeUrl = "" } = req.body;
+    const { title: rawTitle, content, tags = [], coverUrl = "", status = "published", files = [], group = null, youtubeUrl = "" } = req.body;
     if (!["private", "published"].includes(status)) {
       return res.status(400).json({ error: "Trạng thái không hợp lệ" });
     }
+
+    // Validate content is required
+    const trimmedContent = (content || "").trim();
+    if (!trimmedContent) {
+      return res.status(400).json({ error: "Vui lòng nhập nội dung" });
+    }
+
+    // Auto-generate title from content if not provided
+    let title = (rawTitle || "").trim();
+    if (!title) {
+      // Strip markdown, take first 60 chars, cut at word boundary
+      const plainContent = trimmedContent
+        .replace(/[#*_`~\[\]()>]/g, "") // Remove markdown chars
+        .replace(/\s+/g, " ")           // Normalize whitespace
+        .trim();
+
+      if (plainContent.length <= 60) {
+        title = plainContent;
+      } else {
+        // Cut at word boundary and add ellipsis
+        title = plainContent.slice(0, 60).replace(/\s+\S*$/, "") + "…";
+      }
+    }
+
     // Sanitize input để chống XSS
-    const sanitized = sanitizePostFields({ title, content, tags, coverUrl });
+    const sanitized = sanitizePostFields({ title, content: trimmedContent, tags, coverUrl });
 
     // Validate và sanitize YouTube URL
     const sanitizedYoutubeUrl = youtubeUrl ? sanitizePlain(youtubeUrl) : "";
-
-    if (!sanitized.title) {
-      return res.status(400).json({ error: "Vui lòng nhập tiêu đề" });
-    }
-
-
-    // Content, poll, and media are all optional - only title is required
 
     // Extract mentions from title and content
     const { extractMentionedUsers } = await import("../utils/mentions.js");
