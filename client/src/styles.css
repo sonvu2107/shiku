@@ -23,6 +23,16 @@ body[data-sidebar-collapsed="false"] {
 
 /* Main content and nav adjustments for sidebar collapse */
 @media (min-width: 1024px) {
+  .main-content-with-sidebar {
+    margin-left: var(--sidebar-width, 256px);
+    transition: margin-left 0.3s ease-in-out;
+  }
+
+  .nav-with-sidebar {
+    left: var(--sidebar-width, 256px);
+    transition: left 0.3s ease-in-out;
+  }
+
   body[data-sidebar-collapsed="true"] .main-content-with-sidebar {
     margin-left: 64px;
   }
@@ -37,6 +47,17 @@ body[data-sidebar-collapsed="false"] {
 
   body[data-sidebar-collapsed="false"] .nav-with-sidebar {
     left: 256px;
+  }
+}
+
+/* On screens smaller than lg (1024px), no sidebar margin/position */
+@media (max-width: 1023px) {
+  .main-content-with-sidebar {
+    margin-left: 0;
+  }
+
+  .nav-with-sidebar {
+    left: 0;
   }
 }
 

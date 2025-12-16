@@ -258,7 +258,7 @@ function LeftSidebar({ user, setUser }) {
 
       {/* Navigation Menu - Scrollable with hidden scroll */}
       <div className="flex-1 overflow-y-auto py-4 scrollbar-hide">
-        <nav className={`space-y-1 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-3'}`}>
+        <nav className={`space-y-1 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4'}`}>
           {menuItems
             .filter(item => item.show)
             .map((item) => {

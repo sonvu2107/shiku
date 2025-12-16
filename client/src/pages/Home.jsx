@@ -601,12 +601,12 @@ function Home({ user, setUser }) {
           <LeftSidebar user={user} setUser={setUser} />
         </motion.aside>        {/* Main Content Area với margin-left cho left sidebar */}
         <main
-          className="main-content-with-sidebar pt-[64px] md:pt-16 lg:ml-64 min-h-screen transition-all duration-300 ease-in-out"
+          className="main-content-with-sidebar pt-[64px] md:pt-16 min-h-screen transition-all duration-300 ease-in-out"
           role="main"
         >
           {/* Top Navigation Bar - ẩn trên mobile, hiện từ md trở lên - luôn fixed và visible */}
           <nav
-            className="nav-with-sidebar hidden md:flex fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white/70 dark:bg-black/70 backdrop-blur-2xl border-b border-neutral-200/50 dark:border-neutral-800/50 shadow-sm z-40 transition-all duration-300 ease-in-out"
+            className="nav-with-sidebar hidden md:flex fixed top-0 right-0 h-16 bg-white/70 dark:bg-black/70 backdrop-blur-2xl border-b border-neutral-200/50 dark:border-neutral-800/50 shadow-sm z-30 transition-all duration-300 ease-in-out"
             role="navigation"
             aria-label="Thanh tìm kiếm và điều hướng"
           >
@@ -895,8 +895,8 @@ function Home({ user, setUser }) {
           </div>
 
           {/* Content Area - 2 Columns */}
-          <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 md:gap-8">
+          <div className="px-4 md:px-6 lg:px-4 py-6 md:py-8">
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_256px] gap-4 lg:gap-4">
               {/* Center Column - Main Feed */}
               <div className="space-y-3 sm:space-y-4 min-w-0">
                 {/* Pull to Refresh - Mobile only */}

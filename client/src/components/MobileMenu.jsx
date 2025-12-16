@@ -133,7 +133,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
-            className="fixed top-0 left-0 h-full w-[75%] max-w-[280px] bg-white dark:bg-neutral-900 shadow-xl z-[10000] md:hidden flex flex-col border-r border-neutral-200 dark:border-neutral-800"
+            className="fixed top-0 left-0 h-full w-[70%] max-w-[280px] bg-white dark:bg-neutral-900 shadow-xl z-[10000] md:hidden flex flex-col border-r border-neutral-200 dark:border-neutral-800"
             style={{ willChange: 'transform' }}
           >
             {/* Header with User Profile */}
