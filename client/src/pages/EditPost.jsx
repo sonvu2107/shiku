@@ -1,36 +1,39 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useNavigate, useParams } from "react-router-dom";
-import Editor from "../components/Editor";
-import { Image, Video, ArrowLeft, Save, X, Globe, Lock } from "lucide-react";
-import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
-import { motion } from "framer-motion";
+import MarkdownEditor from "../components/MarkdownEditor";
+import { Image, ArrowLeft, Save, X, Globe, Lock, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "../contexts/ToastContext";
-import { cn } from "../utils/cn";
 import YouTubePlayer, { isValidYouTubeUrl } from "../components/YouTubePlayer";
 
 /**
- * EditPost - Trang chỉnh sửa bài viết (Monochrome Luxury Style)
- * Hỗ trợ upload multi-file (ảnh/video) và chỉnh sửa nội dung Markdown
- * @returns {JSX.Element} Component edit post page
+ * EditPost - Trang chỉnh sửa bài viết
+ * Có Compact/Advanced mode giống PostCreator
  */
 export default function EditPost() {
-  // ==================== ROUTER & NAVIGATION ====================
-
-  const { id } = useParams(); // Post ID from the URL
+  const { id } = useParams();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
 
-  // ==================== STATE MANAGEMENT ====================
-
-  // Post data
-  const [post, setPost] = useState(null); // Post data
-  const [err, setErr] = useState(""); // Error message
-  const [loading, setLoading] = useState(true); // Loading state
-  const [uploading, setUploading] = useState(false); // Uploading state
-  const [saving, setSaving] = useState(false); // Saving state
+  // State
+  const [post, setPost] = useState(null);
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [advancedMode, setAdvancedMode] = useState(false);
 
   useEffect(() => { load(); }, [id]);
+
+  // Tự động switch advanced mode nếu có title hoặc content dài
+  useEffect(() => {
+    if (post) {
+      if (post.title?.trim() || (post.content?.length || 0) > 500) {
+        setAdvancedMode(true);
+      }
+    }
+  }, [post?.title, post?.content?.length]);
 
   const load = async () => {
     try {
@@ -46,21 +49,17 @@ export default function EditPost() {
     }
   };
 
-  // Multi-file upload (images/videos)
+  // Multi-file upload
   const handleFilesUpload = async (e) => {
     const selectedFiles = Array.from(e.target.files);
     if (!selectedFiles.length) return;
     setUploading(true);
     try {
-      // Use unified upload helper (supports direct + fallback)
       const { uploadMediaFiles } = await import("../api");
       const uploaded = await uploadMediaFiles(selectedFiles, { folder: "blog" });
-      // uploaded = [{url, type, thumbnail}, ...]
-
       setPost(prev => {
         const updated = { ...prev };
         updated.files = [...(updated.files || []), ...uploaded];
-        // Always set coverUrl to the first file in `files` (regardless of type)
         if (updated.files.length > 0) {
           updated.coverUrl = updated.files[0].url;
         } else {
@@ -76,8 +75,24 @@ export default function EditPost() {
     }
   };
 
+  // Handle paste trong compact mode - auto switch advanced nếu > 500
+  const handleCompactPaste = (e) => {
+    const pastedText = e.clipboardData.getData('text');
+    const currentContent = post.content || '';
+    const newContent = currentContent + pastedText;
+    if (newContent.length > 500) {
+      setAdvancedMode(true);
+      setPost({ ...post, content: newContent.slice(0, 5000) });
+      e.preventDefault();
+    }
+  };
+
   async function save(e) {
     e.preventDefault();
+    if (!post.content?.trim()) {
+      showError("Vui lòng nhập nội dung");
+      return;
+    }
     setSaving(true);
     try {
       await api(`/api/posts/${id}`, { method: "PUT", body: post });
@@ -91,272 +106,330 @@ export default function EditPost() {
     }
   }
 
+  // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5F7FA] dark:bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-50 dark:bg-black flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-black dark:border-white"></div>
       </div>
     );
   }
 
+  // Error state
   if (err && !post) {
     return (
-      <PageLayout>
-        <div className="text-center py-20">
+      <div className="min-h-screen bg-neutral-50 dark:bg-black flex items-center justify-center p-4">
+        <div className="text-center">
           <p className="text-red-600 dark:text-red-400 text-lg mb-4">Lỗi: {err}</p>
           <button
             onClick={() => navigate(-1)}
-            className="px-6 py-2 bg-neutral-900 dark:bg-white text-white dark:text-black rounded-full font-bold"
+            className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-black rounded-full font-bold"
           >
             Quay lại
           </button>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   if (!post) {
     return (
-      <PageLayout>
-        <div className="text-center py-20">
+      <div className="min-h-screen bg-neutral-50 dark:bg-black flex items-center justify-center p-4">
+        <div className="text-center">
           <p className="text-neutral-500 dark:text-neutral-400 text-lg mb-4">Không tìm thấy bài viết</p>
           <button
             onClick={() => navigate(-1)}
-            className="px-6 py-2 bg-neutral-900 dark:bg-white text-white dark:text-black rounded-full font-bold"
+            className="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-black rounded-full font-bold"
           >
             Quay lại
           </button>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
+  const contentLength = post.content?.length || 0;
+  const maxLength = advancedMode ? 5000 : 500;
+
   return (
-    <PageLayout>
-      {/* Back Button */}
-      <button
-        onClick={() => navigate(`/post/${post.slug}`)}
-        className="group flex items-center gap-2 text-neutral-500 hover:text-black dark:hover:text-white mb-6 transition-colors"
-      >
-        <div className="p-2 rounded-full bg-neutral-100 dark:bg-neutral-900 group-hover:bg-neutral-200 dark:group-hover:bg-neutral-800 transition-colors">
-          <ArrowLeft size={20} />
-        </div>
-        <span className="font-medium">Quay lại</span>
-      </button>
-
-      {/* Header */}
-      <PageHeader
-        title="Chỉnh sửa bài viết"
-        subtitle="Cập nhật nội dung bài viết của bạn"
-      />
-
-      {/* Form */}
-      <motion.form
-        onSubmit={save}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-4xl mx-auto space-y-6"
-      >
-        {/* Title */}
-        <SpotlightCard>
-          <label htmlFor="title" className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
-            Tiêu đề *
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={post.title}
-            onChange={e => setPost({ ...post, title: e.target.value })}
-            className="w-full px-4 py-3 bg-transparent border border-neutral-200 dark:border-neutral-800 rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500"
-            placeholder="Nhập tiêu đề bài viết"
-          />
-        </SpotlightCard>
-
-        {/* Tags */}
-        <SpotlightCard>
-          <label htmlFor="tags" className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
-            Tags
-          </label>
-          <input
-            type="text"
-            id="tags"
-            value={(post.tags || []).join(", ")}
-            onChange={e => setPost({ ...post, tags: e.target.value.split(",").map(s => s.trim()).filter(s => s) })}
-            className="w-full px-4 py-3 bg-transparent border border-neutral-200 dark:border-neutral-800 rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500"
-            placeholder="Ví dụ: công nghệ, lập trình, react"
-          />
-        </SpotlightCard>
-
-        {/* Status */}
-        <SpotlightCard>
-          <label htmlFor="status" className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
-            Trạng thái
-          </label>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setPost({ ...post, status: "published" })}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border transition-all font-semibold text-sm",
-                post.status === "published"
-                  ? "bg-black dark:bg-white text-white dark:text-black border-transparent"
-                  : "bg-transparent border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-900"
-              )}
-            >
-              <Globe size={18} />
-              Công khai
-            </button>
-            <button
-              type="button"
-              onClick={() => setPost({ ...post, status: "private" })}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border transition-all font-semibold text-sm",
-                post.status === "private"
-                  ? "bg-black dark:bg-white text-white dark:text-black border-transparent"
-                  : "bg-transparent border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-900"
-              )}
-            >
-              <Lock size={18} />
-              Riêng tư
-            </button>
-          </div>
-        </SpotlightCard>
-
-        {/* Multi-file upload section */}
-        <SpotlightCard>
-          <label className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
-            Ảnh/Video
-          </label>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {/* Upload Button */}
-            <label className="aspect-square flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-all cursor-pointer group">
-              <div className="p-3 rounded-full bg-neutral-100 dark:bg-neutral-800 group-hover:scale-110 transition-transform">
-                {uploading ? (
-                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-black dark:border-white"></div>
-                ) : (
-                  <Image size={24} className="text-neutral-500 dark:text-neutral-400" />
-                )}
-              </div>
-              <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
-                {uploading ? "Đang tải..." : "Thêm ảnh"}
-              </span>
-              <input
-                type="file"
-                accept="image/*,video/*"
-                multiple
-                onChange={handleFilesUpload}
-                disabled={uploading}
-                className="hidden"
-              />
-            </label>
-
-            {/* Preview Files */}
-            {post.files && post.files.map((file, idx) => (
-              <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900">
-                {file.type === "image" ? (
-                  <img
-                    src={file.url}
-                    alt="preview"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <video
-                    src={file.url}
-                    className="w-full h-full object-cover"
-                    controls
-                  />
-                )}
-
-                {/* Delete Button - Top Right Corner */}
-                <button
-                  type="button"
-                  onClick={() => setPost({ ...post, files: post.files.filter((_, i) => i !== idx) })}
-                  className="absolute top-2 right-2 p-1.5 w-7 h-7 bg-black/60 backdrop-blur-sm hover:bg-red-500 text-white rounded-full transition-colors flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 touch-manipulation"
-                >
-                  <X size={14} />
-                </button>
-
-                {/* Cover Badge */}
-                {idx === 0 && (
-                  <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-lg text-[10px] font-bold text-white uppercase tracking-wider">
-                    Ảnh bìa
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </SpotlightCard>
-
-        {/* YouTube Music URL */}
-        <SpotlightCard>
-          <label className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
-            Nhạc từ YouTube
-          </label>
-          <input
-            type="url"
-            value={post.youtubeUrl || ""}
-            onChange={e => setPost({ ...post, youtubeUrl: e.target.value })}
-            className="w-full px-4 py-3 bg-transparent border border-neutral-200 dark:border-neutral-800 rounded-3xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500"
-            placeholder="Dán link YouTube vào đây... (VD: https://youtube.com/watch?v=...)"
-          />
-          {post.youtubeUrl && !isValidYouTubeUrl(post.youtubeUrl) && (
-            <p className="text-xs text-red-500 font-medium mt-2">
-              Link YouTube không hợp lệ. Vui lòng nhập link đúng định dạng.
-            </p>
-          )}
-          {post.youtubeUrl && isValidYouTubeUrl(post.youtubeUrl) && (
-            <div className="mt-3">
-              <YouTubePlayer url={post.youtubeUrl} variant="compact" />
-            </div>
-          )}
-        </SpotlightCard>
-
-        {/* Editor */}
-        <SpotlightCard>
-          <label className="block text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">
-            Nội dung *
-          </label>
-          <div className="border border-neutral-200 dark:border-neutral-800 rounded-3xl overflow-hidden">
-            <Editor value={post.content} onChange={v => setPost({ ...post, content: v })} />
-          </div>
-        </SpotlightCard>
-
-        {/* Error Message */}
-        {err && (
-          <SpotlightCard className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10">
-            <p className="text-sm text-red-600 dark:text-red-400">{err}</p>
-          </SpotlightCard>
-        )}
-
-        {/* Submit Button */}
-        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+    <div className="min-h-screen bg-neutral-50 dark:bg-black">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-50 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border-b border-neutral-200 dark:border-neutral-800">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
-            type="button"
             onClick={() => navigate(`/post/${post.slug}`)}
-            className="flex-1 px-6 py-3 border border-neutral-200 dark:border-neutral-800 rounded-full text-neutral-700 dark:text-neutral-300 font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            className="p-2 -ml-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
-            Hủy
+            <ArrowLeft size={20} className="text-neutral-600 dark:text-neutral-400" />
           </button>
+          <h1 className="text-base sm:text-lg font-bold text-neutral-900 dark:text-white">
+            Chỉnh sửa bài viết
+          </h1>
           <button
-            type="submit"
-            disabled={saving}
-            className={cn(
-              "flex-1 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-lg flex items-center justify-center gap-2",
-              saving && "opacity-50 cursor-not-allowed"
-            )}
+            onClick={save}
+            disabled={saving || !post.content?.trim()}
+            className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-transform flex items-center gap-1.5"
           >
             {saving ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white dark:border-black"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white dark:border-black"></div>
             ) : (
               <>
-                <Save size={20} />
-                Lưu bài viết
+                <Save size={16} />
+                <span className="hidden sm:inline">Lưu</span>
               </>
             )}
           </button>
         </div>
-      </motion.form>
-    </PageLayout>
+      </div>
+
+      {/* Form Content */}
+      <div className="max-w-2xl mx-auto">
+        <form onSubmit={save} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+
+          {/* Status Dropdown */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Trạng thái:</span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                className="text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full px-3 py-1.5 flex items-center gap-1.5 transition-all"
+              >
+                {post.status === "published" ? (
+                  <>
+                    <Globe size={12} strokeWidth={2.5} />
+                    <span>Công khai</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock size={12} strokeWidth={2.5} />
+                    <span>Riêng tư</span>
+                  </>
+                )}
+                <ChevronDown size={12} />
+              </button>
+
+              {showStatusDropdown && (
+                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-20 min-w-[140px] overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPost({ ...post, status: "published" });
+                      setShowStatusDropdown(false);
+                    }}
+                    className="w-full px-4 py-2.5 text-left hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2 text-sm font-bold text-neutral-700 dark:text-neutral-300 transition-colors"
+                  >
+                    <Globe size={14} strokeWidth={2.5} />
+                    <span>Công khai</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPost({ ...post, status: "private" });
+                      setShowStatusDropdown(false);
+                    }}
+                    className="w-full px-4 py-2.5 text-left hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2 text-sm font-bold text-neutral-700 dark:text-neutral-300 transition-colors"
+                  >
+                    <Lock size={14} strokeWidth={2.5} />
+                    <span>Riêng tư</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Compact/Advanced Mode Editor */}
+          {!advancedMode ? (
+            // ========== COMPACT MODE ==========
+            <div className="space-y-3">
+              {/* Simple Textarea */}
+              <div className="relative">
+                <textarea
+                  value={post.content || ''}
+                  onChange={(e) => setPost({ ...post, content: e.target.value.slice(0, 500) })}
+                  onPaste={handleCompactPaste}
+                  placeholder="Bạn đang nghĩ gì thế?"
+                  rows={3}
+                  maxLength={500}
+                  className="w-full bg-neutral-100 dark:bg-neutral-800/50 text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 rounded-2xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-600 text-[15px] leading-relaxed transition-all"
+                />
+                {/* Character Counter */}
+                <div className="absolute bottom-3 right-3">
+                  <span className={`text-xs transition-colors ${contentLength >= 450
+                      ? contentLength >= 500
+                        ? 'text-red-500 font-semibold'
+                        : 'text-amber-500'
+                      : 'text-neutral-400'
+                    }`}>
+                    {contentLength}/500
+                  </span>
+                </div>
+              </div>
+
+              {/* Toggle to Advanced */}
+              <button
+                type="button"
+                onClick={() => setAdvancedMode(true)}
+                className="text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 flex items-center gap-1 transition-colors"
+              >
+                <ChevronDown size={14} />
+                <span>Viết bài dài / thêm tiêu đề</span>
+              </button>
+            </div>
+          ) : (
+            // ========== ADVANCED MODE ==========
+            <div className="space-y-4">
+              {/* Toggle to Compact */}
+              <button
+                type="button"
+                onClick={() => setAdvancedMode(false)}
+                className="text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 flex items-center gap-1 transition-colors"
+              >
+                <ChevronUp size={14} />
+                <span>Thu gọn</span>
+              </button>
+
+              {/* Title - Borderless */}
+              <div>
+                <input
+                  type="text"
+                  value={post.title || ''}
+                  onChange={e => setPost({ ...post, title: e.target.value.slice(0, 100) })}
+                  maxLength={100}
+                  className="w-full border-0 bg-transparent text-2xl font-black text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 resize-none focus:outline-none"
+                  placeholder="Tiêu đề bài viết..."
+                />
+              </div>
+
+              {/* Content - Full Markdown Editor */}
+              <div className="relative">
+                <MarkdownEditor
+                  value={post.content || ''}
+                  onChange={v => setPost({ ...post, content: v.slice(0, 5000) })}
+                  placeholder="Bạn đang nghĩ gì thế?"
+                  rows={8}
+                />
+                <div className="flex justify-end mt-1">
+                  <span className={`text-xs transition-colors ${contentLength >= 4500
+                      ? contentLength >= 5000
+                        ? 'text-red-500 font-semibold'
+                        : 'text-amber-500'
+                      : 'text-neutral-400'
+                    }`}>
+                    {contentLength}/5000
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tags */}
+          <div>
+            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Tags</label>
+            <input
+              type="text"
+              value={(post.tags || []).join(", ")}
+              onChange={e => setPost({ ...post, tags: e.target.value.split(",").map(s => s.trim()).filter(s => s) })}
+              className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white text-neutral-900 dark:text-white placeholder-neutral-400 text-sm"
+              placeholder="Ví dụ: công nghệ, lập trình, react"
+            />
+          </div>
+
+          {/* Media Upload */}
+          <div>
+            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Ảnh/Video</label>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
+              <label className="aspect-square flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 transition-all cursor-pointer group">
+                <div className="p-2 rounded-full bg-neutral-100 dark:bg-neutral-800 group-hover:scale-110 transition-transform">
+                  {uploading ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-black dark:border-white"></div>
+                  ) : (
+                    <Image size={20} className="text-neutral-500" />
+                  )}
+                </div>
+                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
+                  {uploading ? "Đang tải..." : "Thêm"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={handleFilesUpload}
+                  disabled={uploading}
+                  className="hidden"
+                />
+              </label>
+
+              {post.files && post.files.map((file, idx) => (
+                <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800">
+                  {file.type === "image" ? (
+                    <img src={file.url} alt="preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <video src={file.url} className="w-full h-full object-cover" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPost({ ...post, files: post.files.filter((_, i) => i !== idx) })}
+                    className="absolute top-1 right-1 p-1.5 w-6 h-6 bg-black/60 hover:bg-red-500 text-white rounded-full transition-colors flex items-center justify-center"
+                  >
+                    <X size={12} />
+                  </button>
+                  {idx === 0 && (
+                    <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/60 rounded text-[8px] font-bold text-white uppercase">
+                      Bìa
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* YouTube URL */}
+          <div>
+            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Nhạc YouTube</label>
+            <input
+              type="url"
+              value={post.youtubeUrl || ""}
+              onChange={e => setPost({ ...post, youtubeUrl: e.target.value })}
+              className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white text-neutral-900 dark:text-white placeholder-neutral-400 text-sm"
+              placeholder="Dán link YouTube..."
+            />
+            {post.youtubeUrl && !isValidYouTubeUrl(post.youtubeUrl) && (
+              <p className="text-xs text-red-500 font-medium mt-1">Link YouTube không hợp lệ</p>
+            )}
+            {post.youtubeUrl && isValidYouTubeUrl(post.youtubeUrl) && (
+              <div className="mt-2">
+                <YouTubePlayer url={post.youtubeUrl} variant="compact" />
+              </div>
+            )}
+          </div>
+
+          {/* Error */}
+          {err && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
+              <p className="text-sm text-red-600 dark:text-red-400">{err}</p>
+            </div>
+          )}
+
+          {/* Mobile Submit Button */}
+          <div className="sm:hidden pt-4 pb-8">
+            <button
+              type="submit"
+              disabled={saving || !post.content?.trim()}
+              className="w-full py-3.5 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white dark:border-black"></div>
+              ) : (
+                <>
+                  <Save size={18} />
+                  Lưu bài viết
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
