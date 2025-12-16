@@ -184,8 +184,7 @@ function LeftSidebar({ user, setUser }) {
     { icon: Image, label: "Media", path: "/media", show: true },
     { icon: UserCheck, label: "Nhóm", path: "/groups", show: true },
     { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
-    // Admin item kept but pushed to bottom or managed by role
-    { icon: Crown, label: "Admin", path: "/admin", show: user.role === "admin" || Object.keys(user.roleData?.permissions || {}).some(k => k.startsWith('admin.') && user.roleData?.permissions[k]), isAdmin: true },
+    // Admin item removed from Home sidebar to reduce clutter
   ] : [
     { icon: Home, label: "Trang chủ", path: "/", show: true, exact: true },
     { icon: Compass, label: "Khám phá", path: "/explore", show: true },

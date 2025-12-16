@@ -896,9 +896,9 @@ function Home({ user, setUser }) {
 
           {/* Content Area - 2 Columns */}
           <div className="px-4 md:px-6 lg:px-4 py-6 md:py-8">
-            <div className="grid grid-cols-1 xl:grid-cols-[1fr_256px] gap-4 lg:gap-4">
-              {/* Center Column - Main Feed */}
-              <div className="space-y-3 sm:space-y-4 min-w-0">
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-8 max-w-[1440px] mx-auto">
+              {/* Center Column - Main Feed - Centered & Restricted Width */}
+              <div className="w-full max-w-[680px] mx-auto space-y-4 min-w-0">
                 {/* Pull to Refresh - Mobile only */}
                 <PullToRefresh onRefresh={refetchPosts} disabled={loading}>
                   {/* Stories Section */}

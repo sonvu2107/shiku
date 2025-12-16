@@ -276,7 +276,7 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
       {!groupId && !hideTrigger && (
         <div
           onClick={() => setShowModal(true)}
-          className="bg-white dark:bg-neutral-900 rounded-2xl sm:rounded-3xl shadow-lg border border-neutral-200 dark:border-neutral-800 p-3 sm:p-5 cursor-pointer hover:shadow-xl transition-all duration-300 active:scale-[0.98] sm:hover:scale-[1.01]"
+          className="bg-white dark:bg-neutral-900 rounded-2xl sm:rounded-3xl shadow-lg border border-neutral-200 dark:border-neutral-800 p-3 sm:p-3.5 cursor-pointer hover:shadow-xl transition-all duration-300 active:scale-[0.98] sm:hover:scale-[1.01]"
         >
           <div className="flex items-center gap-3 sm:gap-4">
             <UserAvatar

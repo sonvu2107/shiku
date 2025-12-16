@@ -8,7 +8,7 @@ import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSy
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield, Lock, Bell, Ban, Mail, Key, CheckCircle2,
-  AlertCircle, Loader2, LogOut, UserX, ChevronRight, User, FileText
+  AlertCircle, Loader2, UserX, ChevronRight, User, FileText
 } from "lucide-react";
 import { cn } from "../utils/cn";
 import { useToast } from "../contexts/ToastContext";
@@ -22,7 +22,7 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState("privacy"); // Mặc định vào tab bảo mật
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [loadingBlocked, setLoadingBlocked] = useState(false);
-  const [logoutLoading, setLogoutLoading] = useState(false);
+
 
   // Email change states
   const [newEmail, setNewEmail] = useState("");
@@ -110,61 +110,7 @@ export default function Settings() {
     }
   };
 
-  /**
-   * Xử lý đăng xuất user
-   */
-  const handleLogout = async () => {
-    if (!window.confirm("Bạn có chắc muốn đăng xuất?")) {
-      return;
-    }
 
-    setLogoutLoading(true);
-    try {
-      // Gọi API logout để invalidate session trên server
-      await api("/api/auth/logout", {
-        method: "POST",
-        body: {}
-      });
-    } catch (err) {
-      // Silent handling for logout error - vẫn tiếp tục logout ở client
-      console.warn("Logout API error:", err);
-    } finally {
-      // Cleanup all services with robust error handling
-      const cleanupPromises = [
-        (async () => {
-          try {
-            const { default: socketService } = await import('../socket');
-            if (socketService?.disconnect) socketService.disconnect();
-          } catch (err) { console.warn('Socket cleanup failed:', err); }
-        })(),
-        (async () => {
-          try {
-            const { heartbeatManager } = await import('../services/heartbeatManager');
-            if (heartbeatManager?.stop) heartbeatManager.stop();
-          } catch (err) { console.warn('Heartbeat cleanup failed:', err); }
-        })(),
-        (async () => {
-          try {
-            const { stopKeepAlive } = await import('../utils/keepalive');
-            if (stopKeepAlive) stopKeepAlive();
-          } catch (err) { console.warn('Keepalive cleanup failed:', err); }
-        })()
-      ];
-
-      await Promise.race([
-        Promise.allSettled(cleanupPromises),
-        new Promise(resolve => setTimeout(resolve, 2000))
-      ]);
-
-      // Xóa token khỏi localStorage
-      removeAuthToken();
-      // Clear user cache
-      invalidateUserCache();
-      // Redirect về trang chủ và force reload
-      navigate("/");
-      window.location.reload();
-    }
-  };
 
   // --- SIDEBAR TABS ---
   const tabs = [
@@ -216,24 +162,7 @@ export default function Settings() {
             </button>
           </div>
 
-          {/* Logout Button */}
-          <div className="bg-red-50 dark:bg-red-900/10 rounded-2xl p-2 border border-red-100 dark:border-red-900/30">
-            <button
-              onClick={handleLogout}
-              disabled={logoutLoading}
-              className="w-full flex items-center justify-center gap-3 text-red-600 dark:text-red-400 text-sm font-bold px-4 py-3 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
-            >
-              {logoutLoading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" /> Đang đăng xuất...
-                </>
-              ) : (
-                <>
-                  <LogOut size={18} /> Đăng xuất
-                </>
-              )}
-            </button>
-          </div>
+
         </div>
 
         {/* --- RIGHT CONTENT --- */}

@@ -13,12 +13,12 @@ body[data-sidebar-collapsed="true"] {
 }
 
 body[data-sidebar-collapsed="false"] {
-  --sidebar-width: 256px;
+  --sidebar-width: 280px;
 }
 
 /* Default sidebar width (fallback) */
 :root {
-  --sidebar-width: 256px;
+  --sidebar-width: 280px;
 }
 
 /* Main content and nav adjustments for sidebar collapse */

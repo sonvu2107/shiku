@@ -15,6 +15,7 @@ import ReactMarkdown from "react-markdown";
 import Poll from "./Poll";
 import YouTubePlayer from "./YouTubePlayer";
 import { useToast } from "../contexts/ToastContext";
+import ContentWithSeeMore from "./ContentWithSeeMore";
 
 // Mapping of emotes to corresponding GIF filenames
 const emoteMap = {
@@ -606,29 +607,31 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         )}
         {/* Content - Mobile: smaller font, better line-height */}
         {post.content && (
-          <div className="prose dark:prose-invert max-w-none text-[16px] sm:text-[15px] md:text-base leading-[1.75] sm:leading-[1.7] text-neutral-800 dark:text-neutral-200 font-normal prose-p:mb-2.5 prose-headings:mb-2 prose-headings:mt-3 prose-p:line-clamp-4 sm:prose-p:line-clamp-3">
-            <ReactMarkdown
-              components={{
-                h1: ({ children }) => <h1 className="text-base sm:text-lg md:text-xl font-bold mb-2 mt-3">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-sm sm:text-base md:text-lg font-bold mb-2 mt-3">{children}</h2>,
-                h3: ({ children }) => <h3 className="text-[13px] sm:text-sm md:text-base font-bold mb-2 mt-2">{children}</h3>,
-                p: ({ children }) => <p className="line-clamp-4 sm:line-clamp-3 break-words mb-2">{children}</p>,
-                code: ({ node, inline, ...props }) => {
-                  if (inline) {
-                    return <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-xs sm:text-sm" {...props} />;
-                  }
-                  return <code className="block bg-gray-100 dark:bg-gray-800 p-2 sm:p-3 rounded-lg overflow-x-auto my-2 text-xs sm:text-sm" {...props} />;
-                },
-                a: ({ children, href }) => (
-                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
-                    {children}
-                  </a>
-                ),
-              }}
-            >
-              {post.content}
-            </ReactMarkdown>
-          </div>
+          <ContentWithSeeMore maxHeight={250}>
+            <div className="prose dark:prose-invert max-w-none text-[16px] sm:text-[15px] md:text-base leading-[1.75] sm:leading-[1.7] text-neutral-800 dark:text-neutral-200 font-normal prose-p:mb-2.5 prose-headings:mb-2 prose-headings:mt-3">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => <h1 className="text-base sm:text-lg md:text-xl font-bold mb-2 mt-3">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-sm sm:text-base md:text-lg font-bold mb-2 mt-3">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-[13px] sm:text-sm md:text-base font-bold mb-2 mt-2">{children}</h3>,
+                  p: ({ children }) => <p className="break-words mb-2">{children}</p>,
+                  code: ({ node, inline, ...props }) => {
+                    if (inline) {
+                      return <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-xs sm:text-sm" {...props} />;
+                    }
+                    return <code className="block bg-gray-100 dark:bg-gray-800 p-2 sm:p-3 rounded-lg overflow-x-auto my-2 text-xs sm:text-sm" {...props} />;
+                  },
+                  a: ({ children, href }) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {post.content}
+              </ReactMarkdown>
+            </div>
+          </ContentWithSeeMore>
         )}
       </div>
 

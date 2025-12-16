@@ -19,6 +19,7 @@ import { vi } from "date-fns/locale";
 import { cn } from "../utils/cn";
 import { useToast } from "../contexts/ToastContext";
 import { useUpdatePostCommentCount } from "../hooks/usePosts";
+import ContentWithSeeMore from "../components/ContentWithSeeMore";
 
 
 /**
@@ -475,12 +476,14 @@ export default function PostDetail() {
           {/* CONTENT - Match ModernPostCard */}
           {p.content && (
             <div className="mb-3 sm:mb-4">
-              <div className="prose dark:prose-invert max-w-none text-[16px] sm:text-base md:text-[17px] leading-[1.8] sm:leading-[1.75] text-neutral-800 dark:text-neutral-200 font-normal prose-p:mb-3 prose-headings:mb-3 prose-headings:mt-5">
-                <MarkdownWithMentions
-                  content={p.content}
-                  mentionedUsers={p.mentions || []}
-                />
-              </div>
+              <ContentWithSeeMore maxHeight={250}>
+                <div className="prose dark:prose-invert max-w-none text-[16px] sm:text-base md:text-[17px] leading-[1.8] sm:leading-[1.75] text-neutral-800 dark:text-neutral-200 font-normal prose-p:mb-3 prose-headings:mb-3 prose-headings:mt-5">
+                  <MarkdownWithMentions
+                    content={p.content}
+                    mentionedUsers={p.mentions || []}
+                  />
+                </div>
+              </ContentWithSeeMore>
             </div>
           )}
 
