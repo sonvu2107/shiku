@@ -33,10 +33,13 @@
 
     /* Thay thế bằng background opacity cao hơn khi tắt blur */
     .bg-white\/70,
-    .bg-black\/70,
-    .bg-white\/80,
-    .bg-black\/80 {
+    .bg-white\/80 {
         background-color: #ffffff !important;
+    }
+
+    .bg-black\/70,
+    .bg-black\/80 {
+        background-color: rgba(0, 0, 0, 0.8) !important;
     }
 
     .dark .bg-white\/70,
