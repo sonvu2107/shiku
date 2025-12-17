@@ -15,6 +15,7 @@ export { default as InventoryTab } from './InventoryTab.jsx';
 export { default as TechniquesTab } from './TechniquesTab.jsx';
 export { default as PKTab } from './PKTab.jsx';
 export { default as LeaderboardTab } from './LeaderboardTab.jsx';
+export { default as DungeonTab } from './DungeonTab.jsx';
 export { default as WeaponSlot } from './WeaponSlot.jsx';
 export { default as WeaponEquipmentSection } from './WeaponEquipmentSection.jsx';
 export { default as StatsComparisonModal } from './StatsComparisonModal.jsx';

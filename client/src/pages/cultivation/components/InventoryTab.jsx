@@ -290,7 +290,7 @@ const InventoryTab = memo(function InventoryTab() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filteredItems.map((item) => {
+          {filteredItems.map((item, index) => {
             const rarity = RARITY_COLORS[item.rarity] || RARITY_COLORS.common;
             const typeInfo = ITEM_TYPE_LABELS[item.type] || { label: 'Khác', color: 'text-slate-300' };
             const equipped = isItemEquipped(item);
@@ -299,7 +299,7 @@ const InventoryTab = memo(function InventoryTab() {
 
             return (
               <div
-                key={item.itemId}
+                key={item._id || `${item.itemId}-${index}`}
                 className={`relative rounded-xl p-4 flex justify-between items-center transition-all border ${equipped
                   ? 'bg-emerald-900/30 border-emerald-500/50 ring-1 ring-emerald-500/30'
                   : `${rarity.bg} ${rarity.border}`

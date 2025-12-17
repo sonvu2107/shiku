@@ -22,7 +22,8 @@ import {
   InventoryTab,
   TechniquesTab,
   PKTab,
-  LeaderboardTab
+  LeaderboardTab,
+  DungeonTab
 } from './cultivation/components';
 import { LOG_MESSAGES } from './cultivation/utils/constants';
 
@@ -329,6 +330,7 @@ const CultivationContent = memo(function CultivationContent() {
     { id: 'shop', label: 'Cửa Hàng' },
     { id: 'inventory', label: 'Túi Đồ' },
     { id: 'techniques', label: 'Công Pháp' },
+    { id: 'dungeon', label: 'Bí Cảnh' },
     { id: 'pk', label: 'Luận Võ' },
     { id: 'leaderboard', label: 'Xếp Hạng' }
   ];
@@ -480,6 +482,7 @@ const CultivationContent = memo(function CultivationContent() {
           {activeTab === 'shop' && <ShopTab />}
           {activeTab === 'inventory' && <InventoryTab />}
           {activeTab === 'techniques' && <TechniquesTab practiceTechnique={practiceTechnique} />}
+          {activeTab === 'dungeon' && <DungeonTab />}
           {activeTab === 'pk' && <PKTab />}
           {activeTab === 'leaderboard' && <LeaderboardTab isAdmin={isAdmin} />}
         </div>

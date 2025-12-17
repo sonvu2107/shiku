@@ -35,7 +35,15 @@ import {
   getUserCombatStats,
   practiceTechnique,
   breakthrough,
-  fixRealms
+  fixRealms,
+  // Dungeon
+  getDungeons,
+  enterDungeon,
+  getCurrentFloor,
+  battleMonster,
+  claimRewardsAndExit,
+  abandonDungeon,
+  getDungeonHistory
 } from "../controllers/cultivation/index.js";
 
 const router = express.Router();
@@ -79,6 +87,15 @@ router.get("/combat-stats", getCombatStats);
 router.get("/combat-stats/:userId", getUserCombatStats);
 router.post("/practice-technique", practiceTechnique);
 router.post("/breakthrough", breakthroughLimiter, breakthrough);
+
+// ==================== BÍ CẢNH (DUNGEON) ====================
+router.get("/dungeons", getDungeons);
+router.post("/dungeons/:dungeonId/enter", enterDungeon);
+router.get("/dungeons/:dungeonId/current-floor", getCurrentFloor);
+router.post("/dungeons/:dungeonId/battle", battleMonster);
+router.post("/dungeons/:dungeonId/claim-exit", claimRewardsAndExit);
+router.post("/dungeons/:dungeonId/abandon", abandonDungeon);
+router.get("/dungeons/history", getDungeonHistory);
 
 // ==================== ADMIN ====================
 router.post("/fix-realms", fixRealms);

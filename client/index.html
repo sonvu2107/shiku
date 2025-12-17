@@ -4,8 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Preload critical resources for LCP -->
-  <link rel="preload" href="/assets/shiku-logo.svg" as="image" type="image/svg+xml" fetchpriority="high">
+  <!-- Prefetch logo for pages that use it (Landing, Login, Register, Tour) -->
+  <!-- Using prefetch instead of preload to avoid warnings on pages that don't use it -->
+  <link rel="prefetch" href="/assets/shiku-logo.svg" as="image" type="image/svg+xml">
   <!-- Note: rrt2.jpg not preloaded here since it's only used by certain background types -->
 
   <!-- Preconnect to external domains -->

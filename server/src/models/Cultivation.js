@@ -475,7 +475,28 @@ const CultivationSchema = new mongoose.Schema({
   breakthroughSuccessRate: { type: Number, default: 30, min: 0, max: 100 }, // Tỷ lệ thành công (%)
   breakthroughFailureCount: { type: Number, default: 0, min: 0 }, // Số lần thất bại liên tiếp
   lastBreakthroughAttempt: { type: Date }, // Lần cuối thử độ kiếp
-  breakthroughCooldownUntil: { type: Date } // Thời gian chờ để độ kiếp lại (sau khi thất bại)
+  breakthroughCooldownUntil: { type: Date }, // Thời gian chờ để độ kiếp lại (sau khi thất bại)
+
+  // ==================== BÍ CẢNH (DUNGEON) ====================
+  dungeonProgress: [{
+    dungeonId: { type: String, required: true },
+    currentFloor: { type: Number, default: 0 }, // Tầng hiện tại (0 = chưa bắt đầu)
+    highestFloor: { type: Number, default: 0 }, // Tầng cao nhất từng đạt
+    totalClears: { type: Number, default: 0 }, // Tổng số lần hoàn thành
+    inProgress: { type: Boolean, default: false }, // Đang trong dungeon
+    currentRunId: { type: mongoose.Schema.Types.ObjectId, ref: 'DungeonRun' }, // ID của run hiện tại
+    lastClearedAt: { type: Date }, // Lần cuối hoàn thành
+    cooldownUntil: { type: Date } // Thời gian chờ
+  }],
+
+  // Thống kê dungeon tổng hợp
+  dungeonStats: {
+    totalDungeonsCleared: { type: Number, default: 0 },
+    totalMonstersKilled: { type: Number, default: 0 },
+    totalBossesKilled: { type: Number, default: 0 },
+    totalDungeonExpEarned: { type: Number, default: 0 },
+    totalDungeonSpiritStonesEarned: { type: Number, default: 0 }
+  }
 }, {
   timestamps: true
 });
