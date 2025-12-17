@@ -91,41 +91,35 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
     if (!res.ok) {
       // Nếu là lỗi 401, chỉ retry nếu chưa từng retry (tránh vòng lặp)
       if (res.status === 401 && !_isRetry) {
-        console.log("[api] Got 401, attempting token refresh...");
-        const refreshResult = await refreshAccessToken();
+                const refreshResult = await refreshAccessToken();
         if (refreshResult) {
-          console.log("[api] Refresh successful, retrying request...");
-          // Retry request với token mới
+                    // Retry request với token mới
           return await api(path, { method, body, headers: { ...headers, Authorization: `Bearer ${refreshResult}` }, _isRetry: true });
         }
 
         // Refresh failed, clear tokens and redirect (chỉ redirect nếu không phải đang ở trang login)
-        console.log("[api] Refresh failed");
-        clearTokens();
+                clearTokens();
         // Chỉ redirect nếu không phải đang ở trang login hoặc register
         // Chỉ redirect nếu không phải đang ở trang login, register, home hoặc welcome
         if (!window.location.pathname.includes('/login') &&
           !window.location.pathname.includes('/register') &&
           window.location.pathname !== '/' &&
           window.location.pathname !== '/welcome') {
-          console.log("[api] Redirecting to login...");
-          window.location.href = "/login";
+                    window.location.href = "/login";
         }
         return;
       }
 
       // If this was a retry and still got 401, give up
       if (res.status === 401 && _isRetry) {
-        console.log("[api] Retry failed with 401, session invalid");
-        clearTokens();
+                clearTokens();
         // Chỉ redirect nếu không phải đang ở trang login hoặc register
         // Chỉ redirect nếu không phải đang ở trang login, register, home hoặc welcome
         if (!window.location.pathname.includes('/login') &&
           !window.location.pathname.includes('/register') &&
           window.location.pathname !== '/' &&
           window.location.pathname !== '/welcome') {
-          console.log("[api] Redirecting to login...");
-          window.location.href = "/login";
+                    window.location.href = "/login";
         }
         return;
       }

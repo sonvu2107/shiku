@@ -23,10 +23,18 @@ const CustomStyles = () => (
         radial-gradient(1.5px 1.5px at 180px 50px, white, transparent);
       background-size: 250px 250px;
       animation: moveStars 100s linear infinite;
+      will-change: background-position;
     }
     @keyframes moveStars {
       from { background-position: 0 0; }
       to { background-position: 0 1000px; }
+    }
+    /* Mobile: disable stars animation */
+    @media (max-width: 640px) {
+      .stars {
+        animation: none;
+        opacity: 0.2;
+      }
     }
 
     /* Mist Animation - Ethereal Qi */
@@ -36,6 +44,7 @@ const CustomStyles = () => (
       border-radius: 50%;
       filter: blur(50px);
       animation: floatMist 25s infinite ease-in-out alternate;
+      will-change: transform, opacity;
     }
     .mist-2 {
       background: radial-gradient(ellipse at center, rgba(6, 182, 212, 0.12) 0%, rgba(0,0,0,0) 70%);
@@ -52,6 +61,14 @@ const CustomStyles = () => (
       0% { transform: translate(0, 0) scale(1); opacity: 0.3; }
       50% { transform: translate(30px, -20px) scale(1.2); opacity: 0.6; }
       100% { transform: translate(-20px, 40px) scale(1.1); opacity: 0.3; }
+    }
+    /* Mobile: disable mist animation and reduce blur */
+    @media (max-width: 640px) {
+      .mist, .mist-2, .mist-3 {
+        animation: none;
+        filter: blur(15px);
+        opacity: 0.15;
+      }
     }
 
     /* Impact Burst */
@@ -138,6 +155,17 @@ const CustomStyles = () => (
         0 0 80px rgba(168, 85, 247, 0.2),
         0 0 150px rgba(245, 158, 11, 0.15);
     }
+    /* Mobile: reduce backdrop blur and simplify shadows */
+    @media (max-width: 640px) {
+      .spirit-tablet {
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      }
+      .spirit-tablet:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      }
+    }
 
     .spirit-tablet-jade {
       background: rgba(15, 35, 42, 0.75);
@@ -176,6 +204,7 @@ const CustomStyles = () => (
       border-radius: 50%;
       background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%);
       animation: pulseGlow 3s infinite;
+      will-change: transform, opacity;
     }
     
     .yinyang {
@@ -191,6 +220,7 @@ const CustomStyles = () => (
       object-fit: contain;
       user-select: none;
       -webkit-user-drag: none;
+      will-change: transform;
     }
     .yinyang:active { transform: scale(0.95); }
     .yinyang:hover { 
@@ -201,6 +231,26 @@ const CustomStyles = () => (
     @keyframes pulseGlow {
       0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
       50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; }
+    }
+    /* Mobile: optimize yinyang */
+    @media (max-width: 640px) {
+      .yinyang-container {
+        width: 140px;
+        height: 140px;
+      }
+      .yinyang {
+        width: 120px;
+        height: 120px;
+        animation-duration: 20s;
+      }
+      .yinyang-glow {
+        animation: none;
+        opacity: 0.3;
+      }
+      .yinyang:hover {
+        box-shadow: none;
+        filter: none;
+      }
     }
 
     /* Floating Particle */
@@ -243,12 +293,19 @@ const CustomStyles = () => (
       border-radius: 50%;
       pointer-events: none;
       animation: floatQi 8s infinite ease-in-out;
+      will-change: transform, opacity;
     }
     @keyframes floatQi {
       0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
       10% { opacity: 1; }
       50% { transform: translate(20px, -30px) scale(1); opacity: 0.8; }
       100% { transform: translate(40px, -60px) scale(0.3); opacity: 0; }
+    }
+    /* Mobile: hide qi particles */
+    @media (max-width: 640px) {
+      .qi-particle {
+        display: none;
+      }
     }
 
     /* Realm Name Glow Animation */
@@ -259,6 +316,13 @@ const CustomStyles = () => (
     .realm-name-glow {
       animation: realmGlow 3s ease-in-out infinite;
     }
+    /* Mobile: disable realm glow animation */
+    @media (max-width: 640px) {
+      .realm-name-glow {
+        animation: none;
+        text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+      }
+    }
 
     /* Floating Chinese Characters */
     .floating-char {
@@ -268,12 +332,19 @@ const CustomStyles = () => (
       color: rgba(245, 158, 11, 0.3);
       pointer-events: none;
       animation: floatChar 15s infinite ease-in-out;
+      will-change: transform, opacity;
     }
     @keyframes floatChar {
       0% { transform: translateY(0) rotate(0deg); opacity: 0; }
       10% { opacity: 0.5; }
       50% { transform: translateY(-30px) rotate(180deg); opacity: 0.8; }
       100% { transform: translateY(-60px) rotate(360deg); opacity: 0; }
+    }
+    /* Mobile: hide floating characters */
+    @media (max-width: 640px) {
+      .floating-char {
+        display: none;
+      }
     }
 
     /* Cloud Decoration */
@@ -286,10 +357,17 @@ const CustomStyles = () => (
       filter: blur(20px);
       animation: floatCloud 20s infinite ease-in-out;
       pointer-events: none;
+      will-change: transform, opacity;
     }
     @keyframes floatCloud {
       0%, 100% { transform: translateX(0) scale(1); opacity: 0.3; }
       50% { transform: translateX(30px) scale(1.2); opacity: 0.6; }
+    }
+    /* Mobile: hide cloud decorations */
+    @media (max-width: 640px) {
+      .cloud-decoration {
+        display: none;
+      }
     }
 
     /* Qi Flow Animation */
@@ -305,6 +383,13 @@ const CustomStyles = () => (
       background: linear-gradient(to bottom, transparent, rgba(245, 158, 11, 0.4), transparent);
       animation: qiFlow 4s infinite;
       pointer-events: none;
+      will-change: transform, opacity;
+    }
+    /* Mobile: hide qi flow */
+    @media (max-width: 640px) {
+      .qi-flow {
+        display: none;
+      }
     }
 
     /* Scrollbar Styling */

@@ -132,8 +132,7 @@ export default function App() {
   // Debug log
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log("[App] Location:", location.pathname, "| User:", user ? user.name : "null", "| shouldHideNavbar:", shouldHideNavbar);
-    }
+          }
   }, [location.pathname, user, shouldHideNavbar]);
 
   // Effect chạy khi app khởi tạo để kiểm tra authentication
@@ -145,44 +144,31 @@ export default function App() {
 
     const checkAuth = async () => {
       try {
-        console.log("[App] Starting authentication check...");
-
-        await ensureCSRFToken();
-        console.log("[App] CSRF token ensured");
-
-        // Try to initialize access token from cookies (will attempt refresh if needed)
+                await ensureCSRFToken();
+                // Try to initialize access token from cookies (will attempt refresh if needed)
         const token = await initializeAccessToken();
-        console.log("[App] Token initialization result:", token ? "SUCCESS" : "FAILED");
-
-        if (cancelled) {
+                if (cancelled) {
           return;
         }
 
         if (token && !cancelled) {
-          console.log("[App] Token available, checking session...");
-          // Nếu có token, gọi API để lấy thông tin user
+                    // Nếu có token, gọi API để lấy thông tin user
           try {
             const res = await api("/api/auth/session");
-            console.log("[App] Session check result:", res);
-
-            if (!cancelled && res.authenticated && res.user) {
-              console.log("[App] User authenticated:", res.user.name);
-              setUser(res.user);
+                        if (!cancelled && res.authenticated && res.user) {
+                            setUser(res.user);
               // Kết nối socket khi đã xác thực user thành công
               socketService.connect(res.user);
             } else {
-              console.log("[App] User not authenticated or missing user data");
-              setUser(null);
+                            setUser(null);
             }
           } catch (error) {
-            console.log("[App] Session check failed:", error.message);
-            if (!cancelled) {
+                        if (!cancelled) {
               setUser(null);
             }
           }
         } else if (!cancelled) {
-          console.log("[App] No token available, user needs to login");
-          // Không có token, set user null
+                    // Không có token, set user null
           setUser(null);
         }
       } catch (error) {
@@ -297,8 +283,7 @@ export default function App() {
   useEffect(() => {
     // Chỉ chạy trong production để tránh server Render sleep
     if (process.env.NODE_ENV === 'production') {
-      console.log('[App] Starting server keepalive service...');
-      const cleanup = startKeepAlive(12, true); // Ping mỗi 12 phút, chỉ khi tab active
+            const cleanup = startKeepAlive(12, true); // Ping mỗi 12 phút, chỉ khi tab active
 
       return cleanup;
     }

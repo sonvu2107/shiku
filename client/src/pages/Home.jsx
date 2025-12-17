@@ -4,7 +4,6 @@ import { api } from "../api";
 import { useSavedPosts } from "../hooks/useSavedPosts";
 import { usePostsFlattened } from "../hooks/usePosts";
 import { useSEO } from "../utils/useSEO";
-import PostCard from "../components/PostCard";
 import ModernPostCard from "../components/ModernPostCard";
 import Stories from "../components/Stories";
 import LeftSidebar from "../components/LeftSidebar";

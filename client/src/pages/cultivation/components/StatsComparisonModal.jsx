@@ -43,17 +43,18 @@ const StatsComparisonModal = memo(function StatsComparisonModal({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
         >
           <motion.div
-            className="relative bg-[#0f172a] border-2 border-amber-600 p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto rounded-xl shadow-[0_0_50px_rgba(217,119,6,0.5)]"
-            initial={{ scale: 0.9, opacity: 0 }}
+            className="relative bg-[#0f172a] border-2 border-amber-600 p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto rounded-xl shadow-lg"
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ duration: 0.15 }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

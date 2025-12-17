@@ -29,8 +29,7 @@ export async function loadUser() {
   // Check if we have a token before making API call
   const token = getAccessToken();
   if (!token) {
-    console.log("[userCache] No access token, user not logged in");
-    return null;
+        return null;
   }
 
   // If already loading, return the existing promise

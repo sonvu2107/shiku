@@ -20,8 +20,7 @@ export const LazyStoryViewer = lazy(() => import('./StoryViewer.jsx'));
 export const LazyRoleManagement = lazy(() => import('./RoleManagement.jsx'));
 export const LazyGroupSettingsModal = lazy(() => import('./GroupSettingsModal.jsx'));
 
-// MEDIUM COMPONENTS - Lazy load medium-sized components (10-15KB)  
-export const LazyPostCard = lazy(() => import('./PostCard.jsx'));
+// MEDIUM COMPONENTS - Lazy load medium-sized components (10-15KB)
 export const LazyPoll = lazy(() => import('./Poll.jsx'));
 export const LazyNotificationBell = lazy(() => import('./NotificationBell.jsx'));
 export const LazyMessageList = lazy(() => import('./MessageList.jsx'));
@@ -87,11 +86,7 @@ export const SuspendedStoryViewer = (props) => (
   </Suspense>
 );
 
-export const SuspendedPostCard = (props) => (
-  <Suspense fallback={<ComponentLoader />}>
-    <LazyPostCard {...props} />
-  </Suspense>
-);
+
 
 export const SuspendedMediaViewer = (props) => (
   <Suspense fallback={<ComponentLoader />}>
@@ -117,9 +112,8 @@ export default {
   APIMonitoring: SuspendedAPIMonitoring,
   CallModal: SuspendedCallModal,
   StoryViewer: SuspendedStoryViewer,
-  
+
   // Medium Components (10-15KB)
-  PostCard: SuspendedPostCard,
   MediaViewer: SuspendedMediaViewer,
   Stories: SuspendedStories
 };

@@ -98,15 +98,13 @@ export default function Login({ setUser }) {
         const { loadUser } = await import("../utils/userCache");
         const cachedUser = await loadUser();
         if (cachedUser) {
-          console.log("[Login] User already logged in, redirecting to home");
-          navigate("/", { replace: true });
+                    navigate("/", { replace: true });
         } else {
           setCheckingAuth(false);
         }
       } catch (err) {
         // User not logged in, stay on login page
-        console.log("[Login] No cached user, showing login form");
-        setCheckingAuth(false);
+                setCheckingAuth(false);
       }
     };
     checkUser();

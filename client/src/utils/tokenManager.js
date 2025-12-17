@@ -6,6 +6,7 @@
 
 // Import hàm lấy CSRF token
 import { getCSRFToken } from "./csrfToken.js";
+import { debug } from "./debug.js";
 
 
 // Key dùng cho localStorage (chế độ legacy)
@@ -153,7 +154,7 @@ export async function refreshAccessToken() {
 
   // If already refreshing, return the existing promise
   if (isRefreshing && refreshPromise) {
-    console.log("[tokenManager] Refresh already in progress, waiting...");
+    debug('tokenManager', 'Refresh already in progress, waiting...');
     return refreshPromise;
   }
 
@@ -173,8 +174,8 @@ export async function refreshAccessToken() {
         return null;
       }
 
-      console.log("[tokenManager] Attempting to refresh access token... (attempt", refreshAttempts, "of", MAX_REFRESH_ATTEMPTS, ")");
-      
+      debug('tokenManager', 'Attempting to refresh access token... (attempt', refreshAttempts, 'of', MAX_REFRESH_ATTEMPTS, ')');
+
       // No CSRF token needed for refresh endpoint - it's excluded from CSRF protection
       const response = await fetch(`${API_URL}/api/auth/refresh`, {
         method: "POST",
@@ -199,7 +200,7 @@ export async function refreshAccessToken() {
         } catch {
           errorData = { error: errorText };
         }
-        
+
         if (response.status === 400 || response.status === 401) {
           console.info("[tokenManager] No valid refresh token available:", errorData.code || errorData.error);
           clearTokens();
@@ -224,7 +225,7 @@ export async function refreshAccessToken() {
       if (data.accessToken) {
         inMemoryAccessToken = data.accessToken;
         refreshAttempts = 0; // Reset on success
-        console.log("[tokenManager] Successfully refreshed access token");
+        debug('tokenManager', 'Successfully refreshed access token');
         return data.accessToken;
       } else {
         console.warn("[tokenManager] Response missing accessToken field");
@@ -255,10 +256,10 @@ export async function checkCookies() {
       method: "GET",
       credentials: "include"
     });
-    
+
     if (response.ok) {
       const data = await response.json();
-      console.log("[tokenManager] Auth status:", data);
+      debug('tokenManager', 'Auth status:', data);
       return data;
     }
     return null;
@@ -275,29 +276,29 @@ export async function checkCookies() {
 export async function initializeAccessToken() {
   // Prevent multiple simultaneous initialization calls
   if (isInitializing && initializePromise) {
-    console.log("[tokenManager] Initialization already in progress, waiting...");
+    debug('tokenManager', 'Initialization already in progress, waiting...');
     return initializePromise;
   }
 
   isInitializing = true;
-  
+
   initializePromise = (async () => {
     try {
-      console.log("[tokenManager] Initializing access token...");
-      
+      debug('tokenManager', 'Initializing access token...');
+
       // First check authentication status
       const authStatus = await checkCookies();
       if (authStatus) {
-        console.log("[tokenManager] Auth status:", authStatus.authenticated ? "authenticated" : "not authenticated");
+        debug('tokenManager', 'Auth status:', authStatus.authenticated ? 'authenticated' : 'not authenticated');
       }
-      
+
       // Try to get a valid access token (will attempt refresh if needed)
       const token = await getValidAccessToken();
       if (token) {
-        console.log("[tokenManager] Successfully initialized access token from cookies");
+        debug('tokenManager', 'Successfully initialized access token from cookies');
         return token;
       }
-      console.log("[tokenManager] No valid access token found in cookies");
+      debug('tokenManager', 'No valid access token found in cookies');
       return null;
     } catch (error) {
       console.error("[tokenManager] Failed to initialize access token:", error);
@@ -321,7 +322,7 @@ export async function initializeAccessToken() {
 export async function getValidAccessToken() {
   // If session is marked as invalid, don't try to refresh
   if (sessionInvalid) {
-    console.log("[tokenManager] Session marked as invalid, user needs to login");
+    debug('tokenManager', 'Session marked as invalid, user needs to login');
     return null;
   }
 
@@ -329,31 +330,31 @@ export async function getValidAccessToken() {
   if (inMemoryAccessToken && !isTokenExpired(inMemoryAccessToken)) {
     return inMemoryAccessToken;
   }
-  
+
   // If no token in memory or expired, try to refresh
-  console.log("[tokenManager] No valid token in memory, attempting refresh...");
-  
+  debug('tokenManager', 'No valid token in memory, attempting refresh...');
+
   // In production, refresh token is in httpOnly cookies
   // Only check legacy refresh token if in legacy mode
   if (LEGACY_REFRESH_ALLOWED) {
     const legacyRefreshToken = getRefreshToken();
     if (!legacyRefreshToken) {
-      console.log("[tokenManager] No legacy refresh token available, user needs to login");
+      debug('tokenManager', 'No legacy refresh token available, user needs to login');
       sessionInvalid = true;
       return null;
     }
   }
-  
+
   // Attempt to refresh the access token
   const refreshResult = await refreshAccessToken();
   if (refreshResult) {
     // refreshAccessToken returns the new access token directly
     inMemoryAccessToken = refreshResult;
-    console.log("[tokenManager] Successfully refreshed access token");
+    debug('tokenManager', 'Successfully refreshed access token');
     return refreshResult;
   }
-  
-  console.log("[tokenManager] Failed to refresh access token");
+
+  debug('tokenManager', 'Failed to refresh access token');
   sessionInvalid = true; // Mark as invalid after failed refresh
   return null;
 }

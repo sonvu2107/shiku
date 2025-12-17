@@ -389,7 +389,8 @@ const CultivationContent = memo(function CultivationContent() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="sm:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+                  transition={{ duration: 0.15 }}
+                  className="sm:hidden fixed inset-0 bg-black/70 z-40"
                   onClick={() => setMobileMenuOpen(false)}
                 />
 
@@ -398,8 +399,8 @@ const CultivationContent = memo(function CultivationContent() {
                   initial={{ x: '100%' }}
                   animate={{ x: 0 }}
                   exit={{ x: '100%' }}
-                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                  className="sm:hidden fixed top-0 right-0 h-full w-1/2 bg-[#0a0a1a]/98 backdrop-blur-xl border-l border-purple-500/30 z-50 shadow-[0_0_50px_rgba(168,85,247,0.3)]"
+                  transition={{ type: 'tween', duration: 0.2, ease: 'easeOut' }}
+                  className="sm:hidden fixed top-0 right-0 h-full w-1/2 bg-[#0a0a1a] border-l border-purple-500/30 z-50"
                 >
                   {/* Menu Header */}
                   <div className="flex items-center justify-between px-5 py-4 border-b border-purple-500/20">

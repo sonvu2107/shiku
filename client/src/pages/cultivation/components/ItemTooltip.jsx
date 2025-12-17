@@ -7,7 +7,7 @@ import { RARITY_COLORS } from '../utils/constants.js';
 
 const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
   const tooltipRef = useRef(null);
-  
+
   const [tooltipStyle, setTooltipStyle] = useState({
     top: '0px',
     left: '0px',
@@ -51,26 +51,26 @@ const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
       else {
         const spaceRight = vw - itemRect.right;
         const spaceLeft = itemRect.left;
-        
+
         if (spaceRight >= spaceLeft) {
-             left = vw - tw - MARGIN;
-             top = itemRect.bottom + GAP; // Move below if squeezing on side
+          left = vw - tw - MARGIN;
+          top = itemRect.bottom + GAP; // Move below if squeezing on side
         } else {
-             left = MARGIN;
-             top = itemRect.bottom + GAP;
+          left = MARGIN;
+          top = itemRect.bottom + GAP;
         }
       }
 
       // Vertical Adjustment (Clamping)
       // If the tooltip bottom goes off-screen
       if (top + th + MARGIN > vh) {
-          // Align bottom of tooltip with bottom of viewport (minus margin)
-          top = vh - th - MARGIN;
+        // Align bottom of tooltip with bottom of viewport (minus margin)
+        top = vh - th - MARGIN;
       }
-      
+
       // If the tooltip top goes off-screen (after bottom adjustment or initially)
       if (top < MARGIN) {
-          top = MARGIN;
+        top = MARGIN;
       }
 
       setTooltipStyle({
@@ -99,9 +99,9 @@ const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
   const itemStats = stats || item.metadata?.stats || item.stats;
 
   return createPortal(
-    <div 
+    <div
       ref={tooltipRef}
-      className="fixed z-[9999] w-72 max-h-[calc(100vh-20px)] overflow-y-auto bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-amber-500/60 rounded-xl p-4 shadow-2xl backdrop-blur-md pointer-events-none custom-scrollbar"
+      className="fixed z-[9999] w-72 max-h-[calc(100vh-20px)] overflow-y-auto bg-slate-900 border-2 border-amber-500/60 rounded-xl p-4 shadow-2xl pointer-events-none custom-scrollbar"
       style={tooltipStyle}
     >
       {/* Header với ảnh và tên */}
@@ -138,97 +138,97 @@ const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
             {item.metadata?.equipmentType && (
               <span className="text-[10px] px-2 py-0.5 rounded bg-slate-700/50 text-slate-300 border border-slate-600">
                 {item.metadata.equipmentType === 'weapon' ? 'Vũ Khí' :
-                 item.metadata.equipmentType === 'magic_treasure' ? 'Pháp Bảo' :
-                 item.metadata.equipmentType === 'armor' ? 'Giáp' :
-                 item.metadata.equipmentType === 'accessory' ? 'Trang Sức' :
-                 item.metadata.equipmentType === 'power_item' ? 'Linh Khí' :
-                 item.metadata.equipmentType}
+                  item.metadata.equipmentType === 'magic_treasure' ? 'Pháp Bảo' :
+                    item.metadata.equipmentType === 'armor' ? 'Giáp' :
+                      item.metadata.equipmentType === 'accessory' ? 'Trang Sức' :
+                        item.metadata.equipmentType === 'power_item' ? 'Linh Khí' :
+                          item.metadata.equipmentType}
               </span>
             )}
           </div>
         </div>
       </div>
-      
+
       {/* Thông số */}
       {itemStats && Object.keys(itemStats).length > 0 && (
-      <div className="space-y-2">
-        <p className="text-sm text-amber-400 font-bold mb-2 flex items-center gap-2">
-          <span className="w-1 h-4 bg-amber-500 rounded"></span>
-          Thông Số
-        </p>
-        <div className="space-y-1.5 bg-slate-800/30 rounded-lg p-2">
-          {Object.entries(itemStats)
-            .filter(([_, value]) => value && value !== 0 && typeof value !== 'object') // Filter out objects like elemental_damage for now
-            .map(([stat, value]) => {
-              const statLabels = {
-                attack: { label: 'Tấn Công', color: 'text-red-400' },
-                defense: { label: 'Phòng Thủ', color: 'text-blue-400' },
-                hp: { label: 'Khí Huyết', color: 'text-green-400' },
-                qiBlood: { label: 'Khí Huyết', color: 'text-pink-400' },
-                zhenYuan: { label: 'Chân Nguyên', color: 'text-purple-400' },
-                speed: { label: 'Tốc Độ', color: 'text-cyan-400' },
-                crit_rate: { label: 'Tỷ Lệ Chí Mạng', color: 'text-yellow-400' },
-                criticalRate: { label: 'Tỷ Lệ Chí Mạng', color: 'text-yellow-400' },
-                crit_damage: { label: 'Sát Thương Chí Mạng', color: 'text-yellow-300' },
-                penetration: { label: 'Xuyên Thấu', color: 'text-orange-400' },
-                evasion: { label: 'Né Tránh', color: 'text-green-400' },
-                dodge: { label: 'Né Tránh', color: 'text-green-400' },
-                hit_rate: { label: 'Chính Xác', color: 'text-blue-300' },
-                energy_regen: { label: 'Hồi Linh Lực', color: 'text-purple-300' },
-                lifesteal: { label: 'Hút Máu', color: 'text-red-300' },
-                true_damage: { label: 'Sát Thương Chuẩn', color: 'text-red-200' },
-                buff_duration: { label: 'Thời Gian Buff', color: 'text-cyan-300' }
-              };
-              const statInfo = statLabels[stat] || { label: stat, color: 'text-slate-300' };
-              const displayValue = typeof value === 'number' 
-                ? (value > 0 ? `+${value.toLocaleString()}` : value.toLocaleString())
-                : value;
-              const suffix = (stat === 'crit_rate' || stat === 'criticalRate' || stat === 'crit_damage' || stat === 'dodge' || stat === 'evasion' || stat === 'hit_rate') ? '%' : '';
-              
-              return (
-                <div key={stat} className="flex justify-between items-center text-sm py-0.5">
-                  <span className="text-slate-300 font-medium">{statInfo.label}:</span>
-                  <span className={`font-mono font-bold ${statInfo.color} text-right`}>
-                    {displayValue}{suffix}
-                  </span>
-                </div>
-              );
-            })}
-        </div>
+        <div className="space-y-2">
+          <p className="text-sm text-amber-400 font-bold mb-2 flex items-center gap-2">
+            <span className="w-1 h-4 bg-amber-500 rounded"></span>
+            Thông Số
+          </p>
+          <div className="space-y-1.5 bg-slate-800/30 rounded-lg p-2">
+            {Object.entries(itemStats)
+              .filter(([_, value]) => value && value !== 0 && typeof value !== 'object') // Filter out objects like elemental_damage for now
+              .map(([stat, value]) => {
+                const statLabels = {
+                  attack: { label: 'Tấn Công', color: 'text-red-400' },
+                  defense: { label: 'Phòng Thủ', color: 'text-blue-400' },
+                  hp: { label: 'Khí Huyết', color: 'text-green-400' },
+                  qiBlood: { label: 'Khí Huyết', color: 'text-pink-400' },
+                  zhenYuan: { label: 'Chân Nguyên', color: 'text-purple-400' },
+                  speed: { label: 'Tốc Độ', color: 'text-cyan-400' },
+                  crit_rate: { label: 'Tỷ Lệ Chí Mạng', color: 'text-yellow-400' },
+                  criticalRate: { label: 'Tỷ Lệ Chí Mạng', color: 'text-yellow-400' },
+                  crit_damage: { label: 'Sát Thương Chí Mạng', color: 'text-yellow-300' },
+                  penetration: { label: 'Xuyên Thấu', color: 'text-orange-400' },
+                  evasion: { label: 'Né Tránh', color: 'text-green-400' },
+                  dodge: { label: 'Né Tránh', color: 'text-green-400' },
+                  hit_rate: { label: 'Chính Xác', color: 'text-blue-300' },
+                  energy_regen: { label: 'Hồi Linh Lực', color: 'text-purple-300' },
+                  lifesteal: { label: 'Hút Máu', color: 'text-red-300' },
+                  true_damage: { label: 'Sát Thương Chuẩn', color: 'text-red-200' },
+                  buff_duration: { label: 'Thời Gian Buff', color: 'text-cyan-300' }
+                };
+                const statInfo = statLabels[stat] || { label: stat, color: 'text-slate-300' };
+                const displayValue = typeof value === 'number'
+                  ? (value > 0 ? `+${value.toLocaleString()}` : value.toLocaleString())
+                  : value;
+                const suffix = (stat === 'crit_rate' || stat === 'criticalRate' || stat === 'crit_damage' || stat === 'dodge' || stat === 'evasion' || stat === 'hit_rate') ? '%' : '';
 
-        {/* Elemental Damage */}
-        {itemStats.elemental_damage && Object.keys(itemStats.elemental_damage).length > 0 && (
-          <div className="pt-3 mt-3 border-t border-amber-500/30">
-            <p className="text-sm text-amber-400 font-bold mb-2 flex items-center gap-2">
-              <span className="w-1 h-4 bg-amber-500 rounded"></span>
-              Sát Thương Thuộc Tính
-            </p>
-            <div className="space-y-1.5 bg-slate-800/30 rounded-lg p-2">
-              {Object.entries(itemStats.elemental_damage)
-                .filter(([_, value]) => value && value > 0)
-                .map(([element, value]) => {
-                  const elementLabels = {
-                    fire: { label: '🔥 Hỏa', color: 'text-red-400' },
-                    ice: { label: '❄️ Băng', color: 'text-cyan-400' },
-                    wind: { label: '💨 Phong', color: 'text-green-400' },
-                    thunder: { label: '⚡ Lôi', color: 'text-yellow-400' },
-                    earth: { label: '🌍 Thổ', color: 'text-amber-400' },
-                    water: { label: '💧 Thủy', color: 'text-blue-400' }
-                  };
-                  const elementInfo = elementLabels[element] || { label: element, color: 'text-slate-300' };
-                  return (
-                    <div key={element} className="flex justify-between items-center text-sm py-0.5">
-                      <span className="text-slate-300 font-medium">{elementInfo.label}:</span>
-                      <span className={`font-mono font-bold ${elementInfo.color}`}>
-                        +{value.toLocaleString()}
-                      </span>
-                    </div>
-                  );
-                })}
-            </div>
+                return (
+                  <div key={stat} className="flex justify-between items-center text-sm py-0.5">
+                    <span className="text-slate-300 font-medium">{statInfo.label}:</span>
+                    <span className={`font-mono font-bold ${statInfo.color} text-right`}>
+                      {displayValue}{suffix}
+                    </span>
+                  </div>
+                );
+              })}
           </div>
-        )}
-      </div>
+
+          {/* Elemental Damage */}
+          {itemStats.elemental_damage && Object.keys(itemStats.elemental_damage).length > 0 && (
+            <div className="pt-3 mt-3 border-t border-amber-500/30">
+              <p className="text-sm text-amber-400 font-bold mb-2 flex items-center gap-2">
+                <span className="w-1 h-4 bg-amber-500 rounded"></span>
+                Sát Thương Thuộc Tính
+              </p>
+              <div className="space-y-1.5 bg-slate-800/30 rounded-lg p-2">
+                {Object.entries(itemStats.elemental_damage)
+                  .filter(([_, value]) => value && value > 0)
+                  .map(([element, value]) => {
+                    const elementLabels = {
+                      fire: { label: '🔥 Hỏa', color: 'text-red-400' },
+                      ice: { label: '❄️ Băng', color: 'text-cyan-400' },
+                      wind: { label: '💨 Phong', color: 'text-green-400' },
+                      thunder: { label: '⚡ Lôi', color: 'text-yellow-400' },
+                      earth: { label: '🌍 Thổ', color: 'text-amber-400' },
+                      water: { label: '💧 Thủy', color: 'text-blue-400' }
+                    };
+                    const elementInfo = elementLabels[element] || { label: element, color: 'text-slate-300' };
+                    return (
+                      <div key={element} className="flex justify-between items-center text-sm py-0.5">
+                        <span className="text-slate-300 font-medium">{elementInfo.label}:</span>
+                        <span className={`font-mono font-bold ${elementInfo.color}`}>
+                          +{value.toLocaleString()}
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Hiển thị special effect nếu có */}
@@ -243,16 +243,16 @@ const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
           </p>
         </div>
       )}
-      
+
       {/* Hiển thị description nếu không phải equipment hoặc không có stats */}
       {(!itemStats || Object.keys(itemStats).length === 0) && (item.description || item.metadata?.description) && (
-          <div className="pt-3 mt-3 border-t border-amber-500/30">
-             <p className="text-sm text-slate-300 italic leading-relaxed">
-                {item.description || item.metadata?.description}
-             </p>
-          </div>
+        <div className="pt-3 mt-3 border-t border-amber-500/30">
+          <p className="text-sm text-slate-300 italic leading-relaxed">
+            {item.description || item.metadata?.description}
+          </p>
+        </div>
       )}
-      
+
       {/* Hiển thị level requirement nếu có */}
       {(item.metadata?.level_required || item.level_required) && (
         <div className="pt-2 mt-2 text-xs text-slate-400 border-t border-white/10">

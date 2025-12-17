@@ -20,15 +20,15 @@ const characterVariants = {
   idle: { x: 0, scale: 1, filter: "brightness(1)" },
   attackRight: { x: 60, scale: 1.1, transition: { duration: 0.1, ease: "easeIn" } }, // Lao lên phải
   attackLeft: { x: -60, scale: 1.1, transition: { duration: 0.1, ease: "easeIn" } }, // Lao lên trái
-  hit: { 
-    x: [0, -10, 10, -5, 5, 0], 
-    filter: ["brightness(1)", "brightness(2)", "brightness(1)"], 
-    transition: { duration: 0.3 } 
+  hit: {
+    x: [0, -10, 10, -5, 5, 0],
+    filter: ["brightness(1)", "brightness(2)", "brightness(1)"],
+    transition: { duration: 0.3 }
   }, // Bị đánh rung lắc + chớp sáng
-  dodge: { 
-    opacity: [1, 0.5, 1], 
-    x: [0, -30, 0], 
-    transition: { duration: 0.4 } 
+  dodge: {
+    opacity: [1, 0.5, 1],
+    x: [0, -30, 0],
+    transition: { duration: 0.4 }
   } // Tàn ảnh né tránh
 };
 
@@ -57,7 +57,7 @@ const PKTab = memo(function PKTab() {
   const [opponentCurrentMana, setOpponentCurrentMana] = useState(0);
   const [showDamageNumber, setShowDamageNumber] = useState(null); // { side: 'left'|'right', damage: number, isCritical: boolean }
   const [battlePhase, setBattlePhase] = useState('intro'); // 'intro', 'fighting', 'result'
-  
+
   // Character Animation States - NEW: Dash & Recoil
   const [challengerAction, setChallengerAction] = useState('idle'); // 'idle' | 'attackRight' | 'hit' | 'dodge'
   const [opponentAction, setOpponentAction] = useState('idle'); // 'idle' | 'attackLeft' | 'hit' | 'dodge'
@@ -65,15 +65,18 @@ const PKTab = memo(function PKTab() {
   const [showSkillName, setShowSkillName] = useState(null); // { name: string, side: 'left' | 'right' } | null
 
   // --- MEMOIZED BACKGROUND DATA (Fix for jumping background) ---
-  const starsData = useMemo(() => Array.from({ length: 50 }, () => ({
+  // Reduce particles on mobile for better performance
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+
+  const starsData = useMemo(() => Array.from({ length: isMobile ? 15 : 50 }, () => ({
     top: Math.random() * 60,
     left: Math.random() * 100,
     opacity: Math.random(),
     duration: 2 + Math.random() * 4,
     delay: Math.random() * 5
-  })), []);
+  })), [isMobile]);
 
-  const rocksData = useMemo(() => Array.from({ length: 7 }, () => ({
+  const rocksData = useMemo(() => Array.from({ length: isMobile ? 3 : 7 }, () => ({
     width: Math.random() * 50 + 30,
     height: Math.random() * 50 + 30,
     borderRadius: `${Math.random() * 30 + 30}% ${Math.random() * 30 + 30}% ${Math.random() * 30 + 30}% ${Math.random() * 30 + 30}% / ${Math.random() * 30 + 30}% ${Math.random() * 30 + 30}% ${Math.random() * 30 + 30}% ${Math.random() * 30 + 30}%`,
@@ -83,22 +86,22 @@ const PKTab = memo(function PKTab() {
     yAnim: Math.random() * -30 - 20,
     rotateAnim: Math.random() * 20 - 10,
     duration: 8 + Math.random() * 10
-  })), []);
+  })), [isMobile]);
 
-  const dustData = useMemo(() => Array.from({ length: 60 }, () => ({
+  const dustData = useMemo(() => Array.from({ length: isMobile ? 15 : 60 }, () => ({
     top: Math.random() * 100,
     left: Math.random() * 100,
     yAnim: Math.random() * -100 - 50,
     xAnim: (Math.random() - 0.5) * 50,
     duration: 5 + Math.random() * 10,
     delay: Math.random() * 5
-  })), []);
+  })), [isMobile]);
 
-  const spiritParticlesData = useMemo(() => Array.from({ length: 25 }, () => ({
+  const spiritParticlesData = useMemo(() => Array.from({ length: isMobile ? 8 : 25 }, () => ({
     xStart: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
     delay: Math.random() * 3,
     duration: 4 + Math.random() * 5
-  })), []);
+  })), [isMobile]);
 
   // Load opponents list
   const loadOpponents = useCallback(async () => {
@@ -266,7 +269,7 @@ const PKTab = memo(function PKTab() {
           } else {
             setChallengerAction('dodge');
           }
-          
+
           setShowDamageNumber({
             side: isAttackerChallenger ? 'right' : 'left',
             damage: 0,
@@ -278,7 +281,7 @@ const PKTab = memo(function PKTab() {
           setOpponentCurrentHp(currentLog.opponentHp);
           if (currentLog.challengerMana !== undefined) setChallengerCurrentMana(currentLog.challengerMana);
           if (currentLog.opponentMana !== undefined) setOpponentCurrentMana(currentLog.opponentMana);
-        } 
+        }
         // Nếu trúng đòn
         else {
           // Hiển thị tên công pháp nếu có skill
@@ -301,7 +304,7 @@ const PKTab = memo(function PKTab() {
           // Screen Flash Effect
           if (isCrit) {
             setScreenFlash('red'); // Bạo kích nháy đỏ
-          setIsShaking(true);
+            setIsShaking(true);
             setTimeout(() => setIsShaking(false), 600);
           } else if (isSkill) {
             setScreenFlash('dark'); // Skill làm tối màn hình
@@ -321,8 +324,8 @@ const PKTab = memo(function PKTab() {
           });
 
           // Hiển thị số dame
-        setShowDamageNumber({
-          side: isAttackerChallenger ? 'right' : 'left',
+          setShowDamageNumber({
+            side: isAttackerChallenger ? 'right' : 'left',
             damage: currentLog.damage,
             isCritical: isCrit,
             isSkill: isSkill
@@ -343,8 +346,8 @@ const PKTab = memo(function PKTab() {
           setParticles(prev => [...prev, ...newParticles]);
 
           // Update HP/Mana
-        setChallengerCurrentHp(currentLog.challengerHp);
-        setOpponentCurrentHp(currentLog.opponentHp);
+          setChallengerCurrentHp(currentLog.challengerHp);
+          setOpponentCurrentHp(currentLog.opponentHp);
           if (currentLog.challengerMana !== undefined) setChallengerCurrentMana(currentLog.challengerMana);
           if (currentLog.opponentMana !== undefined) setOpponentCurrentMana(currentLog.opponentMana);
         }
@@ -669,7 +672,7 @@ const PKTab = memo(function PKTab() {
       <AnimatePresence>
         {showBattleAnimation && battleResult && (
           <motion.div
-            className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md ${isShaking ? 'animate-shake' : ''}`}
+            className={`fixed inset-0 z-[100] flex items-center justify-center bg-black ${isShaking ? 'animate-shake' : ''}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -704,29 +707,37 @@ const PKTab = memo(function PKTab() {
                 />
               )}
             </AnimatePresence>
-            
+
             {/* Background Atmosphere - Enhanced Tiên Hiệp Style (FIXED: Using useMemo) */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
               {/* Deep Sky Gradient with Nebula */}
               <div className="absolute inset-0 bg-gradient-to-b from-[#0a0118] via-[#1a0b2e] to-[#2d1b4e]"></div>
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/40 via-transparent to-transparent"></div>
-              
-              {/* Giant Spirit Moon */}
-              <motion.div 
-                className="absolute top-[-15%] left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-purple-500/20 rounded-full blur-[120px] mix-blend-screen"
-                animate={{ scale: [1, 1.05, 1], opacity: [0.5, 0.7, 0.5] }}
-                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <motion.div 
-                className="absolute top-[0%] left-1/2 -translate-x-1/2 w-[250px] h-[250px] bg-gradient-to-b from-purple-200 to-purple-400/0 rounded-full opacity-60 blur-3xl mix-blend-overlay"
-                animate={{ scale: [1, 1.1, 1], opacity: [0.6, 0.8, 0.6] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              />
+
+              {/* Giant Spirit Moon - Optimized for mobile */}
+              {!isMobile && (
+                <>
+                  <motion.div
+                    className="absolute top-[-15%] left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-purple-500/20 rounded-full blur-[120px] mix-blend-screen"
+                    animate={{ scale: [1, 1.05, 1], opacity: [0.5, 0.7, 0.5] }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <motion.div
+                    className="absolute top-[0%] left-1/2 -translate-x-1/2 w-[250px] h-[250px] bg-gradient-to-b from-purple-200 to-purple-400/0 rounded-full opacity-60 blur-3xl mix-blend-overlay"
+                    animate={{ scale: [1, 1.1, 1], opacity: [0.6, 0.8, 0.6] }}
+                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                  />
+                </>
+              )}
+              {/* Simplified moon for mobile */}
+              {isMobile && (
+                <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-purple-500/30 rounded-full blur-[40px]" />
+              )}
 
               {/* Stars - using memoized data */}
               {starsData.map((star, i) => (
-                <motion.div 
-                  key={`star-${i}`} 
+                <motion.div
+                  key={`star-${i}`}
                   className="absolute w-0.5 h-0.5 bg-white rounded-full"
                   style={{ top: `${star.top}%`, left: `${star.left}%`, opacity: star.opacity }}
                   animate={{ opacity: [0.2, 1, 0.2] }}
@@ -735,44 +746,52 @@ const PKTab = memo(function PKTab() {
               ))}
 
               {/* Parallax Mountains */}
-              <motion.div 
+              <motion.div
                 className="absolute bottom-[10%] left-0 right-0 h-[50%] opacity-40"
-                animate={{ x: [-20, 0] }} 
+                animate={{ x: [-20, 0] }}
                 transition={{ duration: 40, repeat: Infinity, repeatType: "mirror", ease: "linear" }}
               >
                 <svg viewBox="0 0 1440 320" className="w-full h-full preserve-3d scale-[1.2] origin-bottom">
                   <path fill="#130a29" fillOpacity="1" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,261.3C960,256,1056,224,1152,197.3C1248,171,1344,149,1392,138.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
                 </svg>
               </motion.div>
-              <motion.div 
-                className="absolute bottom-0 left-0 right-0 h-[40%] opacity-70"
-                animate={{ x: [-40, 0] }} 
-                transition={{ duration: 30, repeat: Infinity, repeatType: "mirror", ease: "linear" }}
-              >
-                <svg viewBox="0 0 1440 320" className="w-full h-full preserve-3d scale-[1.1] origin-bottom">
-                  <path fill="#1e1b4b" fillOpacity="1" d="M0,192L48,202.7C96,213,192,235,288,229.3C384,224,480,192,576,176C672,160,768,160,864,181.3C960,203,1056,245,1152,250.7C1248,256,1344,224,1392,208L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-                </svg>
-              </motion.div>
-              <motion.div 
-                className="absolute bottom-[-5%] left-0 right-0 h-[35%] opacity-90"
-                animate={{ x: [-60, 0] }} 
-                transition={{ duration: 20, repeat: Infinity, repeatType: "mirror", ease: "linear" }}
-              >
-                <svg viewBox="0 0 1440 320" className="w-full h-full preserve-3d">
-                  <path fill="#0f0518" fillOpacity="1" d="M0,128L48,154.7C96,181,192,235,288,240C384,245,480,203,576,192C672,181,768,203,864,224C960,245,1056,267,1152,261.3C1248,256,1344,224,1392,208L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-                </svg>
-              </motion.div>
+              {!isMobile && (
+                <>
+                  <motion.div
+                    className="absolute bottom-0 left-0 right-0 h-[40%] opacity-70"
+                    animate={{ x: [-40, 0] }}
+                    transition={{ duration: 30, repeat: Infinity, repeatType: "mirror", ease: "linear" }}
+                  >
+                    <svg viewBox="0 0 1440 320" className="w-full h-full preserve-3d scale-[1.1] origin-bottom">
+                      <path fill="#1e1b4b" fillOpacity="1" d="M0,192L48,202.7C96,213,192,235,288,229.3C384,224,480,192,576,176C672,160,768,160,864,181.3C960,203,1056,245,1152,250.7C1248,256,1344,224,1392,208L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+                    </svg>
+                  </motion.div>
+                  <motion.div
+                    className="absolute bottom-[-5%] left-0 right-0 h-[35%] opacity-90"
+                    animate={{ x: [-60, 0] }}
+                    transition={{ duration: 20, repeat: Infinity, repeatType: "mirror", ease: "linear" }}
+                  >
+                    <svg viewBox="0 0 1440 320" className="w-full h-full preserve-3d">
+                      <path fill="#0f0518" fillOpacity="1" d="M0,128L48,154.7C96,181,192,235,288,240C384,245,480,203,576,192C672,181,768,203,864,224C960,245,1056,267,1152,261.3C1248,256,1344,224,1392,208L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+                    </svg>
+                  </motion.div>
 
-              {/* Moving Fog */}
-              <motion.div 
-                className="absolute bottom-0 left-0 w-[200%] h-[60%] bg-gradient-to-t from-purple-900/40 via-purple-800/20 to-transparent mix-blend-screen"
-                animate={{ x: [-200, 0] }} 
-                transition={{ duration: 45, repeat: Infinity, ease: "linear" }} 
-              />
+                  {/* Moving Fog - Desktop only */}
+                  <motion.div
+                    className="absolute bottom-0 left-0 w-[200%] h-[60%] bg-gradient-to-t from-purple-900/40 via-purple-800/20 to-transparent mix-blend-screen"
+                    animate={{ x: [-200, 0] }}
+                    transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
+                  />
+                </>
+              )}
+              {/* Static simple gradient for mobile */}
+              {isMobile && (
+                <div className="absolute bottom-0 left-0 right-0 h-[50%] bg-gradient-to-t from-[#0f0518] via-[#1e1b4b]/80 to-transparent" />
+              )}
 
               {/* Floating Rocks - using memoized data */}
               {rocksData.map((rock, i) => (
-                <motion.div 
+                <motion.div
                   key={`rock-${i}`}
                   className="absolute bg-slate-900/70 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
                   style={{
@@ -783,8 +802,8 @@ const PKTab = memo(function PKTab() {
                     left: `${rock.left}%`,
                     filter: `blur(${rock.blur}px)`
                   }}
-                  animate={{ 
-                    y: [0, rock.yAnim, 0], 
+                  animate={{
+                    y: [0, rock.yAnim, 0],
                     rotate: [0, rock.rotateAnim, 0],
                     scale: [1, 1.05, 1]
                   }}
@@ -794,14 +813,14 @@ const PKTab = memo(function PKTab() {
 
               {/* Dust - using memoized data */}
               {dustData.map((dust, i) => (
-                <motion.div 
-                  key={`dust-${i}`} 
+                <motion.div
+                  key={`dust-${i}`}
                   className="absolute w-0.5 h-0.5 bg-amber-200/60 rounded-full"
                   style={{ top: `${dust.top}%`, left: `${dust.left}%` }}
-                  animate={{ 
+                  animate={{
                     y: [0, dust.yAnim],
                     x: [0, dust.xAnim],
-                    opacity: [0, 0.8, 0] 
+                    opacity: [0, 0.8, 0]
                   }}
                   transition={{ duration: dust.duration, repeat: Infinity, ease: "linear", delay: dust.delay }}
                 />
@@ -809,8 +828,8 @@ const PKTab = memo(function PKTab() {
 
               {/* Spirit Particles - using memoized data */}
               {spiritParticlesData.map((p, i) => (
-                <motion.div 
-                  key={`spirit-${i}`} 
+                <motion.div
+                  key={`spirit-${i}`}
                   className="absolute w-1 h-1 bg-amber-400/50 rounded-full blur-[1px] shadow-[0_0_5px_rgba(251,191,36,0.5)]"
                   initial={{ x: p.xStart, y: typeof window !== 'undefined' ? window.innerHeight + 50 : 800 }}
                   animate={{ y: -100, opacity: [0, 1, 0], scale: [0.5, 1.5, 0.5] }}
@@ -830,11 +849,11 @@ const PKTab = memo(function PKTab() {
                   backgroundColor: particle.color,
                   left: `${particle.x}%`,
                   top: `${particle.y}%`,
-                  boxShadow: particle.type === 'crit' 
+                  boxShadow: particle.type === 'crit'
                     ? `0 0 12px ${particle.color}, 0 0 24px ${particle.color}, 0 0 36px ${particle.color}`
                     : particle.type === 'skill'
-                    ? `0 0 10px ${particle.color}, 0 0 20px ${particle.color}`
-                    : `0 0 6px ${particle.color}, 0 0 12px ${particle.color}`
+                      ? `0 0 10px ${particle.color}, 0 0 20px ${particle.color}`
+                      : `0 0 6px ${particle.color}, 0 0 12px ${particle.color}`
                 }}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{
@@ -843,9 +862,9 @@ const PKTab = memo(function PKTab() {
                   scale: [0, particle.type === 'crit' ? 2.5 : particle.type === 'skill' ? 2 : 1.5, 0],
                   opacity: [1, 0.8, 0]
                 }}
-                transition={{ 
-                  duration: 0.6, 
-                  ease: "easeOut" 
+                transition={{
+                  duration: 0.6,
+                  ease: "easeOut"
                 }}
               />
             ))}
@@ -858,7 +877,7 @@ const PKTab = memo(function PKTab() {
                     }`}
                   style={{ top: '35%' }}
                   initial={{ opacity: 1, scale: 0, rotate: 0 }}
-                  animate={{ 
+                  animate={{
                     opacity: [1, 0.8, 0],
                     scale: hitEffect.type === 'crit' ? [0, 3, 3.5] : hitEffect.type === 'skill' ? [0, 2.5, 3] : [0, 1.8, 2],
                     rotate: [0, 180, 360]
@@ -869,13 +888,12 @@ const PKTab = memo(function PKTab() {
                 >
                   {/* Core Energy Burst - Multiple Layers */}
                   <motion.div
-                    className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 blur-xl ${
-                      hitEffect.type === 'crit' 
-                        ? 'bg-gradient-radial from-yellow-300 via-yellow-500 to-yellow-700' 
-                        : hitEffect.type === 'skill' 
+                    className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 blur-xl ${hitEffect.type === 'crit'
+                      ? 'bg-gradient-radial from-yellow-300 via-yellow-500 to-yellow-700'
+                      : hitEffect.type === 'skill'
                         ? 'bg-gradient-radial from-amber-300 via-amber-500 to-amber-700'
                         : 'bg-gradient-radial from-cyan-200 via-cyan-400 to-blue-500'
-                    }`}
+                      }`}
                     style={{
                       width: hitEffect.type === 'crit' ? '120px' : hitEffect.type === 'skill' ? '100px' : '80px',
                       height: hitEffect.type === 'crit' ? '120px' : hitEffect.type === 'skill' ? '100px' : '80px',
@@ -892,13 +910,12 @@ const PKTab = memo(function PKTab() {
                   {[1, 2, 3].map((ring, idx) => (
                     <motion.div
                       key={ring}
-                      className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border-2 ${
-                        hitEffect.type === 'crit' 
-                          ? 'border-yellow-400' 
-                          : hitEffect.type === 'skill' 
-                          ? 'border-amber-400' 
+                      className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border-2 ${hitEffect.type === 'crit'
+                        ? 'border-yellow-400'
+                        : hitEffect.type === 'skill'
+                          ? 'border-amber-400'
                           : 'border-cyan-300'
-                      }`}
+                        }`}
                       style={{
                         width: `${80 + ring * 40}px`,
                         height: `${80 + ring * 40}px`,
@@ -922,9 +939,8 @@ const PKTab = memo(function PKTab() {
                       {[...Array(8)].map((_, i) => (
                         <motion.div
                           key={`ray-${i}`}
-                          className={`absolute top-1/2 left-1/2 origin-bottom ${
-                            hitEffect.type === 'crit' ? 'bg-yellow-400' : 'bg-amber-400'
-                          }`}
+                          className={`absolute top-1/2 left-1/2 origin-bottom ${hitEffect.type === 'crit' ? 'bg-yellow-400' : 'bg-amber-400'
+                            }`}
                           style={{
                             width: '4px',
                             height: hitEffect.type === 'crit' ? '120px' : '100px',
@@ -945,11 +961,10 @@ const PKTab = memo(function PKTab() {
                         />
                       ))}
                       {/* Radial Glow */}
-                      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-radial ${
-                        hitEffect.type === 'crit' 
-                          ? 'from-yellow-500/40 via-yellow-400/20 to-transparent' 
-                          : 'from-amber-500/40 via-amber-400/20 to-transparent'
-                      } blur-2xl`} />
+                      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-radial ${hitEffect.type === 'crit'
+                        ? 'from-yellow-500/40 via-yellow-400/20 to-transparent'
+                        : 'from-amber-500/40 via-amber-400/20 to-transparent'
+                        } blur-2xl`} />
                     </>
                   )}
                 </motion.div>
@@ -960,24 +975,23 @@ const PKTab = memo(function PKTab() {
             <AnimatePresence>
               {showDamageNumber && (
                 <motion.div
-                  className={`absolute z-[200] pointer-events-none font-black text-4xl sm:text-6xl font-title tracking-wider ${
-                    showDamageNumber.side === 'right' ? 'right-[20%] text-right' : 'left-[20%] text-left'
-                  }`}
+                  className={`absolute z-[200] pointer-events-none font-black text-4xl sm:text-6xl font-title tracking-wider ${showDamageNumber.side === 'right' ? 'right-[20%] text-right' : 'left-[20%] text-left'
+                    }`}
                   style={{ top: '25%' }}
                   initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                  animate={{ 
+                  animate={{
                     opacity: 1,
                     y: -100, // Nảy lên
                     scale: showDamageNumber.isCritical ? 1.5 : showDamageNumber.isSkill ? 1.3 : 1.2
                   }}
                   exit={{ opacity: 0, y: -150 }}
-                  transition={{ 
+                  transition={{
                     opacity: {
                       duration: 0.3,
                       ease: "easeOut"
                     },
                     y: {
-                      type: "spring", 
+                      type: "spring",
                       bounce: 0.5, // Physics bounce effect
                       stiffness: 200,
                       duration: 0.8
@@ -1016,19 +1030,18 @@ const PKTab = memo(function PKTab() {
                   ) : (
                     <div className="flex flex-col items-center gap-2">
                       <motion.span
-                        className={`text-3xl sm:text-4xl md:text-5xl font-bold font-mono ${
-                          showDamageNumber.isCritical
-                            ? 'text-yellow-200'
-                        : showDamageNumber.isSkill
+                        className={`text-3xl sm:text-4xl md:text-5xl font-bold font-mono ${showDamageNumber.isCritical
+                          ? 'text-yellow-200'
+                          : showDamageNumber.isSkill
                             ? 'text-amber-200'
                             : 'text-red-200'
-                        }`}
+                          }`}
                         style={{
                           textShadow: showDamageNumber.isCritical
                             ? '0 0 25px rgba(250,204,21,1), 0 0 50px rgba(250,204,21,0.8), 0 0 75px rgba(250,204,21,0.6)'
                             : showDamageNumber.isSkill
-                            ? '0 0 20px rgba(251,191,36,1), 0 0 40px rgba(251,191,36,0.8)'
-                            : '0 0 15px rgba(248,113,113,1), 0 0 30px rgba(248,113,113,0.8)',
+                              ? '0 0 20px rgba(251,191,36,1), 0 0 40px rgba(251,191,36,0.8)'
+                              : '0 0 15px rgba(248,113,113,1), 0 0 30px rgba(248,113,113,0.8)',
                           filter: 'drop-shadow(0 0 8px currentColor)'
                         }}
                         animate={{
@@ -1074,11 +1087,10 @@ const PKTab = memo(function PKTab() {
             <AnimatePresence>
               {showSlash && (
                 <motion.div
-                  className={`absolute top-1/2 -translate-y-1/2 pointer-events-none z-50 ${
-                    showSlash === 'right' ? 'right-[20%]' : 'left-[20%]'
-                  }`}
+                  className={`absolute top-1/2 -translate-y-1/2 pointer-events-none z-50 ${showSlash === 'right' ? 'right-[20%]' : 'left-[20%]'
+                    }`}
                   initial={{ opacity: 0, scale: 0.5, x: showSlash === 'right' ? -100 : 100 }}
-                  animate={{ 
+                  animate={{
                     opacity: [0, 1, 0],
                     scale: [0.5, 1.5, 2],
                     x: 0
@@ -1086,35 +1098,35 @@ const PKTab = memo(function PKTab() {
                   transition={{ duration: 0.3, ease: "easeOut" }}
                 >
                   {/* SVG Arc - Vết chém hình bán nguyệt sắc bén */}
-                  <svg 
-                    width="300" 
-                    height="300" 
-                    viewBox="0 0 100 100" 
+                  <svg
+                    width="300"
+                    height="300"
+                    viewBox="0 0 100 100"
                     className={`transform ${showSlash === 'right' ? '' : 'scale-x-[-1]'}`}
                   >
                     {/* Outer Arc - Main Slash */}
-                    <path 
-                      d="M 20 20 Q 80 50 20 80" 
-                      fill="none" 
-                      stroke={screenFlash === 'red' ? '#fbbf24' : '#38bdf8'} 
+                    <path
+                      d="M 20 20 Q 80 50 20 80"
+                      fill="none"
+                      stroke={screenFlash === 'red' ? '#fbbf24' : '#38bdf8'}
                       strokeWidth="3"
                       className="drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]"
                       style={{ filter: 'drop-shadow(0 0 8px currentColor)' }}
                     />
                     {/* Inner Arc - Bright Core */}
-                    <path 
-                      d="M 25 25 Q 75 50 25 75" 
-                      fill="none" 
-                      stroke="white" 
+                    <path
+                      d="M 25 25 Q 75 50 25 75"
+                      fill="none"
+                      stroke="white"
                       strokeWidth="4"
                       className="blur-[1px]"
                       opacity="0.9"
                     />
                     {/* Glow Effect */}
-                    <path 
-                      d="M 20 20 Q 80 50 20 80" 
-                      fill="none" 
-                      stroke={screenFlash === 'red' ? '#fbbf24' : '#38bdf8'} 
+                    <path
+                      d="M 20 20 Q 80 50 20 80"
+                      fill="none"
+                      stroke={screenFlash === 'red' ? '#fbbf24' : '#38bdf8'}
                       strokeWidth="1"
                       opacity="0.5"
                       className="blur-[3px]"
@@ -1197,25 +1209,24 @@ const PKTab = memo(function PKTab() {
                   <motion.div
                     variants={characterVariants}
                     animate={challengerAction}
-                    className={`relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full border-4 overflow-hidden shadow-[0_0_30px_rgba(59,130,246,0.5)] ${
-                      battlePhase === 'result' && battleResult.winner === 'challenger'
-                        ? 'border-green-400 ring-4 ring-green-400/50'
-                        : 'border-blue-400'
-                    }`}
+                    className={`relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full border-4 overflow-hidden shadow-[0_0_30px_rgba(59,130,246,0.5)] ${battlePhase === 'result' && battleResult.winner === 'challenger'
+                      ? 'border-green-400 ring-4 ring-green-400/50'
+                      : 'border-blue-400'
+                      }`}
                   >
                     {/* Outer Glow Effect */}
                     <div className="absolute inset-0 bg-blue-500/30 blur-2xl -z-10 rounded-full" />
-                    
+
                     {/* Aura effect when attacking */}
                     {challengerAction.toString().includes('attack') && (
                       <div className="absolute inset-0 bg-blue-500/60 blur-xl rounded-full scale-150 animate-pulse -z-10" />
                     )}
 
                     {battleResult.challenger.avatar ? (
-                      <img 
-                        src={battleResult.challenger.avatar || getUserAvatarUrl({ name: battleResult.challenger.username })} 
-                        alt="" 
-                        className="w-full h-full object-cover" 
+                      <img
+                        src={battleResult.challenger.avatar || getUserAvatarUrl({ name: battleResult.challenger.username })}
+                        alt=""
+                        className="w-full h-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-3xl sm:text-4xl md:text-5xl text-black font-bold">
@@ -1278,25 +1289,24 @@ const PKTab = memo(function PKTab() {
                   <motion.div
                     variants={characterVariants}
                     animate={opponentAction}
-                    className={`relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full border-4 overflow-hidden shadow-[0_0_30px_rgba(239,68,68,0.5)] ${
-                      battlePhase === 'result' && battleResult.winner === 'opponent'
-                        ? 'border-green-400 ring-4 ring-green-400/50'
-                        : 'border-red-400'
-                    }`}
+                    className={`relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full border-4 overflow-hidden shadow-[0_0_30px_rgba(239,68,68,0.5)] ${battlePhase === 'result' && battleResult.winner === 'opponent'
+                      ? 'border-green-400 ring-4 ring-green-400/50'
+                      : 'border-red-400'
+                      }`}
                   >
                     {/* Outer Glow Effect */}
                     <div className="absolute inset-0 bg-red-500/30 blur-2xl -z-10 rounded-full" />
-                    
+
                     {/* Aura effect when attacking */}
                     {opponentAction.toString().includes('attack') && (
                       <div className="absolute inset-0 bg-red-500/60 blur-xl rounded-full scale-150 animate-pulse -z-10" />
                     )}
 
                     {battleResult.opponent.avatar ? (
-                      <img 
-                        src={battleResult.opponent.avatar || getUserAvatarUrl({ name: battleResult.opponent.username })} 
-                        alt="" 
-                        className="w-full h-full object-cover" 
+                      <img
+                        src={battleResult.opponent.avatar || getUserAvatarUrl({ name: battleResult.opponent.username })}
+                        alt=""
+                        className="w-full h-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-3xl sm:text-4xl md:text-5xl text-black font-bold">
@@ -1320,19 +1330,19 @@ const PKTab = memo(function PKTab() {
               <AnimatePresence>
                 {battlePhase === 'result' && (
                   <motion.div
-                    className="absolute inset-0 z-[70] flex flex-col items-center justify-center bg-black/90 backdrop-blur-lg"
+                    className="absolute inset-0 z-[70] flex flex-col items-center justify-center bg-black/95"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.2 }}
                   >
                     {/* Scroll Container - Thánh Chỉ Style */}
                     <motion.div
-                      className="relative w-full max-w-sm mx-4 bg-[#1a103c] border-2 border-amber-600/50 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden"
-                      initial={{ scale: 0.8, y: 50, opacity: 0 }}
-                      animate={{ scale: 1, y: 0, opacity: 1 }}
-                      exit={{ scale: 0.8, opacity: 0 }}
-                      transition={{ type: 'spring', duration: 0.6, bounce: 0.3 }}
+                      className="relative w-full max-w-sm mx-4 bg-[#1a103c] border-2 border-amber-600/50 rounded-xl shadow-xl overflow-hidden"
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.9, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
                     >
                       {/* Decorative Header */}
                       <div className="bg-gradient-to-r from-amber-900/80 via-amber-700/80 to-amber-900/80 p-3 text-center border-b-2 border-amber-500/50">
@@ -1341,23 +1351,23 @@ const PKTab = memo(function PKTab() {
 
                       {/* Main Body */}
                       <div className="p-6 flex flex-col items-center gap-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDAgTCA0MCAwIEwgNDAgNDAgTCAwIDQwIFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIwLjUiIG9wYWNpdHk9IjAuMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')]">
-                        
+
                         {/* Stamp Animation - Đóng Dấu */}
-                        <motion.div 
+                        <motion.div
                           initial={{ scale: 3, opacity: 0, rotate: -20 }}
                           animate={{ scale: 1, opacity: 1, rotate: -5 }}
                           transition={{ type: 'spring', bounce: 0.5, duration: 0.8 }}
                           className={`border-4 rounded-lg p-4 sm:p-5 rotate-[-5deg] backdrop-blur-sm shadow-xl
-                            ${battleResult.isDraw 
-                              ? 'border-slate-500 bg-slate-900/20' 
-                              : battleResult.winner === 'challenger' 
-                              ? 'border-red-500 bg-red-900/20' 
-                              : 'border-red-500 bg-red-900/20'}
+                            ${battleResult.isDraw
+                              ? 'border-slate-500 bg-slate-900/20'
+                              : battleResult.winner === 'challenger'
+                                ? 'border-red-500 bg-red-900/20'
+                                : 'border-red-500 bg-red-900/20'}
                           `}
                         >
                           <h2 className={`text-3xl sm:text-4xl md:text-5xl font-black font-title uppercase tracking-widest text-center
-                            ${battleResult.isDraw 
-                              ? 'text-slate-300 drop-shadow-[0_0_15px_rgba(148,163,184,0.8)]' 
+                            ${battleResult.isDraw
+                              ? 'text-slate-300 drop-shadow-[0_0_15px_rgba(148,163,184,0.8)]'
                               : 'text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]'}
                           `}>
                             {battleResult.isDraw ? 'HÒA' : battleResult.winner === 'challenger' ? 'ĐẠI THẮNG' : 'BẠI TRẬN'}
@@ -1390,7 +1400,7 @@ const PKTab = memo(function PKTab() {
                         </div>
 
                         {/* Action Button */}
-                        <motion.button 
+                        <motion.button
                           onClick={closeBattleResult}
                           className="w-full py-3 bg-gradient-to-r from-amber-700 to-amber-900 text-amber-100 font-bold rounded-lg border border-amber-500/30 shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
                           whileHover={{ scale: 1.05 }}
@@ -1408,18 +1418,17 @@ const PKTab = memo(function PKTab() {
               <AnimatePresence>
                 {showSkillName && (
                   <motion.div
-                    className={`absolute top-1/2 -translate-y-1/2 z-[80] pointer-events-none ${
-                      showSkillName.side === 'left' ? 'left-[10%]' : 'right-[10%]'
-                    }`}
+                    className={`absolute top-1/2 -translate-y-1/2 z-[80] pointer-events-none ${showSkillName.side === 'left' ? 'left-[10%]' : 'right-[10%]'
+                      }`}
                     initial={{ opacity: 0, scale: 0.3, y: 50, rotateX: -90 }}
-                    animate={{ 
+                    animate={{
                       opacity: [0, 1, 1, 0],
                       scale: [0.3, 1.2, 1, 0.9],
                       y: [50, 0, 0, -30],
                       rotateX: [-90, 0, 0, 0]
                     }}
                     exit={{ opacity: 0, scale: 0.5, y: -50 }}
-                    transition={{ 
+                    transition={{
                       duration: 2,
                       times: [0, 0.2, 0.8, 1],
                       ease: [0.34, 1.56, 0.64, 1] // Bounce effect
@@ -1427,7 +1436,7 @@ const PKTab = memo(function PKTab() {
                   >
                     {/* Outer Glow */}
                     <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 blur-3xl opacity-60 scale-150 animate-pulse" />
-                    
+
                     {/* Main Text Container */}
                     <div className="relative">
                       {/* Background with gradient border */}
@@ -1436,11 +1445,11 @@ const PKTab = memo(function PKTab() {
                         {/* Decorative lines */}
                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-200 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-200 to-transparent" />
-                        
+
                         {/* Skill Name Text */}
                         <motion.h2
                           className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black font-title text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-yellow-200 text-center tracking-wider drop-shadow-[0_0_20px_rgba(251,191,36,1)]"
-                          animate={{ 
+                          animate={{
                             textShadow: [
                               '0 0 20px rgba(251,191,36,1), 0 0 40px rgba(251,191,36,0.8)',
                               '0 0 30px rgba(251,191,36,1), 0 0 60px rgba(251,191,36,1)',
@@ -1451,7 +1460,7 @@ const PKTab = memo(function PKTab() {
                         >
                           {showSkillName.name}
                         </motion.h2>
-                        
+
                         {/* Subtitle */}
                         <motion.p
                           className="text-xs sm:text-sm md:text-base text-amber-200 text-center mt-2 font-bold uppercase tracking-[0.3em]"

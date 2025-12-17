@@ -87,11 +87,7 @@ export function useProfileData(userId) {
       const publicPosts = publicData?.posts || publicData?.items || [];
       const allPosts = [...privatePosts, ...publicPosts];
 
-      console.log("[useProfileData] API Response - privateData:", privateData);
-      console.log("[useProfileData] API Response - publicData:", publicData);
-      console.log("[useProfileData] Extracted - privatePosts:", privatePosts.length, "publicPosts:", publicPosts.length);
-
-      const sortedPosts = allPosts.sort(
+                        const sortedPosts = allPosts.sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
 
@@ -103,8 +99,7 @@ export function useProfileData(userId) {
         posts: sortedPosts,
         recentImages: images,
       }));
-      console.log("[useProfileData] Loaded posts:", sortedPosts.length, "| Recent images:", images.length);
-    } catch (error) {
+          } catch (error) {
       console.error("Error loading posts:", error);
       setErrors(e => ({
         ...e,
@@ -134,8 +129,7 @@ export function useProfileData(userId) {
         friends: friendsList,
         friendsPagination: pagination,
       }));
-      console.log("[useProfileData] Loaded friends:", friendsList.length, "Page:", page);
-    } catch (err) {
+          } catch (err) {
       console.error("Error loading friends:", err);
       setErrors(e => ({
         ...e,
@@ -161,8 +155,7 @@ export function useProfileData(userId) {
           ...d,
           analytics: response.analytics || null,
         }));
-        console.log("[useProfileData] Loaded analytics:", response.analytics);
-      } catch (err) {
+              } catch (err) {
         console.error("Error loading analytics:", err);
         setErrors(e => ({
           ...e,
@@ -216,10 +209,8 @@ export function useProfileData(userId) {
 
   // ======= AUTO LOAD POSTS WHEN userId EXISTS =======
   useEffect(() => {
-    console.log("[useProfileData] useEffect triggered - userId:", userId);
-    if (!userId) {
-      console.log("[useProfileData] userId is null/undefined, skipping loadPosts");
-      return;
+        if (!userId) {
+            return;
     }
     console.log("[useProfileData] Calling loadPosts() for userId:", userId);
     loadPosts();
@@ -227,13 +218,7 @@ export function useProfileData(userId) {
 
   // Debug log on return
   useEffect(() => {
-    console.log("[useProfileData] Hook state:", {
-      userId,
-      data,
-      loading,
-      errors,
-    });
-  }, [userId, data, loading, errors]);
+      }, [userId, data, loading, errors]);
 
   return {
     data,

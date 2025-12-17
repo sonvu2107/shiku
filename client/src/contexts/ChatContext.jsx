@@ -29,8 +29,7 @@ export const ChatProvider = ({ children }) => {
       // Check if user is logged in before making API call
       const currentUser = getUser();
       if (!currentUser) {
-        console.log('[ChatContext] No user logged in, skipping unread count fetch');
-        setUnreadCount(0);
+                setUnreadCount(0);
         return;
       }
 
@@ -82,8 +81,7 @@ export const ChatProvider = ({ children }) => {
     // Check if user is logged in before fetching
     const currentUser = getUser();
     if (!currentUser) {
-      console.log('[ChatContext] No user logged in, skipping initial fetch');
-      return;
+            return;
     }
 
     fetchUnreadCount();

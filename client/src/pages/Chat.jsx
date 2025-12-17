@@ -276,8 +276,7 @@ export default function Chat() {
       if (currentConversationId) {
         const savedConversation = conversations.find(conv => conv._id === currentConversationId);
         if (savedConversation) {
-          console.log('Restoring saved conversation:', savedConversation._id);
-          setSelectedConversation(savedConversation);
+                    setSelectedConversation(savedConversation);
           return savedConversation;
         } else {
           // Clear saved conversation if it's no longer in the list
@@ -380,14 +379,11 @@ export default function Chat() {
     const handleConversationChange = async () => {
       if (selectedConversation) {
         try {
-          console.log('Loading conversation:', selectedConversation._id, selectedConversation.conversationType);
-
-          // Với chatbot conversation, Chatbot component tự quản lý messages
+                    // Với chatbot conversation, Chatbot component tự quản lý messages
           // Không cần load messages ở đây vì Chatbot component sẽ tự load từ chatbotAPI.getHistory()
           if (selectedConversation.conversationType === 'chatbot') {
             // Chatbot component tự quản lý messages, không cần load ở đây
-            console.log('Chatbot conversation selected - Chatbot component will handle messages');
-          } else {
+                      } else {
             // Với conversation bình thường, load messages và join socket room
             await loadMessages(selectedConversation._id);
             if (selectedConversation._id) {
@@ -738,8 +734,7 @@ export default function Chat() {
       console.error('handleSelectConversation: conversation._id is missing', conversation);
       return;
     }
-    console.log('Selecting conversation:', conversation._id, conversation.conversationType);
-    // Mark that user has manually selected - prevents auto-restore from overriding
+        // Mark that user has manually selected - prevents auto-restore from overriding
     userHasSelectedRef.current = true;
     setSelectedConversation(conversation);
     setShowChatWindow(true); // Hiển thị chat window trên mobile
@@ -756,13 +751,11 @@ export default function Chat() {
 
   const handleOpenChatbotPanel = async () => {
     try {
-      console.log('Opening chatbot panel...');
-      // Load chatbot conversation từ API
+            // Load chatbot conversation từ API
       const response = await chatbotAPI.getConversation();
       if (response.success && response.data) {
         const chatbotConv = response.data;
-        console.log('Chatbot conversation loaded:', chatbotConv._id);
-        // Chọn chatbot conversation (không thêm vào danh sách vì đã có nút riêng)
+                // Chọn chatbot conversation (không thêm vào danh sách vì đã có nút riêng)
         setSelectedConversation(chatbotConv);
         setShowChatWindow(true);
         // Save current conversation

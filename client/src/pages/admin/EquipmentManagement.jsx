@@ -128,10 +128,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
 
   // Debug: Log khi component mount
   useEffect(() => {
-    console.log('[EquipmentManagement] Component mounted');
-    console.log('[EquipmentManagement] Filters:', filters);
-    console.log('[EquipmentManagement] Equipments count:', equipments.length);
-  }, []);
+              }, []);
 
   // Ẩn navbar và floating dock
   useEffect(() => {
@@ -161,13 +158,10 @@ const EquipmentManagement = memo(function EquipmentManagement() {
 
       console.log('[EquipmentManagement] Loading equipments with params:', params.toString());
       const response = await api(`/api/equipment/admin/list?${params}`);
-      console.log('[EquipmentManagement] Response:', response);
-
-      if (response.success) {
+            if (response.success) {
         setEquipments(response.data || []);
         setPagination(prev => ({ ...prev, ...response.pagination }));
-        console.log('[EquipmentManagement] Loaded', response.data?.length || 0, 'equipments');
-      } else {
+              } else {
         console.error('[EquipmentManagement] API returned success=false');
         setEquipments([]);
       }

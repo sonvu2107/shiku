@@ -13,40 +13,40 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
   const [shouldAnimate, setShouldAnimate] = useState(false);
   const prevEquippedIdRef = useRef(null);
   const { unequipEquipment } = useCultivation();
-  
+
   // Map slotType to equipped slot names (direct mapping)
   const equippedSlotName = slotType;
   const equippedId = cultivation?.equipped?.[equippedSlotName];
-  
+
   // Tìm equipment trong inventory dựa trên equipped slot
   // equippedId có thể là ObjectId object hoặc string
-  const equippedWeapon = equippedId 
+  const equippedWeapon = equippedId
     ? cultivation?.inventory?.find(item => {
-        // Convert tất cả về string để so sánh
-        const itemIdStr = item.itemId?.toString() || item.itemId;
-        const equippedIdStr = equippedId?.toString?.() || equippedId?.toString() || String(equippedId);
-        
-        // So sánh trực tiếp
-        if (itemIdStr === equippedIdStr) return true;
-        
-        // So sánh với metadata._id
-        if (item.metadata?._id) {
-          const metadataIdStr = item.metadata._id?.toString?.() || item.metadata._id?.toString() || String(item.metadata._id);
-          if (metadataIdStr === equippedIdStr) return true;
-        }
-        
-        // So sánh với _id nếu có
-        if (item._id) {
-          const itemIdStr2 = item._id?.toString?.() || item._id?.toString() || String(item._id);
-          if (itemIdStr2 === equippedIdStr) return true;
-        }
-        
-        return false;
-      })
+      // Convert tất cả về string để so sánh
+      const itemIdStr = item.itemId?.toString() || item.itemId;
+      const equippedIdStr = equippedId?.toString?.() || equippedId?.toString() || String(equippedId);
+
+      // So sánh trực tiếp
+      if (itemIdStr === equippedIdStr) return true;
+
+      // So sánh với metadata._id
+      if (item.metadata?._id) {
+        const metadataIdStr = item.metadata._id?.toString?.() || item.metadata._id?.toString() || String(item.metadata._id);
+        if (metadataIdStr === equippedIdStr) return true;
+      }
+
+      // So sánh với _id nếu có
+      if (item._id) {
+        const itemIdStr2 = item._id?.toString?.() || item._id?.toString() || String(item._id);
+        if (itemIdStr2 === equippedIdStr) return true;
+      }
+
+      return false;
+    })
     : null;
 
-  const rarity = equippedWeapon 
-    ? (RARITY_COLORS[equippedWeapon.rarity || equippedWeapon.metadata?.rarity] || RARITY_COLORS.common) 
+  const rarity = equippedWeapon
+    ? (RARITY_COLORS[equippedWeapon.rarity || equippedWeapon.metadata?.rarity] || RARITY_COLORS.common)
     : null;
   const ItemIcon = equippedWeapon ? getItemIcon(equippedWeapon) : null;
 
@@ -66,21 +66,21 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
 
   // Detect equipment changes và trigger animation
   useEffect(() => {
-    const currentEquippedId = equippedWeapon?.itemId?.toString() || 
-                              equippedWeapon?.metadata?._id?.toString() || 
-                              equippedWeapon?._id?.toString() || 
-                              null;
-    
+    const currentEquippedId = equippedWeapon?.itemId?.toString() ||
+      equippedWeapon?.metadata?._id?.toString() ||
+      equippedWeapon?._id?.toString() ||
+      null;
+
     if (currentEquippedId && currentEquippedId !== prevEquippedIdRef.current) {
       // Equipment đã thay đổi - trigger animation
       setShouldAnimate(true);
       prevEquippedIdRef.current = currentEquippedId;
-      
+
       // Reset animation flag sau khi animation hoàn thành
       const timer = setTimeout(() => {
         setShouldAnimate(false);
       }, 500);
-      
+
       return () => clearTimeout(timer);
     } else if (!currentEquippedId) {
       prevEquippedIdRef.current = null;
@@ -88,7 +88,7 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
   }, [equippedWeapon]);
 
   return (
-    <motion.div 
+    <motion.div
       className={`relative bg-black/40 border-2 ${equippedWeapon ? rarity?.border || 'border-amber-500/30' : 'border-slate-700/50 border-dashed'} rounded-xl p-3 md:p-4 transition-all hover:scale-[1.02] hover:z-[100] group`}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
@@ -166,11 +166,11 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
                   // Bỏ qua elemental_damage (là object/Map)
                   if (key === 'elemental_damage') return false;
                   // Chỉ hiển thị stats có giá trị > 0 và là number (không phải object/array)
-                  return value != null && 
-                         value !== 0 && 
-                         typeof value === 'number' && 
-                         !isNaN(value) &&
-                         isFinite(value);
+                  return value != null &&
+                    value !== 0 &&
+                    typeof value === 'number' &&
+                    !isNaN(value) &&
+                    isFinite(value);
                 })
                 .slice(0, 5) // Hiển thị tối đa 5 stats đầu tiên
                 .map(([stat, value]) => {
@@ -195,7 +195,7 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
                   const numValue = typeof value === 'number' ? value : (typeof value === 'string' ? parseFloat(value) : 0);
                   const displayValue = numValue > 0 ? `+${numValue.toLocaleString()}` : numValue.toLocaleString();
                   const suffix = (stat === 'crit_rate' || stat === 'criticalRate' || stat === 'crit_damage' || stat === 'dodge' || stat === 'evasion') ? '%' : '';
-                  
+
                   return (
                     <div key={stat} className="flex justify-between items-center text-[9px]">
                       <span className="text-slate-400 truncate">{statInfo.label}:</span>
@@ -207,7 +207,7 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
                 })}
             </div>
           )}
-          
+
           {/* Nút Tháo trang bị */}
           <motion.button
             onClick={async (e) => {
@@ -236,10 +236,10 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
 
       {/* Hover Effect */}
       <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-500/0 to-amber-500/0 group-hover:from-amber-500/5 group-hover:to-amber-500/5 transition-all pointer-events-none"></div>
-      
+
       {/* Tooltip hiển thị chi tiết stats khi hover */}
       {showTooltip && equippedWeapon && weaponStats && (
-        <div className="absolute z-50 left-full ml-3 top-0 w-72 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-amber-500/60 rounded-xl p-4 shadow-2xl backdrop-blur-md">
+        <div className="absolute z-50 left-full ml-3 top-0 w-72 bg-slate-900 border-2 border-amber-500/60 rounded-xl p-4 shadow-2xl">
           {/* Header với ảnh và tên */}
           <div className="flex items-start gap-3 mb-3 pb-3 border-b border-amber-500/40">
             {(equippedWeapon.metadata?.img || equippedWeapon.img) && (
@@ -274,17 +274,17 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
                 {equippedWeapon.metadata?.equipmentType && (
                   <span className="text-[10px] px-2 py-0.5 rounded bg-slate-700/50 text-slate-300 border border-slate-600">
                     {equippedWeapon.metadata.equipmentType === 'weapon' ? 'Vũ Khí' :
-                     equippedWeapon.metadata.equipmentType === 'magic_treasure' ? 'Pháp Bảo' :
-                     equippedWeapon.metadata.equipmentType === 'armor' ? 'Giáp' :
-                     equippedWeapon.metadata.equipmentType === 'accessory' ? 'Trang Sức' :
-                     equippedWeapon.metadata.equipmentType === 'power_item' ? 'Linh Khí' :
-                     equippedWeapon.metadata.equipmentType}
+                      equippedWeapon.metadata.equipmentType === 'magic_treasure' ? 'Pháp Bảo' :
+                        equippedWeapon.metadata.equipmentType === 'armor' ? 'Giáp' :
+                          equippedWeapon.metadata.equipmentType === 'accessory' ? 'Trang Sức' :
+                            equippedWeapon.metadata.equipmentType === 'power_item' ? 'Linh Khí' :
+                              equippedWeapon.metadata.equipmentType}
                   </span>
                 )}
               </div>
             </div>
           </div>
-          
+
           {/* Thông số */}
           <div className="space-y-2">
             <p className="text-sm text-amber-400 font-bold mb-2 flex items-center gap-2">
@@ -297,11 +297,11 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
                   // Bỏ qua elemental_damage (là object/Map)
                   if (key === 'elemental_damage') return false;
                   // Chỉ hiển thị stats có giá trị > 0 và là number (không phải object/array)
-                  return value != null && 
-                         value !== 0 && 
-                         typeof value === 'number' && 
-                         !isNaN(value) &&
-                         isFinite(value);
+                  return value != null &&
+                    value !== 0 &&
+                    typeof value === 'number' &&
+                    !isNaN(value) &&
+                    isFinite(value);
                 })
                 .map(([stat, value]) => {
                   const statLabels = {
@@ -328,7 +328,7 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
                   const numValue = typeof value === 'number' ? value : (typeof value === 'string' ? parseFloat(value) : 0);
                   const displayValue = numValue > 0 ? `+${numValue.toLocaleString()}` : numValue.toLocaleString();
                   const suffix = (stat === 'crit_rate' || stat === 'criticalRate' || stat === 'crit_damage' || stat === 'dodge' || stat === 'evasion' || stat === 'hit_rate') ? '%' : '';
-                  
+
                   return (
                     <div key={stat} className="flex justify-between items-center text-sm py-0.5">
                       <span className="text-slate-300 font-medium">{statInfo.label}:</span>
@@ -339,7 +339,7 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
                   );
                 })}
             </div>
-            
+
             {/* Hiển thị elemental damage nếu có */}
             {weaponStats.elemental_damage && Object.keys(weaponStats.elemental_damage).length > 0 && (
               <div className="pt-3 mt-3 border-t border-amber-500/30">
@@ -372,7 +372,7 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
                 </div>
               </div>
             )}
-            
+
             {/* Hiển thị special effect nếu có */}
             {(equippedWeapon.metadata?.special_effect || equippedWeapon.special_effect) && (
               <div className="pt-3 mt-3 border-t border-amber-500/30">
@@ -385,7 +385,7 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
                 </p>
               </div>
             )}
-            
+
             {/* Hiển thị level requirement nếu có */}
             {(equippedWeapon.metadata?.level_required || equippedWeapon.level_required) && (
               <div className="pt-2 mt-2 text-xs text-slate-400">

@@ -86,9 +86,9 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
         return (
           <motion.div
             key={userId || idx}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: idx * 0.03 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.15 }}
             className={`spirit-tablet rounded-lg p-3 flex items-center gap-3 ${entry.isCurrentUser ? 'border-amber-500/50 bg-amber-900/20' : ''
               }`}
           >

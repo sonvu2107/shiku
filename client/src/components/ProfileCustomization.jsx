@@ -255,16 +255,12 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
         return;
       }
 
-      console.log('[ProfileCustomization] Saving data:', updateData);
-
-      const response = await api("/api/auth/update-profile", {
+            const response = await api("/api/auth/update-profile", {
         method: "PUT",
         body: updateData
       });
 
-      console.log('[ProfileCustomization] API Response:', response);
-
-      setSuccess("Cập nhật profile thành công!");
+            setSuccess("Cập nhật profile thành công!");
       onUpdate?.();
 
       setTimeout(() => {

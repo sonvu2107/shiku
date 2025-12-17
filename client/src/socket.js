@@ -192,8 +192,7 @@ class SocketService {
 
     // Event handlers cho connection
     this.socket.on('connect', () => {
-      console.log('Socket connected successfully');
-      // Join user room để nhận real-time updates
+            // Join user room để nhận real-time updates
       const targetUser = this.currentUser;
       if (targetUser && targetUser._id) {
         this.socket.emit('join-user', targetUser._id);
@@ -210,16 +209,13 @@ class SocketService {
     });
     
     this.socket.io.on('reconnect_attempt', (attempt) => {
-      console.log(`Socket reconnection attempt ${attempt}`);
-    });
+          });
     
     this.socket.io.on('reconnect', (attempt) => {
-      console.log(`Socket reconnected after ${attempt} attempts`);
-    });
+          });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
-    });
+          });
 
     // Global message listener for sound and UI updates
     this.socket.on('new-message', (message) => {

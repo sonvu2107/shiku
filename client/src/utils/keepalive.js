@@ -17,7 +17,7 @@ const pingServer = async () => {
         'Content-Type': 'application/json',
       },
     });
-    
+
     if (response.ok) {
       console.log('✅ Server keepalive ping successful:', {
         status: response.status,
@@ -39,34 +39,32 @@ const pingServer = async () => {
  */
 export const startKeepAlive = (intervalMinutes = 10, onlyWhenActive = true) => {
   if (isKeepAliveActive) {
-    console.log('🔄 KeepAlive service is already running');
     return;
   }
 
   const intervalMs = intervalMinutes * 60 * 1000;
-  
-  console.log(`🚀 Starting KeepAlive service (${intervalMinutes} min intervals)`);
-  
+
+  console.log(` Starting KeepAlive service (${intervalMinutes} min intervals)`);
+
   // Ping ngay lập tức
   pingServer();
-  
+
   // Setup interval
   keepAliveInterval = setInterval(() => {
     // Chỉ ping khi tab active (nếu được bật)
     if (onlyWhenActive && document.hidden) {
-      console.log('⏸️ Tab inactive, skipping keepalive ping');
       return;
     }
-    
+
     pingServer();
   }, intervalMs);
-  
+
   isKeepAliveActive = true;
-  
+
   // Cleanup khi page unload
   const cleanup = () => stopKeepAlive();
   window.addEventListener('beforeunload', cleanup);
-  
+
   return cleanup;
 };
 
@@ -78,7 +76,6 @@ export const stopKeepAlive = () => {
     clearInterval(keepAliveInterval);
     keepAliveInterval = null;
     isKeepAliveActive = false;
-    console.log('🛑 KeepAlive service stopped');
   }
 };
 
@@ -95,22 +92,22 @@ export const getKeepAliveStatus = () => ({
  */
 export const useKeepAlive = (enabled = true, intervalMinutes = 10) => {
   const [status, setStatus] = React.useState(getKeepAliveStatus());
-  
+
   React.useEffect(() => {
     if (!enabled) return;
-    
+
     const cleanup = startKeepAlive(intervalMinutes, true);
-    
+
     // Update status
     const updateStatus = () => setStatus(getKeepAliveStatus());
     const statusInterval = setInterval(updateStatus, 1000);
-    
+
     return () => {
       cleanup?.();
       clearInterval(statusInterval);
     };
   }, [enabled, intervalMinutes]);
-  
+
   return status;
 };
 
