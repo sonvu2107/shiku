@@ -488,16 +488,18 @@ const CultivationContent = memo(function CultivationContent() {
       <AnimatePresence>
         {modalOpen && (
           <motion.div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
             <motion.div
-              className="relative bg-[#0f172a] border-y-2 border-amber-600 p-8 max-w-sm text-center shadow-[0_0_100px_rgba(217,119,6,0.3)]"
-              initial={{ scale: 0.8, opacity: 0 }}
+              className="relative bg-[#0f172a] border-y-2 border-amber-600 p-8 max-w-sm text-center shadow-xl"
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.15 }}
             >
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-[#0f172a] border-2 border-amber-600 rotate-45 flex items-center justify-center z-10">
                 <span className="text-xl font-bold text-amber-500 -rotate-45">✓</span>

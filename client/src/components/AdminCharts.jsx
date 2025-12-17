@@ -217,8 +217,8 @@ export default function AdminCharts() {
             </div>
 
             {/* Chart - responsive height */}
-            <div className="h-[250px] sm:h-[350px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[250px] sm:h-[350px] w-full" style={{ minWidth: 0, minHeight: 250 }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
                     {chartType === "bar" ? (
                         <BarChart
                             data={chartData}

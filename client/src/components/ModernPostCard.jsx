@@ -496,44 +496,28 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         <div className="flex items-center gap-2 sm:gap-3" onClick={e => e.stopPropagation()}>
           <Link to={`/user/${post.author?._id}`} className="relative group/avatar flex-shrink-0">
             <div className="ring-2 ring-transparent group-hover/avatar:ring-blue-100 dark:group-hover/avatar:ring-blue-900/50 rounded-full transition-all">
-              {/* Mobile: 36px, Tablet: 40px, Desktop: 44px */}
-              <UserAvatar
-                user={post.author}
-                size={36}
-                showFrame={true}
-                showBadge={true}
-                className="sm:hidden rounded-full"
-              />
-              <UserAvatar
-                user={post.author}
-                size={40}
-                showFrame={true}
-                showBadge={true}
-                className="hidden sm:block md:hidden rounded-full"
-              />
               <UserAvatar
                 user={post.author}
                 size={44}
                 showFrame={true}
                 showBadge={true}
-                className="hidden md:block rounded-full"
+                className="rounded-full"
               />
             </div>
           </Link>
           <div className="flex flex-col min-w-0">
             <Link
               to={`/user/${post.author?._id}`}
-              className="font-bold text-[16px] sm:text-[15px] md:text-base text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-1"
+              className="font-bold text-base text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-1"
               onClick={e => e.stopPropagation()}
             >
               <UserName user={post.author} maxLength={20} />
             </Link>
-            {/* Mobile: more compact metadata */}
-            <div className="flex items-center gap-1 sm:gap-1.5 text-[12px] sm:text-[11px] md:text-xs text-gray-400 dark:text-gray-500 font-medium">
+            <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 font-medium">
               <span>{timeAgo}</span>
               {isPrivate && (
-                <span className="flex items-center gap-0.5 bg-gray-50 dark:bg-white/5 px-1 sm:px-1.5 py-0.5 rounded text-gray-500 text-[9px] sm:text-[10px]">
-                  🔒 <span className="hidden sm:inline">Riêng tư</span>
+                <span className="flex items-center gap-0.5 bg-gray-50 dark:bg-white/5 px-1.5 py-0.5 rounded text-gray-500 text-[10px]">
+                  🔒 <span>Riêng tư</span>
                 </span>
               )}
             </div>
@@ -602,7 +586,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         {/* Title - Mobile: smaller */}
         {/* Hide title if it's auto-generated (title is prefix of content) */}
         {post.title && !(post.content && post.content.trim().startsWith(post.title.replace(/…$/, '').trim())) && (
-          <h3 className="text-[17px] sm:text-lg md:text-xl font-bold text-gray-900 dark:text-gray-50 mb-1.5 sm:mb-2 leading-snug line-clamp-2">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-50 mb-2 leading-snug line-clamp-2">
             {post.title}
           </h3>
         )}
@@ -659,7 +643,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 src={getOptimizedImageUrl(displayMedia.url, 800)}
                 alt={post.title || "Post media"}
                 priority={isFirst}
-                className="w-full h-auto object-cover transition-transform duration-500 group-hover/media:scale-[1.02] max-h-[300px] sm:max-h-[450px] md:max-h-[550px]"
+                className="w-full h-auto object-cover transition-transform duration-500 group-hover/media:scale-[1.02] max-h-[550px]"
               />
             )}
           </div>
@@ -758,12 +742,9 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               ) : (
                 <ThumbsUpIcon className="w-5 h-5 sm:w-6 sm:h-6 group-hover/btn:scale-110 transition-transform" />
               )}
-              {/* Mobile: subtle count; Desktop: full text */}
-              <span className="hidden sm:inline text-[13px] sm:text-sm font-semibold">
+              {/* Always show label and count */}
+              <span className="text-sm font-semibold">
                 {totalEmotes > 0 ? totalEmotes.toLocaleString() : "Thích"}
-              </span>
-              <span className="sm:hidden text-[13px] font-semibold">
-                {totalEmotes > 0 ? totalEmotes.toLocaleString() : ""}
               </span>
             </button>
 
@@ -831,14 +812,11 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               e.stopPropagation();
               navigate(`/post/${post.slug || post._id}`);
             }}
-            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-300 transition-colors active:scale-95 touch-manipulation"
+            className="flex items-center gap-2 px-3 py-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-300 transition-colors active:scale-95 touch-manipulation"
           >
-            <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
-            <span className="hidden sm:inline text-[13px] sm:text-sm font-semibold">
+            <MessageCircle className="w-6 h-6" strokeWidth={2.5} />
+            <span className="text-sm font-semibold">
               {post.commentCount || "Bình luận"}
-            </span>
-            <span className="sm:hidden text-[13px] font-semibold">
-              {(post.commentCount || 0) > 0 ? post.commentCount : ""}
             </span>
           </button>
 

@@ -21,18 +21,23 @@ import { useChat } from "../contexts/ChatContext";
 import BackToTop from "../components/BackToTop";
 import PullToRefresh from "../components/PullToRefresh";
 
-// --- VISUAL COMPONENTS FROM LANDING PAGE ---
+// --- VISUAL COMPONENTS ---
 const NoiseOverlay = () => (
-  <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.03] mix-blend-overlay"
+  <div className="hidden md:block fixed inset-0 z-0 pointer-events-none opacity-[0.03] mix-blend-overlay"
     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
   />
 );
 
 const GridPattern = () => {
   return (
-    <div className="fixed inset-0 z-0 h-full w-full bg-white dark:bg-black bg-[linear-gradient(to_right,#80808005_1px,transparent_1px),linear-gradient(to_bottom,#80808005_1px,transparent_1px)] bg-[size:24px_24px]">
-      <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-neutral-400 opacity-[0.02] blur-[120px] dark:bg-white dark:opacity-[0.015]"></div>
-    </div>
+    <>
+      {/* Desktop: Full grid pattern with blur effect */}
+      <div className="hidden md:block fixed inset-0 z-0 h-full w-full bg-white dark:bg-black bg-[linear-gradient(to_right,#80808005_1px,transparent_1px),linear-gradient(to_bottom,#80808005_1px,transparent_1px)] bg-[size:24px_24px]">
+        <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-neutral-400 opacity-[0.02] blur-[120px] dark:bg-white dark:opacity-[0.015]"></div>
+      </div>
+      {/* Mobile: Simple solid background only - no GPU-heavy effects */}
+      <div className="md:hidden fixed inset-0 z-0 h-full w-full bg-white dark:bg-black"></div>
+    </>
   );
 };
 

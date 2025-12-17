@@ -106,7 +106,7 @@ const router = express.Router();
 router.get("/my-posts", authRequired, async (req, res, next) => {
   try {
     const { page = 1, limit = 20, status } = req.query;
-    const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
+    const sanitizedLimit = Math.min(parseInt(limit) || 20, 500); // Increased max limit to 500
     const userId = req.user._id.toString();
     const statusFilter = status || "all";
 
@@ -231,7 +231,7 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
 router.get("/user-posts", authOptional, async (req, res, next) => {
   try {
     const { userId, page = 1, limit = 20 } = req.query;
-    const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
+    const sanitizedLimit = Math.min(parseInt(limit) || 20, 500); // Increased max limit to 500
 
     if (!userId || userId === "undefined") {
       return res.status(400).json({ error: "User ID is required" });
@@ -319,7 +319,7 @@ router.get("/feed/smart", authOptional, async (req, res, next) => {
     });
 
     const { page = 1, limit = 20 } = req.query;
-    const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
+    const sanitizedLimit = Math.min(parseInt(limit) || 20, 500); // Increased max limit to 500
     const userId = req.user?._id?.toString() || null;
     const pg = Number(page) || 1;
 
@@ -407,7 +407,7 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
   try {
     const { page = 1, limit = 20, tag, q, sort = "newest" } = req.query;
     const pg = Math.max(1, Number(page) || 1);
-    const lim = Math.min(parseInt(limit) || 20, 50);
+    const lim = Math.min(parseInt(limit) || 20, 500);
 
     // Determine sort option
     let sortOption = { createdAt: -1 }; // Default newest
@@ -578,7 +578,7 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
 router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" }), async (req, res, next) => {
   try {
     const { page = 1, limit = 20, tag, author, q, status = "published", sort = "newest" } = req.query;
-    const sanitizedLimit = Math.min(parseInt(limit) || 20, 50); // Hard limit max 50
+    const sanitizedLimit = Math.min(parseInt(limit) || 20, 500); // Increased max limit to 500
     const pageNum = Math.max(1, parseInt(page) || 1);
 
     // NOTE: responseCache middleware handles caching at a higher level
@@ -620,8 +620,10 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
       filter.group = { $eq: null };
     } else {
       filter.status = "published";
-      // Exclude posts in groups from Home page
-      filter.group = { $eq: null };
+      // Exclude posts in groups from Home page (no author specified), but allow them for user profiles
+      if (!author || author === "undefined") {
+        filter.group = { $eq: null };
+      }
     }
 
     if (tag) filter.tags = tag;
@@ -683,6 +685,17 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
         }
       },
       { $unwind: { path: "$authorData", preserveNullAndEmptyArrays: true } },
+      // Lookup group
+      {
+        $lookup: {
+          from: "groups",
+          localField: "group",
+          foreignField: "_id",
+          as: "groupData",
+          pipeline: [{ $project: { name: 1, coverUrl: 1, privacy: 1 } }]
+        }
+      },
+      { $unwind: { path: "$groupData", preserveNullAndEmptyArrays: true } },
       // Project only needed fields - IMPORTANT: _id is excluded by default in $project, must explicitly include
       {
         $project: {
@@ -702,7 +715,8 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
           emoteCount: { $size: { $ifNull: ["$emotes", []] } }, // Total emote count for stats
           hasPoll: 1,
           youtubeUrl: 1,
-          author: "$authorData"
+          author: "$authorData",
+          group: "$groupData"
         }
       }
     ];
@@ -1727,4 +1741,3 @@ router.get("/featured/:userId", authOptional, async (req, res, next) => {
 });
 
 export default router;
-

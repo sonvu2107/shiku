@@ -76,8 +76,8 @@ export function useProfileData(userId) {
       // Logic from the old Profile:
       // const userId = user._id || user.id;
       const [publicData, privateData] = await Promise.all([
-        api(`/api/posts?author=${userId}&status=published&limit=50`),
-        api(`/api/posts?author=${userId}&status=private&limit=50`),
+        api(`/api/posts?author=${userId}&status=published&limit=500`),
+        api(`/api/posts?author=${userId}&status=private&limit=500`),
       ]);
 
       // Backend returns { posts: [...], pagination: {...} } from posts-secure.js
@@ -87,7 +87,7 @@ export function useProfileData(userId) {
       const publicPosts = publicData?.posts || publicData?.items || [];
       const allPosts = [...privatePosts, ...publicPosts];
 
-                        const sortedPosts = allPosts.sort(
+      const sortedPosts = allPosts.sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
 
@@ -99,7 +99,7 @@ export function useProfileData(userId) {
         posts: sortedPosts,
         recentImages: images,
       }));
-          } catch (error) {
+    } catch (error) {
       console.error("Error loading posts:", error);
       setErrors(e => ({
         ...e,
@@ -129,7 +129,7 @@ export function useProfileData(userId) {
         friends: friendsList,
         friendsPagination: pagination,
       }));
-          } catch (err) {
+    } catch (err) {
       console.error("Error loading friends:", err);
       setErrors(e => ({
         ...e,
@@ -155,7 +155,7 @@ export function useProfileData(userId) {
           ...d,
           analytics: response.analytics || null,
         }));
-              } catch (err) {
+      } catch (err) {
         console.error("Error loading analytics:", err);
         setErrors(e => ({
           ...e,
@@ -209,8 +209,8 @@ export function useProfileData(userId) {
 
   // ======= AUTO LOAD POSTS WHEN userId EXISTS =======
   useEffect(() => {
-        if (!userId) {
-            return;
+    if (!userId) {
+      return;
     }
     console.log("[useProfileData] Calling loadPosts() for userId:", userId);
     loadPosts();
@@ -218,7 +218,7 @@ export function useProfileData(userId) {
 
   // Debug log on return
   useEffect(() => {
-      }, [userId, data, loading, errors]);
+  }, [userId, data, loading, errors]);
 
   return {
     data,

@@ -4,10 +4,66 @@
 /* Chỉ áp dụng cho mobile nhỏ */
 @media (max-width: 640px) {
 
-    /* Giảm backdrop-blur nhẹ - tiết kiệm GPU */
-    .backdrop-blur-2xl {
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
+    /* TẮT HOÀN TOÀN backdrop-blur trên mobile để tránh GPU rendering bug (sọc dọc) */
+    /* Chrome Android có thể bị lỗi render với backdrop-blur trên một số thiết bị */
+    .backdrop-blur-xl,
+    .backdrop-blur-2xl,
+    .backdrop-blur-3xl {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    /* Tắt mix-blend-mode trên mobile - gây GPU rendering issues */
+    .mix-blend-overlay,
+    .mix-blend-multiply,
+    .mix-blend-screen,
+    .mix-blend-soft-light {
+        mix-blend-mode: normal !important;
+        background-image: none !important;
+        opacity: 0 !important;
+    }
+
+    /* Tắt blur lớn trên mobile - gây lag và rendering artifacts */
+    .blur-\[100px\],
+    .blur-\[120px\],
+    .blur-\[150px\] {
+        filter: none !important;
+        -webkit-filter: none !important;
+    }
+
+    /* Thay thế bằng background opacity cao hơn khi tắt blur */
+    .bg-white\/70,
+    .bg-black\/70,
+    .bg-white\/80,
+    .bg-black\/80 {
+        background-color: #ffffff !important;
+    }
+
+    .dark .bg-white\/70,
+    .dark .bg-black\/70,
+    .dark .bg-white\/80,
+    .dark .bg-black\/80 {
+        background-color: #111111 !important;
+    }
+
+    /* Navbar solid background trên mobile - thay thế cho blur effect */
+    /* Target cụ thể cấu trúc Navbar trong Home.jsx */
+    nav[role="navigation"]>div.fixed,
+    nav[role="navigation"],
+    nav.fixed,
+    .sticky {
+        background-color: #ffffff !important;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    .dark nav[role="navigation"]>div.fixed,
+    .dark nav[role="navigation"],
+    .dark nav.fixed,
+    .dark .sticky {
+        background-color: #111111 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
 
     /* Tối ưu shadow */

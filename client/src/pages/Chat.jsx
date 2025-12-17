@@ -276,7 +276,7 @@ export default function Chat() {
       if (currentConversationId) {
         const savedConversation = conversations.find(conv => conv._id === currentConversationId);
         if (savedConversation) {
-                    setSelectedConversation(savedConversation);
+          setSelectedConversation(savedConversation);
           return savedConversation;
         } else {
           // Clear saved conversation if it's no longer in the list
@@ -379,11 +379,11 @@ export default function Chat() {
     const handleConversationChange = async () => {
       if (selectedConversation) {
         try {
-                    // Với chatbot conversation, Chatbot component tự quản lý messages
+          // Với chatbot conversation, Chatbot component tự quản lý messages
           // Không cần load messages ở đây vì Chatbot component sẽ tự load từ chatbotAPI.getHistory()
           if (selectedConversation.conversationType === 'chatbot') {
             // Chatbot component tự quản lý messages, không cần load ở đây
-                      } else {
+          } else {
             // Với conversation bình thường, load messages và join socket room
             await loadMessages(selectedConversation._id);
             if (selectedConversation._id) {
@@ -594,6 +594,7 @@ export default function Chat() {
       if (selectedConversation?._id === conversationId) {
         setSelectedConversation(null);
         setMessages([]);
+        setShowChatWindow(false); // Return to conversation list on mobile
         // Clear current conversation in backend too
         await chatAPI.setCurrentConversation(null);
       }
@@ -617,6 +618,7 @@ export default function Chat() {
       if (selectedConversation?._id === conversationId) {
         setSelectedConversation(null);
         setMessages([]);
+        setShowChatWindow(false); // Return to conversation list on mobile
       }
     } catch (error) {
       showError('Có lỗi xảy ra khi xóa cuộc trò chuyện');
@@ -734,7 +736,7 @@ export default function Chat() {
       console.error('handleSelectConversation: conversation._id is missing', conversation);
       return;
     }
-        // Mark that user has manually selected - prevents auto-restore from overriding
+    // Mark that user has manually selected - prevents auto-restore from overriding
     userHasSelectedRef.current = true;
     setSelectedConversation(conversation);
     setShowChatWindow(true); // Hiển thị chat window trên mobile
@@ -751,11 +753,11 @@ export default function Chat() {
 
   const handleOpenChatbotPanel = async () => {
     try {
-            // Load chatbot conversation từ API
+      // Load chatbot conversation từ API
       const response = await chatbotAPI.getConversation();
       if (response.success && response.data) {
         const chatbotConv = response.data;
-                // Chọn chatbot conversation (không thêm vào danh sách vì đã có nút riêng)
+        // Chọn chatbot conversation (không thêm vào danh sách vì đã có nút riêng)
         setSelectedConversation(chatbotConv);
         setShowChatWindow(true);
         // Save current conversation
