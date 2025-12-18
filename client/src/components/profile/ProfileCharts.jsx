@@ -130,25 +130,24 @@ export default function ProfileCharts() {
 
                 <div className="flex flex-wrap items-center gap-2">
                     {/* Chart type toggle */}
-                    <div className="flex bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
+                    {/* Chart type toggle */}
+                    <div className="flex bg-neutral-100 dark:bg-neutral-800 rounded-full p-1 gap-1">
                         <button
                             onClick={() => setChartType("bar")}
-                            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${chartType === "bar"
-                                ? "bg-black dark:bg-white text-white dark:text-black"
-                                : "text-neutral-600 dark:text-neutral-400"
+                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${chartType === "bar"
+                                ? "bg-white dark:bg-black text-black dark:text-white shadow-sm"
+                                : "text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
                                 }`}
                         >
-                            <BarChart3 className="w-3 h-3" />
                             Cột
                         </button>
                         <button
                             onClick={() => setChartType("growth")}
-                            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${chartType === "growth"
-                                ? "bg-black dark:bg-white text-white dark:text-black"
-                                : "text-neutral-600 dark:text-neutral-400"
+                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${chartType === "growth"
+                                ? "bg-white dark:bg-black text-black dark:text-white shadow-sm"
+                                : "text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
                                 }`}
                         >
-                            <TrendingUp className="w-3 h-3" />
                             Tăng trưởng
                         </button>
                     </div>

@@ -59,6 +59,7 @@ import cultivationRoutes from "./routes/cultivation.js"; // Cultivation/Tu Tiên
 import battleRoutes from "./routes/battle.js"; // Battle/PK routes
 import equipmentRoutes from "./routes/equipment.js"; // Equipment management routes
 import welcomeRoutes from "./routes/welcome.js"; // Welcome/onboarding routes
+import activityLeaderboardRoutes from "./routes/activityLeaderboard.js"; // Activity leaderboard routes
 
 // Environment variables are loaded via `import 'dotenv/config'` at the top
 
@@ -458,6 +459,7 @@ app.use("/api/cultivation", apiLimiter, cultivationRoutes); // Tu Tiên system r
 app.use("/api/battle", apiLimiter, battleRoutes); // Battle/PK routes
 app.use("/api/equipment", apiLimiter, equipmentRoutes); // Equipment management routes
 app.use("/api/welcome", welcomeRoutes); // Welcome/onboarding routes
+app.use("/api/activity-leaderboard", apiLimiter, activityLeaderboardRoutes); // Activity leaderboard routes
 
 // Làm cho Socket.IO instance có thể truy cập từ routes
 app.set("io", io);

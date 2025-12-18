@@ -63,6 +63,9 @@ const Support = lazy(() => import("./pages/Support.jsx"));
 // Tu Tiên System
 const Cultivation = lazy(() => import("./pages/Cultivation.jsx"));
 
+// Activity Leaderboard
+const ActivityLeaderboard = lazy(() => import("./pages/ActivityLeaderboard.jsx"));
+
 // Utility pages
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
@@ -132,7 +135,7 @@ export default function App() {
   // Debug log
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-          }
+    }
   }, [location.pathname, user, shouldHideNavbar]);
 
   // Effect chạy khi app khởi tạo để kiểm tra authentication
@@ -144,31 +147,31 @@ export default function App() {
 
     const checkAuth = async () => {
       try {
-                await ensureCSRFToken();
-                // Try to initialize access token from cookies (will attempt refresh if needed)
+        await ensureCSRFToken();
+        // Try to initialize access token from cookies (will attempt refresh if needed)
         const token = await initializeAccessToken();
-                if (cancelled) {
+        if (cancelled) {
           return;
         }
 
         if (token && !cancelled) {
-                    // Nếu có token, gọi API để lấy thông tin user
+          // Nếu có token, gọi API để lấy thông tin user
           try {
             const res = await api("/api/auth/session");
-                        if (!cancelled && res.authenticated && res.user) {
-                            setUser(res.user);
+            if (!cancelled && res.authenticated && res.user) {
+              setUser(res.user);
               // Kết nối socket khi đã xác thực user thành công
               socketService.connect(res.user);
             } else {
-                            setUser(null);
+              setUser(null);
             }
           } catch (error) {
-                        if (!cancelled) {
+            if (!cancelled) {
               setUser(null);
             }
           }
         } else if (!cancelled) {
-                    // Không có token, set user null
+          // Không có token, set user null
           setUser(null);
         }
       } catch (error) {
@@ -283,7 +286,7 @@ export default function App() {
   useEffect(() => {
     // Chỉ chạy trong production để tránh server Render sleep
     if (process.env.NODE_ENV === 'production') {
-            const cleanup = startKeepAlive(12, true); // Ping mỗi 12 phút, chỉ khi tab active
+      const cleanup = startKeepAlive(12, true); // Ping mỗi 12 phút, chỉ khi tab active
 
       return cleanup;
     }
@@ -517,6 +520,7 @@ export default function App() {
                     <Route path="/media" element={<ProtectedRoute user={user}><Media /></ProtectedRoute>} />
                     <Route path="/saved" element={<ProtectedRoute user={user}><Saved /></ProtectedRoute>} />
                     <Route path="/gallery" element={<ProtectedRoute user={user}><Gallery /></ProtectedRoute>} />
+                    <Route path="/activity-leaderboard" element={<ProtectedRoute user={user}><ActivityLeaderboard /></ProtectedRoute>} />
                     <Route path="/notifications" element={<ProtectedRoute user={user}><NotificationHistory /></ProtectedRoute>} />
 
                     {/* Trang admin */}

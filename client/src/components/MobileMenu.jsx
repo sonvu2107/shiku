@@ -21,7 +21,8 @@ import {
   ChevronRight,
   Sparkles,
   Moon,
-  Sun
+  Sun,
+  Trophy
 } from "lucide-react";
 import { removeAuthToken } from "../utils/auth.js";
 import { invalidateUserCache } from "../utils/userCache.js";
@@ -177,6 +178,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
                   { icon: Sparkles, label: "Tu Tiên", path: "/cultivation", show: true, highlight: true },
                   { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
                   { icon: Image, label: "Media", path: "/media", show: true },
+                  { icon: Trophy, label: "Bảng xếp hạng", path: "/activity-leaderboard", show: true },
                 ].map((item) => {
                   if (!item.show) return null;
                   const Icon = item.icon;

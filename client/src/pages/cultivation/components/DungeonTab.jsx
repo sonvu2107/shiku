@@ -204,7 +204,7 @@ const DungeonCard = memo(({ dungeon, onEnter, disabled }) => {
                                         : 'bg-emerald-600/80 border border-emerald-500/50 text-white hover:bg-emerald-600'
                             }`}
                     >
-                        {!dungeon.meetsRequirement ? `🔒 ${dungeon.requiredRealmName}` : isOnCooldown ? getCooldownText() : !dungeon.hasEnoughStones ? 'Thiếu 💎' : 'Vào Bí Cảnh'}
+                        {!dungeon.meetsRequirement ? `CẦN ĐẠT ${dungeon.requiredRealmName}` : isOnCooldown ? getCooldownText() : !dungeon.hasEnoughStones ? 'Thiếu linh thạch' : 'Vào Bí Cảnh'}
                     </button>
                 )}
             </div>
@@ -536,7 +536,7 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
                             animate={{ width: `${(monsterHp / battleResult?.maxMonsterHp) * 100}%` }}
                         />
                     </div>
-                    <div className="text-[7px] text-red-400">{formatNumber(Math.max(0, monsterHp))} HP</div>
+                    <div className="text-[7px] text-red-400">{formatNumber(Math.max(0, monsterHp))} KHÍ HUYẾT</div>
                     {/* Mana Bar */}
                     <div className="w-20 bg-black h-2 border border-white/20">
                         <motion.div
@@ -570,7 +570,7 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
                             animate={{ width: `${(playerHp / battleResult?.maxPlayerHp) * 100}%` }}
                         />
                     </div>
-                    <div className="text-[7px] text-emerald-400">{formatNumber(Math.max(0, playerHp))} HP</div>
+                    <div className="text-[7px] text-emerald-400">{formatNumber(Math.max(0, playerHp))} KHÍ HUYẾT</div>
                     {/* Mana Bar */}
                     <div className="w-20 bg-black h-2 border border-white/20">
                         <motion.div

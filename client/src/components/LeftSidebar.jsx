@@ -18,7 +18,8 @@ import {
   HelpCircle,
   Sparkles,
   Search,
-  Crown
+  Crown,
+  Trophy
 } from 'lucide-react';
 import { removeAuthToken } from '../utils/auth';
 import { invalidateUserCache } from '../utils/userCache';
@@ -140,6 +141,7 @@ function LeftSidebar({ user, setUser }) {
       { icon: Home, label: "Trang chủ", path: "/", exact: true },
       { icon: Compass, label: "Khám phá", path: "/explore" },
       { icon: Sparkles, label: "Tu Tiên Giới", path: "/cultivation", highlight: true },
+      { icon: Trophy, label: "Xếp hạng", path: "/activity-leaderboard" },
       { icon: Image, label: "Thư viện", path: "/media" },
       { icon: UserCheck, label: "Cộng đồng", path: "/groups" },
       { icon: Calendar, label: "Sự kiện", path: "/events" },
