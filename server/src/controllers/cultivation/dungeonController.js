@@ -66,21 +66,11 @@ const checkDungeonRequirements = (cultivation, dungeon) => {
  * Simulate combat between player and monster
  * Returns battle result with logs
  */
-const simulateDungeonBattle = async (cultivation, monster, dungeonId = null) => {
+const simulateDungeonBattle = async (cultivation, monster) => {
     // Get player stats
     let playerStats = cultivation.calculateCombatStats();
     const equipmentStats = await cultivation.getEquipmentStats();
     playerStats = mergeEquipmentStatsIntoCombatStats(playerStats, equipmentStats);
-
-    // Chaos realm bonuses: Player gets combat advantages
-    const isChaosRealm = dungeonId === 'chaos_realm';
-    if (isChaosRealm) {
-        // Bonus stats for player in chaos realm
-        playerStats.criticalRate = (playerStats.criticalRate || 0) + 15; // +15% crit rate
-        playerStats.dodge = (playerStats.dodge || 0) + 10; // +10% dodge
-        playerStats.lifesteal = (playerStats.lifesteal || 0) + 20; // +20% lifesteal
-        playerStats.criticalDamage = (playerStats.criticalDamage || 150) + 30; // +30% crit damage
-    }
 
     const monsterStats = monster.stats;
 
@@ -92,7 +82,7 @@ const simulateDungeonBattle = async (cultivation, monster, dungeonId = null) => 
 
     const logs = [];
     let round = 0;
-    const maxRounds = isChaosRealm ? 80 : 50; // More rounds for chaos realm
+    const maxRounds = 50;
 
     // Determine who attacks first based on speed
     let playerFirst = playerStats.speed >= monsterStats.speed;
@@ -426,19 +416,10 @@ export const battleMonster = async (req, res, next) => {
 
         // Get monster for this floor
         const monster = selectMonsterForFloor(dungeonId, currentFloor, config.floors);
-        
-        // For chaos realm, get player stats to scale monsters
-        let playerStats = null;
-        if (dungeonId === 'chaos_realm') {
-            playerStats = cultivation.calculateCombatStats();
-            const equipmentStats = await cultivation.getEquipmentStats();
-            playerStats = mergeEquipmentStatsIntoCombatStats(playerStats, equipmentStats);
-        }
-        
-        const scaledMonster = calculateMonsterStats(monster, currentFloor, dungeon.difficulty, dungeonId, playerStats);
+        const scaledMonster = calculateMonsterStats(monster, currentFloor, dungeon.difficulty, dungeonId);
 
         // Simulate battle
-        const battleResult = await simulateDungeonBattle(cultivation, scaledMonster, dungeonId);
+        const battleResult = await simulateDungeonBattle(cultivation, scaledMonster);
 
         // Get the run record
         const run = await DungeonRun.findById(progress.currentRunId);
@@ -457,43 +438,18 @@ export const battleMonster = async (req, res, next) => {
                 if (itemDropped) {
                     const shopItem = SHOP_ITEMS.find(i => i.id === itemDropped);
                     if (shopItem) {
-                        // Add to inventory with full item information
+                        // Add to inventory
                         const existingItem = cultivation.inventory.find(i => i.itemId === itemDropped);
                         if (existingItem) {
                             existingItem.quantity = (existingItem.quantity || 1) + 1;
                         } else {
-                            // Create inventory item with all shop item metadata
-                            const inventoryItem = {
+                            cultivation.inventory.push({
                                 itemId: itemDropped,
                                 name: shopItem.name,
                                 type: shopItem.type,
                                 quantity: 1,
-                                acquiredAt: new Date(),
-                                // Store all item metadata for display
-                                icon: shopItem.icon || null,
-                                description: shopItem.description || null,
-                                rarity: shopItem.rarity || 'common',
-                                img: shopItem.img || null,
-                                // Avatar frame specific
-                                color: shopItem.color || null,
-                                animated: shopItem.animated || false,
-                                // Exp boost specific
-                                duration: shopItem.duration || null,
-                                multiplier: shopItem.multiplier || null,
-                                // Breakthrough pill specific
-                                breakthroughBonus: shopItem.breakthroughBonus || null,
-                                // Consumable specific
-                                expReward: shopItem.expReward || null,
-                                spiritStoneReward: shopItem.spiritStoneReward || null,
-                                spiritStoneBonus: shopItem.spiritStoneBonus || null,
-                                // Pet specific
-                                expBonus: shopItem.expBonus || null,
-                                questExpBonus: shopItem.questExpBonus || null,
-                                // Technique specific
-                                stats: shopItem.stats || null,
-                                skill: shopItem.skill || null
-                            };
-                            cultivation.inventory.push(inventoryItem);
+                                acquiredAt: new Date()
+                            });
                         }
                     }
                 }
@@ -539,12 +495,7 @@ export const battleMonster = async (req, res, next) => {
                 run.itemsEarned.push({
                     itemId: itemDropped,
                     name: shopItem?.name || itemDropped,
-                    quantity: 1,
-                    // Store full item info for display
-                    rarity: shopItem?.rarity || 'common',
-                    icon: shopItem?.icon || null,
-                    description: shopItem?.description || null,
-                    type: shopItem?.type || null
+                    quantity: 1
                 });
             }
 
@@ -591,35 +542,7 @@ export const battleMonster = async (req, res, next) => {
                     rewards: {
                         exp: rewards.exp,
                         spiritStones: rewards.spiritStones,
-                        item: itemDropped ? (() => {
-                            const shopItem = SHOP_ITEMS.find(i => i.id === itemDropped);
-                            if (shopItem) {
-                                // Return full item info with all metadata
-                                return {
-                                    id: shopItem.id,
-                                    name: shopItem.name,
-                                    type: shopItem.type,
-                                    rarity: shopItem.rarity || 'common',
-                                    icon: shopItem.icon || null,
-                                    description: shopItem.description || null,
-                                    img: shopItem.img || null,
-                                    // Include all relevant fields
-                                    color: shopItem.color || null,
-                                    animated: shopItem.animated || false,
-                                    duration: shopItem.duration || null,
-                                    multiplier: shopItem.multiplier || null,
-                                    breakthroughBonus: shopItem.breakthroughBonus || null,
-                                    expReward: shopItem.expReward || null,
-                                    spiritStoneReward: shopItem.spiritStoneReward || null,
-                                    spiritStoneBonus: shopItem.spiritStoneBonus || null,
-                                    expBonus: shopItem.expBonus || null,
-                                    questExpBonus: shopItem.questExpBonus || null,
-                                    stats: shopItem.stats || null,
-                                    skill: shopItem.skill || null
-                                };
-                            }
-                            return null;
-                        })() : null
+                        item: itemDropped ? SHOP_ITEMS.find(i => i.id === itemDropped) : null
                     },
                     progress: {
                         currentFloor,
@@ -713,66 +636,6 @@ export const claimRewardsAndExit = async (req, res, next) => {
         if (!run) {
             return res.status(400).json({ success: false, message: "Không tìm thấy phiên khám phá" });
         }
-
-        // Give rewards to player (exp, spirit stones, items)
-        if (run.totalExpEarned > 0) {
-            cultivation.addExp(run.totalExpEarned, 'dungeon', `Thoát bí cảnh ${dungeon.name} - Tầng ${run.floorsCleared}`);
-        }
-        if (run.totalSpiritStonesEarned > 0) {
-            cultivation.spiritStones += run.totalSpiritStonesEarned;
-            cultivation.totalSpiritStonesEarned += run.totalSpiritStonesEarned;
-        }
-        
-        // Add items to inventory with full information
-        if (run.itemsEarned && run.itemsEarned.length > 0) {
-            for (const item of run.itemsEarned) {
-                const shopItem = SHOP_ITEMS.find(i => i.id === item.itemId);
-                if (shopItem) {
-                    const existingItem = cultivation.inventory.find(i => i.itemId === item.itemId);
-                    if (existingItem) {
-                        existingItem.quantity = (existingItem.quantity || 1) + (item.quantity || 1);
-                    } else {
-                        // Create inventory item with all shop item metadata
-                        const inventoryItem = {
-                            itemId: item.itemId,
-                            name: shopItem.name,
-                            type: shopItem.type,
-                            quantity: item.quantity || 1,
-                            acquiredAt: new Date(),
-                            // Store all item metadata for display
-                            icon: shopItem.icon || null,
-                            description: shopItem.description || null,
-                            rarity: shopItem.rarity || 'common',
-                            img: shopItem.img || null,
-                            // Avatar frame specific
-                            color: shopItem.color || null,
-                            animated: shopItem.animated || false,
-                            // Exp boost specific
-                            duration: shopItem.duration || null,
-                            multiplier: shopItem.multiplier || null,
-                            // Breakthrough pill specific
-                            breakthroughBonus: shopItem.breakthroughBonus || null,
-                            // Consumable specific
-                            expReward: shopItem.expReward || null,
-                            spiritStoneReward: shopItem.spiritStoneReward || null,
-                            spiritStoneBonus: shopItem.spiritStoneBonus || null,
-                            // Pet specific
-                            expBonus: shopItem.expBonus || null,
-                            questExpBonus: shopItem.questExpBonus || null,
-                            // Technique specific
-                            stats: shopItem.stats || null,
-                            skill: shopItem.skill || null
-                        };
-                        cultivation.inventory.push(inventoryItem);
-                    }
-                }
-            }
-        }
-
-        // Update dungeon stats
-        if (!cultivation.dungeonStats) cultivation.dungeonStats = {};
-        cultivation.dungeonStats.totalDungeonExpEarned = (cultivation.dungeonStats.totalDungeonExpEarned || 0) + run.totalExpEarned;
-        cultivation.dungeonStats.totalDungeonSpiritStonesEarned = (cultivation.dungeonStats.totalDungeonSpiritStonesEarned || 0) + run.totalSpiritStonesEarned;
 
         // Mark as completed (early exit)
         run.isCompleted = true;
@@ -869,7 +732,7 @@ export const getDungeonHistory = async (req, res, next) => {
             return {
                 ...run,
                 dungeonName: dungeon?.name || run.dungeonId,
-                dungeonIcon: dungeon?.icon || '🏔️'
+                dungeonIcon: dungeon?.icon || ''
             };
         });
 

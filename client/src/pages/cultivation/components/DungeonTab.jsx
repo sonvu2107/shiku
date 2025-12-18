@@ -122,30 +122,30 @@ const DungeonCard = memo(({ dungeon, onEnter, disabled }) => {
             <div className="spirit-corner spirit-corner-bl border-amber-500/40"></div>
             <div className="spirit-corner spirit-corner-br border-amber-500/40"></div>
 
-                {/* Header */}
+            {/* Header */}
             <div className="flex justify-between items-start mb-3 z-10">
                 <div className="flex-1 min-w-0">
                     <h3 className="text-base font-bold text-amber-300 font-title tracking-wide truncate">{dungeon.name}</h3>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-xs px-2 py-0.5 bg-slate-800/50 border border-amber-500/20 text-slate-400 rounded">
-                                    LV.{dungeon.requiredRealm || 1}
-                                </span>
+                            LV.{dungeon.requiredRealm || 1}
+                        </span>
                         <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: `${config.color}20`, color: config.color, border: `1px solid ${config.color}40` }}>
-                                    {config.label}
-                                </span>
-                        </div>
+                            {config.label}
+                        </span>
                     </div>
-                    {/* Clear Badge */}
-                    {dungeon.progress?.totalClears > 0 && (
-                    <div className="bg-emerald-900/50 border border-emerald-700/50 px-2 py-1 text-xs text-emerald-400 rounded">
-                            ×{dungeon.progress.totalClears}
-                        </div>
-                    )}
                 </div>
+                {/* Clear Badge */}
+                {dungeon.progress?.totalClears > 0 && (
+                    <div className="bg-emerald-900/50 border border-emerald-700/50 px-2 py-1 text-xs text-emerald-400 rounded">
+                        ×{dungeon.progress.totalClears}
+                    </div>
+                )}
+            </div>
 
             {/* Description */}
             <p className="text-sm text-slate-400 mb-4 line-clamp-2 leading-relaxed">
-                    {dungeon.description}
+                {dungeon.description}
             </p>
 
             {/* Stats Grid */}
@@ -157,15 +157,15 @@ const DungeonCard = memo(({ dungeon, onEnter, disabled }) => {
                 <div className="text-center p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
                     <div className="text-xs text-slate-500 mb-1">EXP</div>
                     <div className="text-sm font-bold text-emerald-400">×{dungeon.expMultiplier}</div>
-                    </div>
+                </div>
                 <div className="text-center p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
                     <div className="text-xs text-slate-500 mb-1">Chi phí</div>
                     <div className="text-sm font-bold text-yellow-400">💎{dungeon.entryCost}</div>
                 </div>
-                </div>
+            </div>
 
-                {/* Progress */}
-                {dungeon.progress?.highestFloor > 0 && (
+            {/* Progress */}
+            {dungeon.progress?.highestFloor > 0 && (
                 <div className="mb-4">
                     <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
                         <span>Tiến độ cao nhất</span>
@@ -174,39 +174,39 @@ const DungeonCard = memo(({ dungeon, onEnter, disabled }) => {
                     <div className="h-2 bg-slate-800/50 rounded-full overflow-hidden border border-slate-700/50">
                         <div
                             className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-300"
-                                style={{ width: `${(dungeon.progress.highestFloor / dungeon.floors) * 100}%` }}
-                            />
+                            style={{ width: `${(dungeon.progress.highestFloor / dungeon.floors) * 100}%` }}
+                        />
                     </div>
-                    </div>
-                )}
+                </div>
+            )}
 
-                {/* Action Button */}
-                <div className="mt-auto pt-2 z-10">
-                    {dungeon.progress?.inProgress ? (
-                        <button
-                            onClick={() => onEnter(dungeon)}
-                            disabled={disabled}
+            {/* Action Button */}
+            <div className="mt-auto pt-2 z-10">
+                {dungeon.progress?.inProgress ? (
+                    <button
+                        onClick={() => onEnter(dungeon)}
+                        disabled={disabled}
                         className="w-full py-2.5 px-4 text-sm font-medium rounded-lg bg-amber-600/80 border border-amber-500/50 text-white hover:bg-amber-600 transition-all font-title"
-                        >
+                    >
                         Tiếp Tục
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => onEnter(dungeon)}
-                            disabled={disabled || !dungeon.meetsRequirement || isOnCooldown || !dungeon.hasEnoughStones}
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => onEnter(dungeon)}
+                        disabled={disabled || !dungeon.meetsRequirement || isOnCooldown || !dungeon.hasEnoughStones}
                         className={`w-full py-2.5 px-4 text-sm font-medium rounded-lg transition-all font-title
                             ${!dungeon.meetsRequirement
                                 ? 'bg-slate-800/50 border border-slate-700/50 text-slate-500 cursor-not-allowed'
-                                    : isOnCooldown
+                                : isOnCooldown
                                     ? 'bg-slate-800/50 border border-amber-500/30 text-amber-400 cursor-wait'
-                                        : !dungeon.hasEnoughStones
+                                    : !dungeon.hasEnoughStones
                                         ? 'bg-slate-800/50 border border-red-500/30 text-red-400 cursor-not-allowed'
                                         : 'bg-emerald-600/80 border border-emerald-500/50 text-white hover:bg-emerald-600'
-                                }`}
-                        >
+                            }`}
+                    >
                         {!dungeon.meetsRequirement ? `🔒 ${dungeon.requiredRealmName}` : isOnCooldown ? getCooldownText() : !dungeon.hasEnoughStones ? 'Thiếu 💎' : 'Vào Bí Cảnh'}
-                        </button>
-                    )}
+                    </button>
+                )}
             </div>
         </motion.div>
     );
@@ -247,7 +247,7 @@ const InventoryModal = memo(({ inventory, onClose, onUseItem }) => {
     };
 
     // Filter only consumable items (exp_boost, consumable)
-    const consumableItems = inventory.filter(item => 
+    const consumableItems = inventory.filter(item =>
         ['exp_boost', 'consumable'].includes(item.type)
     );
 
@@ -466,7 +466,7 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
         if (isAnimating && currentLogIndex === 0) {
             hasCompletedRef.current = false;
         }
-        
+
         if (!isAnimating || currentLogIndex >= logs.length) {
             // Only call onComplete ONCE when animation finishes
             if (currentLogIndex >= logs.length && logs.length > 0 && !hasCompletedRef.current) {
@@ -560,7 +560,7 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
                             animate={{ scale: 1.5, opacity: 0 }}
                             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-bold text-yellow-400 z-10"
                         >
-                            💥
+
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -760,7 +760,7 @@ const DungeonTab = memo(function DungeonTab() {
         if (isHandlingRewardsCloseRef.current || isHandlingRewardsClose) {
             return;
         }
-        
+
         if (!activeDungeon) {
             return;
         }
@@ -811,7 +811,7 @@ const DungeonTab = memo(function DungeonTab() {
         if (isHandlingRewardsCloseRef.current) {
             return;
         }
-        
+
         isHandlingRewardsCloseRef.current = true;
         setIsHandlingRewardsClose(true);
         setShowRewardsModal(false);
@@ -846,8 +846,8 @@ const DungeonTab = memo(function DungeonTab() {
         }
 
         // Check if dungeon was fully completed
-        const isDungeonCompleted = progress.isCompleted || 
-                                   (progress.currentFloor >= progress.totalFloors);
+        const isDungeonCompleted = progress.isCompleted ||
+            (progress.currentFloor >= progress.totalFloors);
 
         if (isDungeonCompleted) {
             exitToList();
@@ -924,11 +924,11 @@ const DungeonTab = memo(function DungeonTab() {
             exitToList();
             return;
         }
-        
+
         // Clear refs first
         nextMonsterRef.current = null;
         battleResultRef.current = null;
-        
+
         // Update state for next floor
         setCurrentMonster(nextMonster);
         setCurrentFloor(progress.currentFloor);
@@ -937,7 +937,7 @@ const DungeonTab = memo(function DungeonTab() {
         setIsAnimating(false);
         setRewards(null);
         setView('exploring');
-        
+
         // Reset guard after short delay to allow React to finish state updates
         setTimeout(() => {
             isHandlingRewardsCloseRef.current = false;
@@ -984,12 +984,12 @@ const DungeonTab = memo(function DungeonTab() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                            <button
-                                onClick={handleExitDungeon}
+                        <button
+                            onClick={handleExitDungeon}
                             className="px-4 py-2 bg-red-900/50 border border-red-700/50 text-red-200 text-sm font-medium hover:bg-red-900/70 hover:border-red-600 transition-all rounded-lg"
-                            >
+                        >
                             Rút Lui
-                            </button>
+                        </button>
                         <div className="px-4 py-2 bg-slate-800/50 border border-amber-500/30 flex items-center gap-2 text-amber-400 text-sm font-medium rounded-lg">
                             💎 {formatNumber(playerSpiritStones)}
                         </div>
@@ -997,77 +997,77 @@ const DungeonTab = memo(function DungeonTab() {
                 </div>
             )}
 
-                {/* Main Display Area */}
-                <div className="min-h-[400px]">
-                    <AnimatePresence mode="wait">
-                        {loading && dungeons.length === 0 ? (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
+            {/* Main Display Area */}
+            <div className="min-h-[400px]">
+                <AnimatePresence mode="wait">
+                    {loading && dungeons.length === 0 ? (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
                             className="flex flex-col items-center justify-center py-20 text-slate-500 gap-4"
-                            >
+                        >
                             <div className="w-16 h-16 border-4 border-slate-700 border-t-amber-500 rounded-full animate-spin"></div>
                             <p className="animate-pulse font-title">Đang tải dữ liệu...</p>
-                            </motion.div>
-                        ) : view === 'list' ? (
-                            <motion.div
-                                key="list"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
+                        </motion.div>
+                    ) : view === 'list' ? (
+                        <motion.div
+                            key="list"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
                             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
-                            >
-                                {dungeons.map(dungeon => (
-                                    <DungeonCard
-                                        key={dungeon.id}
-                                        dungeon={{ ...dungeon, playerSpiritStones }}
-                                        onEnter={handleEnterDungeon}
-                                        disabled={loading}
-                                    />
-                                ))}
-                            </motion.div>
-                        ) : view === 'exploring' && currentMonster ? (
-                            <motion.div
-                                key="exploring"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                            >
-                                <PixelExplorationView
-                                    dungeon={activeDungeon}
-                                    monster={currentMonster}
-                                    currentFloor={currentFloor}
-                                    totalFloors={totalFloors}
-                                    onStartBattle={handleStartBattle}
-                                    onExit={handleExitDungeon}
-                                    onOpenInventory={() => {
-                                        setShowInventoryModal(true);
-                                    }}
-                                    loading={loading}
-                                    playerName={playerName}
-                                    playerAvatar={playerAvatar}
-                                    isHandlingRewardsClose={isHandlingRewardsClose}
+                        >
+                            {dungeons.map(dungeon => (
+                                <DungeonCard
+                                    key={dungeon.id}
+                                    dungeon={{ ...dungeon, playerSpiritStones }}
+                                    onEnter={handleEnterDungeon}
+                                    disabled={loading}
                                 />
-                            </motion.div>
-                        ) : view === 'battle' && battleResult ? (
-                            <motion.div
-                                key="battle"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                            >
-                                <PixelBattleView
-                                    monster={currentMonster}
-                                    battleResult={battleResult}
-                                    onComplete={handleBattleComplete}
-                                    isAnimating={isAnimating}
-                                    playerName={playerName}
-                                    playerAvatar={playerAvatar}
-                                />
-                            </motion.div>
-                        ) : null}
-                    </AnimatePresence>
+                            ))}
+                        </motion.div>
+                    ) : view === 'exploring' && currentMonster ? (
+                        <motion.div
+                            key="exploring"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                        >
+                            <PixelExplorationView
+                                dungeon={activeDungeon}
+                                monster={currentMonster}
+                                currentFloor={currentFloor}
+                                totalFloors={totalFloors}
+                                onStartBattle={handleStartBattle}
+                                onExit={handleExitDungeon}
+                                onOpenInventory={() => {
+                                    setShowInventoryModal(true);
+                                }}
+                                loading={loading}
+                                playerName={playerName}
+                                playerAvatar={playerAvatar}
+                                isHandlingRewardsClose={isHandlingRewardsClose}
+                            />
+                        </motion.div>
+                    ) : view === 'battle' && battleResult ? (
+                        <motion.div
+                            key="battle"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                        >
+                            <PixelBattleView
+                                monster={currentMonster}
+                                battleResult={battleResult}
+                                onComplete={handleBattleComplete}
+                                isAnimating={isAnimating}
+                                playerName={playerName}
+                                playerAvatar={playerAvatar}
+                            />
+                        </motion.div>
+                    ) : null}
+                </AnimatePresence>
             </div>
 
             {/* Rewards Modal */}

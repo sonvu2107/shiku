@@ -445,7 +445,16 @@ export default function PostDetail() {
                 </div>
               </div>
             </div>
-            {user && (user._id === p.author?._id || user.role === "admin") ? (
+            {user && (() => {
+              const currentUserId = user?.id || user?._id;
+              const authorId = p.author?._id || p.author?.id;
+              const isOwner = currentUserId && authorId && (
+                currentUserId === authorId || 
+                currentUserId?.toString() === authorId?.toString()
+              );
+              const isAdmin = user.role === "admin";
+              return isOwner || isAdmin;
+            })() ? (
               <div className="relative flex-shrink-0 ml-2">
                 <MenuActions
                   onToggleStatus={togglePostStatus}
@@ -456,14 +465,7 @@ export default function PostDetail() {
                   saved={saved}
                 />
               </div>
-            ) : (
-              <button
-                className="p-2 sm:p-2.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors flex-shrink-0 ml-2 touch-manipulation"
-                aria-label="More options"
-              >
-                <MoreHorizontal size={18} className="sm:w-5 sm:h-5" />
-              </button>
-            )}
+            ) : null}
           </div>
 
           {/* TITLE - Match ModernPostCard */}
