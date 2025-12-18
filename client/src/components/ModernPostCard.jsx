@@ -489,10 +489,10 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   return (
     <div
       onClick={() => navigate(`/post/${post.slug || post._id}`)}
-      className="group relative bg-white dark:bg-[#1a1a1a] rounded-xl sm:rounded-2xl md:rounded-3xl border border-gray-100 dark:border-neutral-800/80 shadow-sm hover:shadow-lg transition-all duration-300 my-3 sm:my-4 md:my-5 sm:mx-0 cursor-pointer"
+      className="group relative bg-white dark:bg-[#1a1a1a] rounded-xl sm:rounded-2xl border border-gray-100 dark:border-neutral-800/80 shadow-sm hover:shadow-lg transition-all duration-300 my-2.5 sm:my-3 md:my-4 sm:mx-0 cursor-pointer"
     >
       {/* 1. Header */}
-      <div className="px-3 sm:px-4 md:px-5 pt-3 sm:pt-4 md:pt-5 pb-2 flex justify-between items-start">
+      <div className="px-3 sm:px-4 pt-3 sm:pt-3.5 pb-2 flex justify-between items-start">
         <div className="flex items-center gap-2 sm:gap-3" onClick={e => e.stopPropagation()}>
           <Link to={`/user/${post.author?._id}`} className="relative group/avatar flex-shrink-0">
             <div className="ring-2 ring-transparent group-hover/avatar:ring-blue-100 dark:group-hover/avatar:ring-blue-900/50 rounded-full transition-all">
@@ -582,7 +582,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       </div>
 
       {/* 2. Content Body */}
-      <div className="px-3 sm:px-4 md:px-5 pb-2 sm:pb-3">
+      <div className="px-3 sm:px-4 pb-2 sm:pb-2.5">
         {/* Title - Mobile: smaller */}
         {/* Hide title if it's auto-generated (title is prefix of content) */}
         {post.title && !(post.content && post.content.trim().startsWith(post.title.replace(/…$/, '').trim())) && (
@@ -620,17 +620,17 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         )}
       </div>
 
-      {/* 3. Media - Mobile: more breathing room */}
+      {/* 3. Media - Facebook/Twitter style: constrained aspect ratio */}
       {displayMedia && (
-        <div className="mt-1 mb-2 sm:mb-3 px-2 sm:px-3">
+        <div className="mt-1 mb-2 px-2 sm:px-3">
           <div className={cn(
-            "relative w-full overflow-hidden rounded-lg sm:rounded-xl md:rounded-2xl bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-neutral-800/50",
+            "relative w-full overflow-hidden rounded-lg sm:rounded-xl bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-neutral-800/50",
             displayMedia.type !== 'video' && 'group/media'
           )}>
             {displayMedia.type === 'video' ? (
               <video
                 src={displayMedia.url}
-                className="w-full max-h-[300px] sm:max-h-[400px] md:max-h-[500px] object-contain bg-black"
+                className="w-full max-h-[280px] sm:max-h-[320px] md:max-h-[380px] object-contain bg-black"
                 controls
                 controlsList="nodownload"
                 playsInline
@@ -643,7 +643,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 src={getOptimizedImageUrl(displayMedia.url, 800)}
                 alt={post.title || "Post media"}
                 priority={isFirst}
-                className="w-full h-auto object-cover transition-transform duration-500 group-hover/media:scale-[1.02] max-h-[550px]"
+                className="w-full h-auto object-cover transition-transform duration-300 group-hover/media:scale-[1.01] max-h-[320px] sm:max-h-[380px] md:max-h-[420px]"
               />
             )}
           </div>
@@ -666,7 +666,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
 
       {/* 4. Action Bar - Mobile: larger touch targets, subtle counts */}
       <div
-        className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 flex items-center justify-between border-t border-gray-50 dark:border-white/5 mt-1 sm:mt-2"
+        className="px-3 sm:px-4 py-2 sm:py-2 flex items-center justify-between border-t border-gray-50 dark:border-white/5 mt-1"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-1 sm:gap-2">
@@ -855,7 +855,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       {/* 5. Comment Input Section */}
       {user && (
         <div
-          className="px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 border-t border-gray-100 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-900/30"
+          className="px-3 sm:px-4 py-2 sm:py-2.5 border-t border-gray-100 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-900/30"
           onClick={e => e.stopPropagation()}
         >
           {/* Image Previews */}

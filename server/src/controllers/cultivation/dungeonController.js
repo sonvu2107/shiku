@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS } from "../../models/Cultivation.js";
+import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES } from "../../models/Cultivation.js";
 import {
     DUNGEON_TEMPLATES,
     DIFFICULTY_CONFIG,
@@ -7,7 +7,8 @@ import {
     selectMonsterForFloor,
     calculateFloorRewards,
     rollItemDrop,
-    DungeonRun
+    DungeonRun,
+    getMonsterSkills
 } from "../../models/Dungeon.js";
 import { formatCultivationResponse, mergeEquipmentStatsIntoCombatStats } from "./coreController.js";
 
@@ -63,10 +64,14 @@ const checkDungeonRequirements = (cultivation, dungeon) => {
 };
 
 /**
- * Simulate combat between player and monster
- * Returns battle result with logs
+ * Simulate combat between player and monster WITH SKILL & MANA SYSTEM
+ * @param {Object} cultivation - Player's cultivation data
+ * @param {Object} monster - Monster with stats and skills
+ * @param {Array} playerSkills - Skills from learned techniques
+ * @param {Array} monsterSkills - Monster's skills from dungeon definition
+ * @returns {Object} Battle result with logs
  */
-const simulateDungeonBattle = async (cultivation, monster) => {
+const simulateDungeonBattle = async (cultivation, monster, playerSkills = [], monsterSkills = []) => {
     // Get player stats
     let playerStats = cultivation.calculateCombatStats();
     const equipmentStats = await cultivation.getEquipmentStats();
@@ -80,9 +85,21 @@ const simulateDungeonBattle = async (cultivation, monster) => {
     const maxPlayerHp = playerStats.qiBlood;
     const maxMonsterHp = monsterStats.qiBlood;
 
+    // Initialize Mana (Chân Nguyên)
+    let playerMana = playerStats.zhenYuan || 1000;
+    let monsterMana = Math.floor((monsterStats.qiBlood || 1000) * 0.5); // Monster mana = 50% of HP
+    const maxPlayerMana = playerMana;
+    const maxMonsterMana = monsterMana;
+
     const logs = [];
     let round = 0;
     const maxRounds = 50;
+
+    // Skill cooldowns tracking
+    const playerSkillCooldowns = {};
+    const monsterSkillCooldowns = {};
+    playerSkills.forEach(s => playerSkillCooldowns[s.name || s.techniqueId] = 0);
+    monsterSkills.forEach(s => monsterSkillCooldowns[s.name] = 0);
 
     // Determine who attacks first based on speed
     let playerFirst = playerStats.speed >= monsterStats.speed;
@@ -95,8 +112,42 @@ const simulateDungeonBattle = async (cultivation, monster) => {
         for (const attacker of attackOrder) {
             if (playerHp <= 0 || monsterHp <= 0) break;
 
+            // Reduce cooldowns at start of each action
+            const cooldowns = attacker === 'player' ? playerSkillCooldowns : monsterSkillCooldowns;
+            Object.keys(cooldowns).forEach(key => {
+                if (cooldowns[key] > 0) cooldowns[key]--;
+            });
+
+            // Mana regeneration (5% per turn)
+            if (attacker === 'player') {
+                playerMana = Math.min(maxPlayerMana, playerMana + Math.floor(maxPlayerMana * 0.05));
+            } else {
+                monsterMana = Math.min(maxMonsterMana, monsterMana + Math.floor(maxMonsterMana * 0.05));
+            }
+
             if (attacker === 'player') {
                 // Player attacks monster
+                const currentMana = playerMana;
+
+                // Check for available skill
+                let usedSkill = null;
+                let skillDamageBonus = 0;
+                let manaConsumed = 0;
+
+                for (const skill of playerSkills) {
+                    const skillKey = skill.name || skill.techniqueId;
+                    const manaCost = skill.manaCost || 20;
+                    if (playerSkillCooldowns[skillKey] <= 0 && currentMana >= manaCost) {
+                        usedSkill = skill;
+                        // Skill damage = base damage + (attack × damageMultiplier)
+                        skillDamageBonus = (skill.damage || 0) + Math.floor(playerStats.attack * (skill.damageMultiplier || 0.5));
+                        manaConsumed = manaCost;
+                        playerSkillCooldowns[skillKey] = skill.cooldown || 3;
+                        playerMana = Math.max(0, playerMana - manaConsumed);
+                        break;
+                    }
+                }
+
                 const isCrit = Math.random() * 100 < playerStats.criticalRate;
                 const isDodged = Math.random() * 100 < monsterStats.dodge;
 
@@ -104,12 +155,22 @@ const simulateDungeonBattle = async (cultivation, monster) => {
                     logs.push({
                         round,
                         attacker: 'player',
-                        action: 'attack',
+                        action: usedSkill ? 'skill' : 'attack',
+                        skillUsed: usedSkill?.name || usedSkill?.techniqueName || null,
                         isDodged: true,
-                        damage: 0
+                        damage: 0,
+                        playerMana,
+                        monsterMana,
+                        manaConsumed: manaConsumed > 0 ? manaConsumed : undefined
                     });
                 } else {
                     let damage = Math.max(1, playerStats.attack - monsterStats.defense * 0.5);
+
+                    // Add skill damage bonus
+                    if (skillDamageBonus > 0) {
+                        damage += skillDamageBonus;
+                    }
+
                     if (isCrit) damage = Math.floor(damage * (playerStats.criticalDamage / 100));
                     damage = Math.floor(damage * (0.9 + Math.random() * 0.2)); // 90-110% variance
 
@@ -122,16 +183,40 @@ const simulateDungeonBattle = async (cultivation, monster) => {
                     logs.push({
                         round,
                         attacker: 'player',
-                        action: 'attack',
+                        action: usedSkill ? 'skill' : 'attack',
+                        skillUsed: usedSkill?.name || usedSkill?.techniqueName || null,
                         damage,
                         isCritical: isCrit,
                         lifesteal,
                         monsterHpAfter: monsterHp,
-                        playerHpAfter: playerHp
+                        playerHpAfter: playerHp,
+                        playerMana,
+                        monsterMana,
+                        manaConsumed: manaConsumed > 0 ? manaConsumed : undefined
                     });
                 }
             } else {
                 // Monster attacks player
+                const currentMana = monsterMana;
+
+                // Check for available skill
+                let usedSkill = null;
+                let skillDamageBonus = 0;
+                let manaConsumed = 0;
+
+                for (const skill of monsterSkills) {
+                    const manaCost = skill.manaCost || 20;
+                    if (monsterSkillCooldowns[skill.name] <= 0 && currentMana >= manaCost) {
+                        usedSkill = skill;
+                        // Monster skill damage = attack × damageMultiplier
+                        skillDamageBonus = Math.floor(monsterStats.attack * (skill.damageMultiplier || 0.5));
+                        manaConsumed = manaCost;
+                        monsterSkillCooldowns[skill.name] = skill.cooldown || 3;
+                        monsterMana = Math.max(0, monsterMana - manaConsumed);
+                        break;
+                    }
+                }
+
                 const isCrit = Math.random() * 100 < (monsterStats.criticalRate || 10);
                 const isDodged = Math.random() * 100 < playerStats.dodge;
 
@@ -139,12 +224,22 @@ const simulateDungeonBattle = async (cultivation, monster) => {
                     logs.push({
                         round,
                         attacker: 'monster',
-                        action: 'attack',
+                        action: usedSkill ? 'skill' : 'attack',
+                        skillUsed: usedSkill?.name || null,
                         isDodged: true,
-                        damage: 0
+                        damage: 0,
+                        playerMana,
+                        monsterMana,
+                        manaConsumed: manaConsumed > 0 ? manaConsumed : undefined
                     });
                 } else {
                     let damage = Math.max(1, monsterStats.attack - playerStats.defense * 0.5);
+
+                    // Add skill damage bonus
+                    if (skillDamageBonus > 0) {
+                        damage += skillDamageBonus;
+                    }
+
                     if (isCrit) damage = Math.floor(damage * ((monsterStats.criticalDamage || 150) / 100));
                     damage = Math.floor(damage * (0.9 + Math.random() * 0.2));
 
@@ -153,11 +248,15 @@ const simulateDungeonBattle = async (cultivation, monster) => {
                     logs.push({
                         round,
                         attacker: 'monster',
-                        action: 'attack',
+                        action: usedSkill ? 'skill' : 'attack',
+                        skillUsed: usedSkill?.name || null,
                         damage,
                         isCritical: isCrit,
                         playerHpAfter: playerHp,
-                        monsterHpAfter: monsterHp
+                        monsterHpAfter: monsterHp,
+                        playerMana,
+                        monsterMana,
+                        manaConsumed: manaConsumed > 0 ? manaConsumed : undefined
                     });
                 }
             }
@@ -174,6 +273,10 @@ const simulateDungeonBattle = async (cultivation, monster) => {
         finalMonsterHp: monsterHp,
         maxPlayerHp,
         maxMonsterHp,
+        finalPlayerMana: playerMana,
+        finalMonsterMana: monsterMana,
+        maxPlayerMana,
+        maxMonsterMana,
         playerStats,
         monsterStats
     };
@@ -257,7 +360,14 @@ export const enterDungeon = async (req, res, next) => {
             if (existingRun && !existingRun.isCompleted && !existingRun.isAbandoned) {
                 // Resume existing run
                 const currentMonster = selectMonsterForFloor(dungeonId, progress.currentFloor + 1, config.floors);
-                const scaledMonster = calculateMonsterStats(currentMonster, progress.currentFloor + 1, dungeon.difficulty, dungeonId);
+                // Get player stats for chaos realm scaling
+                let playerStatsForScaling = null;
+                if (dungeonId === 'chaos_realm') {
+                    playerStatsForScaling = cultivation.calculateCombatStats();
+                    const equipmentStats = await cultivation.getEquipmentStats();
+                    playerStatsForScaling = mergeEquipmentStatsIntoCombatStats(playerStatsForScaling, equipmentStats);
+                }
+                const scaledMonster = calculateMonsterStats(currentMonster, progress.currentFloor + 1, dungeon.difficulty, dungeonId, playerStatsForScaling);
 
                 return res.json({
                     success: true,
@@ -321,7 +431,14 @@ export const enterDungeon = async (req, res, next) => {
 
         // Get first floor monster
         const firstMonster = selectMonsterForFloor(dungeonId, 1, config.floors);
-        const scaledMonster = calculateMonsterStats(firstMonster, 1, dungeon.difficulty, dungeonId);
+        // Get player stats for chaos realm scaling
+        let playerStatsForScaling = null;
+        if (dungeonId === 'chaos_realm') {
+            let tempPlayerStats = cultivation.calculateCombatStats();
+            const equipmentStats = await cultivation.getEquipmentStats();
+            playerStatsForScaling = mergeEquipmentStatsIntoCombatStats(tempPlayerStats, equipmentStats);
+        }
+        const scaledMonster = calculateMonsterStats(firstMonster, 1, dungeon.difficulty, dungeonId, playerStatsForScaling);
 
         res.json({
             success: true,
@@ -370,7 +487,14 @@ export const getCurrentFloor = async (req, res, next) => {
         }
 
         const monster = selectMonsterForFloor(dungeonId, nextFloor, config.floors);
-        const scaledMonster = calculateMonsterStats(monster, nextFloor, dungeon.difficulty, dungeonId);
+        // Get player stats for chaos realm scaling
+        let playerStatsForScaling = null;
+        if (dungeonId === 'chaos_realm') {
+            let tempPlayerStats = cultivation.calculateCombatStats();
+            const equipmentStats = await cultivation.getEquipmentStats();
+            playerStatsForScaling = mergeEquipmentStatsIntoCombatStats(tempPlayerStats, equipmentStats);
+        }
+        const scaledMonster = calculateMonsterStats(monster, nextFloor, dungeon.difficulty, dungeonId, playerStatsForScaling);
         const rewards = calculateFloorRewards(dungeon.difficulty, nextFloor, monster.type);
 
         res.json({
@@ -416,10 +540,47 @@ export const battleMonster = async (req, res, next) => {
 
         // Get monster for this floor
         const monster = selectMonsterForFloor(dungeonId, currentFloor, config.floors);
-        const scaledMonster = calculateMonsterStats(monster, currentFloor, dungeon.difficulty, dungeonId);
+        // Get player stats for chaos realm scaling
+        let playerStatsForScaling = null;
+        if (dungeonId === 'chaos_realm') {
+            let tempPlayerStats = cultivation.calculateCombatStats();
+            const equipmentStats = await cultivation.getEquipmentStats();
+            playerStatsForScaling = mergeEquipmentStatsIntoCombatStats(tempPlayerStats, equipmentStats);
+        }
+        const scaledMonster = calculateMonsterStats(monster, currentFloor, dungeon.difficulty, dungeonId, playerStatsForScaling);
 
-        // Simulate battle
-        const battleResult = await simulateDungeonBattle(cultivation, scaledMonster);
+        // Get player skills from learned techniques
+        const playerSkills = [];
+        if (cultivation.learnedTechniques && cultivation.learnedTechniques.length > 0) {
+            const combatStats = cultivation.calculateCombatStats();
+            const maxMana = combatStats.zhenYuan || 1000;
+
+            cultivation.learnedTechniques.forEach(learned => {
+                const technique = SHOP_ITEMS.find(t => t.id === learned.techniqueId && t.type === ITEM_TYPES.TECHNIQUE);
+                if (technique && technique.skill) {
+                    // Calculate mana cost as percentage of max mana (matching PK system)
+                    const manaCostPercentMap = { 'common': 0.15, 'uncommon': 0.20, 'rare': 0.25, 'epic': 0.30, 'legendary': 0.35 };
+                    const costPercent = manaCostPercentMap[technique.rarity] || 0.15;
+                    const manaCost = Math.max(20, Math.min(Math.floor(maxMana * costPercent), Math.floor(maxMana * 0.4)));
+
+                    playerSkills.push({
+                        ...technique.skill,
+                        techniqueId: technique.id,
+                        techniqueName: technique.name,
+                        rarity: technique.rarity || 'common',
+                        level: learned.level,
+                        damageMultiplier: 1 + (learned.level - 1) * 0.15,
+                        manaCost
+                    });
+                }
+            });
+        }
+
+        // Get monster skills based on dungeon and monster type
+        const monsterSkills = getMonsterSkills(dungeonId, monster.type);
+
+        // Simulate battle with skills
+        const battleResult = await simulateDungeonBattle(cultivation, scaledMonster, playerSkills, monsterSkills);
 
         // Get the run record
         const run = await DungeonRun.findById(progress.currentRunId);
@@ -506,7 +667,8 @@ export const battleMonster = async (req, res, next) => {
             let nextMonster = null;
             if (!isCompleted) {
                 const nextFloorMonster = selectMonsterForFloor(dungeonId, currentFloor + 1, config.floors);
-                nextMonster = calculateMonsterStats(nextFloorMonster, currentFloor + 1, dungeon.difficulty, dungeonId);
+                // Reuse playerStatsForScaling if available (already calculated for chaos realm)
+                nextMonster = calculateMonsterStats(nextFloorMonster, currentFloor + 1, dungeon.difficulty, dungeonId, playerStatsForScaling);
             }
 
             if (isCompleted) {
@@ -537,7 +699,11 @@ export const battleMonster = async (req, res, next) => {
                         maxPlayerHp: battleResult.maxPlayerHp,
                         maxMonsterHp: battleResult.maxMonsterHp,
                         finalPlayerHp: battleResult.finalPlayerHp,
-                        finalMonsterHp: battleResult.finalMonsterHp
+                        finalMonsterHp: battleResult.finalMonsterHp,
+                        maxPlayerMana: battleResult.maxPlayerMana,
+                        maxMonsterMana: battleResult.maxMonsterMana,
+                        finalPlayerMana: battleResult.finalPlayerMana,
+                        finalMonsterMana: battleResult.finalMonsterMana
                     },
                     rewards: {
                         exp: rewards.exp,
@@ -593,7 +759,11 @@ export const battleMonster = async (req, res, next) => {
                         maxPlayerHp: battleResult.maxPlayerHp,
                         maxMonsterHp: battleResult.maxMonsterHp,
                         finalPlayerHp: battleResult.finalPlayerHp,
-                        finalMonsterHp: battleResult.finalMonsterHp
+                        finalMonsterHp: battleResult.finalMonsterHp,
+                        maxPlayerMana: battleResult.maxPlayerMana,
+                        maxMonsterMana: battleResult.maxMonsterMana,
+                        finalPlayerMana: battleResult.finalPlayerMana,
+                        finalMonsterMana: battleResult.finalMonsterMana
                     },
                     message: `Đã thất bại tại tầng ${currentFloor}. Phần thưởng đã thu thập được giữ lại.`,
                     rewards: {

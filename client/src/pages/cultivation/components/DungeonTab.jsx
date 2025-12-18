@@ -416,7 +416,7 @@ const PixelExplorationView = memo(({ dungeon, monster, currentFloor, totalFloors
                     <span className="text-red-400 uppercase font-bold">CẢNH BÁO!</span><br />
                     Một con <span className="text-yellow-400">{monster?.name}</span> ({getMonsterTypeConfig(monster?.type).label}) đã xuất hiện!
                     <div className="mt-2 text-[10px] text-slate-400">
-                        ATK: {formatNumber(monster?.stats?.attack)} | DEF: {formatNumber(monster?.stats?.defense)} | HP: {formatNumber(monster?.stats?.qiBlood)}
+                        TẤN CÔNG: {formatNumber(monster?.stats?.attack)} | PHÒNG THỦ: {formatNumber(monster?.stats?.defense)} | KHÍ HUYẾT: {formatNumber(monster?.stats?.qiBlood)}
                     </div>
                 </div>
 
@@ -455,9 +455,11 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
     const [currentLogIndex, setCurrentLogIndex] = useState(0);
     const [playerHp, setPlayerHp] = useState(battleResult?.maxPlayerHp || 100);
     const [monsterHp, setMonsterHp] = useState(battleResult?.maxMonsterHp || 100);
+    const [playerMana, setPlayerMana] = useState(battleResult?.maxPlayerMana || 100);
+    const [monsterMana, setMonsterMana] = useState(battleResult?.maxMonsterMana || 50);
     const [actionText, setActionText] = useState("Đang chuẩn bị chiến đấu...");
     const [hitEffect, setHitEffect] = useState(null);
-    const hasCompletedRef = useRef(false); // Guard to prevent multiple onComplete calls
+    const hasCompletedRef = useRef(false);
 
     const logs = battleResult?.logs || [];
 
@@ -480,13 +482,23 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
 
         const timer = setTimeout(() => {
             const log = logs[currentLogIndex];
+
+            // Update mana from logs
+            if (log.playerMana !== undefined) setPlayerMana(log.playerMana);
+            if (log.monsterMana !== undefined) setMonsterMana(log.monsterMana);
+
+            // Build action text with skill info
             if (log.attacker === 'player' && !log.isDodged) {
                 setMonsterHp(log.monsterHpAfter);
-                setActionText(` Bạn tấn công gây ${formatNumber(log.damage)} sát thương!${log.isCritical ? ' 💥CHÍ MẠNG!' : ''}`);
+                const skillText = log.skillUsed ? `【${log.skillUsed}】` : '';
+                const manaText = log.manaConsumed ? ` (-${log.manaConsumed} CHÂN NGUYÊN)` : '';
+                setActionText(` ${skillText} Bạn tấn công gây ${formatNumber(log.damage)} sát thương!${log.isCritical ? 'CHÍ MẠNG!' : ''}${manaText}`);
                 setHitEffect('monster');
             } else if (log.attacker === 'monster' && !log.isDodged) {
                 setPlayerHp(log.playerHpAfter);
-                setActionText(` ${monster?.name} phản công gây ${formatNumber(log.damage)} sát thương!`);
+                const skillText = log.skillUsed ? `【${log.skillUsed}】` : '';
+                const manaText = log.manaConsumed ? ` (-${log.manaConsumed} CHÂN NGUYÊN)` : '';
+                setActionText(` ${skillText} ${monster?.name} phản công gây ${formatNumber(log.damage)} sát thương!${manaText}`);
                 setHitEffect('player');
             } else {
                 setActionText(` ${log.attacker === 'player' ? 'Địch' : 'Bạn'} đã né thành công!`);
@@ -507,7 +519,7 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
 
                 {/* Monster (Top Right) */}
                 <motion.div
-                    className="absolute top-8 right-8 flex flex-col items-center"
+                    className="absolute top-6 right-6 flex flex-col items-center"
                     animate={hitEffect === 'monster' ? { x: [-5, 5, -5, 5, 0] } : {}}
                     transition={{ duration: 0.3, ease: 'easeInOut' }}
                 >
@@ -517,18 +529,27 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
                         <div className="w-16 h-16 text-xl font-bold filter grayscale-[0.2] drop-shadow-md flex items-center justify-center rounded-full bg-slate-800 border-2 border-red-500 text-red-400">{monster?.name?.charAt(0) || '?'}</div>
                     )}
                     <div className="text-[10px] text-white mt-1 font-bold">{monster?.name}</div>
-                    <div className="w-20 bg-black h-3 mt-1 border border-white/20">
+                    {/* HP Bar */}
+                    <div className="w-20 bg-black h-2.5 mt-1 border border-white/20">
                         <motion.div
                             className="h-full bg-red-500"
                             animate={{ width: `${(monsterHp / battleResult?.maxMonsterHp) * 100}%` }}
                         />
                     </div>
-                    <div className="text-[8px] text-red-400 mt-0.5">{formatNumber(Math.max(0, monsterHp))}</div>
+                    <div className="text-[7px] text-red-400">{formatNumber(Math.max(0, monsterHp))} HP</div>
+                    {/* Mana Bar */}
+                    <div className="w-20 bg-black h-2 border border-white/20">
+                        <motion.div
+                            className="h-full bg-blue-500"
+                            animate={{ width: `${battleResult?.maxMonsterMana ? (monsterMana / battleResult.maxMonsterMana) * 100 : 0}%` }}
+                        />
+                    </div>
+                    <div className="text-[7px] text-blue-400">{formatNumber(Math.max(0, monsterMana))} CHÂN NGUYÊN</div>
                 </motion.div>
 
                 {/* Player (Bottom Left) */}
                 <motion.div
-                    className="absolute bottom-8 left-8 flex flex-col items-center"
+                    className="absolute bottom-6 left-6 flex flex-col items-center"
                     animate={hitEffect === 'player' ? { x: [5, -5, 5, -5, 0] } : {}}
                     transition={{ duration: 0.3, ease: 'easeInOut' }}
                 >
@@ -542,13 +563,22 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
                         )}
                     </div>
                     <div className="text-[10px] text-white mt-1 font-bold">{playerName || 'Tu Sĩ'}</div>
-                    <div className="w-20 bg-black h-3 mt-1 border border-white/20">
+                    {/* HP Bar */}
+                    <div className="w-20 bg-black h-2.5 mt-1 border border-white/20">
                         <motion.div
                             className="h-full bg-emerald-500"
                             animate={{ width: `${(playerHp / battleResult?.maxPlayerHp) * 100}%` }}
                         />
                     </div>
-                    <div className="text-[8px] text-emerald-400 mt-0.5">{formatNumber(Math.max(0, playerHp))}</div>
+                    <div className="text-[7px] text-emerald-400">{formatNumber(Math.max(0, playerHp))} HP</div>
+                    {/* Mana Bar */}
+                    <div className="w-20 bg-black h-2 border border-white/20">
+                        <motion.div
+                            className="h-full bg-blue-500"
+                            animate={{ width: `${battleResult?.maxPlayerMana ? (playerMana / battleResult.maxPlayerMana) * 100 : 0}%` }}
+                        />
+                    </div>
+                    <div className="text-[7px] text-blue-400">{formatNumber(Math.max(0, playerMana))} CHÂN NGUYÊN</div>
                 </motion.div>
 
                 {/* Hit Effects */}

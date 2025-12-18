@@ -23,17 +23,17 @@ const mergeEquipmentStats = (combatStats, equipStats) => {
   combatStats.defense = (combatStats.defense || 0) + (equipStats.defense || 0);
   combatStats.qiBlood = (combatStats.qiBlood || 0) + (equipStats.hp || 0); // HP từ equipment cộng vào qiBlood
   combatStats.speed = (combatStats.speed || 0) + (equipStats.speed || 0);
-  
+
   // Percentage stats (convert 0-1 to 0-100)
   combatStats.criticalRate = (combatStats.criticalRate || 0) + ((equipStats.crit_rate || 0) * 100);
   combatStats.criticalDamage = (combatStats.criticalDamage || 0) + ((equipStats.crit_damage || 0) * 100);
   combatStats.accuracy = (combatStats.accuracy || 0) + ((equipStats.hit_rate || 0) * 100);
   combatStats.dodge = (combatStats.dodge || 0) + ((equipStats.evasion || 0) * 100);
   combatStats.lifesteal = (combatStats.lifesteal || 0) + ((equipStats.lifesteal || 0) * 100);
-  
+
   combatStats.penetration = (combatStats.penetration || 0) + (equipStats.penetration || 0);
   combatStats.regeneration = (combatStats.regeneration || 0) + (equipStats.energy_regen || 0);
-  
+
   return combatStats;
 };
 
@@ -41,32 +41,24 @@ const mergeEquipmentStats = (combatStats, equipStats) => {
  * Tính mana cost dựa trên rarity của công pháp và max mana của người dùng
  * @param {string} rarity - Rarity của công pháp (common, uncommon, rare, epic, legendary)
  * @param {number} maxMana - Lượng chân nguyên tối đa của người dùng
- * @returns {number} Mana cost (scaled theo max mana)
+ * @returns {number} Mana cost (percentage of max mana)
  */
 const getManaCostByRarity = (rarity, maxMana = 1000) => {
-  // Base mana cost theo rarity
-  const baseManaCostMap = {
-    'common': 10,
-    'uncommon': 20,
-    'rare': 35,
-    'epic': 50,
-    'legendary': 75
+  // Mana cost as percentage of max mana based on rarity
+  // Higher rarity = higher cost but more powerful skill
+  const manaCostPercentMap = {
+    'common': 0.15,      // 15% max mana
+    'uncommon': 0.20,    // 20% max mana
+    'rare': 0.25,        // 25% max mana
+    'epic': 0.30,        // 30% max mana
+    'legendary': 0.35    // 35% max mana
   };
-  
-  const baseCost = baseManaCostMap[rarity] || 10;
-  
-  // Scale theo max mana: người có mana lớn hơn sẽ tốn nhiều hơn
-  // Công thức: baseCost * (1 + (maxMana - 1000) / 5000)
-  // Ví dụ: maxMana = 1000 -> multiplier = 1.0
-  //        maxMana = 5000 -> multiplier = 1.8
-  //        maxMana = 10000 -> multiplier = 2.8
-  const manaMultiplier = 1 + Math.max(0, (maxMana - 1000) / 5000);
-  const scaledCost = Math.floor(baseCost * manaMultiplier);
-  
-  // Đảm bảo cost không quá 30% max mana
-  const maxCost = Math.floor(maxMana * 0.3);
-  
-  return Math.min(scaledCost, maxCost);
+
+  const costPercent = manaCostPercentMap[rarity] || 0.15;
+  const manaCost = Math.floor(maxMana * costPercent);
+
+  // Minimum cost is 20, maximum is 40% of max mana
+  return Math.max(20, Math.min(manaCost, Math.floor(maxMana * 0.4)));
 };
 
 /**
@@ -76,7 +68,7 @@ const getManaCostByRarity = (rarity, maxMana = 1000) => {
  */
 const getLearnedSkills = (cultivation, maxMana = null) => {
   const skills = [];
-  
+
   // Tính maxMana nếu chưa có
   let actualMaxMana = maxMana;
   if (!actualMaxMana) {
@@ -90,7 +82,7 @@ const getLearnedSkills = (cultivation, maxMana = null) => {
       actualMaxMana = 1000; // Default
     }
   }
-  
+
   if (cultivation.learnedTechniques && cultivation.learnedTechniques.length > 0) {
     cultivation.learnedTechniques.forEach(learned => {
       const technique = SHOP_ITEMS.find(t => t.id === learned.techniqueId && t.type === ITEM_TYPES.TECHNIQUE);
@@ -179,11 +171,12 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
     let skillDamageBonus = 0;
     let manaConsumed = 0;
     for (const skill of attackerSkills) {
-      if (attackerCooldowns[skill.techniqueId] <= 0 && attackerMana >= (skill.manaCost || 10)) {
+      if (attackerCooldowns[skill.techniqueId] <= 0 && attackerMana >= (skill.manaCost || 20)) {
         // Use this skill
         usedSkill = skill;
-        skillDamageBonus = (skill.damage || 50) * skill.damageMultiplier;
-        manaConsumed = skill.manaCost || 10;
+        // Skill damage = attacker's ATTACK × damageMultiplier (scaled by skill level)
+        skillDamageBonus = Math.floor(attacker.attack * (skill.damageMultiplier || 1));
+        manaConsumed = skill.manaCost || 20;
         attackerCooldowns[skill.techniqueId] = skill.cooldown || 3;
         // Consume mana
         if (currentAttacker === 'challenger') {
@@ -530,10 +523,10 @@ router.post("/challenge", async (req, res, next) => {
     console.log(`[BATTLE] ${challenger.name} vs ${opponent.name} - Winner: ${battleResult.winner || 'Draw'}`);
 
     // Gửi thông báo cho đối thủ
-    const notificationResult = battleResult.isDraw 
+    const notificationResult = battleResult.isDraw
       ? 'HÒA'
       : battleResult.winner === 'challenger' ? 'THUA' : 'THẮNG';
-    
+
     const notificationMessage = battleResult.isDraw
       ? `Trận đấu với ${challenger.name} kết thúc hòa! Bạn nhận được ${rewards.loserExp} exp.`
       : battleResult.winner === 'challenger'
@@ -558,8 +551,8 @@ router.post("/challenge", async (req, res, next) => {
 
     res.json({
       success: true,
-      message: battleResult.isDraw 
-        ? "Trận đấu kết thúc hòa!" 
+      message: battleResult.isDraw
+        ? "Trận đấu kết thúc hòa!"
         : `${battleResult.winner === 'challenger' ? challenger.name : opponent.name} chiến thắng!`,
       data: {
         battleId: battle._id,
@@ -777,7 +770,7 @@ router.get("/opponents/list", async (req, res, next) => {
     // Tìm các user có realm level trong khoảng ±2
     const cultivations = await Cultivation.find({
       user: { $ne: userId },
-      realmLevel: { 
+      realmLevel: {
         $gte: Math.max(1, userRealmLevel - 2),
         $lte: Math.min(10, userRealmLevel + 2)
       }
@@ -790,7 +783,7 @@ router.get("/opponents/list", async (req, res, next) => {
 
     const total = await Cultivation.countDocuments({
       user: { $ne: userId },
-      realmLevel: { 
+      realmLevel: {
         $gte: Math.max(1, userRealmLevel - 2),
         $lte: Math.min(10, userRealmLevel + 2)
       }
@@ -882,11 +875,11 @@ router.get("/ranking/list", async (req, res, next) => {
 
     // Merge stats
     const statsMap = new Map();
-    
+
     // Check if rankings has data before accessing
     const challengerStats = rankings[0]?.challengerStats || [];
     const opponentStats = rankings[0]?.opponentStats || [];
-    
+
     challengerStats.forEach(s => {
       statsMap.set(s._id.toString(), {
         userId: s._id,

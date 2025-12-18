@@ -62,6 +62,109 @@ export const DIFFICULTY_CONFIG = {
     }
 };
 
+// ==================== MONSTER SKILLS DEFINITIONS ====================
+// Skills are auto-used by monsters when off cooldown and have enough mana
+// damageMultiplier is applied to monster's ATTACK stat for scaling
+// Higher difficulty = stronger multipliers
+export const MONSTER_SKILLS = {
+    // Easy dungeon skills (basic, low multipliers)
+    mist_valley: {
+        normal: [], // Normal mobs don't have skills in easy dungeon
+        elite: [
+            { name: 'Vân Vũ Kích', damageMultiplier: 0.5, cooldown: 4, manaCost: 15, description: 'Tấn công bằng sương mù' }
+        ],
+        boss: [
+            { name: 'Vân Vũ Trận', damageMultiplier: 0.8, cooldown: 3, manaCost: 20, description: 'Triệu hồi trận pháp sương mù' },
+            { name: 'Mê Ảnh Thuật', damageMultiplier: 0.6, cooldown: 4, manaCost: 25, description: 'Ảo ảnh gây rối loạn' }
+        ]
+    },
+    // Normal dungeon skills
+    fire_cave: {
+        normal: [
+            { name: 'Hỏa Diễm Phún', damageMultiplier: 0.4, cooldown: 5, manaCost: 10, description: 'Phun lửa cơ bản' }
+        ],
+        elite: [
+            { name: 'Hỏa Ngục Trận', damageMultiplier: 0.7, cooldown: 3, manaCost: 25, description: 'Trận pháp lửa địa ngục' }
+        ],
+        boss: [
+            { name: 'Long Viêm', damageMultiplier: 1.0, cooldown: 3, manaCost: 30, description: 'Ngọn lửa của rồng' },
+            { name: 'Địa Ngục Hỏa', damageMultiplier: 1.5, cooldown: 5, manaCost: 50, description: 'Thiêu đốt địa ngục' }
+        ]
+    },
+    // Hard dungeon skills
+    frost_peak: {
+        normal: [
+            { name: 'Băng Tiễn', damageMultiplier: 0.5, cooldown: 4, manaCost: 15, description: 'Mũi tên băng' }
+        ],
+        elite: [
+            { name: 'Băng Phong Bạo', damageMultiplier: 0.8, cooldown: 3, manaCost: 30, description: 'Bão tuyết hung hãn' },
+            { name: 'Đóng Băng', damageMultiplier: 0.6, cooldown: 4, manaCost: 25, description: 'Đóng băng đối thủ' }
+        ],
+        boss: [
+            { name: 'Vĩnh Đông', damageMultiplier: 1.2, cooldown: 3, manaCost: 40, description: 'Mùa đông vĩnh cửu' },
+            { name: 'Băng Phong Bạo', damageMultiplier: 1.0, cooldown: 3, manaCost: 35, description: 'Bão tuyết tàn khốc' },
+            { name: 'Đóng Băng', damageMultiplier: 0.8, cooldown: 4, manaCost: 30, description: 'Đóng băng hoàn toàn' }
+        ]
+    },
+    // Nightmare dungeon skills
+    dark_abyss: {
+        normal: [
+            { name: 'Hắc Ám Kích', damageMultiplier: 0.6, cooldown: 4, manaCost: 20, description: 'Đòn tấn công bóng tối' },
+            { name: 'Thực Hồn', damageMultiplier: 0.5, cooldown: 5, manaCost: 25, description: 'Nuốt linh hồn' }
+        ],
+        elite: [
+            { name: 'Tử Vong Ấn', damageMultiplier: 1.0, cooldown: 3, manaCost: 40, description: 'Ấn ký tử thần' },
+            { name: 'Âm Hồn Triệu Hoán', damageMultiplier: 0.8, cooldown: 4, manaCost: 35, description: 'Triệu hồi âm hồn' }
+        ],
+        boss: [
+            { name: 'U Minh Hắc Ám', damageMultiplier: 1.5, cooldown: 3, manaCost: 50, description: 'Bóng tối u minh' },
+            { name: 'Linh Hồn Thu Hoạch', damageMultiplier: 1.2, cooldown: 3, manaCost: 45, description: 'Thu hoạch linh hồn' },
+            { name: 'Tử Vong Ngưng Tụ', damageMultiplier: 1.8, cooldown: 5, manaCost: 60, description: 'Tích tụ sức mạnh tử vong' }
+        ]
+    },
+    // Hell dungeon skills
+    dragon_nest: {
+        normal: [
+            { name: 'Long Tức', damageMultiplier: 0.7, cooldown: 4, manaCost: 25, description: 'Hơi thở của rồng' },
+            { name: 'Long Trảo', damageMultiplier: 0.6, cooldown: 3, manaCost: 20, description: 'Móng vuốt rồng' }
+        ],
+        elite: [
+            { name: 'Cổ Long Chi Nộ', damageMultiplier: 1.2, cooldown: 3, manaCost: 50, description: 'Cơn thịnh nộ cổ long' },
+            { name: 'Long Lân Hộ Thể', damageMultiplier: 0.8, cooldown: 4, manaCost: 40, description: 'Vảy rồng bảo vệ' }
+        ],
+        boss: [
+            { name: 'Long Hoàng Chi Nộ', damageMultiplier: 2.0, cooldown: 3, manaCost: 60, description: 'Cơn thịnh nộ của Long Hoàng' },
+            { name: 'Cửu Long Phệ Nhật', damageMultiplier: 1.8, cooldown: 4, manaCost: 70, description: 'Chín rồng nuốt mặt trời' },
+            { name: 'Thần Long Bảo Hộ', damageMultiplier: 1.0, cooldown: 4, manaCost: 50, description: 'Thần long bảo vệ' },
+            { name: 'Phá Thiên Nhất Kích', damageMultiplier: 2.5, cooldown: 6, manaCost: 100, description: 'Đòn phá thiên' }
+        ]
+    }
+};
+
+// Helper function to get monster skills based on dungeon and monster type
+export const getMonsterSkills = (dungeonId, monsterType) => {
+    // Handle chaos realm - random skills from all dungeons
+    if (dungeonId === 'chaos_realm') {
+        const allSkills = [];
+        Object.keys(MONSTER_SKILLS).forEach(id => {
+            const dungeonSkills = MONSTER_SKILLS[id][monsterType];
+            if (dungeonSkills && dungeonSkills.length > 0) {
+                allSkills.push(...dungeonSkills);
+            }
+        });
+        // Return 1-3 random skills for chaos realm monsters
+        if (allSkills.length === 0) return [];
+        const numSkills = Math.min(allSkills.length, monsterType === 'boss' ? 4 : monsterType === 'elite' ? 2 : 1);
+        const shuffled = [...allSkills].sort(() => Math.random() - 0.5);
+        return shuffled.slice(0, numSkills);
+    }
+
+    const dungeonSkills = MONSTER_SKILLS[dungeonId];
+    if (!dungeonSkills) return [];
+
+    return dungeonSkills[monsterType] || [];
+};
+
 // ==================== DUNGEON TEMPLATES ====================
 export const DUNGEON_TEMPLATES = [
     {
@@ -317,41 +420,51 @@ export const calculateMonsterStats = (monster, floor, difficulty, dungeonId = nu
     const config = DIFFICULTY_CONFIG[difficulty];
     const floorMultiplier = 1 + (floor - 1) * 0.12; // +12% per floor
 
-    // Special handling for chaos realm - scale based on player stats (0.8-1.5x for balance)
+    // Special handling for chaos realm - THE HARDEST DUNGEON
+    // Monsters scale based on player stats, ALWAYS stronger than player
+    // But player has advantages: lifesteal, speed priority, higher crit rate
     if (dungeonId === 'chaos_realm' && playerStats) {
-        // Random multiplier between 0.8x and 1.5x (reduced from 1-2x for better balance)
-        const randomMultiplier = 0.8 + Math.random() * 0.7; // 0.8 to 1.5
-        
-        // Type multipliers (reduced for balance)
+        // Random multiplier between 1.1x and 1.5x (always stronger than player)
+        const randomMultiplier = 1.1 + Math.random() * 0.4; // 1.1 to 1.5
+
+        // Type multipliers - elite and boss are significantly harder
         let typeMultiplier = 1.0;
         if (monster.isElite || monster.type === 'elite') {
-            typeMultiplier = 1.2; // Elite: 1.2x base (reduced from 1.3x)
+            typeMultiplier = 1.3; // Elite: 1.3x base → total 143% - 195%
         } else if (monster.isBoss || monster.type === 'boss') {
-            typeMultiplier = 1.5; // Boss: 1.5x base (reduced from 1.8x)
+            typeMultiplier = 1.6; // Boss: 1.6x base → total 176% - 240%
         }
-        
-        // Floor scaling (higher floors = stronger, but gentler)
-        const floorScale = 1 + (floor - 1) * 0.03; // +3% per floor (reduced from 5%)
-        
+
+        // Floor scaling - gets harder each floor (+5% per floor)
+        const floorScale = 1 + (floor - 1) * 0.05; // Floor 20 = +95% = 1.95x
+
         // Calculate stats based on player stats
         const baseAttack = playerStats.attack || 100;
         const baseDefense = playerStats.defense || 50;
         const baseQiBlood = playerStats.qiBlood || 1000;
-        
-        // Monster defense is reduced by 20% to make them more vulnerable
-        const defenseReduction = 0.8;
-        
+
+        // Defense reduction to compensate for higher attack (player can still deal damage)
+        // This is the KEY BALANCE: high ATK/HP but lower DEF = risky but beatable
+        const defenseReduction = 0.75; // Monsters have 25% less defense ratio
+
+        // HP reduction for faster fights (prevents timeout at 50 rounds)
+        const hpReduction = 0.85; // 15% less HP to make fights faster
+
         return {
             ...monster,
             stats: {
                 attack: Math.floor(baseAttack * randomMultiplier * typeMultiplier * floorScale),
-                defense: Math.floor(baseDefense * randomMultiplier * typeMultiplier * floorScale * defenseReduction), // 20% less defense
-                qiBlood: Math.floor(baseQiBlood * randomMultiplier * typeMultiplier * floorScale),
-                maxQiBlood: Math.floor(baseQiBlood * randomMultiplier * typeMultiplier * floorScale),
-                speed: Math.floor((playerStats.speed || 50) * (0.75 + Math.random() * 0.3)), // 75-105% of player speed (slightly slower)
-                criticalRate: Math.min(25, (playerStats.criticalRate || 10) * 0.8 + floor * 0.3), // Lower crit rate than player
-                criticalDamage: Math.min(250, (playerStats.criticalDamage || 150) * 0.9 + floor * 1.5), // Lower crit damage
-                dodge: Math.min(20, (playerStats.dodge || 10) * 0.7 + floor * 0.2) // Lower dodge than player
+                defense: Math.floor(baseDefense * randomMultiplier * typeMultiplier * floorScale * defenseReduction),
+                qiBlood: Math.floor(baseQiBlood * randomMultiplier * typeMultiplier * floorScale * hpReduction),
+                maxQiBlood: Math.floor(baseQiBlood * randomMultiplier * typeMultiplier * floorScale * hpReduction),
+                // Speed: 85-105% of player - sometimes monster attacks first!
+                speed: Math.floor((playerStats.speed || 50) * (0.85 + Math.random() * 0.2)),
+                // Higher crit rate than before, but still capped below typical player crit
+                criticalRate: Math.min(35, (playerStats.criticalRate || 10) * 0.9 + floor * 0.5),
+                // Good crit damage but not overwhelming
+                criticalDamage: Math.min(280, (playerStats.criticalDamage || 150) * 0.95 + floor * 2),
+                // Moderate dodge - player should land most hits
+                dodge: Math.min(25, (playerStats.dodge || 10) * 0.8 + floor * 0.3)
             }
         };
     }
@@ -416,7 +529,7 @@ const getAllPreviousMonsters = () => {
     // Collect from all dungeons except chaos_realm
     Object.keys(DUNGEON_MONSTERS).forEach(dungeonId => {
         if (dungeonId === 'chaos_realm') return;
-        
+
         const monsters = DUNGEON_MONSTERS[dungeonId];
         if (monsters.normal) {
             allNormal.push(...monsters.normal.map(m => ({ ...m, sourceDungeon: dungeonId })));
@@ -443,7 +556,7 @@ export const selectMonsterForFloor = (dungeonId, floor, totalFloors) => {
     // Special handling for chaos realm - random from all previous dungeons
     if (dungeonId === 'chaos_realm') {
         const { allNormal, allElite, allBosses } = getAllPreviousMonsters();
-        
+
         // Boss ở tầng cuối - random từ tất cả bosses
         if (floor === totalFloors) {
             if (allBosses.length > 0) {
