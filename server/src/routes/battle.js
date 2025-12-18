@@ -5,6 +5,7 @@ import Equipment from "../models/Equipment.js";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import { authRequired } from "../middleware/auth.js";
+import { PK_BOTS, BOT_BATTLE_COOLDOWN, getBotsByRealmLevel, getBotById } from "../data/pkBots.js";
 
 const router = express.Router();
 
@@ -652,30 +653,36 @@ router.get("/history", async (req, res, next) => {
     res.json({
       success: true,
       data: {
-        battles: battles.map(battle => ({
-          _id: battle._id,
-          challenger: {
-            _id: battle.challenger._id,
-            username: battle.challenger.name,
-            avatar: battle.challenger.avatarUrl,
-            realmLevel: battle.challengerStats.realmLevel,
-            realmName: battle.challengerStats.realmName
-          },
-          opponent: {
-            _id: battle.opponent._id,
-            username: battle.opponent.name,
-            avatar: battle.opponent.avatarUrl,
-            realmLevel: battle.opponentStats.realmLevel,
-            realmName: battle.opponentStats.realmName
-          },
-          winner: battle.winner,
-          isDraw: battle.isDraw,
-          isUserWinner: battle.winner && battle.winner._id.toString() === userId.toString(),
-          isUserChallenger: battle.challenger._id.toString() === userId.toString(),
-          totalTurns: battle.totalTurns,
-          rewards: battle.rewards,
-          createdAt: battle.createdAt
-        })),
+        battles: battles.map(battle => {
+          // Kiểm tra nếu opponent id = challenger id thì đây là battle với bot
+          const isBotBattle = battle.challenger._id.toString() === battle.opponent._id.toString();
+
+          return {
+            _id: battle._id,
+            challenger: {
+              _id: battle.challenger._id,
+              username: battle.challengerUsername || battle.challenger.name,
+              avatar: battle.challenger.avatarUrl,
+              realmLevel: battle.challengerStats.realmLevel,
+              realmName: battle.challengerStats.realmName
+            },
+            opponent: {
+              _id: battle.opponent._id,
+              username: isBotBattle ? battle.opponentUsername : (battle.opponentUsername || battle.opponent.name),
+              avatar: isBotBattle ? null : battle.opponent.avatarUrl,
+              realmLevel: battle.opponentStats.realmLevel,
+              realmName: battle.opponentStats.realmName,
+              isBot: isBotBattle
+            },
+            winner: battle.winner,
+            isDraw: battle.isDraw,
+            isUserWinner: battle.winner && battle.winner._id.toString() === userId.toString(),
+            isUserChallenger: battle.challenger._id.toString() === userId.toString(),
+            totalTurns: battle.totalTurns,
+            rewards: battle.rewards,
+            createdAt: battle.createdAt
+          }
+        }),
         stats: battleStats,
         pagination: {
           page: parseInt(page),
@@ -952,6 +959,279 @@ router.get("/ranking/list", async (req, res, next) => {
 
   } catch (error) {
     console.error("[BATTLE] Get ranking error:", error);
+    next(error);
+  }
+});
+
+// ==================== BOT BATTLE ROUTES ====================
+
+/**
+ * GET /api/battle/bots/list
+ * Lấy danh sách bots để thách đấu (trong khoảng ±1 cảnh giới)
+ */
+router.get("/bots/list", async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    // Lấy cultivation của user để biết realm level
+    const userCultivation = await Cultivation.findOne({ user: userId });
+    if (!userCultivation) {
+      return res.status(400).json({
+        success: false,
+        message: "Bạn chưa bắt đầu tu tiên"
+      });
+    }
+
+    const userRealmLevel = userCultivation.realmLevel;
+    const bots = getBotsByRealmLevel(userRealmLevel);
+
+    // Thêm thông tin realm color
+    const botsWithColor = bots.map(bot => {
+      const realm = CULTIVATION_REALMS.find(r => r.level === bot.realmLevel) || CULTIVATION_REALMS[0];
+      return {
+        ...bot,
+        realmColor: realm.color,
+        isHarder: bot.realmLevel > userRealmLevel,
+        isEasier: bot.realmLevel < userRealmLevel
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        bots: botsWithColor,
+        userRealmLevel
+      }
+    });
+
+  } catch (error) {
+    console.error("[BATTLE] Get bots error:", error);
+    next(error);
+  }
+});
+
+/**
+ * POST /api/battle/challenge/bot
+ * Thách đấu một bot NPC
+ */
+router.post("/challenge/bot", async (req, res, next) => {
+  try {
+    const challengerId = req.user._id;
+    const { botId } = req.body;
+
+    if (!botId) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng chọn đối thủ"
+      });
+    }
+
+    // Tìm bot
+    const bot = getBotById(botId);
+    if (!bot) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đối thủ này"
+      });
+    }
+
+    // Kiểm tra cooldown (30 giây giữa các trận với cùng bot)
+    const recentBattle = await Battle.findOne({
+      challenger: challengerId,
+      opponentUsername: bot.name,
+      createdAt: { $gt: new Date(Date.now() - BOT_BATTLE_COOLDOWN) }
+    });
+
+    if (recentBattle) {
+      const remainingTime = Math.ceil((BOT_BATTLE_COOLDOWN - (Date.now() - recentBattle.createdAt)) / 1000);
+      return res.status(429).json({
+        success: false,
+        message: `Vui lòng đợi ${remainingTime} giây trước khi thách đấu lại ${bot.name}`
+      });
+    }
+
+    // Lấy thông tin người thách đấu
+    const challenger = await User.findById(challengerId);
+    const challengerCultivation = await Cultivation.findOne({ user: challengerId });
+
+    if (!challengerCultivation) {
+      return res.status(400).json({
+        success: false,
+        message: "Bạn chưa bắt đầu tu tiên"
+      });
+    }
+
+    // Tính combat stats của người chơi
+    const challengerStats = challengerCultivation.calculateCombatStats();
+    const challengerEquipStats = await challengerCultivation.getEquipmentStats();
+    mergeEquipmentStats(challengerStats, challengerEquipStats);
+
+    const challengerRealm = CULTIVATION_REALMS.find(r => r.level === challengerCultivation.realmLevel) || CULTIVATION_REALMS[0];
+    challengerStats.realmLevel = challengerCultivation.realmLevel;
+    challengerStats.realmName = challengerRealm.name;
+
+    // Tính combat stats của bot (base stats * statMultiplier)
+    const botRealm = CULTIVATION_REALMS.find(r => r.level === bot.realmLevel) || CULTIVATION_REALMS[0];
+    const baseStatsByRealm = {
+      1: { attack: 10, defense: 5, qiBlood: 100, zhenYuan: 50, speed: 10, criticalRate: 5, criticalDamage: 150, accuracy: 80, dodge: 5, penetration: 0, resistance: 0, lifesteal: 0, regeneration: 0.5, luck: 5 },
+      2: { attack: 25, defense: 12, qiBlood: 250, zhenYuan: 120, speed: 15, criticalRate: 8, criticalDamage: 160, accuracy: 85, dodge: 8, penetration: 2, resistance: 2, lifesteal: 1, regeneration: 1, luck: 8 },
+      3: { attack: 50, defense: 25, qiBlood: 500, zhenYuan: 250, speed: 20, criticalRate: 10, criticalDamage: 170, accuracy: 88, dodge: 10, penetration: 5, resistance: 5, lifesteal: 2, regeneration: 1.5, luck: 10 },
+      4: { attack: 100, defense: 50, qiBlood: 1000, zhenYuan: 500, speed: 25, criticalRate: 12, criticalDamage: 180, accuracy: 90, dodge: 12, penetration: 8, resistance: 8, lifesteal: 3, regeneration: 2, luck: 12 },
+      5: { attack: 200, defense: 100, qiBlood: 2000, zhenYuan: 1000, speed: 30, criticalRate: 15, criticalDamage: 190, accuracy: 92, dodge: 15, penetration: 12, resistance: 12, lifesteal: 5, regeneration: 3, luck: 15 },
+      6: { attack: 400, defense: 200, qiBlood: 4000, zhenYuan: 2000, speed: 35, criticalRate: 18, criticalDamage: 200, accuracy: 94, dodge: 18, penetration: 15, resistance: 15, lifesteal: 7, regeneration: 4, luck: 18 },
+      7: { attack: 800, defense: 400, qiBlood: 8000, zhenYuan: 4000, speed: 40, criticalRate: 20, criticalDamage: 210, accuracy: 96, dodge: 20, penetration: 18, resistance: 18, lifesteal: 10, regeneration: 5, luck: 20 },
+      8: { attack: 1600, defense: 800, qiBlood: 16000, zhenYuan: 8000, speed: 45, criticalRate: 22, criticalDamage: 220, accuracy: 97, dodge: 22, penetration: 20, resistance: 20, lifesteal: 12, regeneration: 6, luck: 22 },
+      9: { attack: 3200, defense: 1600, qiBlood: 32000, zhenYuan: 16000, speed: 50, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 7, luck: 25 },
+      10: { attack: 6400, defense: 3200, qiBlood: 64000, zhenYuan: 32000, speed: 60, criticalRate: 30, criticalDamage: 250, accuracy: 99, dodge: 30, penetration: 25, resistance: 25, lifesteal: 20, regeneration: 8, luck: 30 },
+      11: { attack: 12800, defense: 6400, qiBlood: 128000, zhenYuan: 64000, speed: 70, criticalRate: 35, criticalDamage: 300, accuracy: 100, dodge: 35, penetration: 30, resistance: 30, lifesteal: 25, regeneration: 10, luck: 35 }
+    };
+
+    const baseStats = baseStatsByRealm[bot.realmLevel] || baseStatsByRealm[1];
+    const opponentStats = {};
+    for (const [key, value] of Object.entries(baseStats)) {
+      // Nhân stats theo statMultiplier
+      opponentStats[key] = Math.floor(value * bot.statMultiplier);
+    }
+    opponentStats.realmLevel = bot.realmLevel;
+    opponentStats.realmName = bot.realmName;
+
+    // Lấy skills của bot
+    const botSkills = [];
+    if (bot.skills && bot.skills.length > 0) {
+      for (const techniqueId of bot.skills) {
+        const technique = SHOP_ITEMS.find(t => t.id === techniqueId && t.type === ITEM_TYPES.TECHNIQUE);
+        if (technique && technique.skill) {
+          const manaCost = getManaCostByRarity(technique.rarity, opponentStats.zhenYuan);
+          botSkills.push({
+            techniqueId: technique.id,
+            name: technique.skill.name,
+            description: technique.skill.description,
+            cooldown: technique.skill.cooldown,
+            manaCost,
+            damageMultiplier: 1.5,
+            level: 5 // Bots có skill level 5 mặc định
+          });
+        }
+      }
+    }
+
+    // Lấy skills của người chơi
+    const challengerSkills = getLearnedSkills(challengerCultivation, challengerStats.zhenYuan);
+
+    // Thực hiện trận đấu
+    const battleResult = simulateBattle(challengerStats, opponentStats, challengerSkills, botSkills);
+
+    // Tính phần thưởng (với rewardMultiplier)
+    let rewards;
+    if (battleResult.isDraw) {
+      rewards = {
+        winnerExp: Math.floor(10 * bot.rewardMultiplier),
+        winnerSpiritStones: Math.floor(5 * bot.rewardMultiplier),
+        loserExp: Math.floor(10 * bot.rewardMultiplier),
+        loserSpiritStones: Math.floor(5 * bot.rewardMultiplier)
+      };
+    } else if (battleResult.winner === 'challenger') {
+      const baseExp = 50;
+      const baseStones = 20;
+      const levelDiff = bot.realmLevel - challengerCultivation.realmLevel;
+      const bonusMultiplier = Math.max(1, 1 + levelDiff * 0.2);
+
+      rewards = {
+        winnerExp: Math.floor(baseExp * bonusMultiplier * bot.rewardMultiplier),
+        winnerSpiritStones: Math.floor(baseStones * bonusMultiplier * bot.rewardMultiplier),
+        loserExp: 0,
+        loserSpiritStones: 0
+      };
+    } else {
+      // Người chơi thua - vẫn nhận một ít exp
+      rewards = {
+        winnerExp: 0,
+        winnerSpiritStones: 0,
+        loserExp: Math.floor(10 * bot.rewardMultiplier),
+        loserSpiritStones: 0
+      };
+    }
+
+    // Tạo bản ghi trận đấu (với bot là opponent)
+    const battle = new Battle({
+      challenger: challengerId,
+      challengerUsername: challenger.name,
+      challengerStats,
+      opponent: challengerId, // Bot không có user id, dùng challenger id làm placeholder
+      opponentUsername: bot.name,
+      opponentStats,
+      winner: battleResult.isDraw ? null : (battleResult.winner === 'challenger' ? challengerId : null),
+      isDraw: battleResult.isDraw,
+      rewards,
+      battleLogs: battleResult.logs,
+      totalTurns: battleResult.totalTurns,
+      totalDamageByChallenger: battleResult.totalDamageByChallenger,
+      totalDamageByOpponent: battleResult.totalDamageByOpponent,
+      status: 'completed',
+      completedAt: new Date()
+    });
+
+    await battle.save();
+
+    // Cộng phần thưởng cho người chơi
+    if (battleResult.isDraw) {
+      await Cultivation.findOneAndUpdate(
+        { user: challengerId },
+        { $inc: { exp: rewards.winnerExp, spiritStones: rewards.winnerSpiritStones } }
+      );
+    } else if (battleResult.winner === 'challenger') {
+      await Cultivation.findOneAndUpdate(
+        { user: challengerId },
+        { $inc: { exp: rewards.winnerExp, spiritStones: rewards.winnerSpiritStones } }
+      );
+    } else {
+      // Thua cũng nhận một ít exp
+      await Cultivation.findOneAndUpdate(
+        { user: challengerId },
+        { $inc: { exp: rewards.loserExp } }
+      );
+    }
+
+    console.log(`[BATTLE/BOT] ${challenger.name} vs ${bot.name} - Winner: ${battleResult.winner || 'Draw'}`);
+
+    res.json({
+      success: true,
+      message: battleResult.isDraw
+        ? `Trận đấu với ${bot.name} kết thúc hòa!`
+        : battleResult.winner === 'challenger'
+          ? `Bạn đã chiến thắng ${bot.name}!`
+          : `${bot.name} đã đánh bại bạn!`,
+      data: {
+        battleId: battle._id,
+        challenger: {
+          id: challengerId,
+          username: challenger.name,
+          avatar: challenger.avatarUrl,
+          stats: challengerStats,
+          finalHp: battleResult.finalChallengerHp
+        },
+        opponent: {
+          id: `bot_${bot.id}`,
+          username: bot.name,
+          avatar: bot.avatar,
+          stats: opponentStats,
+          finalHp: battleResult.finalOpponentHp,
+          isBot: true,
+          description: bot.description
+        },
+        winner: battleResult.isDraw ? null : battleResult.winner,
+        isDraw: battleResult.isDraw,
+        rewards,
+        battleLogs: battleResult.logs,
+        totalTurns: battleResult.totalTurns,
+        totalDamageByChallenger: battleResult.totalDamageByChallenger,
+        totalDamageByOpponent: battleResult.totalDamageByOpponent,
+        rewardMultiplier: bot.rewardMultiplier
+      }
+    });
+
+  } catch (error) {
+    console.error("[BATTLE/BOT] Challenge bot error:", error);
     next(error);
   }
 });

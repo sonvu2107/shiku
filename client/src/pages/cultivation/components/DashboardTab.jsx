@@ -114,21 +114,12 @@ const DashboardTab = memo(function DashboardTab({
 
         {/* Header - Enhanced with Tiên Hiệp Effects */}
         <div className="text-center mb-8 relative">
-          {/* Floating Qi Particles around header */}
+          {/* Giữ 2 qi-particle cho header */}
           <div className="qi-particle" style={{ top: '10%', left: '15%', animationDelay: '0s' }}></div>
           <div className="qi-particle" style={{ top: '20%', right: '20%', animationDelay: '1s' }}></div>
-          <div className="qi-particle" style={{ bottom: '10%', left: '25%', animationDelay: '2s' }}></div>
-          <div className="qi-particle" style={{ bottom: '15%', right: '15%', animationDelay: '1.5s' }}></div>
-
-          {/* Cloud decorations */}
-          <div className="cloud-decoration" style={{ top: '-20px', left: '10%' }}></div>
-          <div className="cloud-decoration" style={{ top: '-15px', right: '15%', animationDelay: '2s' }}></div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-title text-gold tracking-widest mb-3 realm-name-glow relative">
             {currentRealm.name.toUpperCase()}
-            {/* Qi flow effects */}
-            <div className="qi-flow" style={{ top: '50%', left: '10%', animationDelay: '0s' }}></div>
-            <div className="qi-flow" style={{ top: '50%', right: '10%', animationDelay: '2s' }}></div>
           </h2>
 
           <div className="h-[1px] w-32 sm:w-40 md:w-48 mx-auto bg-gradient-to-r from-transparent via-amber-500/50 to-transparent relative">
@@ -146,22 +137,13 @@ const DashboardTab = memo(function DashboardTab({
 
         {/* Yin Yang Click for Tu Vi - Enhanced Tiên Hiệp */}
         <div className="flex flex-col items-center justify-center py-12 lg:py-12 relative">
-          {/* Floating Qi particles around yin yang */}
+          {/* Giữ 2 qi-particle quanh yin yang */}
           <div className="qi-particle" style={{ top: '20%', left: '20%', animationDelay: '0s' }}></div>
-          <div className="qi-particle" style={{ top: '25%', right: '25%', animationDelay: '0.5s' }}></div>
-          <div className="qi-particle" style={{ bottom: '20%', left: '30%', animationDelay: '1s' }}></div>
-          <div className="qi-particle" style={{ bottom: '25%', right: '20%', animationDelay: '1.5s' }}></div>
-          <div className="qi-particle" style={{ top: '50%', left: '5%', animationDelay: '2s' }}></div>
-          <div className="qi-particle" style={{ top: '50%', right: '5%', animationDelay: '2.5s' }}></div>
-
-          {/* Cloud decorations */}
-          <div className="cloud-decoration" style={{ top: '10%', left: '5%', width: '80px', height: '30px' }}></div>
-          <div className="cloud-decoration" style={{ bottom: '10%', right: '5%', width: '80px', height: '30px', animationDelay: '3s' }}></div>
+          <div className="qi-particle" style={{ bottom: '20%', right: '20%', animationDelay: '1.5s' }}></div>
 
           <div className="yinyang-container relative">
-            {/* Qi flow rings */}
+            {/* Giữ 1 Qi flow ring */}
             <div className="absolute inset-0 border-2 border-amber-500/20 rounded-full animate-spin" style={{ animationDuration: '20s' }}></div>
-            <div className="absolute inset-0 border border-purple-500/20 rounded-full animate-spin" style={{ animationDuration: '15s', animationDirection: 'reverse' }}></div>
 
             <div className="yinyang-glow"></div>
             <motion.img
@@ -192,11 +174,8 @@ const DashboardTab = memo(function DashboardTab({
           </p>
         </div>
 
-        {/* Log Panel inside Spirit Tablet - Enhanced Tiên Hiệp */}
+        {/* Log Panel inside Spirit Tablet */}
         <div className="mb-6 relative">
-          {/* Decorative elements */}
-          <div className="qi-particle" style={{ top: '5px', left: '5%', animationDelay: '0s' }}></div>
-          <div className="qi-particle" style={{ top: '5px', right: '5%', animationDelay: '1s' }}></div>
 
           <button
             onClick={() => setLogExpanded(!logExpanded)}
@@ -232,12 +211,8 @@ const DashboardTab = memo(function DashboardTab({
           </div>
         </div>
 
-        {/* Progress Bar (Spirit Vein Style) - Enhanced */}
+        {/* Progress Bar (Spirit Vein Style) */}
         <div className="mb-6 md:mb-8 relative">
-          {/* Qi particles around progress bar */}
-          <div className="qi-particle" style={{ top: '-10px', left: '10%', animationDelay: '0s' }}></div>
-          <div className="qi-particle" style={{ top: '-10px', right: '15%', animationDelay: '1s' }}></div>
-
           <div className="flex justify-between text-xs text-slate-500 mb-3 uppercase tracking-wider font-semibold">
             <span className="flex items-center gap-2">
               <span className="floating-char" style={{ position: 'relative', left: '0', top: '0', animation: 'none', opacity: '0.5', fontSize: '12px' }}>修</span>
@@ -264,15 +239,6 @@ const DashboardTab = memo(function DashboardTab({
               <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_2s_infinite]"
                 style={{ transform: 'translateX(-100%)' }}
               ></div>
-
-              {/* Qi flow particles inside progress */}
-              {progressPercent > 10 && (
-                <>
-                  <div className="qi-particle" style={{ top: '20%', left: '20%', width: '3px', height: '3px', animationDelay: '0s' }}></div>
-                  <div className="qi-particle" style={{ top: '60%', left: '50%', width: '3px', height: '3px', animationDelay: '1s' }}></div>
-                  <div className="qi-particle" style={{ top: '30%', left: '80%', width: '3px', height: '3px', animationDelay: '2s' }}></div>
-                </>
-              )}
             </motion.div>
 
             {/* Glow effect when ready */}

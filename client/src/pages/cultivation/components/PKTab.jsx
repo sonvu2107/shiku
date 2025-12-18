@@ -43,10 +43,10 @@ const characterVariants = {
 
 const PKTab = memo(function PKTab() {
   const { cultivation } = useCultivation();
-  const [activeView, setActiveView] = useState('opponents'); // 'opponents', 'history', 'ranking'
+  const [activeView, setActiveView] = useState('opponents'); // 'opponents', 'history'
   const [opponents, setOpponents] = useState([]);
+  const [bots, setBots] = useState([]);
   const [battleHistory, setBattleHistory] = useState([]);
-  const [ranking, setRanking] = useState([]);
   const [battleStats, setBattleStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [challenging, setChallenging] = useState(null);
@@ -127,6 +127,21 @@ const PKTab = memo(function PKTab() {
     }
   }, []);
 
+  // Load bots list
+  const loadBots = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api('/api/battle/bots/list');
+      if (response.success) {
+        setBots(response.data.bots);
+      }
+    } catch (err) {
+      console.error('Load bots error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Load battle history
   const loadHistory = useCallback(async () => {
     setLoading(true);
@@ -143,31 +158,15 @@ const PKTab = memo(function PKTab() {
     }
   }, []);
 
-  // Load ranking
-  const loadRanking = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await api('/api/battle/ranking/list');
-      if (response.success) {
-        setRanking(response.data);
-      }
-    } catch (err) {
-      console.error('Load ranking error:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   // Load data based on active view
   useEffect(() => {
     if (activeView === 'opponents') {
       loadOpponents();
+      loadBots();
     } else if (activeView === 'history') {
       loadHistory();
-    } else if (activeView === 'ranking') {
-      loadRanking();
     }
-  }, [activeView, loadOpponents, loadHistory, loadRanking]);
+  }, [activeView, loadOpponents, loadBots, loadHistory]);
 
   // Challenge opponent
   const handleChallenge = async (opponentId, opponentName) => {
@@ -178,6 +177,38 @@ const PKTab = memo(function PKTab() {
       const response = await api('/api/battle/challenge', {
         method: 'POST',
         body: { opponentId }
+      });
+
+      if (response.success) {
+        setBattleResult(response.data);
+        setBattleLogs(response.data.battleLogs || []);
+        setCurrentLogIndex(0);
+        // Initialize HP and Mana to max
+        setChallengerCurrentHp(response.data.challenger.stats.qiBlood);
+        setOpponentCurrentHp(response.data.opponent.stats.qiBlood);
+        setChallengerCurrentMana(response.data.challenger.stats.zhenYuan);
+        setOpponentCurrentMana(response.data.opponent.stats.zhenYuan);
+        setBattlePhase('intro');
+        setShowBattleAnimation(true);
+        // Start battle after intro delay
+        setTimeout(() => setBattlePhase('fighting'), 1500);
+      }
+    } catch (err) {
+      alert(err.message || 'Thách đấu thất bại');
+    } finally {
+      setChallenging(null);
+    }
+  };
+
+  // Challenge bot
+  const handleChallengeBot = async (botId, botName) => {
+    if (challenging) return;
+
+    setChallenging(botId);
+    try {
+      const response = await api('/api/battle/challenge/bot', {
+        method: 'POST',
+        body: { botId }
       });
 
       if (response.success) {
@@ -424,11 +455,10 @@ const PKTab = memo(function PKTab() {
       </div>
 
       {/* Sub Navigation */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 flex-wrap">
         {[
           { id: 'opponents', label: 'Đối Thủ' },
-          { id: 'history', label: 'Lịch Sử' },
-          { id: 'ranking', label: 'Xếp Hạng' }
+          { id: 'history', label: 'Lịch Sử' }
         ].map(({ id, label }) => (
           <button
             key={id}
@@ -445,7 +475,7 @@ const PKTab = memo(function PKTab() {
 
       {/* User Combat Stats Preview */}
       <div className="spirit-tablet rounded-xl p-4 mb-4 border border-amber-500/30">
-        <h4 className="text-sm font-bold text-amber-400 mb-3">Thông Số Chiến Đấu</h4>
+        <h4 className="text-sm font-bold text-amber-400 mb-3">Thông Số</h4>
         <div className="grid grid-cols-4 gap-2 text-xs">
           <div className="text-center p-2 bg-slate-800/50 rounded">
             <GiBroadsword size={14} className="mx-auto text-red-400 mb-1" />
@@ -518,11 +548,75 @@ const PKTab = memo(function PKTab() {
                   whileHover={{ scale: challenging ? 1 : 1.05 }}
                   whileTap={{ scale: challenging ? 1 : 0.95 }}
                 >
-                  <GiBroadsword size={16} />
                   {challenging === opponent.userId ? 'Đang đấu...' : 'Thách Đấu'}
                 </motion.button>
               </motion.div>
             ))
+          )}
+
+          {/* Tiên Ma Section */}
+          {bots.length > 0 && (
+            <>
+              <h4 className="text-lg font-bold text-purple-400 mt-6 mb-3 font-title">TIÊN MA</h4>
+              <div className="spirit-tablet rounded-xl p-3 border border-purple-500/30 mb-4">
+                <p className="text-xs text-purple-300 text-center">
+                  Chú ý: Tiên Ma có <span className="text-amber-400 font-bold">chỉ số cao hơn</span> người chơi thường.
+                  <span className="text-emerald-400 ml-1">Phần thưởng gấp nhiều lần</span> khi chiến thắng!
+                </p>
+              </div>
+
+              {bots.map((bot, idx) => (
+                <motion.div
+                  key={bot.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className={`spirit-tablet rounded-xl p-4 border-l-4 mb-3 ${bot.isHarder ? 'border-red-500' : bot.isEasier ? 'border-green-500' : 'border-purple-500'}`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-900 to-slate-900 border-2 border-purple-500/60 overflow-hidden">
+                      {bot.avatar ? (
+                        <img src={bot.avatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xl font-bold text-purple-300">
+                          {bot.name.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-bold text-slate-100 truncate">{bot.name}</p>
+                        {bot.isHarder && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-red-900/50 text-red-300 rounded">KHÓ</span>
+                        )}
+                        {bot.isEasier && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-green-900/50 text-green-300 rounded">DỄ</span>
+                        )}
+                      </div>
+                      <p className="text-xs" style={{ color: bot.realmColor }}>
+                        {bot.realmName}
+                      </p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-[10px] text-amber-400">x{bot.statMultiplier} Chỉ số</span>
+                        <span className="text-[10px] text-emerald-400">x{bot.rewardMultiplier} Phần thưởng</span>
+                      </div>
+                    </div>
+                    <motion.button
+                      onClick={() => handleChallengeBot(bot.id, bot.name)}
+                      disabled={challenging === bot.id}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${challenging === bot.id
+                        ? 'bg-slate-700 text-slate-400'
+                        : 'bg-gradient-to-r from-purple-700 to-purple-900 text-purple-100 hover:from-purple-600 hover:to-purple-800'
+                        }`}
+                      whileHover={{ scale: challenging ? 1 : 1.05 }}
+                      whileTap={{ scale: challenging ? 1 : 0.95 }}
+                    >
+                      {challenging === bot.id ? 'Đang đấu...' : 'Diệt Ma'}
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </>
           )}
         </div>
       )}
@@ -625,52 +719,6 @@ const PKTab = memo(function PKTab() {
                     )}
                   </div>
                 )}
-              </motion.div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Ranking */}
-      {!loading && activeView === 'ranking' && (
-        <div className="space-y-3">
-          {ranking.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              <p>Chưa có dữ liệu xếp hạng</p>
-            </div>
-          ) : (
-            ranking.map((user, idx) => (
-              <motion.div
-                key={user.userId}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.03 }}
-                className="spirit-tablet rounded-xl p-4 flex items-center gap-4"
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-amber-500 text-black' :
-                  idx === 1 ? 'bg-slate-400 text-black' :
-                    idx === 2 ? 'bg-amber-700 text-white' :
-                      'bg-slate-700 text-slate-300'
-                  }`}>
-                  {user.rank}
-                </div>
-                <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-amber-500/40 overflow-hidden">
-                  {user.avatar ? (
-                    <img src={user.avatar || getUserAvatarUrl({ name: user.username })} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-amber-400 font-bold">
-                      {user.username?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-slate-100 truncate">{user.username}</p>
-                  <p className="text-xs text-slate-500">{user.realmName}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-green-400">{user.wins} Thắng</p>
-                  <p className="text-xs text-slate-500">{user.winRate}% tỷ lệ</p>
-                </div>
               </motion.div>
             ))
           )}
@@ -1501,7 +1549,7 @@ const PKTab = memo(function PKTab() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </div >
   );
 });
 

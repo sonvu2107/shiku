@@ -339,7 +339,7 @@ const InventoryItemSchema = new mongoose.Schema({
 // ==================== EXP LOG SCHEMA ====================
 const ExpLogSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
-  source: { type: String, required: true }, // post, comment, like, daily_login, quest, etc.
+  source: { type: String, required: true },
   description: { type: String },
   timestamp: { type: Date, default: Date.now }
 }, { _id: false });
