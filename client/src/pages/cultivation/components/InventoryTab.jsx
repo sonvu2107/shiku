@@ -477,19 +477,23 @@ const InventoryTab = memo(function InventoryTab() {
                       const metadata = item.metadata || {};
                       const effects = [];
 
-                      // Pet bonuses
-                      if (metadata.expBonus) {
-                        effects.push({ label: 'Tăng Tu Vi', value: `+${Math.round(metadata.expBonus * 100)}%`, color: 'text-green-400' });
+                      // Pet bonuses - kiểm tra cả ở metadata và item level
+                      const expBonus = metadata.expBonus ?? item.expBonus;
+                      const spiritStoneBonus = metadata.spiritStoneBonus ?? item.spiritStoneBonus;
+                      const questExpBonus = metadata.questExpBonus ?? item.questExpBonus;
+
+                      if (expBonus) {
+                        effects.push({ label: 'Tăng Tu Vi', value: `+${Math.round(expBonus * 100)}%`, color: 'text-green-400' });
                       }
-                      if (metadata.spiritStoneBonus) {
-                        effects.push({ label: 'Tăng Linh Thạch', value: `+${Math.round(metadata.spiritStoneBonus * 100)}%`, color: 'text-amber-400' });
+                      if (spiritStoneBonus) {
+                        effects.push({ label: 'Tăng Linh Thạch', value: `+${Math.round(spiritStoneBonus * 100)}%`, color: 'text-amber-400' });
                       }
-                      if (metadata.questExpBonus) {
-                        effects.push({ label: 'Tăng Exp Nhiệm Vụ', value: `+${Math.round(metadata.questExpBonus * 100)}%`, color: 'text-cyan-400' });
+                      if (questExpBonus) {
+                        effects.push({ label: 'Tăng Exp Nhiệm Vụ', value: `+${Math.round(questExpBonus * 100)}%`, color: 'text-cyan-400' });
                       }
 
-                      // Mount/Pet stats
-                      const stats = metadata.stats || {};
+                      // Mount/Pet stats - kiểm tra cả ở metadata.stats và item.stats
+                      const stats = metadata.stats || item.stats || {};
                       const statLabels = {
                         attack: 'Tấn Công',
                         defense: 'Phòng Thủ',
