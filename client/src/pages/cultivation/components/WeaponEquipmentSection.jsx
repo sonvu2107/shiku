@@ -2,7 +2,7 @@
  * Weapon Equipment Section - Display all equipment slots
  */
 import { memo } from 'react';
-import { Sword, Shield, Gem, Scroll } from 'lucide-react';
+import { GiBroadsword, GiShield, GiGems, GiScrollUnfurled } from 'react-icons/gi';
 import WeaponSlot from './WeaponSlot.jsx';
 
 const WeaponEquipmentSection = memo(function WeaponEquipmentSection({ cultivation }) {
@@ -39,14 +39,14 @@ const WeaponEquipmentSection = memo(function WeaponEquipmentSection({ cultivatio
               <WeaponSlot
                 slotName="Vũ Khí"
                 slotType="weapon"
-                icon={Sword}
+                icon={GiBroadsword}
                 iconColor="text-red-400"
                 cultivation={cultivation}
               />
               <WeaponSlot
                 slotName="Pháp Bảo"
                 slotType="magicTreasure"
-                icon={Gem}
+                icon={GiGems}
                 iconColor="text-purple-400"
                 cultivation={cultivation}
               />
@@ -60,42 +60,42 @@ const WeaponEquipmentSection = memo(function WeaponEquipmentSection({ cultivatio
               <WeaponSlot
                 slotName="Mũ"
                 slotType="helmet"
-                icon={Shield}
+                icon={GiShield}
                 iconColor="text-blue-400"
                 cultivation={cultivation}
               />
               <WeaponSlot
                 slotName="Giáp Ngực"
                 slotType="chest"
-                icon={Shield}
+                icon={GiShield}
                 iconColor="text-blue-400"
                 cultivation={cultivation}
               />
               <WeaponSlot
                 slotName="Vai Giáp"
                 slotType="shoulder"
-                icon={Shield}
+                icon={GiShield}
                 iconColor="text-blue-400"
                 cultivation={cultivation}
               />
               <WeaponSlot
                 slotName="Găng Tay"
                 slotType="gloves"
-                icon={Shield}
+                icon={GiShield}
                 iconColor="text-blue-400"
                 cultivation={cultivation}
               />
               <WeaponSlot
                 slotName="Giày"
                 slotType="boots"
-                icon={Shield}
+                icon={GiShield}
                 iconColor="text-blue-400"
                 cultivation={cultivation}
               />
               <WeaponSlot
                 slotName="Đai Lưng"
                 slotType="belt"
-                icon={Shield}
+                icon={GiShield}
                 iconColor="text-blue-400"
                 cultivation={cultivation}
               />
@@ -109,28 +109,28 @@ const WeaponEquipmentSection = memo(function WeaponEquipmentSection({ cultivatio
               <WeaponSlot
                 slotName="Nhẫn"
                 slotType="ring"
-                icon={Gem}
+                icon={GiGems}
                 iconColor="text-yellow-400"
                 cultivation={cultivation}
               />
               <WeaponSlot
                 slotName="Dây Chuyền"
                 slotType="necklace"
-                icon={Gem}
+                icon={GiGems}
                 iconColor="text-yellow-400"
                 cultivation={cultivation}
               />
               <WeaponSlot
                 slotName="Bông Tai"
                 slotType="earring"
-                icon={Gem}
+                icon={GiGems}
                 iconColor="text-yellow-400"
                 cultivation={cultivation}
               />
               <WeaponSlot
                 slotName="Vòng Tay"
                 slotType="bracelet"
-                icon={Gem}
+                icon={GiGems}
                 iconColor="text-yellow-400"
                 cultivation={cultivation}
               />
@@ -144,7 +144,7 @@ const WeaponEquipmentSection = memo(function WeaponEquipmentSection({ cultivatio
               <WeaponSlot
                 slotName="Linh Khí"
                 slotType="powerItem"
-                icon={Scroll}
+                icon={GiScrollUnfurled}
                 iconColor="text-purple-400"
                 cultivation={cultivation}
               />

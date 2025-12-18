@@ -86,7 +86,24 @@ function Home({ user, setUser }) {
   // Tìm kiếm và sắp xếp
   const [searchParams] = useSearchParams();
   const q = searchParams.get('q') || '';
-  const [sortBy, setSortBy] = useState('recommended');
+
+  // Persist sortBy to localStorage
+  const [sortBy, setSortBy] = useState(() => {
+    try {
+      const saved = localStorage.getItem('home:sortBy');
+      if (saved && ['recommended', 'newest', 'oldest', 'mostViewed', 'leastViewed'].includes(saved)) {
+        return saved;
+      }
+    } catch { }
+    return 'recommended';
+  });
+
+  // Save sortBy to localStorage when changed
+  useEffect(() => {
+    try {
+      localStorage.setItem('home:sortBy', sortBy);
+    } catch { }
+  }, [sortBy]);
 
   // React Query for posts - replaces manual state management
   const {

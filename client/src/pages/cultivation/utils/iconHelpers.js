@@ -2,11 +2,12 @@
  * Icon helper functions for cultivation items
  */
 import {
-  Sword, Shield, Zap, Flame, Droplet, Wind, Snowflake, Mountain, Flower2, Coins,
-  Sun, Moon, Sparkles, Cloud, Tornado, Ghost, Crown, Skull,
-  CircleDot, Gem, Scroll, Package, Key, Bird, Cat, Rabbit, PawPrint,
-  Medal, FlaskConical, Wand2, Ticket
-} from 'lucide-react';
+  GiBroadsword, GiShield, GiLightningFrequency, GiFlame, GiWaterDrop, GiWhirlwind, GiSnowflake2,
+  GiMountainCave, GiLotusFlower, GiTwoCoins, GiSunRadiations, GiMoon, GiSparkles, GiCloudRing,
+  GiTornado, GiGhost, GiCrown, GiSkullCrossedBones, GiRing, GiGems, GiScrollUnfurled,
+  GiSwapBag, GiKey, GiFlyingDagger, GiCat, GiRabbit, GiPawPrint, GiMedal, GiPotionBall,
+  GiWizardStaff, GiTicket
+} from 'react-icons/gi';
 
 import {
   TechniqueImage,
@@ -75,55 +76,55 @@ export const getItemIcon = (item) => {
   const name = (item.name || '').toLowerCase();
 
   // Weapons & Combat
-  if (name.includes('kiếm')) return Sword;
-  if (name.includes('đao')) return Sword;
-  if (name.includes('giáp') || name.includes('áo')) return Shield;
-  if (name.includes('hộ mệnh')) return Shield;
+  if (name.includes('kiếm')) return GiBroadsword;
+  if (name.includes('đao')) return GiBroadsword;
+  if (name.includes('giáp') || name.includes('áo')) return GiShield;
+  if (name.includes('hộ mệnh')) return GiShield;
 
   // Elements
-  if (name.includes('lôi') || name.includes('sấm') || name.includes('điện')) return Zap;
-  if (name.includes('hỏa') || name.includes('lửa') || name.includes('viêm') || name.includes('nhiệt')) return Flame;
-  if (name.includes('thủy') || name.includes('nước') || name.includes('băng') || name.includes('tuyết')) return Snowflake;
-  if (name.includes('phong') || name.includes('gió')) return Wind;
-  if (name.includes('thổ') || name.includes('đất') || name.includes('địa')) return Mountain;
-  if (name.includes('mộc') || name.includes('cây') || name.includes('hoa') || name.includes('liên')) return Flower2;
-  if (name.includes('kim') || name.includes('vàng')) return Coins;
+  if (name.includes('lôi') || name.includes('sấm') || name.includes('điện')) return GiLightningFrequency;
+  if (name.includes('hỏa') || name.includes('lửa') || name.includes('viêm') || name.includes('nhiệt')) return GiFlame;
+  if (name.includes('thủy') || name.includes('nước') || name.includes('băng') || name.includes('tuyết')) return GiSnowflake2;
+  if (name.includes('phong') || name.includes('gió')) return GiWhirlwind;
+  if (name.includes('thổ') || name.includes('đất') || name.includes('địa')) return GiMountainCave;
+  if (name.includes('mộc') || name.includes('cây') || name.includes('hoa') || name.includes('liên')) return GiLotusFlower;
+  if (name.includes('kim') || name.includes('vàng')) return GiTwoCoins;
 
   // Celestial / Mystical
-  if (name.includes('nhật') || name.includes('dương') || name.includes('mặt trời')) return Sun;
-  if (name.includes('nguyệt') || name.includes('trăng') || name.includes('âm')) return Moon;
-  if (name.includes('tinh') || name.includes('sao')) return Sparkles;
-  if (name.includes('thiên') || name.includes('trời') || name.includes('vân') || name.includes('mây')) return Cloud;
-  if (name.includes('hư không') || name.includes('không gian')) return Tornado;
-  if (name.includes('hỗn độn')) return Ghost;
-  if (name.includes('tiên') || name.includes('thần')) return Crown;
-  if (name.includes('ma') || name.includes('quỷ') || name.includes('diệt')) return Skull;
+  if (name.includes('nhật') || name.includes('dương') || name.includes('mặt trời')) return GiSunRadiations;
+  if (name.includes('nguyệt') || name.includes('trăng') || name.includes('âm')) return GiMoon;
+  if (name.includes('tinh') || name.includes('sao')) return GiSparkles;
+  if (name.includes('thiên') || name.includes('trời') || name.includes('vân') || name.includes('mây')) return GiCloudRing;
+  if (name.includes('hư không') || name.includes('không gian')) return GiTornado;
+  if (name.includes('hỗn độn')) return GiGhost;
+  if (name.includes('tiên') || name.includes('thần')) return GiCrown;
+  if (name.includes('ma') || name.includes('quỷ') || name.includes('diệt')) return GiSkullCrossedBones;
 
   // Items
   if (name.includes('thư') || name.includes('bí kíp') || name.includes('quyển') || name.includes('pháp')) return TechniqueImage;
-  if (name.includes('lệnh') || name.includes('bài')) return Ticket;
-  if (name.includes('nhẫn')) return CircleDot;
-  if (name.includes('ngọc') || name.includes('đá')) return Gem;
-  if (name.includes('bùa') || name.includes('phù')) return Scroll;
-  if (name.includes('hương')) return Flame;
-  if (name.includes('túi')) return Package;
-  if (name.includes('chìa')) return Key;
+  if (name.includes('lệnh') || name.includes('bài')) return GiTicket;
+  if (name.includes('nhẫn')) return GiRing;
+  if (name.includes('ngọc') || name.includes('đá')) return GiGems;
+  if (name.includes('bùa') || name.includes('phù')) return GiScrollUnfurled;
+  if (name.includes('hương')) return GiFlame;
+  if (name.includes('túi')) return GiSwapBag;
+  if (name.includes('chìa')) return GiKey;
 
   // Creatures
-  if (name.includes('long') || name.includes('rồng')) return Flame; // Dragon fallback
-  if (name.includes('phượng') || name.includes('chim') || name.includes('hạc') || name.includes('điểu')) return Bird;
-  if (name.includes('hổ') || name.includes('mèo') || name.includes('miêu')) return Cat;
-  if (name.includes('thố') || name.includes('thỏ')) return Rabbit;
-  if (name.includes('hồ') || name.includes('cáo')) return PawPrint;
-  if (name.includes('quy') || name.includes('rùa')) return Shield;
+  if (name.includes('long') || name.includes('rồng')) return GiFlame; // Dragon fallback
+  if (name.includes('phượng') || name.includes('chim') || name.includes('hạc') || name.includes('điểu')) return GiFlyingDagger;
+  if (name.includes('hổ') || name.includes('mèo') || name.includes('miêu')) return GiCat;
+  if (name.includes('thố') || name.includes('thỏ')) return GiRabbit;
+  if (name.includes('hồ') || name.includes('cáo')) return GiPawPrint;
+  if (name.includes('quy') || name.includes('rùa')) return GiShield;
 
   // Roles
-  if (name.includes('sư') || name.includes('giả') || name.includes('khách')) return Medal;
-  if (name.includes('luyện đan')) return FlaskConical;
-  if (name.includes('ẩn sĩ')) return Mountain;
-  if (name.includes('hiền giả')) return Wand2;
+  if (name.includes('sư') || name.includes('giả') || name.includes('khách')) return GiMedal;
+  if (name.includes('luyện đan')) return GiPotionBall;
+  if (name.includes('ẩn sĩ')) return GiMountainCave;
+  if (name.includes('hiền giả')) return GiWizardStaff;
 
   // Final fallback
-  return Package;
+  return GiSwapBag;
 };
 

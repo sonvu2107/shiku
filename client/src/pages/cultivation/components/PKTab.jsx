@@ -9,7 +9,16 @@
  */
 import { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sword, Shield, Droplet, Zap, Flame, Scroll, Coins, Sparkles } from 'lucide-react';
+import {
+  GiBroadsword,
+  GiShield,
+  GiHeartBottle,
+  GiLightningFrequency,
+  GiFire,
+  GiScrollUnfurled,
+  GiTwoCoins,
+  GiSparkles
+} from 'react-icons/gi';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { api } from '../../../api';
 import { getUserAvatarUrl } from '../../../utils/avatarUtils.js';
@@ -439,22 +448,22 @@ const PKTab = memo(function PKTab() {
         <h4 className="text-sm font-bold text-amber-400 mb-3">Thông Số Chiến Đấu</h4>
         <div className="grid grid-cols-4 gap-2 text-xs">
           <div className="text-center p-2 bg-slate-800/50 rounded">
-            <Sword size={14} className="mx-auto text-red-400 mb-1" />
+            <GiBroadsword size={14} className="mx-auto text-red-400 mb-1" />
             <p className="text-slate-400">Tấn Công</p>
             <p className="text-amber-300 font-bold">{currentUserStats.attack}</p>
           </div>
           <div className="text-center p-2 bg-slate-800/50 rounded">
-            <Shield size={14} className="mx-auto text-blue-400 mb-1" />
+            <GiShield size={14} className="mx-auto text-blue-400 mb-1" />
             <p className="text-slate-400">Phòng Thủ</p>
             <p className="text-amber-300 font-bold">{currentUserStats.defense}</p>
           </div>
           <div className="text-center p-2 bg-slate-800/50 rounded">
-            <Droplet size={14} className="mx-auto text-pink-400 mb-1" />
+            <GiHeartBottle size={14} className="mx-auto text-pink-400 mb-1" />
             <p className="text-slate-400">Khí Huyết</p>
             <p className="text-amber-300 font-bold">{currentUserStats.qiBlood}</p>
           </div>
           <div className="text-center p-2 bg-slate-800/50 rounded">
-            <Zap size={14} className="mx-auto text-yellow-400 mb-1" />
+            <GiLightningFrequency size={14} className="mx-auto text-yellow-400 mb-1" />
             <p className="text-slate-400">Tốc Độ</p>
             <p className="text-amber-300 font-bold">{currentUserStats.speed}</p>
           </div>
@@ -509,7 +518,7 @@ const PKTab = memo(function PKTab() {
                   whileHover={{ scale: challenging ? 1 : 1.05 }}
                   whileTap={{ scale: challenging ? 1 : 0.95 }}
                 >
-                  <Sword size={16} />
+                  <GiBroadsword size={16} />
                   {challenging === opponent.userId ? 'Đang đấu...' : 'Thách Đấu'}
                 </motion.button>
               </motion.div>
@@ -610,7 +619,7 @@ const PKTab = memo(function PKTab() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        <Flame size={12} />
+                        <GiFire size={12} />
                         Rửa Hận
                       </motion.button>
                     )}

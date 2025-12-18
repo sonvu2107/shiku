@@ -2,6 +2,7 @@
  * Shop Tab - Spirit stones shop
  */
 import { useState, useEffect, memo, useRef } from 'react';
+import { GiCutDiamond } from 'react-icons/gi';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { RARITY_COLORS } from '../utils/constants.js';
 import { getItemIcon, IMAGE_COMPONENTS } from '../utils/iconHelpers.js';
@@ -9,7 +10,7 @@ import LoadingSkeleton from './LoadingSkeleton.jsx';
 import ItemTooltip from './ItemTooltip.jsx';
 
 const ShopTab = memo(function ShopTab() {
-  const { shop, loadShop, purchaseItem, loading } = useCultivation();
+  const { shop, loadShop, purchaseItem, loading, cultivation } = useCultivation();
   const [buying, setBuying] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
   const [subCategory, setSubCategory] = useState('all');
@@ -123,7 +124,13 @@ const ShopTab = memo(function ShopTab() {
 
   return (
     <div className="space-y-3 pb-2">
-      <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">VẠN BẢO CÁC</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">VẠN BẢO CÁC</h3>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 border border-amber-500/30 rounded-lg">
+          <GiCutDiamond size={18} className="text-cyan-400" />
+          <span className="text-amber-300 font-mono font-bold">{cultivation?.spiritStones?.toLocaleString() || 0}</span>
+        </div>
+      </div>
 
       {/* Main Categories - Horizontal scroll on mobile */}
       <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 border-b border-white/10 mb-2 scrollbar-hide">
@@ -266,7 +273,7 @@ const ShopTab = memo(function ShopTab() {
                   }`}
               >
                 <span className="text-amber-400 font-mono text-sm font-bold flex items-center gap-1">
-                  💎 {item.price}
+                  <GiCutDiamond size={14} /> {item.price}
                 </span>
                 <span className="text-[10px] text-slate-300 uppercase mt-1">
                   {item.owned ? 'Đã sở hữu' : buying === item.id ? '...' : 'Mua'}

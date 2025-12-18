@@ -24,6 +24,20 @@ export default function EditPost() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [advancedMode, setAdvancedMode] = useState(false);
 
+  // Ẩn floating dock trên desktop khi mở EditPost
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return;
+
+    const floatingDock = document.querySelector('[class*="fixed bottom-6"]');
+    if (floatingDock) floatingDock.style.display = 'none';
+
+    return () => {
+      const floatingDock = document.querySelector('[class*="fixed bottom-6"]');
+      if (floatingDock) floatingDock.style.display = '';
+    };
+  }, []);
+
   useEffect(() => { load(); }, [id]);
 
   // Tự động switch advanced mode nếu có title hoặc content dài
@@ -256,10 +270,10 @@ export default function EditPost() {
                 {/* Character Counter */}
                 <div className="absolute bottom-3 right-3">
                   <span className={`text-xs transition-colors ${contentLength >= 450
-                      ? contentLength >= 500
-                        ? 'text-red-500 font-semibold'
-                        : 'text-amber-500'
-                      : 'text-neutral-400'
+                    ? contentLength >= 500
+                      ? 'text-red-500 font-semibold'
+                      : 'text-amber-500'
+                    : 'text-neutral-400'
                     }`}>
                     {contentLength}/500
                   </span>
@@ -311,10 +325,10 @@ export default function EditPost() {
                 />
                 <div className="flex justify-end mt-1">
                   <span className={`text-xs transition-colors ${contentLength >= 4500
-                      ? contentLength >= 5000
-                        ? 'text-red-500 font-semibold'
-                        : 'text-amber-500'
-                      : 'text-neutral-400'
+                    ? contentLength >= 5000
+                      ? 'text-red-500 font-semibold'
+                      : 'text-amber-500'
+                    : 'text-neutral-400'
                     }`}>
                     {contentLength}/5000
                   </span>

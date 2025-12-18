@@ -175,7 +175,10 @@ const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
                   dodge: { label: 'Né Tránh', color: 'text-green-400' },
                   hit_rate: { label: 'Chính Xác', color: 'text-blue-300' },
                   energy_regen: { label: 'Hồi Linh Lực', color: 'text-purple-300' },
-                  lifesteal: { label: 'Hút Máu', color: 'text-red-300' },
+                  lifesteal: { label: 'Hấp Huyết', color: 'text-red-300' },
+                  regeneration: { label: 'Hồi Phục', color: 'text-teal-400' },
+                  resistance: { label: 'Kháng Cự', color: 'text-emerald-400' },
+                  luck: { label: 'Vận Khí', color: 'text-indigo-400' },
                   true_damage: { label: 'Sát Thương Chuẩn', color: 'text-red-200' },
                   buff_duration: { label: 'Thời Gian Buff', color: 'text-cyan-300' }
                 };

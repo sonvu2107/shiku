@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Map } from 'lucide-react';
+import { GiTreasureMap, GiCutDiamond, GiPadlock, GiAlarmClock } from 'react-icons/gi';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { api } from '../../../api';
 import {
@@ -160,7 +160,7 @@ const DungeonCard = memo(({ dungeon, onEnter, disabled }) => {
                 </div>
                 <div className="text-center p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
                     <div className="text-xs text-slate-500 mb-1">Chi phí</div>
-                    <div className="text-sm font-bold text-yellow-400">💎{dungeon.entryCost}</div>
+                    <div className="text-sm font-bold text-yellow-400 flex items-center justify-center gap-1"><GiCutDiamond size={14} />{dungeon.entryCost}</div>
                 </div>
             </div>
 
@@ -389,7 +389,7 @@ const PixelExplorationView = memo(({ dungeon, monster, currentFloor, totalFloors
                                 {monster?.name?.charAt(0) || '?'}
                             </div>
                         )}
-                        {monster?.type === 'boss' && <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-2xl animate-bounce">⚠️</div>}
+                        {monster?.type === 'boss' && <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-red-500 animate-bounce"><GiAlarmClock size={24} /></div>}
                     </motion.div>
                     <div className="w-12 h-2 bg-black/50 rounded-full blur-sm mt-[-4px]"></div>
                 </motion.div>
@@ -1021,7 +1021,7 @@ const DungeonTab = memo(function DungeonTab() {
                             Rút Lui
                         </button>
                         <div className="px-4 py-2 bg-slate-800/50 border border-amber-500/30 flex items-center gap-2 text-amber-400 text-sm font-medium rounded-lg">
-                            💎 {formatNumber(playerSpiritStones)}
+                            <GiCutDiamond size={16} /> {formatNumber(playerSpiritStones)}
                         </div>
                     </div>
                 </div>

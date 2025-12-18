@@ -7,6 +7,20 @@
 import { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { isVideoUrl } from '../utils/mediaUtils';
+import {
+  GiFlame,
+  GiSnowflake2,
+  GiLightningTrio,
+  GiTornado,
+  GiMountainCave,
+  GiWaterDrop,
+  GiYinYang,
+  GiSpikedDragonHead,
+  GiPolarStar,
+  GiMoonBats,
+  GiSunRadiations,
+  GiVortex
+} from 'react-icons/gi';
 
 // Cấu hình khung avatar với hiệu ứng viền xung quanh
 const AVATAR_FRAMES = {
@@ -80,20 +94,20 @@ const AVATAR_FRAMES = {
   }
 };
 
-// Cấu hình huy hiệu
+// Cấu hình huy hiệu với Game Icons
 const BADGES = {
-  badge_fire: { icon: '🔥', name: 'Hỏa Diễm', color: '#EF4444' },
-  badge_ice: { icon: '❄️', name: 'Băng Tuyết', color: '#06B6D4' },
-  badge_thunder: { icon: '⚡', name: 'Lôi Điện', color: '#FBBF24' },
-  badge_wind: { icon: '🌪️', name: 'Cuồng Phong', color: '#6B7280' },
-  badge_earth: { icon: '🌍', name: 'Đại Địa', color: '#92400E' },
-  badge_water: { icon: '💧', name: 'Thủy Nguyên', color: '#3B82F6' },
-  badge_yin_yang: { icon: '☯️', name: 'Âm Dương', color: '#1F2937' },
-  badge_dragon: { icon: '🐉', name: 'Long Văn', color: '#DC2626' },
-  badge_star: { icon: '⭐', name: 'Tinh Thần', color: '#FBBF24' },
-  badge_moon: { icon: '🌙', name: 'Nguyệt Quang', color: '#6366F1' },
-  badge_sun: { icon: '☀️', name: 'Thái Dương', color: '#F59E0B' },
-  badge_chaos: { icon: '🌀', name: 'Hỗn Độn', color: '#7C3AED' }
+  badge_fire: { icon: GiFlame, name: 'Hỏa Diễm', color: '#EF4444' },
+  badge_ice: { icon: GiSnowflake2, name: 'Băng Tuyết', color: '#06B6D4' },
+  badge_thunder: { icon: GiLightningTrio, name: 'Lôi Điện', color: '#FBBF24' },
+  badge_wind: { icon: GiTornado, name: 'Cuồng Phong', color: '#6B7280' },
+  badge_earth: { icon: GiMountainCave, name: 'Đại Địa', color: '#92400E' },
+  badge_water: { icon: GiWaterDrop, name: 'Thủy Nguyên', color: '#3B82F6' },
+  badge_yin_yang: { icon: GiYinYang, name: 'Âm Dương', color: '#1F2937' },
+  badge_dragon: { icon: GiSpikedDragonHead, name: 'Long Văn', color: '#DC2626' },
+  badge_star: { icon: GiPolarStar, name: 'Tinh Thần', color: '#FBBF24' },
+  badge_moon: { icon: GiMoonBats, name: 'Nguyệt Quang', color: '#6366F1' },
+  badge_sun: { icon: GiSunRadiations, name: 'Thái Dương', color: '#F59E0B' },
+  badge_chaos: { icon: GiVortex, name: 'Hỗn Độn', color: '#7C3AED' }
 };
 
 // Cấu hình danh hiệu
@@ -326,7 +340,6 @@ const UserAvatar = memo(function UserAvatar({
               width: Math.max(18, size / 2.2),
               height: Math.max(18, size / 2.2),
               backgroundColor: badgeConfig.color,
-              fontSize: Math.max(10, size / 3.5),
               zIndex: 10
             }}
             initial={{ scale: 0 }}
@@ -334,7 +347,7 @@ const UserAvatar = memo(function UserAvatar({
             whileHover={{ scale: 1.2 }}
             title={badgeConfig.name}
           >
-            {badgeConfig.icon}
+            <badgeConfig.icon size={Math.max(10, size / 3.5)} color="white" />
           </motion.div>
         )}
       </div>
@@ -404,18 +417,19 @@ export const UserBadge = memo(function UserBadge({ user, cultivation, size = 16,
 
   if (!badgeConfig) return null;
 
+  const IconComponent = badgeConfig.icon;
+
   return (
     <span
       className={`inline-flex items-center justify-center rounded-full ${className}`}
       style={{
         width: size,
         height: size,
-        backgroundColor: badgeConfig.color,
-        fontSize: size * 0.6
+        backgroundColor: badgeConfig.color
       }}
       title={badgeConfig.name}
     >
-      {badgeConfig.icon}
+      <IconComponent size={size * 0.6} color="white" />
     </span>
   );
 });

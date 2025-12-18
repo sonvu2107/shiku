@@ -38,45 +38,45 @@ const DashboardTab = memo(function DashboardTab({
     10: 10, // Tiên Nhân -> Thiên Đế: 10%
     11: 5   // Thiên Đế (max level)
   };
-  
+
   const bonusPerFailureByRealm = {
     1: 15, 2: 15, 3: 12, 4: 10, 5: 8, 6: 7, 7: 6, 8: 5, 9: 5, 10: 5, 11: 5
   };
-  
+
   const realmLevel = cultivation?.realm?.level || 1;
   const baseSuccessRate = baseSuccessRatesByRealm[realmLevel] || 30;
   const bonusPerFailure = bonusPerFailureByRealm[realmLevel] || 10;
   const failureCount = cultivation.breakthroughFailureCount || 0;
-  
+
   // Kiểm tra cooldown
   const now = new Date();
-  
+
   // Kiểm tra đan dược tăng tỷ lệ độ kiếp trong inventory
-  const breakthroughPills = (cultivation?.inventory || []).filter(item => 
-    item.type === 'breakthrough_boost' && 
-    !item.used && 
+  const breakthroughPills = (cultivation?.inventory || []).filter(item =>
+    item.type === 'breakthrough_boost' &&
+    !item.used &&
     (!item.expiresAt || new Date(item.expiresAt) > now)
   );
-  
+
   // Tìm đan dược có bonus cao nhất
   let breakthroughBonus = 0;
   let bestPill = null;
   if (breakthroughPills.length > 0) {
     // Lấy bonus từ metadata.breakthroughBonus (được lưu khi mua item)
     breakthroughPills.forEach(pill => {
-      const bonus = pill.metadata?.breakthroughBonus || 
-                    (pill.itemId?.includes('perfect') ? 50 :
-                     pill.itemId?.includes('large') ? 30 :
-                     pill.itemId?.includes('medium') ? 20 :
-                     pill.itemId?.includes('small') ? 10 : 0);
-      
+      const bonus = pill.metadata?.breakthroughBonus ||
+        (pill.itemId?.includes('perfect') ? 50 :
+          pill.itemId?.includes('large') ? 30 :
+            pill.itemId?.includes('medium') ? 20 :
+              pill.itemId?.includes('small') ? 10 : 0);
+
       if (bonus > breakthroughBonus) {
         breakthroughBonus = bonus;
         bestPill = pill;
       }
     });
   }
-  
+
   // Tính tỷ lệ thành công: base rate + bonus từ số lần thất bại + bonus từ đan dược
   const currentSuccessRate = Math.min(100,
     baseSuccessRate + failureCount * bonusPerFailure + breakthroughBonus
@@ -341,14 +341,28 @@ const DashboardTab = memo(function DashboardTab({
             BUFF ĐANG HOẠT ĐỘNG
           </h3>
           <div className="space-y-3">
-            {cultivation.activeBoosts.map((boost, idx) => (
-              <div key={idx} className="flex items-center justify-between text-sm text-slate-300">
-                <span>Tu Luyện x{boost.multiplier}</span>
-                <span className="text-cyan-400/70">
-                  Hết hạn: {new Date(boost.expiresAt).toLocaleTimeString()}
-                </span>
-              </div>
-            ))}
+            {cultivation.activeBoosts.map((boost, idx) => {
+              const expiresAt = new Date(boost.expiresAt);
+              const now = new Date();
+              const remainingMs = expiresAt - now;
+              const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+              const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+              const isExpiringSoon = remainingMs < 60 * 60 * 1000; // < 1 giờ
+
+              return (
+                <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-black/30 rounded-lg border border-cyan-500/20">
+                  <span className="text-sm font-medium text-slate-200">Tu Luyện x{boost.multiplier}</span>
+                  <div className="flex flex-col items-end text-right">
+                    <span className={`text-xs font-mono ${isExpiringSoon ? 'text-orange-400' : 'text-cyan-400'}`}>
+                      Còn {remainingHours > 0 ? `${remainingHours}h ` : ''}{remainingMinutes}p
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      Hết hạn: {expiresAt.toLocaleDateString('vi-VN')} {expiresAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

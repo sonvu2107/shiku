@@ -2,7 +2,7 @@
  * Stats Tab - Display combat stats and equipment
  */
 import { memo } from 'react';
-import { Sword, Shield, Gem, Scroll } from 'lucide-react';
+import { GiBroadsword, GiShield, GiGems, GiScrollUnfurled } from 'react-icons/gi';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { CULTIVATION_REALMS } from '../../../services/cultivationAPI.js';
 import { getCombatStats } from '../utils/helpers.js';
@@ -123,9 +123,9 @@ const StatsTab = memo(function StatsTab() {
 
             {/* Row 1: Vũ Khí, Pháp Bảo, Linh Khí */}
             <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-5 max-w-3xl mx-auto">
-              <WeaponSlot slotName="Vũ Khí" slotType="weapon" icon={Sword} iconColor="text-red-400" cultivation={cultivation} />
-              <WeaponSlot slotName="Pháp Bảo" slotType="magicTreasure" icon={Gem} iconColor="text-purple-400" cultivation={cultivation} />
-              <WeaponSlot slotName="Linh Khí" slotType="powerItem" icon={Scroll} iconColor="text-purple-400" cultivation={cultivation} />
+              <WeaponSlot slotName="Vũ Khí" slotType="weapon" icon={GiBroadsword} iconColor="text-red-400" cultivation={cultivation} />
+              <WeaponSlot slotName="Pháp Bảo" slotType="magicTreasure" icon={GiGems} iconColor="text-purple-400" cultivation={cultivation} />
+              <WeaponSlot slotName="Linh Khí" slotType="powerItem" icon={GiScrollUnfurled} iconColor="text-purple-400" cultivation={cultivation} />
             </div>
 
             {/* Row 2: Armor (6 slots) */}
@@ -136,12 +136,12 @@ const StatsTab = memo(function StatsTab() {
                 <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-l from-transparent via-slate-600/60 to-slate-600/60"></div>
               </div>
               <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
-                <WeaponSlot slotName="Mũ" slotType="helmet" icon={Shield} iconColor="text-blue-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Giáp Ngực" slotType="chest" icon={Shield} iconColor="text-blue-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Vai Giáp" slotType="shoulder" icon={Shield} iconColor="text-blue-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Găng Tay" slotType="gloves" icon={Shield} iconColor="text-blue-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Giày" slotType="boots" icon={Shield} iconColor="text-blue-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Đai Lưng" slotType="belt" icon={Shield} iconColor="text-blue-400" cultivation={cultivation} />
+                <WeaponSlot slotName="Mũ" slotType="helmet" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} />
+                <WeaponSlot slotName="Giáp Ngực" slotType="chest" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} />
+                <WeaponSlot slotName="Vai Giáp" slotType="shoulder" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} />
+                <WeaponSlot slotName="Găng Tay" slotType="gloves" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} />
+                <WeaponSlot slotName="Giày" slotType="boots" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} />
+                <WeaponSlot slotName="Đai Lưng" slotType="belt" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} />
               </div>
             </div>
 
@@ -153,10 +153,10 @@ const StatsTab = memo(function StatsTab() {
                 <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-l from-transparent via-slate-600/60 to-slate-600/60"></div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 max-w-4xl mx-auto">
-                <WeaponSlot slotName="Nhẫn" slotType="ring" icon={Gem} iconColor="text-yellow-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Dây Chuyền" slotType="necklace" icon={Gem} iconColor="text-yellow-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Bông Tai" slotType="earring" icon={Gem} iconColor="text-yellow-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Vòng Tay" slotType="bracelet" icon={Gem} iconColor="text-yellow-400" cultivation={cultivation} />
+                <WeaponSlot slotName="Nhẫn" slotType="ring" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} />
+                <WeaponSlot slotName="Dây Chuyền" slotType="necklace" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} />
+                <WeaponSlot slotName="Bông Tai" slotType="earring" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} />
+                <WeaponSlot slotName="Vòng Tay" slotType="bracelet" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} />
               </div>
             </div>
           </div>

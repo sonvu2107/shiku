@@ -137,6 +137,8 @@ const InventoryTab = memo(function InventoryTab() {
     if (item.type === 'badge') return equipped.badge === item.itemId;
     if (item.type === 'avatar_frame') return equipped.avatarFrame === item.itemId;
     if (item.type === 'profile_effect') return equipped.profileEffect === item.itemId;
+    if (item.type === 'pet') return equipped.pet === item.itemId;
+    if (item.type === 'mount') return equipped.mount === item.itemId;
 
     // Check equipment slots
     if (item.type?.startsWith('equipment_')) {
@@ -407,6 +409,121 @@ const InventoryTab = memo(function InventoryTab() {
                               </p>
                             );
                           })}
+                        </div>
+                      );
+                    })()}
+                    {/* Hiển thị chi tiết cho đan dược và vật phẩm tiêu hao */}
+                    {(item.type === 'exp_boost' || item.type === 'consumable' || item.type === 'breakthrough_boost') && (() => {
+                      const metadata = item.metadata || {};
+                      const effects = [];
+
+                      // Hiệu ứng tăng exp
+                      if (metadata.expBoost || metadata.exp_boost) {
+                        const boost = metadata.expBoost || metadata.exp_boost;
+                        effects.push({ label: 'Tăng Tu Vi', value: `x${boost}`, color: 'text-green-400' });
+                      }
+                      if (metadata.expMultiplier) {
+                        effects.push({ label: 'Nhân Tu Vi', value: `x${metadata.expMultiplier}`, color: 'text-green-400' });
+                      }
+                      if (metadata.flatExp) {
+                        effects.push({ label: 'Tu Vi', value: `+${metadata.flatExp.toLocaleString()}`, color: 'text-green-400' });
+                      }
+
+                      // Thời gian hiệu lực
+                      if (metadata.duration) {
+                        const hours = Math.floor(metadata.duration / 60);
+                        const minutes = metadata.duration % 60;
+                        const durationText = hours > 0 ? `${hours}h${minutes > 0 ? ` ${minutes}p` : ''}` : `${minutes} phút`;
+                        effects.push({ label: 'Thời gian', value: durationText, color: 'text-cyan-400' });
+                      }
+
+                      // Breakthrough boost
+                      if (metadata.breakthroughBoost || metadata.breakthrough_boost) {
+                        const boost = metadata.breakthroughBoost || metadata.breakthrough_boost;
+                        effects.push({ label: 'Tăng độ kiếp', value: `+${boost}%`, color: 'text-purple-400' });
+                      }
+
+                      // Hiệu ứng hồi phục
+                      if (metadata.healHp || metadata.heal_hp) {
+                        effects.push({ label: 'Hồi Khí Huyết', value: `+${(metadata.healHp || metadata.heal_hp).toLocaleString()}`, color: 'text-pink-400' });
+                      }
+                      if (metadata.healMana || metadata.heal_mana) {
+                        effects.push({ label: 'Hồi Chân Nguyên', value: `+${(metadata.healMana || metadata.heal_mana).toLocaleString()}`, color: 'text-blue-400' });
+                      }
+
+                      // Tăng stats tạm thời
+                      if (metadata.attackBoost) {
+                        effects.push({ label: 'Tấn Công', value: `+${metadata.attackBoost}`, color: 'text-red-400' });
+                      }
+                      if (metadata.defenseBoost) {
+                        effects.push({ label: 'Phòng Thủ', value: `+${metadata.defenseBoost}`, color: 'text-blue-400' });
+                      }
+
+                      if (effects.length === 0) return null;
+
+                      return (
+                        <div className="mt-2 space-y-1 text-xs">
+                          {effects.map((effect, idx) => (
+                            <div key={idx} className="flex justify-between">
+                              <span className="text-slate-500">{effect.label}:</span>
+                              <span className={effect.color}>{effect.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                    {/* Hiển thị stats cho linh thú (pet) và tọa kỵ (mount) */}
+                    {(item.type === 'pet' || item.type === 'mount') && (() => {
+                      const metadata = item.metadata || {};
+                      const effects = [];
+
+                      // Pet bonuses
+                      if (metadata.expBonus) {
+                        effects.push({ label: 'Tăng Tu Vi', value: `+${Math.round(metadata.expBonus * 100)}%`, color: 'text-green-400' });
+                      }
+                      if (metadata.spiritStoneBonus) {
+                        effects.push({ label: 'Tăng Linh Thạch', value: `+${Math.round(metadata.spiritStoneBonus * 100)}%`, color: 'text-amber-400' });
+                      }
+                      if (metadata.questExpBonus) {
+                        effects.push({ label: 'Tăng Exp Nhiệm Vụ', value: `+${Math.round(metadata.questExpBonus * 100)}%`, color: 'text-cyan-400' });
+                      }
+
+                      // Mount/Pet stats
+                      const stats = metadata.stats || {};
+                      const statLabels = {
+                        attack: 'Tấn Công',
+                        defense: 'Phòng Thủ',
+                        qiBlood: 'Khí Huyết',
+                        speed: 'Tốc Độ',
+                        criticalRate: 'Chí Mạng',
+                        dodge: 'Né Tránh',
+                        penetration: 'Xuyên Thấu',
+                        resistance: 'Kháng Cự',
+                        lifesteal: 'Hấp Huyết',
+                        regeneration: 'Hồi Phục',
+                        luck: 'Vận Khí'
+                      };
+
+                      Object.entries(stats).forEach(([key, value]) => {
+                        if (value && statLabels[key]) {
+                          effects.push({
+                            label: statLabels[key],
+                            value: `+${Math.round(value * 100)}%`,
+                            color: 'text-purple-400'
+                          });
+                        }
+                      });
+
+                      if (effects.length === 0) return null;
+
+                      return (
+                        <div className="mt-2 space-y-1 text-xs">
+                          {effects.map((effect, idx) => (
+                            <div key={idx} className="flex justify-between">
+                              <span className="text-slate-500">{effect.label}:</span>
+                              <span className={effect.color}>{effect.value}</span>
+                            </div>
+                          ))}
                         </div>
                       );
                     })()}
