@@ -108,10 +108,10 @@ export const QUEST_TEMPLATES = {
     
     // === NHIỆM VỤ TU TIÊN ===
     { id: "daily_yinyang", name: "Thu linh khí", description: "Thu thập linh khí 20 lần", expReward: 25, spiritStoneReward: 15, type: "daily", requirement: { action: "yinyang_click", count: 20 } },
-    { id: "daily_pk", name: "Luyện võ đài", description: "Tham gia 3 trận PK", expReward: 40, spiritStoneReward: 25, type: "daily", requirement: { action: "pk_battle", count: 3 } },
-    { id: "daily_pk_win", name: "Chiến thắng PK", description: "Thắng 1 trận PK", expReward: 50, spiritStoneReward: 30, type: "daily", requirement: { action: "pk_win", count: 1 } },
-    { id: "daily_dungeon", name: "Thám hiểm bí cảnh", description: "Hoàn thành 5 tầng dungeon", expReward: 35, spiritStoneReward: 20, type: "daily", requirement: { action: "dungeon_floor", count: 5 } },
-    { id: "daily_passive", name: "Tĩnh tọa tu luyện", description: "Thu passive exp 1 lần", expReward: 15, spiritStoneReward: 10, type: "daily", requirement: { action: "passive_collect", count: 1 } }
+    { id: "daily_pk", name: "Luyện võ đài", description: "Tham gia 3 trận luận võ", expReward: 40, spiritStoneReward: 25, type: "daily", requirement: { action: "pk_battle", count: 3 } },
+    { id: "daily_pk_win", name: "Chiến thắng luận võ", description: "Thắng 1 trận luận võ", expReward: 50, spiritStoneReward: 30, type: "daily", requirement: { action: "pk_win", count: 1 } },
+    { id: "daily_dungeon", name: "Thám hiểm bí cảnh", description: "Hoàn thành 5 tầng bí cảnh", expReward: 35, spiritStoneReward: 20, type: "daily", requirement: { action: "dungeon_floor", count: 5 } },
+    { id: "daily_passive", name: "Tĩnh tọa tu luyện", description: "Thu thập tu vi tích lũy 1 lần", expReward: 15, spiritStoneReward: 10, type: "daily", requirement: { action: "passive_collect", count: 1 } }
   ],
   weekly: [
     { id: "weekly_posts", name: "Tinh cần tu luyện", description: "Đăng 7 bài viết trong tuần", expReward: 200, spiritStoneReward: 100, type: "weekly", requirement: { action: "post", count: 7 } },
@@ -969,6 +969,13 @@ CultivationSchema.methods.processLogin = function () {
     this.updateQuestProgress('login_streak', 1);
   }
 
+  // Đánh dấu daily_login quest hoàn thành (quest không có requirement, tự động complete khi login)
+  const dailyLoginQuest = this.dailyQuests.find(q => q.questId === 'daily_login');
+  if (dailyLoginQuest && !dailyLoginQuest.completed) {
+    dailyLoginQuest.completed = true;
+    dailyLoginQuest.completedAt = new Date();
+  }
+
   // Phần thưởng đăng nhập
   const baseExp = 20;
   const streakBonus = Math.min(this.loginStreak * 5, 50); // Max +50 exp cho streak
@@ -1521,6 +1528,55 @@ CultivationSchema.statics.getOrCreate = async function (userId) {
         claimed: false
       }))
     });
+    needsSave = true;
+  }
+
+  // Đảm bảo tất cả quests đã được khởi tạo (cho các user cũ thiếu quests mới)
+  let questsUpdated = false;
+  
+  // Kiểm tra và thêm daily quests còn thiếu
+  const existingDailyQuestIds = new Set(cultivation.dailyQuests.map(q => q.questId));
+  for (const template of QUEST_TEMPLATES.daily) {
+    if (!existingDailyQuestIds.has(template.id)) {
+      cultivation.dailyQuests.push({
+        questId: template.id,
+        progress: 0,
+        completed: false,
+        claimed: false
+      });
+      questsUpdated = true;
+    }
+  }
+  
+  // Kiểm tra và thêm weekly quests còn thiếu
+  const existingWeeklyQuestIds = new Set(cultivation.weeklyQuests.map(q => q.questId));
+  for (const template of QUEST_TEMPLATES.weekly) {
+    if (!existingWeeklyQuestIds.has(template.id)) {
+      cultivation.weeklyQuests.push({
+        questId: template.id,
+        progress: 0,
+        completed: false,
+        claimed: false
+      });
+      questsUpdated = true;
+    }
+  }
+  
+  // Kiểm tra và thêm achievements còn thiếu
+  const existingAchievementIds = new Set(cultivation.achievements.map(q => q.questId));
+  for (const template of QUEST_TEMPLATES.achievement) {
+    if (!existingAchievementIds.has(template.id)) {
+      cultivation.achievements.push({
+        questId: template.id,
+        progress: 0,
+        completed: false,
+        claimed: false
+      });
+      questsUpdated = true;
+    }
+  }
+  
+  if (questsUpdated) {
     needsSave = true;
   }
 
