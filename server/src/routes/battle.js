@@ -523,8 +523,7 @@ router.post("/challenge", async (req, res, next) => {
 
     console.log(`[BATTLE] ${challenger.name} vs ${opponent.name} - Winner: ${battleResult.winner || 'Draw'}`);
 
-    // Cập nhật quest progress cho PK
-    const challengerCultivation = await Cultivation.getOrCreate(challengerId);
+    // Cập nhật quest progress cho PK 
     challengerCultivation.updateQuestProgress('pk_battle', 1);
     if (battleResult.winner === 'challenger') {
       challengerCultivation.updateQuestProgress('pk_win', 1);
@@ -533,7 +532,6 @@ router.post("/challenge", async (req, res, next) => {
 
     // Đối thủ cũng được tính PK battle (nếu là user thật, không phải bot)
     if (opponentId && !String(opponentId).startsWith('bot_')) {
-      const opponentCultivation = await Cultivation.getOrCreate(opponentId);
       opponentCultivation.updateQuestProgress('pk_battle', 1);
       if (battleResult.winner === 'opponent') {
         opponentCultivation.updateQuestProgress('pk_win', 1);
