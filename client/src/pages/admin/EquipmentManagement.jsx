@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, Search, X, Save, ArrowLeft, Upload, Image as ImageIcon, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, X, Save, ArrowLeft, Upload, Image as ImageIcon, Loader2, RefreshCw, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import { RARITY_COLORS } from '../cultivation/utils/constants';
@@ -72,6 +72,69 @@ const ELEMENTAL_TYPES = {
   dark: 'Ám'
 };
 
+// Hệ số nhân theo phẩm chất (điều chỉnh cân bằng: max ×6 thay vì ×10)
+const RARITY_MULTIPLIERS = {
+  common: 1.0,
+  uncommon: 1.4,
+  rare: 2.0,
+  epic: 3.0,
+  legendary: 4.5,
+  mythic: 6.0
+};
+
+// Bonus Crit Rate theo phẩm chất (flat, không nhân)
+const CRIT_RATE_BONUS = {
+  common: 0,
+  uncommon: 0.01,
+  rare: 0.02,
+  epic: 0.03,
+  legendary: 0.04,
+  mythic: 0.05
+};
+
+// Chỉ số cơ bản theo loại trang bị (fallback nếu không có subtype)
+const BASE_STATS = {
+  weapon: { attack: 50, defense: 0, hp: 0, crit_rate: 0.02, crit_damage: 0.1, speed: 5, price: 500 },
+  magic_treasure: { attack: 30, defense: 10, hp: 100, crit_rate: 0.03, crit_damage: 0.15, speed: 0, price: 800 },
+  armor: { attack: 0, defense: 40, hp: 200, crit_rate: 0, crit_damage: 0, speed: 0, price: 600 },
+  accessory: { attack: 15, defense: 15, hp: 50, crit_rate: 0.05, crit_damage: 0.2, speed: 3, price: 400 },
+  power_item: { attack: 25, defense: 5, hp: 80, crit_rate: 0.02, crit_damage: 0.1, speed: 2, price: 350 },
+  pill: { attack: 10, defense: 10, hp: 150, crit_rate: 0.01, crit_damage: 0.05, speed: 5, price: 200 }
+};
+
+// Chỉ số chi tiết theo SUBTYPE - các loại khác nhau có stats khác nhau
+const SUBTYPE_STATS = {
+  // === VŨ KHÍ ===
+  sword: { attack: 50, defense: 5, hp: 0, crit_rate: 0.03, crit_damage: 0.12, speed: 5, price: 500 },      // Kiếm: cân bằng
+  saber: { attack: 65, defense: 0, hp: 0, crit_rate: 0.02, crit_damage: 0.15, speed: 3, price: 550 },      // Đao: mạnh attack, chậm
+  spear: { attack: 55, defense: 0, hp: 0, crit_rate: 0.02, crit_damage: 0.10, speed: 6, price: 480 },      // Thương: tầm xa, nhanh
+  bow: { attack: 45, defense: 0, hp: 0, crit_rate: 0.06, crit_damage: 0.20, speed: 4, price: 520 },        // Cung: crit cao
+  fan: { attack: 35, defense: 10, hp: 50, crit_rate: 0.04, crit_damage: 0.15, speed: 7, price: 600 },      // Quạt: hỗ trợ, nhanh
+  flute: { attack: 30, defense: 5, hp: 80, crit_rate: 0.03, crit_damage: 0.12, speed: 8, price: 650 },     // Sáo: hỗ trợ, HP
+  brush: { attack: 40, defense: 15, hp: 60, crit_rate: 0.04, crit_damage: 0.18, speed: 5, price: 700 },    // Bút: cân bằng sát thương/trợ
+  dual_sword: { attack: 70, defense: 0, hp: 0, crit_rate: 0.05, crit_damage: 0.18, speed: 8, price: 650 }, // Song kiếm: DPS cao
+  flying_sword: { attack: 60, defense: 0, hp: 0, crit_rate: 0.04, crit_damage: 0.15, speed: 10, price: 800 }, // Linh kiếm: nhanh nhất
+
+  // === GIÁP ===
+  helmet: { attack: 0, defense: 25, hp: 150, crit_rate: 0, crit_damage: 0, speed: 0, price: 400 },         // Mũ: HP cao
+  chest: { attack: 0, defense: 60, hp: 250, crit_rate: 0, crit_damage: 0, speed: 0, price: 700 },          // Giáp ngực: phòng thủ cao nhất
+  shoulder: { attack: 5, defense: 35, hp: 100, crit_rate: 0, crit_damage: 0, speed: 2, price: 500 },       // Vai: một chút attack
+  gloves: { attack: 10, defense: 20, hp: 50, crit_rate: 0.02, crit_damage: 0.08, speed: 3, price: 450 },   // Găng: thêm crit
+  boots: { attack: 0, defense: 30, hp: 80, crit_rate: 0, crit_damage: 0, speed: 8, price: 550 },           // Giày: tốc độ cao
+  belt: { attack: 5, defense: 25, hp: 120, crit_rate: 0.01, crit_damage: 0.05, speed: 2, price: 400 },     // Đai: HP
+
+  // === TRANG SỨC ===
+  ring: { attack: 20, defense: 5, hp: 30, crit_rate: 0.04, crit_damage: 0.15, speed: 2, price: 500 },      // Nhẫn: damage + crit
+  necklace: { attack: 15, defense: 15, hp: 80, crit_rate: 0.03, crit_damage: 0.12, speed: 3, price: 550 }, // Dây chuyền: cân bằng
+  earring: { attack: 10, defense: 10, hp: 40, crit_rate: 0.06, crit_damage: 0.25, speed: 4, price: 500 },  // Bông tai: crit cao nhất
+  bracelet: { attack: 15, defense: 20, hp: 60, crit_rate: 0.02, crit_damage: 0.10, speed: 5, price: 450 }, // Vòng tay: phòng thủ
+
+  // === LINH THẠCH / CHÂU / ẤN ===
+  spirit_stone: { attack: 30, defense: 5, hp: 50, crit_rate: 0.02, crit_damage: 0.10, speed: 3, price: 350 },  // Linh thạch: attack
+  spirit_pearl: { attack: 15, defense: 20, hp: 100, crit_rate: 0.03, crit_damage: 0.12, speed: 2, price: 400 }, // Linh châu: defense + HP
+  spirit_seal: { attack: 25, defense: 10, hp: 70, crit_rate: 0.04, crit_damage: 0.15, speed: 4, price: 450 }   // Linh ấn: cân bằng + crit
+};
+
 const EquipmentManagement = memo(function EquipmentManagement() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -128,7 +191,47 @@ const EquipmentManagement = memo(function EquipmentManagement() {
 
   // Debug: Log khi component mount
   useEffect(() => {
-              }, []);
+  }, []);
+
+  // Tính toán chỉ số đề xuất dựa trên loại, phân loại và phẩm chất
+  const calculateSuggestedStats = (type, subtype, rarity, levelRequired = 1) => {
+    // Ưu tiên dùng stats theo subtype, fallback về type
+    const baseStats = (subtype && SUBTYPE_STATS[subtype])
+      ? SUBTYPE_STATS[subtype]
+      : (BASE_STATS[type] || BASE_STATS.weapon);
+
+    const multiplier = RARITY_MULTIPLIERS[rarity] || 1;
+    const critBonus = CRIT_RATE_BONUS[rarity] || 0;
+    const levelMultiplier = 1 + (levelRequired - 1) * 0.1; // +10% mỗi level
+
+    return {
+      stats: {
+        attack: Math.round(baseStats.attack * multiplier * levelMultiplier),
+        defense: Math.round(baseStats.defense * multiplier * levelMultiplier),
+        hp: Math.round(baseStats.hp * multiplier * levelMultiplier),
+        // Crit Rate: base + flat bonus (không nhân multiplier để tránh vượt cap)
+        crit_rate: Math.round((baseStats.crit_rate + critBonus) * 100) / 100,
+        // Crit Damage: có thể nhân theo rarity (ít nguy hiểm hơn crit rate)
+        crit_damage: Math.round(baseStats.crit_damage * multiplier * 100) / 100,
+        speed: Math.round(baseStats.speed * multiplier * levelMultiplier),
+        penetration: 0,
+        evasion: 0,
+        hit_rate: 0,
+        elemental_damage: {}
+      },
+      price: Math.round(baseStats.price * multiplier * levelMultiplier)
+    };
+  };
+
+  // Áp dụng stats tự động (có tính subtype)
+  const applyAutoBalance = () => {
+    const suggested = calculateSuggestedStats(formData.type, formData.subtype, formData.rarity, formData.level_required);
+    setFormData(prev => ({
+      ...prev,
+      stats: { ...prev.stats, ...suggested.stats },
+      price: suggested.price
+    }));
+  };
 
   // Ẩn navbar và floating dock
   useEffect(() => {
@@ -158,10 +261,10 @@ const EquipmentManagement = memo(function EquipmentManagement() {
 
       console.log('[EquipmentManagement] Loading equipments with params:', params.toString());
       const response = await api(`/api/equipment/admin/list?${params}`);
-            if (response.success) {
+      if (response.success) {
         setEquipments(response.data || []);
         setPagination(prev => ({ ...prev, ...response.pagination }));
-              } else {
+      } else {
         console.error('[EquipmentManagement] API returned success=false');
         setEquipments([]);
       }
@@ -179,15 +282,42 @@ const EquipmentManagement = memo(function EquipmentManagement() {
     setLoading(true);
 
     try {
-      const payload = {
-        ...formData,
-        stats: {
-          ...formData.stats,
-          elemental_damage: Object.fromEntries(
-            Object.entries(formData.stats.elemental_damage).filter(([_, v]) => v > 0)
-          )
+      // Filter out stats with value 0 to keep payload clean
+      const filteredStats = {};
+      Object.entries(formData.stats).forEach(([key, value]) => {
+        if (key === 'elemental_damage') {
+          // Filter elemental damage to only include non-zero values
+          const filteredElemental = Object.fromEntries(
+            Object.entries(value).filter(([_, v]) => v > 0)
+          );
+          if (Object.keys(filteredElemental).length > 0) {
+            filteredStats.elemental_damage = filteredElemental;
+          }
+        } else if (value > 0) {
+          filteredStats[key] = value;
         }
+      });
+
+      const payload = {
+        name: formData.name,
+        type: formData.type,
+        subtype: formData.subtype || null,
+        rarity: formData.rarity,
+        level_required: formData.level_required,
+        price: formData.price,
+        img: formData.img || null,
+        description: formData.description,
+        stats: filteredStats,
+        special_effect: formData.special_effect || null,
+        skill_bonus: formData.skill_bonus > 0 ? formData.skill_bonus : 0,
+        energy_regen: formData.energy_regen > 0 ? formData.energy_regen : 0,
+        lifesteal: formData.lifesteal > 0 ? formData.lifesteal : 0,
+        true_damage: formData.true_damage > 0 ? formData.true_damage : 0,
+        buff_duration: formData.buff_duration > 0 ? formData.buff_duration : 0,
+        is_active: formData.is_active
       };
+
+      console.log('[EquipmentManagement] Submitting payload:', JSON.stringify(payload, null, 2));
 
       if (editingId) {
         await api(`/api/equipment/admin/${editingId}`, {
@@ -310,31 +440,63 @@ const EquipmentManagement = memo(function EquipmentManagement() {
     }
   };
 
+  // State cho bulk rebalance
+  const [rebalancing, setRebalancing] = useState(false);
+
+  // Bulk rebalance tất cả equipment
+  const handleBulkRebalance = async () => {
+    if (!confirm('Cảnh báo: Thao tác này sẽ cập nhật chỉ số của TẤT CẢ trang bị dựa trên công thức cân bằng.\n\nBạn có chắc chắn muốn tiếp tục?')) return;
+
+    setRebalancing(true);
+    try {
+      const response = await api('/api/equipment/admin/bulk-rebalance', { method: 'POST' });
+      if (response.success) {
+        alert(response.message);
+        loadEquipments();
+      } else {
+        alert('Lỗi: ' + (response.message || 'Không thể cân bằng'));
+      }
+    } catch (error) {
+      console.error('Bulk rebalance error:', error);
+      alert('Lỗi khi cân bằng: ' + (error.message || 'Vui lòng thử lại'));
+    } finally {
+      setRebalancing(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#050511] text-slate-200 p-6">
+    <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-neutral-100 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header với nút Trở về và Thêm Equipment */}
-        <div className="sticky top-0 z-40 bg-[#050511]/95 backdrop-blur-sm border-b-2 border-amber-500/50 pb-4 mb-6 -mx-6 px-6 pt-2">
+        {/* Header */}
+        <div className="sticky top-0 z-40 bg-white/95 dark:bg-black/95 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-800 pb-4 mb-6 -mx-6 px-6 pt-2">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              {/* Nút Trở về */}
               <button
                 onClick={() => navigate('/admin')}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-all shadow-md hover:shadow-lg"
+                className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-xl transition-all"
                 title="Trở về Admin Dashboard"
               >
                 <ArrowLeft size={20} />
                 <span className="hidden sm:inline">Trở về</span>
               </button>
-              <h1 className="text-2xl sm:text-3xl font-bold text-amber-400 drop-shadow-lg">
-                Rèn Trang Bị
+              <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-white">
+                Quản Lý Trang Bị
               </h1>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={handleBulkRebalance}
+                disabled={rebalancing}
+                className="flex items-center gap-2 px-4 py-2.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400 rounded-xl transition-all text-sm font-medium disabled:opacity-50"
+                title="Tự động cân bằng tất cả trang bị theo phẩm chất"
+              >
+                {rebalancing ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} />}
+                <span className="hidden sm:inline">Đồng bộ tất cả</span>
+              </button>
               <button
                 onClick={handleCleanup}
                 disabled={cleaningUp}
-                className="flex items-center gap-2 px-4 py-3 bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/50 rounded-lg transition-all font-medium text-sm whitespace-nowrap disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400 rounded-xl transition-all text-sm font-medium disabled:opacity-50"
                 title="Dọn dẹp trang bị đã xóa khỏi túi đồ"
               >
                 {cleaningUp ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
@@ -345,10 +507,9 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                   resetForm();
                   setShowForm(true);
                 }}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-lg transition-all shadow-lg hover:shadow-xl font-bold text-sm uppercase tracking-wide whitespace-nowrap"
-                style={{ zIndex: 50 }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl transition-all font-bold text-sm hover:opacity-80"
               >
-                <Plus size={20} />
+                <Plus size={18} />
                 <span>Thêm Trang Bị</span>
               </button>
             </div>
@@ -356,27 +517,27 @@ const EquipmentManagement = memo(function EquipmentManagement() {
         </div>
 
         {/* Filters */}
-        <div className="bg-slate-800/50 rounded-xl p-4 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-neutral-50 dark:bg-neutral-900 rounded-2xl p-4 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 border border-neutral-200 dark:border-neutral-800">
           <div>
-            <label className="block text-sm mb-2">Tìm kiếm</label>
+            <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Tìm kiếm</label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
               <input
                 type="text"
                 value={filters.search}
                 onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                 placeholder="Tên trang bị..."
-                className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200"
+                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-neutral-100 outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm mb-2">Loại</label>
+            <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Loại</label>
             <select
               value={filters.type}
               onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-              className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200"
+              className="w-full px-4 py-2.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-neutral-100 outline-none focus:ring-2 focus:ring-neutral-400 transition-all cursor-pointer"
             >
               <option value="">Tất cả</option>
               {Object.entries(EQUIPMENT_TYPES).map(([value, label]) => (
@@ -386,11 +547,11 @@ const EquipmentManagement = memo(function EquipmentManagement() {
           </div>
 
           <div>
-            <label className="block text-sm mb-2">Độ Hiếm</label>
+            <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Độ Hiếm</label>
             <select
               value={filters.rarity}
               onChange={(e) => setFilters(prev => ({ ...prev, rarity: e.target.value }))}
-              className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200"
+              className="w-full px-4 py-2.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-neutral-100 outline-none focus:ring-2 focus:ring-neutral-400 transition-all cursor-pointer"
             >
               <option value="">Tất cả</option>
               {RARITY_OPTIONS.map(opt => (
@@ -400,11 +561,11 @@ const EquipmentManagement = memo(function EquipmentManagement() {
           </div>
 
           <div>
-            <label className="block text-sm mb-2">Trạng Thái</label>
+            <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Trạng Thái</label>
             <select
               value={filters.is_active}
               onChange={(e) => setFilters(prev => ({ ...prev, is_active: e.target.value }))}
-              className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200"
+              className="w-full px-4 py-2.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-neutral-100 outline-none focus:ring-2 focus:ring-neutral-400 transition-all cursor-pointer"
             >
               <option value="true">Đang Hoạt Động</option>
               <option value="false">Vô Hiệu Hóa</option>
@@ -416,20 +577,20 @@ const EquipmentManagement = memo(function EquipmentManagement() {
         {/* Equipment List */}
         {loading && (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400"></div>
-            <p className="mt-4 text-slate-400">Đang tải danh sách trang bị...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-black dark:border-white"></div>
+            <p className="mt-4 text-neutral-500">Đang tải danh sách trang bị...</p>
           </div>
         )}
 
         {!loading && equipments.length === 0 && (
-          <div className="text-center py-12 bg-slate-800/30 rounded-xl border border-slate-700">
-            <p className="text-slate-400 mb-4">Chưa có trang bị nào</p>
+          <div className="text-center py-12 bg-neutral-50 dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800">
+            <p className="text-neutral-500 mb-4">Chưa có trang bị nào</p>
             <button
               onClick={() => {
                 resetForm();
                 setShowForm(true);
               }}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors font-medium"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-xl transition-colors font-bold hover:opacity-80"
             >
               <Plus size={20} />
               <span>Thêm Trang Bị Đầu Tiên</span>
@@ -438,65 +599,65 @@ const EquipmentManagement = memo(function EquipmentManagement() {
         )}
 
         {!loading && equipments.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {equipments.map((eq) => (
               <motion.div
                 key={eq._id}
-                className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 hover:border-amber-500/50 transition-colors"
-                whileHover={{ scale: 1.02 }}
+                className="bg-white dark:bg-neutral-900 rounded-2xl p-4 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 transition-all hover:shadow-lg"
+                whileHover={{ y: -2 }}
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-bold text-lg" style={{ color: RARITY_OPTIONS.find(r => r.value === eq.rarity)?.color }}>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-base truncate" style={{ color: RARITY_OPTIONS.find(r => r.value === eq.rarity)?.color }}>
                       {eq.name}
                     </h3>
-                    <p className="text-sm text-slate-400">{EQUIPMENT_TYPES[eq.type]}</p>
+                    <p className="text-xs text-neutral-500">{EQUIPMENT_TYPES[eq.type]}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 ml-2">
                     <button
                       onClick={() => handleEdit(eq)}
-                      className="p-2 hover:bg-slate-700 rounded transition-colors"
+                      className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
                     >
-                      <Edit size={16} />
+                      <Edit size={14} className="text-neutral-500" />
                     </button>
                     <button
                       onClick={() => handleDelete(eq._id)}
-                      className="p-2 hover:bg-red-900/50 rounded transition-colors text-red-400"
+                      className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} className="text-red-500" />
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-1 text-sm">
+                <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Level:</span>
-                    <span>{eq.level_required}</span>
+                    <span className="text-neutral-500">Level:</span>
+                    <span className="font-medium">{eq.level_required}</span>
                   </div>
                   {eq.price > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Giá:</span>
-                      <span className="text-amber-400">{eq.price.toLocaleString()} Linh Thạch</span>
+                      <span className="text-neutral-500">Giá:</span>
+                      <span className="font-medium">{eq.price.toLocaleString()}</span>
                     </div>
                   )}
                   {eq.stats && (
                     <>
                       {eq.stats.attack > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Tấn Công:</span>
-                          <span className="text-red-400">+{eq.stats.attack}</span>
+                          <span className="text-neutral-500">Tấn Công:</span>
+                          <span className="text-red-500 font-medium">+{eq.stats.attack}</span>
                         </div>
                       )}
                       {eq.stats.defense > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Phòng Thủ:</span>
-                          <span className="text-blue-400">+{eq.stats.defense}</span>
+                          <span className="text-neutral-500">Phòng Thủ:</span>
+                          <span className="text-blue-500 font-medium">+{eq.stats.defense}</span>
                         </div>
                       )}
                       {eq.stats.hp > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Khí Huyết:</span>
-                          <span className="text-green-400">+{eq.stats.hp}</span>
+                          <span className="text-neutral-500">Khí Huyết:</span>
+                          <span className="text-green-500 font-medium">+{eq.stats.hp}</span>
                         </div>
                       )}
                     </>
@@ -504,7 +665,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                 </div>
 
                 {!eq.is_active && (
-                  <div className="mt-2 text-xs text-red-400">Đã vô hiệu hóa</div>
+                  <div className="mt-2 text-xs text-red-500 font-medium">Đã vô hiệu hóa</div>
                 )}
               </motion.div>
             ))}
@@ -513,21 +674,21 @@ const EquipmentManagement = memo(function EquipmentManagement() {
 
         {/* Pagination */}
         {pagination.pages > 1 && (
-          <div className="flex justify-center gap-2 mt-6">
+          <div className="flex justify-center items-center gap-3 mt-6">
             <button
               onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
               disabled={pagination.page === 1}
-              className="px-4 py-2 bg-slate-800 rounded-lg disabled:opacity-50"
+              className="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-xl disabled:opacity-50 font-medium text-sm transition-colors"
             >
               Trước
             </button>
-            <span className="px-4 py-2">
+            <span className="px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
               Trang {pagination.page} / {pagination.pages}
             </span>
             <button
               onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.pages, prev.page + 1) }))}
               disabled={pagination.page === pagination.pages}
-              className="px-4 py-2 bg-slate-800 rounded-lg disabled:opacity-50"
+              className="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-xl disabled:opacity-50 font-medium text-sm transition-colors"
             >
               Sau
             </button>
@@ -538,27 +699,27 @@ const EquipmentManagement = memo(function EquipmentManagement() {
         <AnimatePresence>
           {showForm && (
             <motion.div
-              className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+              className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={(e) => e.target === e.currentTarget && resetForm()}
             >
               <motion.div
-                className="bg-slate-900 rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-                initial={{ scale: 0.9, opacity: 0 }}
+                className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-neutral-200 dark:border-neutral-800 shadow-2xl"
+                initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
+                exit={{ scale: 0.95, opacity: 0 }}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-neutral-900 dark:text-white">
                     {editingId ? 'Sửa Trang Bị' : 'Thêm Trang Bị Mới'}
                   </h2>
                   <button
                     onClick={resetForm}
-                    className="p-2 hover:bg-slate-800 rounded transition-colors"
+                    className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                   >
-                    <X size={24} />
+                    <X size={20} className="text-neutral-500" />
                   </button>
                 </div>
 
@@ -566,23 +727,23 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                   {/* Basic Info */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm mb-2">Tên *</label>
+                      <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Tên *</label>
                       <input
                         type="text"
                         value={formData.name}
                         onChange={(e) => updateFormData('name', e.target.value)}
                         required
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                        className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm mb-2">Loại *</label>
+                      <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Loại *</label>
                       <select
                         value={formData.type}
                         onChange={(e) => updateFormData('type', e.target.value)}
                         required
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                        className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                       >
                         {Object.entries(EQUIPMENT_TYPES).map(([value, label]) => (
                           <option key={value} value={value}>{label}</option>
@@ -592,11 +753,11 @@ const EquipmentManagement = memo(function EquipmentManagement() {
 
                     {(formData.type === 'weapon' || formData.type === 'armor' || formData.type === 'accessory' || formData.type === 'power_item') && (
                       <div>
-                        <label className="block text-sm mb-2">Phân Loại</label>
+                        <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Phân Loại</label>
                         <select
                           value={formData.subtype}
                           onChange={(e) => updateFormData('subtype', e.target.value)}
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                          className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                         >
                           <option value="">Không có</option>
                           {formData.type === 'weapon' && Object.entries(WEAPON_SUBTYPES).map(([value, label]) => (
@@ -616,12 +777,12 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                     )}
 
                     <div>
-                      <label className="block text-sm mb-2">Độ Hiếm *</label>
+                      <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Độ Hiếm *</label>
                       <select
                         value={formData.rarity}
                         onChange={(e) => updateFormData('rarity', e.target.value)}
                         required
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                        className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                       >
                         {RARITY_OPTIONS.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -630,30 +791,30 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                     </div>
 
                     <div>
-                      <label className="block text-sm mb-2">Cấp Yêu Cầu</label>
+                      <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Cấp Yêu Cầu</label>
                       <input
                         type="number"
                         value={formData.level_required}
                         onChange={(e) => updateFormData('level_required', parseInt(e.target.value) || 1)}
                         min="1"
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                        className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm mb-2">Giá Bán (Linh Thạch)</label>
+                      <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Giá Bán (Linh Thạch)</label>
                       <input
                         type="number"
                         value={formData.price}
                         onChange={(e) => updateFormData('price', parseInt(e.target.value) || 0)}
                         min="0"
                         placeholder="0 = không bán"
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                        className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm mb-2">Hình Ảnh</label>
+                      <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Hình Ảnh</label>
 
                       {/* Preview ảnh */}
                       {formData.img && (
@@ -736,7 +897,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={uploadingImage}
-                          className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-colors text-sm font-medium"
                         >
                           {uploadingImage ? (
                             <>
@@ -756,7 +917,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                             href={formData.img}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-sm"
+                            className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-xl transition-colors text-sm font-medium"
                           >
                             <ImageIcon size={18} />
                             <span>Xem ảnh</span>
@@ -764,33 +925,45 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                         )}
                       </div>
 
-                      <p className="text-xs text-slate-400 mt-2">
+                      <p className="text-xs text-neutral-500 mt-2">
                         Chọn ảnh để upload (JPG, PNG, GIF - tối đa 5MB)
                       </p>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm mb-2">Mô Tả</label>
+                    <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Mô Tả</label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => updateFormData('description', e.target.value)}
                       rows="3"
-                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                      className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                     />
                   </div>
 
                   {/* Stats */}
-                  <div className="border-t border-slate-700 pt-4">
-                    <h3 className="text-lg font-bold mb-3">Thông Số</h3>
+                  <div className="border-t border-neutral-200 dark:border-neutral-800 pt-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-base font-bold text-neutral-900 dark:text-white">Thông Số</h3>
+                      <button
+                        type="button"
+                        onClick={applyAutoBalance}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors text-xs font-medium"
+                        title="Tự động điền chỉ số dựa trên loại và phẩm chất"
+                      >
+                        <RefreshCw size={14} />
+                        Tự động cân bằng
+                      </button>
+                    </div>
                     <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm mb-2">Tấn Công</label>
                         <input
                           type="number"
-                          value={formData.stats.attack}
-                          onChange={(e) => updateFormData('stats.attack', parseFloat(e.target.value) || 0)}
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                          value={formData.stats.attack || ''}
+                          onChange={(e) => updateFormData('stats.attack', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                          placeholder="0"
+                          className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                         />
                       </div>
 
@@ -798,9 +971,10 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                         <label className="block text-sm mb-2">Phòng Thủ</label>
                         <input
                           type="number"
-                          value={formData.stats.defense}
-                          onChange={(e) => updateFormData('stats.defense', parseFloat(e.target.value) || 0)}
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                          value={formData.stats.defense || ''}
+                          onChange={(e) => updateFormData('stats.defense', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                          placeholder="0"
+                          className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                         />
                       </div>
 
@@ -808,9 +982,10 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                         <label className="block text-sm mb-2">Khí Huyết</label>
                         <input
                           type="number"
-                          value={formData.stats.hp}
-                          onChange={(e) => updateFormData('stats.hp', parseFloat(e.target.value) || 0)}
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                          value={formData.stats.hp || ''}
+                          onChange={(e) => updateFormData('stats.hp', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                          placeholder="0"
+                          className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                         />
                       </div>
 
@@ -822,7 +997,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           onChange={(e) => updateFormData('stats.crit_rate', (parseFloat(e.target.value) || 0) / 100)}
                           step="0.01"
                           max="100"
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                          className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                         />
                       </div>
 
@@ -834,7 +1009,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           onChange={(e) => updateFormData('stats.crit_damage', (parseFloat(e.target.value) || 0) / 100)}
                           step="0.01"
                           max="100"
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                          className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                         />
                       </div>
 
@@ -842,9 +1017,10 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                         <label className="block text-sm mb-2">Tốc Độ</label>
                         <input
                           type="number"
-                          value={formData.stats.speed}
-                          onChange={(e) => updateFormData('stats.speed', parseFloat(e.target.value) || 0)}
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                          value={formData.stats.speed || ''}
+                          onChange={(e) => updateFormData('stats.speed', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                          placeholder="0"
+                          className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                         />
                       </div>
                     </div>
@@ -858,23 +1034,23 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                       onChange={(e) => updateFormData('special_effect', e.target.value)}
                       rows="2"
                       placeholder="VD: Tăng 15% sát thương băng khi Khí Huyết dưới 50%"
-                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg"
+                      className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                     />
                   </div>
 
-                  <div className="flex gap-4">
+                  <div className="flex gap-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
                     <button
                       type="submit"
                       disabled={loading}
-                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-xl transition-all disabled:opacity-50 font-bold hover:opacity-80"
                     >
-                      <Save size={20} />
-                      {loading ? 'Đang lưu...' : 'Lưu'}
+                      <Save size={18} />
+                      {loading ? 'Đang lưu...' : 'Lưu Trang Bị'}
                     </button>
                     <button
                       type="button"
                       onClick={resetForm}
-                      className="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+                      className="px-6 py-3 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-xl transition-colors font-medium"
                     >
                       Hủy
                     </button>

@@ -182,6 +182,8 @@ export const formatCultivationResponse = async (cultivation) => {
         breakthroughFailureCount: cultivation.breakthroughFailureCount || 0,
         lastBreakthroughAttempt: cultivation.lastBreakthroughAttempt,
         breakthroughCooldownUntil: cultivation.breakthroughCooldownUntil,
+        characterAppearance: cultivation.characterAppearance || 'Immortal_male',
+        lastAppearanceChangeAt: cultivation.lastAppearanceChangeAt,
         createdAt: cultivation.createdAt,
         updatedAt: cultivation.updatedAt
     };
@@ -337,6 +339,72 @@ export const getUserCultivation = async (req, res, next) => {
         });
     } catch (error) {
         console.error("[CULTIVATION] Error getting user cultivation:", error);
+        next(error);
+    }
+};
+
+/**
+ * POST /update-character-appearance - Cập nhật hình tượng nhân vật
+ * Cooldown 7 ngày giữa các lần đổi
+ */
+export const updateCharacterAppearance = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { characterAppearance } = req.body;
+
+        // Validate characterAppearance
+        const validAppearances = ['Immortal_male', 'Immortal_female', 'Demon_male', 'Demon_female'];
+        if (!validAppearances.includes(characterAppearance)) {
+            return res.status(400).json({
+                success: false,
+                message: "Hình tượng không hợp lệ. Vui lòng chọn: Tiên Nam, Tiên Nữ, Ma Nam, hoặc Ma Nữ"
+            });
+        }
+
+        const cultivation = await Cultivation.getOrCreate(userId);
+
+        // Check cooldown (7 days = 7 * 24 * 60 * 60 * 1000 ms)
+        const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+        const now = new Date();
+
+        if (cultivation.lastAppearanceChangeAt) {
+            const timeSinceLastChange = now.getTime() - new Date(cultivation.lastAppearanceChangeAt).getTime();
+            if (timeSinceLastChange < COOLDOWN_MS) {
+                const remainingTime = COOLDOWN_MS - timeSinceLastChange;
+                const remainingDays = Math.ceil(remainingTime / (24 * 60 * 60 * 1000));
+                return res.status(400).json({
+                    success: false,
+                    message: `Bạn cần đợi thêm ${remainingDays} ngày nữa để đổi hình tượng`,
+                    cooldownRemaining: remainingTime,
+                    canChangeAt: new Date(cultivation.lastAppearanceChangeAt.getTime() + COOLDOWN_MS)
+                });
+            }
+        }
+
+        // Update appearance
+        cultivation.characterAppearance = characterAppearance;
+        cultivation.lastAppearanceChangeAt = now;
+        await cultivation.save();
+
+        // Get appearance label for response
+        const appearanceLabels = {
+            'Immortal_male': 'Tiên Nam',
+            'Immortal_female': 'Tiên Nữ',
+            'Demon_male': 'Ma Nam',
+            'Demon_female': 'Ma Nữ'
+        };
+
+        res.json({
+            success: true,
+            message: `Đã thay đổi hình tượng thành ${appearanceLabels[characterAppearance]}`,
+            data: {
+                characterAppearance: cultivation.characterAppearance,
+                lastAppearanceChangeAt: cultivation.lastAppearanceChangeAt,
+                nextChangeAvailableAt: new Date(now.getTime() + COOLDOWN_MS)
+            }
+        });
+    } catch (error) {
+        console.error("[CULTIVATION] Error updating character appearance:", error);
         next(error);
     }
 };

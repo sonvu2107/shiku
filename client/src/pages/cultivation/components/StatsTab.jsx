@@ -1,17 +1,20 @@
 /**
  * Stats Tab - Display combat stats and equipment
  */
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { GiBroadsword, GiShield, GiGems, GiScrollUnfurled } from 'react-icons/gi';
+import { Settings } from 'lucide-react';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { CULTIVATION_REALMS } from '../../../services/cultivationAPI.js';
 import { getCombatStats } from '../utils/helpers.js';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
 import IdentityHeader from './IdentityHeader.jsx';
 import WeaponSlot from './WeaponSlot.jsx';
+import CharacterAppearanceModal from './CharacterAppearanceModal.jsx';
 
 const StatsTab = memo(function StatsTab() {
-  const { cultivation, loading } = useCultivation();
+  const { cultivation, loading, updateCharacterAppearance } = useCultivation();
+  const [showAppearanceModal, setShowAppearanceModal] = useState(false);
 
   if (loading || !cultivation) {
     return <LoadingSkeleton />;
@@ -110,9 +113,9 @@ const StatsTab = memo(function StatsTab() {
             </div>
           </div>
 
-          {/* EQUIPMENT SECTION MERGED */}
-          <div className="space-y-6 sm:space-y-8">
-            <div className="text-center mb-6">
+          {/* EQUIPMENT SECTION - Character Silhouette Layout */}
+          <div className="space-y-4 sm:space-y-6">
+            <div className="text-center mb-4">
               <div className="relative inline-block">
                 <h4 className="text-sm font-bold text-amber-400 uppercase tracking-[0.15em] inline-block px-6 py-2 border-2 border-amber-500/40 rounded-full bg-amber-900/10 relative">
                   <span className="relative z-10">Trang Bị Pháp Bảo</span>
@@ -121,47 +124,145 @@ const StatsTab = memo(function StatsTab() {
               </div>
             </div>
 
-            {/* Row 1: Vũ Khí, Pháp Bảo, Linh Khí */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-5 max-w-3xl mx-auto">
-              <WeaponSlot slotName="Vũ Khí" slotType="weapon" icon={GiBroadsword} iconColor="text-red-400" cultivation={cultivation} />
-              <WeaponSlot slotName="Pháp Bảo" slotType="magicTreasure" icon={GiGems} iconColor="text-purple-400" cultivation={cultivation} />
-              <WeaponSlot slotName="Linh Khí" slotType="powerItem" icon={GiScrollUnfurled} iconColor="text-purple-400" cultivation={cultivation} />
-            </div>
+            {/* Character Silhouette Layout */}
+            <div className="relative max-w-4xl mx-auto">
+              {/* Desktop Layout - 3 columns with character in center */}
+              <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] gap-3 lg:gap-4 items-start">
 
-            {/* Row 2: Armor (6 slots) */}
-            <div className="pt-4">
-              <div className="flex items-center gap-3 mb-4 justify-center">
-                <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-r from-transparent via-slate-600/60 to-slate-600/60"></div>
-                <p className="text-xs text-slate-400 uppercase tracking-[0.2em] font-semibold px-3">Hộ Giáp</p>
-                <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-l from-transparent via-slate-600/60 to-slate-600/60"></div>
-              </div>
-              <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
-                <WeaponSlot slotName="Mũ" slotType="helmet" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Giáp Ngực" slotType="chest" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Vai Giáp" slotType="shoulder" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Găng Tay" slotType="gloves" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Giày" slotType="boots" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Đai Lưng" slotType="belt" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} />
-              </div>
-            </div>
+                {/* Left Column - Armor & Accessories */}
+                <div className="space-y-2 lg:space-y-3">
+                  <WeaponSlot slotName="Mũ" slotType="helmet" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} compact />
+                  <WeaponSlot slotName="Vai Giáp" slotType="shoulder" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} compact />
+                  <WeaponSlot slotName="Găng Tay" slotType="gloves" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} compact />
+                  <WeaponSlot slotName="Nhẫn" slotType="ring" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} compact />
+                  <WeaponSlot slotName="Dây Chuyền" slotType="necklace" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} compact />
+                </div>
 
-            {/* Row 3: Jewelry (4 slots) */}
-            <div className="pt-4">
-              <div className="flex items-center gap-3 mb-4 justify-center">
-                <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-r from-transparent via-slate-600/60 to-slate-600/60"></div>
-                <p className="text-xs text-slate-400 uppercase tracking-[0.2em] font-semibold px-3">Trang Sức</p>
-                <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-l from-transparent via-slate-600/60 to-slate-600/60"></div>
+                {/* Center - Character Silhouette */}
+                <div className="flex flex-col items-center">
+                  {/* Character Image */}
+                  <div className="relative w-32 lg:w-40 h-48 lg:h-56 mb-3">
+                    {/* Character Body Glow */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-amber-500/20 via-purple-500/15 to-blue-500/10 rounded-2xl blur-xl"></div>
+
+                    {/* Character Image */}
+                    <div className="relative w-full h-full rounded-xl overflow-hidden border-2 border-amber-500/40 bg-black/40">
+                      <img
+                        src={`/assets/avatar_characters/${cultivation.characterAppearance || 'Immortal_male'}.jpg`}
+                        alt="Character"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = '/assets/avatar_characters/Immortal_male.jpg';
+                        }}
+                      />
+                      {/* Overlay gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20"></div>
+                    </div>
+
+                    {/* Settings Button */}
+                    <button
+                      onClick={() => setShowAppearanceModal(true)}
+                      className="absolute -bottom-2 -right-2 w-8 h-8 bg-slate-800 hover:bg-slate-700 border border-amber-500/40 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:border-amber-500"
+                      title="Đổi hình tượng"
+                    >
+                      <Settings size={14} className="text-amber-400" />
+                    </button>
+
+                    {/* Decorative Particles */}
+                    <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-amber-400 rounded-full animate-pulse"></div>
+                    <div className="absolute top-1/3 right-1/4 w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse delay-100"></div>
+                    <div className="absolute bottom-1/3 left-1/3 w-1 h-1 bg-blue-400 rounded-full animate-pulse delay-200"></div>
+                  </div>
+
+                  {/* Weapons Row below character */}
+                  <div className="grid grid-cols-3 gap-2 w-full max-w-xs">
+                    <WeaponSlot slotName="Vũ Khí" slotType="weapon" icon={GiBroadsword} iconColor="text-red-400" cultivation={cultivation} compact />
+                    <WeaponSlot slotName="Pháp Bảo" slotType="magicTreasure" icon={GiGems} iconColor="text-purple-400" cultivation={cultivation} compact />
+                    <WeaponSlot slotName="Linh Khí" slotType="powerItem" icon={GiScrollUnfurled} iconColor="text-cyan-400" cultivation={cultivation} compact />
+                  </div>
+                </div>
+
+                {/* Right Column - Armor & Accessories */}
+                <div className="space-y-2 lg:space-y-3">
+                  <WeaponSlot slotName="Giáp Ngực" slotType="chest" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} compact />
+                  <WeaponSlot slotName="Đai Lưng" slotType="belt" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} compact />
+                  <WeaponSlot slotName="Giày" slotType="boots" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} compact />
+                  <WeaponSlot slotName="Bông Tai" slotType="earring" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} compact />
+                  <WeaponSlot slotName="Vòng Tay" slotType="bracelet" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} compact />
+                </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 max-w-4xl mx-auto">
-                <WeaponSlot slotName="Nhẫn" slotType="ring" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Dây Chuyền" slotType="necklace" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Bông Tai" slotType="earring" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} />
-                <WeaponSlot slotName="Vòng Tay" slotType="bracelet" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} />
+
+              {/* Mobile Layout - Compact grid */}
+              <div className="md:hidden space-y-4">
+                {/* Character image for mobile */}
+                <div className="flex justify-center mb-2">
+                  <div className="relative w-24 h-32">
+                    <div className="w-full h-full rounded-lg overflow-hidden border border-amber-500/30 bg-black/40">
+                      <img
+                        src={`/assets/avatar_characters/${cultivation.characterAppearance || 'Immortal_male'}.jpg`}
+                        alt="Character"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = '/assets/avatar_characters/Immortal_male.jpg';
+                        }}
+                      />
+                    </div>
+                    {/* Settings Button */}
+                    <button
+                      onClick={() => setShowAppearanceModal(true)}
+                      className="absolute -bottom-1 -right-1 w-6 h-6 bg-slate-800 hover:bg-slate-700 border border-amber-500/30 rounded-full flex items-center justify-center"
+                    >
+                      <Settings size={10} className="text-amber-400" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Weapons Row */}
+                <div className="grid grid-cols-3 gap-2">
+                  <WeaponSlot slotName="Vũ Khí" slotType="weapon" icon={GiBroadsword} iconColor="text-red-400" cultivation={cultivation} compact />
+                  <WeaponSlot slotName="Pháp Bảo" slotType="magicTreasure" icon={GiGems} iconColor="text-purple-400" cultivation={cultivation} compact />
+                  <WeaponSlot slotName="Linh Khí" slotType="powerItem" icon={GiScrollUnfurled} iconColor="text-cyan-400" cultivation={cultivation} compact />
+                </div>
+
+                {/* Armor Grid */}
+                <div className="pt-2">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider text-center mb-2">Hộ Giáp</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <WeaponSlot slotName="Mũ" slotType="helmet" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} compact />
+                    <WeaponSlot slotName="Giáp Ngực" slotType="chest" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} compact />
+                    <WeaponSlot slotName="Vai Giáp" slotType="shoulder" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} compact />
+                    <WeaponSlot slotName="Găng Tay" slotType="gloves" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} compact />
+                    <WeaponSlot slotName="Đai Lưng" slotType="belt" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} compact />
+                    <WeaponSlot slotName="Giày" slotType="boots" icon={GiShield} iconColor="text-blue-400" cultivation={cultivation} compact />
+                  </div>
+                </div>
+
+                {/* Accessories Grid */}
+                <div className="pt-2">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider text-center mb-2">Trang Sức</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    <WeaponSlot slotName="Nhẫn" slotType="ring" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} compact />
+                    <WeaponSlot slotName="Dây Chuyền" slotType="necklace" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} compact />
+                    <WeaponSlot slotName="Bông Tai" slotType="earring" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} compact />
+                    <WeaponSlot slotName="Vòng Tay" slotType="bracelet" icon={GiGems} iconColor="text-yellow-400" cultivation={cultivation} compact />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Character Appearance Modal */}
+      <CharacterAppearanceModal
+        isOpen={showAppearanceModal}
+        onClose={() => setShowAppearanceModal(false)}
+        currentAppearance={cultivation.characterAppearance || 'Immortal_male'}
+        lastChangeAt={cultivation.lastAppearanceChangeAt}
+        onSave={async (appearance) => {
+          await updateCharacterAppearance(appearance);
+        }}
+      />
     </div>
   );
 });

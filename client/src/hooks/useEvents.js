@@ -9,20 +9,22 @@ import { api } from "../api.js";
  */
 export function useMyEvents(options = {}) {
   const { filter = 'my', limit = 10 } = options;
-  
+
   return useQuery({
     queryKey: ["myEvents", filter, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filter) params.append('filter', filter);
       if (limit) params.append('limit', limit);
-      
+
       const response = await api(`/api/events?${params.toString()}`);
       // Optional chaining to avoid crash if response has no data
       return response?.events ?? [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3, // Retry 3 times before showing error
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });
 }
 
@@ -41,6 +43,8 @@ export function useEvent(eventId) {
     enabled: !!eventId, // Only fetch when eventId is present
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    retry: 3, // Retry 3 times before showing error
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });
 }
 

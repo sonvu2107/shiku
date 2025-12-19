@@ -196,6 +196,17 @@ export async function getPassiveExpStatus() {
   return api('/api/cultivation/passive-exp-status');
 }
 
+/**
+ * Cập nhật hình tượng nhân vật
+ * @param {string} characterAppearance - Loại nhân vật: 'Immortal_male', 'Immortal_female', 'Demon_male', 'Demon_female'
+ */
+export async function updateCharacterAppearance(characterAppearance) {
+  return api('/api/cultivation/update-character-appearance', {
+    method: 'POST',
+    body: JSON.stringify({ characterAppearance })
+  });
+}
+
 // ==================== CONSTANTS ====================
 
 /**

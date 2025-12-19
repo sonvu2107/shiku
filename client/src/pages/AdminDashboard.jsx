@@ -8,6 +8,7 @@ import Pagination from '../components/admin/Pagination';
 import SystemHealth from '../components/admin/SystemHealth';
 import SecurityAlerts from '../components/admin/SecurityAlerts';
 import MobileQuickActions from '../components/admin/MobileQuickActions';
+import AdminPostsTab from '../components/admin/AdminPostsTab';
 import VerifiedBadge from "../components/VerifiedBadge";
 import Avatar from "../components/Avatar";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
@@ -224,6 +225,7 @@ export default function AdminDashboard() {
    const allMenuItems = [
       { id: 'stats', label: 'Thống kê', icon: BarChart3, permission: 'admin.viewStats' },
       { id: 'users', label: 'Quản lý N.Dùng', icon: Users, permission: 'admin.manageUsers' },
+      { id: 'posts', label: 'Quản lý bài viết', icon: FileText, permission: 'admin.managePosts' },
       { id: 'online', label: 'Online & Traffic', icon: Activity, permission: 'admin.viewStats' },
       { id: 'roles', label: 'Phân quyền', icon: Crown, permission: 'admin.manageRoles' },
       { id: 'bans', label: 'Cấm N.Dùng', icon: Ban, permission: 'admin.manageBans' },
@@ -892,17 +894,40 @@ export default function AdminDashboard() {
 
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                               <div>
-                                 <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Người dùng</label>
+                                 <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Tìm người dùng</label>
+                                 <input
+                                    type="text"
+                                    placeholder="Nhập tên hoặc email để tìm..."
+                                    value={banForm.searchTerm || ''}
+                                    onChange={e => setBanForm({ ...banForm, searchTerm: e.target.value, userId: '' })}
+                                    className="w-full p-3 bg-neutral-50 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                                 />
+                              </div>
+                              <div>
+                                 <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Chọn người dùng</label>
                                  <select
                                     value={banForm.userId}
                                     onChange={e => setBanForm({ ...banForm, userId: e.target.value })}
                                     className="w-full p-3 bg-neutral-50 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none cursor-pointer"
                                  >
                                     <option value="">Chọn người dùng...</option>
-                                    {users.filter(u => !u.isBanned && u.role !== 'admin').map(u => (
-                                       <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
-                                    ))}
+                                    {users
+                                       .filter(u => !u.isBanned && u.role !== 'admin')
+                                       .filter(u => {
+                                          if (!banForm.searchTerm) return true;
+                                          const term = banForm.searchTerm.toLowerCase();
+                                          return u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term);
+                                       })
+                                       .slice(0, 50)
+                                       .map(u => (
+                                          <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
+                                       ))}
                                  </select>
+                                 {banForm.searchTerm && (
+                                    <div className="text-xs text-neutral-500 mt-1">
+                                       Hiển thị tối đa 50 kết quả phù hợp
+                                    </div>
+                                 )}
                               </div>
                               <div>
                                  <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Thời gian</label>
@@ -1027,6 +1052,11 @@ export default function AdminDashboard() {
                      </div>
                   )}
                   {activeTab === "auto-like" && <div className="pt-4"><AutoLikeBot /></div>}
+                  {activeTab === "posts" && (
+                     <motion.div key="posts" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                        <AdminPostsTab />
+                     </motion.div>
+                  )}
 
                </AnimatePresence>
             </div>

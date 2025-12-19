@@ -16,6 +16,8 @@ export function useNotifications() {
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: 30 * 1000, // Auto refetch every 30 seconds
+    retry: 3, // Retry 3 times before showing error
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });
 }
 
@@ -34,6 +36,8 @@ export function useUnreadNotificationsCount() {
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: 30 * 1000, // Auto refetch every 30 seconds
+    retry: 3, // Retry 3 times before showing error
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });
 }
 

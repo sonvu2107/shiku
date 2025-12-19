@@ -21,7 +21,8 @@ import {
   collectPassiveExp as collectPassiveExpAPI,
   getPassiveExpStatus,
   practiceTechnique as practiceTechniqueAPI,
-  attemptBreakthrough as attemptBreakthroughAPI
+  attemptBreakthrough as attemptBreakthroughAPI,
+  updateCharacterAppearance as updateCharacterAppearanceAPI
 } from '../services/cultivationAPI.js';
 
 // Context cho Cultivation
@@ -571,11 +572,43 @@ export function CultivationProvider({ children }) {
     }
   }, [loadCultivation]);
 
-  /**
-   * Clear notification
-   */
   const clearNotification = useCallback(() => {
     setNotification(null);
+  }, []);
+
+  /**
+   * Cập nhật hình tượng nhân vật
+   */
+  const updateCharacterAppearance = useCallback(async (characterAppearance) => {
+    try {
+      setError(null);
+      const response = await updateCharacterAppearanceAPI(characterAppearance);
+
+      if (response.success) {
+        // Update local state
+        setCultivation(prev => ({
+          ...prev,
+          characterAppearance: response.data.characterAppearance,
+          lastAppearanceChangeAt: response.data.lastAppearanceChangeAt
+        }));
+
+        setNotification({
+          type: 'success',
+          title: 'Đổi hình tượng thành công!',
+          message: response.message
+        });
+
+        return response.data;
+      }
+    } catch (err) {
+      setError(err.message);
+      setNotification({
+        type: 'error',
+        title: 'Lỗi',
+        message: err.message
+      });
+      throw err;
+    }
   }, []);
 
   /**
@@ -621,7 +654,8 @@ export function CultivationProvider({ children }) {
     clearNotification,
     refresh,
     practiceTechnique,
-    attemptBreakthrough
+    attemptBreakthrough,
+    updateCharacterAppearance
   };
 
   return (

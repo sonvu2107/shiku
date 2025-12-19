@@ -9,6 +9,7 @@ import {
   syncCache,
   getBatch,
   getUserCultivation,
+  updateCharacterAppearance,
   // Login/Quest
   processLogin,
   claimQuestReward,
@@ -56,6 +57,7 @@ router.get("/", getCultivation);
 router.post("/sync-cache", syncCache);
 router.post("/batch", getBatch);
 router.get("/user/:userId", getUserCultivation);
+router.post("/update-character-appearance", updateCharacterAppearance);
 
 // ==================== LOGIN & QUESTS ====================
 router.post("/login", processLogin);

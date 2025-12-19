@@ -37,7 +37,13 @@ import {
   // Bot
   autoLikePosts,
   autoViewPosts,
-  clearTestReactions
+  clearTestReactions,
+  // Post management
+  getPosts,
+  deletePost,
+  bulkDeletePosts,
+  getAuthors,
+  deletePostsByUser
 } from "../controllers/admin/index.js";
 
 const router = express.Router();
@@ -140,6 +146,16 @@ router.get("/test-send-notification", authRequired, adminRequired, testSendNotif
 router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimit, autoLikePosts);
 router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimit, autoViewPosts);
 router.post("/clear-test-reactions", authRequired, adminRequired, strictAdminRateLimit, clearTestReactions);
+
+// ============================================================
+// POST MANAGEMENT ROUTES
+// ============================================================
+
+router.get("/posts", adminRateLimit, authRequired, adminRequired, getPosts);
+router.get("/posts/authors", adminRateLimit, authRequired, adminRequired, getAuthors);
+router.delete("/posts/:id", strictAdminRateLimit, authRequired, adminRequired, deletePost);
+router.post("/posts/bulk-delete", strictAdminRateLimit, authRequired, adminRequired, bulkDeletePosts);
+router.post("/posts/delete-by-user", strictAdminRateLimit, authRequired, adminRequired, deletePostsByUser);
 
 // ============================================================
 // DATA INTEGRITY ROUTES

@@ -18,7 +18,7 @@ export function useTrendingTags(limit = 3) {
       // OPTIMIZATION: Only load 30 recent posts instead of 100
       // Still enough to determine trending tags
       const response = await api('/api/posts?limit=30&status=published');
-      
+
       // Count tag frequency
       const tagCount = {};
       response.items?.forEach(post => {
@@ -42,7 +42,8 @@ export function useTrendingTags(limit = 3) {
     },
     staleTime: 10 * 60 * 1000, // 10 minutes - tags don't change frequently
     cacheTime: 15 * 60 * 1000, // 15 minutes - keep longer in cache
-    retry: 1, // Retry 1 time if failed   
+    retry: 3, // Retry 3 times before showing error
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });
 }
 

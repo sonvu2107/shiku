@@ -607,5 +607,144 @@ router.post("/admin/cleanup", strictAdminRateLimit, authRequired, adminRequired,
   }
 });
 
+/**
+ * POST /api/equipment/admin/bulk-rebalance
+ * Tự động cân bằng lại stats của tất cả equipment dựa trên type và rarity
+ */
+router.post("/admin/bulk-rebalance", strictAdminRateLimit, authRequired, adminRequired, async (req, res, next) => {
+  try {
+    // Hệ số nhân theo phẩm chất (điều chỉnh cân bằng: max ×6)
+    const RARITY_MULTIPLIERS = {
+      common: 1.0,
+      uncommon: 1.4,
+      rare: 2.0,
+      epic: 3.0,
+      legendary: 4.5,
+      mythic: 6.0
+    };
+
+    // Bonus Crit Rate theo phẩm chất (flat, không nhân)
+    const CRIT_RATE_BONUS = {
+      common: 0,
+      uncommon: 0.01,
+      rare: 0.02,
+      epic: 0.03,
+      legendary: 0.04,
+      mythic: 0.05
+    };
+
+    // Chỉ số cơ bản theo loại trang bị (fallback)
+    const BASE_STATS = {
+      weapon: { attack: 50, defense: 0, hp: 0, crit_rate: 0.02, crit_damage: 0.1, speed: 5, price: 500 },
+      magic_treasure: { attack: 30, defense: 10, hp: 100, crit_rate: 0.03, crit_damage: 0.15, speed: 0, price: 800 },
+      armor: { attack: 0, defense: 40, hp: 200, crit_rate: 0, crit_damage: 0, speed: 0, price: 600 },
+      accessory: { attack: 15, defense: 15, hp: 50, crit_rate: 0.05, crit_damage: 0.2, speed: 3, price: 400 },
+      power_item: { attack: 25, defense: 5, hp: 80, crit_rate: 0.02, crit_damage: 0.1, speed: 2, price: 350 },
+      pill: { attack: 10, defense: 10, hp: 150, crit_rate: 0.01, crit_damage: 0.05, speed: 5, price: 200 }
+    };
+
+    // Chỉ số chi tiết theo SUBTYPE
+    const SUBTYPE_STATS = {
+      // Vũ khí
+      sword: { attack: 50, defense: 5, hp: 0, crit_rate: 0.03, crit_damage: 0.12, speed: 5, price: 500 },
+      saber: { attack: 65, defense: 0, hp: 0, crit_rate: 0.02, crit_damage: 0.15, speed: 3, price: 550 },
+      spear: { attack: 55, defense: 0, hp: 0, crit_rate: 0.02, crit_damage: 0.10, speed: 6, price: 480 },
+      bow: { attack: 45, defense: 0, hp: 0, crit_rate: 0.06, crit_damage: 0.20, speed: 4, price: 520 },
+      fan: { attack: 35, defense: 10, hp: 50, crit_rate: 0.04, crit_damage: 0.15, speed: 7, price: 600 },
+      flute: { attack: 30, defense: 5, hp: 80, crit_rate: 0.03, crit_damage: 0.12, speed: 8, price: 650 },
+      brush: { attack: 40, defense: 15, hp: 60, crit_rate: 0.04, crit_damage: 0.18, speed: 5, price: 700 },
+      dual_sword: { attack: 70, defense: 0, hp: 0, crit_rate: 0.05, crit_damage: 0.18, speed: 8, price: 650 },
+      flying_sword: { attack: 60, defense: 0, hp: 0, crit_rate: 0.04, crit_damage: 0.15, speed: 10, price: 800 },
+      // Giáp
+      helmet: { attack: 0, defense: 25, hp: 150, crit_rate: 0, crit_damage: 0, speed: 0, price: 400 },
+      chest: { attack: 0, defense: 60, hp: 250, crit_rate: 0, crit_damage: 0, speed: 0, price: 700 },
+      shoulder: { attack: 5, defense: 35, hp: 100, crit_rate: 0, crit_damage: 0, speed: 2, price: 500 },
+      gloves: { attack: 10, defense: 20, hp: 50, crit_rate: 0.02, crit_damage: 0.08, speed: 3, price: 450 },
+      boots: { attack: 0, defense: 30, hp: 80, crit_rate: 0, crit_damage: 0, speed: 8, price: 550 },
+      belt: { attack: 5, defense: 25, hp: 120, crit_rate: 0.01, crit_damage: 0.05, speed: 2, price: 400 },
+      // Trang sức
+      ring: { attack: 20, defense: 5, hp: 30, crit_rate: 0.04, crit_damage: 0.15, speed: 2, price: 500 },
+      necklace: { attack: 15, defense: 15, hp: 80, crit_rate: 0.03, crit_damage: 0.12, speed: 3, price: 550 },
+      earring: { attack: 10, defense: 10, hp: 40, crit_rate: 0.06, crit_damage: 0.25, speed: 4, price: 500 },
+      bracelet: { attack: 15, defense: 20, hp: 60, crit_rate: 0.02, crit_damage: 0.10, speed: 5, price: 450 },
+      // Linh vật
+      spirit_stone: { attack: 30, defense: 5, hp: 50, crit_rate: 0.02, crit_damage: 0.10, speed: 3, price: 350 },
+      spirit_pearl: { attack: 15, defense: 20, hp: 100, crit_rate: 0.03, crit_damage: 0.12, speed: 2, price: 400 },
+      spirit_seal: { attack: 25, defense: 10, hp: 70, crit_rate: 0.04, crit_damage: 0.15, speed: 4, price: 450 }
+    };
+
+    // Lấy tất cả equipment active
+    const equipments = await Equipment.find({ is_active: true });
+
+    if (equipments.length === 0) {
+      return res.json({
+        success: true,
+        message: "Không có equipment nào để cân bằng",
+        data: { updated: 0 }
+      });
+    }
+
+    let updatedCount = 0;
+    const updates = [];
+
+    for (const eq of equipments) {
+      // Ưu tiên dùng subtype stats, fallback về type stats
+      const baseStats = (eq.subtype && SUBTYPE_STATS[eq.subtype])
+        ? SUBTYPE_STATS[eq.subtype]
+        : (BASE_STATS[eq.type] || BASE_STATS.weapon);
+      const multiplier = RARITY_MULTIPLIERS[eq.rarity] || 1;
+      const critBonus = CRIT_RATE_BONUS[eq.rarity] || 0;
+      const levelMultiplier = 1 + (eq.level_required - 1) * 0.1;
+
+      const newStats = {
+        attack: Math.round(baseStats.attack * multiplier * levelMultiplier),
+        defense: Math.round(baseStats.defense * multiplier * levelMultiplier),
+        hp: Math.round(baseStats.hp * multiplier * levelMultiplier),
+        // Crit Rate: base + flat bonus (không nhân multiplier)
+        crit_rate: Math.round((baseStats.crit_rate + critBonus) * 100) / 100,
+        // Crit Damage: nhân theo rarity (ít nguy hiểm hơn crit rate)
+        crit_damage: Math.round(baseStats.crit_damage * multiplier * 100) / 100,
+        speed: Math.round(baseStats.speed * multiplier * levelMultiplier),
+        penetration: eq.stats?.penetration || 0,
+        evasion: eq.stats?.evasion || 0,
+        hit_rate: eq.stats?.hit_rate || 0,
+        elemental_damage: eq.stats?.elemental_damage || new Map()
+      };
+
+      const newPrice = Math.round(baseStats.price * multiplier * levelMultiplier);
+
+      eq.stats = newStats;
+      eq.price = newPrice;
+      eq.updated_at = new Date();
+
+      await eq.save();
+      updatedCount++;
+      updates.push({ name: eq.name, type: eq.type, rarity: eq.rarity });
+    }
+
+    await AuditLog.logAction(req.user._id, 'bulk_rebalance_equipment', {
+      result: 'success',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      details: { updatedCount, equipmentNames: updates.slice(0, 20).map(u => u.name) }
+    });
+
+    res.json({
+      success: true,
+      message: `Đã cân bằng lại ${updatedCount} trang bị thành công!`,
+      data: { updated: updatedCount }
+    });
+  } catch (error) {
+    console.error("[EQUIPMENT] Error bulk rebalancing:", error);
+    await AuditLog.logAction(req.user._id, 'bulk_rebalance_equipment', {
+      result: 'failed',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      error: error.message
+    });
+    next(error);
+  }
+});
+
 export default router;
 

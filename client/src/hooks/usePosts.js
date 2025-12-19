@@ -36,6 +36,8 @@ export function usePosts({ sortBy = 'recommended', searchQuery = '', limit = 8 }
         staleTime: 2 * 60 * 1000, // 2 minutes - posts change often
         gcTime: 5 * 60 * 1000, // 5 minutes
         refetchOnWindowFocus: false, // Don't refetch on tab focus (can be annoying)
+        retry: 3, // Retry 3 times before showing error
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff: 1s, 2s, 4s (max 5s)
     });
 }
 

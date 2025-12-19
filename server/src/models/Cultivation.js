@@ -361,6 +361,14 @@ const CultivationSchema = new mongoose.Schema({
   realmName: { type: String, default: "Phàm Nhân" }, // Tên cảnh giới
   subLevel: { type: Number, default: 1, min: 1, max: 10 }, // Tiểu cấp trong cảnh giới (sơ/trung/hậu kỳ)
 
+  // ==================== HÌNH TƯỢNG NHÂN VẬT ====================
+  characterAppearance: {
+    type: String,
+    enum: ['Immortal_male', 'Immortal_female', 'Demon_male', 'Demon_female'],
+    default: 'Immortal_male'
+  }, // Loại nhân vật hiển thị
+  lastAppearanceChangeAt: { type: Date }, // Lần thay đổi gần nhất (cooldown 1 tuần)
+
   // ==================== LINH THẠCH ====================
   spiritStones: { type: Number, default: 0, min: 0 }, // Tiền tệ trong game
   totalSpiritStonesEarned: { type: Number, default: 0 }, // Tổng linh thạch đã kiếm được

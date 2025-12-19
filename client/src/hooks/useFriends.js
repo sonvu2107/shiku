@@ -15,6 +15,8 @@ export function useFriends() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3, // Retry 3 times before showing error
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });
 }
 
@@ -31,6 +33,8 @@ export function useFriendRequests() {
     },
     staleTime: 2 * 60 * 1000, // 2 minutes (refetch more frequently)
     gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 3, // Retry 3 times before showing error
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });
 }
 
@@ -50,6 +54,8 @@ export function useOnlineFriends() {
     staleTime: 1 * 60 * 1000, // 1 minute (update frequently)
     gcTime: 3 * 60 * 1000, // 3 minutes
     refetchInterval: 2 * 60 * 1000, // Auto refetch every 2 minutes
+    retry: 3, // Retry 3 times before showing error
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });
 }
 
