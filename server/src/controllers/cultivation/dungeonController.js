@@ -609,7 +609,9 @@ export const battleMonster = async (req, res, next) => {
                                 name: shopItem.name,
                                 type: shopItem.type,
                                 quantity: 1,
-                                acquiredAt: new Date()
+                                acquiredAt: new Date(),
+                                rarity: shopItem.rarity,
+                                metadata: { ...shopItem }
                             });
                         }
                     }

@@ -3,7 +3,7 @@
  */
 import { memo, useLayoutEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { RARITY_COLORS } from '../utils/constants.js';
+import { RARITY_COLORS, SHOP_ITEM_DATA } from '../utils/constants.js';
 
 const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
   const tooltipRef = useRef(null);
@@ -95,8 +95,13 @@ const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
 
   if (!item) return null;
 
-  const rarity = RARITY_COLORS[item.rarity || item.metadata?.rarity] || RARITY_COLORS.common;
-  const itemStats = stats || item.metadata?.stats || item.stats;
+  // Fallback rarity priority: item -> metadata -> shop data
+  const shopItem = SHOP_ITEM_DATA[item.itemId];
+  const rarityKey = item.rarity || item.metadata?.rarity || shopItem?.rarity || 'common';
+  const rarity = RARITY_COLORS[rarityKey] || RARITY_COLORS.common;
+
+  const fallbackStats = (SHOP_ITEM_DATA[item.itemId]) ? SHOP_ITEM_DATA[item.itemId].stats : {};
+  const itemStats = stats || item.metadata?.stats || item.stats || fallbackStats;
 
   return createPortal(
     <div
@@ -183,10 +188,24 @@ const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
                   buff_duration: { label: 'Thời Gian Buff', color: 'text-cyan-300' }
                 };
                 const statInfo = statLabels[stat] || { label: stat, color: 'text-slate-300' };
-                const displayValue = typeof value === 'number'
-                  ? (value > 0 ? `+${value.toLocaleString()}` : value.toLocaleString())
-                  : value;
-                const suffix = (stat === 'crit_rate' || stat === 'criticalRate' || stat === 'crit_damage' || stat === 'dodge' || stat === 'evasion' || stat === 'hit_rate') ? '%' : '';
+
+                let finalValue = value;
+                let suffix = (stat === 'crit_rate' || stat === 'criticalRate' || stat === 'crit_damage' || stat === 'dodge' || stat === 'evasion' || stat === 'hit_rate') ? '%' : '';
+
+                // Mounts, Pets và Techniques lưu stats dưới dạng số thập phân (VD: 0.15 = 15%)
+                // Cần nhân 100 và thêm %
+                if (['mount', 'pet', 'technique'].includes(item.type)) {
+                  if (typeof value === 'number') {
+                    // Kiểm tra nếu value <= 1 (để tránh nhân nhầm nếu đã là số nguyên)
+                    // Tuy nhiên với mount/pet thì luôn là decimal
+                    finalValue = Math.round(value * 100);
+                    suffix = '%';
+                  }
+                }
+
+                const displayValue = typeof finalValue === 'number'
+                  ? (finalValue > 0 ? `+${finalValue.toLocaleString()}` : finalValue.toLocaleString())
+                  : finalValue;
 
                 return (
                   <div key={stat} className="flex justify-between items-center text-sm py-0.5">

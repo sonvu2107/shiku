@@ -95,7 +95,41 @@ export const buyItem = async (req, res, next) => {
 
         const cultivation = await Cultivation.getOrCreate(userId);
 
-        // Check if equipment (valid ObjectId)
+        // 1. Kiểm tra xem item có trong danh sách SHOP_ITEMS không (để tránh nhầm lẫn ID 12 ký tự với ObjectId)
+        const shopItem = SHOP_ITEMS.find(i => i.id === itemId);
+
+        if (shopItem) {
+            // Normal item purchase
+            try {
+                const result = cultivation.buyItem(itemId);
+                await cultivation.save();
+
+                const responseData = { spiritStones: cultivation.spiritStones, inventory: cultivation.inventory };
+
+                if (result && result.type === 'technique') {
+                    responseData.learnedTechnique = result.learnedTechnique;
+                    const techniqueItem = SHOP_ITEMS.find(t => t.id === itemId && t.type === 'technique');
+                    if (techniqueItem) {
+                        responseData.skill = techniqueItem.skill;
+                    }
+                } else {
+                    responseData.item = result;
+                }
+
+                res.json({
+                    success: true,
+                    message: result && result.type === 'technique'
+                        ? `Đã học công pháp ${result.name}!`
+                        : `Đã mua ${result?.name || 'vật phẩm'}!`,
+                    data: responseData
+                });
+                return; // Kết thúc sau khi xử lý thành công
+            } catch (buyError) {
+                return res.status(400).json({ success: false, message: buyError.message });
+            }
+        }
+
+        // 2. Check if equipment (valid ObjectId and NOT in SHOP_ITEMS)
         if (mongoose.Types.ObjectId.isValid(itemId)) {
             const equipment = await Equipment.findById(itemId);
 
@@ -174,33 +208,10 @@ export const buyItem = async (req, res, next) => {
             });
         }
 
-        // Normal item purchase
-        try {
-            const result = cultivation.buyItem(itemId);
-            await cultivation.save();
+        // Return 404 if neither found
+        return res.status(404).json({ success: false, message: "Vật phẩm không tồn tại" });
 
-            const responseData = { spiritStones: cultivation.spiritStones, inventory: cultivation.inventory };
 
-            if (result && result.type === 'technique') {
-                responseData.learnedTechnique = result.learnedTechnique;
-                const techniqueItem = SHOP_ITEMS.find(t => t.id === itemId && t.type === 'technique');
-                if (techniqueItem) {
-                    responseData.skill = techniqueItem.skill;
-                }
-            } else {
-                responseData.item = result;
-            }
-
-            res.json({
-                success: true,
-                message: result && result.type === 'technique'
-                    ? `Đã học công pháp ${result.name}!`
-                    : `Đã mua ${result?.name || 'vật phẩm'}!`,
-                data: responseData
-            });
-        } catch (buyError) {
-            return res.status(400).json({ success: false, message: buyError.message });
-        }
     } catch (error) {
         console.error("[CULTIVATION] Error buying item:", error);
         next(error);

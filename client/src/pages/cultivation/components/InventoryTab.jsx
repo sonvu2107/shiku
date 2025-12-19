@@ -4,7 +4,7 @@
 import { useState, memo } from 'react';
 import { motion } from 'framer-motion';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
-import { RARITY_COLORS } from '../utils/constants.js';
+import { RARITY_COLORS, SHOP_ITEM_DATA } from '../utils/constants.js';
 import { getItemIcon, IMAGE_COMPONENTS, ITEM_TYPE_LABELS } from '../utils/iconHelpers.js';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
 import ItemTooltip from './ItemTooltip.jsx';
@@ -293,7 +293,11 @@ const InventoryTab = memo(function InventoryTab() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {filteredItems.map((item, index) => {
-            const rarity = RARITY_COLORS[item.rarity] || RARITY_COLORS.common;
+            const shopItem = SHOP_ITEM_DATA[item.itemId];
+            // Rarity priority: item.rarity -> metadata.rarity -> SHOP_ITEM_DATA.rarity -> common
+            const rarityKey = item.rarity || item.metadata?.rarity || shopItem?.rarity || 'common';
+
+            const rarity = RARITY_COLORS[rarityKey] || RARITY_COLORS.common;
             const typeInfo = ITEM_TYPE_LABELS[item.type] || { label: 'Khác', color: 'text-slate-300' };
             const equipped = isItemEquipped(item);
             const consumable = isConsumable(item.type);
@@ -302,10 +306,7 @@ const InventoryTab = memo(function InventoryTab() {
             return (
               <div
                 key={item._id || `${item.itemId}-${index}`}
-                className={`relative rounded-xl p-4 flex justify-between items-center transition-all border ${equipped
-                  ? 'bg-emerald-900/30 border-emerald-500/50 ring-1 ring-emerald-500/30'
-                  : `${rarity.bg} ${rarity.border}`
-                  } hover:scale-[1.02] hover:z-50`}
+                className={`relative rounded-xl p-4 flex justify-between items-center transition-all border ${rarity.bg} ${rarity.border} ${equipped ? 'ring-2 ring-emerald-500/50' : ''} hover:scale-[1.02] hover:z-50`}
                 onMouseEnter={(e) => handleMouseEnter(item, e)}
                 onMouseLeave={handleMouseLeave}
                 onMouseMove={(e) => {
@@ -345,11 +346,14 @@ const InventoryTab = memo(function InventoryTab() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h4 className={`font-bold text-sm ${equipped ? 'text-emerald-300' : rarity.text}`}>
+                      <h4 className={`font-bold text-sm ${rarity.text}`}>
                         {item.name}
                       </h4>
                       <span className="bg-slate-700/50 text-slate-300 text-[10px] px-1.5 py-0.5 rounded font-mono">
                         x{item.quantity || 1}
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${rarity.bg} ${rarity.text} border ${rarity.border}`}>
+                        {rarity.label}
                       </span>
                       {equipped && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
@@ -493,7 +497,9 @@ const InventoryTab = memo(function InventoryTab() {
                       }
 
                       // Mount/Pet stats - kiểm tra cả ở metadata.stats và item.stats
-                      const stats = metadata.stats || item.stats || {};
+                      // Fallback: nếu không có stats trong metadata, lấy từ SHOP_ITEM_DATA
+                      const fallbackStats = (SHOP_ITEM_DATA[item.itemId]) ? SHOP_ITEM_DATA[item.itemId].stats : {};
+                      const stats = metadata.stats || item.stats || fallbackStats || {};
                       const statLabels = {
                         attack: 'Tấn Công',
                         defense: 'Phòng Thủ',
