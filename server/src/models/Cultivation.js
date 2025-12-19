@@ -93,7 +93,7 @@ export const CULTIVATION_REALMS = [
     minExp: 5000000,
     maxExp: Infinity,
     description: "Cảnh giới tối cao, thống trị thiên địa, vạn vật quy phục",
-    color: "#FF00FF", // magenta
+    color: "#FF00FF",
   }
 ];
 
@@ -1531,38 +1531,77 @@ CultivationSchema.statics.getOrCreate = async function (userId) {
     needsSave = true;
   }
 
-  // Đảm bảo tất cả quests đã được khởi tạo (cho các user cũ thiếu quests mới)
-  let questsUpdated = false;
-  
-  // Kiểm tra và thêm daily quests còn thiếu
-  const existingDailyQuestIds = new Set(cultivation.dailyQuests.map(q => q.questId));
-  for (const template of QUEST_TEMPLATES.daily) {
-    if (!existingDailyQuestIds.has(template.id)) {
-      cultivation.dailyQuests.push({
-        questId: template.id,
-        progress: 0,
-        completed: false,
-        claimed: false
-      });
-      questsUpdated = true;
+  // Reset quests nếu cần 
+  const dailyReset = cultivation.resetDailyQuests();
+  const weeklyReset = cultivation.resetWeeklyQuests();
+  if (dailyReset || weeklyReset) {
+    needsSave = true;
+  }
+
+  // Loại bỏ duplicate quests sau reset 
+  const removeDuplicateQuests = (quests, templateIds) => {
+    const seen = new Set();
+    const unique = [];
+    for (const quest of quests) {
+      if (!seen.has(quest.questId) && templateIds.has(quest.questId)) {
+        seen.add(quest.questId);
+        unique.push(quest);
+      }
+    }
+    return unique;
+  };
+
+  const dailyTemplateIds = new Set(QUEST_TEMPLATES.daily.map(t => t.id));
+  const weeklyTemplateIds = new Set(QUEST_TEMPLATES.weekly.map(t => t.id));
+  const achievementTemplateIds = new Set(QUEST_TEMPLATES.achievement.map(t => t.id));
+
+  // Loại bỏ duplicate và quests không còn trong template
+  const originalDailyCount = cultivation.dailyQuests.length;
+  const originalWeeklyCount = cultivation.weeklyQuests.length;
+  const originalAchievementCount = cultivation.achievements.length;
+
+  cultivation.dailyQuests = removeDuplicateQuests(cultivation.dailyQuests, dailyTemplateIds);
+  cultivation.weeklyQuests = removeDuplicateQuests(cultivation.weeklyQuests, weeklyTemplateIds);
+  cultivation.achievements = removeDuplicateQuests(cultivation.achievements, achievementTemplateIds);
+
+  if (cultivation.dailyQuests.length !== originalDailyCount || 
+      cultivation.weeklyQuests.length !== originalWeeklyCount ||
+      cultivation.achievements.length !== originalAchievementCount) {
+    needsSave = true;
+  }
+
+  // Sync quests còn thiếu nếu KHÔNG có reset
+  if (!dailyReset) {
+    const existingDailyIds = new Set(cultivation.dailyQuests.map(q => q.questId));
+    for (const template of QUEST_TEMPLATES.daily) {
+      if (!existingDailyIds.has(template.id)) {
+        cultivation.dailyQuests.push({
+          questId: template.id,
+          progress: 0,
+          completed: false,
+          claimed: false
+        });
+        needsSave = true;
+      }
     }
   }
-  
-  // Kiểm tra và thêm weekly quests còn thiếu
-  const existingWeeklyQuestIds = new Set(cultivation.weeklyQuests.map(q => q.questId));
-  for (const template of QUEST_TEMPLATES.weekly) {
-    if (!existingWeeklyQuestIds.has(template.id)) {
-      cultivation.weeklyQuests.push({
-        questId: template.id,
-        progress: 0,
-        completed: false,
-        claimed: false
-      });
-      questsUpdated = true;
+
+  if (!weeklyReset) {
+    const existingWeeklyIds = new Set(cultivation.weeklyQuests.map(q => q.questId));
+    for (const template of QUEST_TEMPLATES.weekly) {
+      if (!existingWeeklyIds.has(template.id)) {
+        cultivation.weeklyQuests.push({
+          questId: template.id,
+          progress: 0,
+          completed: false,
+          claimed: false
+        });
+        needsSave = true;
+      }
     }
   }
-  
-  // Kiểm tra và thêm achievements còn thiếu
+
+  // Luôn sync achievements (không reset hàng ngày)
   const existingAchievementIds = new Set(cultivation.achievements.map(q => q.questId));
   for (const template of QUEST_TEMPLATES.achievement) {
     if (!existingAchievementIds.has(template.id)) {
@@ -1572,19 +1611,8 @@ CultivationSchema.statics.getOrCreate = async function (userId) {
         completed: false,
         claimed: false
       });
-      questsUpdated = true;
+      needsSave = true;
     }
-  }
-  
-  if (questsUpdated) {
-    needsSave = true;
-  }
-
-  // Reset quests nếu cần
-  const dailyReset = cultivation.resetDailyQuests();
-  const weeklyReset = cultivation.resetWeeklyQuests();
-  if (dailyReset || weeklyReset) {
-    needsSave = true;
   }
 
   if (needsSave) {
