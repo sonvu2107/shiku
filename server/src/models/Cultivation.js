@@ -100,10 +100,18 @@ export const CULTIVATION_REALMS = [
 // ==================== NHIỆM VỤ MẪU ====================
 export const QUEST_TEMPLATES = {
   daily: [
+    // === NHIỆM VỤ XÃ HỘI ===
     { id: "daily_login", name: "Điểm danh tu luyện", description: "Đăng nhập hàng ngày", expReward: 20, spiritStoneReward: 10, type: "daily" },
     { id: "daily_post", name: "Chia sẻ ngộ đạo", description: "Đăng 1 bài viết", expReward: 30, spiritStoneReward: 15, type: "daily", requirement: { action: "post", count: 1 } },
     { id: "daily_comment", name: "Luận đạo cùng đạo hữu", description: "Bình luận 3 bài viết", expReward: 20, spiritStoneReward: 10, type: "daily", requirement: { action: "comment", count: 3 } },
-    { id: "daily_like", name: "Kết thiện duyên", description: "Thích 5 bài viết", expReward: 15, spiritStoneReward: 5, type: "daily", requirement: { action: "like", count: 5 } }
+    { id: "daily_like", name: "Kết thiện duyên", description: "Thích 5 bài viết", expReward: 15, spiritStoneReward: 5, type: "daily", requirement: { action: "like", count: 5 } },
+    
+    // === NHIỆM VỤ TU TIÊN ===
+    { id: "daily_yinyang", name: "Thu linh khí", description: "Thu thập linh khí 20 lần", expReward: 25, spiritStoneReward: 15, type: "daily", requirement: { action: "yinyang_click", count: 20 } },
+    { id: "daily_pk", name: "Luyện võ đài", description: "Tham gia 3 trận PK", expReward: 40, spiritStoneReward: 25, type: "daily", requirement: { action: "pk_battle", count: 3 } },
+    { id: "daily_pk_win", name: "Chiến thắng PK", description: "Thắng 1 trận PK", expReward: 50, spiritStoneReward: 30, type: "daily", requirement: { action: "pk_win", count: 1 } },
+    { id: "daily_dungeon", name: "Thám hiểm bí cảnh", description: "Hoàn thành 5 tầng dungeon", expReward: 35, spiritStoneReward: 20, type: "daily", requirement: { action: "dungeon_floor", count: 5 } },
+    { id: "daily_passive", name: "Tĩnh tọa tu luyện", description: "Thu passive exp 1 lần", expReward: 15, spiritStoneReward: 10, type: "daily", requirement: { action: "passive_collect", count: 1 } }
   ],
   weekly: [
     { id: "weekly_posts", name: "Tinh cần tu luyện", description: "Đăng 7 bài viết trong tuần", expReward: 200, spiritStoneReward: 100, type: "weekly", requirement: { action: "post", count: 7 } },
@@ -332,8 +340,8 @@ const InventoryItemSchema = new mongoose.Schema({
   quantity: { type: Number, default: 1 },
   equipped: { type: Boolean, default: false },
   acquiredAt: { type: Date, default: Date.now },
-  expiresAt: { type: Date }, // Cho các item có thời hạn như exp boost
-  metadata: { type: mongoose.Schema.Types.Mixed } // Thông tin thêm
+  expiresAt: { type: Date }, 
+  metadata: { type: mongoose.Schema.Types.Mixed }
 }, { _id: false });
 
 // ==================== EXP LOG SCHEMA ====================
@@ -356,35 +364,35 @@ const CultivationSchema = new mongoose.Schema({
   },
 
   // ==================== TU VI & CẢNH GIỚI ====================
-  exp: { type: Number, default: 0, min: 0 }, // Tổng tu vi (experience)
-  realmLevel: { type: Number, default: 1, min: 1, max: 11 }, // Cảnh giới hiện tại (1-11)
-  realmName: { type: String, default: "Phàm Nhân" }, // Tên cảnh giới
-  subLevel: { type: Number, default: 1, min: 1, max: 10 }, // Tiểu cấp trong cảnh giới (sơ/trung/hậu kỳ)
+  exp: { type: Number, default: 0, min: 0 },
+  realmLevel: { type: Number, default: 1, min: 1, max: 11 },
+  realmName: { type: String, default: "Phàm Nhân" },
+  subLevel: { type: Number, default: 1, min: 1, max: 10 },
 
   // ==================== HÌNH TƯỢNG NHÂN VẬT ====================
   characterAppearance: {
     type: String,
     enum: ['Immortal_male', 'Immortal_female', 'Demon_male', 'Demon_female'],
     default: 'Immortal_male'
-  }, // Loại nhân vật hiển thị
-  lastAppearanceChangeAt: { type: Date }, // Lần thay đổi gần nhất (cooldown 1 tuần)
+  },
+  lastAppearanceChangeAt: { type: Date },
 
   // ==================== LINH THẠCH ====================
-  spiritStones: { type: Number, default: 0, min: 0 }, // Tiền tệ trong game
-  totalSpiritStonesEarned: { type: Number, default: 0 }, // Tổng linh thạch đã kiếm được
+  spiritStones: { type: Number, default: 0, min: 0 },
+  totalSpiritStonesEarned: { type: Number, default: 0 },
 
   // ==================== STREAK ĐĂNG NHẬP ====================
-  loginStreak: { type: Number, default: 0 }, // Số ngày đăng nhập liên tục
-  lastLoginDate: { type: Date }, // Ngày đăng nhập cuối
-  longestStreak: { type: Number, default: 0 }, // Streak dài nhất
+  loginStreak: { type: Number, default: 0 },
+  lastLoginDate: { type: Date },
+  longestStreak: { type: Number, default: 0 },
 
   // ==================== PASSIVE EXP ====================
-  lastPassiveExpCollected: { type: Date, default: Date.now }, // Lần cuối thu thập passive exp
+  lastPassiveExpCollected: { type: Date, default: Date.now },
 
   // ==================== NHIỆM VỤ ====================
-  dailyQuests: [QuestProgressSchema], // Nhiệm vụ hàng ngày
-  weeklyQuests: [QuestProgressSchema], // Nhiệm vụ hàng tuần
-  achievements: [QuestProgressSchema], // Thành tựu
+  dailyQuests: [QuestProgressSchema],
+  weeklyQuests: [QuestProgressSchema],
+  achievements: [QuestProgressSchema],
 
   // ==================== DAILY PROGRESS TRACKING ====================
   dailyProgress: {
@@ -462,21 +470,21 @@ const CultivationSchema = new mongoose.Schema({
   },
 
   // ==================== ĐỘ KIẾP (BREAKTHROUGH) ====================
-  breakthroughSuccessRate: { type: Number, default: 30, min: 0, max: 100 }, // Tỷ lệ thành công (%)
-  breakthroughFailureCount: { type: Number, default: 0, min: 0 }, // Số lần thất bại liên tiếp
-  lastBreakthroughAttempt: { type: Date }, // Lần cuối thử độ kiếp
-  breakthroughCooldownUntil: { type: Date }, // Thời gian chờ để độ kiếp lại (sau khi thất bại)
+  breakthroughSuccessRate: { type: Number, default: 30, min: 0, max: 100 },
+  breakthroughFailureCount: { type: Number, default: 0, min: 0 },
+  lastBreakthroughAttempt: { type: Date },
+  breakthroughCooldownUntil: { type: Date },
 
   // ==================== BÍ CẢNH (DUNGEON) ====================
   dungeonProgress: [{
     dungeonId: { type: String, required: true },
-    currentFloor: { type: Number, default: 0 }, // Tầng hiện tại (0 = chưa bắt đầu)
-    highestFloor: { type: Number, default: 0 }, // Tầng cao nhất từng đạt
-    totalClears: { type: Number, default: 0 }, // Tổng số lần hoàn thành
-    inProgress: { type: Boolean, default: false }, // Đang trong dungeon
-    currentRunId: { type: mongoose.Schema.Types.ObjectId, ref: 'DungeonRun' }, // ID của run hiện tại
-    lastClearedAt: { type: Date }, // Lần cuối hoàn thành
-    cooldownUntil: { type: Date } // Thời gian chờ
+    currentFloor: { type: Number, default: 0 },
+    highestFloor: { type: Number, default: 0 },
+    totalClears: { type: Number, default: 0 },
+    inProgress: { type: Boolean, default: false },
+    currentRunId: { type: mongoose.Schema.Types.ObjectId, ref: 'DungeonRun' },
+    lastClearedAt: { type: Date },
+    cooldownUntil: { type: Date }
   }],
 
   // Thống kê dungeon tổng hợp
@@ -492,7 +500,7 @@ const CultivationSchema = new mongoose.Schema({
 });
 
 // ==================== INDEXES ====================
-CultivationSchema.index({ exp: -1 }); // Cho leaderboard
+CultivationSchema.index({ exp: -1 });
 CultivationSchema.index({ realmLevel: -1, exp: -1 });
 CultivationSchema.index({ spiritStones: -1 });
 CultivationSchema.index({ loginStreak: -1 });
@@ -511,7 +519,7 @@ CultivationSchema.methods.calculateCombatStats = function () {
   // Tính progress trong cảnh giới (0-1)
   const expProgress = realm.maxExp !== Infinity
     ? Math.min(1, Math.max(0, (currentExp - realm.minExp) / (realm.maxExp - realm.minExp)))
-    : Math.min(1, (currentExp - realm.minExp) / 1000000); // Fallback cho cảnh giới Infinity (Thiên Đế)
+    : Math.min(1, (currentExp - realm.minExp) / 1000000);
 
   // Base stats theo cảnh giới
   const baseStatsByRealm = {
@@ -530,7 +538,7 @@ CultivationSchema.methods.calculateCombatStats = function () {
 
   const baseStats = baseStatsByRealm[realmLevel] || baseStatsByRealm[1];
 
-  // Exp bonus (tăng dần trong cảnh giới, 10 levels)
+  // Exp bonus (tăng dần trong cảnh giới, 11 levels)
   const expBonusMultiplier = {
     1: { attack: 0.5, defense: 0.25, qiBlood: 5, zhenYuan: 2.5 },
     2: { attack: 1.2, defense: 0.6, qiBlood: 12, zhenYuan: 6 },
@@ -546,7 +554,7 @@ CultivationSchema.methods.calculateCombatStats = function () {
   };
 
   const bonus = expBonusMultiplier[realmLevel] || expBonusMultiplier[1];
-  const expLevel = Math.floor(expProgress * 10); // 0-10 levels trong cảnh giới
+  const expLevel = Math.floor(expProgress * 11); // 0-11 levels trong cảnh giới
 
   // Tính base stats
   let finalStats = {
@@ -862,8 +870,6 @@ CultivationSchema.methods.collectPassiveExp = function () {
   // Cộng exp
   this.exp += finalExp;
 
-  // KHÔNG tự động cập nhật cảnh giới - người chơi phải bấm nút breakthrough
-  // Chỉ cập nhật sub-level dựa trên progress trong realm hiện tại
   const progressPercent = this.getRealmProgress();
   this.subLevel = Math.max(1, Math.ceil(progressPercent / 10));
 
@@ -884,7 +890,7 @@ CultivationSchema.methods.collectPassiveExp = function () {
   // Cập nhật thời gian thu thập
   this.lastPassiveExpCollected = now;
 
-  // Tính realm có thể đạt được từ exp (để thông báo, không tự động lên cấp)
+  // Tính realm có thể đạt được từ exp
   const potentialRealm = this.getRealmFromExp();
   const currentRealm = CULTIVATION_REALMS.find(r => r.level === this.realmLevel) || CULTIVATION_REALMS[0];
   const canBreakthrough = potentialRealm.level > this.realmLevel;
@@ -926,11 +932,14 @@ CultivationSchema.methods.processLogin = function () {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+  let diffDays = 0;
+  let streakContinued = false;
+
   if (this.lastLoginDate) {
     const lastLogin = new Date(this.lastLoginDate);
     const lastLoginDay = new Date(lastLogin.getFullYear(), lastLogin.getMonth(), lastLogin.getDate());
 
-    const diffDays = Math.floor((today - lastLoginDay) / (1000 * 60 * 60 * 24));
+    diffDays = Math.floor((today - lastLoginDay) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
       // Đã đăng nhập hôm nay rồi
@@ -938,6 +947,7 @@ CultivationSchema.methods.processLogin = function () {
     } else if (diffDays === 1) {
       // Đăng nhập liên tục
       this.loginStreak += 1;
+      streakContinued = true;
     } else {
       // Mất streak
       this.loginStreak = 1;
@@ -946,9 +956,18 @@ CultivationSchema.methods.processLogin = function () {
     this.loginStreak = 1;
   }
 
+  // Lưu lastLoginDate cũ để kiểm tra
+  const hadPreviousLogin = !!this.lastLoginDate;
+
   this.lastLoginDate = now;
   this.longestStreak = Math.max(this.longestStreak, this.loginStreak);
   this.stats.totalDaysActive += 1;
+
+  // Cập nhật quest progress cho login_streak achievements
+  // Chỉ cập nhật khi streak tiếp tục (không reset) hoặc login lần đầu
+  if (streakContinued || !hadPreviousLogin) {
+    this.updateQuestProgress('login_streak', 1);
+  }
 
   // Phần thưởng đăng nhập
   const baseExp = 20;
@@ -956,14 +975,25 @@ CultivationSchema.methods.processLogin = function () {
   const baseStones = 10;
   const streakStoneBonus = Math.min(this.loginStreak * 2, 20);
 
+  // Milestone bonuses cho streak 7 và 30
+  let milestoneBonus = 0;
+  if (this.loginStreak === 7) {
+    milestoneBonus = 70;
+  } else if (this.loginStreak === 30) {
+    milestoneBonus = 250;
+  }
+
+  const totalStones = baseStones + streakStoneBonus + milestoneBonus;
+
   const expResult = this.addExp(baseExp + streakBonus, "daily_login", `Điểm danh ngày ${this.loginStreak}`);
-  this.addSpiritStones(baseStones + streakStoneBonus, "daily_login");
+  this.addSpiritStones(totalStones, "daily_login");
 
   return {
     alreadyLoggedIn: false,
     streak: this.loginStreak,
     expEarned: expResult.addedExp,
-    stonesEarned: baseStones + streakStoneBonus,
+    stonesEarned: totalStones,
+    milestoneBonus: milestoneBonus > 0 ? milestoneBonus : undefined,
     leveledUp: expResult.leveledUp,
     newRealm: expResult.newRealm
   };
@@ -1092,6 +1122,14 @@ CultivationSchema.methods.updateQuestProgress = function (action, count = 1) {
       break;
     case 'event':
       this.weeklyProgress.events += count;
+      break;
+    // Tu tiên actions - không cần track riêng vì chỉ dùng cho quest
+    case 'yinyang_click':
+    case 'pk_battle':
+    case 'pk_win':
+    case 'dungeon_floor':
+    case 'passive_collect':
+      // Chỉ dùng cho quest tracking, không cần dailyProgress riêng
       break;
   }
 

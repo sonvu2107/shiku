@@ -342,7 +342,7 @@ const calculateRewards = (winnerStats, loserStats, isDraw) => {
 
   // Base rewards
   const baseExp = 50;
-  const baseStones = 20;
+  const baseStones = 35; // Tăng từ 20 lên 35 để cân bằng với dungeon
 
   // Bonus nếu thắng người mạnh hơn
   const levelDiff = (loserStats.realmLevel || 1) - (winnerStats.realmLevel || 1);
@@ -522,6 +522,24 @@ router.post("/challenge", async (req, res, next) => {
     }
 
     console.log(`[BATTLE] ${challenger.name} vs ${opponent.name} - Winner: ${battleResult.winner || 'Draw'}`);
+
+    // Cập nhật quest progress cho PK
+    const challengerCultivation = await Cultivation.getOrCreate(challengerId);
+    challengerCultivation.updateQuestProgress('pk_battle', 1);
+    if (battleResult.winner === 'challenger') {
+      challengerCultivation.updateQuestProgress('pk_win', 1);
+    }
+    await challengerCultivation.save();
+
+    // Đối thủ cũng được tính PK battle (nếu là user thật, không phải bot)
+    if (opponentId && !String(opponentId).startsWith('bot_')) {
+      const opponentCultivation = await Cultivation.getOrCreate(opponentId);
+      opponentCultivation.updateQuestProgress('pk_battle', 1);
+      if (battleResult.winner === 'opponent') {
+        opponentCultivation.updateQuestProgress('pk_win', 1);
+      }
+      await opponentCultivation.save();
+    }
 
     // Gửi thông báo cho đối thủ
     const notificationResult = battleResult.isDraw

@@ -4,7 +4,7 @@
 import { useState, memo } from 'react';
 import { motion } from 'framer-motion';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
-import { RARITY_COLORS, SHOP_ITEM_DATA } from '../utils/constants.js';
+import { RARITY_COLORS, SHOP_ITEM_DATA, EQUIPMENT_SUBTYPES } from '../utils/constants.js';
 import { getItemIcon, IMAGE_COMPONENTS, ITEM_TYPE_LABELS } from '../utils/iconHelpers.js';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
 import ItemTooltip from './ItemTooltip.jsx';
@@ -355,6 +355,11 @@ const InventoryTab = memo(function InventoryTab() {
                       <span className={`text-[10px] px-1.5 py-0.5 rounded ${rarity.bg} ${rarity.text} border ${rarity.border}`}>
                         {rarity.label}
                       </span>
+                      {(item.subtype || item.metadata?.subtype) && EQUIPMENT_SUBTYPES[item.subtype || item.metadata?.subtype] && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 border border-slate-600/50">
+                          {EQUIPMENT_SUBTYPES[item.subtype || item.metadata?.subtype]}
+                        </span>
+                      )}
                       {equipped && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                           Đang dùng

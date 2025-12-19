@@ -14,12 +14,10 @@ const adminRequired = async (req, res, next) => {
   try {
     let hasAdminAccess = false;
 
-    // Check 1: Full admin role
     if (req.user.role === "admin") {
       hasAdminAccess = true;
     }
 
-    // Check 2: User has admin.* permissions via their role  
     if (!hasAdminAccess && req.user.role && req.user.role !== 'user') {
       const Role = mongoose.model('Role');
       const roleDoc = await Role.findOne({ name: req.user.role, isActive: true }).lean();
@@ -50,7 +48,7 @@ const adminRequired = async (req, res, next) => {
 
 /**
  * GET /api/equipment
- * Lấy danh sách equipment (public, có filter)
+ * Lấy danh sách equipment
  */
 router.get("/", authRequired, async (req, res, next) => {
   try {
@@ -128,7 +126,7 @@ router.get("/:id", authRequired, async (req, res, next) => {
 
 /**
  * POST /api/equipment/admin/create
- * Tạo equipment mới (admin only)
+ * Tạo equipment mới
  */
 router.post("/admin/create", strictAdminRateLimit, authRequired, adminRequired, async (req, res, next) => {
   try {
@@ -252,7 +250,7 @@ router.post("/admin/create", strictAdminRateLimit, authRequired, adminRequired, 
 
 /**
  * PUT /api/equipment/admin/:id
- * Cập nhật equipment (admin only)
+ * Cập nhật equipment
  */
 router.put("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, async (req, res, next) => {
   try {
@@ -613,14 +611,15 @@ router.post("/admin/cleanup", strictAdminRateLimit, authRequired, adminRequired,
  */
 router.post("/admin/bulk-rebalance", strictAdminRateLimit, authRequired, adminRequired, async (req, res, next) => {
   try {
-    // Hệ số nhân theo phẩm chất (điều chỉnh cân bằng: max ×6)
+    // Hệ số nhân theo phẩm chất - TĂNG GAP giữa các tier
+    // Đảm bảo rarity cao hơn luôn mạnh hơn rarity thấp (ở cùng level range hợp lý)
     const RARITY_MULTIPLIERS = {
-      common: 1.0,
-      uncommon: 1.4,
-      rare: 2.0,
-      epic: 3.0,
-      legendary: 4.5,
-      mythic: 6.0
+      common: 1.0,       // Base
+      uncommon: 1.5,     // +50%
+      rare: 2.5,         // +67% từ uncommon
+      epic: 4.0,         // +60% từ rare
+      legendary: 6.5,    // +62.5% từ epic
+      mythic: 10.0       // +54% từ legendary
     };
 
     // Bonus Crit Rate theo phẩm chất (flat, không nhân)
@@ -628,9 +627,9 @@ router.post("/admin/bulk-rebalance", strictAdminRateLimit, authRequired, adminRe
       common: 0,
       uncommon: 0.01,
       rare: 0.02,
-      epic: 0.03,
-      legendary: 0.04,
-      mythic: 0.05
+      epic: 0.04,
+      legendary: 0.06,
+      mythic: 0.08
     };
 
     // Chỉ số cơ bản theo loại trang bị (fallback)
@@ -694,7 +693,8 @@ router.post("/admin/bulk-rebalance", strictAdminRateLimit, authRequired, adminRe
         : (BASE_STATS[eq.type] || BASE_STATS.weapon);
       const multiplier = RARITY_MULTIPLIERS[eq.rarity] || 1;
       const critBonus = CRIT_RATE_BONUS[eq.rarity] || 0;
-      const levelMultiplier = 1 + (eq.level_required - 1) * 0.1;
+      // GIẢM level multiplier từ 10% xuống 5% mỗi level
+      const levelMultiplier = 1 + (eq.level_required - 1) * 0.05;
 
       const newStats = {
         attack: Math.round(baseStats.attack * multiplier * levelMultiplier),
@@ -737,6 +737,226 @@ router.post("/admin/bulk-rebalance", strictAdminRateLimit, authRequired, adminRe
   } catch (error) {
     console.error("[EQUIPMENT] Error bulk rebalancing:", error);
     await AuditLog.logAction(req.user._id, 'bulk_rebalance_equipment', {
+      result: 'failed',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      error: error.message
+    });
+    next(error);
+  }
+});
+
+/**
+ * POST /api/equipment/admin/auto-generate
+ * Tự động tạo equipment với stats tính theo công thức cân bằng
+ */
+router.post("/admin/auto-generate", strictAdminRateLimit, authRequired, adminRequired, async (req, res, next) => {
+  try {
+    const {
+      type,
+      subtype,
+      rarity,
+      level_required = 1,
+      customName,
+      description,
+      img,
+      special_effect,
+      element
+    } = req.body;
+
+    // Validation
+    if (!type || !rarity) {
+      return res.status(400).json({ error: "Thiếu thông tin bắt buộc: type, rarity" });
+    }
+
+    if (!Object.values(EQUIPMENT_TYPES).includes(type)) {
+      return res.status(400).json({ error: "Type không hợp lệ" });
+    }
+
+    if (!Object.values(RARITY).includes(rarity)) {
+      return res.status(400).json({ error: "Rarity không hợp lệ" });
+    }
+
+    // Hệ số nhân theo phẩm chất
+    const RARITY_MULTIPLIERS = {
+      common: 1.0,
+      uncommon: 1.5,
+      rare: 2.5,
+      epic: 4.0,
+      legendary: 6.5,
+      mythic: 10.0
+    };
+
+    // Bonus Crit Rate
+    const CRIT_RATE_BONUS = {
+      common: 0,
+      uncommon: 0.01,
+      rare: 0.02,
+      epic: 0.04,
+      legendary: 0.06,
+      mythic: 0.08
+    };
+
+    // Base stats theo type
+    const BASE_STATS = {
+      weapon: { attack: 50, defense: 0, hp: 0, crit_rate: 0.02, crit_damage: 0.1, speed: 5, price: 500 },
+      magic_treasure: { attack: 30, defense: 10, hp: 100, crit_rate: 0.03, crit_damage: 0.15, speed: 0, price: 800 },
+      armor: { attack: 0, defense: 40, hp: 200, crit_rate: 0, crit_damage: 0, speed: 0, price: 600 },
+      accessory: { attack: 15, defense: 15, hp: 50, crit_rate: 0.05, crit_damage: 0.2, speed: 3, price: 400 },
+      power_item: { attack: 25, defense: 5, hp: 80, crit_rate: 0.02, crit_damage: 0.1, speed: 2, price: 350 }
+    };
+
+    // Subtype stats
+    const SUBTYPE_STATS = {
+      sword: { attack: 50, defense: 5, hp: 0, crit_rate: 0.03, crit_damage: 0.12, speed: 5, price: 500 },
+      saber: { attack: 65, defense: 0, hp: 0, crit_rate: 0.02, crit_damage: 0.15, speed: 3, price: 550 },
+      spear: { attack: 55, defense: 0, hp: 0, crit_rate: 0.02, crit_damage: 0.10, speed: 6, price: 480 },
+      bow: { attack: 45, defense: 0, hp: 0, crit_rate: 0.06, crit_damage: 0.20, speed: 4, price: 520 },
+      fan: { attack: 35, defense: 10, hp: 50, crit_rate: 0.04, crit_damage: 0.15, speed: 7, price: 600 },
+      flute: { attack: 30, defense: 5, hp: 80, crit_rate: 0.03, crit_damage: 0.12, speed: 8, price: 650 },
+      brush: { attack: 40, defense: 15, hp: 60, crit_rate: 0.04, crit_damage: 0.18, speed: 5, price: 700 },
+      dual_sword: { attack: 70, defense: 0, hp: 0, crit_rate: 0.05, crit_damage: 0.18, speed: 8, price: 650 },
+      flying_sword: { attack: 60, defense: 0, hp: 0, crit_rate: 0.04, crit_damage: 0.15, speed: 10, price: 800 },
+      helmet: { attack: 0, defense: 25, hp: 150, crit_rate: 0, crit_damage: 0, speed: 0, price: 400 },
+      chest: { attack: 0, defense: 60, hp: 250, crit_rate: 0, crit_damage: 0, speed: 0, price: 700 },
+      shoulder: { attack: 5, defense: 35, hp: 100, crit_rate: 0, crit_damage: 0, speed: 2, price: 500 },
+      gloves: { attack: 10, defense: 20, hp: 50, crit_rate: 0.02, crit_damage: 0.08, speed: 3, price: 450 },
+      boots: { attack: 0, defense: 30, hp: 80, crit_rate: 0, crit_damage: 0, speed: 8, price: 550 },
+      belt: { attack: 5, defense: 25, hp: 120, crit_rate: 0.01, crit_damage: 0.05, speed: 2, price: 400 },
+      ring: { attack: 20, defense: 5, hp: 30, crit_rate: 0.04, crit_damage: 0.15, speed: 2, price: 500 },
+      necklace: { attack: 15, defense: 15, hp: 80, crit_rate: 0.03, crit_damage: 0.12, speed: 3, price: 550 },
+      earring: { attack: 10, defense: 10, hp: 40, crit_rate: 0.06, crit_damage: 0.25, speed: 4, price: 500 },
+      bracelet: { attack: 15, defense: 20, hp: 60, crit_rate: 0.02, crit_damage: 0.10, speed: 5, price: 450 },
+      spirit_stone: { attack: 30, defense: 5, hp: 50, crit_rate: 0.02, crit_damage: 0.10, speed: 3, price: 350 },
+      spirit_pearl: { attack: 15, defense: 20, hp: 100, crit_rate: 0.03, crit_damage: 0.12, speed: 2, price: 400 },
+      spirit_seal: { attack: 25, defense: 10, hp: 70, crit_rate: 0.04, crit_damage: 0.15, speed: 4, price: 450 }
+    };
+
+    // Smart naming theo rarity và loại
+    const RARITY_PREFIXES = {
+      common: ['Thô', 'Sơ Cấp', 'Phàm'],
+      uncommon: ['Tinh', 'Lương', 'Hảo'],
+      rare: ['Linh', 'Diệu', 'Quý'],
+      epic: ['Huyền', 'Thượng', 'Cực'],
+      legendary: ['Thần', 'Thiên', 'Thánh'],
+      mythic: ['Tiên', 'Hồng Hoang', 'Thái Cổ']
+    };
+
+    const ELEMENT_NAMES = {
+      fire: 'Hỏa Diễm',
+      ice: 'Băng Tuyết',
+      wind: 'Phong Vân',
+      thunder: 'Lôi Điện',
+      earth: 'Đại Địa',
+      water: 'Thủy Nguyệt'
+    };
+
+    const SUBTYPE_NAMES = {
+      sword: 'Kiếm',
+      saber: 'Đao',
+      spear: 'Thương',
+      bow: 'Cung',
+      fan: 'Phiến',
+      flute: 'Tiêu',
+      brush: 'Bút',
+      dual_sword: 'Song Kiếm',
+      flying_sword: 'Phi Kiếm',
+      helmet: 'Mũ',
+      chest: 'Giáp',
+      shoulder: 'Hộ Vai',
+      gloves: 'Găng Tay',
+      boots: 'Giày',
+      belt: 'Đai Lưng',
+      ring: 'Nhẫn',
+      necklace: 'Dây Chuyền',
+      earring: 'Khuyên Tai',
+      bracelet: 'Vòng Tay',
+      spirit_stone: 'Linh Thạch',
+      spirit_pearl: 'Linh Châu',
+      spirit_seal: 'Linh Ấn'
+    };
+
+    const TYPE_NAMES = {
+      weapon: 'Vũ Khí',
+      magic_treasure: 'Pháp Bảo',
+      armor: 'Giáp',
+      accessory: 'Trang Sức',
+      power_item: 'Linh Vật'
+    };
+
+    // Generate name
+    let generatedName = customName;
+    if (!generatedName) {
+      const prefix = RARITY_PREFIXES[rarity][Math.floor(Math.random() * RARITY_PREFIXES[rarity].length)];
+      const elementPart = element ? ELEMENT_NAMES[element] + ' ' : '';
+      const typePart = subtype ? SUBTYPE_NAMES[subtype] : TYPE_NAMES[type];
+      generatedName = `${prefix} ${elementPart}${typePart}`;
+    }
+
+    // Calculate stats
+    const baseStats = (subtype && SUBTYPE_STATS[subtype])
+      ? SUBTYPE_STATS[subtype]
+      : (BASE_STATS[type] || BASE_STATS.weapon);
+    const multiplier = RARITY_MULTIPLIERS[rarity] || 1;
+    const critBonus = CRIT_RATE_BONUS[rarity] || 0;
+    const levelMultiplier = 1 + (parseInt(level_required) - 1) * 0.05;
+
+    const calculatedStats = {
+      attack: Math.round(baseStats.attack * multiplier * levelMultiplier),
+      defense: Math.round(baseStats.defense * multiplier * levelMultiplier),
+      hp: Math.round(baseStats.hp * multiplier * levelMultiplier),
+      crit_rate: Math.round((baseStats.crit_rate + critBonus) * 100) / 100,
+      crit_damage: Math.round(baseStats.crit_damage * multiplier * 100) / 100,
+      speed: Math.round(baseStats.speed * multiplier * levelMultiplier),
+      penetration: 0,
+      evasion: 0,
+      hit_rate: 0,
+      elemental_damage: new Map()
+    };
+
+    // Add elemental damage if specified
+    if (element && Object.values(ELEMENTAL_TYPES).includes(element)) {
+      const elementalDamage = Math.round(baseStats.attack * multiplier * levelMultiplier * 0.3);
+      calculatedStats.elemental_damage.set(element, elementalDamage);
+    }
+
+    const calculatedPrice = Math.round(baseStats.price * multiplier * levelMultiplier);
+
+    // Create equipment
+    const equipment = new Equipment({
+      name: generatedName,
+      type,
+      subtype: subtype || null,
+      rarity,
+      level_required: parseInt(level_required) || 1,
+      price: calculatedPrice,
+      img: img || null,
+      description: description || null,
+      stats: calculatedStats,
+      special_effect: special_effect || null,
+      created_by: req.user._id,
+      is_active: true
+    });
+
+    await equipment.save();
+
+    await AuditLog.logAction(req.user._id, 'auto_generate_equipment', {
+      targetId: equipment._id,
+      targetType: 'equipment',
+      result: 'success',
+      ipAddress: req.ip,
+      clientAgent: getClientAgent(req),
+      details: { name: generatedName, type, subtype, rarity, level_required }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Tạo ${generatedName} thành công!`,
+      data: equipment
+    });
+  } catch (error) {
+    console.error("[EQUIPMENT] Error auto-generating equipment:", error);
+    await AuditLog.logAction(req.user._id, 'auto_generate_equipment', {
       result: 'failed',
       ipAddress: req.ip,
       clientAgent: getClientAgent(req),

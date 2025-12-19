@@ -22,6 +22,10 @@ export const collectPassiveExp = async (req, res, next) => {
         const cultivation = await Cultivation.getOrCreate(userId);
         const result = cultivation.collectPassiveExp();
         if (!result.collected) return res.json({ success: true, data: result });
+        
+        // Cập nhật quest progress cho nhiệm vụ tĩnh tọa tu luyện
+        cultivation.updateQuestProgress('passive_collect', 1);
+        
         await cultivation.save();
         res.json({
             success: true,
@@ -93,6 +97,9 @@ export const addExp = async (req, res, next) => {
             const recentExp = (cultivation.expLog || []).filter(l => l.source === 'yinyang_click' && new Date(l.createdAt) > fiveMinutesAgo).reduce((s, l) => s + l.amount, 0);
             const rateLimits = { 1: 100, 2: 300, 3: 1000, 4: 2500, 5: 5000, 6: 10000, 7: 10000, 8: 10000, 9: 10000, 10: 10000, 11: 10000 };
             if (recentExp >= (rateLimits[realmLevel] || 100)) return res.status(429).json({ success: false, message: "Linh khí đã cạn kiệt" });
+            
+            // Cập nhật quest progress cho nhiệm vụ thu linh khí
+            cultivation.updateQuestProgress('yinyang_click', 1);
         }
         cultivation.exp += amount;
         if (!cultivation.expLog) cultivation.expLog = [];

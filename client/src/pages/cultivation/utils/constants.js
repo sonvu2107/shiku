@@ -192,3 +192,35 @@ export const SHOP_ITEM_DATA = {
     skill: { name: "Hấp Huyết", description: "Gây sát thương và hồi 30% sát thương gây ra", cooldown: 35 }
   }
 };
+
+export const EQUIPMENT_SUBTYPES = {
+  // Weapon
+  sword: "Kiếm",
+  saber: "Đao",
+  spear: "Thương",
+  bow: "Cung",
+  fan: "Quạt",
+  flute: "Sáo",
+  brush: "Bút",
+  dual_sword: "Song Kiếm",
+  flying_sword: "Linh Kiếm",
+
+  // Armor
+  helmet: "Mũ",
+  chest: "Giáp",
+  shoulder: "Hộ Vai",
+  gloves: "Găng",
+  boots: "Giày",
+  belt: "Đai",
+
+  // Accessory
+  ring: "Nhẫn",
+  necklace: "Dây Chuyền",
+  earring: "Bông Tai",
+  bracelet: "Vòng Tay",
+
+  // Power Item
+  spirit_stone: "Linh Thạch",
+  spirit_pearl: "Linh Châu",
+  spirit_seal: "Linh Ấn"
+};

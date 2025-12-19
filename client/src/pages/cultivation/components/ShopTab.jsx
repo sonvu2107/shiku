@@ -3,11 +3,21 @@
  */
 import { useState, useEffect, memo, useRef } from 'react';
 import { GiCutDiamond } from 'react-icons/gi';
+import { FaSortAmountDown, FaSortAmountUp } from 'react-icons/fa';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
-import { RARITY_COLORS } from '../utils/constants.js';
+import { RARITY_COLORS, EQUIPMENT_SUBTYPES } from '../utils/constants.js';
 import { getItemIcon, IMAGE_COMPONENTS } from '../utils/iconHelpers.js';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
 import ItemTooltip from './ItemTooltip.jsx';
+
+const RARITY_ORDER = {
+  common: 1,
+  uncommon: 2,
+  rare: 3,
+  epic: 4,
+  legendary: 5,
+  mythic: 6
+};
 
 const ShopTab = memo(function ShopTab() {
   const { shop, loadShop, purchaseItem, loading, cultivation } = useCultivation();
@@ -16,6 +26,7 @@ const ShopTab = memo(function ShopTab() {
   const [subCategory, setSubCategory] = useState('all');
   const [hoveredItem, setHoveredItem] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' | 'desc'
 
   useEffect(() => {
     loadShop();
@@ -45,6 +56,10 @@ const ShopTab = memo(function ShopTab() {
     } finally {
       setBuying(null);
     }
+  };
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
   if (loading || !shop) {
@@ -120,6 +135,18 @@ const ShopTab = memo(function ShopTab() {
     }
 
     return true;
+  }).sort((a, b) => {
+    const orderA = RARITY_ORDER[a.rarity] || 0;
+    const orderB = RARITY_ORDER[b.rarity] || 0;
+
+    // Sort by rarity
+    if (orderA !== orderB) {
+      if (sortOrder === 'asc') return orderA - orderB;
+      if (sortOrder === 'desc') return orderB - orderA;
+    }
+
+    // If rarity is same, sort by price as secondary sort key
+    return a.price - b.price;
   });
 
   return (
@@ -132,25 +159,36 @@ const ShopTab = memo(function ShopTab() {
         </div>
       </div>
 
-      {/* Main Categories - Horizontal scroll on mobile */}
-      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 border-b border-white/10 mb-2 scrollbar-hide">
-        <div className="flex gap-2 min-w-max sm:flex-wrap sm:min-w-0">
-          {parentCategories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => {
-                setActiveCategory(cat.id);
-                setSubCategory('all'); // Reset sub category when changing parent
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === cat.id
-                ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300'
-                : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
-                }`}
-            >
-              {cat.label}
-            </button>
-          ))}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        {/* Main Categories - Horizontal scroll on mobile */}
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide flex-1 w-full sm:w-auto">
+          <div className="flex gap-2 min-w-max sm:flex-wrap sm:min-w-0">
+            {parentCategories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setActiveCategory(cat.id);
+                  setSubCategory('all'); // Reset sub category when changing parent
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === cat.id
+                  ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300'
+                  : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
+                  }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Sort Button */}
+        <button
+          onClick={toggleSortOrder}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/50 border border-slate-700 text-slate-300 hover:text-amber-300 hover:border-amber-500/30 transition-all text-xs font-medium whitespace-nowrap"
+        >
+          {sortOrder === 'asc' ? <FaSortAmountUp /> : <FaSortAmountDown />}
+          <span>{sortOrder === 'asc' ? 'Thấp -> Cao' : 'Cao -> Thấp'}</span>
+        </button>
       </div>
 
       {subCategories[activeCategory] && (
@@ -229,6 +267,11 @@ const ShopTab = memo(function ShopTab() {
                     <span className={`text-[10px] px-1.5 py-0.5 rounded ${rarity.bg} ${rarity.text} border ${rarity.border}`}>
                       {rarity.label}
                     </span>
+                    {item.subtype && EQUIPMENT_SUBTYPES[item.subtype] && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 border border-slate-600/50">
+                        {EQUIPMENT_SUBTYPES[item.subtype]}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-400 leading-tight">{item.description}</p>
                   {/* Hiển thị stats cho equipment */}

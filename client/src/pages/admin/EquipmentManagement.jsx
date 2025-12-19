@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, Search, X, Save, ArrowLeft, Upload, Image as ImageIcon, Loader2, RefreshCw, Zap } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, X, Save, ArrowLeft, Upload, Image as ImageIcon, Loader2, RefreshCw, Zap, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import { RARITY_COLORS } from '../cultivation/utils/constants';
@@ -464,6 +464,74 @@ const EquipmentManagement = memo(function EquipmentManagement() {
     }
   };
 
+  // State cho auto-generate
+  const [showAutoGenerate, setShowAutoGenerate] = useState(false);
+  const [autoGenerating, setAutoGenerating] = useState(false);
+  const [autoGenForm, setAutoGenForm] = useState({
+    type: 'weapon',
+    subtype: '',
+    rarity: 'common',
+    level_required: 1,
+    element: '',
+    customName: '',
+    description: '',
+    special_effect: ''
+  });
+
+  const ELEMENT_OPTIONS = [
+    { value: '', label: 'Không có' },
+    { value: 'fire', label: '🔥 Hỏa' },
+    { value: 'ice', label: '❄️ Băng' },
+    { value: 'wind', label: '💨 Phong' },
+    { value: 'thunder', label: '⚡ Lôi' },
+    { value: 'earth', label: '🌍 Thổ' },
+    { value: 'water', label: '💧 Thủy' }
+  ];
+
+  const handleAutoGenerate = async () => {
+    setAutoGenerating(true);
+    try {
+      const payload = {
+        type: autoGenForm.type,
+        subtype: autoGenForm.subtype || null,
+        rarity: autoGenForm.rarity,
+        level_required: autoGenForm.level_required,
+        element: autoGenForm.element || null,
+        customName: autoGenForm.customName || null,
+        description: autoGenForm.description || null,
+        special_effect: autoGenForm.special_effect || null
+      };
+
+      const response = await api('/api/equipment/admin/auto-generate', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      if (response.success) {
+        alert(response.message);
+        setShowAutoGenerate(false);
+        setAutoGenForm({
+          type: 'weapon',
+          subtype: '',
+          rarity: 'common',
+          level_required: 1,
+          element: '',
+          customName: '',
+          description: '',
+          special_effect: ''
+        });
+        loadEquipments();
+      } else {
+        alert('Lỗi: ' + (response.message || response.error || 'Không thể tạo'));
+      }
+    } catch (error) {
+      console.error('Auto-generate error:', error);
+      alert('Lỗi khi tạo trang bị: ' + (error.message || 'Vui lòng thử lại'));
+    } finally {
+      setAutoGenerating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-neutral-100 p-6">
       <div className="max-w-7xl mx-auto">
@@ -501,6 +569,14 @@ const EquipmentManagement = memo(function EquipmentManagement() {
               >
                 {cleaningUp ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
                 <span className="hidden sm:inline">Dọn dẹp</span>
+              </button>
+              <button
+                onClick={() => setShowAutoGenerate(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all text-sm font-bold"
+                title="Tự động tạo trang bị với stats theo công thức"
+              >
+                <Sparkles size={18} />
+                <span className="hidden sm:inline">Tạo Tự Động</span>
               </button>
               <button
                 onClick={() => {
@@ -1008,7 +1084,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                           value={(formData.stats.crit_damage * 100).toFixed(2)}
                           onChange={(e) => updateFormData('stats.crit_damage', (parseFloat(e.target.value) || 0) / 100)}
                           step="0.01"
-                          max="100"
+                          min="0"
                           className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-neutral-400 transition-all"
                         />
                       </div>
@@ -1056,6 +1132,182 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                     </button>
                   </div>
                 </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Auto-Generate Modal */}
+        <AnimatePresence>
+          {showAutoGenerate && (
+            <motion.div
+              className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={(e) => e.target === e.currentTarget && setShowAutoGenerate(false)}
+            >
+              <motion.div
+                className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-neutral-200 dark:border-neutral-800 shadow-2xl"
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <Sparkles size={24} className="text-amber-500" />
+                    <h2 className="text-xl font-bold text-neutral-900 dark:text-white">
+                      Tạo Trang Bị Tự Động
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => setShowAutoGenerate(false)}
+                    className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors"
+                  >
+                    <X size={20} className="text-neutral-500" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Type & Subtype */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Loại *</label>
+                      <select
+                        value={autoGenForm.type}
+                        onChange={(e) => setAutoGenForm(prev => ({ ...prev, type: e.target.value, subtype: '' }))}
+                        className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-amber-400 transition-all"
+                      >
+                        {Object.entries(EQUIPMENT_TYPES).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Phân Loại</label>
+                      <select
+                        value={autoGenForm.subtype}
+                        onChange={(e) => setAutoGenForm(prev => ({ ...prev, subtype: e.target.value }))}
+                        className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-amber-400 transition-all"
+                      >
+                        <option value="">Không có</option>
+                        {autoGenForm.type === 'weapon' && Object.entries(WEAPON_SUBTYPES).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                        {autoGenForm.type === 'armor' && Object.entries(ARMOR_SUBTYPES).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                        {autoGenForm.type === 'accessory' && Object.entries(ACCESSORY_SUBTYPES).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                        {autoGenForm.type === 'power_item' && Object.entries(POWER_ITEM_SUBTYPES).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Rarity & Level */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Độ Hiếm *</label>
+                      <select
+                        value={autoGenForm.rarity}
+                        onChange={(e) => setAutoGenForm(prev => ({ ...prev, rarity: e.target.value }))}
+                        className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-amber-400 transition-all"
+                      >
+                        {RARITY_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Cấp Yêu Cầu</label>
+                      <input
+                        type="number"
+                        value={autoGenForm.level_required}
+                        onChange={(e) => setAutoGenForm(prev => ({ ...prev, level_required: parseInt(e.target.value) || 1 }))}
+                        min="1"
+                        max="100"
+                        className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-amber-400 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Element */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Nguyên Tố (Tùy chọn)</label>
+                    <select
+                      value={autoGenForm.element}
+                      onChange={(e) => setAutoGenForm(prev => ({ ...prev, element: e.target.value }))}
+                      className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-amber-400 transition-all"
+                    >
+                      {ELEMENT_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Custom Name */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Tên Tùy Chỉnh (Để trống = tự đặt)</label>
+                    <input
+                      type="text"
+                      value={autoGenForm.customName}
+                      onChange={(e) => setAutoGenForm(prev => ({ ...prev, customName: e.target.value }))}
+                      placeholder="Ví dụ: Thần Long Kiếm"
+                      className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-amber-400 transition-all"
+                    />
+                  </div>
+
+                  {/* Special Effect */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Hiệu Ứng Đặc Biệt (Tùy chọn)</label>
+                    <textarea
+                      value={autoGenForm.special_effect}
+                      onChange={(e) => setAutoGenForm(prev => ({ ...prev, special_effect: e.target.value }))}
+                      placeholder="Ví dụ: Tăng 10% sát thương khi HP dưới 50%"
+                      rows={2}
+                      className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-amber-400 transition-all resize-none"
+                    />
+                  </div>
+
+                  {/* Info Box */}
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>Lưu ý:</strong> Stats sẽ được tự động tính dựa trên công thức cân bằng:
+                    </p>
+                    <ul className="text-xs text-amber-700 dark:text-amber-300 mt-2 space-y-1">
+                      <li>• Loại & Phân loại → Stats cơ bản</li>
+                      <li>• Độ hiếm → Hệ số nhân (Common ×1 → Mythic ×10)</li>
+                      <li>• Cấp → Cộng thêm 5% mỗi cấp</li>
+                      <li>• Nguyên tố → Thêm sát thương thuộc tính</li>
+                    </ul>
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={handleAutoGenerate}
+                      disabled={autoGenerating}
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-colors font-bold disabled:opacity-50"
+                    >
+                      {autoGenerating ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        <Sparkles size={18} />
+                      )}
+                      {autoGenerating ? 'Đang tạo...' : 'Tạo Trang Bị'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAutoGenerate(false)}
+                      className="px-6 py-3 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-xl transition-colors font-medium"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </div>
               </motion.div>
             </motion.div>
           )}
