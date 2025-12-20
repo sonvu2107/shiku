@@ -373,7 +373,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       <div className="px-3 sm:px-4 pt-3 sm:pt-3.5 pb-2 flex justify-between items-start">
         <div className="flex items-center gap-2 sm:gap-3" onClick={e => e.stopPropagation()}>
           <Link to={`/user/${post.author?._id}`} className="relative group/avatar flex-shrink-0">
-            <div className="ring-2 ring-transparent group-hover/avatar:ring-blue-100 dark:group-hover/avatar:ring-blue-900/50 rounded-full transition-all">
+            <div className="rounded-full">
               <UserAvatar
                 user={post.author}
                 size={44}
