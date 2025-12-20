@@ -144,7 +144,7 @@ export default function OnlineFriends({ user, minimal = false }) {
 
   if (isLoading) {
     return (
-      <div className={minimal ? "p-5" : "bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4"}>
+      <div className={minimal ? "p-5" : "bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-gray-200 dark:border-neutral-800 p-4"}>
         <div className={minimal ? "flex items-center justify-between mb-4 pb-4 border-b border-neutral-100 dark:border-neutral-800 -mx-5 px-5 -mt-5 pt-4" : "flex items-center gap-2 mb-4"}>
           <div className="flex items-center gap-2">
             <Users size={18} className={minimal ? "text-neutral-900 dark:text-white" : "text-gray-600 dark:text-gray-300"} />
@@ -167,18 +167,18 @@ export default function OnlineFriends({ user, minimal = false }) {
   }
 
   return (
-    <div className={minimal ? "p-5" : "bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4"}>
+    <div className={minimal ? "p-5" : "bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-gray-200 dark:border-neutral-800 p-4"}>
       <div className={minimal ? "flex items-center justify-between pb-4 border-b border-neutral-100 dark:border-neutral-800 -mx-5 px-5 -mt-5 pt-4 mb-4" : "flex items-center justify-between mb-4"}>
         <div className="flex items-center gap-2">
           <Users size={18} className={minimal ? "text-neutral-900 dark:text-white" : "text-gray-600 dark:text-gray-300"} />
           <h3 className={minimal ? "font-bold text-neutral-900 dark:text-white" : "font-semibold text-gray-900 dark:text-gray-100"}>Bạn bè online</h3>
-          <span className={minimal ? "text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full font-medium" : "text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-full"}>
+          <span className={minimal ? "text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full font-medium" : "text-xs bg-neutral-200 dark:bg-neutral-800 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-full"}>
             {onlineFriends.length}
           </span>
         </div>
         <button
           onClick={() => refetch()}
-          className={minimal ? "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"}
+          className={minimal ? "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1 rounded hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"}
           title="Làm mới"
         >
           <RefreshCw size={16} />
@@ -187,7 +187,7 @@ export default function OnlineFriends({ user, minimal = false }) {
 
       {onlineFriends.length === 0 ? (
         <div className="text-center py-6">
-          <div className={minimal ? "w-12 h-12 mx-auto mb-3 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center" : "w-16 h-16 mx-auto mb-3 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center"}>
+          <div className={minimal ? "w-12 h-12 mx-auto mb-3 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center" : "w-16 h-16 mx-auto mb-3 bg-gray-100 dark:bg-neutral-800 rounded-full flex items-center justify-center"}>
             <Users size={20} className={minimal ? "text-neutral-400 dark:text-neutral-500" : "text-gray-400 dark:text-gray-500"} />
           </div>
           <p className={minimal ? "text-neutral-500 dark:text-neutral-400 text-sm" : "text-gray-500 dark:text-gray-400 text-sm"}>Không có ai online</p>
@@ -200,7 +200,7 @@ export default function OnlineFriends({ user, minimal = false }) {
               to={`/user/${friend._id}`}
               className={minimal
                 ? "flex items-center gap-3 p-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all group"
-                : "flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"}
+                : "flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors group"}
             >
               <div className="relative">
                 <UserAvatar
@@ -216,7 +216,7 @@ export default function OnlineFriends({ user, minimal = false }) {
               <div className="flex-1 min-w-0">
                 <p className={minimal
                   ? "font-bold text-neutral-900 dark:text-white text-sm truncate group-hover:text-black dark:group-hover:text-white transition-colors"
-                  : "font-medium text-gray-900 dark:text-gray-100 text-sm truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"}>
+                  : "font-medium text-gray-900 dark:text-gray-100 text-sm truncate group-hover:text-black dark:text-white dark:group-hover:text-blue-400 transition-colors"}>
                   <UserName user={friend} maxLength={18} />
                 </p>
                 <p className={minimal ? "text-xs text-neutral-500 dark:text-neutral-400 truncate" : "text-xs text-gray-500 dark:text-gray-400 truncate"}>

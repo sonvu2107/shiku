@@ -126,7 +126,7 @@ export function renderMentions(text, mentionedUsers = [], onMentionClick = null)
         return (
           <span
             key={index}
-            className="text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer"
+            className="text-black dark:text-white hover:underline font-medium cursor-pointer"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -143,7 +143,7 @@ export function renderMentions(text, mentionedUsers = [], onMentionClick = null)
       return (
         <span 
           key={index} 
-          className="text-blue-600 dark:text-blue-400 font-medium"
+          className="text-black dark:text-white font-medium"
           title={onMentionClick ? "Người dùng không tồn tại hoặc đã bị xóa" : undefined}
         >
           {part.fullMatch}

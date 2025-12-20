@@ -172,7 +172,7 @@ export default function About() {
 
                   {/* Decorative background elements */}
                   <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-                     <div className="absolute top-[-50%] left-[-20%] w-[500px] h-[500px] rounded-full bg-blue-500 blur-[100px]"></div>
+                     <div className="absolute top-[-50%] left-[-20%] w-[500px] h-[500px] rounded-full bg-black dark:bg-white blur-[100px]"></div>
                      <div className="absolute bottom-[-50%] right-[-20%] w-[500px] h-[500px] rounded-full bg-purple-500 blur-[100px]"></div>
                   </div>
                </div>

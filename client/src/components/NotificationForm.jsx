@@ -10,9 +10,9 @@
  */
 export default function NotificationForm({ type, form, setForm, onSubmit, disabled = false }) {
   const isSystem = type === 'system';
-  const bgColor = isSystem ? 'bg-blue-50' : 'bg-green-50';
+  const bgColor = isSystem ? 'bg-neutral-100 dark:bg-neutral-800' : 'bg-green-50';
   const textColor = isSystem ? 'text-blue-800' : 'text-green-800';
-  const buttonColor = isSystem ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700';
+  const buttonColor = isSystem ? 'bg-black dark:bg-white hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700';
   const title = isSystem ? 'Thông báo hệ thống' : 'Thông báo từ Admin';
   const buttonText = isSystem ? 'Gửi thông báo hệ thống' : 'Gửi thông báo';
 

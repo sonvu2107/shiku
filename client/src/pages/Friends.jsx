@@ -208,7 +208,7 @@ export default function Friends() {
           />
           <div className="flex-1 min-w-0">
             <div
-              className="font-bold cursor-pointer hover:text-blue-500 transition-colors truncate"
+              className="font-bold cursor-pointer hover:text-black dark:text-white transition-colors truncate"
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/user/${userData._id}`);
@@ -244,7 +244,7 @@ export default function Friends() {
                     await handleFriendAction('remove', userData._id);
                   }
                 }}
-                className="flex-1 px-3 md:px-4 py-2 rounded-full bg-green-600 text-white font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:bg-green-700 active:bg-green-800 transition-colors min-h-[44px] touch-manipulation"
+                className="flex-1 px-3 md:px-4 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:bg-neutral-800 dark:hover:bg-neutral-200 active:bg-neutral-700 dark:active:bg-neutral-300 transition-colors max-w-fit md:max-w-none min-h-[44px] touch-manipulation"
               >
                 <UserCheck size={14} className="md:w-4 md:h-4" /> <span className="hidden sm:inline">Đã kết bạn</span><span className="sm:hidden">Bạn bè</span>
               </button>
@@ -268,7 +268,7 @@ export default function Friends() {
                   handleFriendAction('accept', requestId);
                 }}
                 disabled={processingIds.has(`accept-${requestId}`)}
-                className="flex-1 px-3 md:px-4 py-2 rounded-full bg-green-600 text-white font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
+                className="flex-1 px-3 md:px-4 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:bg-neutral-800 dark:hover:bg-neutral-200 active:bg-neutral-700 dark:active:bg-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
               >
                 <UserCheck size={14} className="md:w-4 md:h-4" />
                 <span className="truncate">{processingIds.has(`accept-${requestId}`) ? 'Đang xử lý...' : 'Chấp nhận'}</span>
@@ -437,7 +437,7 @@ export default function Friends() {
                       className="col-span-full text-center py-20"
                     >
                       <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center shadow-inner">
-                        <UserCheck size={40} className="text-blue-500 dark:text-blue-400" />
+                        <UserCheck size={40} className="text-black dark:text-white dark:text-blue-400" />
                       </div>
                       <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Không có lời mời nào</h3>
                       <p className="text-neutral-500 dark:text-neutral-400">Bạn sẽ thấy lời mời kết bạn ở đây khi có người gửi cho bạn</p>

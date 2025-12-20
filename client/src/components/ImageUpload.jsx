@@ -88,7 +88,7 @@ export default function ImageUpload({ onUpload, accept = "image/*", className = 
 
       {uploading ? (
         <div className="flex flex-col items-center justify-center h-full">
-          <Loader2 size={32} className="animate-spin text-blue-600 mb-2" />
+          <Loader2 size={32} className="animate-spin text-black dark:text-white mb-2" />
           <p className="text-sm text-gray-600 dark:text-gray-400">Đang tải lên...</p>
         </div>
       ) : (

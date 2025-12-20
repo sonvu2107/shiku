@@ -217,7 +217,7 @@ export default function StoryViewer({
    * Reactions config
    */
   const reactionConfig = {
-    like: { Icon: ThumbsUp, color: 'text-blue-500' },
+    like: { Icon: ThumbsUp, color: 'text-black dark:text-white' },
     love: { Icon: Heart, color: 'text-red-500' },
     laugh: { Icon: Laugh, color: 'text-yellow-500' },
     sad: { Icon: Frown, color: 'text-gray-500' },

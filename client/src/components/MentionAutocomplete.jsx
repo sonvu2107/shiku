@@ -164,7 +164,7 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
         <div
           key={user._id}
           className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${index === selectedIndex
-            ? "bg-blue-50 dark:bg-blue-900/20"
+            ? "bg-neutral-100 dark:bg-neutral-800"
             : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
             }`}
           onMouseEnter={() => setSelectedIndex(index)}
@@ -189,7 +189,7 @@ export default function MentionAutocomplete({ value, cursorPosition, onSelect, o
           <button
             type="button"
             onClick={(e) => handleViewProfile(e, user)}
-            className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 flex-shrink-0"
+            className="text-xs text-black dark:text-white hover:underline px-2 py-1 flex-shrink-0"
             title="Xem profile"
           >
             Xem

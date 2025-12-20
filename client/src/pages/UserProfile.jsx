@@ -157,7 +157,7 @@ const UserInfoTab = ({ user }) => {
                   href={user.website.startsWith('http') ? user.website : `https://${user.website}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-medium text-blue-500 hover:underline"
+                  className="font-medium text-black dark:text-white hover:underline"
                 >
                   {user.website.replace(/^https?:\/\//, '')}
                 </a>
@@ -694,9 +694,9 @@ export default function UserProfile() {
                   disabled={loadingAction}
                   className={cn(
                     "px-4 md:px-6 py-2.5 rounded-full font-bold text-xs md:text-sm hover:scale-105 active:scale-95 transition-transform shadow-lg flex items-center justify-center gap-1.5 md:gap-2 min-h-[44px] touch-manipulation flex-1 md:flex-initial",
-                    friendStatus === 'friend' ? "bg-green-600 text-white" :
+                    friendStatus === 'friend' ? "bg-black dark:bg-white text-white dark:text-black" :
                       friendStatus === 'pending_sent' ? "bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300" :
-                        friendStatus === 'pending_received' ? "bg-blue-600 text-white" :
+                        friendStatus === 'pending_received' ? "bg-black dark:bg-white text-white" :
                           "bg-neutral-900 dark:bg-white text-white dark:text-black",
                     loadingAction && "opacity-50 cursor-not-allowed"
                   )}
@@ -967,14 +967,14 @@ export default function UserProfile() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div
-                              className="font-bold cursor-pointer hover:text-blue-500 transition-colors truncate flex items-center gap-2"
+                              className="font-bold cursor-pointer hover:text-black dark:text-white transition-colors truncate flex items-center gap-2"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/user/${friend._id}`);
                               }}
                             >
                               {friend.name}
-                              <UserTitle user={friend} />
+                              {(friend.displayBadgeType === 'title' || friend.displayBadgeType === 'both') && <UserTitle user={friend} />}
                             </div>
                             <div className="text-xs text-neutral-500 uppercase font-bold tracking-wider flex items-center gap-2">
                               <span className={cn(
@@ -1026,7 +1026,7 @@ export default function UserProfile() {
                                     }
                                   }
                                 }}
-                                className="flex-1 px-4 py-2 rounded-full bg-green-600 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-colors cursor-pointer"
+                                className="flex-1 px-4 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors cursor-pointer"
                               >
                                 <UserCheck size={16} /> Đã kết bạn
                               </button>

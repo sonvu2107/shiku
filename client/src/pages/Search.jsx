@@ -165,7 +165,7 @@ export default function Search({ user }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Tìm kiếm trên Shiku..."
-              className="w-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-full py-2.5 pl-10 pr-10 outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full bg-gray-100 dark:bg-neutral-900 text-gray-900 dark:text-gray-100 rounded-full py-2.5 pl-10 pr-10 outline-none focus:ring-2 focus:ring-blue-500/50"
               aria-label="Tìm kiếm bạn bè, nhóm, bài viết"
             />
             <SearchIcon size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -173,7 +173,7 @@ export default function Search({ user }) {
               <button
                 type="button"
                 onClick={() => { setQuery(''); inputRef.current?.focus(); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full bg-gray-200 dark:bg-neutral-800 text-gray-500"
               >
                 <X size={14} />
               </button>
@@ -186,19 +186,19 @@ export default function Search({ user }) {
           <div className="flex px-4 gap-2 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setActiveTab('all')}
-              className={`flex-1 py-3 min-h-[44px] text-sm font-medium border-b-2 whitespace-nowrap transition-colors text-center ${activeTab === 'all' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500'}`}
+              className={`flex-1 py-3 min-h-[44px] text-sm font-medium border-b-2 whitespace-nowrap transition-colors text-center ${activeTab === 'all' ? 'border-blue-500 text-black dark:text-white' : 'border-transparent text-gray-500'}`}
             >
               Tất cả
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`flex-1 py-3 min-h-[44px] text-sm font-medium border-b-2 whitespace-nowrap transition-colors text-center ${activeTab === 'users' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500'}`}
+              className={`flex-1 py-3 min-h-[44px] text-sm font-medium border-b-2 whitespace-nowrap transition-colors text-center ${activeTab === 'users' ? 'border-blue-500 text-black dark:text-white' : 'border-transparent text-gray-500'}`}
             >
               Mọi người ({results.users.length})
             </button>
             <button
               onClick={() => setActiveTab('posts')}
-              className={`flex-1 py-3 min-h-[44px] text-sm font-medium border-b-2 whitespace-nowrap transition-colors text-center ${activeTab === 'posts' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500'}`}
+              className={`flex-1 py-3 min-h-[44px] text-sm font-medium border-b-2 whitespace-nowrap transition-colors text-center ${activeTab === 'posts' ? 'border-blue-500 text-black dark:text-white' : 'border-transparent text-gray-500'}`}
             >
               Bài viết ({results.posts.length})
             </button>
@@ -211,14 +211,14 @@ export default function Search({ user }) {
           <div className="p-4 space-y-6">
             {/* Loading skeleton for users */}
             <div className="space-y-4">
-              <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-24 animate-pulse"></div>
+              <div className="h-6 bg-gray-200 dark:bg-neutral-900 rounded w-24 animate-pulse"></div>
               <div className="space-y-2">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse">
-                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-100 dark:bg-neutral-900 animate-pulse">
+                    <div className="w-12 h-12 bg-gray-200 dark:bg-neutral-800 rounded-full"></div>
                     <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
-                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-neutral-800 rounded w-32"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-neutral-800 rounded w-48"></div>
                     </div>
                   </div>
                 ))}
@@ -226,14 +226,14 @@ export default function Search({ user }) {
             </div>
             {/* Loading skeleton for posts */}
             <div className="space-y-4">
-              <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-24 animate-pulse"></div>
+              <div className="h-6 bg-gray-200 dark:bg-neutral-900 rounded w-24 animate-pulse"></div>
               <div className="space-y-2">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="flex gap-3 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse">
-                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div key={i} className="flex gap-3 p-3 rounded-xl bg-gray-100 dark:bg-neutral-900 animate-pulse">
+                    <div className="w-12 h-12 bg-gray-200 dark:bg-neutral-800 rounded"></div>
                     <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-neutral-800 rounded w-full"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-neutral-800 rounded w-32"></div>
                     </div>
                   </div>
                 ))}
@@ -247,7 +247,7 @@ export default function Search({ user }) {
               <div className="p-4">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-semibold text-base">Gần đây</h3>
-                  <button onClick={clearHistory} className="text-blue-500 text-sm">Xóa tất cả</button>
+                  <button onClick={clearHistory} className="text-black dark:text-white text-sm">Xóa tất cả</button>
                 </div>
                 <div className="space-y-1">
                   {history.map((item, index) => (
@@ -260,7 +260,7 @@ export default function Search({ user }) {
                       className="flex items-center justify-between p-3 -mx-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500">
+                        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-neutral-900 flex items-center justify-center text-gray-500">
                           <Clock size={20} />
                         </div>
                         <span className="font-medium">{item.query}</span>

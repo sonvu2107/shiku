@@ -65,7 +65,7 @@ export default function ContentWithSeeMore({
                         e.stopPropagation(); // Prevent navigating to post detail if inside a clickable card
                         setIsExpanded(!isExpanded);
                     }}
-                    className="self-start mt-2 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 transition-colors z-10"
+                    className="self-start mt-2 text-sm font-semibold text-black dark:text-white hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 transition-colors z-10"
                 >
                     {isExpanded ? (
                         <>

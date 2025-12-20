@@ -79,7 +79,7 @@ const PostRow = memo(({ data, index, style }) => {
         if (!hasMore && items.length > 0) {
             return (
                 <div style={style} className="text-center py-8">
-                    <div className="inline-flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 rounded-full text-gray-600 dark:text-gray-300 text-sm font-semibold">
+                    <div className="inline-flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-neutral-900 border border-gray-200 dark:border-gray-800 rounded-full text-gray-600 dark:text-gray-300 text-sm font-semibold">
                         <span>✨</span>
                         <span>Bạn đã xem hết tất cả bài viết!</span>
                     </div>

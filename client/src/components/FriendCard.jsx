@@ -44,7 +44,7 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 space-y-3 transition-colors duration-200">
+    <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 p-3 sm:p-4 space-y-3 transition-colors duration-200">
       {/* Header với avatar và thông tin */}
       <div className="flex items-center gap-2 sm:gap-3">
         <div className="relative flex-shrink-0">
@@ -87,7 +87,7 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
         <div className="flex-1 min-w-0">
           <Link
             to={`/user/${friend._id}`}
-            className="font-semibold text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 text-sm sm:text-base truncate block transition-colors"
+            className="font-semibold text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white text-sm sm:text-base truncate block transition-colors"
             title={friend.nickname || friend.name}
           >
             <UserName user={friend} maxLength={20} />
@@ -107,7 +107,7 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
         {/* Message button */}
         <MessageButton
           user={friend}
-          className="flex-1 btn bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white 
+          className="flex-1 btn bg-black dark:bg-white dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white 
                     flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-2.5 touch-target"
         >
           <MessageCircle size={14} className="sm:w-4 sm:h-4" />
@@ -118,9 +118,9 @@ export default function FriendCard({ friend, onRemoveFriend, showOnlineStatus = 
         {/* Remove friend button */}
         <button
           onClick={() => onRemoveFriend(friend._id)}
-          className="px-2 sm:px-4 py-2 sm:py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 
+          className="px-2 sm:px-4 py-2 sm:py-2.5 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-gray-600 
                     active:bg-gray-300 dark:active:bg-gray-500 text-gray-700 dark:text-gray-300 
-                    border border-gray-300 dark:border-gray-600 rounded-lg 
+                    border border-gray-300 dark:border-neutral-700 rounded-lg 
                     flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm touch-target"
         >
           <UserMinus size={14} className="sm:w-4 sm:h-4" />

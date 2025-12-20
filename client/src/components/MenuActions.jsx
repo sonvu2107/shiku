@@ -42,25 +42,25 @@ export default function MenuActions({ onToggleStatus, onEdit, onDelete, onSave, 
         <MoreHorizontal size={22} />
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-50 flex flex-col py-1 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-auto bg-white dark:bg-neutral-900 rounded-xl shadow-lg border border-gray-200 dark:border-neutral-800 z-50 flex flex-col py-1 overflow-hidden">
           {onSave && (
             <button
-              className="flex items-center gap-1.5 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap"
               onClick={() => { onSave(); setOpen(false); }}
             >
-              {saved ? <BookmarkCheck size={16} className="text-blue-500 flex-shrink-0" /> : <Bookmark size={16} className="flex-shrink-0" />}
+              {saved ? <BookmarkCheck size={16} className="text-black dark:text-white flex-shrink-0" /> : <Bookmark size={16} className="flex-shrink-0" />}
               <span>{saved ? "Bỏ lưu" : "Lưu bài"}</span>
             </button>
           )}
           <button
-            className="flex items-center gap-1.5 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap"
             onClick={() => { onToggleStatus(); setOpen(false); }}
           >
             {isPrivate ? <Globe size={16} className="flex-shrink-0" /> : <Lock size={16} className="flex-shrink-0" />}
             <span>{isPrivate ? "Công khai" : "Riêng tư"}</span>
           </button>
           <button
-            className="flex items-center gap-1.5 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap"
             onClick={() => { onEdit(); setOpen(false); }}
           >
             <Edit size={16} className="flex-shrink-0" />

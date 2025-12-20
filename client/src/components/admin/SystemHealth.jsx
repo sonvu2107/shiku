@@ -73,7 +73,7 @@ export default function SystemHealth() {
     if (loading && !health) {
         return (
             <div className="flex items-center justify-center p-8">
-                <Loader2 className="animate-spin text-blue-500" size={32} />
+                <Loader2 className="animate-spin text-black dark:text-white" size={32} />
             </div>
         );
     }
@@ -96,7 +96,7 @@ export default function SystemHealth() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold flex items-center gap-2">
-                    <Server size={20} className="text-blue-500" />
+                    <Server size={20} className="text-black dark:text-white" />
                     Trạng thái Hệ thống
                 </h3>
                 <button
@@ -199,7 +199,7 @@ export default function SystemHealth() {
                 <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700">
                     <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2 text-sm font-medium">
-                            <Database size={16} className="text-blue-500" />
+                            <Database size={16} className="text-black dark:text-white" />
                             MongoDB
                         </span>
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(health?.database?.status)}`}>

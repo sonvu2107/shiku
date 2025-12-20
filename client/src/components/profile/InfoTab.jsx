@@ -90,7 +90,7 @@ export default function InfoTab({ form, user }) {
                                     href={form.website.startsWith('http') ? form.website : `https://${form.website}`}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="font-medium text-blue-500 hover:underline"
+                                    className="font-medium text-black dark:text-white hover:underline"
                                 >
                                     {form.website.replace(/^https?:\/\//, '')}
                                 </a>

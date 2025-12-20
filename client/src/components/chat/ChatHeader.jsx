@@ -19,11 +19,11 @@ import { getUserAvatarUrl, AVATAR_SIZES } from "../../utils/avatarUtils";
  * @param {Function} props.onBack - Callback to go back to the list (mobile)
  * @returns {JSX.Element} Component chat header
  */
-export default function ChatHeader({ 
-  conversation, 
+export default function ChatHeader({
+  conversation,
   currentUser,
-  onUpdateConversation, 
-  onLeaveConversation, 
+  onUpdateConversation,
+  onLeaveConversation,
   onDeleteConversation,
   onAddMembers,
   onVideoCall,
@@ -31,13 +31,13 @@ export default function ChatHeader({
   onBack
 }) {
   // ==================== STATE MANAGEMENT ====================
-  
+
   // UI states
   const [showMenu, setShowMenu] = useState(false); // State for showing dropdown menu
   const [showEditName, setShowEditName] = useState(false); // State for editing group name
   const [showGroupSettings, setShowGroupSettings] = useState(false); // State for showing group settings
   const [showNicknameModal, setShowNicknameModal] = useState(false); // State for showing nickname modal
-  
+
   // Form states
   const [newName, setNewName] = useState(conversation?.name || ''); // New group name
 
@@ -75,7 +75,7 @@ export default function ChatHeader({
   const isGroupAdmin = () => {
     if (!isGroup || !conversation?.participants) return false;
     const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
-    const userParticipant = conversation.participants.find(p => 
+    const userParticipant = conversation.participants.find(p =>
       (p.user._id === currentUserId || p.user.id === currentUserId) && !p.leftAt
     );
     return userParticipant?.role === 'admin';
@@ -87,14 +87,14 @@ export default function ChatHeader({
 
   const getOtherUser = () => {
     if (isGroup) return null;
-    
+
     const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
-    
+
     const otherParticipant = conversation.participants?.find(p => {
       const participantId = p.user?._id || p.user?.id || p._id || p.id;
       return participantId !== currentUserId;
     });
-    
+
     return otherParticipant?.user || otherParticipant;
   };
 
@@ -105,62 +105,62 @@ export default function ChatHeader({
 
   const getDisplayName = () => {
     if (isGroup) {
-          return conversation.groupName || conversation.name || 'Nhóm chat';
+      return conversation.groupName || conversation.name || 'Nhóm chat';
     }
-    
+
     const currentUserId = currentUser?.user?._id || currentUser?.user?.id || currentUser?._id || currentUser?.id;
-    
+
     const otherParticipant = conversation.participants?.find(p => {
       const participantId = p.user?._id || p.user?.id || p._id || p.id;
       return participantId !== currentUserId;
     });
-    
+
     return otherParticipant?.nickname || otherParticipant?.user?.name || otherParticipant?.name || 'Unknown User';
   };
 
-const getAvatarUrl = () => {
-  if (isGroup) return null;
+  const getAvatarUrl = () => {
+    if (isGroup) return null;
 
-  const currentUserId =
-    currentUser?.user?._id ||
-    currentUser?.user?.id ||
-    currentUser?._id ||
-    currentUser?.id;
+    const currentUserId =
+      currentUser?.user?._id ||
+      currentUser?.user?.id ||
+      currentUser?._id ||
+      currentUser?.id;
 
-  const otherParticipant = conversation.participants?.find((p) => {
-    const participantId = p.user?._id || p.user?.id || p._id || p.id;
-    return participantId !== currentUserId;
-  });
+    const otherParticipant = conversation.participants?.find((p) => {
+      const participantId = p.user?._id || p.user?.id || p._id || p.id;
+      return participantId !== currentUserId;
+    });
 
-  const user = otherParticipant?.user || otherParticipant;
+    const user = otherParticipant?.user || otherParticipant;
 
-  return getUserAvatarUrl(user, AVATAR_SIZES.LARGE);
-};
+    return getUserAvatarUrl(user, AVATAR_SIZES.LARGE);
+  };
 
 
   if (!conversation) {
     return (
-      <div className="flex items-center justify-center h-14 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="flex items-center justify-center h-14 border-b border-gray-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">
         <p className="text-gray-500 dark:text-gray-400">Chọn một cuộc trò chuyện để bắt đầu</p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between h-14 px-4">
+    <div className="relative w-full bg-white dark:bg-neutral-900 border-b border-gray-100 dark:border-neutral-800 flex items-center justify-between h-14 px-4">
       {/* Left side - Back button (mobile) + Avatar and info */}
       <div className="flex items-center space-x-3">
         {/* Back button - only visible on mobile */}
         {onBack && (
           <button
             onClick={onBack}
-            className="sm:hidden p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+            className="sm:hidden p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
             title="Quay lại"
           >
             <ArrowLeft size={20} />
           </button>
         )}
-        
+
         <div className="relative">
           {isGroup ? (
             conversation.groupAvatar ? (
@@ -188,7 +188,7 @@ const getAvatarUrl = () => {
             </>
           )}
         </div>
-        
+
         <div>
           {showEditName ? (
             <div className="flex items-center space-x-2">
@@ -198,7 +198,7 @@ const getAvatarUrl = () => {
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleUpdateName()}
                 onBlur={handleUpdateName}
-                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-1 text-sm border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 autoFocus
               />
             </div>
@@ -223,15 +223,15 @@ const getAvatarUrl = () => {
           <>
             <button
               onClick={() => onVoiceCall?.(conversation._id)}
-              className="p-2.5 text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-all duration-200 hover:scale-110"
+              className="p-2.5 text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-all duration-200 hover:scale-110"
               title={isGroup ? "Gọi thoại nhóm" : "Gọi thoại"}
             >
               <Phone size={18} />
             </button>
-            
+
             <button
               onClick={() => onVideoCall?.(conversation._id)}
-              className="p-2.5 text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-all duration-200 hover:scale-110"
+              className="p-2.5 text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-all duration-200 hover:scale-110"
               title={isGroup ? "Gọi video nhóm" : "Gọi video"}
             >
               <Video size={18} />
@@ -243,7 +243,7 @@ const getAvatarUrl = () => {
         <div className="relative">
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+            className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
             title="Tùy chọn"
           >
             <MoreVertical size={18} />
@@ -251,48 +251,48 @@ const getAvatarUrl = () => {
 
           {/* Dropdown menu */}
           {showMenu && (
-            <div className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10">
+            <div className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg z-10">
               <div className="py-1">
                 {isGroup && (
                   <>
                     <button
                       onClick={handleGroupInfo}
-                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800"
                     >
                       <Users size={16} className="mr-3" />
                       Thông tin nhóm
                     </button>
-                    
+
                     {canManageMembers() && (
                       <button
                         onClick={() => {
                           setShowEditName(true);
                           setShowMenu(false);
                         }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800"
                       >
                         <Edit3 size={16} className="mr-3" />
                         Đổi tên nhóm
                       </button>
                     )}
-                    
+
                     {canManageMembers() && (
                       <button
                         onClick={() => {
                           onAddMembers?.(conversation._id);
                           setShowMenu(false);
                         }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800"
                       >
                         <UserPlus size={16} className="mr-3" />
                         Thêm thành viên
                       </button>
                     )}
-                    
-                    <div className="border-t border-gray-100 dark:border-gray-600"></div>
+
+                    <div className="border-t border-gray-100 dark:border-neutral-700"></div>
                   </>
                 )}
-                
+
                 {/* Nickname management for private conversations */}
                 {!isGroup && getOtherUser() && (
                   <button
@@ -300,13 +300,13 @@ const getAvatarUrl = () => {
                       setShowNicknameModal(true);
                       setShowMenu(false);
                     }}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-800"
                   >
                     <User size={16} className="mr-3" />
                     Quản lý biệt danh
                   </button>
                 )}
-                
+
                 <button
                   onClick={handleLeave}
                   className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
@@ -314,7 +314,7 @@ const getAvatarUrl = () => {
                   <LogOut size={16} className="mr-3" />
                   {isGroup ? 'Rời nhóm' : 'Xóa cuộc trò chuyện'}
                 </button>
-                
+
                 {isGroup && (
                   <button
                     onClick={handleDelete}

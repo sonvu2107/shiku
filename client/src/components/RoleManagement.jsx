@@ -303,7 +303,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
 
       {/* Add/Edit Form */}
       {showAddForm && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6">
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
               {editingRole ? "Chỉnh sửa Role" : "Thêm Role Mới"}
@@ -318,7 +318,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {editingRole?.isDefault && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-lg flex items-start gap-2">
+              <div className="bg-neutral-100 dark:bg-neutral-800 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-lg flex items-start gap-2">
                 <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
                 <div className="text-sm">
                   <strong>Role mặc định:</strong> Bạn có thể thay đổi icon, màu sắc và mô tả, nhưng không thể đổi tên và quyền hạn.
@@ -337,7 +337,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="vd: vip, moderator"
-                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed touch-target"
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-neutral-800 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed touch-target"
                   disabled={!!editingRole}
                   required
                 />
@@ -358,7 +358,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
                   value={formData.displayName}
                   onChange={handleInputChange}
                   placeholder="vd: VIP Member, Moderator"
-                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target"
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-neutral-800 dark:text-white touch-target"
                   required
                 />
               </div>
@@ -374,7 +374,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
                 onChange={handleInputChange}
                 placeholder="Mô tả về role này..."
                 rows={3}
-                className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-target"
+                className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-neutral-800 dark:text-white touch-target"
               />
             </div>
 
@@ -389,14 +389,14 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
                   name="color"
                   value={formData.color}
                   onChange={handleInputChange}
-                  className="w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer"
+                  className="w-10 h-10 rounded-lg border border-gray-300 dark:border-neutral-700 cursor-pointer"
                 />
                 <input
                   type="text"
                   name="color"
                   value={formData.color}
                   onChange={handleInputChange}
-                  className="w-28 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  className="w-28 px-3 py-2 text-sm border border-gray-300 dark:border-neutral-700 rounded-lg dark:bg-neutral-800 dark:text-white"
                   placeholder="#3B82F6"
                 />
                 <div
@@ -423,7 +423,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
                 />
                 <label
                   htmlFor="image-upload"
-                  className="flex items-center gap-2 px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 touch-target"
+                  className="flex items-center gap-2 px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-neutral-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800 touch-target"
                 >
                   <Upload size={16} />
                   {uploading ? "Đang upload..." : "Chọn ảnh"}
@@ -453,9 +453,9 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
 
             {/* Permissions Editor - For all roles (including default) */}
             {editingRole && (
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+              <div className="border-t border-gray-200 dark:border-neutral-800 pt-4 mt-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Shield size={18} className="text-blue-600" />
+                  <Shield size={18} className="text-black dark:text-white" />
                   <label className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
                     Quyền hạn Admin Dashboard
                   </label>
@@ -472,13 +472,13 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
                   {ADMIN_PERMISSIONS.map(perm => (
                     <label
                       key={perm.key}
-                      className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                      className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-neutral-900 cursor-pointer transition-colors"
                     >
                       <input
                         type="checkbox"
                         checked={!!formData.permissions[perm.key]}
                         onChange={() => togglePermission(perm.key)}
-                        className="mt-0.5 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        className="mt-0.5 w-4 h-4 text-black dark:text-white rounded border-gray-300 focus:ring-blue-500"
                       />
                       <div>
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -498,7 +498,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 text-sm sm:text-base text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 touch-target w-full sm:w-auto"
+                className="px-4 py-2 text-sm sm:text-base text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-neutral-700 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 touch-target w-full sm:w-auto"
               >
                 Hủy
               </button>
@@ -515,8 +515,8 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
       )}
 
       {/* Roles List */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-neutral-800">
           <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
             Danh Sách Role ({roles.length})
           </h3>
@@ -525,7 +525,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
         {/* Desktop Table View */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+            <thead className="bg-gray-50 dark:bg-neutral-800">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Role
@@ -546,7 +546,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {roles.map((role) => (
-                <tr key={role._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <tr key={role._id} className="hover:bg-gray-50 dark:hover:bg-neutral-800/50">
                   <td className="px-6 py-4">
                     <div>
                       <div className="font-medium text-gray-900 dark:text-white">
@@ -575,7 +575,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
                         className="w-8 h-8 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                      <div className="w-8 h-8 bg-gray-200 dark:bg-neutral-700 rounded-full flex items-center justify-center">
                         <ImageIcon size={16} className="text-gray-400" />
                       </div>
                     )}
@@ -587,7 +587,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
                           e.stopPropagation();
                           handleEdit(role);
                         }}
-                        className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        className="p-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors rounded hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-blue-900/20"
                         title="Chỉnh sửa"
                         type="button"
                       >
@@ -618,7 +618,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
         <div className="sm:hidden">
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {roles.map((role) => (
-              <div key={role._id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+              <div key={role._id} className="p-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     {/* Logo */}
@@ -630,7 +630,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
                           className="w-10 h-10 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-gray-200 dark:bg-neutral-700 rounded-full flex items-center justify-center">
                           <ImageIcon size={18} className="text-gray-400" />
                         </div>
                       )}
@@ -662,7 +662,7 @@ export default function RoleManagement({ onRolesChange = () => { } }) {
                         e.stopPropagation();
                         handleEdit(role);
                       }}
-                      className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 touch-target"
+                      className="p-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors rounded hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-blue-900/20 touch-target"
                       title="Chỉnh sửa"
                       type="button"
                     >

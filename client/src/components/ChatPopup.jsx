@@ -350,7 +350,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
   return (
     <div
-      className={`bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col chat-popup-mobile transition-all duration-300 ${minimized
+      className={`bg-white dark:bg-neutral-900 shadow-2xl border border-gray-200 dark:border-neutral-800 flex flex-col chat-popup-mobile transition-all duration-300 ${minimized
         ? `w-12 h-12 rounded-full hover:scale-110 hover:shadow-3xl cursor-pointer minimized relative group`
         : 'relative w-72 sm:w-80 rounded-xl h-[450px]'
         }`}
@@ -363,7 +363,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
             e.stopPropagation();
             onClose();
           }}
-          className="absolute -top-1 -right-1 w-6 h-6 bg-gray-700 dark:bg-gray-600 hover:bg-gray-900 dark:hover:bg-gray-800 text-white rounded-full flex items-center justify-center z-10 transition-all shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 touch-manipulation"
+          className="absolute -top-1 -right-1 w-6 h-6 bg-gray-700 dark:bg-neutral-700 hover:bg-gray-900 dark:hover:bg-neutral-900 text-white rounded-full flex items-center justify-center z-10 transition-all shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 touch-manipulation"
           title="Đóng"
         >
           <X size={12} />
@@ -371,7 +371,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       )}
 
       {/* Header */}
-      <div className={`flex items-center gap-1 sm:gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 ${minimized ? 'border-b-0 rounded-full h-full w-full justify-center p-0' : 'px-2 sm:px-4 py-2 rounded-t-xl'
+      <div className={`flex items-center gap-1 sm:gap-2 border-b border-gray-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 ${minimized ? 'border-b-0 rounded-full h-full w-full justify-center p-0' : 'px-2 sm:px-4 py-2 rounded-t-xl'
         }`}>
         <div className="relative flex-shrink-0">
           {isChatbot ? (
@@ -393,7 +393,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
             {!isChatbot && (
               <div className="flex gap-0.5 sm:gap-1">
                 <button
-                  className="p-2 sm:p-2 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-manipulation"
+                  className="p-2 sm:p-2 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full text-black dark:text-white transition-all duration-200 hover:scale-110 touch-manipulation"
                   onClick={() => {
                     if (isGroup) {
                       onShowInfo?.("Tính năng chưa khả dụng, sẽ cập nhật trong tương lai");
@@ -407,7 +407,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                   <Phone size={14} className="sm:w-4 sm:h-4" />
                 </button>
                 <button
-                  className="p-2 sm:p-2 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full text-blue-500 transition-all duration-200 hover:scale-110 touch-manipulation"
+                  className="p-2 sm:p-2 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full text-black dark:text-white transition-all duration-200 hover:scale-110 touch-manipulation"
                   onClick={() => {
                     if (isGroup) {
                       onShowInfo?.("Tính năng chưa khả dụng, sẽ cập nhật trong tương lai");
@@ -423,13 +423,13 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
               </div>
             )}
             <button
-              className="p-1 hover:bg-gray-200 rounded-full touch-target"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full touch-target text-black dark:text-gray-300"
               onClick={() => setMinimized(!minimized)}
               title={minimized ? "Phóng to" : "Thu nhỏ"}
             >
               <ChevronDown size={14} className={`sm:w-4 sm:h-4 transition-transform ${minimized ? 'rotate-180' : ''}`} />
             </button>
-            <button className="p-1 hover:bg-gray-200 rounded-full touch-target" onClick={onClose}>
+            <button className="p-1 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full touch-target text-black dark:text-gray-300" onClick={onClose}>
               <X size={14} className="sm:w-4 sm:h-4" />
             </button>
           </>
@@ -454,7 +454,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
       {/* Chat content */}
       {!minimized && (
         <>
-          <div ref={scrollContainerRef} className={`flex-1 ${isChatbot ? 'overflow-hidden px-0 py-0 flex flex-col' : 'overflow-y-auto overflow-x-visible px-4 py-2'} bg-white dark:bg-gray-900`} style={{ scrollbarGutter: isChatbot ? undefined : 'stable' }}>
+          <div ref={scrollContainerRef} className={`flex-1 ${isChatbot ? 'overflow-hidden px-0 py-0 flex flex-col' : 'overflow-y-auto overflow-x-visible px-4 py-2'} bg-white dark:bg-neutral-950`} style={{ scrollbarGutter: isChatbot ? undefined : 'stable' }}>
             {isChatbot ? (
               <div className="flex-1 flex flex-col min-h-0 h-full">
                 <Chatbot
@@ -472,7 +472,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                 if (msg.messageType === "system") {
                   return (
                     <div key={msg._id || idx} className="mb-2 flex justify-center">
-                      <div className="px-4 py-2 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm text-center max-w-[80%] break-words">
+                      <div className="px-4 py-2 rounded-2xl bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-300 text-sm text-center max-w-[80%] break-words">
                         {msg.content}
                       </div>
                     </div>
@@ -519,15 +519,15 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             {/* Emoji picker button with popup - hidden on mobile, use long-press instead */}
                             <div className="relative group hidden md:block">
                               <button
-                                className="p-1.5 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 shadow-sm"
+                                className="p-1.5 rounded-full bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-gray-600 shadow-sm"
                                 title="Thả cảm xúc"
                               >
                                 <Smile size={14} className="text-gray-600 dark:text-gray-300" />
                               </button>
                               {/* Reaction popup on hover */}
-                              <div className="absolute hidden group-hover:flex items-center top-0 -translate-y-full right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full shadow-lg px-2 py-1 gap-1 z-50">
+                              <div className="absolute hidden group-hover:flex items-center top-0 -translate-y-full right-0 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-full shadow-lg px-2 py-1 gap-1 z-50">
                                 {[
-                                  { type: 'like', Icon: ThumbsUp, color: 'text-blue-500' },
+                                  { type: 'like', Icon: ThumbsUp, color: 'text-black dark:text-white' },
                                   { type: 'love', Icon: Heart, color: 'text-red-500' },
                                   { type: 'laugh', Icon: Laugh, color: 'text-yellow-500' },
                                   { type: 'angry', Icon: Angry, color: 'text-orange-500' },
@@ -555,14 +555,14 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                                     e.stopPropagation(); // Prevent popup handling
                                     handleDeleteMessage(msg._id);
                                   }}
-                                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-red-500 hover:text-red-600 transition-colors"
+                                  className="p-1 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full text-red-500 hover:text-red-600 transition-colors"
                                   title="Thu hồi"
                                 >
                                   <Trash2 size={16} />
                                 </button>
 
                                 <button
-                                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                                  className="p-1 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
                                   title="Đóng"
                                 >
                                   <X size={16} />
@@ -576,7 +576,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
                         {msg.isDeleted ? (
                           <div
-                            className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 italic break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
+                            className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 italic break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
                             title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
                           >
                             {msg.content}
@@ -591,14 +591,14 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           />
                         ) : msg.messageType === "emote" ? (
                           <div
-                            className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white flex items-center justify-center"
+                            className="px-3 py-2 rounded-2xl text-sm chat-bubble-own flex items-center justify-center"
                             title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
                           >
                             <span className="text-2xl">{msg.emote}</span>
                           </div>
                         ) : (
                           <div
-                            className="px-3 py-2 rounded-2xl text-sm bg-blue-600 text-white break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
+                            className="px-3 py-2 rounded-2xl text-sm chat-bubble-own break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
                             title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
                           >
                             {parseLinks(msg.content, { linkClassName: "text-blue-200 hover:text-blue-100 underline break-all" })}
@@ -617,7 +617,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           <div className="mt-1 flex justify-end flex-wrap gap-1">
                             {['like', 'love', 'laugh', 'angry', 'sad'].map((type) => {
                               const map = { like: ThumbsUp, love: Heart, laugh: Laugh, angry: Angry, sad: Frown };
-                              const color = { like: 'text-blue-500', love: 'text-red-500', laugh: 'text-yellow-500', angry: 'text-orange-500', sad: 'text-gray-500' };
+                              const color = { like: 'text-black dark:text-white', love: 'text-red-500', laugh: 'text-yellow-500', angry: 'text-orange-500', sad: 'text-gray-500' };
                               const count = (msg.reactions || []).filter(r => r.type === type).length;
                               if (!count) return null;
                               const Ico = map[type];
@@ -653,7 +653,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                                   })}
                                   {lastReadUsers.length > 2 && (
                                     <div
-                                      className="w-3.5 h-3.5 rounded-full border border-white dark:border-gray-800 bg-gray-300 dark:bg-gray-600 flex items-center justify-center"
+                                      className="w-3.5 h-3.5 rounded-full border border-white dark:border-gray-800 bg-gray-300 dark:bg-neutral-700 flex items-center justify-center"
                                       title={`+${lastReadUsers.length - 2} người khác đã xem`}
                                     >
                                       <span className="text-gray-600 dark:text-gray-300 text-[7px] font-bold">
@@ -701,14 +701,14 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           />
                         ) : msg.messageType === "emote" ? (
                           <div
-                            className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center"
+                            className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-neutral-800 text-gray-900 dark:text-gray-100 flex items-center justify-center"
                             title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
                           >
                             <span className="text-2xl">{msg.emote}</span>
                           </div>
                         ) : (
                           <div
-                            className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
+                            className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-neutral-800 text-gray-900 dark:text-gray-100 break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
                             title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
                           >
                             {parseLinks(msg.content)}
@@ -723,7 +723,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             </button>
                             <div className="absolute hidden group-hover:flex group-focus-within:flex top-0 -translate-y-full left-0 bg-white border border-gray-200 rounded-full shadow px-2 py-1 gap-1 z-50">
                               {[
-                                { type: 'like', Icon: ThumbsUp, color: 'text-blue-500' },
+                                { type: 'like', Icon: ThumbsUp, color: 'text-black dark:text-white' },
                                 { type: 'love', Icon: Heart, color: 'text-red-500' },
                                 { type: 'laugh', Icon: Laugh, color: 'text-yellow-500' },
                                 { type: 'angry', Icon: Angry, color: 'text-orange-500' },
@@ -746,7 +746,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             <div className="flex flex-wrap gap-1">
                               {['like', 'love', 'laugh', 'angry', 'sad'].map((type) => {
                                 const map = { like: ThumbsUp, love: Heart, laugh: Laugh, angry: Angry, sad: Frown };
-                                const color = { like: 'text-blue-500', love: 'text-red-500', laugh: 'text-yellow-500', angry: 'text-orange-500', sad: 'text-gray-500' };
+                                const color = { like: 'text-black dark:text-white', love: 'text-red-500', laugh: 'text-yellow-500', angry: 'text-orange-500', sad: 'text-gray-500' };
                                 const count = (msg.reactions || []).filter(r => r.type === type).length;
                                 if (!count) return null;
                                 const Ico = map[type];
@@ -775,7 +775,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
           {showScrollButton && !isChatbot && (
             <button
               onClick={scrollToBottom}
-              className="absolute left-1/2 -translate-x-1/2 bottom-20 bg-gray-800 dark:bg-gray-700 text-white p-2 rounded-full shadow-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors z-50 border border-gray-600 dark:border-gray-500"
+              className="absolute left-1/2 -translate-x-1/2 bottom-20 bg-gray-800 dark:bg-neutral-800 text-white p-2 rounded-full shadow-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors z-50 border border-gray-600 dark:border-gray-500"
               title="Cuộn xuống"
             >
               <ArrowDown size={16} />
@@ -784,7 +784,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
 
           {/* Ô nhập */}
           {!minimized && !isChatbot && (
-            <div className="flex items-center gap-2 px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-xl relative">
+            <div className="flex items-center gap-2 px-4 py-2 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950 rounded-b-xl relative">
               <label className="cursor-pointer">
                 <svg
                   width="24"
@@ -852,8 +852,8 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                 type="button"
                 onClick={() => setShowEmotePicker(!showEmotePicker)}
                 className={`p-2 rounded-full transition-colors touch-target ${showEmotePicker
-                  ? 'text-blue-600 bg-blue-50'
-                  : 'text-blue-500 hover:bg-blue-50 active:bg-blue-100'
+                  ? 'text-black dark:text-white bg-neutral-100 dark:bg-neutral-800'
+                  : 'text-black dark:text-white hover:bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:bg-neutral-800'
                   }`}
                 title="Chọn emote"
               >
@@ -861,7 +861,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
               </button>
 
               <input
-                className="flex-1 px-3 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring"
+                className="flex-1 px-3 py-2 rounded-full border border-gray-300 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Aa"
@@ -869,7 +869,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                 disabled={uploading}
               />
               <button
-                className="px-3 py-2 bg-blue-600 text-white rounded-full"
+                className="px-3 py-2 chat-btn-send rounded-full"
                 onClick={handleSend}
                 disabled={uploading}
               >
@@ -901,15 +901,15 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
             onClick={closeLongPressReaction}
           >
             <div
-              className="bg-white dark:bg-gray-800 rounded-full px-4 py-3 shadow-xl flex items-center gap-2"
+              className="bg-white dark:bg-neutral-900 rounded-full px-4 py-3 shadow-xl flex items-center gap-2"
               onClick={(e) => e.stopPropagation()}
             >
               {[
-                { type: 'like', Icon: ThumbsUp, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/30' },
+                { type: 'like', Icon: ThumbsUp, color: 'text-black dark:text-white', bg: 'bg-neutral-100 dark:bg-neutral-800 dark:bg-blue-900/30' },
                 { type: 'love', Icon: Heart, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/30' },
                 { type: 'laugh', Icon: Laugh, color: 'text-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/30' },
                 { type: 'angry', Icon: Angry, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/30' },
-                { type: 'sad', Icon: Frown, color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-700' }
+                { type: 'sad', Icon: Frown, color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-neutral-800' }
               ].map(({ type, Icon, color, bg }) => (
                 <button
                   key={type}

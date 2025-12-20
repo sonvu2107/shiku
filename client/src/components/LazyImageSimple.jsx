@@ -77,7 +77,7 @@ export default function LazyImageSimple({
       {/* Loading placeholder with blur effect */}
       {!isLoaded && !hasError && (
         <div
-          className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse"
+          className="absolute inset-0 bg-gray-200 dark:bg-neutral-900 animate-pulse"
           style={{
             filter: 'blur(10px)',
             transform: 'scale(1.1)',

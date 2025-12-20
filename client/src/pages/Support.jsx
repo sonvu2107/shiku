@@ -22,10 +22,10 @@ const FaqItem = ({ item, isOpen, onClick }) => {
         onClick={onClick}
         className="w-full py-5 flex items-center justify-between text-left group transition-colors"
       >
-        <span className={`text-base md:text-lg font-medium transition-colors ${isOpen ? 'text-blue-600 dark:text-blue-400' : 'text-neutral-900 dark:text-white group-hover:text-neutral-600 dark:group-hover:text-neutral-300'}`}>
+        <span className={`text-base md:text-lg font-medium transition-colors ${isOpen ? 'text-black dark:text-white' : 'text-neutral-900 dark:text-white group-hover:text-neutral-600 dark:group-hover:text-neutral-300'}`}>
           {item.question}
         </span>
-        <div className={`p-2 rounded-full bg-neutral-100 dark:bg-neutral-800 transition-all duration-300 ${isOpen ? 'rotate-180 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : ''}`}>
+        <div className={`p-2 rounded-full bg-neutral-100 dark:bg-neutral-800 transition-all duration-300 ${isOpen ? 'rotate-180 bg-neutral-200 dark:bg-neutral-800 text-black dark:text-white dark:bg-blue-900/30 dark:text-blue-400' : ''}`}>
           {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </div>
       </button>
@@ -51,10 +51,10 @@ const FaqItem = ({ item, isOpen, onClick }) => {
 const TicketItem = ({ ticket, onClick }) => {
   const getStatusColor = (status) => {
     switch (status) {
-      case 'open': return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'open': return 'bg-neutral-200 dark:bg-neutral-800 text-black dark:text-white dark:bg-blue-900/30 dark:text-blue-400';
       case 'in_progress': return 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400';
       case 'resolved': return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
-      case 'closed': return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+      case 'closed': return 'bg-gray-100 text-gray-600 dark:bg-neutral-900 dark:text-gray-400';
       default: return 'bg-gray-100 text-gray-600';
     }
   };
@@ -75,7 +75,7 @@ const TicketItem = ({ ticket, onClick }) => {
       className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:border-blue-500 dark:hover:border-blue-500 cursor-pointer transition-all bg-white dark:bg-[#1C1C1E] group"
     >
       <div className="flex justify-between items-start mb-2">
-        <h3 className="font-bold text-neutral-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+        <h3 className="font-bold text-neutral-900 dark:text-white group-hover:text-black dark:text-white dark:group-hover:text-blue-400 transition-colors line-clamp-1">
           {ticket.subject}
         </h3>
         <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ml-2 ${getStatusColor(ticket.status)}`}>
@@ -250,7 +250,7 @@ const TicketDetail = ({ ticket, onClose, onReply, loading }) => {
           const isStaff = reply.isStaff;
           return (
             <div key={idx} className={`flex gap-3 ${isStaff ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-8 h-8 rounded-full flex-shrink-0 overflow-hidden ${isStaff ? 'bg-blue-100' : 'bg-neutral-200 dark:bg-neutral-700'}`}>
+              <div className={`w-8 h-8 rounded-full flex-shrink-0 overflow-hidden ${isStaff ? 'bg-neutral-200 dark:bg-neutral-800' : 'bg-neutral-200 dark:bg-neutral-700'}`}>
                 {reply.user?.avatarUrl ? (
                   <Avatar
                     src={reply.user.avatarUrl}
@@ -259,12 +259,12 @@ const TicketDetail = ({ ticket, onClose, onReply, loading }) => {
                     className=""
                   />
                 ) : (
-                  isStaff ? <Shield className="w-full h-full p-1.5 text-blue-600" /> : <User className="w-full h-full p-1.5 text-neutral-500" />
+                  isStaff ? <Shield className="w-full h-full p-1.5 text-black dark:text-white" /> : <User className="w-full h-full p-1.5 text-neutral-500" />
                 )}
               </div>
               <div className={`flex-1 flex flex-col ${isStaff ? 'items-end' : 'items-start'}`}>
                 <div className={`p-3 rounded-2xl inline-block max-w-[85%] ${isStaff
-                    ? 'bg-blue-600 text-white rounded-tr-none'
+                    ? 'bg-black dark:bg-white text-white rounded-tr-none'
                     : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 rounded-tl-none'
                   }`}>
                   <p className="text-sm whitespace-pre-wrap">{reply.message}</p>
@@ -400,7 +400,7 @@ export default function Support({ user }) {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-bold mb-8 uppercase tracking-widest border border-blue-100 dark:border-blue-800"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800/50 dark:bg-blue-900/20 text-black dark:text-white text-xs font-bold mb-8 uppercase tracking-widest border border-blue-100 dark:border-blue-800"
         >
           <HelpCircle size={14} /> Trung tâm trợ giúp
         </motion.div>
@@ -561,7 +561,7 @@ export default function Support({ user }) {
                       <p className="mb-4">Bạn chưa có yêu cầu hỗ trợ nào.</p>
                       <button
                         onClick={() => setActiveTab('create')}
-                        className="text-blue-600 font-bold hover:underline"
+                        className="text-black dark:text-white font-bold hover:underline"
                       >
                         Tạo yêu cầu đầu tiên
                       </button>

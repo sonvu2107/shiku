@@ -102,7 +102,7 @@ const AddMembersModal = ({
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] flex flex-col border border-gray-200 dark:border-neutral-800"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -167,7 +167,7 @@ const AddMembersModal = ({
 
                       <button
                         onClick={() => handleAddMember(user._id)}
-                        className="text-blue-500 hover:bg-blue-50 p-2 rounded-full transition-colors"
+                        className="text-black dark:text-white hover:bg-neutral-100 dark:bg-neutral-800 p-2 rounded-full transition-colors"
                         title="Thêm vào nhóm"
                       >
                         <UserPlus className="w-4 h-4" />
@@ -186,7 +186,7 @@ const AddMembersModal = ({
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end p-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-end p-4 border-t border-gray-200 dark:border-neutral-800">
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"

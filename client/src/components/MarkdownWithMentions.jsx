@@ -115,7 +115,7 @@ export default function MarkdownWithMentions({ content, mentionedUsers = [] }) {
                   navigate(`/user/${userIdMatch[1]}`);
                 }
               }}
-              className="text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer"
+              className="text-black dark:text-white hover:underline font-medium cursor-pointer"
             >
               {children}
             </span>
@@ -124,7 +124,7 @@ export default function MarkdownWithMentions({ content, mentionedUsers = [] }) {
       }
       // Regular links
       return (
-        <a {...props} href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
+        <a {...props} href={href} target="_blank" rel="noopener noreferrer" className="text-black dark:text-white hover:underline">
           {children}
         </a>
       );

@@ -16,9 +16,110 @@ body[data-sidebar-collapsed="false"] {
   --sidebar-width: 280px;
 }
 
-/* Default sidebar width (fallback) */
+/* ==========================================
+   SHIKU DESIGN SYSTEM - CSS Variables
+   ========================================== */
+
+/* Light Mode (Default) */
 :root {
+  /* Sidebar */
   --sidebar-width: 280px;
+
+  /* Colors - Background */
+  --color-bg: #f9fafb;
+  --color-bg-secondary: #f3f4f6;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f9fafb;
+  --color-surface-active: #f3f4f6;
+
+  /* Colors - Text */
+  --color-text: #111827;
+  --color-text-secondary: #374151;
+  --color-text-muted: #6b7280;
+  --color-text-placeholder: #9ca3af;
+
+  /* Colors - Border */
+  --color-border: #e5e7eb;
+  --color-border-light: #f3f4f6;
+  --color-border-focus: #262626;
+
+  /* Colors - Brand */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-primary-light: #e5e5e5;
+
+  --color-accent: #10b981;
+  --color-accent-hover: #059669;
+  --color-accent-light: #d1fae5;
+
+  /* Colors - Semantic */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+
+  /* Border Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+/* Dark Mode */
+.dark {
+  /* Colors - Background */
+  --color-bg: #0a0a0a;
+  --color-bg-secondary: #111111;
+  --color-surface: #1a1a1a;
+  --color-surface-hover: #222222;
+  --color-surface-active: #2a2a2a;
+
+  /* Colors - Text */
+  --color-text: #f3f4f6;
+  --color-text-secondary: #d1d5db;
+  --color-text-muted: #9ca3af;
+  --color-text-placeholder: #6b7280;
+
+  /* Colors - Border */
+  --color-border: #2a2a2a;
+  --color-border-light: #1f1f1f;
+  --color-border-focus: #ffffff;
+
+  /* Colors - Brand (slightly adjusted for dark mode) */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #60a5fa;
+  --color-primary-light: #404040;
+
+  --color-accent: #10b981;
+  --color-accent-hover: #34d399;
+  --color-accent-light: #064e3b;
+
+  /* Shadows - darker for dark mode */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.5);
 }
 
 /* Main content and nav adjustments for sidebar collapse */
@@ -65,25 +166,191 @@ body[data-sidebar-collapsed="false"] {
   @apply max-w-4xl mx-auto px-4;
 }
 
+/* ==========================================
+   BASE COMPONENT STYLES (using CSS Variables)
+   ========================================== */
+
+/* Card - Auto adapts to light/dark mode */
 .card {
-  @apply bg-white rounded-2xl shadow p-4;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-md);
+  transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
 }
 
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Button Primary */
 .btn {
-  @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border bg-black text-white hover:opacity-90;
+  @apply inline-flex items-center gap-2 font-medium;
+  background: var(--color-primary);
+  color: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
+  transition: background var(--transition-fast);
 }
 
+.btn:hover {
+  background: var(--color-primary-hover);
+}
+
+/* Button Outline */
 .btn-outline {
-  @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50;
+  @apply inline-flex items-center gap-2 font-medium;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
+  transition: all var(--transition-fast);
 }
 
-input,
+.btn-outline:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-focus);
+}
+
+/* Input / Textarea - Base styling only, preserves component-specific padding */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([class*="pl-"]):not([class*="pr-"]),
 textarea {
-  @apply w-full rounded-xl border border-gray-300 px-3 py-2;
+  @apply w-full;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+/* For inputs with custom padding classes (like search with icons), only apply colors */
+input[class*="pl-"],
+input[class*="pr-"] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 label {
-  @apply text-sm font-medium text-gray-700;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* ==========================================
+   UTILITY CLASSES (using CSS Variables)
+   ========================================== */
+
+/* Background utilities */
+.bg-surface {
+  background: var(--color-surface);
+}
+
+.bg-surface-hover {
+  background: var(--color-surface-hover);
+}
+
+.bg-page {
+  background: var(--color-bg);
+}
+
+/* Text utilities */
+.text-primary {
+  color: var(--color-text);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+/* Border utilities */
+.border-default {
+  border-color: var(--color-border);
+}
+
+.border-light {
+  border-color: var(--color-border-light);
+}
+
+/* Shadow utilities */
+.shadow-default {
+  box-shadow: var(--shadow-md);
+}
+
+.shadow-soft {
+  box-shadow: var(--shadow-sm);
+}
+
+.shadow-strong {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Comment Input - Neutral colors (pure gray, no blue tint) */
+.comment-input-container {
+  background: #f5f5f5 !important;
+  border: 1px solid #e5e5e5;
+  /* neutral-200 */
+}
+
+.dark .comment-input-container {
+  background: #171717 !important;
+  border: 1px solid #262626;
+  /* neutral-800 */
+}
+
+.comment-input-container:focus-within {
+  background: white !important;
+  border-color: #d4d4d4;
+  /* neutral-300 */
+}
+
+.dark .comment-input-container:focus-within {
+  background: black !important;
+  border-color: #404040;
+  /* neutral-700 */
+}
+
+/* Force textarea inside comment container to be transparent */
+.comment-input-container textarea {
+  background: transparent !important;
+}
+
+/* Dropdown/Menu styles */
+.dropdown-menu {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Modal backdrop and content */
+.modal-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.dark .modal-backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+  background: var(--color-surface);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
 }
 
 /* Custom Scrollbar */
@@ -275,52 +542,58 @@ select.appearance-none {
 }
 
 /* Dark compatibility overrides for common Tailwind classes used across app */
+/* Using pure neutral colors (no blue tint) for consistency */
 .dark .bg-white {
-  background-color: #111827 !important;
+  background-color: #171717 !important;
+  /* neutral-900 */
 }
 
 .dark .bg-gray-50 {
-  background-color: #0b1220 !important;
+  background-color: #0a0a0a !important;
+  /* neutral-950 */
 }
 
 .dark .bg-gray-100 {
-  background-color: #111827 !important;
+  background-color: #171717 !important;
+  /* neutral-900 */
 }
 
 .dark .bg-gray-200 {
-  background-color: #1f2937 !important;
+  background-color: #262626 !important;
+  /* neutral-800 */
 }
 
 .dark .bg-blue-50 {
-  background-color: #0b1220 !important;
+  background-color: #0a0a0a !important;
+  /* neutral-950 */
 }
 
 .dark .bg-green-50 {
-  background-color: #0b1220 !important;
+  background-color: #0a0a0a !important;
 }
 
 .dark .bg-purple-50 {
-  background-color: #0b1220 !important;
+  background-color: #0a0a0a !important;
 }
 
 .dark .bg-red-50 {
-  background-color: #0b1220 !important;
+  background-color: #0a0a0a !important;
 }
 
 .dark .bg-yellow-50 {
-  background-color: #0b1220 !important;
+  background-color: #0a0a0a !important;
 }
 
 .dark .bg-indigo-50 {
-  background-color: #0b1220 !important;
+  background-color: #0a0a0a !important;
 }
 
 .dark .bg-emerald-50 {
-  background-color: #0b1220 !important;
+  background-color: #0a0a0a !important;
 }
 
 .dark .bg-cyan-50 {
-  background-color: #0b1220 !important;
+  background-color: #0a0a0a !important;
 }
 
 .dark .text-black {
@@ -329,6 +602,33 @@ select.appearance-none {
 
 /* Fix: Icons in buttons with white background in dark mode should be black */
 .dark [class*="dark:bg-white"] svg {
+  color: #000000 !important;
+}
+
+/* Chat Specific Overrides - Enforce Monochrome */
+.chat-bubble-own {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 1px solid #262626;
+}
+
+.dark .chat-bubble-own {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #e5e5e5;
+}
+
+.chat-btn-send {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.dark .chat-btn-send {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.dark .chat-btn-send svg {
   color: #000000 !important;
 }
 
@@ -349,44 +649,49 @@ select.appearance-none {
 }
 
 .dark .border-gray-100 {
-  border-color: #374151 !important;
+  border-color: #404040 !important;
+  /* neutral-700 */
 }
 
 .dark .border-gray-200 {
-  border-color: #374151 !important;
+  border-color: #404040 !important;
+  /* neutral-700 */
 }
 
 .dark .border-gray-300 {
-  border-color: #4b5563 !important;
+  border-color: #525252 !important;
+  /* neutral-600 */
 }
 
 .dark .divide-gray-100> :not([hidden])~ :not([hidden]) {
-  border-color: #374151 !important;
+  border-color: #404040 !important;
 }
 
 .dark .divide-gray-200> :not([hidden])~ :not([hidden]) {
-  border-color: #374151 !important;
+  border-color: #404040 !important;
 }
 
 /* Hover/active helpers commonly used */
 .dark .hover\:bg-gray-50:hover {
-  background-color: #1f2937 !important;
+  background-color: #262626 !important;
+  /* neutral-800 */
 }
 
 .dark .hover\:bg-gray-100:hover {
-  background-color: #1f2937 !important;
+  background-color: #262626 !important;
 }
 
 .dark .hover\:bg-gray-200:hover {
-  background-color: #374151 !important;
+  background-color: #404040 !important;
+  /* neutral-700 */
 }
 
 .dark .active\:bg-gray-100:active {
-  background-color: #1f2937 !important;
+  background-color: #262626 !important;
 }
 
 .dark .active\:bg-gray-200:active {
-  background-color: #374151 !important;
+  background-color: #404040 !important;
 }
 
 /* Dropdowns/menus often use these utilities */

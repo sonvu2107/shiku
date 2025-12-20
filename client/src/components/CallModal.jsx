@@ -400,10 +400,10 @@ export default function CallModal({
             className="w-full h-full object-contain"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900 dark:from-gray-800 dark:via-gray-900 dark:to-black flex items-center justify-center">
+          <div className="w-full h-full bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900 dark:from-neutral-900 dark:via-gray-900 dark:to-black flex items-center justify-center">
             {/* Voice call - hiển thị avatar */}
             <div className="flex flex-col items-center gap-6">
-              <div className="relative w-40 h-40 rounded-full border-4 border-white dark:border-gray-200 shadow-2xl overflow-hidden bg-gradient-to-br from-gray-400 to-gray-600 dark:from-gray-600 dark:to-gray-800">
+              <div className="relative w-40 h-40 rounded-full border-4 border-white dark:border-gray-200 shadow-2xl overflow-hidden bg-gradient-to-br from-gray-400 to-gray-600 dark:from-gray-600 dark:to-neutral-900">
                 {remoteAvatar ? (
                   <img
                     src={remoteAvatar}
@@ -431,7 +431,7 @@ export default function CallModal({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Avatar nhỏ */}
-            <div className="w-12 h-12 rounded-full border-2 border-white dark:border-gray-200 shadow-lg overflow-hidden bg-gradient-to-br from-gray-400 to-gray-600 dark:from-gray-600 dark:to-gray-800">
+            <div className="w-12 h-12 rounded-full border-2 border-white dark:border-gray-200 shadow-lg overflow-hidden bg-gradient-to-br from-gray-400 to-gray-600 dark:from-gray-600 dark:to-neutral-900">
               {remoteAvatar ? (
                 <img
                   src={remoteAvatar}
@@ -473,7 +473,7 @@ export default function CallModal({
           {isVideo && (
             <button
               onClick={toggleFullscreen}
-              className="w-10 h-10 rounded-full bg-gray-800/50 dark:bg-gray-700/50 hover:bg-gray-700/70 dark:hover:bg-gray-600/70 backdrop-blur-sm flex items-center justify-center text-white transition-colors"
+              className="w-10 h-10 rounded-full bg-gray-800/50 dark:bg-neutral-800/50 hover:bg-gray-700/70 dark:hover:bg-gray-600/70 backdrop-blur-sm flex items-center justify-center text-white transition-colors"
               title={isFullscreen ? "Thu nhỏ" : "Phóng to"}
             >
               {isFullscreen ? (
@@ -488,7 +488,7 @@ export default function CallModal({
 
       {/* Local video - picture in picture */}
       {(isVideo || !isVideo) && !isFullscreen && (
-        <div className="absolute top-24 right-6 z-20 w-32 h-44 rounded-2xl overflow-hidden border-2 border-white dark:border-gray-200 shadow-2xl bg-gray-800 dark:bg-gray-900">
+        <div className="absolute top-24 right-6 z-20 w-32 h-44 rounded-2xl overflow-hidden border-2 border-white dark:border-gray-200 shadow-2xl bg-gray-800 dark:bg-neutral-950">
           {isVideo ? (
             <>
               <video
@@ -526,7 +526,7 @@ export default function CallModal({
             className={`group relative w-14 h-14 rounded-full flex items-center justify-center transition-all ${
               isMuted
                 ? 'bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-700'
-                : 'bg-gray-800/50 dark:bg-gray-700/50 hover:bg-gray-700/70 dark:hover:bg-gray-600/70 backdrop-blur-sm'
+                : 'bg-gray-800/50 dark:bg-neutral-800/50 hover:bg-gray-700/70 dark:hover:bg-gray-600/70 backdrop-blur-sm'
             }`}
             title={isMuted ? "Bật tiếng" : "Tắt tiếng"}
           >
@@ -544,7 +544,7 @@ export default function CallModal({
               className={`group relative w-14 h-14 rounded-full flex items-center justify-center transition-all ${
                 isVideoOff
                   ? 'bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-700'
-                  : 'bg-gray-800/50 dark:bg-gray-700/50 hover:bg-gray-700/70 dark:hover:bg-gray-600/70 backdrop-blur-sm'
+                  : 'bg-gray-800/50 dark:bg-neutral-800/50 hover:bg-gray-700/70 dark:hover:bg-gray-600/70 backdrop-blur-sm'
               }`}
               title={isVideoOff ? "Bật camera" : "Tắt camera"}
             >

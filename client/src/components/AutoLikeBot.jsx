@@ -158,8 +158,8 @@ export default function AutoLikeBot() {
   };
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen py-4 md:py-10 px-2 md:px-4">
-      <div className="max-w-6xl mx-auto bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl shadow-xl p-4 md:p-8 border border-gray-200 dark:border-gray-700">
+    <div className="bg-gray-50 dark:bg-neutral-950 min-h-screen py-4 md:py-10 px-2 md:px-4">
+      <div className="max-w-6xl mx-auto bg-white dark:bg-neutral-900 rounded-xl md:rounded-2xl shadow-xl p-4 md:p-8 border border-gray-200 dark:border-neutral-800">
         {/* Header - Mobile Responsive */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-6">
           <div className="p-3 bg-black text-white rounded-xl w-fit">
@@ -176,11 +176,11 @@ export default function AutoLikeBot() {
         </div>
 
         {/* Bot Mode Tabs - Mobile Responsive */}
-        <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-1 mb-6 md:mb-8">
+        <div className="flex bg-gray-100 dark:bg-neutral-800 rounded-xl p-1 mb-6 md:mb-8">
           <button
             onClick={() => setBotMode("like")}
             className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-semibold transition-all text-sm sm:text-base ${botMode === "like"
-              ? "bg-white dark:bg-gray-600 text-black dark:text-white shadow-sm"
+              ? "bg-white dark:bg-neutral-700 text-black dark:text-white shadow-sm"
               : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
               }`}
           >
@@ -190,7 +190,7 @@ export default function AutoLikeBot() {
           <button
             onClick={() => setBotMode("view")}
             className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-semibold transition-all text-sm sm:text-base ${botMode === "view"
-              ? "bg-white dark:bg-gray-600 text-black dark:text-white shadow-sm"
+              ? "bg-white dark:bg-neutral-700 text-black dark:text-white shadow-sm"
               : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
               }`}
           >
@@ -208,7 +208,7 @@ export default function AutoLikeBot() {
               <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">Cấu hình Bot</h3>
             </div>
 
-            <div className="bg-gray-100 dark:bg-gray-700 rounded-xl p-3 md:p-4 space-y-3 md:space-y-4">
+            <div className="bg-gray-100 dark:bg-neutral-800 rounded-xl p-3 md:p-4 space-y-3 md:space-y-4">
               {botMode === "like" && (
                 <>
                   <div>
@@ -226,7 +226,7 @@ export default function AutoLikeBot() {
                           maxPostsPerUser: parseInt(e.target.value),
                         }))
                       }
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-gray-600 dark:text-white touch-target"
+                      className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-neutral-700 dark:text-white touch-target"
                     />
                   </div>
 
@@ -246,7 +246,7 @@ export default function AutoLikeBot() {
                           likeProbability: parseFloat(e.target.value),
                         }))
                       }
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-gray-600 dark:text-white touch-target"
+                      className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-neutral-700 dark:text-white touch-target"
                     />
                   </div>
 
@@ -265,8 +265,8 @@ export default function AutoLikeBot() {
                             setConfig((p) => ({ ...p, emoteTypes: list }));
                           }}
                           className={`px-2 py-2 md:px-3 md:py-2 rounded-lg text-lg border transition-all touch-target ${config.emoteTypes.includes(emote)
-                            ? "bg-black dark:bg-blue-600 text-white border-black dark:border-blue-600"
-                            : "bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-500"
+                            ? "bg-black dark:bg-black dark:bg-white text-white border-black dark:border-neutral-800 dark:border-neutral-200"
+                            : "bg-white dark:bg-neutral-700 border-gray-300 dark:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-500"
                             }`}
                         >
                           {emote}
@@ -311,7 +311,7 @@ export default function AutoLikeBot() {
                           maxViewsPerUser: parseInt(e.target.value),
                         }))
                       }
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-gray-600 dark:text-white touch-target"
+                      className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-neutral-700 dark:text-white touch-target"
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Mỗi tài khoản sẽ xem {config.maxViewsPerUser} bài viết để tăng lượt xem.
@@ -333,7 +333,7 @@ export default function AutoLikeBot() {
                           loopCount: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)),
                         }))
                       }
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-gray-600 dark:text-white touch-target"
+                      className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-neutral-700 dark:text-white touch-target"
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Tổng views dự kiến: {config.maxViewsPerUser * config.loopCount} views/tài khoản
@@ -356,13 +356,13 @@ export default function AutoLikeBot() {
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={selectAllUsers}
-                  className="text-xs px-2 md:px-3 py-1.5 bg-black dark:bg-blue-600 text-white rounded-md hover:bg-gray-900 dark:hover:bg-blue-700 transition touch-target"
+                  className="text-xs px-2 md:px-3 py-1.5 bg-black dark:bg-black dark:bg-white text-white rounded-md hover:bg-gray-900 dark:hover:bg-blue-700 transition touch-target"
                 >
                   Chọn tất cả
                 </button>
                 <button
                   onClick={clearUserSelection}
-                  className="text-xs px-2 md:px-3 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition touch-target"
+                  className="text-xs px-2 md:px-3 py-1.5 bg-gray-200 dark:bg-neutral-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition touch-target"
                 >
                   Bỏ chọn
                 </button>
@@ -376,7 +376,7 @@ export default function AutoLikeBot() {
               </div>
             </div>
 
-            <div className="border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 overflow-hidden">
+            <div className="border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 overflow-hidden">
               <div className="max-h-48 md:max-h-64 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-600">
                 {testUsers.length ? (
                   testUsers
@@ -426,7 +426,7 @@ export default function AutoLikeBot() {
               disabled={loading || isRunning || selectedUsers.length === 0}
               className={`w-full py-3 md:py-2.5 font-medium rounded-lg text-white text-sm md:text-base transition-all flex items-center justify-center gap-2 touch-target ${loading || isRunning || selectedUsers.length === 0
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-black dark:bg-blue-600 hover:bg-gray-900 dark:hover:bg-blue-700 shadow-md"
+                : "bg-black dark:bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-blue-700 shadow-md"
                 }`}
             >
               {loading ? (
@@ -447,7 +447,7 @@ export default function AutoLikeBot() {
               disabled={loading || isRunning || selectedUsers.length === 0}
               className={`w-full py-3 md:py-2.5 font-medium rounded-lg text-white text-sm md:text-base transition-all flex items-center justify-center gap-2 touch-target ${loading || isRunning || selectedUsers.length === 0
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-black dark:bg-blue-600 hover:bg-gray-900 dark:hover:bg-blue-700 shadow-md"
+                : "bg-black dark:bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-blue-700 shadow-md"
                 }`}
             >
               {loading ? (
@@ -473,13 +473,13 @@ export default function AutoLikeBot() {
         )}
 
         {/* Maintenance Tools Section */}
-        <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+        <div className="mt-8 border-t border-gray-200 dark:border-neutral-800 pt-6">
           <div className="flex items-center gap-2 mb-4">
             <Wrench className="w-4 h-4 md:w-5 md:h-5 text-gray-800 dark:text-gray-200" />
             <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">Công Cụ Bảo Trì</h3>
           </div>
 
-          <div className="bg-gray-100 dark:bg-gray-700 rounded-xl p-4 space-y-4">
+          <div className="bg-gray-100 dark:bg-neutral-800 rounded-xl p-4 space-y-4">
             {/* Sync Comment Counts */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
@@ -518,15 +518,15 @@ export default function AutoLikeBot() {
                   {syncResult.message}
                 </div>
                 <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                  <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                  <div className="text-center p-2 bg-white dark:bg-neutral-900 rounded-lg">
                     <div className="font-bold text-lg text-gray-900 dark:text-white">{syncResult.orphansDeleted || 0}</div>
                     <div className="text-gray-500 dark:text-gray-400">Comment đã xóa</div>
                   </div>
-                  <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                  <div className="text-center p-2 bg-white dark:bg-neutral-900 rounded-lg">
                     <div className="font-bold text-lg text-gray-900 dark:text-white">{syncResult.postsUpdated || 0}</div>
                     <div className="text-gray-500 dark:text-gray-400">Bài đã cập nhật</div>
                   </div>
-                  <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                  <div className="text-center p-2 bg-white dark:bg-neutral-900 rounded-lg">
                     <div className="font-bold text-lg text-gray-900 dark:text-white">{syncResult.totalPosts || 0}</div>
                     <div className="text-gray-500 dark:text-gray-400">Tổng bài viết</div>
                   </div>
@@ -538,7 +538,7 @@ export default function AutoLikeBot() {
 
         {/* Results - Mobile Responsive */}
         {results && (
-          <div className="mt-6 md:mt-10 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-4 md:p-6">
+          <div className="mt-6 md:mt-10 bg-gray-100 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl p-4 md:p-6">
             <div className="flex items-center gap-2 mb-4">
               <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" />
               <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">

@@ -434,13 +434,13 @@ function ActivityLeaderboard() {
                                         {/* Posts */}
                                         <div className="col-span-2">
                                             <div className="flex flex-col items-center">
-                                                <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-bold">
+                                                <div className="flex items-center gap-1 text-black dark:text-white font-bold">
                                                     <FileText size={14} />
                                                     {user.postCount}
                                                 </div>
                                                 <div className="w-full h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full mt-1 overflow-hidden">
                                                     <div
-                                                        className="h-full bg-blue-500 rounded-full transition-all"
+                                                        className="h-full bg-black dark:bg-white rounded-full transition-all"
                                                         style={{ width: `${(user.postCount / maxStats.posts) * 100}%` }}
                                                     />
                                                 </div>

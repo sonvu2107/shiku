@@ -165,12 +165,12 @@ export default function GroupMembersModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+      <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-neutral-800">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-              <Users size={20} className="text-blue-600 dark:text-blue-400" />
+            <div className="w-10 h-10 bg-neutral-200 dark:bg-neutral-800 dark:bg-blue-900 rounded-full flex items-center justify-center">
+              <Users size={20} className="text-black dark:text-white" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -183,7 +183,7 @@ export default function GroupMembersModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
           >
             <X size={20} className="text-gray-500" />
           </button>
@@ -200,7 +200,7 @@ export default function GroupMembersModal({
           {!loading && (
             <div className="space-y-4">
               {members.map((member) => (
-                <div key={member.user._id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div key={member.user._id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-lg">
                   <div className="flex items-center space-x-3">
                     {/* Avatar */}
                     <div className="relative">
@@ -222,7 +222,7 @@ export default function GroupMembersModal({
                           {getDisplayName(member)}
                         </h4>
                         {isGroupAdmin(member) && (
-                          <span className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-full">
+                          <span className="px-2 py-1 text-xs bg-neutral-200 dark:bg-neutral-800 dark:bg-blue-900 text-black dark:text-white rounded-full">
                             Admin
                           </span>
                         )}
@@ -251,7 +251,7 @@ export default function GroupMembersModal({
                             onChange={(e) => setNewNickname(e.target.value)}
                             onKeyDown={handleKeyPress}
                             placeholder="Nhập biệt danh..."
-                            className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white"
+                            className="px-3 py-1 text-sm border border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-neutral-700 dark:text-white"
                             maxLength={30}
                             autoFocus
                           />
@@ -311,7 +311,7 @@ export default function GroupMembersModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end p-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end p-6 border-t border-gray-200 dark:border-neutral-800">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"

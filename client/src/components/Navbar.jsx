@@ -463,7 +463,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
                                 setHistoryEditing(true);
                               }
                             }}
-                            className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                            className="text-xs font-bold text-black dark:text-white hover:text-blue-700 dark:text-blue-400"
                           >
                             {historyEditing ? 'Xong' : 'Chỉnh sửa'}
                           </button>
@@ -619,7 +619,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
                             <div className="font-bold text-neutral-900 dark:text-white text-base truncate">
                               <UserName user={user} maxLength={18} showBadges={false} />
                             </div>
-                            <Link to="/profile" className="text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline" onClick={() => setShowProfileMenu(false)}>
+                            <Link to="/profile" className="text-sm text-black dark:text-white font-medium hover:underline" onClick={() => setShowProfileMenu(false)}>
                               Xem trang cá nhân
                             </Link>
                           </div>

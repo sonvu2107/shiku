@@ -93,7 +93,7 @@ const SpotlightGroupCard = ({ group, onJoin, onLeave, userRole, isJoining, isLea
                </div>
 
                <Link to={`/groups/${group._id}`} className="block mb-1 mt-10">
-                  <h3 className="font-bold text-lg text-neutral-900 dark:text-white hover:text-blue-500 transition-colors line-clamp-1">
+                  <h3 className="font-bold text-lg text-neutral-900 dark:text-white hover:text-black dark:text-white transition-colors line-clamp-1">
                      {group.name}
                   </h3>
                </Link>
@@ -317,7 +317,7 @@ export default function Groups() {
             </div>
 
             {/* --- TABS --- */}
-            <div className="sticky top-20 z-30 mb-8 bg-white/80 dark:bg-black/80 backdrop-blur-xl rounded-2xl p-1.5 border border-neutral-200 dark:border-neutral-800 inline-flex w-full md:w-auto">
+            <div className="mb-8 bg-white/80 dark:bg-black/80 backdrop-blur-xl rounded-2xl p-1.5 border border-neutral-200 dark:border-neutral-800 inline-flex w-full md:w-auto">
                {[
                   { id: 'discover', label: 'Khám phá', icon: Globe, count: totalGroups },
                   { id: 'my-groups', label: 'Nhóm của tôi', icon: Users, count: myGroups.length },
@@ -419,7 +419,7 @@ export default function Groups() {
                         className="text-center py-20 bg-neutral-50 dark:bg-neutral-900 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800"
                      >
                         <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center shadow-inner">
-                           <Users size={40} className="text-blue-500 dark:text-blue-400" />
+                           <Users size={40} className="text-black dark:text-white dark:text-blue-400" />
                         </div>
                         <h3 className="font-bold text-xl text-neutral-900 dark:text-white mb-2">Bạn chưa tham gia nhóm nào</h3>
                         <p className="text-neutral-500 dark:text-neutral-400 mb-6">Khám phá các cộng đồng thú vị ngay!</p>

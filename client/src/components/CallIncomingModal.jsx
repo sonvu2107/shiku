@@ -35,7 +35,7 @@ const CallIncomingModal = ({ open, caller, isVideo, onAccept, onReject }) => {
           <div className="absolute inset-0 -m-12 rounded-full border-4 border-gray-600 dark:border-gray-500 opacity-10 animate-ping" style={{ animationDelay: "0.4s" }}></div>
 
           {/* Avatar */}
-          <div className="relative w-32 h-32 rounded-full border-4 border-white dark:border-gray-200 shadow-2xl overflow-hidden bg-gradient-to-br from-gray-400 to-gray-600 dark:from-gray-600 dark:to-gray-800">
+          <div className="relative w-32 h-32 rounded-full border-4 border-white dark:border-gray-200 shadow-2xl overflow-hidden bg-gradient-to-br from-gray-400 to-gray-600 dark:from-gray-600 dark:to-neutral-900">
             {callerAvatar ? (
               <img
                 src={callerAvatar}
@@ -55,7 +55,7 @@ const CallIncomingModal = ({ open, caller, isVideo, onAccept, onReject }) => {
           </div>
 
           {/* Call type icon */}
-          <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-gray-700 dark:bg-gray-600 rounded-full border-4 border-white dark:border-gray-900 shadow-lg flex items-center justify-center">
+          <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-gray-700 dark:bg-neutral-700 rounded-full border-4 border-white dark:border-gray-900 shadow-lg flex items-center justify-center">
             {isVideo ? (
               <Video className="w-6 h-6 text-white" />
             ) : (
@@ -104,7 +104,7 @@ const CallIncomingModal = ({ open, caller, isVideo, onAccept, onReject }) => {
         {/* Swipe hint for mobile */}
         <div className="mt-12 text-gray-400 dark:text-gray-500 text-sm text-center animate-bounce">
           <div className="flex items-center gap-2 justify-center">
-            <div className="w-8 h-1 bg-gray-400/30 dark:bg-gray-500/30 rounded-full"></div>
+            <div className="w-8 h-1 bg-gray-400/30 dark:bg-neutral-600/30 rounded-full"></div>
           </div>
         </div>
       </div>

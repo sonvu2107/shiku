@@ -33,7 +33,7 @@ export default function Terms() {
                 </p>
              </SpotlightCard>
              <SpotlightCard className="border-l-4 border-l-blue-500">
-                <h3 className="text-xl font-bold mb-2 flex items-center gap-2"><Lock className="text-blue-500"/> Bảo mật</h3>
+                <h3 className="text-xl font-bold mb-2 flex items-center gap-2"><Lock className="text-black dark:text-white"/> Bảo mật</h3>
                 <p className="text-neutral-600 dark:text-neutral-400">
                    Mật khẩu của bạn được mã hóa một chiều (hash). Tin nhắn riêng tư được mã hóa đầu cuối (E2EE) để đảm bảo chỉ người gửi và người nhận đọc được.
                 </p>
@@ -155,7 +155,7 @@ export default function Terms() {
                <div className="mt-12 p-6 rounded-2xl bg-neutral-100 dark:bg-neutral-900 text-center">
                   <p className="text-sm text-neutral-500 mb-2">Cập nhật lần cuối: 21/11/2025</p>
                   <p className="text-sm font-medium">
-                     Nếu có thắc mắc, vui lòng liên hệ <a href="mailto:support@shiku.click" className="text-blue-600 hover:underline">support@shiku.click</a>
+                     Nếu có thắc mắc, vui lòng liên hệ <a href="mailto:support@shiku.click" className="text-black dark:text-white hover:underline">support@shiku.click</a>
                   </p>
                </div>
             </motion.div>

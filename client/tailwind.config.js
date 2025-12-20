@@ -8,8 +8,60 @@
 export default {
   darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,jsx}"], // Files để quét classes
-  theme: { 
+  theme: {
     extend: {
+      // CSS Variables integration
+      colors: {
+        // Design system colors
+        surface: 'var(--color-surface)',
+        'surface-hover': 'var(--color-surface-hover)',
+        'surface-active': 'var(--color-surface-active)',
+        page: 'var(--color-bg)',
+        'page-secondary': 'var(--color-bg-secondary)',
+
+        // Semantic colors
+        primary: {
+          DEFAULT: 'var(--color-primary)',
+          hover: 'var(--color-primary-hover)',
+          light: 'var(--color-primary-light)',
+        },
+        accent: {
+          DEFAULT: 'var(--color-accent)',
+          hover: 'var(--color-accent-hover)',
+          light: 'var(--color-accent-light)',
+        },
+      },
+
+      borderColor: {
+        DEFAULT: 'var(--color-border)',
+        light: 'var(--color-border-light)',
+        focus: 'var(--color-border-focus)',
+      },
+
+      textColor: {
+        primary: 'var(--color-text)',
+        secondary: 'var(--color-text-secondary)',
+        muted: 'var(--color-text-muted)',
+        placeholder: 'var(--color-text-placeholder)',
+      },
+
+      borderRadius: {
+        DEFAULT: 'var(--radius-md)',
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+        xl: 'var(--radius-xl)',
+        '2xl': 'var(--radius-2xl)',
+      },
+
+      boxShadow: {
+        DEFAULT: 'var(--shadow-md)',
+        sm: 'var(--shadow-sm)',
+        md: 'var(--shadow-md)',
+        lg: 'var(--shadow-lg)',
+        xl: 'var(--shadow-xl)',
+      },
+
       // Custom utilities for scrollbar
       // Animation và keyframes cho Aurora và Marquee
       animation: {
@@ -46,7 +98,7 @@ export default {
     }
   }, // Theme customization
   plugins: [
-    function({ addUtilities }) {
+    function ({ addUtilities }) {
       addUtilities({
         '.scrollbar-hide': {
           /* IE and Edge */

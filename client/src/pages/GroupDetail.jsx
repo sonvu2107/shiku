@@ -754,7 +754,7 @@ const GroupDetail = () => {
    if (loading) {
       return (
          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-800 dark:border-neutral-200 dark:border-blue-400"></div>
          </div>
       );
    }
@@ -766,7 +766,7 @@ const GroupDetail = () => {
                <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
                <button
                   onClick={() => navigate('/groups')}
-                  className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+                  className="px-4 py-2 bg-black dark:bg-white dark:bg-black dark:bg-white text-white rounded-lg hover:bg-blue-700 dark:hover:bg-black dark:bg-white transition-colors"
                >
                   Quay lại danh sách nhóm
                </button>
@@ -782,7 +782,7 @@ const GroupDetail = () => {
                <p className="text-gray-600 dark:text-gray-400 mb-4">Không tìm thấy nhóm</p>
                <button
                   onClick={() => navigate('/groups')}
-                  className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+                  className="px-4 py-2 bg-black dark:bg-white dark:bg-black dark:bg-white text-white rounded-lg hover:bg-blue-700 dark:hover:bg-black dark:bg-white transition-colors"
                >
                   Quay lại danh sách nhóm
                </button>
@@ -1130,7 +1130,7 @@ const GroupDetail = () => {
                               {paginatedMembers.map(member => {
                                  const roleConfig = {
                                     owner: { icon: Crown, label: 'Owner', color: 'text-yellow-600 dark:text-yellow-400', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20', borderColor: 'border-yellow-200 dark:border-yellow-800' },
-                                    admin: { icon: Shield, label: 'Admin', color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-900/20', borderColor: 'border-blue-200 dark:border-blue-800' },
+                                    admin: { icon: Shield, label: 'Admin', color: 'text-black dark:text-white', bgColor: 'bg-neutral-100 dark:bg-neutral-800', borderColor: 'border-blue-200 dark:border-blue-800' },
                                     moderator: { icon: ShieldCheck, label: 'Moderator', color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-50 dark:bg-purple-900/20', borderColor: 'border-purple-200 dark:border-purple-800' },
                                     member: { icon: User, label: 'Member', color: 'text-neutral-600 dark:text-neutral-400', bgColor: 'bg-neutral-50 dark:bg-neutral-800/50', borderColor: 'border-neutral-200 dark:border-neutral-700' }
                                  };

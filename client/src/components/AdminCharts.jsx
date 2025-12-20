@@ -336,8 +336,8 @@ export default function AdminCharts() {
             {/* Summary - All-time totals */}
             {allTimeTotals && (
                 <div className="mt-4 sm:mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-                    <div className="text-center p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                        <div className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    <div className="text-center p-2 sm:p-3 bg-neutral-100 dark:bg-neutral-800 rounded-xl">
+                        <div className="text-lg sm:text-2xl font-bold text-black dark:text-white">
                             {allTimeTotals.posts}
                         </div>
                         <div className="text-[10px] sm:text-xs text-neutral-600 dark:text-neutral-400">Tổng bài viết</div>

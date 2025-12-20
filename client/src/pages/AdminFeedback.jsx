@@ -35,7 +35,7 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
           <div>
             <h3 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
               {ticket.subject}
-              <span className={`text-xs px-2 py-1 rounded-full ${ticket.status === 'Mở' ? 'bg-blue-100 text-blue-700' :
+              <span className={`text-xs px-2 py-1 rounded-full ${ticket.status === 'Mở' ? 'bg-neutral-200 dark:bg-neutral-800 text-blue-700' :
                 ticket.status === 'Đang xử lý' ? 'bg-yellow-100 text-yellow-700' :
                   ticket.status === 'Đã giải quyết' ? 'bg-green-100 text-green-700' :
                     'bg-gray-100 text-gray-700'
@@ -49,7 +49,7 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
               <span>{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true, locale: vi })}</span>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
+          <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-neutral-800 rounded-full">
             <X size={20} />
           </button>
         </div>
@@ -59,7 +59,7 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
           <select
             value={ticket.status}
             onChange={(e) => onStatusChange(ticket._id, e.target.value)}
-            className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 text-sm bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer"
+            className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-neutral-800 text-sm bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer"
           >
             <option value="open">Mở</option>
             <option value="in_progress">Đang xử lý</option>
@@ -81,7 +81,7 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
               />
             </div>
             <div className="flex-1">
-              <div className="bg-white dark:bg-neutral-800 p-4 rounded-2xl rounded-tl-none shadow-sm border border-gray-200 dark:border-gray-700/50 inline-block max-w-[90%]">
+              <div className="bg-white dark:bg-neutral-800 p-4 rounded-2xl rounded-tl-none shadow-sm border border-gray-200 dark:border-neutral-800/50 inline-block max-w-[90%]">
                 <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{ticket.message}</p>
               </div>
             </div>
@@ -90,7 +90,7 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
           {/* Replies */}
           {ticket.replies?.map((reply, idx) => (
             <div key={idx} className={`flex gap-3 ${reply.isStaff ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-8 h-8 rounded-full flex-shrink-0 overflow-hidden ${reply.isStaff ? 'bg-blue-100' : 'bg-gray-200'}`}>
+              <div className={`w-8 h-8 rounded-full flex-shrink-0 overflow-hidden ${reply.isStaff ? 'bg-neutral-200 dark:bg-neutral-800' : 'bg-gray-200'}`}>
                 <Avatar
                   src={reply.user?.avatarUrl}
                   name={reply.user?.name || 'User'}
@@ -100,8 +100,8 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
               </div>
               <div className={`flex-1 flex flex-col ${reply.isStaff ? 'items-end' : 'items-start'}`}>
                 <div className={`p-4 rounded-2xl shadow-sm inline-block max-w-[90%] ${reply.isStaff
-                  ? 'bg-blue-600 text-white rounded-tr-none'
-                  : 'bg-white dark:bg-neutral-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-200 dark:border-gray-700/50'
+                  ? 'bg-black dark:bg-white text-white rounded-tr-none'
+                  : 'bg-white dark:bg-neutral-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-200 dark:border-neutral-800/50'
                   }`}>
                   <p className="whitespace-pre-wrap">{reply.message}</p>
                 </div>
@@ -121,12 +121,12 @@ const TicketDetailModal = ({ ticket, onClose, onReply, onStatusChange, loading }
             value={replyMessage}
             onChange={(e) => setReplyMessage(e.target.value)}
             placeholder="Nhập câu trả lời..."
-            className="flex-1 px-4 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            className="flex-1 px-4 py-2 rounded-full border border-gray-300 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           />
           <button
             type="submit"
             disabled={!replyMessage.trim() || loading}
-            className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50"
+            className="p-2 bg-black dark:bg-white text-white rounded-full hover:bg-blue-700 disabled:opacity-50"
           >
             <Send size={20} />
           </button>
@@ -164,7 +164,7 @@ const FAQModal = ({ faq, onClose, onSave, loading }) => {
               required
               value={formData.question}
               onChange={e => setFormData({ ...formData, question: e.target.value })}
-              className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full p-2 rounded-lg border border-gray-300 dark:border-neutral-800 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
           <div>
@@ -174,7 +174,7 @@ const FAQModal = ({ faq, onClose, onSave, loading }) => {
               rows={4}
               value={formData.answer}
               onChange={e => setFormData({ ...formData, answer: e.target.value })}
-              className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+              className="w-full p-2 rounded-lg border border-gray-300 dark:border-neutral-800 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -183,7 +183,7 @@ const FAQModal = ({ faq, onClose, onSave, loading }) => {
               <select
                 value={formData.category}
                 onChange={e => setFormData({ ...formData, category: e.target.value })}
-                className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer"
+                className="w-full p-2 rounded-lg border border-gray-300 dark:border-neutral-800 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer"
               >
                 <option value="start">Bắt đầu</option>
                 <option value="account">Tài khoản</option>
@@ -198,7 +198,7 @@ const FAQModal = ({ faq, onClose, onSave, loading }) => {
                 type="number"
                 value={formData.order}
                 onChange={e => setFormData({ ...formData, order: parseInt(e.target.value) })}
-                className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full p-2 rounded-lg border border-gray-300 dark:border-neutral-800 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             </div>
           </div>
@@ -213,8 +213,8 @@ const FAQModal = ({ faq, onClose, onSave, loading }) => {
           </div>
 
           <div className="flex justify-end gap-2 mt-6">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-neutral-800 hover:bg-gray-300 dark:hover:bg-neutral-700 text-gray-800 dark:text-gray-200 transition-colors shadow-sm">Hủy</button>
-            <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all disabled:opacity-50">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-300 dark:border-neutral-800 bg-gray-200 dark:bg-neutral-800 hover:bg-gray-300 dark:hover:bg-neutral-700 text-gray-800 dark:text-gray-200 transition-colors shadow-sm">Hủy</button>
+            <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg bg-black dark:bg-white hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all disabled:opacity-50">
               {loading ? "Đang lưu..." : "Lưu"}
             </button>
           </div>
@@ -336,7 +336,7 @@ export default function AdminFeedback() {
             <button
               onClick={() => setActiveTab("tickets")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "tickets"
-                ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                ? "bg-neutral-100 dark:bg-neutral-800 text-black dark:text-white dark:bg-blue-900/20 dark:text-blue-400"
                 : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800"
                 }`}
             >
@@ -345,7 +345,7 @@ export default function AdminFeedback() {
             <button
               onClick={() => setActiveTab("faqs")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "faqs"
-                ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                ? "bg-neutral-100 dark:bg-neutral-800 text-black dark:text-white dark:bg-blue-900/20 dark:text-blue-400"
                 : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800"
                 }`}
             >
@@ -358,7 +358,7 @@ export default function AdminFeedback() {
           <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-800/80 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-neutral-800 border-b border-gray-200/80 dark:border-gray-700/80">
+                <thead className="bg-gray-50 dark:bg-neutral-800 border-b border-gray-200/80 dark:border-neutral-800/80">
                   <tr>
                     <th className="px-6 py-4 font-semibold text-gray-900 dark:text-white">Tiêu đề</th>
                     <th className="px-6 py-4 font-semibold text-gray-900 dark:text-white">Người gửi</th>
@@ -386,7 +386,7 @@ export default function AdminFeedback() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${ticket.status === 'Mở' ? 'bg-blue-100 text-blue-700' :
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${ticket.status === 'Mở' ? 'bg-neutral-200 dark:bg-neutral-800 text-blue-700' :
                           ticket.status === 'Đang xử lý' ? 'bg-yellow-100 text-yellow-700' :
                             ticket.status === 'Đã giải quyết' ? 'bg-green-100 text-green-700' :
                               'bg-gray-100 text-gray-700'
@@ -397,7 +397,7 @@ export default function AdminFeedback() {
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-bold ${ticket.priority === 'Cấp bách' ? 'bg-red-100 text-red-700' :
                           ticket.priority === 'Cao' ? 'bg-orange-100 text-orange-700' :
-                            ticket.priority === 'Trung bình' ? 'bg-blue-100 text-blue-700' :
+                            ticket.priority === 'Trung bình' ? 'bg-neutral-200 dark:bg-neutral-800 text-blue-700' :
                               'bg-gray-100 text-gray-700'
                           }`}>
                           {ticket.priority}
@@ -409,7 +409,7 @@ export default function AdminFeedback() {
                       <td className="px-6 py-4">
                         <button
                           onClick={() => setSelectedTicket(ticket)}
-                          className="text-blue-600 hover:text-blue-800 font-medium"
+                          className="text-black dark:text-white hover:text-blue-800 font-medium"
                         >
                           Chi tiết
                         </button>
@@ -432,7 +432,7 @@ export default function AdminFeedback() {
             <div className="flex justify-end mb-4">
               <button
                 onClick={() => { setEditingFaq(null); setShowFaqModal(true); }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-black dark:bg-white text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <Plus size={18} /> Thêm FAQ
               </button>

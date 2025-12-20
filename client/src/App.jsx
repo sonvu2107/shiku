@@ -407,17 +407,17 @@ export default function App() {
   // Hiển thị loading screen khi app đang khởi tạo
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
         <div className="flex flex-col items-center space-y-4">
           {/* Square animation loader */}
           <Loader />
 
           {/* Loading text */}
           <div className="text-center">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">
+            <h2 className="text-lg font-bold text-black dark:text-white mb-1">
               Đang khởi tạo Shiku
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 animate-pulse">
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 animate-pulse">
               Vui lòng chờ trong giây lát...
             </p>
           </div>

@@ -99,7 +99,7 @@ export default function APIMonitoring() {
               <Activity className="w-5 h-5 sm:w-6 sm:h-6" />
               <span className="truncate">API Monitoring</span>
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-neutral-200 dark:bg-neutral-800 text-blue-800">
                   <Server className="w-3 h-3 mr-1" />
                   Persistent
                 </span>
@@ -124,7 +124,7 @@ export default function APIMonitoring() {
             {isRealtimeEnabled && (
               <span className="block sm:inline sm:ml-2 text-green-600">• Real-time enabled</span>
             )}
-            <span className="block sm:inline sm:ml-2 text-blue-600">• Persistent storage</span>
+            <span className="block sm:inline sm:ml-2 text-black dark:text-white">• Persistent storage</span>
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -159,7 +159,7 @@ export default function APIMonitoring() {
                   key={section.id}
                   onClick={() => scrollToSection(section.id)}
                   className={`flex items-center gap-2 p-3 rounded-lg text-sm font-medium transition-colors ${activeSection === section.id
-                      ? 'bg-blue-100 text-blue-700'
+                      ? 'bg-neutral-200 dark:bg-neutral-800 text-blue-700'
                       : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                     }`}
                 >
@@ -195,10 +195,10 @@ export default function APIMonitoring() {
       {/* Overview Cards - Mobile Optimized */}
       <div id="overview" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Requests */}
-        <div className="bg-blue-50 p-3 sm:p-4 rounded-lg mobile-card">
+        <div className="bg-neutral-100 dark:bg-neutral-800 p-3 sm:p-4 rounded-lg mobile-card">
           <div className="flex items-center gap-2 mb-1 sm:mb-2">
-            <Server className="text-blue-600 w-4 h-4 sm:w-6 sm:h-6 flex-shrink-0" />
-            <div className="text-lg sm:text-2xl font-bold text-blue-600 truncate mobile-number">
+            <Server className="text-black dark:text-white w-4 h-4 sm:w-6 sm:h-6 flex-shrink-0" />
+            <div className="text-lg sm:text-2xl font-bold text-black dark:text-white truncate mobile-number">
               {stats.overview.totalRequests.toLocaleString()}
             </div>
           </div>
@@ -274,7 +274,7 @@ export default function APIMonitoring() {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <div className="w-16 sm:w-20 bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-blue-500 h-2 rounded-full"
+                        className="bg-black dark:bg-white h-2 rounded-full"
                         style={{
                           width: `${(stats.topEndpoints && stats.topEndpoints[0]?.count) ? (endpoint.count / stats.topEndpoints[0].count) * 100 : 0}%`
                         }}
@@ -338,13 +338,13 @@ export default function APIMonitoring() {
           {Object.entries(rateLimits).map(([key, limit]) => (
             <div key={key} className="bg-gray-50 p-3 sm:p-4 rounded-lg">
               <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-black dark:text-white flex-shrink-0" />
                 <span className="font-medium capitalize text-sm sm:text-base truncate">{key}</span>
               </div>
               <div className="text-xs sm:text-sm text-gray-600 mb-1">
                 {limit.description}
               </div>
-              <div className="text-base sm:text-lg font-bold text-blue-600">
+              <div className="text-base sm:text-lg font-bold text-black dark:text-white">
                 {limit.max} requests
               </div>
               <div className="text-xs text-gray-500">
@@ -370,7 +370,7 @@ export default function APIMonitoring() {
                 </div>
                 <div className="bg-gray-200 rounded h-16 sm:h-20 flex items-end">
                   <div
-                    className="bg-blue-500 w-full rounded"
+                    className="bg-black dark:bg-white w-full rounded"
                     style={{
                       height: `${Math.max(2, (hour.requests / Math.max(1, ...((stats.hourlyDistribution || []).map(h => h.requests || 0)))) * 100)}%`
                     }}
@@ -423,7 +423,7 @@ export default function APIMonitoring() {
                     }`}></div>
                   <div className="min-w-0 flex-1">
                     <div className="font-mono text-xs sm:text-sm">
-                      <span className="font-bold text-blue-600">{update.method}</span>
+                      <span className="font-bold text-black dark:text-white">{update.method}</span>
                       <span className="mx-1 sm:mx-2 text-gray-400">•</span>
                       <span className="text-gray-700 truncate">{update.endpoint}</span>
                     </div>
@@ -449,20 +449,20 @@ export default function APIMonitoring() {
       )}
 
       {/* Persistent Storage Info - Mobile Optimized */}
-      <div id="info" className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+      <div id="info" className="bg-neutral-100 dark:bg-neutral-800 border border-blue-200 rounded-lg p-3 sm:p-4">
         <div className="flex items-start gap-2 sm:gap-3">
-          <Server className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <Server className="w-4 h-4 sm:w-5 sm:h-5 text-black dark:text-white mt-0.5 flex-shrink-0" />
           <div className="min-w-0 flex-1">
             <h4 className="font-semibold text-blue-900 mb-1 text-sm sm:text-base">Persistent Storage</h4>
             <p className="text-xs sm:text-sm text-blue-700 mb-2">
               Dữ liệu API monitoring được lưu trữ trong database và không bị mất khi:
             </p>
-            <ul className="text-xs text-blue-600 space-y-1">
+            <ul className="text-xs text-black dark:text-white space-y-1">
               <li>• Admin tắt web hoặc đăng xuất</li>
               <li>• Server restart hoặc maintenance</li>
               <li>• Có user khác truy cập hệ thống</li>
             </ul>
-            <p className="text-xs text-blue-600 mt-2">
+            <p className="text-xs text-black dark:text-white mt-2">
               Dữ liệu cũ hơn 7 ngày sẽ được tự động xóa để tối ưu hiệu suất.
             </p>
           </div>

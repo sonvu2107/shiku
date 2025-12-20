@@ -138,7 +138,7 @@ export default function MessageList({
   };
 
   const reactionConfig = {
-    like: { Icon: ThumbsUp, color: 'text-blue-500', bg: 'bg-blue-50', emoji: '👍' },
+    like: { Icon: ThumbsUp, color: 'text-black dark:text-white', bg: 'bg-neutral-100 dark:bg-neutral-800', emoji: '👍' },
     love: { Icon: Heart, color: 'text-red-500', bg: 'bg-red-50', emoji: '❤️' },
     laugh: { Icon: Laugh, color: 'text-yellow-500', bg: 'bg-yellow-50', emoji: '😆' },
     angry: { Icon: Angry, color: 'text-orange-500', bg: 'bg-orange-50', emoji: '😡' },
@@ -341,7 +341,7 @@ export default function MessageList({
     if (message.messageType === 'system') {
       return (
         <div key={message._id} className="flex justify-center mb-4">
-          <div className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+          <div className="bg-gray-100 dark:bg-neutral-800 px-3 py-1 rounded-full">
             <p className="text-xs text-gray-600 dark:text-gray-300 text-center">
               {message.content}
             </p>
@@ -423,9 +423,9 @@ export default function MessageList({
                 }
               }}
               className={`message-bubble relative px-4 py-2.5 rounded-2xl shadow-sm transition-all duration-200 cursor-pointer ${isOwn
-                ? 'bg-blue-600 text-white border border-blue-600'
-                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
-                } break-words overflow-wrap-anywhere ${selectedMessageId === message._id ? 'ring-2 ring-blue-300 ring-offset-1' : ''}`}
+                ? 'chat-bubble-own'
+                : 'bg-white dark:bg-neutral-900 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-neutral-800'
+                } break-words overflow-wrap-anywhere ${selectedMessageId === message._id ? 'ring-2 ring-neutral-300 ring-offset-1' : ''}`}
               style={{
                 borderBottomRightRadius: isOwn ? '4px' : '16px',
                 borderBottomLeftRadius: !isOwn ? '4px' : '16px',
@@ -465,8 +465,8 @@ export default function MessageList({
                 <p className="text-sm leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
                   {parseLinks(message.content, {
                     linkClassName: isOwn
-                      ? "text-blue-200 hover:text-blue-100 underline break-all"
-                      : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline break-all"
+                      ? "text-blue-200 dark:text-blue-600 hover:text-blue-100 dark:hover:text-blue-800 underline break-all"
+                      : "text-black dark:text-white hover:text-blue-700 dark:hover:text-blue-300 underline break-all"
                   })}
                 </p>
               )}
@@ -475,7 +475,7 @@ export default function MessageList({
             {/* Click-to-show reaction popup */}
             {selectedMessageId === message._id && !isDeleted && message.messageType !== 'system' && (
               <div
-                className={`absolute bottom-full mb-2 z-20 bg-white dark:bg-gray-800 shadow-xl rounded-full p-1 flex items-center gap-1 border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in duration-200 max-w-[calc(100vw-2rem)] ${isOwn ? 'right-0 origin-bottom-right' : 'left-0 origin-bottom-left'}`}
+                className={`absolute bottom-full mb-2 z-20 bg-white dark:bg-neutral-900 shadow-xl rounded-full p-1 flex items-center gap-1 border border-gray-100 dark:border-neutral-800 animate-in fade-in zoom-in duration-200 max-w-[calc(100vw-2rem)] ${isOwn ? 'right-0 origin-bottom-right' : 'left-0 origin-bottom-left'}`}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onTouchEnd={(e) => e.stopPropagation()}
@@ -493,7 +493,7 @@ export default function MessageList({
                           toggleReaction(message._id, type);
                           setSelectedMessageId(null);
                         }}
-                        className={`w-6 h-6 md:w-8 md:h-8 flex items-center justify-center text-sm md:text-lg rounded-full transition transform active:scale-110 hover:scale-110 ${hasReacted ? 'bg-blue-100 dark:bg-blue-900' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                        className={`w-6 h-6 md:w-8 md:h-8 flex items-center justify-center text-sm md:text-lg rounded-full transition transform active:scale-110 hover:scale-110 ${hasReacted ? 'bg-neutral-200 dark:bg-neutral-800 dark:bg-blue-900' : 'hover:bg-gray-100 dark:hover:bg-neutral-800'}`}
                         title={type}
                       >
                         {cfg.emoji}
@@ -519,7 +519,7 @@ export default function MessageList({
                 {/* Close button */}
                 <button
                   onClick={() => setSelectedMessageId(null)}
-                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition"
                   title="Đóng"
                 >
                   <X size={12} className="text-gray-400" />
@@ -536,7 +536,7 @@ export default function MessageList({
 
               return (
                 <div className={`absolute -bottom-3 z-10 ${isOwn ? 'right-2' : 'left-2'}`}>
-                  <span className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs px-1.5 py-0.5 rounded-full shadow-sm text-lg leading-none block">
+                  <span className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-xs px-1.5 py-0.5 rounded-full shadow-sm text-lg leading-none block">
                     {cfg.emoji}
                   </span>
                 </div>
@@ -582,7 +582,7 @@ export default function MessageList({
                     })}
                     {lastReadUsers.length > 3 && (
                       <div
-                        className="w-4 h-4 rounded-full border border-white dark:border-gray-800 bg-gray-300 dark:bg-gray-600 flex items-center justify-center"
+                        className="w-4 h-4 rounded-full border border-white dark:border-gray-800 bg-gray-300 dark:bg-neutral-700 flex items-center justify-center"
                         title={`+${lastReadUsers.length - 3} người khác đã xem`}
                       >
                         <span className="text-gray-600 dark:text-gray-300 text-[8px] font-bold">
@@ -675,7 +675,7 @@ export default function MessageList({
               {/* View Profile button */}
               <a
                 href={`/user/${otherUser._id}`}
-                className="mt-4 px-6 py-2 border border-gray-600 dark:border-gray-400 text-gray-800 dark:text-white rounded-full text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="mt-4 px-6 py-2 border border-gray-600 dark:border-gray-400 text-gray-800 dark:text-white rounded-full text-sm font-medium hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
               >
                 Xem trang cá nhân
               </a>

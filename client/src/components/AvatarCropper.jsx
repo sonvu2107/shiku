@@ -355,7 +355,7 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
   if (!imageSrc) {
     return (
       <div data-profile-customization-modal className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+        <div className="bg-white dark:bg-neutral-900 rounded-lg p-6">
           <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-600 dark:text-gray-400" />
         </div>
       </div>
@@ -364,15 +364,15 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
 
   return (
     <div data-profile-customization-modal className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-neutral-800">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Căn chỉnh avatar
           </h2>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
             disabled={isProcessing}
           >
             <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -383,7 +383,7 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
         <div className="p-4 md:p-6">
           <div
             ref={containerRef}
-            className="relative mx-auto bg-gray-100 dark:bg-gray-900 rounded-full overflow-hidden"
+            className="relative mx-auto bg-gray-100 dark:bg-neutral-950 rounded-full overflow-hidden"
             style={{
               width: containerSize,
               height: containerSize,
@@ -472,21 +472,21 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
                 <button
                   onClick={() => handleZoom(-0.1)}
                   disabled={isProcessing}
-                  className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
+                  className="p-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
                   title="Zoom out"
                 >
                   <ZoomOut className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                 </button>
-                <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative">
+                <div className="flex-1 bg-gray-200 dark:bg-neutral-800 rounded-full h-2 relative">
                   <div
-                    className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all"
+                    className="bg-black dark:bg-white dark:bg-black dark:bg-white h-2 rounded-full transition-all"
                     style={{ width: `${((scale - 0.5) / 2.5) * 100}%` }}
                   />
                 </div>
                 <button
                   onClick={() => handleZoom(0.1)}
                   disabled={isProcessing}
-                  className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
+                  className="p-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
                   title="Zoom in"
                 >
                   <ZoomIn className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -498,9 +498,9 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
             </div>
 
             {/* Instructions */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+            <div className="bg-neutral-100 dark:bg-neutral-800 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
               <div className="flex items-start gap-2">
-                <Move className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <Move className="w-4 h-4 text-black dark:text-white flex-shrink-0 mt-0.5" />
                 <div className="text-sm text-blue-800 dark:text-blue-200">
                   <p className="font-medium mb-1">Hướng dẫn:</p>
                   <ul className="list-disc list-inside space-y-1 text-xs">
@@ -515,11 +515,11 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+        <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950/50">
           <button
             onClick={handleRotate}
             disabled={isProcessing}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors disabled:opacity-50"
           >
             <RotateCw className="w-4 h-4" />
             <span>Xoay</span>
@@ -529,14 +529,14 @@ export default function AvatarCropper({ imageFile, onCropComplete, onCancel }) {
             <button
               onClick={onCancel}
               disabled={isProcessing}
-              className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              className="px-6 py-2 border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50"
             >
               Hủy
             </button>
             <button
               onClick={handleCrop}
               disabled={isProcessing}
-              className="flex items-center gap-2 px-6 py-2 bg-black dark:bg-gray-800 hover:bg-gray-800 dark:hover:bg-gray-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-2 bg-black dark:bg-neutral-900 hover:bg-gray-800 dark:hover:bg-neutral-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isProcessing ? (
                 <>

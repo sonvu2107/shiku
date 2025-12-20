@@ -111,7 +111,7 @@ export default function ChatWindow({
             {/* Messages scrollable */}
             <div
               ref={scrollContainerRef}
-              className="flex-1 overflow-y-auto min-h-0 bg-white dark:bg-gray-900"
+              className="flex-1 overflow-y-auto min-h-0 bg-white dark:bg-neutral-950"
               style={{ scrollbarGutter: 'stable' }}
             >
               <MessageList
@@ -136,7 +136,7 @@ export default function ChatWindow({
                 >
                   <button
                     onClick={scrollToBottom}
-                    className="pointer-events-auto mr-2.5 bg-gray-800 dark:bg-gray-700 text-white p-3 rounded-full shadow-xl hover:bg-gray-700 dark:hover:bg-gray-600 hover:scale-110 active:scale-90 transition-all border border-gray-600 dark:border-gray-500"
+                    className="pointer-events-auto mr-2.5 bg-gray-800 dark:bg-neutral-800 text-white p-3 rounded-full shadow-xl hover:bg-gray-700 dark:hover:bg-gray-600 hover:scale-110 active:scale-90 transition-all border border-gray-600 dark:border-gray-500"
                     title="Cuộn xuống tin nhắn mới nhất"
                   >
                     <ChevronDown size={22} />
@@ -146,12 +146,12 @@ export default function ChatWindow({
             </AnimatePresence>
 
             {/* Input */}
-            <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="flex-shrink-0 border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
               <MessageInput onSendMessage={handleSendMessage} />
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+          <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-neutral-950 p-4">
             <div className="text-center">
               <div className="text-4xl sm:text-6xl mb-4">💬</div>
               <h3 className="text-lg sm:text-xl font-semibold text-gray-600 mb-2">

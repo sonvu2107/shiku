@@ -256,7 +256,7 @@ export default function EventDetail() {
                      />
                      <div className="flex-1 min-w-0">
                         <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">Tổ chức bởi</div>
-                        <Link to={`/user/${event.creator._id}`} className="font-bold text-lg hover:text-blue-500 dark:hover:text-blue-400 transition-colors block truncate">{event.creator.name}</Link>
+                        <Link to={`/user/${event.creator._id}`} className="font-bold text-lg hover:text-black dark:text-white dark:hover:text-blue-400 transition-colors block truncate">{event.creator.name}</Link>
                         {event.creator.bio && (
                            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1 line-clamp-2">{event.creator.bio}</p>
                         )}

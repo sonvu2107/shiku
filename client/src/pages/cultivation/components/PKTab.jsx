@@ -1272,11 +1272,11 @@ const PKTab = memo(function PKTab() {
                       }`}
                   >
                     {/* Outer Glow Effect */}
-                    <div className="absolute inset-0 bg-blue-500/30 blur-2xl -z-10 rounded-full" />
+                    <div className="absolute inset-0 bg-black dark:bg-white/30 blur-2xl -z-10 rounded-full" />
 
                     {/* Aura effect when attacking */}
                     {challengerAction.toString().includes('attack') && (
-                      <div className="absolute inset-0 bg-blue-500/60 blur-xl rounded-full scale-150 animate-pulse -z-10" />
+                      <div className="absolute inset-0 bg-black dark:bg-white/60 blur-xl rounded-full scale-150 animate-pulse -z-10" />
                     )}
 
                     {battleResult.challenger.avatar ? (

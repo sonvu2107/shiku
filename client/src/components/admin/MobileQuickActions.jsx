@@ -33,8 +33,8 @@ export default function MobileQuickActions({
             icon: Users,
             label: 'Users',
             value: stats?.overview?.totalUsers?.count || 0,
-            color: 'text-blue-500',
-            bg: 'bg-blue-100 dark:bg-blue-900/30'
+            color: 'text-black dark:text-white',
+            bg: 'bg-neutral-200 dark:bg-neutral-800 dark:bg-blue-900/30'
         },
         {
             icon: FileText,

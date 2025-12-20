@@ -212,7 +212,7 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
               return <pre className="bg-neutral-100 dark:bg-neutral-800 p-3 rounded-lg overflow-x-auto my-2"><code {...props}>{children}</code></pre>;
             },
             a: ({ href, children }) => (
-              <a href={href} className="text-blue-600 dark:text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">
+              <a href={href} className="text-black dark:text-white hover:underline" target="_blank" rel="noopener noreferrer">
                 {children}
               </a>
             ),

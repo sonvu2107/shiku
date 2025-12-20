@@ -386,7 +386,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           <div className="flex flex-col min-w-0">
             <Link
               to={`/user/${post.author?._id}`}
-              className="font-bold text-base text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-1"
+              className="font-bold text-base text-gray-900 dark:text-gray-100 hover:text-black dark:hover:text-white transition-colors line-clamp-1"
               onClick={e => e.stopPropagation()}
             >
               <UserName user={post.author} maxLength={20} />
@@ -622,7 +622,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             }}
             aria-label="Bình luận"
             title="Bình luận"
-            className="flex items-center gap-2 px-3 py-2.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 text-gray-600 dark:text-gray-300 transition-all duration-200 active:scale-95 touch-manipulation group/comment"
+            className="flex items-center gap-2 px-3 py-2.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white text-gray-600 dark:text-gray-300 transition-all duration-200 active:scale-95 touch-manipulation group/comment"
           >
             <span className="text-[22px] sm:text-2xl font-bold leading-none select-none transition-transform group-hover/comment:scale-110" aria-hidden="true">⌘</span>
             <span className="text-sm font-semibold">
@@ -673,7 +673,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             <div className="mb-2 ml-9 sm:ml-10 grid grid-cols-3 gap-1.5 sm:gap-2">
               {commentImages.map((img, idx) => (
                 <div key={idx} className="relative group">
-                  <div className="w-full rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-50 dark:bg-gray-800 aspect-square">
+                  <div className="w-full rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden bg-gray-50 dark:bg-neutral-900 aspect-square">
                     <img src={img.preview} className="w-full h-full object-cover" alt={`Preview ${idx + 1}`} />
                   </div>
                   <button
@@ -696,13 +696,13 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               src={user?.avatarUrl}
               name={user?.name || 'User'}
               size={28}
-              className="border border-gray-200 dark:border-gray-700 flex-shrink-0 sm:hidden"
+              className="border border-gray-200 dark:border-neutral-800 flex-shrink-0 sm:hidden"
             />
             <Avatar
               src={user?.avatarUrl}
               name={user?.name || 'User'}
               size={32}
-              className="border border-gray-200 dark:border-gray-700 flex-shrink-0 hidden sm:block"
+              className="border border-gray-200 dark:border-neutral-800 flex-shrink-0 hidden sm:block"
             />
             <div className="flex-1 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-full px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-blue-900/50 transition-all">
               <input
@@ -715,8 +715,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 className="flex-1 bg-transparent border-none outline-none text-xs sm:text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 disabled:opacity-50"
               />
               <div className="flex items-center gap-0.5 sm:gap-1 border-l border-gray-100 dark:border-neutral-700 pl-1.5 sm:pl-2">
-                <label className="p-1 sm:p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer" title="Thêm ảnh">
-                  <ImageIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400 hover:text-blue-500" />
+                <label className="p-1 sm:p-1.5 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors cursor-pointer" title="Thêm ảnh">
+                  <ImageIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400 hover:text-black dark:text-white" />
                   <input
                     type="file"
                     accept="image/*"
@@ -758,13 +758,13 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 <button
                   type="submit"
                   disabled={(!commentContent.trim() && commentImages.length === 0) || submittingComment}
-                  className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center touch-manipulation"
+                  className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-blue-900/30 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center touch-manipulation"
                   title="Gửi"
                 >
                   {submittingComment ? (
-                    <Loader2 size={16} className="sm:w-[18px] sm:h-[18px] text-blue-500 animate-spin" />
+                    <Loader2 size={16} className="sm:w-[18px] sm:h-[18px] text-black dark:text-white animate-spin" />
                   ) : (
-                    <Send size={16} className="sm:w-[18px] sm:h-[18px] text-blue-500" />
+                    <Send size={16} className="sm:w-[18px] sm:h-[18px] text-black dark:text-white" />
                   )}
                 </button>
               </div>

@@ -117,7 +117,7 @@ export default function Media() {
          />
 
          {/* --- TOOLBAR (Sticky Glass) --- */}
-         <div className="flex flex-col md:flex-row gap-4 mb-8 sticky top-24 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-xl p-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm transition-all">
+         <div className="flex flex-col md:flex-row gap-4 mb-8 bg-white/80 dark:bg-black/80 backdrop-blur-xl p-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm transition-all">
             {/* Search */}
             <div className="relative flex-1 group">
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" size={18} />
@@ -126,7 +126,7 @@ export default function Media() {
                   placeholder="Tìm kiếm file..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-2.5 bg-transparent border-none outline-none text-neutral-900 dark:text-white placeholder-neutral-400 font-medium"
+                  className="w-full pl-12 pr-4 py-2.5 !bg-transparent border-none outline-none text-neutral-900 dark:text-white placeholder-neutral-400 font-medium"
                />
             </div>
 

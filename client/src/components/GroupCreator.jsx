@@ -306,7 +306,7 @@ const GroupCreator = ({ isOpen, onClose, onSuccess }) => {
                 </div>
                 <div className="ml-2 hidden sm:block">
                   <p className={`text-sm font-medium ${
-                    currentStep >= step.id ? 'text-blue-600' : 'text-gray-500'
+                    currentStep >= step.id ? 'text-black dark:text-white' : 'text-gray-500'
                   }`}>
                     {step.title}
                   </p>
@@ -392,7 +392,7 @@ const GroupCreator = ({ isOpen, onClose, onSuccess }) => {
                           value={type.value}
                           checked={formData.type === type.value}
                           onChange={handleInputChange}
-                          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-2"
+                          className="w-4 h-4 text-black dark:text-white border-gray-300 focus:ring-blue-500 focus:ring-2"
                         />
                         <Icon className="w-6 h-6 text-gray-500 flex-shrink-0" />
                         <div className="flex-1">
@@ -468,7 +468,7 @@ const GroupCreator = ({ isOpen, onClose, onSuccess }) => {
                       name="allowMemberInvites"
                       checked={formData.allowMemberInvites}
                       onChange={handleInputChange}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      className="w-4 h-4 text-black dark:text-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                     />
                     <span className="text-base text-gray-700">Cho phép thành viên mời người khác</span>
                   </label>
@@ -479,7 +479,7 @@ const GroupCreator = ({ isOpen, onClose, onSuccess }) => {
                       name="showMemberList"
                       checked={formData.showMemberList}
                       onChange={handleInputChange}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      className="w-4 h-4 text-black dark:text-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                     />
                     <span className="text-base text-gray-700">Hiển thị danh sách thành viên</span>
                   </label>
@@ -490,7 +490,7 @@ const GroupCreator = ({ isOpen, onClose, onSuccess }) => {
                       name="searchable"
                       checked={formData.searchable}
                       onChange={handleInputChange}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      className="w-4 h-4 text-black dark:text-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                     />
                     <span className="text-base text-gray-700">Cho phép tìm kiếm nhóm</span>
                   </label>

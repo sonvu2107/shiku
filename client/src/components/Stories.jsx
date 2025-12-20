@@ -158,7 +158,7 @@ function Stories({ user }) {
         <div className="flex gap-3 overflow-x-auto scrollbar-hide">
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="flex-shrink-0">
-              <div className="w-[80px] h-[80px] bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+              <div className="w-[80px] h-[80px] bg-gray-200 dark:bg-neutral-800 rounded-full animate-pulse"></div>
             </div>
           ))}
         </div>
@@ -210,7 +210,7 @@ function Stories({ user }) {
                 <>
                   <button
                     onClick={() => setShowStoryCreator(true)}
-                    className="block w-[80px] h-[80px] rounded-full overflow-hidden relative group hover:scale-105 transition-all duration-200 border-2 border-gray-300 dark:border-gray-600"
+                    className="block w-[80px] h-[80px] rounded-full overflow-hidden relative group hover:scale-105 transition-all duration-200 border-2 border-gray-300 dark:border-neutral-700"
                   >
                     <Avatar
                       src={user.avatarUrl}

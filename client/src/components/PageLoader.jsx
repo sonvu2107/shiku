@@ -8,7 +8,7 @@ import Loader from "./Loader.jsx";
  */
 export function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-950">
       <div className="text-center">
         <Loader />
         <p className="text-gray-600 dark:text-gray-400 mt-4">Đang tải trang...</p>
@@ -23,7 +23,7 @@ export function PageLoader() {
 export function ComponentLoader({ className = "" }) {
   return (
     <div className={`flex items-center justify-center p-4 ${className}`}>
-      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+      <Loader2 className="w-6 h-6 animate-spin text-black dark:text-white" />
     </div>
   );
 }
@@ -48,7 +48,7 @@ export class LazyErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-950">
           <div className="text-center max-w-md mx-auto p-6">
             <div className="text-red-500 text-6xl mb-4">⚠️</div>
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -59,7 +59,7 @@ export class LazyErrorBoundary extends React.Component {
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-black dark:bg-white text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Tải lại trang
             </button>

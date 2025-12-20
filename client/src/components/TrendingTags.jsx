@@ -64,7 +64,7 @@ export default function TrendingTags({ limit = 10 }) {
         <div className="space-y-2">
           {[1, 2, 3].map(i => (
             <div key={i} className="animate-pulse">
-              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              <div className="h-8 bg-gray-200 dark:bg-neutral-800 rounded"></div>
             </div>
           ))}
         </div>
@@ -96,14 +96,14 @@ export default function TrendingTags({ limit = 10 }) {
           <div
             key={tag}
             onClick={() => handleTagClick(tag)}
-            className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors group"
+            className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-900 cursor-pointer transition-colors group"
           >
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-200 dark:bg-neutral-800 flex items-center justify-center">
                 <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{index + 1}</span>
               </div>
               <Hash size={14} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
-              <span className="font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              <span className="font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-black dark:text-white dark:group-hover:text-blue-400 transition-colors">
                 {tag}
               </span>
             </div>

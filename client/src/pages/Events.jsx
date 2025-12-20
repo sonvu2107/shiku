@@ -16,7 +16,7 @@ const EventCard = ({ event, onJoin }) => {
 
    // Màu sắc badge dựa trên trạng thái tham gia
    let statusBadge = null;
-   if (event.userRole === 'creator') statusBadge = <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Của tôi</span>;
+   if (event.userRole === 'creator') statusBadge = <span className="bg-neutral-200 dark:bg-neutral-800 dark:bg-blue-900/30 text-black dark:text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Của tôi</span>;
    else if (event.userRole === 'attendee') statusBadge = <span className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Đã tham gia</span>;
    else if (isUpcoming) statusBadge = <span className="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Sắp diễn ra</span>;
 
@@ -51,7 +51,7 @@ const EventCard = ({ event, onJoin }) => {
          {/* Content */}
          <div className="p-5 flex-1 flex flex-col">
             <div className="flex justify-between items-start mb-2 gap-2">
-               <h3 className="text-lg font-bold text-neutral-900 dark:text-white line-clamp-2 leading-tight group-hover:text-blue-500 transition-colors">
+               <h3 className="text-lg font-bold text-neutral-900 dark:text-white line-clamp-2 leading-tight group-hover:text-black dark:group-hover:text-white transition-colors">
                   <Link to={`/events/${event._id}`}>{event.title}</Link>
                </h3>
                {statusBadge}
@@ -170,7 +170,7 @@ export default function Events() {
                   placeholder="Tìm kiếm sự kiện..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-2.5 bg-transparent border-none outline-none text-neutral-900 dark:text-white placeholder-neutral-400"
+                  className="w-full pl-12 pr-4 py-2.5 !bg-transparent border-none outline-none text-neutral-900 dark:text-white placeholder-neutral-400"
                />
             </div>
 
@@ -222,7 +222,7 @@ export default function Events() {
                      Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc, hoặc tự tạo sự kiện của riêng bạn.
                   </p>
                   {filter === 'my' ? (
-                     <Link to="/events/create" className="px-6 py-2.5 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-colors">
+                     <Link to="/events/create" className="px-6 py-2.5 bg-black dark:bg-white text-white rounded-full font-bold hover:bg-blue-700 transition-colors">
                         Tạo sự kiện ngay
                      </Link>
                   ) : (

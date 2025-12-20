@@ -547,14 +547,14 @@ function Home({ user, setUser }) {
       <div className="p-5">
         {/* Header skeleton with shimmer */}
         <div className="flex items-center space-x-3 mb-4 px-1">
-          <div className="relative w-12 h-12 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+          <div className="relative w-12 h-12 bg-neutral-100 dark:bg-neutral-900 rounded-full overflow-hidden">
             <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           </div>
           <div className="flex-1 space-y-2">
-            <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden w-32">
+            <div className="relative h-4 bg-neutral-100 dark:bg-neutral-900 rounded overflow-hidden w-32">
               <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             </div>
-            <div className="relative h-3 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden w-24">
+            <div className="relative h-3 bg-neutral-100 dark:bg-neutral-900 rounded overflow-hidden w-24">
               <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             </div>
           </div>
@@ -562,36 +562,36 @@ function Home({ user, setUser }) {
 
         {/* Content skeleton with shimmer */}
         <div className="space-y-2 mb-4 px-1">
-          <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden">
+          <div className="relative h-4 bg-neutral-100 dark:bg-neutral-900 rounded overflow-hidden">
             <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           </div>
-          <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden w-4/5">
+          <div className="relative h-4 bg-neutral-100 dark:bg-neutral-900 rounded overflow-hidden w-4/5">
             <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           </div>
-          <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden w-3/5">
+          <div className="relative h-4 bg-neutral-100 dark:bg-neutral-900 rounded overflow-hidden w-3/5">
             <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           </div>
         </div>
 
         {/* Image skeleton with shimmer */}
-        <div className="relative h-64 bg-gray-200 dark:bg-gray-800 rounded-3xl overflow-hidden mb-5">
+        <div className="relative h-64 bg-neutral-100 dark:bg-neutral-900 rounded-3xl overflow-hidden mb-5">
           <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         </div>
 
         {/* Actions skeleton with shimmer */}
         <div className="flex items-center justify-between px-1">
           <div className="flex space-x-1">
-            <div className="relative h-10 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden w-20">
+            <div className="relative h-10 bg-neutral-100 dark:bg-neutral-900 rounded-full overflow-hidden w-20">
               <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             </div>
-            <div className="relative h-10 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden w-20">
+            <div className="relative h-10 bg-neutral-100 dark:bg-neutral-900 rounded-full overflow-hidden w-20">
               <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             </div>
-            <div className="relative h-10 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden w-16">
+            <div className="relative h-10 bg-neutral-100 dark:bg-neutral-900 rounded-full overflow-hidden w-16">
               <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             </div>
           </div>
-          <div className="relative h-10 w-10 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+          <div className="relative h-10 w-10 bg-neutral-100 dark:bg-neutral-900 rounded-full overflow-hidden">
             <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           </div>
         </div>
@@ -677,7 +677,7 @@ function Home({ user, setUser }) {
                                     setHistoryEditing(true);
                                   }
                                 }}
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                                className="text-black dark:text-white hover:underline"
                               >
                                 {historyEditing ? 'Xong' : 'Chỉnh sửa'}
                               </button>
@@ -975,7 +975,7 @@ function Home({ user, setUser }) {
                             setError(null);
                             navigate(0);
                           }}
-                          className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl font-semibold text-base hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
+                          className="px-6 py-3 bg-gray-200 dark:bg-neutral-800 text-gray-800 dark:text-gray-200 rounded-xl font-semibold text-base hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
                         >
                           Tải lại trang
                         </button>
@@ -1036,7 +1036,7 @@ function Home({ user, setUser }) {
                       {/* End of feed message */}
                       {!hasMore && items.length > 0 && (
                         <div className="text-center py-8">
-                          <div className="inline-flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 rounded-full text-gray-600 dark:text-gray-300 text-sm font-semibold">
+                          <div className="inline-flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-neutral-900 border border-gray-200 dark:border-gray-800 rounded-full text-gray-600 dark:text-gray-300 text-sm font-semibold">
                             <span>✨</span>
                             <span>Bạn đã xem hết tất cả bài viết!</span>
                           </div>

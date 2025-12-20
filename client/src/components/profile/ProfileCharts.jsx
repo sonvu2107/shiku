@@ -249,8 +249,8 @@ export default function ProfileCharts() {
             {/* Summary */}
             {allTimeTotals && (
                 <div className="mt-3 sm:mt-4 grid grid-cols-3 gap-2 sm:gap-3">
-                    <div className="text-center p-1.5 sm:p-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                        <div className="text-base sm:text-xl font-bold text-blue-600 dark:text-blue-400">{allTimeTotals.posts}</div>
+                    <div className="text-center p-1.5 sm:p-2 bg-neutral-100 dark:bg-neutral-800 rounded-xl">
+                        <div className="text-base sm:text-xl font-bold text-black dark:text-white">{allTimeTotals.posts}</div>
                         <div className="text-[9px] sm:text-xs text-neutral-600 dark:text-neutral-400">Bài viết</div>
                     </div>
                     <div className="text-center p-1.5 sm:p-2 bg-green-50 dark:bg-green-900/20 rounded-xl">

@@ -44,7 +44,7 @@ export default function SecurityAlerts({ alerts = [], onDismiss }) {
             case 'medium':
                 return 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20';
             default:
-                return 'border-blue-500 bg-blue-50 dark:bg-blue-900/20';
+                return 'border-blue-500 bg-neutral-100 dark:bg-neutral-800';
         }
     };
 

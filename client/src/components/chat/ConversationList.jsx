@@ -96,7 +96,7 @@ export default function ConversationList({
       whileHover={{ scale: 1.02, x: 4 }}
       whileTap={{ scale: 0.98 }}
       className={`p-3 rounded-lg cursor-pointer transition-all flex items-center gap-3 border ${isChatbotActive
-        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 shadow-md'
+        ? 'bg-neutral-100 dark:bg-neutral-800 border-blue-400 dark:border-blue-500 shadow-md'
         : 'bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-purple-500/10 border-blue-100 dark:border-blue-900/40 hover:border-blue-400 dark:hover:border-blue-500/60 hover:shadow-md'
         }`}
     >
@@ -128,10 +128,10 @@ export default function ConversationList({
         <div className="animate-pulse space-y-4">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+              <div className="w-12 h-12 bg-gray-300 dark:bg-neutral-700 rounded-full"></div>
               <div className="flex-1">
-                <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
+                <div className="h-4 bg-gray-300 dark:bg-neutral-700 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-300 dark:bg-neutral-700 rounded w-1/2"></div>
               </div>
             </div>
           ))}
@@ -177,8 +177,8 @@ export default function ConversationList({
               whileTap={{ scale: 0.98 }}
               onClick={() => onSelectConversation(conversation)}
               className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${isSelected
-                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 shadow-sm'
-                : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                ? 'bg-neutral-100 dark:bg-neutral-800 shadow-sm'
+                : 'hover:bg-gray-50 dark:hover:bg-neutral-800'
                 }`}
             >
               <div className="flex items-center space-x-3">
@@ -191,7 +191,7 @@ export default function ConversationList({
                       className="w-12 h-12 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                    <div className="w-12 h-12 bg-gray-200 dark:bg-neutral-700 rounded-full flex items-center justify-center">
                       {conversation.conversationType === 'group' ? (
                         <Users size={20} className="text-gray-500 dark:text-gray-400" />
                       ) : (
@@ -216,7 +216,7 @@ export default function ConversationList({
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className={`font-medium truncate ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-800 dark:text-gray-200'
+                    <h3 className={`font-medium truncate ${isSelected ? 'text-black dark:text-white font-semibold' : 'text-gray-800 dark:text-gray-200'
                       }`}>
                       {name}
                     </h3>

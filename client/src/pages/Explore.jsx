@@ -148,7 +148,7 @@ export default function Explore({ user }) {
                      placeholder="Tìm kiếm bài viết, người dùng, nhóm..."
                      value={searchQuery}
                      onChange={(e) => setSearchQuery(e.target.value)}
-                     className="w-full pl-12 pr-4 py-2.5 bg-transparent border-none outline-none text-neutral-900 dark:text-white placeholder-neutral-400 font-medium"
+                     className="w-full pl-12 pr-4 py-2.5 !bg-transparent border-none outline-none text-neutral-900 dark:text-white placeholder-neutral-400 font-medium"
                   />
                </form>
 
@@ -322,7 +322,7 @@ export default function Explore({ user }) {
                         {groups.length === 0 ? (
                            <div className="text-center py-20 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-[32px]">
                               <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center">
-                                 <Users size={32} className="text-blue-500 dark:text-blue-400" />
+                                 <Users size={32} className="text-black dark:text-white dark:text-blue-400" />
                               </div>
                               <p className="text-neutral-500 font-medium mb-2">Không tìm thấy nhóm nào</p>
                               <p className="text-sm text-neutral-400">Hãy thử tìm kiếm với từ khóa khác</p>
@@ -369,7 +369,7 @@ export default function Explore({ user }) {
                                              </div>
                                           </div>
 
-                                          <h3 className="font-bold text-lg text-neutral-900 dark:text-white hover:text-blue-500 transition-colors line-clamp-1 mt-10 mb-1">
+                                          <h3 className="font-bold text-lg text-neutral-900 dark:text-white hover:text-black dark:text-white transition-colors line-clamp-1 mt-10 mb-1">
                                              {group.name}
                                           </h3>
 
@@ -470,15 +470,15 @@ export default function Explore({ user }) {
                                  onClick={() => { setSearchQuery(tag); performSearch(tag); setActiveTab('posts'); }}
                               >
                                  <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center font-black text-neutral-400 group-hover:text-blue-500 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                                    <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center font-black text-neutral-400 group-hover:text-black dark:text-white group-hover:bg-neutral-100 dark:bg-neutral-800 dark:group-hover:bg-blue-900/20 transition-colors">
                                        {index + 1}
                                     </div>
                                     <div>
-                                       <h4 className="font-bold text-neutral-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">#{tag}</h4>
+                                       <h4 className="font-bold text-neutral-900 dark:text-white group-hover:text-black dark:text-white dark:group-hover:text-blue-400 transition-colors">#{tag}</h4>
                                        <p className="text-xs text-neutral-500 font-medium">{count} bài viết</p>
                                     </div>
                                  </div>
-                                 <TrendingUp size={16} className="text-neutral-300 group-hover:text-blue-500 transition-colors" />
+                                 <TrendingUp size={16} className="text-neutral-300 group-hover:text-black dark:text-white transition-colors" />
                               </SpotlightCard>
                            ))
                         )}

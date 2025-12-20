@@ -153,7 +153,7 @@ export default function StoryCreator({ user, onClose, onStoryCreated }) {
               />
               <div className="flex flex-col items-center gap-4 pointer-events-none">
                 <div className="flex gap-4">
-                  <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+                  <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-2xl flex items-center justify-center text-black dark:text-white group-hover:scale-110 transition-transform">
                     <ImageIcon size={32} />
                   </div>
                   <div className="w-16 h-16 bg-purple-50 dark:bg-purple-900/20 rounded-2xl flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform delay-75">

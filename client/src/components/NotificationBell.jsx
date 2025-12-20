@@ -61,7 +61,7 @@ export default function NotificationBell({ user }) {
       case "ban": return <span className="text-lg">🚫</span>;
       case "unban": return <span className="text-lg">✅</span>;
       case "system": return (
-        <span className="bg-blue-600 text-white text-xs px-1 py-0.5 rounded font-bold">
+        <span className="bg-black dark:bg-white text-white text-xs px-1 py-0.5 rounded font-bold">
           SYSTEM
         </span>
       );
@@ -113,9 +113,9 @@ export default function NotificationBell({ user }) {
 
       {/* Dropdown */}
       {showDropdown && (
-        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 max-h-[500px] overflow-hidden dropdown-mobile">
+        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl shadow-xl z-50 max-h-[500px] overflow-hidden dropdown-mobile">
           {/* Header */}
-          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white dark:from-gray-800 dark:to-gray-800">
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-neutral-800 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white dark:from-neutral-900 dark:to-neutral-900">
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-gray-800 dark:text-gray-100 text-base sm:text-lg">Thông báo</h3>
               {unreadCount > 0 && (
@@ -128,7 +128,7 @@ export default function NotificationBell({ user }) {
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="flex items-center gap-1 text-blue-600 hover:text-blue-800 active:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium px-2 py-1 rounded-md hover:bg-blue-100 active:bg-blue-200 dark:hover:bg-gray-700 dark:active:bg-gray-600 transition-all touch-target"
+                  className="flex items-center gap-1 text-black dark:text-white hover:text-blue-800 active:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium px-2 py-1 rounded-md hover:bg-neutral-200 dark:bg-neutral-800 active:bg-blue-200 dark:hover:bg-neutral-800 dark:active:bg-gray-600 transition-all touch-target"
                   title="Đánh dấu tất cả đã đọc"
                 >
                   <CheckCheck size={14} />
@@ -137,7 +137,7 @@ export default function NotificationBell({ user }) {
               )}
               <button
                 onClick={() => setShowDropdown(false)}
-                className="text-gray-400 hover:text-gray-600 active:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 transition-colors touch-target"
+                className="text-gray-400 hover:text-gray-600 active:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-800 active:bg-gray-200 transition-colors touch-target"
               >
                 <X size={16} />
               </button>
@@ -148,7 +148,7 @@ export default function NotificationBell({ user }) {
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
               <div className="p-4 sm:p-6 text-center">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-neutral-800 dark:border-neutral-200 mx-auto mb-2"></div>
                 <div className="text-gray-500 dark:text-gray-300 text-sm">Đang tải...</div>
               </div>
             ) : notifications.length === 0 ? (
@@ -162,7 +162,7 @@ export default function NotificationBell({ user }) {
                 <div
                   key={notification._id}
                   onClick={() => handleNotificationClick(notification)}
-                  className={`p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 transition-all duration-200 touch-feedback ${!notification.read ? "bg-blue-50 dark:bg-gray-700/40 border-blue-200 dark:border-gray-600" : ""
+                  className={`p-3 sm:p-4 border-b border-gray-100 dark:border-neutral-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800 active:bg-gray-100 transition-all duration-200 touch-feedback ${!notification.read ? "bg-neutral-100 dark:bg-neutral-800 dark:bg-neutral-800/40 border-blue-200 dark:border-neutral-700" : ""
                     }`}
                 >
                   <div className="flex items-start gap-3">
@@ -183,7 +183,7 @@ export default function NotificationBell({ user }) {
                                 e.stopPropagation();
                                 markAsRead(notification._id);
                               }}
-                              className="text-blue-600 hover:text-blue-800 active:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded-md hover:bg-blue-100 dark:hover:bg-gray-700 active:bg-blue-200 transition-all flex-shrink-0 touch-target"
+                              className="text-black dark:text-white hover:text-blue-800 active:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded-md hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-800 active:bg-blue-200 transition-all flex-shrink-0 touch-target"
                               title="Đánh dấu đã đọc"
                             >
                               <Check size={14} />
@@ -199,7 +199,7 @@ export default function NotificationBell({ user }) {
                               {getTimeAgo(notification.createdAt)}
                             </span>
                             {notification.sender && (
-                              <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                              <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-neutral-800 px-2 py-1 rounded-full">
                                 từ {notification.sender.name}
                               </span>
                             )}
@@ -222,7 +222,7 @@ export default function NotificationBell({ user }) {
                                   e.stopPropagation();
                                   markAsRead(notification._id);
                                 }}
-                                className="text-blue-600 hover:text-blue-800 active:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded-md hover:bg-blue-100 dark:hover:bg-gray-700 active:bg-blue-200 transition-all flex-shrink-0 touch-target"
+                                className="text-black dark:text-white hover:text-blue-800 active:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded-md hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-800 active:bg-blue-200 transition-all flex-shrink-0 touch-target"
                                 title="Đánh dấu đã đọc"
                               >
                                 <Check size={14} />
@@ -237,7 +237,7 @@ export default function NotificationBell({ user }) {
                               {getTimeAgo(notification.createdAt)}
                             </span>
                             {notification.sender && (
-                              <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                              <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-neutral-800 px-2 py-1 rounded-full">
                                 từ {notification.sender.name}
                               </span>
                             )}
@@ -253,13 +253,13 @@ export default function NotificationBell({ user }) {
 
           {/* Footer - Outside scroll area */}
           {notifications.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 sm:p-4">
+            <div className="border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 p-3 sm:p-4">
               <button
                 onClick={() => {
                   setShowDropdown(false);
                   navigate("/notifications");
                 }}
-                className="w-full text-gray-800 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white text-sm font-semibold py-3 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-600 hover:border-gray-300"
+                className="w-full text-gray-800 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white text-sm font-semibold py-3 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-all duration-200 border border-gray-200 dark:border-neutral-700 hover:border-gray-300"
               >
                 Xem tất cả thông báo
               </button>

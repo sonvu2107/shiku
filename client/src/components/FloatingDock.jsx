@@ -122,7 +122,7 @@ function DockIcon({ mouseX, item }) {
           "flex h-full w-full items-center justify-center rounded-2xl transition-colors duration-200",
           isActive
             ? "bg-black text-white dark:bg-neutral-700 dark:text-white"
-            : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100",
+            : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-gray-100",
           item.isPrimary && "bg-black text-white dark:bg-neutral-700 dark:text-white shadow-lg shadow-black/30 dark:shadow-neutral-900/30"
         )}
       >
@@ -134,7 +134,7 @@ function DockIcon({ mouseX, item }) {
       </motion.div>
 
       {/* Tooltip (only visible on hover) */}
-      <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white dark:text-gray-100 text-xs rounded-md whitespace-nowrap pointer-events-none z-50 shadow-lg dark:shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
+      <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 bg-gray-900 dark:bg-neutral-800 text-white dark:text-gray-100 text-xs rounded-md whitespace-nowrap pointer-events-none z-50 shadow-lg dark:shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
         {item.label}
       </div>
 

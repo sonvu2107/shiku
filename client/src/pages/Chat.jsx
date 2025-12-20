@@ -910,14 +910,14 @@ export default function Chat() {
     <div className="h-full bg-white dark:bg-gray-900 pt-16 sm:pt-20">
       <div className="h-full flex flex-col sm:flex-row chat-mobile">
         {/* Sidebar - Ẩn khi showChatWindow = true trên mobile */}
-        <div className={`w-full sm:w-80 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800 chat-sidebar-mobile ${showChatWindow ? 'hidden sm:flex' : 'flex'}`}>
+        <div className={`w-full sm:w-80 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-neutral-800 flex flex-col bg-white dark:bg-neutral-900 chat-sidebar-mobile ${showChatWindow ? 'hidden sm:flex' : 'flex'}`}>
           {/* Header */}
-          <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+          <div className="px-3 py-2 border-b border-gray-100 dark:border-neutral-800">
             <div className="flex items-center justify-between">
               <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Chat</h1>
               <button
                 onClick={() => setShowNewConversationModal(true)}
-                className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:bg-blue-100 dark:active:bg-blue-900/30 rounded-full transition-colors touch-target"
+                className="p-2 text-black dark:text-white hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-blue-900/20 active:bg-neutral-200 dark:bg-neutral-800 dark:active:bg-blue-900/30 rounded-full transition-colors touch-target"
                 title="Tạo cuộc trò chuyện mới"
               >
                 <Plus className="w-5 h-5" />

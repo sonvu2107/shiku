@@ -170,11 +170,11 @@ export default function Poll({ post, user }) {
       {/* Poll Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <BarChart3 className="text-blue-600 dark:text-blue-400 flex-shrink-0" size={20} />
+          <BarChart3 className="text-black dark:text-white flex-shrink-0" size={20} />
           <h3 className="font-semibold text-gray-900 dark:text-white break-words">{sanitizeForDisplay(pollData.question)}</h3>
         </div>
         {!pollData.isActive && (
-          <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded whitespace-nowrap">
+          <span className="text-xs bg-gray-200 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 px-2 py-1 rounded whitespace-nowrap">
             Đã đóng
           </span>
         )}
@@ -193,7 +193,7 @@ export default function Poll({ post, user }) {
           </div>
         )}
         {pollData.allowMultipleVotes && (
-          <span className="text-xs bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">
+          <span className="text-xs bg-neutral-100 dark:bg-neutral-800 dark:bg-black dark:bg-white/20 text-black dark:text-white px-2 py-1 rounded">
             Chọn nhiều
           </span>
         )}
@@ -214,17 +214,17 @@ export default function Poll({ post, user }) {
                 aria-label={`Vote cho ${option.text}`}
                 title={canVote ? `Click để lựa chọn cho "${option.text}"` : hasVoted ? "Bạn đã lựa chọn" : "Đăng nhập để lựa chọn"}
                 className={`w-full text-left p-3 rounded-xl border-2 transition-all relative overflow-hidden ${isUserVoted
-                    ? "border-blue-500 dark:border-blue-500 bg-blue-50 dark:bg-blue-500/10"
+                    ? "border-blue-500 dark:border-blue-500 bg-neutral-100 dark:bg-neutral-800 dark:bg-black dark:bg-white/10"
                     : hasVoted && !isMultipleVote
-                      ? "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-default"
-                      : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-500/50 hover:bg-blue-50 dark:hover:bg-blue-500/5"
+                      ? "border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 cursor-default"
+                      : "border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-blue-300 dark:hover:border-blue-500/50 hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-black dark:bg-white/5"
                   } ${voting ? "opacity-50 cursor-wait" : ""} ${!canVote ? "cursor-default" : "cursor-pointer"
                   }`}
               >
                 {/* Progress Bar Background */}
                 {hasVoted && (
                   <div
-                    className="absolute inset-0 bg-blue-100 dark:bg-blue-500/20 transition-all duration-500"
+                    className="absolute inset-0 bg-neutral-200 dark:bg-neutral-800 dark:bg-black dark:bg-white/20 transition-all duration-500"
                     style={{ width: `${option.percentage}%` }}
                   />
                 )}
@@ -233,11 +233,11 @@ export default function Poll({ post, user }) {
                 <div className="relative flex items-center justify-between z-10">
                   <div className="flex items-center gap-2">
                     {isUserVoted && (
-                      <CheckCircle2 className="text-blue-600 dark:text-blue-400 flex-shrink-0" size={18} />
+                      <CheckCircle2 className="text-black dark:text-white flex-shrink-0" size={18} />
                     )}
                     <span className="font-medium text-gray-900 dark:text-white">{sanitizeForDisplay(option.text)}</span>
                     {isMultipleVote && isUserVoted && (
-                      <span className="text-xs bg-blue-100 dark:bg-blue-500/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                      <span className="text-xs bg-neutral-200 dark:bg-neutral-800 dark:bg-black dark:bg-white/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
                         Đã chọn
                       </span>
                     )}
@@ -261,14 +261,14 @@ export default function Poll({ post, user }) {
                 <div>
                   <button
                     onClick={() => setShowVoters(showVoters === index ? null : index)}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 ml-3"
+                    className="text-xs text-black dark:text-white hover:text-blue-700 dark:hover:text-blue-300 ml-3"
                   >
                     {showVoters === index ? "Ẩn" : "Xem"} {option.voteCount} người đã lựa chọn
                   </button>
 
                   {/* Voters List */}
                   {showVoters === index && (
-                    <div className="ml-3 mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-1 max-h-40 overflow-y-auto border border-gray-100 dark:border-gray-700">
+                    <div className="ml-3 mt-2 p-2 bg-gray-50 dark:bg-neutral-900 rounded-lg space-y-1 max-h-40 overflow-y-auto border border-gray-100 dark:border-neutral-800">
                       {option.voters.map((voter, vIdx) => (
                         <div key={vIdx} className="flex items-center gap-2 text-sm">
                           <img
@@ -298,11 +298,11 @@ export default function Poll({ post, user }) {
 
       {/* Add Options Section - Only show for post owner/admin */}
       {user && pollData.isActive && (user._id === post.author?._id || user.role === "admin") && pollData.results.length < 10 && (
-        <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+        <div className="pt-3 border-t border-gray-200 dark:border-neutral-800">
           {!showAddOptions ? (
             <button
               onClick={() => setShowAddOptions(true)}
-              className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 px-3 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-blue-700 dark:hover:text-blue-300 hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-black dark:bg-white/10 px-3 py-2 rounded-lg transition-colors"
             >
               <Plus size={16} />
               <span>Thêm lựa chọn</span>
@@ -325,7 +325,7 @@ export default function Poll({ post, user }) {
                           newOpts[index] = e.target.value;
                           setNewOptions(newOpts);
                         }}
-                        className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        className="w-full border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         maxLength={200}
                       />
                       {option.trim() && (
@@ -354,7 +354,7 @@ export default function Poll({ post, user }) {
                   <button
                     type="button"
                     onClick={() => setNewOptions([...newOptions, ""])}
-                    className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 px-3 py-2 rounded-lg transition-colors border border-dashed border-blue-300 dark:border-blue-500/50 hover:border-blue-400"
+                    className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-blue-700 dark:hover:text-blue-300 hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-black dark:bg-white/10 px-3 py-2 rounded-lg transition-colors border border-dashed border-blue-300 dark:border-blue-500/50 hover:border-blue-400"
                   >
                     <Plus size={16} />
                     <span>Thêm lựa chọn</span>
@@ -366,7 +366,7 @@ export default function Poll({ post, user }) {
                 <button
                   onClick={handleAddOptions}
                   disabled={addingOptions}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  className="flex items-center gap-2 bg-black dark:bg-white text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
                   {addingOptions ? "Đang thêm..." : "Thêm lựa chọn"}
                 </button>
@@ -375,7 +375,7 @@ export default function Poll({ post, user }) {
                     setShowAddOptions(false);
                     setNewOptions([""]);
                   }}
-                  className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-sm"
+                  className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-900 text-sm"
                 >
                   Hủy
                 </button>
@@ -387,7 +387,7 @@ export default function Poll({ post, user }) {
 
       {/* Footer Info */}
       {!user && pollData.isActive && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 text-center pt-2 border-t border-gray-200 dark:border-gray-700">
+        <p className="text-sm text-gray-500 dark:text-gray-400 text-center pt-2 border-t border-gray-200 dark:border-neutral-800">
           Đăng nhập để lựa chọn
         </p>
       )}

@@ -151,7 +151,7 @@ const GroupSettingsModal = ({
           <button
             onClick={() => setActiveTab('info')}
             className={`flex-1 py-3 px-4 text-sm font-medium ${activeTab === 'info'
-                ? 'text-blue-600 border-b-2 border-blue-600'
+                ? 'text-black dark:text-white border-b-2 border-neutral-800 dark:border-neutral-200'
                 : 'text-gray-500 hover:text-gray-700'
               }`}
           >
@@ -160,7 +160,7 @@ const GroupSettingsModal = ({
           <button
             onClick={() => setActiveTab('members')}
             className={`flex-1 py-3 px-4 text-sm font-medium ${activeTab === 'members'
-                ? 'text-blue-600 border-b-2 border-blue-600'
+                ? 'text-black dark:text-white border-b-2 border-neutral-800 dark:border-neutral-200'
                 : 'text-gray-500 hover:text-gray-700'
               }`}
           >
@@ -170,7 +170,7 @@ const GroupSettingsModal = ({
             <button
               onClick={() => setActiveTab('permissions')}
               className={`flex-1 py-3 px-4 text-sm font-medium ${activeTab === 'permissions'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  ? 'text-black dark:text-white border-b-2 border-neutral-800 dark:border-neutral-200'
                   : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
@@ -209,7 +209,7 @@ const GroupSettingsModal = ({
                         <>
                           <label
                             htmlFor="group-avatar-upload"
-                            className="absolute -bottom-1 -right-1 bg-blue-500 text-white p-1.5 rounded-full hover:bg-blue-600 transition-colors cursor-pointer"
+                            className="absolute -bottom-1 -right-1 bg-black dark:bg-white text-white p-1.5 rounded-full hover:bg-black dark:bg-white transition-colors cursor-pointer"
                           >
                             <Camera className="w-3 h-3" />
                           </label>
@@ -326,7 +326,7 @@ const GroupSettingsModal = ({
                         type="checkbox"
                         checked={conversationDetails?.allowMemberManagement || false}
                         onChange={handleToggleMemberManagement}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                        className="w-4 h-4 text-black dark:text-white bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                       />
                     </label>
                   </div>

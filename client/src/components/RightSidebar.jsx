@@ -115,14 +115,14 @@ function RightSidebar({ user }) {
         {/* Loading skeletons */}
         {[1, 2].map(i => (
           <div key={i} className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 p-5">
-            <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse w-24 mb-4"></div>
+            <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded animate-pulse w-24 mb-4"></div>
             <div className="space-y-3">
               {[1, 2, 3].map(j => (
                 <div key={j} className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-neutral-200 dark:bg-neutral-800 rounded-full animate-pulse"></div>
+                  <div className="w-10 h-10 bg-neutral-100 dark:bg-neutral-800 rounded-full animate-pulse"></div>
                   <div className="flex-1">
-                    <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse w-32 mb-1"></div>
-                    <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse w-24"></div>
+                    <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded animate-pulse w-32 mb-1"></div>
+                    <div className="h-3 bg-neutral-100 dark:bg-neutral-800 rounded animate-pulse w-24"></div>
                   </div>
                 </div>
               ))}

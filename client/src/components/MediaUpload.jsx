@@ -261,7 +261,7 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
   const getFileIcon = (type) => {
     switch (type) {
       case 'image': return <Image size={20} className="text-green-600" />;
-      case 'video': return <Video size={20} className="text-blue-600" />;
+      case 'video': return <Video size={20} className="text-black dark:text-white" />;
       case 'audio': return <File size={20} className="text-purple-600" />;
       default: return <File size={20} className="text-gray-600" />;
     }
@@ -288,7 +288,7 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
           {/* Upload Area */}
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${dragActive
-              ? "border-blue-500 bg-blue-50"
+              ? "border-blue-500 bg-neutral-100 dark:bg-neutral-800"
               : "border-gray-300 hover:border-gray-400"
               }`}
             onDragEnter={handleDrag}
@@ -303,7 +303,7 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-black dark:text-white hover:text-blue-700 font-medium"
             >
               chọn file
             </button>

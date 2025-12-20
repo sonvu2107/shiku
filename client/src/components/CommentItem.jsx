@@ -19,7 +19,7 @@ import UserAvatar from "./UserAvatar";
  * Mapping emote types with icons and colors
  */
 const emoteConfig = {
-  like: { icon: ThumbsUp, color: "text-blue-500", bgColor: "bg-blue-50" },
+  like: { icon: ThumbsUp, color: "text-black dark:text-white", bgColor: "bg-neutral-100 dark:bg-neutral-800" },
   love: { icon: Heart, color: "text-red-500", bgColor: "bg-red-50" },
   laugh: { icon: Laugh, color: "text-yellow-500", bgColor: "bg-yellow-50" },
   angry: { icon: Angry, color: "text-orange-500", bgColor: "bg-orange-50" },
@@ -151,8 +151,8 @@ export default function CommentItem({
               onClick={handleLike}
               disabled={loading || !user}
               className={`flex items-center gap-1 text-sm transition-colors ${isLiked
-                  ? 'text-blue-600 font-medium'
-                  : 'text-gray-500 hover:text-blue-600'
+                  ? 'text-black dark:text-white font-medium'
+                  : 'text-gray-500 hover:text-black dark:text-white'
                 }`}
             >
               <ThumbsUp size={16} className={isLiked ? 'fill-current' : ''} />
@@ -203,7 +203,7 @@ export default function CommentItem({
             {!isReply && (
               <button
                 onClick={() => onReply(comment._id)}
-                className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 transition-colors"
+                className="flex items-center gap-1 text-sm text-gray-500 hover:text-black dark:text-white transition-colors"
               >
                 <MessageCircle size={16} />
                 Trả lời

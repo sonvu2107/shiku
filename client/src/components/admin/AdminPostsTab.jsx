@@ -275,7 +275,7 @@ export default function AdminPostsTab() {
                                 <tr>
                                     <th className="px-3 py-2 w-10">
                                         <button onClick={toggleSelectAll} className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded">
-                                            {isAllSelected ? <CheckSquare size={18} className="text-blue-600" /> : <Square size={18} className="text-neutral-400" />}
+                                            {isAllSelected ? <CheckSquare size={18} className="text-black dark:text-white" /> : <Square size={18} className="text-neutral-400" />}
                                         </button>
                                     </th>
                                     <th className="px-3 py-2 font-semibold">Tiêu đề</th>
@@ -290,11 +290,11 @@ export default function AdminPostsTab() {
                                 {posts.map(post => (
                                     <tr key={post._id} className={cn(
                                         "hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors",
-                                        selectedIds.has(post._id) && "bg-blue-50 dark:bg-blue-900/10"
+                                        selectedIds.has(post._id) && "bg-neutral-100 dark:bg-neutral-800 dark:bg-blue-900/10"
                                     )}>
                                         <td className="px-3 py-2">
                                             <button onClick={() => toggleSelect(post._id)} className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded">
-                                                {selectedIds.has(post._id) ? <CheckSquare size={18} className="text-blue-600" /> : <Square size={18} className="text-neutral-400" />}
+                                                {selectedIds.has(post._id) ? <CheckSquare size={18} className="text-black dark:text-white" /> : <Square size={18} className="text-neutral-400" />}
                                             </button>
                                         </td>
                                         <td className="px-3 py-2">
@@ -317,7 +317,7 @@ export default function AdminPostsTab() {
                                                 "px-2 py-0.5 rounded-full text-xs font-medium",
                                                 post.status === "published"
                                                     ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                                                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                                                    : "bg-gray-100 dark:bg-neutral-900 text-gray-600 dark:text-gray-400"
                                             )}>
                                                 {post.status === "published" ? "Đã đăng" : "Riêng tư"}
                                             </span>
@@ -332,7 +332,7 @@ export default function AdminPostsTab() {
                                             <div className="flex items-center gap-1">
                                                 <button
                                                     onClick={() => window.open(`/bai-viet/${post.slug}`, '_blank')}
-                                                    className="p-1.5 text-neutral-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                                    className="p-1.5 text-neutral-400 hover:text-black dark:text-white hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-blue-900/20 rounded transition-colors"
                                                     title="Xem"
                                                 >
                                                     <ExternalLink size={14} />
@@ -367,13 +367,13 @@ export default function AdminPostsTab() {
                                 className={cn(
                                     "p-3 rounded-xl border transition-all",
                                     selectedIds.has(post._id)
-                                        ? "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                                        ? "bg-neutral-100 dark:bg-neutral-800 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
                                         : "border-neutral-100 dark:border-neutral-800"
                                 )}
                             >
                                 <div className="flex items-start gap-3">
                                     <button onClick={() => toggleSelect(post._id)} className="mt-1">
-                                        {selectedIds.has(post._id) ? <CheckSquare size={20} className="text-blue-600" /> : <Square size={20} className="text-neutral-400" />}
+                                        {selectedIds.has(post._id) ? <CheckSquare size={20} className="text-black dark:text-white" /> : <Square size={20} className="text-neutral-400" />}
                                     </button>
                                     <div className="flex-1 min-w-0">
                                         <div className="font-medium truncate mb-1">{post.title || "(Không có tiêu đề)"}</div>
@@ -388,7 +388,7 @@ export default function AdminPostsTab() {
                                                 "px-2 py-0.5 rounded-full font-bold",
                                                 post.status === "published"
                                                     ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                                                    : "bg-gray-100 dark:bg-gray-800 text-gray-600"
+                                                    : "bg-gray-100 dark:bg-neutral-900 text-gray-600"
                                             )}>
                                                 {post.status === "published" ? "Đã đăng" : "Riêng tư"}
                                             </span>

@@ -727,7 +727,7 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                       {eq.stats.defense > 0 && (
                         <div className="flex justify-between">
                           <span className="text-neutral-500">Phòng Thủ:</span>
-                          <span className="text-blue-500 font-medium">+{eq.stats.defense}</span>
+                          <span className="text-black dark:text-white font-medium">+{eq.stats.defense}</span>
                         </div>
                       )}
                       {eq.stats.hp > 0 && (

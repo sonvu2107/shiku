@@ -42,7 +42,7 @@ export default function FriendsTab({
                 />
                 <div className="flex-1 min-w-0">
                   <div
-                    className="font-bold cursor-pointer hover:text-blue-500 transition-colors truncate"
+                    className="font-bold cursor-pointer hover:text-black dark:text-white transition-colors truncate"
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/user/${friend._id}`);
@@ -78,7 +78,7 @@ export default function FriendsTab({
                     }
                   }}
                   disabled={removingFriendId === friend._id}
-                  className="flex-1 px-4 py-2 rounded-full bg-green-600 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50"
+                  className="flex-1 px-4 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <UserCheck size={16} /> {removingFriendId === friend._id ? "Đang xử lý..." : "Đã kết bạn"}
                 </button>

@@ -324,20 +324,20 @@ export default function PostDetail() {
         <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
           <div className="bg-white dark:bg-[#111] rounded-2xl sm:rounded-[32px] px-3 sm:px-5 pt-3 sm:pt-4 pb-4 sm:pb-6 mb-4 sm:mb-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
+              <div className="w-12 h-12 bg-gray-200 dark:bg-neutral-900 rounded-full animate-pulse"></div>
               <div className="flex-1 space-y-2">
-                <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-32"></div>
-                <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-24"></div>
+                <div className="h-4 bg-gray-200 dark:bg-neutral-900 rounded animate-pulse w-32"></div>
+                <div className="h-3 bg-gray-200 dark:bg-neutral-900 rounded animate-pulse w-24"></div>
               </div>
             </div>
             <div className="space-y-2 mb-4">
-              <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-              <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-4/5"></div>
+              <div className="h-6 bg-gray-200 dark:bg-neutral-900 rounded animate-pulse"></div>
+              <div className="h-6 bg-gray-200 dark:bg-neutral-900 rounded animate-pulse w-4/5"></div>
             </div>
-            <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-3xl animate-pulse mb-4"></div>
+            <div className="h-64 bg-gray-200 dark:bg-neutral-900 rounded-3xl animate-pulse mb-4"></div>
             <div className="flex items-center gap-2">
-              <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-20"></div>
-              <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse w-20"></div>
+              <div className="h-10 bg-gray-200 dark:bg-neutral-900 rounded-full animate-pulse w-20"></div>
+              <div className="h-10 bg-gray-200 dark:bg-neutral-900 rounded-full animate-pulse w-20"></div>
             </div>
           </div>
         </div>
@@ -411,7 +411,7 @@ export default function PostDetail() {
               <div className="min-w-0 flex-1 flex flex-col">
                 <Link
                   to={`/user/${p.author?._id}`}
-                  className="font-bold text-[16px] sm:text-[15px] md:text-base text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 line-clamp-1"
+                  className="font-bold text-[16px] sm:text-[15px] md:text-base text-gray-900 dark:text-gray-100 hover:text-black dark:hover:text-white transition-colors flex items-center gap-1.5 line-clamp-1"
                 >
                   <UserName user={p.author} maxLength={20} />
                   {p.author?.role === 'admin' && <VerifiedBadge user={p.author} />}
@@ -492,7 +492,7 @@ export default function PostDetail() {
                 {p.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 active:bg-blue-300 dark:active:bg-blue-900/70 transition-colors cursor-pointer touch-manipulation"
+                    className="inline-flex items-center px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-neutral-200 dark:bg-neutral-800 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 active:bg-blue-300 dark:active:bg-blue-900/70 transition-colors cursor-pointer touch-manipulation"
                     onClick={() => navigate(`/explore?q=${encodeURIComponent(tag)}`)}
                   >
                     #{tag}
@@ -695,7 +695,7 @@ export default function PostDetail() {
 
               {/* Comment */}
               <button
-                className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-full hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 text-gray-600 dark:text-gray-400 transition-all duration-200 active:scale-90 touch-manipulation min-h-[40px] sm:min-h-[44px] group/comment"
+                className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-full hover:bg-neutral-100 dark:bg-neutral-800 hover:text-black dark:text-white dark:hover:bg-black dark:bg-white/20 dark:hover:text-blue-400 text-gray-600 dark:text-gray-400 transition-all duration-200 active:scale-90 touch-manipulation min-h-[40px] sm:min-h-[44px] group/comment"
                 type="button"
                 aria-label="Bình luận"
                 title="Bình luận"

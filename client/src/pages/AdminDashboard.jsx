@@ -322,10 +322,10 @@ export default function AdminDashboard() {
                               {/* Overview Cards */}
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                  {/* Posts */}
-                                 <SpotlightCard className="p-4 bg-blue-50/50 dark:bg-blue-900/10">
+                                 <SpotlightCard className="p-4 bg-neutral-100 dark:bg-neutral-800/50 dark:bg-blue-900/10">
                                     <div className="flex items-center gap-2 mb-2">
-                                       <FileText className="text-blue-600 dark:text-blue-400" size={24} />
-                                       <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                       <FileText className="text-black dark:text-white" size={24} />
+                                       <div className="text-2xl font-bold text-black dark:text-white">
                                           {stats?.overview ? stats?.overview.totalPosts.count : (stats.totalPosts || 0)}
                                        </div>
                                     </div>
@@ -454,7 +454,7 @@ export default function AdminDashboard() {
                                  </SpotlightCard>
 
                                  {/* Draft posts */}
-                                 <SpotlightCard className="p-4 bg-gray-50/50 dark:bg-gray-800/50">
+                                 <SpotlightCard className="p-4 bg-gray-50/50 dark:bg-neutral-900/50">
                                     <div className="flex items-center gap-2 mb-2">
                                        <Edit className="text-gray-600 dark:text-gray-400" size={24} />
                                        <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
@@ -547,7 +547,7 @@ export default function AdminDashboard() {
                                                    <div className="text-xs text-neutral-500">bởi {post.author?.name}</div>
                                                 </div>
                                              </div>
-                                             <div className="text-sm font-bold text-blue-500">{post.views}</div>
+                                             <div className="text-sm font-bold text-black dark:text-white">{post.views}</div>
                                           </div>
                                        ))}
                                     </div>
@@ -653,7 +653,7 @@ export default function AdminDashboard() {
                                                             Đang online
                                                          </span>
                                                       ) : (
-                                                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                                                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-neutral-800">
                                                             <WifiOff size={12} />
                                                             Offline
                                                          </span>
@@ -668,7 +668,7 @@ export default function AdminDashboard() {
                                                    }) : 'N/A'}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                   <span className="font-semibold text-blue-600 dark:text-blue-400">{u.postCount || 0}</span>
+                                                   <span className="font-semibold text-black dark:text-white">{u.postCount || 0}</span>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                    <select
@@ -746,7 +746,7 @@ export default function AdminDashboard() {
                                                          Online
                                                       </span>
                                                    ) : (
-                                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400">
+                                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-400">
                                                          <WifiOff size={10} />
                                                          Offline
                                                       </span>
@@ -755,7 +755,7 @@ export default function AdminDashboard() {
                                              </div>
                                              <div>
                                                 <span className="text-neutral-500">Số bài viết:</span>
-                                                <div className="mt-1 font-semibold text-blue-600 dark:text-blue-400">{u.postCount || 0}</div>
+                                                <div className="mt-1 font-semibold text-black dark:text-white">{u.postCount || 0}</div>
                                              </div>
                                           </div>
                                           <div className="text-xs text-neutral-500 mb-2">
@@ -798,7 +798,7 @@ export default function AdminDashboard() {
                               <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{onlineUsers.length}</div>
                               <div className="text-sm text-neutral-600 dark:text-neutral-400">Đang online</div>
                            </SpotlightCard>
-                           <SpotlightCard className="p-4 text-center bg-gray-50/50 dark:bg-gray-800/50">
+                           <SpotlightCard className="p-4 text-center bg-gray-50/50 dark:bg-neutral-900/50">
                               <WifiOff size={32} className="mx-auto text-gray-600 dark:text-gray-400 mb-2" />
                               <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
                                  {stats?.overview ?
@@ -808,9 +808,9 @@ export default function AdminDashboard() {
                               </div>
                               <div className="text-sm text-neutral-600 dark:text-neutral-400">Offline</div>
                            </SpotlightCard>
-                           <SpotlightCard className="p-4 text-center bg-blue-50/50 dark:bg-blue-900/10">
-                              <UserCheck size={32} className="mx-auto text-blue-600 dark:text-blue-400 mb-2" />
-                              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalVisitors.toLocaleString()}</div>
+                           <SpotlightCard className="p-4 text-center bg-neutral-100 dark:bg-neutral-800/50 dark:bg-blue-900/10">
+                              <UserCheck size={32} className="mx-auto text-black dark:text-white mb-2" />
+                              <div className="text-2xl font-bold text-black dark:text-white">{totalVisitors.toLocaleString()}</div>
                               <div className="text-sm text-neutral-600 dark:text-neutral-400">Tổng lượt truy cập</div>
                            </SpotlightCard>
                            <SpotlightCard className="p-4 text-center bg-purple-50/50 dark:bg-purple-900/10">
@@ -836,8 +836,8 @@ export default function AdminDashboard() {
                                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">{visitorStats.timeStats.today}</div>
                                     <div className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">Hôm nay</div>
                                  </div>
-                                 <div className="text-center p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl">
-                                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{visitorStats.timeStats.thisWeek}</div>
+                                 <div className="text-center p-4 bg-neutral-100 dark:bg-neutral-800/50 dark:bg-blue-900/10 rounded-xl">
+                                    <div className="text-2xl font-bold text-black dark:text-white">{visitorStats.timeStats.thisWeek}</div>
                                     <div className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">Tuần này</div>
                                  </div>
                                  <div className="text-center p-4 bg-purple-50/50 dark:bg-purple-900/10 rounded-xl">
@@ -1005,7 +1005,7 @@ export default function AdminDashboard() {
                      <motion.div key="notifications" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                            <SpotlightCard>
-                              <h3 className="font-bold text-lg mb-4 text-blue-600">Thông báo Hệ thống</h3>
+                              <h3 className="font-bold text-lg mb-4 text-black dark:text-white">Thông báo Hệ thống</h3>
                               <div className="space-y-4">
                                  <input
                                     placeholder="Tiêu đề..."
@@ -1032,7 +1032,7 @@ export default function AdminDashboard() {
                                  <button
                                     onClick={handleNotificationSubmit}
                                     disabled={!notificationForm.title || !notificationForm.message}
-                                    className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                    className="w-full py-3 bg-black dark:bg-white text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50"
                                  >
                                     Gửi thông báo
                                  </button>

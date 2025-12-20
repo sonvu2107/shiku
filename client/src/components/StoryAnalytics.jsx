@@ -34,7 +34,7 @@ export default function StoryAnalytics({ storyId, onClose }) {
   };
 
   const reactionIcons = {
-    like: { Icon: ThumbsUp, color: 'text-blue-500' },
+    like: { Icon: ThumbsUp, color: 'text-black dark:text-white' },
     love: { Icon: Heart, color: 'text-red-500' },
     laugh: { Icon: Laugh, color: 'text-yellow-500' },
     sad: { Icon: Frown, color: 'text-gray-500' },
@@ -45,7 +45,7 @@ export default function StoryAnalytics({ storyId, onClose }) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl w-full max-w-md p-8 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 animate-spin text-black dark:text-white mx-auto mb-4" />
           <p className="text-gray-600">Đang tải thống kê...</p>
         </div>
       </div>
@@ -65,7 +65,7 @@ export default function StoryAnalytics({ storyId, onClose }) {
             <div className="flex gap-2">
               <button
                 onClick={loadAnalytics}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex-1 px-4 py-2 bg-black dark:bg-white text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Thử lại
               </button>
@@ -110,7 +110,7 @@ export default function StoryAnalytics({ storyId, onClose }) {
                 key={id}
                 onClick={() => setActiveTab(id)}
                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors ${activeTab === id
-                  ? 'bg-blue-100 text-blue-700'
+                  ? 'bg-neutral-200 dark:bg-neutral-800 text-blue-700'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                   }`}
               >
@@ -127,8 +127,8 @@ export default function StoryAnalytics({ storyId, onClose }) {
             <div className="space-y-6">
               {/* Main Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4 text-center">
-                  <Eye className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                <div className="bg-neutral-100 dark:bg-neutral-800 rounded-lg p-4 text-center">
+                  <Eye className="w-6 h-6 text-black dark:text-white mx-auto mb-2" />
                   <div className="text-2xl font-bold text-gray-900">{analytics?.totalViews || 0}</div>
                   <div className="text-sm text-gray-500">Lượt xem</div>
                 </div>
@@ -211,7 +211,7 @@ export default function StoryAnalytics({ storyId, onClose }) {
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-gray-900 truncate">{view.user?.name}</p>
                           {view.user?.isVerified && (
-                            <span className="text-blue-500 text-xs">✓</span>
+                            <span className="text-black dark:text-white text-xs">✓</span>
                           )}
                           {view.user?.isOnline && (
                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
@@ -258,7 +258,7 @@ export default function StoryAnalytics({ storyId, onClose }) {
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-gray-900 truncate">{reaction.user?.name}</p>
                             {reaction.user?.isVerified && (
-                              <span className="text-blue-500 text-xs">✓</span>
+                              <span className="text-black dark:text-white text-xs">✓</span>
                             )}
                             {reaction.user?.isOnline && (
                               <span className="w-2 h-2 bg-green-500 rounded-full"></span>

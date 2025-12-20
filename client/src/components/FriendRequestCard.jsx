@@ -25,7 +25,7 @@ export default function FriendRequestCard({ request, onAccept, onReject }) {
   const navigate = useNavigate(); // Navigation hook
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 space-y-3 transition-colors duration-200">
+    <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 p-3 sm:p-4 space-y-3 transition-colors duration-200">
       {/* User Info Section */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Avatar */}
@@ -54,7 +54,7 @@ export default function FriendRequestCard({ request, onAccept, onReject }) {
           {/* User Name */}
           <Link
             to={`/user/${from._id}`}
-            className="font-semibold text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 text-sm sm:text-base truncate block transition-colors"
+            className="font-semibold text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white text-sm sm:text-base truncate block transition-colors"
             title={from.nickname || from.name}
           >
             <UserName user={from} maxLength={20} />
@@ -74,7 +74,7 @@ export default function FriendRequestCard({ request, onAccept, onReject }) {
           {/* Accept Button */}
           <button
             onClick={() => onAccept(request._id)}
-            className="flex-1 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 
+            className="flex-1 bg-black dark:bg-white dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 
                       active:bg-blue-800 dark:active:bg-blue-900 text-white px-2 sm:px-4 py-2 sm:py-2.5 
                       rounded-lg font-medium flex items-center justify-center gap-1 sm:gap-2 
                       transition-colors text-xs sm:text-sm touch-target"
@@ -87,7 +87,7 @@ export default function FriendRequestCard({ request, onAccept, onReject }) {
           {/* Reject Button */}
           <button
             onClick={() => onReject(request._id)}
-            className="flex-1 bg-gray-500 dark:bg-gray-600 hover:bg-gray-600 dark:hover:bg-gray-700 
+            className="flex-1 bg-gray-500 dark:bg-neutral-700 hover:bg-gray-600 dark:hover:bg-neutral-800 
                       active:bg-gray-700 dark:active:bg-gray-800 text-white px-2 sm:px-4 py-2 sm:py-2.5 
                       rounded-lg font-medium flex items-center justify-center gap-1 sm:gap-2 
                       transition-colors text-xs sm:text-sm touch-target"

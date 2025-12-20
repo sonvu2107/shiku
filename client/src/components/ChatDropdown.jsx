@@ -184,7 +184,7 @@ export default function ChatDropdown({ onOpenChat }) {
   return (
     <div className="relative" ref={wrapperRef}>
       <button
-        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-200 relative"
+        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors text-gray-700 dark:text-gray-200 relative"
         onClick={() => setOpen(!open)}
         title="Tin nhắn"
       >
@@ -196,8 +196,8 @@ export default function ChatDropdown({ onOpenChat }) {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50">
-          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white dark:from-gray-800 dark:to-gray-800">
+        <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl shadow-xl z-50">
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-neutral-800 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white dark:from-neutral-900 dark:to-neutral-900">
             <h3 className="font-bold text-gray-800 dark:text-gray-100 text-base sm:text-lg">Tin nhắn</h3>
           </div>
           <div className="max-h-96 overflow-y-auto">
@@ -206,14 +206,14 @@ export default function ChatDropdown({ onOpenChat }) {
             ) : (
               <>
                 <div
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer border-b border-blue-100 dark:border-blue-900/30 transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-blue-900/20 cursor-pointer border-b border-blue-100 dark:border-blue-900/30 transition-colors"
                   onClick={handleOpenChatbot}
                 >
                   <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md">
                     <Bot size={18} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-blue-600 dark:text-blue-300 truncate">Trợ lý AI</div>
+                    <div className="font-medium text-black dark:text-white dark:text-blue-300 truncate">Trợ lý AI</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                       Hỏi tôi bất cứ điều gì để được hỗ trợ tức thì
                     </div>
@@ -234,7 +234,7 @@ export default function ChatDropdown({ onOpenChat }) {
                       return (
                         <div
                           key={conv._id}
-                          className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 transition-colors relative ${isUnread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                          className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-neutral-800 cursor-pointer border-b border-gray-100 dark:border-neutral-800 transition-colors relative ${isUnread ? 'bg-neutral-100 dark:bg-neutral-800/50 dark:bg-blue-900/10' : ''}`}
                           onClick={() => {
                             setOpen(false);
                             onOpenChat(conv);
@@ -253,7 +253,7 @@ export default function ChatDropdown({ onOpenChat }) {
                             <div className={`text-sm truncate ${isUnread ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-900 dark:text-white'}`}>
                               {name}
                             </div>
-                            <div className={`text-xs truncate ${isUnread ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                            <div className={`text-xs truncate ${isUnread ? 'font-bold text-black dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                               {conv.lastMessage?.messageType === "emote" ? (
                                 <span className="text-lg">{conv.lastMessage.emote}</span>
                               ) : conv.lastMessage?.messageType === "image" ? (
@@ -265,7 +265,7 @@ export default function ChatDropdown({ onOpenChat }) {
                           </div>
 
                           <div className="flex flex-col items-end gap-1">
-                            <div className={`text-[10px] ${isUnread ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                            <div className={`text-[10px] ${isUnread ? 'font-bold text-black dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}>
                               {conv.lastActivity
                                 ? new Date(conv.lastActivity).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
                                 : conv.updatedAt
@@ -273,7 +273,7 @@ export default function ChatDropdown({ onOpenChat }) {
                                   : ""}
                             </div>
                             {isUnread && (
-                              <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                              <div className="w-3 h-3 bg-black dark:bg-white rounded-full"></div>
                             )}
                           </div>
                         </div>
@@ -283,9 +283,9 @@ export default function ChatDropdown({ onOpenChat }) {
               </>
             )}
           </div>
-          <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 sm:p-4">
+          <div className="border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 p-3 sm:p-4">
             <button
-              className="w-full text-gray-800 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white text-sm font-semibold py-3 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-600 hover:border-gray-300"
+              className="w-full text-gray-800 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white text-sm font-semibold py-3 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-all duration-200 border border-gray-200 dark:border-neutral-700 hover:border-gray-300"
               onClick={() => {
                 setOpen(false);
                 window.location.href = "/chat";

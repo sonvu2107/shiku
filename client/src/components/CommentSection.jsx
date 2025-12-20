@@ -25,7 +25,7 @@ const roleIcons = {
  * Mapping emote types with their respective icons and colors
  */
 const emoteConfig = {
-  like: { icon: ThumbsUp, color: "text-blue-500", bgColor: "bg-blue-50" },
+  like: { icon: ThumbsUp, color: "text-black dark:text-white", bgColor: "bg-neutral-100 dark:bg-neutral-800" },
   love: { icon: Heart, color: "text-red-500", bgColor: "bg-red-50" },
   laugh: { icon: Laugh, color: "text-yellow-500", bgColor: "bg-yellow-50" },
   angry: { icon: Angry, color: "text-orange-500", bgColor: "bg-orange-50" },
@@ -1256,7 +1256,7 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
           />
           <div className="flex-1 min-w-0">
             <form onSubmit={handleSubmitComment} className="relative group/input">
-              <div className="relative bg-neutral-100 dark:bg-neutral-900 rounded-xl sm:rounded-2xl transition-all focus-within:ring-2 focus-within:ring-black/5 dark:focus-within:ring-white/10 focus-within:bg-white dark:focus-within:bg-black border border-transparent focus-within:border-neutral-200 dark:focus-within:border-neutral-800">
+              <div className="comment-input-container relative rounded-xl sm:rounded-2xl transition-all focus-within:ring-2 focus-within:ring-neutral-200 dark:focus-within:ring-neutral-700 border border-transparent">
                 <textarea
                   ref={newCommentTextareaRef}
                   value={newComment}
