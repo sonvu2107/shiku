@@ -105,7 +105,7 @@ export const QUEST_TEMPLATES = {
     { id: "daily_post", name: "Chia sẻ ngộ đạo", description: "Đăng 1 bài viết", expReward: 30, spiritStoneReward: 15, type: "daily", requirement: { action: "post", count: 1 } },
     { id: "daily_comment", name: "Luận đạo cùng đạo hữu", description: "Bình luận 3 bài viết", expReward: 20, spiritStoneReward: 10, type: "daily", requirement: { action: "comment", count: 3 } },
     { id: "daily_upvote", name: "Kết thiện duyên", description: "Upvote 5 bài viết", expReward: 15, spiritStoneReward: 5, type: "daily", requirement: { action: "upvote", count: 5 } },
-    
+
     // === NHIỆM VỤ TU TIÊN ===
     { id: "daily_yinyang", name: "Thu linh khí", description: "Thu thập linh khí 20 lần", expReward: 25, spiritStoneReward: 15, type: "daily", requirement: { action: "yinyang_click", count: 20 } },
     { id: "daily_pk", name: "Luyện võ đài", description: "Tham gia 3 trận luận võ", expReward: 40, spiritStoneReward: 25, type: "daily", requirement: { action: "pk_battle", count: 3 } },
@@ -340,7 +340,7 @@ const InventoryItemSchema = new mongoose.Schema({
   quantity: { type: Number, default: 1 },
   equipped: { type: Boolean, default: false },
   acquiredAt: { type: Date, default: Date.now },
-  expiresAt: { type: Date }, 
+  expiresAt: { type: Date },
   metadata: { type: mongoose.Schema.Types.Mixed }
 }, { _id: false });
 
@@ -1256,14 +1256,12 @@ CultivationSchema.methods.buyItem = function (itemId) {
   };
 
   // Xử lý item có thời hạn
+  // NOTE: Không tự động kích hoạt boost khi mua - user phải bấm "Dùng" thủ công
+  // Đã bỏ auto-activation vì gây double buff
   if (item.type === ITEM_TYPES.EXP_BOOST) {
-    inventoryItem.expiresAt = new Date(Date.now() + item.duration * 60 * 60 * 1000);
-    // Kích hoạt boost ngay
-    this.activeBoosts.push({
-      type: 'exp_boost',
-      multiplier: item.multiplier,
-      expiresAt: inventoryItem.expiresAt
-    });
+    // Lưu thông tin duration vào metadata để sử dụng khi user click "Dùng"
+    inventoryItem.metadata.duration = item.duration;
+    inventoryItem.metadata.multiplier = item.multiplier;
   }
 
   this.inventory.push(inventoryItem);
@@ -1575,9 +1573,9 @@ CultivationSchema.statics.getOrCreate = async function (userId) {
   cultivation.weeklyQuests = removeDuplicateQuests(cultivation.weeklyQuests, weeklyTemplateIds);
   cultivation.achievements = removeDuplicateQuests(cultivation.achievements, achievementTemplateIds);
 
-  if (cultivation.dailyQuests.length !== originalDailyCount || 
-      cultivation.weeklyQuests.length !== originalWeeklyCount ||
-      cultivation.achievements.length !== originalAchievementCount) {
+  if (cultivation.dailyQuests.length !== originalDailyCount ||
+    cultivation.weeklyQuests.length !== originalWeeklyCount ||
+    cultivation.achievements.length !== originalAchievementCount) {
     needsSave = true;
   }
 

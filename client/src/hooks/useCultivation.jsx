@@ -2,7 +2,7 @@
  * useCultivation Hook - Quản lý state hệ thống tu tiên
  */
 
-import React, { useState, useEffect, useCallback, useContext, createContext } from 'react';
+import React, { useState, useEffect, useCallback, useContext, createContext, useRef } from 'react';
 import {
   getCultivation,
   dailyLogin,
@@ -42,6 +42,9 @@ export function CultivationProvider({ children }) {
 
   // Notification state cho level up, rewards, etc.
   const [notification, setNotification] = useState(null);
+
+  // Ref to prevent double API calls (synchronous check)
+  const isUsingItemRef = useRef(false);
 
   /**
    * Load cultivation data
@@ -330,6 +333,13 @@ export function CultivationProvider({ children }) {
    * Sử dụng vật phẩm tiêu hao (đan dược, consumable)
    */
   const useItem = useCallback(async (itemId) => {
+    // Synchronous check to prevent double API calls
+    if (isUsingItemRef.current) {
+      console.warn('[Cultivation] Blocked duplicate useItem call');
+      return;
+    }
+    isUsingItemRef.current = true;
+
     try {
       setError(null);
       const response = await useItemAPI(itemId);
@@ -356,6 +366,8 @@ export function CultivationProvider({ children }) {
     } catch (err) {
       setError(err.message);
       throw err;
+    } finally {
+      isUsingItemRef.current = false;
     }
   }, []);
 

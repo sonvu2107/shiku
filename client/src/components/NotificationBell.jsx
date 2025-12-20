@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, X, Check, CheckCheck } from "lucide-react";
 import { api } from "../api";
-import { 
-  useNotifications, 
+import {
+  useNotifications,
   useUnreadNotificationsCount,
   useMarkNotificationRead,
-  useMarkAllNotificationsRead 
+  useMarkAllNotificationsRead
 } from "../hooks/useNotifications";
 
 /**
@@ -16,7 +16,7 @@ import {
  */
 export default function NotificationBell({ user }) {
   // ==================== STATE MANAGEMENT ====================
-  
+
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
 
@@ -78,7 +78,7 @@ export default function NotificationBell({ user }) {
     const now = new Date();
     const date = new Date(dateString);
     const diffInSeconds = Math.floor((now - date) / 1000);
-    
+
     if (diffInSeconds < 60) return "Vừa xong";
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} phút trước`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
@@ -162,9 +162,8 @@ export default function NotificationBell({ user }) {
                 <div
                   key={notification._id}
                   onClick={() => handleNotificationClick(notification)}
-                  className={`p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 transition-all duration-200 touch-feedback ${
-                    !notification.read ? "bg-blue-50 dark:bg-gray-700/40 border-blue-200 dark:border-gray-600" : ""
-                  }`}
+                  className={`p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 transition-all duration-200 touch-feedback ${!notification.read ? "bg-blue-50 dark:bg-gray-700/40 border-blue-200 dark:border-gray-600" : ""
+                    }`}
                 >
                   <div className="flex items-start gap-3">
                     {(notification.type === 'system' || notification.type === 'admin_message') ? (
@@ -260,7 +259,7 @@ export default function NotificationBell({ user }) {
                   setShowDropdown(false);
                   navigate("/notifications");
                 }}
-                className="w-full text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 active:text-blue-900 text-sm font-semibold py-3 px-4 rounded-lg hover:bg-blue-100 dark:hover:bg-gray-700 active:bg-blue-200 transition-all duration-200 border border-blue-200 dark:border-gray-700 hover:border-blue-300 active:border-blue-400 touch-target"
+                className="w-full text-gray-800 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white text-sm font-semibold py-3 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-600 hover:border-gray-300"
               >
                 Xem tất cả thông báo
               </button>

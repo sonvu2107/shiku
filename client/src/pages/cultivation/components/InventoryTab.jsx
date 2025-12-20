@@ -1,7 +1,7 @@
 /**
  * Inventory Tab - Display and manage inventory items
  */
-import { useState, memo } from 'react';
+import { useState, memo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { RARITY_COLORS, SHOP_ITEM_DATA, EQUIPMENT_SUBTYPES } from '../utils/constants.js';
@@ -13,8 +13,10 @@ const InventoryTab = memo(function InventoryTab() {
   const { cultivation, equip, unequip, equipEquipment, unequipEquipment, useItem, loading } = useCultivation();
   const [equipping, setEquipping] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [activeSubCategory, setActiveSubCategory] = useState('all');
   const [hoveredItem, setHoveredItem] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const isProcessingRef = useRef(false); // Sync ref to prevent double-clicks
 
   const handleMouseEnter = (item, e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -87,6 +89,10 @@ const InventoryTab = memo(function InventoryTab() {
   };
 
   const handleUse = async (itemId) => {
+    // Synchronous check using ref (prevents clicks within same event loop)
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+
     setEquipping(itemId);
     try {
       if (useItem) {
@@ -94,6 +100,7 @@ const InventoryTab = memo(function InventoryTab() {
       }
     } finally {
       setEquipping(null);
+      isProcessingRef.current = false;
     }
   };
 
@@ -104,32 +111,65 @@ const InventoryTab = memo(function InventoryTab() {
   const inventory = cultivation.inventory || [];
   const equipped = cultivation.equipped || {};
 
-  // Group items by type
-  const categories = [
-    { id: 'all', label: 'Tất cả', icon: null },
-    { id: 'equipment_weapon', label: 'Vũ Khí', icon: null },
-    { id: 'equipment_armor', label: 'Giáp', icon: null },
-    { id: 'equipment_accessory', label: 'Trang Sức', icon: null },
-    { id: 'equipment_magic_treasure', label: 'Pháp Bảo', icon: null },
-    { id: 'equipment_power_item', label: 'Linh Khí', icon: null },
-    { id: 'title', label: 'Danh Hiệu', icon: null },
-    { id: 'badge', label: 'Huy Hiệu', icon: null },
-    { id: 'avatar_frame', label: 'Khung Avatar', icon: null },
-    { id: 'profile_effect', label: 'Hiệu Ứng', icon: null },
-    { id: 'exp_boost', label: 'Đan Dược', icon: null },
-    { id: 'consumable', label: 'Vật Phẩm', icon: null },
-    { id: 'pet', label: 'Linh Thú', icon: null },
-    { id: 'mount', label: 'Tọa Kỵ', icon: null }
+  // Parent Categories (matching ShopTab)
+  const parentCategories = [
+    { id: 'all', label: 'Tất cả' },
+    { id: 'equipment', label: 'Trang Bị' },
+    { id: 'decoration', label: 'Trang Trí' },
+    { id: 'consumable_group', label: 'Vật Phẩm' },
+    { id: 'companion', label: 'Đồng Hành' }
   ];
 
-  const filteredItems = activeCategory === 'all'
-    ? inventory
-    : inventory.filter(item => {
-      if (activeCategory.startsWith('equipment_')) {
-        return item.type === activeCategory;
-      }
-      return item.type === activeCategory;
-    });
+  // Sub Categories mapping
+  const subCategories = {
+    equipment: [
+      { id: 'all', label: 'Tất cả' },
+      { id: 'equipment_weapon', label: 'Vũ Khí' },
+      { id: 'equipment_armor', label: 'Giáp' },
+      { id: 'equipment_accessory', label: 'Trang Sức' },
+      { id: 'equipment_magic_treasure', label: 'Pháp Bảo' },
+      { id: 'equipment_power_item', label: 'Linh Khí' }
+    ],
+    decoration: [
+      { id: 'all', label: 'Tất cả' },
+      { id: 'title', label: 'Danh Hiệu' },
+      { id: 'badge', label: 'Huy Hiệu' },
+      { id: 'avatar_frame', label: 'Khung Avatar' },
+      { id: 'profile_effect', label: 'Hiệu Ứng' }
+    ],
+    consumable_group: [
+      { id: 'all', label: 'Tất cả' },
+      { id: 'exp_boost', label: 'Đan Dược' },
+      { id: 'consumable', label: 'Tiêu Hao' }
+    ],
+    companion: [
+      { id: 'all', label: 'Tất cả' },
+      { id: 'pet', label: 'Linh Thú' },
+      { id: 'mount', label: 'Tọa Kỵ' }
+    ]
+  };
+
+  // Helper to check item type against category
+  const checkCategory = (item, category) => {
+    if (category === 'all') return true;
+    if (category === 'equipment') return item.type?.startsWith('equipment_');
+    if (category === 'decoration') return ['title', 'badge', 'avatar_frame', 'profile_effect'].includes(item.type);
+    if (category === 'consumable_group') return ['exp_boost', 'consumable'].includes(item.type);
+    if (category === 'companion') return ['pet', 'mount'].includes(item.type);
+    // Direct type match
+    return item.type === category;
+  };
+
+  const filteredItems = inventory.filter(item => {
+    // First filter by parent category
+    if (!checkCategory(item, activeCategory)) return false;
+
+    // Then filter by sub category if applicable
+    if (subCategories[activeCategory] && activeSubCategory !== 'all') {
+      return item.type === activeSubCategory;
+    }
+    return true;
+  });
 
   // Check if item is equipped
   const isItemEquipped = (item) => {
@@ -259,22 +299,27 @@ const InventoryTab = memo(function InventoryTab() {
           </div>
         )}
 
-      {/* Category Filter - Horizontal scroll on mobile */}
+      {/* Parent Category Filter - Horizontal scroll on mobile */}
       <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 scrollbar-hide">
         <div className="flex gap-2 min-w-max sm:flex-wrap sm:min-w-0">
-          {categories.map(cat => {
-            const count = cat.id === 'all' ? inventory.length : inventory.filter(i => i.type === cat.id).length;
+          {parentCategories.map(cat => {
+            // Count items for this category
+            const count = cat.id === 'all'
+              ? inventory.length
+              : inventory.filter(i => checkCategory(i, cat.id)).length;
             if (count === 0 && cat.id !== 'all') return null;
             return (
               <button
                 key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => {
+                  setActiveCategory(cat.id);
+                  setActiveSubCategory('all');
+                }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === cat.id
                   ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300'
                   : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
                   }`}
               >
-                {cat.icon && <span className="mr-1.5 inline-flex items-center">{cat.icon}</span>}
                 {cat.label}
                 {count > 0 && <span className="ml-1 opacity-60">({count})</span>}
               </button>
@@ -282,6 +327,33 @@ const InventoryTab = memo(function InventoryTab() {
           })}
         </div>
       </div>
+
+      {/* Sub Category Filter - Only show when parent has sub categories */}
+      {subCategories[activeCategory] && (
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 animate-in fade-in slide-in-from-top-2 duration-300 scrollbar-hide">
+          <div className="flex gap-2 min-w-max sm:flex-wrap sm:min-w-0">
+            {subCategories[activeCategory].map(sub => {
+              const count = sub.id === 'all'
+                ? inventory.filter(i => checkCategory(i, activeCategory)).length
+                : inventory.filter(i => i.type === sub.id).length;
+              if (count === 0 && sub.id !== 'all') return null;
+              return (
+                <button
+                  key={sub.id}
+                  onClick={() => setActiveSubCategory(sub.id)}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${activeSubCategory === sub.id
+                    ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300'
+                    : 'bg-slate-700/30 border border-slate-600/50 text-slate-400 hover:text-slate-300'
+                    }`}
+                >
+                  {sub.label}
+                  {count > 0 && <span className="ml-1 opacity-60">({count})</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {filteredItems.length === 0 ? (
         <div className="h-48 flex flex-col items-center justify-center text-slate-500 opacity-50">
@@ -547,7 +619,7 @@ const InventoryTab = memo(function InventoryTab() {
                 </div>
                 <motion.button
                   onClick={() => consumable ? handleUse(item.itemId) : handleEquip(item, equipped)}
-                  disabled={equipping === item.itemId}
+                  disabled={!!equipping}
                   className={`rounded-lg px-4 py-2 text-xs font-bold uppercase transition-all min-w-[70px] ${consumable
                     ? 'bg-orange-900/30 hover:bg-orange-800/50 border border-orange-500/30 text-orange-300'
                     : equipped

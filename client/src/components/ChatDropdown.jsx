@@ -197,8 +197,8 @@ export default function ChatDropdown({ onOpenChat }) {
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700 font-semibold text-lg text-gray-900 dark:text-white">
-            Tin nhắn
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white dark:from-gray-800 dark:to-gray-800">
+            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-base sm:text-lg">Tin nhắn</h3>
           </div>
           <div className="max-h-96 overflow-y-auto">
             {loading ? (
@@ -283,15 +283,17 @@ export default function ChatDropdown({ onOpenChat }) {
               </>
             )}
           </div>
-          <button
-            className="w-full py-3 text-center text-blue-600 dark:text-blue-400 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 border-t border-gray-200 dark:border-gray-700 transition-colors"
-            onClick={() => {
-              setOpen(false);
-              window.location.href = "/chat";
-            }}
-          >
-            Xem tất cả tin nhắn
-          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 sm:p-4">
+            <button
+              className="w-full text-gray-800 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white text-sm font-semibold py-3 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-600 hover:border-gray-300"
+              onClick={() => {
+                setOpen(false);
+                window.location.href = "/chat";
+              }}
+            >
+              Xem tất cả tin nhắn
+            </button>
+          </div>
         </div>
       )}
     </div>

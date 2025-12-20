@@ -121,7 +121,7 @@ class NotificationService {
   /**
    * Tạo/cập nhật thông báo khi có reaction mới
    * Gộp nhiều reactions vào 1 notification cho mỗi bài viết
-   * Format: "User A và xx người khác đã thả cảm xúc bài viết của bạn"
+   * Format: "User A và xx người khác đã upvote bài viết của bạn"
    * @param {Object} post - Post object
    * @param {Object} reactor - User đã react
    * @param {string} reactionType - Loại reaction (like, love, haha, wow, sad, angry)
@@ -185,9 +185,9 @@ class NotificationService {
         const emoji = emojis[reactionType] || "👍";
 
         if (reactorCount === 1) {
-          existingNotification.message = `${latestReactor} đã thả ${emoji} vào bài viết của bạn`;
+          existingNotification.message = `${latestReactor} đã upvote bài viết của bạn`;
         } else {
-          existingNotification.message = `${latestReactor} và ${reactorCount - 1} người khác đã thả cảm xúc vào bài viết của bạn`;
+          existingNotification.message = `${latestReactor} và ${reactorCount - 1} người khác đã upvote bài viết của bạn`;
         }
 
         // Cập nhật sender thành người react mới nhất
@@ -204,8 +204,8 @@ class NotificationService {
           recipient: post.author,
           sender: reactor._id,
           type: "reaction",
-          title: "Cảm xúc mới",
-          message: `${reactor.name} đã thả ${emoji} vào bài viết của bạn`,
+          title: "Upvote mới",
+          message: `${reactor.name} đã upvote bài viết của bạn`,
           data: {
             post: post._id,
             url: `/post/${post.slug}`,
@@ -230,8 +230,8 @@ class NotificationService {
         recipient: post.author,
         sender: reactor._id,
         type: "reaction",
-        title: "Cảm xúc mới",
-        message: `${reactor.name} đã thả cảm xúc vào bài viết của bạn`,
+        title: "Upvote mới",
+        message: `${reactor.name} đã upvote bài viết của bạn`,
         data: {
           post: post._id,
           url: `/post/${post.slug}`,

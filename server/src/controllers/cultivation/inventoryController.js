@@ -167,6 +167,10 @@ export const getEquipmentStats = async (req, res, next) => {
     }
 };
 
+// In-memory cache to prevent duplicate requests (backend rate limiting)
+const useItemCache = new Map();
+const USE_ITEM_COOLDOWN_MS = 3000;
+
 /**
  * POST /inventory/:itemId/use - Sử dụng vật phẩm tiêu hao
  */
@@ -174,6 +178,29 @@ export const useItem = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const { itemId } = req.params;
+
+        // Rate limiting: Check if same user/item was used recently
+        const cacheKey = `${userId}:${itemId}`;
+        const lastUsed = useItemCache.get(cacheKey);
+        const now = Date.now();
+
+        if (lastUsed && (now - lastUsed) < USE_ITEM_COOLDOWN_MS) {
+            return res.status(429).json({
+                success: false,
+                message: "Vui lòng đợi vài giây trước khi sử dụng lại"
+            });
+        }
+
+        // Set cache immediately to block concurrent requests
+        useItemCache.set(cacheKey, now);
+
+        // Cleanup old cache entries every 100 requests
+        if (useItemCache.size > 100) {
+            const cutoff = now - USE_ITEM_COOLDOWN_MS * 2;
+            for (const [key, time] of useItemCache.entries()) {
+                if (time < cutoff) useItemCache.delete(key);
+            }
+        }
 
         const cultivation = await Cultivation.getOrCreate(userId);
 
