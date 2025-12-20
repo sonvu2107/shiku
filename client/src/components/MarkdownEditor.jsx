@@ -6,6 +6,8 @@ import {
 } from "lucide-react";
 import { uploadImage } from "../api";
 import MentionAutocomplete from "./MentionAutocomplete";
+import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
 
 /**
  * MarkdownEditor
@@ -188,48 +190,50 @@ export default function MarkdownEditor({ value = "", onChange, placeholder = "Vi
   }, [showMentionAutocomplete]);
 
   /**
-   * Render Markdown preview (simple version)
+   * Render Markdown preview using ReactMarkdown (safe, no XSS)
    */
   const renderPreview = () => {
     if (!showPreview) return null;
 
-    // Simple Markdown rendering (can be enhanced with a markdown parser library)
-    let html = value
-      // Headers
-      .replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold mt-4 mb-2">$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-5 mb-3">$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-6 mb-4">$1</h1>')
-      // Bold
-      .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-bold">$1</strong>')
-      // Italic
-      .replace(/\*(.*?)\*/gim, '<em class="italic">$1</em>')
-      // Code blocks
-      .replace(/```([\s\S]*?)```/gim, '<pre class="bg-neutral-100 dark:bg-neutral-800 p-3 rounded-lg overflow-x-auto my-2"><code>$1</code></pre>')
-      // Inline code
-      .replace(/`(.*?)`/gim, '<code class="bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-sm">$1</code>')
-      // Links
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" class="text-blue-600 dark:text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">$1</a>')
-      // Images
-      .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full rounded-lg my-2" />')
-      // Blockquote
-      .replace(/^> (.*$)/gim, '<blockquote class="border-l-4 border-neutral-300 dark:border-neutral-700 pl-4 my-2 italic text-neutral-600 dark:text-neutral-400">$1</blockquote>')
-      // Unordered list
-      .replace(/^[\*\-] (.*$)/gim, '<li class="ml-4">$1</li>')
-      // Ordered list
-      .replace(/^\d+\. (.*$)/gim, '<li class="ml-4">$1</li>')
-      // Checklist
-      .replace(/^- \[ \] (.*$)/gim, '<li class="ml-4"><input type="checkbox" disabled class="mr-2" />$1</li>')
-      .replace(/^- \[x\] (.*$)/gim, '<li class="ml-4"><input type="checkbox" checked disabled class="mr-2" />$1</li>')
-      // Horizontal rule
-      .replace(/^---$/gim, '<hr class="my-4 border-neutral-200 dark:border-neutral-800" />')
-      // Line breaks
-      .replace(/\n/gim, '<br />');
-
     return (
-      <div
-        className="prose prose-neutral dark:prose-invert max-w-none p-4 min-h-[200px] text-neutral-900 dark:text-neutral-100"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+      <div className="prose prose-neutral dark:prose-invert max-w-none p-4 min-h-[200px] text-neutral-900 dark:text-neutral-100">
+        <ReactMarkdown
+          remarkPlugins={[remarkBreaks]}
+          components={{
+            h1: ({ children }) => <h1 className="text-3xl font-bold mt-6 mb-4">{children}</h1>,
+            h2: ({ children }) => <h2 className="text-2xl font-bold mt-5 mb-3">{children}</h2>,
+            h3: ({ children }) => <h3 className="text-xl font-bold mt-4 mb-2">{children}</h3>,
+            strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+            em: ({ children }) => <em className="italic">{children}</em>,
+            code: ({ node, inline, children, ...props }) => {
+              if (inline) {
+                return <code className="bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-sm" {...props}>{children}</code>;
+              }
+              return <pre className="bg-neutral-100 dark:bg-neutral-800 p-3 rounded-lg overflow-x-auto my-2"><code {...props}>{children}</code></pre>;
+            },
+            a: ({ href, children }) => (
+              <a href={href} className="text-blue-600 dark:text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">
+                {children}
+              </a>
+            ),
+            img: ({ src, alt }) => (
+              <img src={src} alt={alt} className="max-w-full rounded-lg my-2" />
+            ),
+            blockquote: ({ children }) => (
+              <blockquote className="border-l-4 border-neutral-300 dark:border-neutral-700 pl-4 my-2 italic text-neutral-600 dark:text-neutral-400">
+                {children}
+              </blockquote>
+            ),
+            li: ({ children }) => <li className="ml-4">{children}</li>,
+            hr: () => <hr className="my-4 border-neutral-200 dark:border-neutral-800" />,
+            input: ({ type, checked, disabled }) => (
+              type === 'checkbox' ? <input type="checkbox" checked={checked} disabled={disabled} className="mr-2" /> : null
+            ),
+          }}
+        >
+          {value}
+        </ReactMarkdown>
+      </div>
     );
   };
 

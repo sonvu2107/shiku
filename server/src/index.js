@@ -18,7 +18,7 @@ import mongoose from "mongoose"; // MongoDB ODM
 
 // Import config và middleware
 import { connectDB } from "./config/db.js";
-import { apiLimiter, authLimiter, authStatusLimiter, uploadLimiter, messageLimiter, postsLimiter } from "./middleware/rateLimit.js";
+import { apiLimiter, authLimiter, authStatusLimiter, uploadLimiter, messageLimiter, postsLimiter, postCreationLimiter, commentCreationLimiter, groupCreationLimiter, eventCreationLimiter, friendRequestLimiter, pollCreationLimiter, postInteractionLimiter } from "./middleware/rateLimit.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { requestTimeout } from "./middleware/timeout.js";
 import { authOptional } from "./middleware/auth.js";

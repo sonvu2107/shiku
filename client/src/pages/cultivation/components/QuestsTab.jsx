@@ -112,11 +112,11 @@ const QuestsTab = memo(function QuestsTab({ onCheckIn, checkingIn }) {
 
   return (
     <div className="space-y-6 pb-2">
-      {/* Stats Grid - Hiển thị số bài viết, bình luận, đã thích, nhiệm vụ */}
+      {/* Stats Grid - Hiển thị số bài viết, bình luận, upvote, nhiệm vụ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 mb-6">
         <StatBox label="Bài viết" value={cultivation.stats?.totalPostsCreated || 0} />
         <StatBox label="Bình luận" value={cultivation.stats?.totalCommentsCreated || 0} />
-        <StatBox label="Đã thích" value={cultivation.stats?.totalLikesGiven || 0} />
+        <StatBox label="Upvote" value={cultivation.stats?.totalUpvotesGiven || 0} />
         <StatBox label="Nhiệm vụ" value={cultivation.stats?.totalQuestsCompleted || 0} />
       </div>
 

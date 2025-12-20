@@ -5,7 +5,7 @@ import { useSavedPosts } from "../hooks/useSavedPosts";
 import { usePostsFlattened } from "../hooks/usePosts";
 import { useSEO } from "../utils/useSEO";
 import ModernPostCard from "../components/ModernPostCard";
-import Stories from "../components/Stories";
+// import Stories from "../components/Stories"; // FEATURE FLAG: Stories disabled
 import LeftSidebar from "../components/LeftSidebar";
 import RightSidebar from "../components/RightSidebar";
 import NotificationBell from "../components/NotificationBell";
@@ -14,12 +14,13 @@ import ChatPopupManager from "../components/ChatPopupManager";
 import UserName from "../components/UserName";
 import UserAvatar from "../components/UserAvatar";
 import Navbar from "../components/Navbar";
-import { ArrowUpDown, Clock, Eye, TrendingUp, Loader2, Sparkles, Search, Bell, MessageCircle, Plus, X, Moon, Sun, Users } from "lucide-react";
+import { ArrowUpDown, Loader2, Search, Bell, MessageCircle, Plus, X, Moon, Sun, Users, AlertCircle, ChevronDown, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../contexts/ToastContext";
 import { useChat } from "../contexts/ChatContext";
 import BackToTop from "../components/BackToTop";
 import PullToRefresh from "../components/PullToRefresh";
+import PostCreator from "../components/PostCreator";
 
 // --- VISUAL COMPONENTS ---
 const NoiseOverlay = () => (
@@ -91,7 +92,7 @@ function Home({ user, setUser }) {
   const [sortBy, setSortBy] = useState(() => {
     try {
       const saved = localStorage.getItem('home:sortBy');
-      if (saved && ['recommended', 'newest', 'oldest', 'mostViewed', 'leastViewed'].includes(saved)) {
+      if (saved && ['recommended', 'hot', 'newest', 'oldest', 'mostViewed', 'leastViewed', 'mostUpvoted'].includes(saved)) {
         return saved;
       }
     } catch { }
@@ -119,15 +120,33 @@ function Home({ user, setUser }) {
   const error = postsError?.message || null;
   const { savedMap, updateSavedState } = useSavedPosts(items, { enabled: !!user });
 
-  // Hàm chuyển sang chế độ sắp xếp tiếp theo
-  const cycleSortBy = useCallback(() => {
-    const sortOptions = ['recommended', 'newest', 'oldest', 'mostViewed', 'leastViewed'];
-    setSortBy(prev => {
-      const currentIndex = sortOptions.indexOf(prev);
-      const nextIndex = (currentIndex + 1) % sortOptions.length;
-      return sortOptions[nextIndex];
-    });
-  }, []);
+  // Filter dropdown state
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const filterDropdownRef = useRef(null);
+
+  // Filter options - thay vì cycle
+  const filterOptions = useMemo(() => [
+    { key: 'recommended', label: 'Đề xuất' },
+    { key: 'hot', label: 'Hot' },
+    { key: 'newest', label: 'Mới nhất' },
+    { key: 'oldest', label: 'Cũ nhất' },
+    { key: 'mostUpvoted', label: 'Upvote nhiều' },
+    { key: 'mostViewed', label: 'Xem nhiều' },
+    { key: 'leastViewed', label: 'Xem ít' }
+  ], []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) {
+        setFilterDropdownOpen(false);
+      }
+    };
+    if (filterDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [filterDropdownOpen]);
   const [topSearchQuery, setTopSearchQuery] = useState(q);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -189,25 +208,13 @@ function Home({ user, setUser }) {
 
   // ==================== API CALLS ====================
 
-  const getSortIcon = useCallback((type) => {
-    const iconClassName = "text-gray-600 dark:text-gray-300";
-    switch (type) {
-      case 'recommended': return <Sparkles size={16} className={iconClassName} />;
-      case 'newest': return <Clock size={16} className={iconClassName} />;
-      case 'oldest': return <Clock size={16} className={`rotate-180 ${iconClassName}`} />;
-      case 'mostViewed': return <Eye size={16} className={iconClassName} />;
-      case 'leastViewed': return <Eye size={16} className={`opacity-50 ${iconClassName}`} />;
-      default: return <TrendingUp size={16} className={iconClassName} />;
-    }
-  }, []);
-
   const getSortLabel = useCallback((type) => {
     switch (type) {
       case 'recommended': return 'Đề xuất';
+      case 'hot': return '🔥 Hot';
       case 'newest': return 'Mới nhất';
-      case 'oldest': return 'Cũ nhất';
-      case 'mostViewed': return 'Xem nhiều nhất';
-      case 'leastViewed': return 'Xem ít nhất';
+      case 'mostUpvoted': return '▲ Upvote';
+      case 'mostViewed': return 'Xem nhiều';
       default: return 'Đề xuất';
     }
   }, []);
@@ -611,16 +618,10 @@ function Home({ user, setUser }) {
           <Navbar user={user} setUser={setUser} darkMode={darkMode} setDarkMode={setDarkMode} />
         </nav>
 
-        {/* Left Sidebar - ẩn trên mobile */}
-        <motion.aside
-          initial={{ x: -50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          role="complementary"
-          aria-label="Menu điều hướng"
-        >
+        {/* Left Sidebar - ẩn trên mobile, không cần animation vì là fixed element */}
+        <aside role="complementary" aria-label="Menu điều hướng">
           <LeftSidebar user={user} setUser={setUser} />
-        </motion.aside>        {/* Main Content Area với margin-left cho left sidebar */}
+        </aside>        {/* Main Content Area với margin-left cho left sidebar */}
         <main
           className="main-content-with-sidebar pt-[64px] md:pt-16 min-h-screen transition-all duration-300 ease-in-out"
           role="main"
@@ -801,28 +802,33 @@ function Home({ user, setUser }) {
                 </div>
               </form>
 
-              {/* Add New Post Button - Giữ nguyên vị trí */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  // Trigger PostCreator modal từ global PostCreator (App.jsx)
-                  const triggerBtn = document.querySelector('[data-post-creator-trigger]');
-                  if (triggerBtn) {
-                    triggerBtn.click();
-                  }
-                }}
-                className="px-4 md:px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 text-sm whitespace-nowrap flex-shrink-0 active:scale-[0.98]"
-                aria-label="Đăng bài mới"
-              >
-                <Plus size={18} strokeWidth={2.5} className="text-white dark:text-black" />
-                <span>Đăng bài mới</span>
-              </motion.button>
+              {/* Add New Post Button - Only show when logged in */}
+              {user && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    // Trigger PostCreator modal từ global PostCreator (App.jsx)
+                    const triggerBtn = document.querySelector('[data-post-creator-trigger]');
+                    if (triggerBtn) {
+                      triggerBtn.click();
+                    }
+                  }}
+                  className={`px-4 md:px-6 py-2.5 rounded-full font-semibold transition-all duration-200 flex items-center gap-2 text-sm whitespace-nowrap flex-shrink-0 active:scale-[0.98] ${items.length === 0
+                    ? 'border border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-neutral-400 dark:hover:border-neutral-600 hover:text-neutral-900 dark:hover:text-white bg-transparent'
+                    : 'bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-md hover:shadow-lg'
+                    }`}
+                  aria-label="Đăng bài"
+                >
+                  <Plus size={18} strokeWidth={2.5} />
+                  <span>Đăng bài</span>
+                </motion.button>
+              )}
 
-              {/* Spacer - Đẩy các icons sang bên phải */}
+              {/* Spacer */}
               <div className="flex-1"></div>
 
-              {/* User Icons - Đẩy sang bên phải */}
+              {/* User Icons */}
               {user && (
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {/* 1. Dark Mode Toggle */}
@@ -872,7 +878,7 @@ function Home({ user, setUser }) {
           </nav>
 
           {/* Feed Bar - Trải dài toàn bộ chiều rộng - Sticky trên mobile (dưới navbar), static trên desktop, sát navbar trên desktop */}
-          <div className="sticky md:static top-[64px] md:top-0 z-[100] px-4 md:px-6 lg:px-8 py-2 md:py-2 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-white/70 dark:bg-black/70 backdrop-blur-2xl transition-colors duration-300">
+          <div className="sticky md:relative top-[64px] md:top-0 z-20 px-6 md:px-8 lg:px-10 py-2 md:py-2 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-white/70 dark:bg-black/70 backdrop-blur-2xl transition-colors duration-300">
             <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
               <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 overflow-hidden">
                 <h2 className="text-lg font-semibold text-neutral-900 dark:text-white whitespace-nowrap flex-shrink-0">Bảng tin</h2>
@@ -883,47 +889,59 @@ function Home({ user, setUser }) {
                 )}
               </div>
 
-              {/* Mobile: Nút đăng bài mới - chỉ hiển thị trên mobile */}
-              <div className="md:hidden flex-shrink-0">
+              {/* Sort Dropdown */}
+              <div className="relative" ref={filterDropdownRef}>
                 <button
-                  onClick={() => {
-                    // Trigger PostCreator modal từ global PostCreator (App.jsx)
-                    const triggerBtn = document.querySelector('[data-post-creator-trigger]');
-                    if (triggerBtn) {
-                      triggerBtn.click();
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-1.5 text-xs whitespace-nowrap active:scale-[0.98] touch-manipulation min-h-[36px]"
-                  title="Đăng bài mới"
-                  aria-label="Đăng bài mới"
+                  onClick={() => setFilterDropdownOpen(prev => !prev)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all"
                 >
-                  <Plus size={16} strokeWidth={2.5} className="text-white dark:text-black" />
-                  <span>Đăng bài</span>
+                  <span>{filterOptions.find(f => f.key === sortBy)?.label || 'Đề xuất'}</span>
+                  <ChevronDown size={14} className={`transition-transform ${filterDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
-              </div>
 
-              <button
-                onClick={cycleSortBy}
-                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all duration-200 whitespace-nowrap touch-manipulation flex-shrink-0"
-                aria-label={`Sắp xếp: ${getSortLabel(sortBy)}. Bấm để chuyển sang chế độ khác`}
-                title={`Bấm để chuyển sang chế độ sắp xếp khác`}
-              >
-                <span className="hidden sm:inline-flex flex-shrink-0">{getSortIcon(sortBy)}</span>
-                <span className="whitespace-nowrap">{getSortLabel(sortBy)}</span>
-                <ArrowUpDown size={14} className="opacity-60 dark:opacity-70 flex-shrink-0 text-neutral-600 dark:text-neutral-300 hidden sm:inline" />
-              </button>
+                {filterDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute right-0 top-full mt-2 bg-white dark:bg-neutral-900 rounded-xl shadow-xl border border-neutral-200 dark:border-neutral-700 py-1 z-[200]"
+                  >
+                    {filterOptions.map(option => (
+                      <button
+                        key={option.key}
+                        onClick={() => {
+                          setSortBy(option.key);
+                          setFilterDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 text-sm whitespace-nowrap transition-colors ${sortBy === option.key
+                          ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white font-medium'
+                          : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/50'
+                          }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Content Area - 2 Columns */}
+          {/* Content Area - 2 Columns when logged in, 1 Column when guest */}
           <div className="px-4 md:px-6 lg:px-4 py-6 md:py-8">
-            <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-8 max-w-[1440px] mx-auto">
+            <div className={`grid grid-cols-1 gap-8 max-w-[1440px] mx-auto ${user ? "xl:grid-cols-[1fr_300px]" : ""}`}>
               {/* Center Column - Main Feed - Centered & Restricted Width */}
               <div className="w-full max-w-[680px] mx-auto space-y-4 min-w-0">
                 {/* Pull to Refresh - Mobile only */}
                 <PullToRefresh onRefresh={refetchPosts} disabled={loading}>
-                  {/* Stories Section */}
-                  <Stories user={user} />
+                  {/* Post Creator - Mobile only */}
+                  {user && (
+                    <div className="md:hidden mb-4">
+                      <PostCreator user={user} />
+                    </div>
+                  )}
+
+                  {/* FEATURE FLAG: Stories disabled - uncomment when DAU >= 500 and stories/day >= 20 */}
+                  {/* <Stories user={user} /> */}
 
                   {/* Posts Feed */}
                   {loading ? (
@@ -967,17 +985,19 @@ function Home({ user, setUser }) {
                     <div className="space-y-3 sm:space-y-4">
                       {items.map((post, index) => {
                         const isLastPost = index === items.length - 1;
+                        // Chỉ animate 3 post đầu tiên để giảm lag
+                        const shouldAnimate = index < 3;
 
-                        return (
+                        return shouldAnimate ? (
                           <motion.div
                             key={post._id}
                             ref={isLastPost ? lastPostElementRef : null}
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 12 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{
-                              duration: 0.5,
-                              delay: (index % 5) * 0.1,
-                              ease: [0.25, 0.1, 0.25, 1]
+                              duration: 0.3,
+                              delay: index * 0.05,
+                              ease: "easeOut"
                             }}
                           >
                             <ModernPostCard
@@ -989,6 +1009,17 @@ function Home({ user, setUser }) {
                               isFirst={index === 0}
                             />
                           </motion.div>
+                        ) : (
+                          <div key={post._id} ref={isLastPost ? lastPostElementRef : null}>
+                            <ModernPostCard
+                              post={post}
+                              user={user}
+                              onUpdate={refetchPosts}
+                              isSaved={savedMap[post._id]}
+                              onSavedChange={updateSavedState}
+                              isFirst={index === 0}
+                            />
+                          </div>
                         );
                       })}
 
@@ -1013,24 +1044,40 @@ function Home({ user, setUser }) {
                       )}
                     </div>
                   ) : (
+                    /* Empty State - Fake input CTA style */
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5 }}
-                      className="bg-white dark:bg-[#111] rounded-2xl shadow-md dark:shadow-lg border border-transparent dark:border-white/5 p-12 text-center transition-colors duration-300"
+                      transition={{ duration: 0.4 }}
+                      className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-6 sm:p-8"
                     >
-                      <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center">
-                        <Sparkles size={32} className="text-blue-500 dark:text-blue-400" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Chưa có bài viết nào</h3>
-                      <p className="text-base text-gray-600 dark:text-gray-300 mb-6">Hãy là người đầu tiên chia sẻ điều gì đó thú vị!</p>
-                      {user && (
-                        <Link
-                          to="/create-post"
-                          className="inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-semibold hover:scale-105 transition-transform shadow-lg"
+                      <h3 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white mb-4 text-center">
+                        Chưa có bài viết nào
+                      </h3>
+
+                      {user ? (
+                        <button
+                          onClick={() => {
+                            const triggerBtn = document.querySelector('[data-post-creator-trigger]');
+                            if (triggerBtn) {
+                              triggerBtn.click();
+                            }
+                          }}
+                          className="w-full flex items-center gap-3 p-3 bg-neutral-50 dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-xl border border-neutral-200 dark:border-neutral-700 transition-all duration-200 cursor-text group"
                         >
-                          <Plus size={18} className="text-white dark:text-black" />
-                          Tạo bài viết đầu tiên
+                          <UserAvatar user={user} size={40} className="flex-shrink-0" />
+                          <span className="text-neutral-400 dark:text-neutral-500 text-base group-hover:text-neutral-500 dark:group-hover:text-neutral-400 transition-colors">
+                            Bạn đang nghĩ gì?
+                          </span>
+                        </button>
+                      ) : (
+                        <Link
+                          to="/login"
+                          className="w-full flex items-center justify-center gap-3 p-4 bg-neutral-50 dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-xl border border-neutral-200 dark:border-neutral-700 transition-all duration-200"
+                        >
+                          <span className="text-neutral-600 dark:text-neutral-400 text-base font-medium">
+                            Đăng nhập để chia sẻ suy nghĩ đầu tiên
+                          </span>
                         </Link>
                       )}
                     </motion.div>
@@ -1040,18 +1087,15 @@ function Home({ user, setUser }) {
 
               {/* Right Sidebar - Friend Suggestions, Profile Activity, Upcoming Events - Only for logged-in users */}
               {user && (
-                <motion.aside
-                  initial={{ x: 50, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
-                  className="hidden xl:block relative z-[1]"
+                <aside
+                  className="hidden xl:block relative"
                   role="complementary"
                   aria-label="Gợi ý bạn bè và hoạt động"
                 >
                   <div className="sticky top-20">
                     <RightSidebar user={user} />
                   </div>
-                </motion.aside>
+                </aside>
               )}
             </div>
           </div>

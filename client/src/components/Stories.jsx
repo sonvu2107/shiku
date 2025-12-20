@@ -219,9 +219,9 @@ function Stories({ user }) {
                       className="w-full h-full"
                     />
                   </button>
-                  {/* Plus Icon Circle - Outside the border */}
-                  <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-800 shadow-lg z-10">
-                    <Plus size={14} className="text-white" />
+                  {/* Plus Icon Circle - Subtle indicator */}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-neutral-700 dark:bg-neutral-600 rounded-full flex items-center justify-center border-2 border-white dark:border-neutral-900 z-10">
+                    <Plus size={10} className="text-white" strokeWidth={2.5} />
                   </div>
                 </>
               ) : (
@@ -257,10 +257,10 @@ function Stories({ user }) {
             </div>
           )}
 
-          {/* Friends' Stories */}
+          {/* Empty state for Stories - only show if no stories from anyone */}
           {storiesGroups.length === 0 && myStories.length === 0 && (
-            <div className="flex-1 text-center py-8">
-              <p className="text-gray-500 text-sm">Chưa có tin nào. Hãy tạo tin đầu tiên!</p>
+            <div className="flex-1 flex items-center justify-center py-4">
+              <p className="text-neutral-400 dark:text-neutral-500 text-sm">Chưa có story nào</p>
             </div>
           )}
 

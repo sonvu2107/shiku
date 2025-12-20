@@ -512,7 +512,7 @@ export default function App() {
                     <Route path="/groups" element={<ProtectedRoute user={user}><Groups /></ProtectedRoute>} />
                     <Route path="/groups/:id" element={<ProtectedRoute user={user}><GroupDetail /></ProtectedRoute>} />
                     <Route path="/groups/create" element={<ProtectedRoute user={user}><CreateGroup /></ProtectedRoute>} />
-                    <Route path="/explore" element={<ProtectedRoute user={user}><Explore /></ProtectedRoute>} />
+                    <Route path="/explore" element={<ProtectedRoute user={user}><Explore user={user} /></ProtectedRoute>} />
                     <Route path="/events" element={<ProtectedRoute user={user}><Events /></ProtectedRoute>} />
                     <Route path="/events/create" element={<ProtectedRoute user={user}><CreateEvent /></ProtectedRoute>} />
                     <Route path="/events/:id" element={<ProtectedRoute user={user}><EventDetail /></ProtectedRoute>} />

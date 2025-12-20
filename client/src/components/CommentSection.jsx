@@ -1182,7 +1182,7 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
             {hasReplies && (
               <button
                 onClick={() => toggleReplies(comment._id)}
-                className="flex items-center gap-2 sm:gap-2 mt-2 sm:mt-1.5 text-xs sm:text-xs font-bold text-neutral-500 active:text-neutral-900 dark:active:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-300 transition-colors group/toggle min-h-[44px] sm:min-h-0 -ml-2 sm:ml-0 px-2 sm:px-0 touch-manipulation"
+                className="flex items-center gap-2 sm:gap-2 mt-1 sm:mt-1.5 text-xs sm:text-xs font-bold text-neutral-500 active:text-neutral-900 dark:active:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-300 transition-colors group/toggle min-h-[44px] sm:min-h-0 -ml-2 sm:ml-0 px-2 sm:px-0 touch-manipulation"
               >
                 <div className="w-6 sm:w-6 h-[1px] bg-neutral-300 dark:bg-neutral-700 group-active/toggle:bg-neutral-500 group-hover/toggle:bg-neutral-500 transition-colors"></div>
                 {isExpanded ? "Ẩn phản hồi" : `Xem ${comment.replies.length} phản hồi`}
@@ -1207,9 +1207,9 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
             {!fullExpandedReplies.has(comment._id) && comment.replies.length > 3 && (
               <button
                 onClick={() => setFullExpandedReplies(prev => new Set([...prev, comment._id]))}
-                className="flex items-center gap-1 ml-2 sm:ml-4 mt-2 text-xs font-bold text-neutral-500 hover:text-neutral-900 transition-colors"
+                className="flex items-center gap-1 ml-2 sm:ml-4 mt-0.5 sm:mt-0.5 text-xs font-bold text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300 transition-colors touch-manipulation"
               >
-                <div className="w-4 h-[1px] bg-neutral-300"></div>
+                <div className="w-4 h-[1px] bg-neutral-300 dark:bg-neutral-700"></div>
                 Xem thêm {comment.replies.length - 3} phản hồi khác...
               </button>
             )}

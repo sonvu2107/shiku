@@ -22,8 +22,10 @@ export async function addExpForAction(userId, action, options = {}) {
     const expRewards = {
       post: 30,           // Đăng bài viết
       comment: 10,        // Bình luận
-      like: 2,            // Thích bài viết
-      receive_like: 3,    // Nhận lượt thích
+      like: 2,            // Thích bài viết (legacy - backward compatibility)
+      upvote: 2,          // Upvote bài viết (NEW)
+      receive_like: 3,    // Nhận lượt thích (legacy)
+      receive_upvote: 3,  // Nhận upvote (NEW)
       receive_comment: 5, // Nhận bình luận
       friend: 20,         // Kết bạn
       event: 50,          // Tham gia sự kiện
@@ -34,8 +36,10 @@ export async function addExpForAction(userId, action, options = {}) {
     const spiritStoneRewards = {
       post: 5,
       comment: 2,
-      like: 1,
-      receive_like: 1,
+      like: 1,            // Legacy
+      upvote: 1,          // NEW
+      receive_like: 1,    // Legacy
+      receive_upvote: 1,  // NEW
       receive_comment: 2,
       friend: 5,
       event: 10,
@@ -86,7 +90,8 @@ export async function addExpForAction(userId, action, options = {}) {
  */
 export async function addExpForReceiver(authorId, action) {
   const receiverActions = {
-    like: 'receive_like',
+    like: 'receive_like',      // Legacy
+    upvote: 'receive_upvote',  // NEW
     comment: 'receive_comment'
   };
 

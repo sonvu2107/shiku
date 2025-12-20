@@ -93,13 +93,9 @@ export default function CommentImageUpload({ onImagesChange, maxImages = 5, clas
           onClick={handleClick}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors touch-target"
+          className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg sm:rounded-full transition-colors touch-target"
         >
-          <Image size={18} />
-          <span className="font-medium">Thêm ảnh</span>
-          <span className="text-xs text-neutral-400">
-            ({selectedImages.length}/{maxImages})
-          </span>
+          <Image size={18} className="sm:w-5 sm:h-5" />
         </button>
       )}
 

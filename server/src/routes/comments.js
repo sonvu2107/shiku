@@ -21,6 +21,8 @@ import NotificationService from "../services/NotificationService.js";
 import { uploadMultiple, uploadMultipleOptional, uploadToCloudinary, validateFile } from "../middleware/fileUpload.js";
 import multer from "multer";
 import { addExpForAction, addExpForReceiver } from "../services/cultivationService.js";
+import { sanitizeText, containsXSS } from "../utils/xssSanitizer.js";
+import { commentCreationLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router();
 
@@ -31,18 +33,18 @@ router.get("/test", (req, res) => {
 
 // Test route để kiểm tra POST không cần auth
 router.post("/test-post", (req, res) => {
-  res.json({ 
-    message: "POST test successful", 
+  res.json({
+    message: "POST test successful",
     body: req.body,
     files: req.files || [],
-    timestamp: new Date().toISOString() 
+    timestamp: new Date().toISOString()
   });
 });
 
 // Middleware để xử lý cả JSON và FormData cho comment
 const handleCommentUpload = (req, res, next) => {
   const contentType = req.get('Content-Type');
-  
+
   if (contentType && contentType.includes('multipart/form-data')) {
     // FormData - sử dụng multer
     multer({
@@ -63,7 +65,7 @@ const handleCommentUpload = (req, res, next) => {
         console.error('[ERROR][COMMENTS] Multer error:', err);
         return res.status(400).json({ error: err.message });
       }
-      
+
       // Validate files nếu có (async)
       if (req.files && req.files.length > 0) {
         validateFiles(req, res, next);
@@ -84,7 +86,7 @@ async function validateFiles(req, res, next) {
     const validationResults = await Promise.all(
       req.files.map(file => validateFile(file, 'image'))
     );
-    
+
     const invalidFiles = validationResults.filter(result => !result.isValid);
     if (invalidFiles.length > 0) {
       const allErrors = invalidFiles.flatMap(result => result.errors);
@@ -93,7 +95,7 @@ async function validateFiles(req, res, next) {
         details: allErrors
       });
     }
-    
+
     next();
   } catch (validationError) {
     console.error('[ERROR][COMMENTS] File validation error:', validationError);
@@ -131,25 +133,25 @@ router.get("/post/:postId", authOptional, async (req, res, next) => {
     // Lọc comment nếu user đã đăng nhập
     if (req.user && items.length > 0) {
       // currentUser fetched in parallel above
-      
+
       const currentUserId = req.user._id.toString();
       const blockedSet = new Set(
         (currentUser?.blockedUsers || []).map(id => id.toString())
       );
-      
+
       // OPTIMIZATION: Batch fetch all authors' blocked lists in one query
       const authorIds = [...new Set(
         items
           .map(c => c.author?._id?.toString())
           .filter(Boolean)
       )];
-      
+
       const authorsWithBlocked = await User.find({
         _id: { $in: authorIds }
       })
         .select("_id blockedUsers")
         .lean();
-      
+
       // Create a Map for O(1) lookup: authorId -> Set of blocked user IDs
       const authorsBlockedMap = new Map();
       authorsWithBlocked.forEach(author => {
@@ -159,23 +161,23 @@ router.get("/post/:postId", authOptional, async (req, res, next) => {
           new Set((author.blockedUsers || []).map(id => id.toString()))
         );
       });
-      
+
       // Filter comments: remove if either user blocked the other
       items = items.filter(c => {
         if (!c.author) return false;
         const authorId = c.author._id.toString();
-        
+
         // Check if current user blocked this author
         if (blockedSet.has(authorId)) {
           return false;
         }
-        
+
         // Check if author blocked current user (mutual blocking)
         const authorBlockedSet = authorsBlockedMap.get(authorId);
         if (authorBlockedSet && authorBlockedSet.has(currentUserId)) {
           return false;
         }
-        
+
         return true;
       });
     }
@@ -195,13 +197,21 @@ router.get("/post/:postId", authOptional, async (req, res, next) => {
  * @param {Array} req.files - Danh sách ảnh upload (optional)
  * @returns {Object} Comment đã tạo
  */
-router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, async (req, res, next) => {
+router.post("/post/:postId", authRequired, checkBanStatus, commentCreationLimiter, handleCommentUpload, async (req, res, next) => {
   try {
     const { content, parentId } = req.body;
     const hasImages = req.files && req.files.length > 0;
     if (!content && !hasImages) {
       return res.status(400).json({ error: "Vui lòng nhập nội dung bình luận hoặc đính kèm ảnh" });
     }
+
+    // Check XSS trong content
+    if (content && containsXSS(content)) {
+      return res.status(400).json({ error: "Nội dung bình luận chứa mã độc hại" });
+    }
+
+    // Sanitize content
+    const sanitizedContent = content ? sanitizeText(content, { maxLength: 5000 }) : "";
 
     const post = await Post.findById(req.params.postId).populate("author", "name");
     if (!post) return res.status(404).json({ error: "Không tìm thấy bài viết" });
@@ -243,7 +253,7 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
     let images = [];
     if (hasImages) {
       try {
-        const uploadPromises = req.files.map(file => 
+        const uploadPromises = req.files.map(file =>
           uploadToCloudinary(file, 'blog/comments', 'image')
         );
         const uploadResults = await Promise.all(uploadPromises);
@@ -274,11 +284,11 @@ router.post("/post/:postId", authRequired, checkBanStatus, handleCommentUpload, 
     const commentData = {
       post: post._id,
       author: req.user._id,
-      content: content || "",
+      content: sanitizedContent,
       parent: parentId || null,
       mentions: mentionedUserIds
     };
-    
+
     // Chỉ thêm images nếu có
     if (images.length > 0) {
       commentData.images = images;
@@ -351,6 +361,14 @@ router.put("/:id", authRequired, handleCommentUpload, async (req, res, next) => 
       return res.status(400).json({ error: "Vui lòng nhập nội dung bình luận hoặc đính kèm ảnh" });
     }
 
+    // Check XSS trong content
+    if (content && containsXSS(content)) {
+      return res.status(400).json({ error: "Nội dung bình luận chứa mã độc hại" });
+    }
+
+    // Sanitize content
+    const sanitizedContent = content ? sanitizeText(content, { maxLength: 5000 }) : "";
+
     const c = await Comment.findById(req.params.id);
     if (!c) return res.status(404).json({ error: "Không tìm thấy bình luận" });
 
@@ -360,11 +378,11 @@ router.put("/:id", authRequired, handleCommentUpload, async (req, res, next) => 
     // Upload ảnh mới lên Cloudinary nếu có
     if (hasImages) {
       try {
-        const uploadPromises = req.files.map(file => 
+        const uploadPromises = req.files.map(file =>
           uploadToCloudinary(file, 'blog/comments', 'image')
         );
         const uploadResults = await Promise.all(uploadPromises);
-        
+
         const newImages = uploadResults.map(result => ({
           url: result.url,
           publicId: result.public_id,
@@ -381,7 +399,7 @@ router.put("/:id", authRequired, handleCommentUpload, async (req, res, next) => 
       }
     }
 
-    c.content = content || "";
+    c.content = sanitizedContent;
     c.edited = true;
     await c.save();
 
@@ -457,7 +475,7 @@ router.post("/:id/like", authRequired, async (req, res, next) => {
       { path: "likes", select: "name" }
     ]);
 
-    res.json({ 
+    res.json({
       comment,
       isLiked: !isLiked,
       likeCount: comment.likeCount
@@ -483,10 +501,10 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
     if (!comment) return res.status(404).json({ error: "Không tìm thấy bình luận" });
 
     const userId = req.user._id;
-    
+
     // Xóa tất cả emote cũ của user (đảm bảo chỉ có 1 emote/user)
     comment.emotes = comment.emotes.filter(emote => !emote.user.equals(userId));
-    
+
     // Tìm emote hiện tại của user với type này
     const existingEmoteIndex = comment.emotes.findIndex(
       emote => emote.user.equals(userId) && emote.type === type
@@ -513,7 +531,7 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
       { path: "emotes.user", select: "name" }
     ]);
 
-    res.json({ 
+    res.json({
       comment,
       emoteCount: comment.emoteCount
     });
@@ -548,7 +566,7 @@ router.get("/:id/emotes", authRequired, async (req, res, next) => {
       emoteStats[emote.type].users.push(emote.user);
     });
 
-    res.json({ 
+    res.json({
       emotes: comment.emotes,
       stats: emoteStats
     });

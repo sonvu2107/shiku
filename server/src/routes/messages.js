@@ -20,6 +20,7 @@ import Conversation from "../models/Conversation.js";
 import User from "../models/User.js";
 import { v2 as cloudinary } from "cloudinary";
 import { encrypt, decrypt } from "../services/encryptionService.js";
+import { messageLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router();
 
@@ -246,7 +247,7 @@ router.get("/conversations/:conversationId/messages", authRequired, async (req, 
 });
 
 // Send a message
-router.post("/conversations/:conversationId/messages", authRequired, async (req, res) => {
+router.post("/conversations/:conversationId/messages", authRequired, messageLimiter, async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { content, messageType = 'text', emote } = req.body;
@@ -536,7 +537,7 @@ router.delete("/conversations/:conversationId/messages/:messageId", authRequired
 });
 
 // Upload image message
-router.post("/conversations/:conversationId/messages/image", authRequired, async (req, res) => {
+router.post("/conversations/:conversationId/messages/image", authRequired, messageLimiter, async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { image, content = '' } = req.body;

@@ -18,6 +18,7 @@ import Post from '../models/Post.js';
 import User from '../models/User.js';
 import { authRequired, authOptional } from '../middleware/auth.js';
 import { withCache, userCache, invalidateCacheByPrefix } from '../utils/cache.js';
+import { groupCreationLimiter } from '../middleware/rateLimit.js';
 import multer from 'multer';
 import { v2 as cloudinaryV2 } from 'cloudinary';
 import { responseCache, invalidateByPattern } from '../middleware/responseCache.js';
@@ -401,7 +402,7 @@ router.get('/:id', authOptional, async (req, res) => {
  * @desc    Tạo nhóm mới
  * @access  Private
  */
-router.post('/', authRequired, upload.fields([
+router.post('/', authRequired, groupCreationLimiter, upload.fields([
   { name: 'avatar', maxCount: 1 },
   { name: 'coverImage', maxCount: 1 }
 ]), async (req, res) => {

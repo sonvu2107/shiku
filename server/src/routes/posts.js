@@ -25,6 +25,8 @@ import { generateSmartFeed } from "../utils/smartFeed.js";
 import mongoose from "mongoose";
 import { addExpForAction, addExpForReceiver } from "../services/cultivationService.js";
 import WelcomeService from "../services/WelcomeService.js";
+import { sanitizeText, containsXSS, sanitizeUrl as sanitizeUrlXSS } from "../utils/xssSanitizer.js";
+import { postCreationLimiter, postInteractionLimiter } from "../middleware/rateLimit.js";
 
 const PLAIN_SANITIZE_OPTIONS = { allowedTags: [], allowedAttributes: {} };
 const CONTENT_SANITIZE_OPTIONS = {
@@ -80,13 +82,25 @@ export const sanitizePostFields = ({
   coverUrl
 } = {}) => {
   const sanitized = {};
+  const errors = [];
 
   if (title !== undefined) {
-    sanitized.title = sanitizePlain(title);
+    // Check for XSS in title
+    if (containsXSS(title)) {
+      errors.push('Tiêu đề chứa nội dung không hợp lệ');
+    } else {
+      sanitized.title = sanitizeText(title, { maxLength: 500 });
+    }
   }
 
   if (content !== undefined) {
-    sanitized.content = sanitizeRichContent(content);
+    // Check for XSS in content
+    if (containsXSS(content)) {
+      errors.push('Nội dung chứa mã độc hại');
+    } else {
+      // For content, use existing sanitizeRichContent but also apply XSS check
+      sanitized.content = sanitizeRichContent(content);
+    }
   }
 
   if (tags !== undefined) {
@@ -94,10 +108,16 @@ export const sanitizePostFields = ({
   }
 
   if (coverUrl !== undefined) {
-    sanitized.coverUrl = sanitizePlain(coverUrl);
+    const safeUrl = sanitizeUrlXSS(coverUrl);
+    sanitized.coverUrl = safeUrl || '';
   }
 
-  return sanitized;
+  // Return errors if any XSS detected
+  if (errors.length > 0) {
+    return { error: errors.join(', '), sanitized: null };
+  }
+
+  return { error: null, sanitized };
 };
 
 const router = express.Router();
@@ -414,6 +434,8 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
     if (sort === 'oldest') sortOption = { createdAt: 1 };
     else if (sort === 'mostViewed') sortOption = { views: -1 };
     else if (sort === 'leastViewed') sortOption = { views: 1 };
+    else if (sort === 'hot') sortOption = { rankingScore: -1, createdAt: -1 }; // NEW: Hot feed by ranking
+    else if (sort === 'mostUpvoted') sortOption = { upvoteCount: -1, createdAt: -1 }; // NEW: Most upvoted
 
     // Build blocked list
     let blockedIds = [];
@@ -481,7 +503,8 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
     const postProjection = {
       title: 1, content: 1, slug: 1, tags: 1, createdAt: 1, author: 1, role: 1,
       status: 1, views: 1, coverUrl: 1, files: 1,
-      commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1, youtubeUrl: 1
+      commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1, youtubeUrl: 1,
+      upvotes: 1, upvoteCount: 1, rankingScore: 1 // NEW: upvote system
     };
 
     // Execute Query
@@ -711,8 +734,12 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
           files: { $slice: ["$files", 4] }, // Limit files to 4
           commentCount: { $ifNull: ["$commentCount", 0] },
           savedCount: { $ifNull: ["$savedCount", 0] },
-          emotes: { $slice: ["$emotes", 10] }, // Limit emotes to 10 for list view (need more for display)
-          emoteCount: { $size: { $ifNull: ["$emotes", []] } }, // Total emote count for stats
+          emotes: { $slice: ["$emotes", 10] }, // Limit emotes to 10 for list view (legacy)
+          emoteCount: { $size: { $ifNull: ["$emotes", []] } }, // Total emote count for stats (legacy)
+          // NEW: Upvote system
+          upvotes: { $ifNull: ["$upvotes", []] },
+          upvoteCount: { $ifNull: ["$upvoteCount", 0] },
+          rankingScore: { $ifNull: ["$rankingScore", 0] },
           hasPoll: 1,
           youtubeUrl: 1,
           author: "$authorData",
@@ -974,7 +1001,7 @@ router.get("/edit/:id", authRequired, async (req, res, next) => {
 });
 
 // Create
-router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
+router.post("/", authRequired, checkBanStatus, postCreationLimiter, async (req, res, next) => {
   try {
     const { title: rawTitle, content, tags = [], coverUrl = "", status = "published", files = [], group = null, youtubeUrl = "" } = req.body;
     if (!["private", "published"].includes(status)) {
@@ -1005,7 +1032,12 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
     }
 
     // Sanitize input để chống XSS
-    const sanitized = sanitizePostFields({ title, content: trimmedContent, tags, coverUrl });
+    const { error: sanitizeError, sanitized } = sanitizePostFields({ title, content: trimmedContent, tags, coverUrl });
+
+    // Reject if XSS detected
+    if (sanitizeError) {
+      return res.status(400).json({ error: sanitizeError });
+    }
 
     // Validate và sanitize YouTube URL
     const sanitizedYoutubeUrl = youtubeUrl ? sanitizePlain(youtubeUrl) : "";
@@ -1084,7 +1116,12 @@ router.put("/:id", authRequired, checkBanStatus, async (req, res, next) => {
       return res.status(403).json({ error: "Bạn không có quyền chỉnh sửa bài viết này" });
     }
     const { title, content, tags, coverUrl, status, files, youtubeUrl } = req.body;
-    const sanitizedUpdate = sanitizePostFields({ title, content, tags, coverUrl });
+    const { error: sanitizeError, sanitized: sanitizedUpdate } = sanitizePostFields({ title, content, tags, coverUrl });
+
+    // Reject if XSS detected
+    if (sanitizeError) {
+      return res.status(400).json({ error: sanitizeError });
+    }
 
     if (title !== undefined) {
       post.title = sanitizedUpdate.title || "";
@@ -1222,6 +1259,120 @@ router.post("/:id/emote", authRequired, async (req, res, next) => {
   }
 });
 
+// ==================== UPVOTE SYSTEM (NEW) ====================
+// Toggle upvote on a post
+router.post("/:id/upvote", authRequired, postInteractionLimiter, async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: "Không tìm thấy bài viết" });
+
+    const userId = req.user._id;
+    const userIdStr = userId.toString();
+    
+    // Check if user already upvoted
+    const upvoteIndex = post.upvotes.findIndex(id => id.toString() === userIdStr);
+    const hasUpvoted = upvoteIndex !== -1;
+    
+    let isNewUpvote = false;
+    
+    if (hasUpvoted) {
+      // Remove upvote
+      post.upvotes.splice(upvoteIndex, 1);
+      post.upvoteCount = Math.max(0, (post.upvoteCount || 0) - 1);
+    } else {
+      // Add upvote
+      post.upvotes.push(userId);
+      post.upvoteCount = (post.upvoteCount || 0) + 1;
+      isNewUpvote = true;
+    }
+    
+    // Recalculate ranking score
+    const { calculateRankingScore } = await import("../utils/smartFeed.js");
+    post.rankingScore = calculateRankingScore(post);
+    post.lastRankingUpdate = new Date();
+    
+    await post.save();
+    
+    // Award EXP for new upvotes
+    if (isNewUpvote) {
+      try {
+        // EXP for upvoter
+        await addExpForAction(userId, 'upvote', { description: 'Upvote bài viết' });
+        // EXP for author (if not self-upvote)
+        if (post.author.toString() !== userIdStr) {
+          await addExpForReceiver(post.author, 'upvote');
+          
+          // Check achievement: "popular_post" - có bài viết được 50 upvote
+          try {
+            const Cultivation = (await import("../models/Cultivation.js")).default;
+            const authorCultivation = await Cultivation.findOne({ user: post.author });
+            if (authorCultivation) {
+              // Update achievement progress based on current upvoteCount
+              const popularPostQuest = authorCultivation.achievements.find(a => a.questId === 'popular_post');
+              if (popularPostQuest && !popularPostQuest.completed) {
+                // Check if any post has reached the threshold
+                const Post = (await import("../models/Post.js")).default;
+                const topPost = await Post.findOne({ 
+                  author: post.author,
+                  upvoteCount: { $gte: 50 }
+                }).sort({ upvoteCount: -1 }).lean();
+                
+                if (topPost) {
+                  // Update progress to max (achievement completed)
+                  popularPostQuest.progress = 50;
+                  popularPostQuest.completed = true;
+                  popularPostQuest.completedAt = new Date();
+                  await authorCultivation.save();
+                }
+              }
+            }
+          } catch (achievementError) {
+            console.error('[POSTS] Error checking popular_post achievement:', achievementError);
+          }
+        }
+      } catch (expError) {
+        console.error('[POSTS] Error adding upvote exp:', expError);
+      }
+    }
+    
+    // Send notification for new upvotes
+    if (isNewUpvote && post.author.toString() !== userIdStr) {
+      try {
+        const NotificationService = (await import("../services/NotificationService.js")).default;
+        await NotificationService.createReactionNotification(post, req.user, 'upvote');
+      } catch (notifError) {
+        console.error('[POSTS] Error creating upvote notification:', notifError);
+      }
+    }
+    
+    res.json({ 
+      upvoted: !hasUpvoted,
+      upvoteCount: post.upvoteCount,
+      rankingScore: post.rankingScore
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Check if user has upvoted a post
+router.get("/:id/upvote", authRequired, async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id).select('upvotes upvoteCount').lean();
+    if (!post) return res.status(404).json({ error: "Không tìm thấy bài viết" });
+    
+    const userIdStr = req.user._id.toString();
+    const hasUpvoted = post.upvotes?.some(id => id.toString() === userIdStr) || false;
+    
+    res.json({
+      upvoted: hasUpvoted,
+      upvoteCount: post.upvoteCount || 0
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 // ==================== ANALYTICS ====================
 // Get user analytics data
 router.get("/analytics", authRequired, async (req, res, next) => {
@@ -1248,17 +1399,17 @@ router.get("/analytics", authRequired, async (req, res, next) => {
         startDate.setDate(startDate.getDate() - 30);
     }
 
-    // Get all user posts with view counts and emotes
+    // Get all user posts with view counts and upvotes
     const posts = await Post.find({
       author: userId
     })
-      .select('title slug views emotes createdAt status')
+      .select('title slug views upvoteCount createdAt status')
       .sort({ createdAt: -1 })
       .lean();
 
-    // Calculate total views and total likes (emotes)
+    // Calculate total views and total upvotes
     const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0);
-    const totalLikes = posts.reduce((sum, post) => sum + (Array.isArray(post.emotes) ? post.emotes.length : 0), 0);
+    const totalUpvotes = posts.reduce((sum, post) => sum + (post.upvoteCount || 0), 0);
 
     // Get posts from the specified period
     const recentPosts = posts.filter(post =>
@@ -1295,7 +1446,7 @@ router.get("/analytics", authRequired, async (req, res, next) => {
       success: true,
       analytics: {
         totalViews,
-        totalLikes,
+        totalUpvotes,
         totalPosts,
         publishedPosts,
         privatePosts,
@@ -1355,7 +1506,7 @@ router.get("/analytics/daily", authRequired, async (req, res, next) => {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: vietnamTimezone } },
           count: { $sum: 1 },
           views: { $sum: "$views" },
-          emotes: { $sum: { $size: { $ifNull: ["$emotes", []] } } }
+          upvotes: { $sum: { $ifNull: ["$upvoteCount", 0] } }
         }
       },
       { $sort: { _id: 1 } }
@@ -1375,36 +1526,36 @@ router.get("/analytics/daily", authRequired, async (req, res, next) => {
       const month = String(date.getUTCMonth() + 1).padStart(2, '0');
       const dayLabel = `${day}-${month}`;
 
-      const postData = postsMap.get(dateStr) || { count: 0, views: 0, emotes: 0 };
+      const postData = postsMap.get(dateStr) || { count: 0, views: 0, upvotes: 0 };
 
       chartData.push({
         date: dateStr,
         label: dayLabel,
         posts: postData.count || 0,
         views: postData.views || 0,
-        emotes: postData.emotes || 0
+        upvotes: postData.upvotes || 0
       });
     }
 
     // Get all-time totals for this user
-    const allPosts = await Post.find({ author: userId }).select('views emotes').lean();
+    const allPosts = await Post.find({ author: userId }).select('views upvoteCount').lean();
     const allTimeTotals = {
       posts: allPosts.length,
       views: allPosts.reduce((sum, p) => sum + (p.views || 0), 0),
-      emotes: allPosts.reduce((sum, p) => sum + (Array.isArray(p.emotes) ? p.emotes.length : 0), 0)
+      upvotes: allPosts.reduce((sum, p) => sum + (p.upvoteCount || 0), 0)
     };
 
     // Calculate period totals and baseline
     const periodTotals = {
       posts: chartData.reduce((sum, d) => sum + d.posts, 0),
       views: chartData.reduce((sum, d) => sum + d.views, 0),
-      emotes: chartData.reduce((sum, d) => sum + d.emotes, 0)
+      upvotes: chartData.reduce((sum, d) => sum + d.upvotes, 0)
     };
 
     const baseline = {
       posts: allTimeTotals.posts - periodTotals.posts,
       views: allTimeTotals.views - periodTotals.views,
-      emotes: allTimeTotals.emotes - periodTotals.emotes
+      upvotes: allTimeTotals.upvotes - periodTotals.upvotes
     };
 
     res.json({
@@ -1460,7 +1611,7 @@ router.get("/is-saved", authRequired, async (req, res, next) => {
 });
 
 // Toggle save/unsave a post
-router.post("/:id/save", authRequired, async (req, res, next) => {
+router.post("/:id/save", authRequired, postInteractionLimiter, async (req, res, next) => {
   try {
     const postId = req.params.id;
     const userId = req.user._id;
@@ -1545,7 +1696,7 @@ router.get("/:id/interest-status", authRequired, async (req, res, next) => {
 });
 
 // Toggle interest/not interested for a post
-router.post("/:id/interest", authRequired, async (req, res, next) => {
+router.post("/:id/interest", authRequired, postInteractionLimiter, async (req, res, next) => {
   try {
     const postId = req.params.id;
     const userId = req.user._id;
@@ -1644,7 +1795,7 @@ router.get("/saved/list", authRequired, async (req, res, next) => {
 
 // ==================== FEATURED POSTS ====================
 // Toggle feature/unfeature a post on user profile
-router.post("/:id/feature", authRequired, async (req, res, next) => {
+router.post("/:id/feature", authRequired, postInteractionLimiter, async (req, res, next) => {
   try {
     const postId = req.params.id;
     const userId = req.user._id;

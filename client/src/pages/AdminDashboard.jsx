@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import AdminFeedback from "./AdminFeedback";
 import APIMonitoring from "../components/APIMonitoring";
 import RoleManagement from "../components/RoleManagement";
-import AutoLikeBot from "../components/AutoLikeBot";
+// AutoLikeBot removed - replaced by upvote system
 import AdminCharts from "../components/AdminCharts";
 import Pagination from '../components/admin/Pagination';
 import SystemHealth from '../components/admin/SystemHealth';
@@ -233,7 +233,7 @@ export default function AdminDashboard() {
       { id: 'feedback', label: 'Phản hồi', icon: MessageCircle, permission: 'admin.viewFeedback' },
       { id: 'equipment', label: 'Trang Bị', icon: Sword, external: true, path: '/admin/equipment', permission: 'admin.manageEquipment' },
       { id: 'api-monitoring', label: 'API Monitor', icon: Code, permission: 'admin.viewAPI' },
-      { id: 'auto-like', label: 'Auto Bot', icon: Heart, permission: 'admin.manageBot' },
+
    ];
 
    // Filter menu items based on user permissions
@@ -387,23 +387,23 @@ export default function AdminDashboard() {
                                     )}
                                  </SpotlightCard>
 
-                                 {/* Reactions */}
+                                 {/* Upvotes */}
                                  <SpotlightCard className="p-4 bg-red-50/50 dark:bg-red-900/10">
                                     <div className="flex items-center gap-2 mb-2">
                                        <Heart className="text-red-600 dark:text-red-400" size={24} />
                                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                                          {stats?.overview ? stats?.overview.totalEmotes.count : (stats.totalEmotes || 0)}
+                                          {stats?.overview ? stats?.overview.totalUpvotes?.count ?? 0 : (stats.totalUpvotes || 0)}
                                        </div>
                                     </div>
-                                    <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng cảm xúc đã thả</div>
-                                    {stats?.overview && (
+                                    <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng upvotes</div>
+                                    {stats?.overview?.totalUpvotes && (
                                        <div className="space-y-1 text-xs">
                                           <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats?.overview.totalEmotes.thisMonth}
+                                             Tháng này: {stats?.overview.totalUpvotes.thisMonth ?? 0}
                                           </div>
-                                          <div className={`flex items-center gap-1 ${stats?.overview.totalEmotes.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats?.overview.totalEmotes.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats?.overview.totalEmotes.growth)}% so với tháng trước
+                                          <div className={`flex items-center gap-1 ${(stats?.overview.totalUpvotes.growth ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                             {(stats?.overview.totalUpvotes.growth ?? 0) >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                             {Math.abs(stats?.overview.totalUpvotes.growth ?? 0)}% so với tháng trước
                                           </div>
                                        </div>
                                     )}
@@ -1051,7 +1051,7 @@ export default function AdminDashboard() {
                         <RoleManagement onRolesChange={async () => { await loadAvailableRoles(); await refreshAllData(); }} />
                      </div>
                   )}
-                  {activeTab === "auto-like" && <div className="pt-4"><AutoLikeBot /></div>}
+
                   {activeTab === "posts" && (
                      <motion.div key="posts" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                         <AdminPostsTab />

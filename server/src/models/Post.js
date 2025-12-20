@@ -40,7 +40,21 @@ const PostSchema = new mongoose.Schema({
   mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", index: true }], // Users được mention trong bài viết
   
   // ==================== INTERACTIONS (TƯƠNG TÁC) ====================
-  emotes: [EmoteSchema], // Danh sách emotes/reactions
+  // NEW: Upvote system (replaces emotes for ranking)
+  upvotes: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "User",
+    index: true 
+  }], // Users đã upvote
+  upvoteCount: { type: Number, default: 0, index: true }, // Số upvotes (denormalized)
+  
+  // Legacy emotes (read-only, kept for migration)
+  emotes: [EmoteSchema], // Danh sách emotes/reactions (legacy)
+  
+  // Ranking score (cached, recalculated periodically)
+  rankingScore: { type: Number, default: 0, index: true }, // Score cho HOT feed
+  lastRankingUpdate: { type: Date, default: Date.now }, // Lần cuối tính score
+  
   views: { type: Number, default: 0 }, // Số lượt xem
   commentCount: { type: Number, default: 0 }, // Số lượng bình luận (denormalized)
   savedCount: { type: Number, default: 0 }, // Số lượng người đã lưu (denormalized)
@@ -71,6 +85,11 @@ PostSchema.index({ status: 1, group: 1, createdAt: -1 });
 // Các index bổ sung
 PostSchema.index({ status: 1 });
 PostSchema.index({ author: 1, createdAt: -1 });
+
+// NEW: Indexes for upvote system and ranking
+PostSchema.index({ upvoteCount: -1, createdAt: -1 }); // Sort by upvotes
+PostSchema.index({ rankingScore: -1, status: 1 }); // HOT feed
+PostSchema.index({ 'upvotes': 1 }); // Check if user upvoted
 
 // ==================== MIDDLEWARE/HOOKS ====================
 

@@ -35,6 +35,7 @@
     "react-window": "^2.2.0",
     "react-window-infinite-loader": "^2.0.0",
     "recharts": "^3.5.1",
+    "remark-breaks": "^4.0.0",
     "socket.io-client": "^4.8.1",
     "styled-components": "^6.1.19",
     "tailwind-merge": "^3.4.0",

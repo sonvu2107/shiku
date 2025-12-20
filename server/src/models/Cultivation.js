@@ -104,7 +104,7 @@ export const QUEST_TEMPLATES = {
     { id: "daily_login", name: "Điểm danh tu luyện", description: "Đăng nhập hàng ngày", expReward: 20, spiritStoneReward: 10, type: "daily" },
     { id: "daily_post", name: "Chia sẻ ngộ đạo", description: "Đăng 1 bài viết", expReward: 30, spiritStoneReward: 15, type: "daily", requirement: { action: "post", count: 1 } },
     { id: "daily_comment", name: "Luận đạo cùng đạo hữu", description: "Bình luận 3 bài viết", expReward: 20, spiritStoneReward: 10, type: "daily", requirement: { action: "comment", count: 3 } },
-    { id: "daily_like", name: "Kết thiện duyên", description: "Thích 5 bài viết", expReward: 15, spiritStoneReward: 5, type: "daily", requirement: { action: "like", count: 5 } },
+    { id: "daily_upvote", name: "Kết thiện duyên", description: "Upvote 5 bài viết", expReward: 15, spiritStoneReward: 5, type: "daily", requirement: { action: "upvote", count: 5 } },
     
     // === NHIỆM VỤ TU TIÊN ===
     { id: "daily_yinyang", name: "Thu linh khí", description: "Thu thập linh khí 20 lần", expReward: 25, spiritStoneReward: 15, type: "daily", requirement: { action: "yinyang_click", count: 20 } },
@@ -121,7 +121,7 @@ export const QUEST_TEMPLATES = {
   achievement: [
     { id: "first_post", name: "Bước đầu nhập đạo", description: "Đăng bài viết đầu tiên", expReward: 50, spiritStoneReward: 30, type: "achievement", requirement: { action: "post", count: 1 } },
     { id: "social_butterfly", name: "Nhân duyên quảng đại", description: "Có 10 bạn bè", expReward: 100, spiritStoneReward: 50, type: "achievement", requirement: { action: "friend", count: 10 } },
-    { id: "popular_post", name: "Danh tiếng nổi khắp", description: "Có bài viết được 50 lượt thích", expReward: 200, spiritStoneReward: 100, type: "achievement", requirement: { action: "post_likes", count: 50 } },
+    { id: "popular_post", name: "Danh tiếng nổi khắp", description: "Có bài viết được 50 upvote", expReward: 200, spiritStoneReward: 100, type: "achievement", requirement: { action: "post_upvotes", count: 50 } },
     { id: "streak_7", name: "Kiên trì tu luyện", description: "Đăng nhập 7 ngày liên tục", expReward: 150, spiritStoneReward: 70, type: "achievement", requirement: { action: "login_streak", count: 7 } },
     { id: "streak_30", name: "Đạo tâm kiên định", description: "Đăng nhập 30 ngày liên tục", expReward: 500, spiritStoneReward: 250, type: "achievement", requirement: { action: "login_streak", count: 30 } },
     { id: "realm_jindan", name: "Kim Đan thành tựu", description: "Đạt cảnh giới Kim Đan", expReward: 0, spiritStoneReward: 500, type: "achievement", requirement: { action: "realm", count: 4 } },
@@ -399,6 +399,7 @@ const CultivationSchema = new mongoose.Schema({
     posts: { type: Number, default: 0 },
     comments: { type: Number, default: 0 },
     likes: { type: Number, default: 0 },
+    upvotes: { type: Number, default: 0 },
     lastReset: { type: Date, default: Date.now }
   },
 
@@ -463,8 +464,10 @@ const CultivationSchema = new mongoose.Schema({
   stats: {
     totalPostsCreated: { type: Number, default: 0 },
     totalCommentsCreated: { type: Number, default: 0 },
-    totalLikesGiven: { type: Number, default: 0 },
-    totalLikesReceived: { type: Number, default: 0 },
+    totalLikesGiven: { type: Number, default: 0 }, // Legacy - giữ lại để tương thích
+    totalLikesReceived: { type: Number, default: 0 }, // Legacy - giữ lại để tương thích
+    totalUpvotesGiven: { type: Number, default: 0 }, // NEW - upvote system
+    totalUpvotesReceived: { type: Number, default: 0 }, // NEW - upvote system
     totalQuestsCompleted: { type: Number, default: 0 },
     totalDaysActive: { type: Number, default: 0 }
   },
@@ -1021,6 +1024,7 @@ CultivationSchema.methods.resetDailyQuests = function () {
       posts: 0,
       comments: 0,
       likes: 0,
+      upvotes: 0,
       lastReset: now
     };
 
@@ -1123,6 +1127,13 @@ CultivationSchema.methods.updateQuestProgress = function (action, count = 1) {
     case 'like':
       this.dailyProgress.likes += count;
       this.stats.totalLikesGiven += count;
+      break;
+    case 'upvote':
+      this.dailyProgress.upvotes = (this.dailyProgress.upvotes || 0) + count;
+      this.stats.totalUpvotesGiven = (this.stats.totalUpvotesGiven || 0) + count;
+      break;
+    case 'receive_upvote':
+      this.stats.totalUpvotesReceived = (this.stats.totalUpvotesReceived || 0) + count;
       break;
     case 'friend':
       this.weeklyProgress.friends += count;

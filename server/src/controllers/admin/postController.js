@@ -45,11 +45,10 @@ export const getPosts = async (req, res, next) => {
         const sortField = ['createdAt', 'views', 'title'].includes(sortBy) ? sortBy : 'createdAt';
         const sort = { [sortField]: sortOrder === 'asc' ? 1 : -1 };
 
-        // Execute queries in parallel
         const [posts, total] = await Promise.all([
             Post.find(filter)
                 .populate('author', 'name nickname avatarUrl email')
-                .select('title slug author status views emotes createdAt')
+                .select('title slug author status views upvoteCount createdAt')
                 .sort(sort)
                 .skip(skip)
                 .limit(limitNum)
@@ -57,10 +56,10 @@ export const getPosts = async (req, res, next) => {
             Post.countDocuments(filter)
         ]);
 
-        // Add emote count
+        // Add upvote count for response
         const postsWithCount = posts.map(post => ({
             ...post,
-            emoteCount: post.emotes?.length || 0
+            upvoteCount: post.upvoteCount || 0
         }));
 
         res.json({

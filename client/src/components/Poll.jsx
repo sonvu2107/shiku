@@ -3,6 +3,7 @@ import { api } from "../api";
 import { BarChart3, Users, Clock, CheckCircle2, Plus, X } from "lucide-react";
 import { useSocket } from "../hooks/useSocket";
 import { useToast } from "../contexts/ToastContext";
+import { sanitizeForDisplay, sanitizeUsername } from "../utils/xssSanitizer";
 
 /**
  * Poll Component - Show poll/survey with realtime voting
@@ -14,7 +15,7 @@ export default function Poll({ post, user }) {
   const [pollData, setPollData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
-  const [showVoters, setShowVoters] = useState(null); 
+  const [showVoters, setShowVoters] = useState(null);
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [newOptions, setNewOptions] = useState([""]);
   const [addingOptions, setAddingOptions] = useState(false);
@@ -170,7 +171,7 @@ export default function Poll({ post, user }) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <BarChart3 className="text-blue-600 dark:text-blue-400 flex-shrink-0" size={20} />
-          <h3 className="font-semibold text-gray-900 dark:text-white break-words">{pollData.question}</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-white break-words">{sanitizeForDisplay(pollData.question)}</h3>
         </div>
         {!pollData.isActive && (
           <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded whitespace-nowrap">
@@ -212,15 +213,13 @@ export default function Poll({ post, user }) {
                 disabled={voting || !canVote}
                 aria-label={`Vote cho ${option.text}`}
                 title={canVote ? `Click để lựa chọn cho "${option.text}"` : hasVoted ? "Bạn đã lựa chọn" : "Đăng nhập để lựa chọn"}
-                className={`w-full text-left p-3 rounded-xl border-2 transition-all relative overflow-hidden ${
-                  isUserVoted
+                className={`w-full text-left p-3 rounded-xl border-2 transition-all relative overflow-hidden ${isUserVoted
                     ? "border-blue-500 dark:border-blue-500 bg-blue-50 dark:bg-blue-500/10"
                     : hasVoted && !isMultipleVote
-                    ? "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-default"
-                    : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-500/50 hover:bg-blue-50 dark:hover:bg-blue-500/5"
-                } ${voting ? "opacity-50 cursor-wait" : ""} ${
-                  !canVote ? "cursor-default" : "cursor-pointer"
-                }`}
+                      ? "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-default"
+                      : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-500/50 hover:bg-blue-50 dark:hover:bg-blue-500/5"
+                  } ${voting ? "opacity-50 cursor-wait" : ""} ${!canVote ? "cursor-default" : "cursor-pointer"
+                  }`}
               >
                 {/* Progress Bar Background */}
                 {hasVoted && (
@@ -236,7 +235,7 @@ export default function Poll({ post, user }) {
                     {isUserVoted && (
                       <CheckCircle2 className="text-blue-600 dark:text-blue-400 flex-shrink-0" size={18} />
                     )}
-                    <span className="font-medium text-gray-900 dark:text-white">{option.text}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{sanitizeForDisplay(option.text)}</span>
                     {isMultipleVote && isUserVoted && (
                       <span className="text-xs bg-blue-100 dark:bg-blue-500/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
                         Đã chọn
@@ -282,7 +281,7 @@ export default function Poll({ post, user }) {
                             alt={voter.user?.name}
                             className="w-6 h-6 rounded-full"
                           />
-                          <span className="text-gray-700 dark:text-gray-300">{voter.user?.name}</span>
+                          <span className="text-gray-700 dark:text-gray-300">{sanitizeUsername(voter.user?.name || 'User')}</span>
                           <span className="text-xs text-gray-400">
                             {new Date(voter.votedAt).toLocaleDateString("vi-VN")}
                           </span>
@@ -350,7 +349,7 @@ export default function Poll({ post, user }) {
                     )}
                   </div>
                 ))}
-                
+
                 {newOptions.length < 5 && (
                   <button
                     type="button"
@@ -362,7 +361,7 @@ export default function Poll({ post, user }) {
                   </button>
                 )}
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleAddOptions}

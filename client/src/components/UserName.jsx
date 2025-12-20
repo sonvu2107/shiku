@@ -1,6 +1,7 @@
 import CultivationBadge from "./CultivationBadge";
 import VerifiedBadge from "./VerifiedBadge";
 import { TITLES } from "./UserAvatar";
+import { sanitizeUsername } from "../utils/xssSanitizer";
 
 /**
  * UserName - Component that renders a user's display name with badges
@@ -21,9 +22,11 @@ export default function UserName({ user, className = "", maxLength = 50, showToo
 	if (!user) return null;
 
 	// Prefer nickname when available; otherwise use the display name
-	const displayName = user.nickname && user.nickname.trim()
+	// Sanitize to prevent XSS
+	const rawName = user.nickname && user.nickname.trim()
 		? user.nickname.trim()
 		: (user.name || 'Người dùng');
+	const displayName = sanitizeUsername(rawName);
 
 	// Truncate the display name if it exceeds `maxLength`
 	const truncatedName = displayName.length > maxLength

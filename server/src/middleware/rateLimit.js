@@ -225,3 +225,181 @@ export const cultivationLimiter = rateLimit({
   skip: shouldSkipRateLimit,
   keyGenerator: createKeyGenerator()
 });
+
+/**
+ * Post creation rate limiter - chống spam đăng bài
+ * 10 posts / 15 phút (tính theo user ID, không phải IP)
+ */
+export const postCreationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 10, // Tối đa 10 bài viết trong 15 phút
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Post Creation Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Bạn đã đăng quá nhiều bài viết. Vui lòng đợi một chút trước khi đăng tiếp.",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
+  skip: shouldSkipRateLimit,
+  // Sử dụng user ID thay vì IP để tránh ảnh hưởng đến nhiều user cùng IP
+  keyGenerator: (req) => {
+    if (req.user && req.user._id) {
+      return `post-creation:${req.user._id.toString()}`;
+    }
+    // Fallback về IP nếu chưa có user (không nên xảy ra vì có authRequired)
+    return createKeyGenerator()(req);
+  }
+});
+
+/**
+ * Comment creation rate limiter - chống spam bình luận
+ * 30 comments / 5 phút (tính theo user ID)
+ */
+export const commentCreationLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 phút
+  max: 30, // Tối đa 30 bình luận trong 5 phút
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Comment Creation Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Bạn đã bình luận quá nhiều. Vui lòng đợi một chút trước khi bình luận tiếp.",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
+  skip: shouldSkipRateLimit,
+  // Sử dụng user ID thay vì IP
+  keyGenerator: (req) => {
+    if (req.user && req.user._id) {
+      return `comment-creation:${req.user._id.toString()}`;
+    }
+    return createKeyGenerator()(req);
+  }
+});
+
+/**
+ * Group creation rate limiter - chống spam tạo nhóm
+ * 3 groups / 1 giờ (tính theo user ID)
+ */
+export const groupCreationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 giờ
+  max: 3, // Tối đa 3 nhóm trong 1 giờ
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Group Creation Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Bạn đã tạo quá nhiều nhóm. Vui lòng đợi một chút trước khi tạo nhóm mới.",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
+  skip: shouldSkipRateLimit,
+  keyGenerator: (req) => {
+    if (req.user && req.user._id) {
+      return `group-creation:${req.user._id.toString()}`;
+    }
+    return createKeyGenerator()(req);
+  }
+});
+
+/**
+ * Event creation rate limiter - chống spam tạo sự kiện
+ * 5 events / 1 giờ (tính theo user ID)
+ */
+export const eventCreationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 giờ
+  max: 5, // Tối đa 5 sự kiện trong 1 giờ
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Event Creation Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Bạn đã tạo quá nhiều sự kiện. Vui lòng đợi một chút trước khi tạo sự kiện mới.",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
+  skip: shouldSkipRateLimit,
+  keyGenerator: (req) => {
+    if (req.user && req.user._id) {
+      return `event-creation:${req.user._id.toString()}`;
+    }
+    return createKeyGenerator()(req);
+  }
+});
+
+/**
+ * Friend request rate limiter - chống spam gửi lời mời
+ * 20 requests / 15 phút (tính theo user ID)
+ */
+export const friendRequestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 20, // Tối đa 20 lời mời trong 15 phút
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Friend Request Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Bạn đã gửi quá nhiều lời mời kết bạn. Vui lòng đợi một chút trước khi gửi tiếp.",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
+  skip: shouldSkipRateLimit,
+  keyGenerator: (req) => {
+    if (req.user && req.user._id) {
+      return `friend-request:${req.user._id.toString()}`;
+    }
+    return createKeyGenerator()(req);
+  }
+});
+
+/**
+ * Poll creation rate limiter - chống spam tạo poll
+ * 10 polls / 15 phút (tính theo user ID)
+ */
+export const pollCreationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 10, // Tối đa 10 poll trong 15 phút
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Poll Creation Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Bạn đã tạo quá nhiều poll. Vui lòng đợi một chút trước khi tạo poll mới.",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
+  skip: shouldSkipRateLimit,
+  keyGenerator: (req) => {
+    if (req.user && req.user._id) {
+      return `poll-creation:${req.user._id.toString()}`;
+    }
+    return createKeyGenerator()(req);
+  }
+});
+
+/**
+ * Post interaction rate limiter - chống spam upvote/save/interest
+ * 100 interactions / 1 phút (tính theo user ID)
+ */
+export const postInteractionLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 phút
+  max: 100, // Tối đa 100 tương tác trong 1 phút
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logRateLimitInfo(req, 'Post Interaction Rate limit reached');
+    res.status(options.statusCode).json({
+      error: "Bạn đã tương tác quá nhiều. Vui lòng chậm lại.",
+      retryAfter: Math.round(options.windowMs / 1000)
+    });
+  },
+  skip: shouldSkipRateLimit,
+  keyGenerator: (req) => {
+    if (req.user && req.user._id) {
+      return `post-interaction:${req.user._id.toString()}`;
+    }
+    return createKeyGenerator()(req);
+  }
+});

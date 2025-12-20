@@ -17,6 +17,8 @@ import Post from "../models/Post.js";
 import { authRequired, authOptional } from "../middleware/auth.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
 import sanitizeHtml from "sanitize-html";
+import { sanitizeText, containsXSS } from "../utils/xssSanitizer.js";
+import { pollCreationLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router();
 
@@ -39,7 +41,7 @@ router.param('postId', (req, res, next, value) => {
  * POST / - Tạo poll mới cho một post
  * Request body: { postId, question, options, allowMultipleVotes, isPublic, expiresAt }
  */
-router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
+router.post("/", authRequired, checkBanStatus, pollCreationLimiter, async (req, res, next) => {
   try {
     const { postId, question, options, allowMultipleVotes = false, isPublic = true, expiresAt = null } = req.body;
 
@@ -73,19 +75,29 @@ router.post("/", authRequired, checkBanStatus, async (req, res, next) => {
       return res.status(400).json({ error: "Bài viết này đã có poll" });
     }
 
-    // Sanitize input
-    const sanitizedQuestion = sanitizeHtml(question.trim(), {
-      allowedTags: [],
-      allowedAttributes: {}
-    });
+    // Kiểm tra XSS trong input
+    const questionText = question.trim();
+    if (containsXSS(questionText)) {
+      return res.status(400).json({ error: "Câu hỏi chứa nội dung không hợp lệ" });
+    }
 
-    const sanitizedOptions = options.map(opt => ({
-      text: sanitizeHtml(opt.text || opt, {
-        allowedTags: [],
-        allowedAttributes: {}
-      }).trim(),
-      votes: []
-    }));
+    // Sanitize input với XSS protection
+    const sanitizedQuestion = sanitizeText(questionText, { maxLength: 500 });
+
+    const sanitizedOptions = options.map(opt => {
+      const optText = (opt.text || opt).toString().trim();
+      if (containsXSS(optText)) {
+        return null; // Mark invalid options
+      }
+      return {
+        text: sanitizeText(optText, { maxLength: 200 }),
+        votes: []
+      };
+    }).filter(opt => opt !== null && opt.text.length > 0);
+
+    if (sanitizedOptions.length < 2) {
+      return res.status(400).json({ error: "Poll phải có ít nhất 2 lựa chọn hợp lệ" });
+    }
 
     // Validate expiresAt
     let parsedExpiresAt = null;
@@ -349,10 +361,11 @@ router.put("/:pollId", authRequired, checkBanStatus, async (req, res, next) => {
 
     // Cập nhật
     if (question !== undefined) {
-      poll.question = sanitizeHtml(question.trim(), {
-        allowedTags: [],
-        allowedAttributes: {}
-      });
+      const questionText = question.trim();
+      if (containsXSS(questionText)) {
+        return res.status(400).json({ error: "Câu hỏi chứa nội dung không hợp lệ" });
+      }
+      poll.question = sanitizeText(questionText, { maxLength: 500 });
     }
 
     if (expiresAt !== undefined) {
@@ -421,14 +434,17 @@ router.post("/:pollId/options", authRequired, checkBanStatus, async (req, res, n
       return res.status(400).json({ error: "Poll chỉ có thể có tối đa 10 lựa chọn" });
     }
 
-    // Sanitize và thêm options mới
-    const sanitizedOptions = options.map(opt => ({
-      text: sanitizeHtml(opt.trim(), {
-        allowedTags: [],
-        allowedAttributes: {}
-      }).trim(),
-      votes: []
-    })).filter(opt => opt.text.length > 0);
+    // Sanitize và thêm options mới với XSS protection
+    const sanitizedOptions = options.map(opt => {
+      const optText = opt.toString().trim();
+      if (containsXSS(optText)) {
+        return null;
+      }
+      return {
+        text: sanitizeText(optText, { maxLength: 200 }),
+        votes: []
+      };
+    }).filter(opt => opt !== null && opt.text.length > 0);
 
     if (sanitizedOptions.length === 0) {
       return res.status(400).json({ error: "Không có lựa chọn hợp lệ nào" });
@@ -445,7 +461,7 @@ router.post("/:pollId/options", authRequired, checkBanStatus, async (req, res, n
 
     const results = poll.getResults(includeVoters);
 
-    res.json({ 
+    res.json({
       poll: {
         _id: poll._id,
         ...results,

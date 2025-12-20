@@ -92,7 +92,7 @@ async function fetchStatsFromDB() {
     const privateGrowth = calculateGrowth(thisMonthPrivates, lastMonthPrivates);
     const adminsGrowth = calculateGrowth(thisMonthAdmins, lastMonthAdmins);
 
-    const [viewsData, emotesData] = await Promise.all([
+    const [viewsData, upvotesData] = await Promise.all([
         Post.aggregate([
             {
                 $group: {
@@ -128,17 +128,17 @@ async function fetchStatsFromDB() {
             {
                 $group: {
                     _id: null,
-                    totalEmotes: { $sum: { $size: { $ifNull: ["$emotes", []] } } },
-                    thisMonthEmotes: {
+                    totalUpvotes: { $sum: { $ifNull: ["$upvoteCount", 0] } },
+                    thisMonthUpvotes: {
                         $sum: {
                             $cond: [
                                 { $gte: ["$createdAt", thisMonth] },
-                                { $size: { $ifNull: ["$emotes", []] } },
+                                { $ifNull: ["$upvoteCount", 0] },
                                 0
                             ]
                         }
                     },
-                    lastMonthEmotes: {
+                    lastMonthUpvotes: {
                         $sum: {
                             $cond: [
                                 {
@@ -147,7 +147,7 @@ async function fetchStatsFromDB() {
                                         { $lt: ["$createdAt", thisMonth] }
                                     ]
                                 },
-                                { $size: { $ifNull: ["$emotes", []] } },
+                                { $ifNull: ["$upvoteCount", 0] },
                                 0
                             ]
                         }
@@ -160,12 +160,12 @@ async function fetchStatsFromDB() {
     const totalViews = viewsData[0]?.totalViews || 0;
     const thisMonthViews = viewsData[0]?.thisMonthViews || 0;
     const lastMonthViews = viewsData[0]?.lastMonthViews || 0;
-    const totalEmotes = emotesData[0]?.totalEmotes || 0;
-    const thisMonthEmotes = emotesData[0]?.thisMonthEmotes || 0;
-    const lastMonthEmotes = emotesData[0]?.lastMonthEmotes || 0;
+    const totalUpvotes = upvotesData[0]?.totalUpvotes || 0;
+    const thisMonthUpvotes = upvotesData[0]?.thisMonthUpvotes || 0;
+    const lastMonthUpvotes = upvotesData[0]?.lastMonthUpvotes || 0;
 
     const viewsGrowth = calculateGrowth(thisMonthViews, lastMonthViews);
-    const emotesGrowth = calculateGrowth(thisMonthEmotes, lastMonthEmotes);
+    const upvotesGrowth = calculateGrowth(thisMonthUpvotes, lastMonthUpvotes);
 
     const topPosts = await Post.find({ status: "published" })
         .populate("author", "name")
@@ -203,7 +203,7 @@ async function fetchStatsFromDB() {
             totalUsers: { count: totalUsers, thisMonth: thisMonthUsers, lastMonth: lastMonthUsers, growth: usersGrowth },
             totalComments: { count: totalComments, thisMonth: thisMonthComments, lastMonth: lastMonthComments, growth: commentsGrowth },
             totalViews: { count: totalViews, thisMonth: thisMonthViews, lastMonth: lastMonthViews, growth: viewsGrowth },
-            totalEmotes: { count: totalEmotes, thisMonth: thisMonthEmotes, lastMonth: lastMonthEmotes, growth: emotesGrowth },
+            totalUpvotes: { count: totalUpvotes, thisMonth: thisMonthUpvotes, lastMonth: lastMonthUpvotes, growth: upvotesGrowth },
             publishedPosts: { count: publishedPosts, thisMonth: thisMonthPublished, lastMonth: lastMonthPublished, growth: publishedGrowth },
             draftPosts: { count: privatePosts, thisMonth: thisMonthPrivates, lastMonth: lastMonthPrivates, growth: privateGrowth },
             adminUsers: { count: adminUsers, thisMonth: thisMonthAdmins, lastMonth: lastMonthAdmins, growth: adminsGrowth }
@@ -344,7 +344,7 @@ async function fetchDailyStatsFromDB(days) {
                     },
                     count: { $sum: 1 },
                     views: { $sum: "$views" },
-                    emotes: { $sum: { $size: { $ifNull: ["$emotes", []] } } }
+                    upvotes: { $sum: { $ifNull: ["$upvoteCount", 0] } }
                 }
             },
             { $sort: { _id: 1 } }
@@ -389,20 +389,20 @@ async function fetchDailyStatsFromDB(days) {
         const month = String(date.getUTCMonth() + 1).padStart(2, '0');
         const dayLabel = `${day}-${month}`;
 
-        const postData = postsMap.get(dateStr) || { count: 0, views: 0, emotes: 0 };
+        const postData = postsMap.get(dateStr) || { count: 0, views: 0, upvotes: 0 };
 
         chartData.push({
             date: dateStr,
             label: dayLabel,
             posts: postData.count || 0,
             views: postData.views || 0,
-            emotes: postData.emotes || 0,
+            upvotes: postData.upvotes || 0,
             users: usersMap.get(dateStr) || 0,
             comments: commentsMap.get(dateStr) || 0
         });
     }
 
-    const [totalPosts, totalUsers, totalComments, emotesData] = await Promise.all([
+    const [totalPosts, totalUsers, totalComments, upvotesData] = await Promise.all([
         Post.countDocuments({}),
         User.countDocuments({}),
         Comment.countDocuments({}),
@@ -410,7 +410,7 @@ async function fetchDailyStatsFromDB(days) {
             {
                 $group: {
                     _id: null,
-                    totalEmotes: { $sum: { $size: { $ifNull: ["$emotes", []] } } }
+                    totalUpvotes: { $sum: { $ifNull: ["$upvoteCount", 0] } }
                 }
             }
         ])
@@ -420,21 +420,21 @@ async function fetchDailyStatsFromDB(days) {
         posts: totalPosts,
         users: totalUsers,
         comments: totalComments,
-        emotes: emotesData[0]?.totalEmotes || 0
+        upvotes: upvotesData[0]?.totalUpvotes || 0
     };
 
     const periodTotals = {
         posts: chartData.reduce((sum, d) => sum + d.posts, 0),
         users: chartData.reduce((sum, d) => sum + d.users, 0),
         comments: chartData.reduce((sum, d) => sum + d.comments, 0),
-        emotes: chartData.reduce((sum, d) => sum + d.emotes, 0)
+        upvotes: chartData.reduce((sum, d) => sum + d.upvotes, 0)
     };
 
     const baseline = {
         posts: allTimeTotals.posts - periodTotals.posts,
         users: allTimeTotals.users - periodTotals.users,
         comments: allTimeTotals.comments - periodTotals.comments,
-        emotes: allTimeTotals.emotes - periodTotals.emotes
+        upvotes: allTimeTotals.upvotes - periodTotals.upvotes
     };
 
     return {

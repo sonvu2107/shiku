@@ -20,14 +20,22 @@ import mongoose from "mongoose";
  * Tính engagement score cho một post
  * Score cao hơn = nội dung hấp dẫn hơn
  * 
+ * NEW FORMULA (Upvote-based):
+ * score = (U * 3) + log(C + 1) * 2 - (T / 24)
+ * - U = upvotes (trọng số cao nhất)
+ * - C = comments (logarithmic để chống spam)
+ * - T = thời gian (time decay)
+ * 
  * @param {Object} post - Post object
  * @param {number} commentsCount - Số lượng comments
  * @param {Set|null} interestedPostIds - Set các post IDs user quan tâm (optional)
  * @returns {number} Engagement score
  */
 export function calculateEngagementScore(post, commentsCount = 0, interestedPostIds = null) {
-  const emotesCount = post.emotes?.length || 0;
+  // NEW: Ưu tiên upvoteCount, fallback sang emotes.length cho legacy
+  const upvoteCount = post.upvoteCount ?? post.emotes?.length ?? 0;
   const views = post.views || 0;
+  const comments = commentsCount || post.commentCount || 0;
 
   // Time decay: bài viết cũ hơn có score thấp hơn
   const createdAt = new Date(post.createdAt);
@@ -35,15 +43,21 @@ export function calculateEngagementScore(post, commentsCount = 0, interestedPost
 
   // Kiểm tra an toàn: nếu post ở tương lai hoặc invalid, coi như rất mới (0.1 giờ)
   const safeHours = Math.max(hoursSincePost, 0.1);
-  const timeDecay = Math.pow(safeHours + 2, 1.5); // Gravity factor 1.5
-
-  // Weighted engagement score
-  // Comments có giá trị hơn emotes, views có trọng số tối thiểu
+  
+  // NEW FORMULA: Upvote-centric scoring
+  // Upvotes = 3 điểm mỗi upvote (tín hiệu mạnh nhất)
+  // Comments = logarithmic (chống spam, vẫn có giá trị)
+  // Views = minimal impact
+  // Time decay = linear (post cũ tự tụt)
   let engagementScore = (
-    emotesCount * 1 +      // Mỗi emote = 1 điểm
-    commentsCount * 3 +    // Mỗi comment = 3 điểm (quan trọng hơn)
-    views * 0.01           // Views có tác động tối thiểu (0.01 điểm mỗi view)
+    upvoteCount * 3 +                    // Upvotes = trọng số cao nhất
+    Math.log(comments + 1) * 2 +         // Comments = logarithmic multiplier
+    views * 0.005 -                      // Views có tác động tối thiểu
+    (safeHours / 24)                     // Time decay: -1 điểm mỗi 24h
   );
+  
+  // Đảm bảo score không âm
+  engagementScore = Math.max(engagementScore, 0);
 
   // Tăng score nếu user quan tâm post này (nhân 2.5)
   if (interestedPostIds && post._id) {
@@ -72,9 +86,25 @@ export function calculateEngagementScore(post, commentsCount = 0, interestedPost
   const randomFactor = 0.85 + Math.random() * 0.3; // Random từ 0.85 đến 1.15 (±15%)
   engagementScore *= randomFactor;
 
-  // Score cuối cùng với time decay
-  // Tránh chia cho 0 hoặc số rất nhỏ
-  return engagementScore / Math.max(timeDecay, 0.1);
+  return engagementScore;
+}
+
+/**
+ * Tính ranking score cho HOT feed (cached in DB)
+ * Công thức: score = (U * 3) + log(C + 1) * 2 - (T / 24)
+ * 
+ * @param {Object} post - Post object với upvoteCount, commentCount
+ * @returns {number} Ranking score
+ */
+export function calculateRankingScore(post) {
+  const U = post.upvoteCount ?? post.emotes?.length ?? 0;
+  const C = post.commentCount ?? 0;
+  const createdAt = new Date(post.createdAt);
+  const T = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60); // hours
+  
+  // Formula: (U * 3) + log(C + 1) * 2 - (T / 24)
+  const score = (U * 3) + Math.log(C + 1) * 2 - (T / 24);
+  return Math.max(score, 0); // Không cho điểm âm
 }
 
 /**
@@ -143,12 +173,15 @@ export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds =
         }
       },
       { $unwind: { path: "$author", preserveNullAndEmptyArrays: true } },
-      // Project chỉ các fields cần thiết để giảm memory
+      // Project chỉ các fields cần thiết để giảm memory (NEW: include upvotes)
       {
         $project: {
           title: 1, content: 1, slug: 1, tags: 1, createdAt: 1, author: 1,
           status: 1, views: 1, coverUrl: 1, files: 1,
-          commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1, isEdited: 1, youtubeUrl: 1
+          commentCount: 1, savedCount: 1, 
+          upvotes: 1, upvoteCount: 1, // NEW: upvote fields
+          emotes: 1, // Legacy
+          hasPoll: 1, isEdited: 1, youtubeUrl: 1
         }
       }
     ]);
@@ -216,15 +249,25 @@ export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, 
     // OPTIMIZATION: Sử dụng aggregation pipeline
     const posts = await Post.aggregate([
       { $match: matchStage },
-      // OPTIMIZATION: Tính engagement score trong aggregation
+      // OPTIMIZATION: Tính engagement score trong aggregation (NEW: upvote-based)
       {
         $addFields: {
-          emotesCount: { $size: { $ifNull: ["$emotes", []] } },
+          // Fallback: upvoteCount hoặc emotes.length (legacy)
+          upvoteScore: { 
+            $ifNull: ["$upvoteCount", { $size: { $ifNull: ["$emotes", []] } }] 
+          },
+          // NEW FORMULA: (U * 3) + log(C + 1) * 2
           engagementBase: {
             $add: [
-              { $multiply: [{ $size: { $ifNull: ["$emotes", []] } }, 1] },
-              { $multiply: [{ $ifNull: ["$commentCount", 0] }, 3] },
-              { $multiply: [{ $ifNull: ["$views", 0] }, 0.01] }
+              { $multiply: [
+                { $ifNull: ["$upvoteCount", { $size: { $ifNull: ["$emotes", []] } }] }, 
+                3 
+              ] },
+              { $multiply: [
+                { $ln: { $add: [{ $ifNull: ["$commentCount", 0] }, 1] } }, 
+                2 
+              ] },
+              { $multiply: [{ $ifNull: ["$views", 0] }, 0.005] }
             ]
           }
         }
@@ -243,12 +286,15 @@ export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, 
         }
       },
       { $unwind: { path: "$author", preserveNullAndEmptyArrays: true } },
-      // Project chỉ fields cần thiết
+      // Project chỉ fields cần thiết (NEW: include upvotes)
       {
         $project: {
           title: 1, content: 1, slug: 1, tags: 1, createdAt: 1, author: 1,
           status: 1, views: 1, coverUrl: 1, files: 1,
-          commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1, isEdited: 1, youtubeUrl: 1
+          commentCount: 1, savedCount: 1, 
+          upvotes: 1, upvoteCount: 1, // NEW: upvote fields
+          emotes: 1, // Legacy
+          hasPoll: 1, isEdited: 1, youtubeUrl: 1
         }
       }
     ]);

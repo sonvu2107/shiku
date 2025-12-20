@@ -168,7 +168,26 @@ export const formatCultivationResponse = async (cultivation) => {
         activeBoosts: cultivation.activeBoosts.filter(b => new Date(b.expiresAt) > new Date()),
         learnedTechniques: cultivation.learnedTechniques || [],
         skills: cultivation.getSkills(),
-        stats: cultivation.stats,
+        stats: (() => {
+            // Merge legacy likes vào upvotes nếu upvotes = 0 hoặc chưa có
+            // Sau khi migration, totalUpvotesGiven sẽ có giá trị, nhưng vẫn giữ fallback cho dữ liệu cũ
+            const stats = { ...cultivation.stats };
+            if ((!stats.totalUpvotesGiven || stats.totalUpvotesGiven === 0) && stats.totalLikesGiven > 0) {
+                stats.totalUpvotesGiven = stats.totalLikesGiven;
+            }
+            if ((!stats.totalUpvotesReceived || stats.totalUpvotesReceived === 0) && stats.totalLikesReceived > 0) {
+                stats.totalUpvotesReceived = stats.totalLikesReceived;
+            }
+            // Ưu tiên totalUpvotesGiven (sau migration sẽ có giá trị)
+            // Nếu cả hai đều có, lấy giá trị lớn hơn
+            if (stats.totalUpvotesGiven && stats.totalLikesGiven) {
+                stats.totalUpvotesGiven = Math.max(stats.totalUpvotesGiven, stats.totalLikesGiven);
+            }
+            if (stats.totalUpvotesReceived && stats.totalLikesReceived) {
+                stats.totalUpvotesReceived = Math.max(stats.totalUpvotesReceived, stats.totalLikesReceived);
+            }
+            return stats;
+        })(),
         combatStats: cultivation.calculateCombatStats(),
         equipmentStats: null,
         breakthroughSuccessRate: (() => {

@@ -441,7 +441,7 @@ export default function Profile({ user: propUser, setUser: propSetUser }) {
       />
 
       {/* Main Content Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10" style={{ overflow: 'visible' }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Edit Form */}
         <ProfileEditForm
           editing={editing}

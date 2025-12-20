@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { Globe, Lock, Image, Users, BarChart3, Plus, X, Loader2, Youtube, ChevronDown, ChevronUp } from "lucide-react";
+import { Globe, Lock, Image, Users, BarChart3, Plus, X, Loader2, Youtube, ChevronDown, ChevronUp, Smile } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BanNotification from "./BanNotification";
 import MarkdownEditor from "./MarkdownEditor";
@@ -80,6 +80,28 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
       loadGroups();
     }
   }, [user]);
+
+  // Disable body scroll when modal is open
+  useEffect(() => {
+    if (showModal) {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+      // Disable scroll
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        // Re-enable scroll and restore position
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [showModal]);
 
   // ==================== HELPERS ====================
 
@@ -307,12 +329,26 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
             <div className="flex-1 text-neutral-500 dark:text-neutral-400 text-sm sm:text-base font-medium truncate">
               Bạn đang nghĩ gì?
             </div>
-            <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-              <div className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" title="Thêm ảnh/video">
-                <Image size={20} className="text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors" />
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              <div 
+                className="p-1.5 sm:p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" 
+                title="Emoji"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowModal(true);
+                }}
+              >
+                <Smile size={18} className="sm:w-5 sm:h-5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors" />
               </div>
-              <div className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" title="Tạo bình chọn">
-                <BarChart3 size={20} className="text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors" />
+              <div 
+                className="p-1.5 sm:p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" 
+                title="Thêm ảnh/video"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowModal(true);
+                }}
+              >
+                <Image size={18} className="sm:w-5 sm:h-5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors" />
               </div>
             </div>
           </div>

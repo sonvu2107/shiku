@@ -28,7 +28,7 @@ const PERIODS = [
 const CHART_COLORS = {
     posts: '#3b82f6',
     comments: '#22c55e',
-    emotes: '#f43f5e'
+    upvotes: '#f43f5e'
 };
 
 // Podium medals
@@ -74,17 +74,17 @@ function ActivityLeaderboard() {
             userId: user.userId,
             posts: user.postCount,
             comments: user.commentCount,
-            emotes: user.emoteCount
+            upvotes: user.upvoteCount
         }));
     }, [data]);
 
     // Calculate max values for progress bars
     const maxStats = useMemo(() => {
-        if (data.length === 0) return { posts: 1, comments: 1, emotes: 1, score: 1 };
+        if (data.length === 0) return { posts: 1, comments: 1, upvotes: 1, score: 1 };
         return {
             posts: Math.max(...data.map(u => u.postCount), 1),
             comments: Math.max(...data.map(u => u.commentCount), 1),
-            emotes: Math.max(...data.map(u => u.emoteCount), 1),
+            upvotes: Math.max(...data.map(u => u.upvoteCount), 1),
             score: Math.max(...data.map(u => u.totalScore), 1)
         };
     }, [data]);
@@ -104,7 +104,7 @@ function ActivityLeaderboard() {
                         />
                         <span className="text-neutral-600 dark:text-neutral-400">
                             {entry.name === 'posts' ? 'Bài viết' :
-                                entry.name === 'comments' ? 'Bình luận' : 'Lượt thích'}:
+                                entry.name === 'comments' ? 'Bình luận' : 'Upvotes'}:
                         </span>
                         <span className="font-bold text-neutral-900 dark:text-white">{entry.value}</span>
                     </div>
@@ -315,8 +315,8 @@ function ActivityLeaderboard() {
                                 <span className="text-neutral-600 dark:text-neutral-400">Bình luận</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CHART_COLORS.emotes }} />
-                                <span className="text-neutral-600 dark:text-neutral-400">Lượt thích</span>
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CHART_COLORS.upvotes }} />
+                                <span className="text-neutral-600 dark:text-neutral-400">Upvotes</span>
                             </div>
                         </div>
 
@@ -350,7 +350,7 @@ function ActivityLeaderboard() {
                                         />
                                         <Bar dataKey="posts" fill={CHART_COLORS.posts} radius={[4, 4, 0, 0]} minPointSize={5} />
                                         <Bar dataKey="comments" fill={CHART_COLORS.comments} radius={[4, 4, 0, 0]} minPointSize={5} />
-                                        <Bar dataKey="emotes" fill={CHART_COLORS.emotes} radius={[4, 4, 0, 0]} minPointSize={5} />
+                                        <Bar dataKey="upvotes" fill={CHART_COLORS.upvotes} radius={[4, 4, 0, 0]} minPointSize={5} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>

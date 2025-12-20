@@ -48,8 +48,9 @@ import { cn } from '../utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '../contexts/ToastContext';
 import Avatar from '../components/Avatar';
+import Pagination from '../components/admin/Pagination';
 
-// --- UI COMPONENTS (Đồng bộ Design System) ---
+// --- UI COMPONENTS ---
 
 const GridPattern = () => (
    <div className="absolute inset-0 -z-10 h-full w-full bg-white dark:bg-black bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]">
@@ -151,6 +152,10 @@ const GroupDetail = () => {
    const pendingKey = `groupJoinPending:${id}`;
    const [pendingRequests, setPendingRequests] = useState([]);
    const [pendingLoading, setPendingLoading] = useState(false);
+
+   // Member pagination
+   const [membersPage, setMembersPage] = useState(1);
+   const membersPerPage = 12;
 
    // Analytics states
    const [analytics, setAnalytics] = useState(null);
@@ -813,18 +818,18 @@ const GroupDetail = () => {
                )}
                <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent dark:from-black dark:via-transparent dark:to-transparent opacity-90" />
 
-               {/* Back Button */}
-               <button
-                  onClick={() => navigate('/groups')}
-                  className="absolute top-20 left-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-md transition-colors z-20"
-               >
-                  <ArrowLeft size={20} />
-               </button>
-
-               {/* Badge Type */}
-               <div className="absolute top-20 left-16 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-white text-xs font-bold border border-white/10">
-                  <GroupTypeIcon size={12} />
-                  <span className="uppercase tracking-wider">{group.settings?.type === 'public' ? 'Công khai' : group.settings?.type === 'private' ? 'Riêng tư' : 'Bí mật'}</span>
+               {/* Back Button & Badge - Aligned */}
+               <div className="absolute top-20 left-4 flex items-center gap-2 z-20">
+                  <button
+                     onClick={() => navigate('/groups')}
+                     className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-md transition-colors"
+                  >
+                     <ArrowLeft size={16} className="md:w-5 md:h-5" />
+                  </button>
+                  <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-2 md:px-3 py-1 rounded-full text-white text-[10px] md:text-xs font-bold border border-white/10">
+                     <GroupTypeIcon size={10} className="md:w-3 md:h-3" />
+                     <span className="uppercase tracking-wider">{group.settings?.type === 'public' ? 'Công khai' : group.settings?.type === 'private' ? 'Riêng tư' : 'Bí mật'}</span>
+                  </div>
                </div>
 
                {/* Upload Cover (Admin) */}
@@ -851,7 +856,7 @@ const GroupDetail = () => {
             </div>
 
             {/* Group Info */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-24 relative z-10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-24 relative">
                <div className="flex flex-col md:flex-row items-end gap-6 mb-8">
                   {/* Avatar */}
                   <motion.div
@@ -973,34 +978,28 @@ const GroupDetail = () => {
                </div>
 
                {/* --- 2. TABS NAVIGATION --- */}
-               <div className="sticky top-20 z-30 mb-6 md:mb-8">
-                  <div className="relative">
-                     {/* Gradient indicators for mobile scroll */}
-                     <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white dark:from-neutral-900 to-transparent z-10 pointer-events-none md:hidden"></div>
-                     <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white dark:from-neutral-900 to-transparent z-10 pointer-events-none md:hidden"></div>
-
-                     <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl rounded-full p-1 md:p-1.5 shadow-sm border border-neutral-200 dark:border-neutral-800 w-full overflow-x-auto scrollbar-hide">
-                        <div className="flex gap-1.5 md:gap-2 min-w-max md:min-w-full md:justify-between">
-                           {[
-                              { id: 'posts', label: 'Thảo luận', icon: MessageSquare },
-                              { id: 'members', label: 'Thành viên', icon: Users },
-                              ...(hasPermission('approve_join_request') ? [{ id: 'pending', label: 'Chờ duyệt', icon: UserPlus }] : []),
-                              ...(hasPermission('view_analytics') ? [{ id: 'analytics', label: 'Thống kê', icon: BarChart3 }] : []),
-                              ...(hasPermission('change_settings') ? [{ id: 'settings', label: 'Cài đặt', icon: Settings }] : [])
-                           ].map(tab => (
-                              <button
-                                 key={tab.id}
-                                 onClick={() => setActiveTab(tab.id)}
-                                 className={cn(
-                                    "flex-shrink-0 flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-3 md:px-4 rounded-full text-xs md:text-sm font-bold transition-all whitespace-nowrap min-h-[44px] touch-manipulation",
-                                    activeTab === tab.id ? "bg-black dark:bg-white text-white dark:text-black shadow-md" : "text-neutral-500 hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/20"
-                                 )}
-                              >
-                                 <tab.icon size={14} className="hidden md:block md:w-4 md:h-4 flex-shrink-0" strokeWidth={2.5} />
-                                 <span className="truncate">{tab.label}</span>
-                              </button>
-                           ))}
-                        </div>
+               <div className="sticky top-20 z-30 mb-6 md:mb-8 flex justify-center md:justify-start">
+                  <div className="inline-flex bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl rounded-full p-1 md:p-1.5 border border-neutral-200 dark:border-neutral-800 overflow-x-auto scrollbar-hide max-w-full md:max-w-2xl">
+                     <div className="flex gap-1 md:gap-1.5">
+                        {[
+                           { id: 'posts', label: 'Thảo luận', icon: MessageSquare },
+                           { id: 'members', label: 'Thành viên', icon: Users },
+                           ...(hasPermission('approve_join_request') ? [{ id: 'pending', label: 'Chờ duyệt', icon: UserPlus }] : []),
+                           ...(hasPermission('view_analytics') ? [{ id: 'analytics', label: 'Thống kê', icon: BarChart3 }] : []),
+                           ...(hasPermission('change_settings') ? [{ id: 'settings', label: 'Cài đặt', icon: Settings }] : [])
+                        ].map(tab => (
+                           <button
+                              key={tab.id}
+                              onClick={() => setActiveTab(tab.id)}
+                              className={cn(
+                                 "flex-shrink-0 flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-3 md:px-4 rounded-full text-xs md:text-sm font-bold transition-all whitespace-nowrap min-h-[40px] md:min-h-[44px] touch-manipulation",
+                                 activeTab === tab.id ? "bg-black dark:bg-white text-white dark:text-black shadow-md" : "text-neutral-500 hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/20"
+                              )}
+                           >
+                              <tab.icon size={14} className="hidden md:block md:w-4 md:h-4 flex-shrink-0" strokeWidth={2.5} />
+                              <span>{tab.label}</span>
+                           </button>
+                        ))}
                      </div>
                   </div>
                </div>
@@ -1117,171 +1116,203 @@ const GroupDetail = () => {
                   )}
 
                   {/* MEMBERS TAB */}
-                  {activeTab === 'members' && (isAdmin() || group.settings?.showMemberList) && (
-                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 relative">
-                        {group.members?.map(member => {
-                           const roleConfig = {
-                              owner: { icon: Crown, label: 'Owner', color: 'text-yellow-600 dark:text-yellow-400', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20', borderColor: 'border-yellow-200 dark:border-yellow-800' },
-                              admin: { icon: Shield, label: 'Admin', color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-900/20', borderColor: 'border-blue-200 dark:border-blue-800' },
-                              moderator: { icon: ShieldCheck, label: 'Moderator', color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-50 dark:bg-purple-900/20', borderColor: 'border-purple-200 dark:border-purple-800' },
-                              member: { icon: User, label: 'Member', color: 'text-neutral-600 dark:text-neutral-400', bgColor: 'bg-neutral-50 dark:bg-neutral-800/50', borderColor: 'border-neutral-200 dark:border-neutral-700' }
-                           };
-                           const config = roleConfig[member.role] || roleConfig.member;
-                           const RoleIcon = config.icon;
-                           const isCurrentUser = user?._id === member.user?._id;
+                  {activeTab === 'members' && (isAdmin() || group.settings?.showMemberList) && (() => {
+                     const allMembers = group.members || [];
+                     const totalMembersPages = Math.ceil(allMembers.length / membersPerPage);
+                     const paginatedMembers = allMembers.slice(
+                        (membersPage - 1) * membersPerPage,
+                        membersPage * membersPerPage
+                     );
 
-                           return (
-                              <SpotlightCard
-                                 key={member.user._id}
-                                 className={cn(
-                                    "p-5 relative transition-all",
-                                    showMemberMenu === member.user._id ? "overflow-visible z-[100]" : "z-auto"
-                                 )}
-                              >
-                                 <div className="flex items-start gap-4" onClick={(e) => {
-                                    // Đóng dropdown nếu click vào card nhưng không phải vào menu button hoặc dropdown
-                                    if (showMemberMenu === member.user._id && !e.target.closest('.member-menu')) {
-                                       setShowMemberMenu(null);
-                                    }
-                                 }}>
-                                    {/* Avatar with role badge */}
-                                    <div className="relative flex-shrink-0">
-                                       <Avatar
-                                          src={member.user.avatarUrl}
-                                          name={member.user?.name || member.user?.fullName || 'User'}
-                                          size={56}
-                                          className="border-2 border-neutral-200 dark:border-neutral-700"
-                                       />
-                                       <div className={cn(
-                                          "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white dark:border-neutral-900 flex items-center justify-center",
-                                          config.bgColor,
-                                          config.borderColor
-                                       )}>
-                                          <RoleIcon size={14} className={config.color} strokeWidth={2.5} />
-                                       </div>
-                                    </div>
+                     return (
+                        <>
+                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 relative">
+                              {paginatedMembers.map(member => {
+                                 const roleConfig = {
+                                    owner: { icon: Crown, label: 'Owner', color: 'text-yellow-600 dark:text-yellow-400', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20', borderColor: 'border-yellow-200 dark:border-yellow-800' },
+                                    admin: { icon: Shield, label: 'Admin', color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-900/20', borderColor: 'border-blue-200 dark:border-blue-800' },
+                                    moderator: { icon: ShieldCheck, label: 'Moderator', color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-50 dark:bg-purple-900/20', borderColor: 'border-purple-200 dark:border-purple-800' },
+                                    member: { icon: User, label: 'Member', color: 'text-neutral-600 dark:text-neutral-400', bgColor: 'bg-neutral-50 dark:bg-neutral-800/50', borderColor: 'border-neutral-200 dark:border-neutral-700' }
+                                 };
+                                 const config = roleConfig[member.role] || roleConfig.member;
+                                 const RoleIcon = config.icon;
+                                 const isCurrentUser = user?._id === member.user?._id;
 
-                                    {/* Member Info */}
-                                    <div className="flex-1 min-w-0">
-                                       <div className="flex items-center gap-2 mb-2">
-                                          <h3 className="font-black text-base truncate">
-                                             {member.user?.name || member.user?.fullName || member.user?.username || 'Unknown'}
-                                          </h3>
-                                          {isCurrentUser && (
-                                             <span className="px-2 py-0.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 text-xs font-bold rounded-full">
-                                                Bạn
-                                             </span>
-                                          )}
-                                       </div>
-
-                                       {/* Role Badge */}
-                                       <div className={cn(
-                                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider",
-                                          config.bgColor,
-                                          config.color
-                                       )}>
-                                          <RoleIcon size={12} strokeWidth={2.5} />
-                                          {config.label}
-                                       </div>
-
-                                       {/* Join Date */}
-                                       {member.joinedAt && (
-                                          <div className="mt-2 text-xs text-neutral-500 font-medium">
-                                             Tham gia {new Date(member.joinedAt).toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' })}
-                                          </div>
+                                 return (
+                                    <SpotlightCard
+                                       key={member.user._id}
+                                       className={cn(
+                                          "p-5 relative transition-all",
+                                          showMemberMenu === member.user._id ? "overflow-visible z-[100]" : "z-auto"
                                        )}
-                                    </div>
+                                    >
+                                       <div className="flex items-start gap-4" onClick={(e) => {
+                                          // Đóng dropdown nếu click vào card nhưng không phải vào menu button hoặc dropdown
+                                          if (showMemberMenu === member.user._id && !e.target.closest('.member-menu')) {
+                                             setShowMemberMenu(null);
+                                          }
+                                       }}>
+                                          {/* Avatar with role badge */}
+                                          <div className="relative flex-shrink-0">
+                                             <Avatar
+                                                src={member.user.avatarUrl}
+                                                name={member.user?.name || member.user?.fullName || 'User'}
+                                                size={56}
+                                                className="border-2 border-neutral-200 dark:border-neutral-700"
+                                             />
+                                             <div className={cn(
+                                                "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white dark:border-neutral-900 flex items-center justify-center",
+                                                config.bgColor,
+                                                config.borderColor
+                                             )}>
+                                                <RoleIcon size={14} className={config.color} strokeWidth={2.5} />
+                                             </div>
+                                          </div>
 
-                                    {/* Action Menu */}
-                                    {canManage() && member.role !== 'owner' && !isCurrentUser && (
-                                       <div className="relative member-menu flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                                          <button
-                                             onClick={(e) => {
-                                                e.stopPropagation();
-                                                setShowMemberMenu(showMemberMenu === member.user._id ? null : member.user._id);
-                                             }}
-                                             className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors relative z-10"
-                                          >
-                                             <MoreVertical size={18} className="text-neutral-500" />
-                                          </button>
+                                          {/* Member Info */}
+                                          <div className="flex-1 min-w-0">
+                                             <div className="flex items-center gap-2 mb-2">
+                                                <h3 className="font-black text-base truncate">
+                                                   {member.user?.name || member.user?.fullName || member.user?.username || 'Unknown'}
+                                                </h3>
+                                                {isCurrentUser && (
+                                                   <span className="px-2 py-0.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 text-xs font-bold rounded-full">
+                                                      Bạn
+                                                   </span>
+                                                )}
+                                             </div>
 
-                                          {showMemberMenu === member.user._id && (
-                                             <div
-                                                className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-900 rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-800 py-2 z-[110]"
-                                                onClick={(e) => e.stopPropagation()}
-                                             >
-                                                {member.role === 'member' && hasPermission('promote_to_admin') && (
-                                                   <button
-                                                      onClick={async () => {
-                                                         try {
-                                                            await api(`/api/groups/${id}/members/${member.user._id}/role`, {
-                                                               method: 'PUT',
-                                                               body: { role: 'moderator' }
-                                                            });
-                                                            await loadGroup();
-                                                            setShowMemberMenu(null);
-                                                            showSuccess('Đã thăng cấp thành điều hành viên');
-                                                         } catch (e) {
-                                                            showError(e.message || 'Lỗi thăng cấp');
-                                                         }
-                                                      }}
-                                                      className="w-full px-4 py-2 text-left text-sm font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2"
+                                             {/* Role Badge */}
+                                             <div className={cn(
+                                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider",
+                                                config.bgColor,
+                                                config.color
+                                             )}>
+                                                <RoleIcon size={12} strokeWidth={2.5} />
+                                                {config.label}
+                                             </div>
+
+                                             {/* Join Date */}
+                                             {member.joinedAt && (
+                                                <div className="mt-2 text-xs text-neutral-500 font-medium">
+                                                   Tham gia {new Date(member.joinedAt).toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' })}
+                                                </div>
+                                             )}
+                                          </div>
+
+                                          {/* Action Menu */}
+                                          {canManage() && member.role !== 'owner' && !isCurrentUser && (
+                                             <div className="relative member-menu flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                   onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setShowMemberMenu(showMemberMenu === member.user._id ? null : member.user._id);
+                                                   }}
+                                                   className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors relative z-10"
+                                                >
+                                                   <MoreVertical size={18} className="text-neutral-500" />
+                                                </button>
+
+                                                {showMemberMenu === member.user._id && (
+                                                   <div
+                                                      className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-900 rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-800 py-2 z-[110]"
+                                                      onClick={(e) => e.stopPropagation()}
                                                    >
-                                                      <ShieldCheck size={16} /> Thăng cấp điều hành viên
-                                                   </button>
-                                                )}
-                                                {member.role === 'moderator' && hasPermission('promote_to_admin') && (
-                                                   <button
-                                                      onClick={async () => {
-                                                         try {
-                                                            await api(`/api/groups/${id}/members/${member.user._id}/role`, {
-                                                               method: 'PUT',
-                                                               body: { role: 'admin' }
-                                                            });
-                                                            await loadGroup();
-                                                            setShowMemberMenu(null);
-                                                            showSuccess('Đã thăng cấp thành admin');
-                                                         } catch (e) {
-                                                            showError(e.message || 'Lỗi thăng cấp');
-                                                         }
-                                                      }}
-                                                      className="w-full px-4 py-2 text-left text-sm font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2"
-                                                   >
-                                                      <Shield size={16} /> Thăng cấp admin
-                                                   </button>
-                                                )}
-                                                {hasPermission('remove_member') && (
-                                                   <button
-                                                      onClick={() => {
-                                                         setShowMemberMenu(null);
-                                                         handleRemoveMember(member.user._id, member.user?.name || member.user?.username);
-                                                      }}
-                                                      className="w-full px-4 py-2 text-left text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                                                   >
-                                                      <UserMinus size={16} /> Xóa khỏi nhóm
-                                                   </button>
-                                                )}
-                                                {hasPermission('ban_member') && (
-                                                   <button
-                                                      onClick={() => {
-                                                         setShowMemberMenu(null);
-                                                         handleBanMember(member.user._id, member.user?.name || member.user?.username);
-                                                      }}
-                                                      className="w-full px-4 py-2 text-left text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                                                   >
-                                                      <Ban size={16} /> Cấm thành viên
-                                                   </button>
+                                                      {member.role === 'member' && hasPermission('promote_to_admin') && (
+                                                         <button
+                                                            onClick={async () => {
+                                                               try {
+                                                                  await api(`/api/groups/${id}/members/${member.user._id}/role`, {
+                                                                     method: 'PUT',
+                                                                     body: { role: 'moderator' }
+                                                                  });
+                                                                  await loadGroup();
+                                                                  setShowMemberMenu(null);
+                                                                  showSuccess('Đã thăng cấp thành điều hành viên');
+                                                               } catch (e) {
+                                                                  showError(e.message || 'Lỗi thăng cấp');
+                                                               }
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2"
+                                                         >
+                                                            <ShieldCheck size={16} /> Thăng cấp điều hành viên
+                                                         </button>
+                                                      )}
+                                                      {member.role === 'moderator' && hasPermission('promote_to_admin') && (
+                                                         <button
+                                                            onClick={async () => {
+                                                               try {
+                                                                  await api(`/api/groups/${id}/members/${member.user._id}/role`, {
+                                                                     method: 'PUT',
+                                                                     body: { role: 'admin' }
+                                                                  });
+                                                                  await loadGroup();
+                                                                  setShowMemberMenu(null);
+                                                                  showSuccess('Đã thăng cấp thành admin');
+                                                               } catch (e) {
+                                                                  showError(e.message || 'Lỗi thăng cấp');
+                                                               }
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2"
+                                                         >
+                                                            <Shield size={16} /> Thăng cấp admin
+                                                         </button>
+                                                      )}
+                                                      {hasPermission('remove_member') && (
+                                                         <button
+                                                            onClick={() => {
+                                                               setShowMemberMenu(null);
+                                                               handleRemoveMember(member.user._id, member.user?.name || member.user?.username);
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                                         >
+                                                            <UserMinus size={16} /> Xóa khỏi nhóm
+                                                         </button>
+                                                      )}
+                                                      {hasPermission('ban_member') && (
+                                                         <button
+                                                            onClick={() => {
+                                                               setShowMemberMenu(null);
+                                                               handleBanMember(member.user._id, member.user?.name || member.user?.username);
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                                         >
+                                                            <Ban size={16} /> Cấm thành viên
+                                                         </button>
+                                                      )}
+                                                   </div>
                                                 )}
                                              </div>
                                           )}
                                        </div>
-                                    )}
-                                 </div>
-                              </SpotlightCard>
-                           );
-                        })}
-                     </div>
-                  )}
+                                    </SpotlightCard>
+                                 );
+                              })}
+                           </div>
+
+                           {/* Members Pagination */}
+                           {group.members?.length > 12 && (
+                              <div className="mt-6 flex justify-center">
+                                 <Pagination
+                                    pagination={{
+                                       page: membersPage,
+                                       totalPages: totalMembersPages,
+                                       total: allMembers.length,
+                                       hasPrevPage: membersPage > 1,
+                                       hasNextPage: membersPage < totalMembersPages
+                                    }}
+                                    onPageChange={(page) => {
+                                       setMembersPage(page);
+                                       window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }}
+                                    loading={false}
+                                    itemLabel="thành viên"
+                                 />
+                              </div>
+                           )}
+                        </>
+                     );
+                  })()}
 
                   {/* PENDING TAB */}
                   {activeTab === 'pending' && hasPermission('approve_join_request') && (
@@ -1811,7 +1842,7 @@ const GroupDetail = () => {
 
             </div>
          </div>
-      </div>
+      </div >
    );
 };
 

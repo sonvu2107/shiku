@@ -16,7 +16,7 @@ import FriendRequest from '../models/FriendRequest.js';
 import User from '../models/User.js';
 import { authRequired } from '../middleware/auth.js';
 import { withCache, userCache, invalidateCacheByPrefix } from '../utils/cache.js';
-import { apiLimiter } from '../middleware/rateLimit.js';
+import { apiLimiter, friendRequestLimiter } from '../middleware/rateLimit.js';
 import { responseCache, invalidateByPattern } from '../middleware/responseCache.js';
 
 const router = express.Router();
@@ -30,7 +30,7 @@ router.use(apiLimiter);
  * @param {string} req.body.to - ID của user nhận lời mời
  * @returns {Object} Friend request đã tạo
  */
-router.post('/send-request', authRequired, async (req, res) => {
+router.post('/send-request', authRequired, friendRequestLimiter, async (req, res) => {
   try {
     const { to } = req.body; // Đổi từ toUserId thành to
     const fromUserId = req.user._id.toString();

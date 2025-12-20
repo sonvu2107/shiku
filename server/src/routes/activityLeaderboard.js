@@ -43,7 +43,7 @@ router.get("/", authOptional, async (req, res, next) => {
         }
 
         // Run aggregations in parallel
-        const [postStats, commentStats, emoteStats] = await Promise.all([
+        const [postStats, commentStats, upvoteStats] = await Promise.all([
             // Posts count per user
             Post.aggregate([
                 {
@@ -73,19 +73,19 @@ router.get("/", authOptional, async (req, res, next) => {
                 }
             ]),
 
-            // Emotes/reactions RECEIVED on user's posts (count how many reactions each author got)
+            // Upvotes RECEIVED on user's posts (count total upvotes each author got)
             Post.aggregate([
                 {
                     $match: {
                         status: 'published',
-                        'emotes.0': { $exists: true },
+                        upvoteCount: { $gt: 0 },
                         ...(Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {})
                     }
                 },
                 {
                     $group: {
                         _id: '$author',
-                        emoteCount: { $sum: { $size: '$emotes' } }
+                        upvoteCount: { $sum: '$upvoteCount' }
                     }
                 }
             ])
@@ -99,7 +99,7 @@ router.get("/", authOptional, async (req, res, next) => {
             if (!item._id) return;
             const id = item._id.toString();
             if (!userStatsMap.has(id)) {
-                userStatsMap.set(id, { userId: id, postCount: 0, commentCount: 0, emoteCount: 0 });
+                userStatsMap.set(id, { userId: id, postCount: 0, commentCount: 0, upvoteCount: 0 });
             }
             userStatsMap.get(id).postCount = item.postCount;
         });
@@ -109,25 +109,25 @@ router.get("/", authOptional, async (req, res, next) => {
             if (!item._id) return;
             const id = item._id.toString();
             if (!userStatsMap.has(id)) {
-                userStatsMap.set(id, { userId: id, postCount: 0, commentCount: 0, emoteCount: 0 });
+                userStatsMap.set(id, { userId: id, postCount: 0, commentCount: 0, upvoteCount: 0 });
             }
             userStatsMap.get(id).commentCount = item.commentCount;
         });
 
-        // Add emote stats
-        emoteStats.forEach(item => {
+        // Add upvote stats
+        upvoteStats.forEach(item => {
             if (!item._id) return;
             const id = item._id.toString();
             if (!userStatsMap.has(id)) {
-                userStatsMap.set(id, { userId: id, postCount: 0, commentCount: 0, emoteCount: 0 });
+                userStatsMap.set(id, { userId: id, postCount: 0, commentCount: 0, upvoteCount: 0 });
             }
-            userStatsMap.get(id).emoteCount = item.emoteCount;
+            userStatsMap.get(id).upvoteCount = item.upvoteCount;
         });
 
         // Calculate total score and sort
         const userStatsArray = Array.from(userStatsMap.values()).map(stats => ({
             ...stats,
-            totalScore: stats.postCount * 5 + stats.commentCount * 2 + stats.emoteCount * 1
+            totalScore: stats.postCount * 5 + stats.commentCount * 2 + stats.upvoteCount * 1
         }));
 
         // Sort by total score descending
@@ -163,7 +163,7 @@ router.get("/", authOptional, async (req, res, next) => {
                 cultivationCache: user.cultivationCache,
                 postCount: stats.postCount,
                 commentCount: stats.commentCount,
-                emoteCount: stats.emoteCount,
+                upvoteCount: stats.upvoteCount,
                 totalScore: stats.totalScore,
                 daysJoined: Math.max(1, daysJoined), // Minimum 1 day
                 joinedAt: user.createdAt

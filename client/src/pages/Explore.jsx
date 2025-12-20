@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { Search, Users, MessageSquare, Hash, TrendingUp, ArrowRight, Globe, Lock, EyeOff, Crown, MapPin, UserPlus, Check, UserMinus } from "lucide-react";
 import UserName from "../components/UserName";
+import UserAvatar from "../components/UserAvatar";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
 import { useSEO } from "../utils/useSEO";
 import ModernPostCard from "../components/ModernPostCard";
@@ -10,7 +11,7 @@ import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSy
 import { motion } from "framer-motion";
 import { cn } from "../utils/cn";
 import BackToTop from "../components/BackToTop";
-import Avatar from "../components/Avatar";
+import Pagination from "../components/admin/Pagination";
 
 /**
  * Explore - Trang khám phá nội dung (Redesigned)
@@ -26,6 +27,10 @@ export default function Explore({ user }) {
    const [trendingTags, setTrendingTags] = useState([]);
    const [loading, setLoading] = useState(false);
    const [searchQuery, setSearchQuery] = useState("");
+
+   // Pagination state for users
+   const [usersPage, setUsersPage] = useState(1);
+   const usersPerPage = 12;
 
    // SEO
    useSEO({
@@ -60,6 +65,7 @@ export default function Explore({ user }) {
          setPosts(postsRes.items || []);
          setUsers(usersRes.users || []);
          setGroups(groupsRes.data?.groups || []);
+         setUsersPage(1); // Reset pagination
       } catch (error) {
          setPosts([]); setUsers([]); setGroups([]);
       } finally {
@@ -79,6 +85,7 @@ export default function Explore({ user }) {
          setPosts(postsRes.items || []);
          setUsers(usersRes.users || []);
          setGroups(groupsRes.data?.groups || []);
+         setUsersPage(1); // Reset pagination
          loadTrendingTags(postsRes.items || []);
       } catch (error) {
          setPosts([]); setUsers([]); setGroups([]); setTrendingTags([]);
@@ -130,8 +137,8 @@ export default function Explore({ user }) {
             subtitle="Tìm kiếm những điều thú vị đang diễn ra"
          />
 
-         {/* Search Bar (Sticky Glass) */}
-         <div className="sticky top-24 z-30 mb-8">
+         {/* Search Bar */}
+         <div className="mb-8">
             <div className="flex flex-col md:flex-row gap-4 bg-white/80 dark:bg-black/80 backdrop-blur-xl p-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm transition-all">
                {/* Search Input */}
                <form onSubmit={handleSearch} className="relative flex-1 group">
@@ -200,34 +207,100 @@ export default function Explore({ user }) {
                   )}
 
                   {/* USERS TAB */}
-                  {activeTab === "users" && (
-                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {users.length === 0 ? (
-                           <div className="col-span-full text-center py-20 text-neutral-500">Không tìm thấy người dùng nào.</div>
-                        ) : (
-                           users.map((user) => (
-                              <SpotlightCard key={user._id} className="flex flex-col items-center p-6 text-center hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors group" onClick={() => navigate(`/user/${user._id}`)}>
-                                 <div className="relative mb-4">
-                                    <Avatar
-                                       src={user.avatarUrl}
-                                       name={user.name || 'User'}
-                                       size={80}
-                                       className="border-4 border-neutral-100 dark:border-neutral-800 group-hover:border-white dark:group-hover:border-neutral-600 transition-colors"
-                                    />
-                                    {/* Online dot (optional) */}
+                  {activeTab === "users" && (() => {
+                     // Pagination logic
+                     const totalUsersPages = Math.ceil(users.length / usersPerPage);
+                     const paginatedUsers = users.slice(
+                        (usersPage - 1) * usersPerPage,
+                        usersPage * usersPerPage
+                     );
+                     const usersPagination = {
+                        page: usersPage,
+                        totalPages: totalUsersPages,
+                        total: users.length,
+                        hasPrevPage: usersPage > 1,
+                        hasNextPage: usersPage < totalUsersPages
+                     };
+
+                     return (
+                        <div className="space-y-6">
+                           {/* Header */}
+                           {users.length > 0 && (
+                              <div className="flex items-center justify-between">
+                                 <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                                    Tìm thấy <span className="font-bold text-neutral-900 dark:text-white">{users.length}</span> người dùng
+                                 </p>
+                              </div>
+                           )}
+
+                           {/* Users Grid - Responsive */}
+                           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+                              {users.length === 0 ? (
+                                 <div className="col-span-full text-center py-20 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl">
+                                    <Users size={40} className="mx-auto text-neutral-400 mb-4" />
+                                    <p className="text-neutral-500 font-medium">Không tìm thấy người dùng nào.</p>
                                  </div>
-                                 <h3 className="font-bold text-lg text-neutral-900 dark:text-white truncate w-full mb-1">
-                                    <UserName user={user} />
-                                 </h3>
-                                 {user.nickname && <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate w-full mb-4">@{user.nickname}</p>}
-                                 <button className="px-6 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-full text-sm font-bold hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all w-full">
-                                    Xem hồ sơ
-                                 </button>
-                              </SpotlightCard>
-                           ))
-                        )}
-                     </div>
-                  )}
+                              ) : (
+                                 paginatedUsers.map((u, index) => (
+                                    <motion.div
+                                       key={u._id}
+                                       initial={{ opacity: 0, y: 20 }}
+                                       whileInView={{ opacity: 1, y: 0 }}
+                                       viewport={{ once: true }}
+                                       transition={{ delay: index * 0.03 }}
+                                    >
+                                       <SpotlightCard
+                                          className="flex flex-col items-center p-3 sm:p-4 text-center hover:border-neutral-300 dark:hover:border-neutral-700 transition-all group cursor-pointer h-full"
+                                          onClick={() => navigate(`/user/${u._id}`)}
+                                       >
+                                          {/* Avatar - Centered properly */}
+                                          <div className="flex justify-center mb-3">
+                                             <UserAvatar
+                                                user={u}
+                                                size={64}
+                                                showFrame={true}
+                                                showBadge={true}
+                                             />
+                                          </div>
+
+                                          {/* Name */}
+                                          <h3 className="font-bold text-sm sm:text-base text-neutral-900 dark:text-white truncate w-full mb-0.5">
+                                             <UserName user={u} maxLength={15} />
+                                          </h3>
+
+                                          {/* Nickname */}
+                                          {u.nickname && (
+                                             <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate w-full mb-3">
+                                                @{u.nickname}
+                                             </p>
+                                          )}
+                                          {!u.nickname && <div className="mb-3" />}
+
+                                          {/* Button */}
+                                          <button className="px-4 py-1.5 sm:py-2 bg-neutral-100 dark:bg-neutral-800 rounded-full text-xs sm:text-sm font-bold hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all w-full mt-auto">
+                                             Xem hồ sơ
+                                          </button>
+                                       </SpotlightCard>
+                                    </motion.div>
+                                 ))
+                              )}
+                           </div>
+
+                           {/* Pagination */}
+                           {totalUsersPages > 1 && (
+                              <Pagination
+                                 pagination={usersPagination}
+                                 onPageChange={(page) => {
+                                    setUsersPage(page);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                 }}
+                                 loading={loading}
+                                 itemLabel="người dùng"
+                              />
+                           )}
+                        </div>
+                     );
+                  })()}
 
                   {/* GROUPS TAB */}
                   {activeTab === "groups" && (
@@ -339,9 +412,8 @@ export default function Explore({ user }) {
                                           {/* Owner Info */}
                                           {group.owner && (
                                              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-neutral-100 dark:border-neutral-800">
-                                                <Avatar
-                                                   src={group.owner.avatarUrl}
-                                                   name={group.owner?.name || 'Owner'}
+                                                <UserAvatar
+                                                   user={group.owner}
                                                    size={24}
                                                    className="flex-shrink-0"
                                                 />

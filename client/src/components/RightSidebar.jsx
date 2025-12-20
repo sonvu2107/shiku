@@ -114,15 +114,15 @@ function RightSidebar({ user }) {
       <div className="space-y-6">
         {/* Loading skeletons */}
         {[1, 2].map(i => (
-          <div key={i} className="bg-white dark:bg-[#111] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-transparent dark:border-white/5 p-5">
-            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-24 mb-4"></div>
+          <div key={i} className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 p-5">
+            <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse w-24 mb-4"></div>
             <div className="space-y-3">
               {[1, 2, 3].map(j => (
                 <div key={j} className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
+                  <div className="w-10 h-10 bg-neutral-200 dark:bg-neutral-800 rounded-full animate-pulse"></div>
                   <div className="flex-1">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-32 mb-1"></div>
-                    <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-24"></div>
+                    <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse w-32 mb-1"></div>
+                    <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse w-24"></div>
                   </div>
                 </div>
               ))}
@@ -140,7 +140,7 @@ function RightSidebar({ user }) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-transparent border border-neutral-200/60 dark:border-neutral-800/60 rounded-xl shadow-none overflow-hidden"
+        className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden"
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-neutral-800">
           <div className="flex items-center gap-2">
@@ -230,7 +230,7 @@ function RightSidebar({ user }) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="bg-transparent border border-neutral-200/60 dark:border-neutral-800/60 rounded-xl shadow-none overflow-hidden"
+        className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden"
       >
         <OnlineFriends user={user} minimal={true} />
       </motion.div>

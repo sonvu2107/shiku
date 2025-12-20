@@ -11,59 +11,39 @@ import { api } from "../api";
 import UserName from "./UserName";
 import UserAvatar from "./UserAvatar";
 import Avatar from "./Avatar";
-import ReactMarkdown from "react-markdown";
+import MarkdownWithMentions from "./MarkdownWithMentions";
 import Poll from "./Poll";
 import YouTubePlayer from "./YouTubePlayer";
 import { useToast } from "../contexts/ToastContext";
 import ContentWithSeeMore from "./ContentWithSeeMore";
+import PostDetailModal from "./PostDetailModal";
 
-// Mapping of emotes to corresponding GIF filenames
-const emoteMap = {
-  "👍": "like.gif",
-  "❤️": "care.gif",
-  "😂": "haha.gif",
-  "😮": "wow.gif",
-  "😢": "sad.gif",
-  "😡": "angry.gif"
-};
-const emotes = Object.keys(emoteMap);
-
-// ThumbsUp Icon Component
-const ThumbsUpIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M7 10v12" />
-    <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
-  </svg>
-);
+// Emote system removed - using upvote system instead
 
 const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedChange, hideActionsMenu = false, isFirst = false }) => {
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
 
   // ==================== STATE & REFS ====================
-  const [showEmotePopup, setShowEmotePopup] = useState(false);
-  const emotePopupTimeout = useRef();
   const [showMainMenu, setShowMainMenu] = useState(false);
   const mainMenuRef = useRef(null);
   const mainMenuButtonRef = useRef(null);
   const [interestStatus, setInterestStatus] = useState(null);
   const [interestLoading, setInterestLoading] = useState(false);
   const [savingPost, setSavingPost] = useState(false);
-  const [emotingPost, setEmotingPost] = useState(false);
-  const [emotesState, setEmotesState] = useState(() => {
-    if (post.emotes && Array.isArray(post.emotes)) {
-      return post.emotes.map(e => ({
-        type: e.type,
-        user: e.user || null,
-        createdAt: e.createdAt || null
-      })).filter(Boolean);
-    }
-    return [];
-  });
   const [saved, setSaved] = useState(isSavedProp || false);
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const heartAnimationKey = useRef(0);
-  const [localUserEmote, setLocalUserEmote] = useState(null);
+
+  // Upvote system state
+  const [upvoted, setUpvoted] = useState(() => {
+    if (!user?._id || !post.upvotes) return false;
+    return post.upvotes.some(id =>
+      (typeof id === 'string' ? id : id?.toString?.()) === user._id.toString()
+    );
+  });
+  const [upvoteCount, setUpvoteCount] = useState(post.upvoteCount ?? post.emotes?.length ?? 0);
+  const [upvoting, setUpvoting] = useState(false);
 
   // Comment input states
   const [commentContent, setCommentContent] = useState("");
@@ -72,26 +52,19 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   const [submittingComment, setSubmittingComment] = useState(false);
   const commentTextareaRef = useRef(null);
 
-  // Sync emotesState when post.emotes changes
+  // Post Detail Modal state
+  const [showPostModal, setShowPostModal] = useState(false);
+
+  // Sync upvote state when post changes
   useEffect(() => {
-    if (post.emotes) {
-      const normalizedEmotes = Array.isArray(post.emotes)
-        ? post.emotes.map(e => {
-          if (e && e.type) {
-            return {
-              type: e.type,
-              user: e.user || null,
-              createdAt: e.createdAt || null
-            };
-          }
-          return null;
-        }).filter(Boolean)
-        : [];
-      setEmotesState(normalizedEmotes);
-    } else {
-      setEmotesState([]);
+    setUpvoteCount(post.upvoteCount ?? post.emotes?.length ?? 0);
+    if (user?._id && post.upvotes) {
+      const hasUpvoted = post.upvotes.some(id =>
+        (typeof id === 'string' ? id : id?.toString?.()) === user._id.toString()
+      );
+      setUpvoted(hasUpvoted);
     }
-  }, [post.emotes]);
+  }, [post.upvoteCount, post.upvotes, post.emotes, user?._id]);
 
   // Sync saved state
   useEffect(() => {
@@ -163,11 +136,6 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           setShowMainMenu(false);
         }
       }
-      if (showEmotePopup && !event.target.closest('.emote-picker') && !event.target.closest('.emote-trigger')) {
-        if (window.innerWidth < 768) {
-          setShowEmotePopup(false);
-        }
-      }
       if (showCommentEmojiPicker && !event.target.closest('.comment-emoji-picker-container')) {
         setShowCommentEmojiPicker(false);
       }
@@ -179,148 +147,50 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
     };
-  }, [showMainMenu, showEmotePopup, showCommentEmojiPicker]);
+  }, [showMainMenu, showCommentEmojiPicker]);
 
-  // Get the emote the current user has left
-  const getUserEmote = useMemo(() => {
-    if (!user || typeof user !== 'object') return null;
-    const currentUserRawId = user._id ?? user.id;
-    if (!currentUserRawId) return null;
-    if (!emotesState || !Array.isArray(emotesState) || emotesState.length === 0) return null;
+  // Handle upvote (toggle upvote state)
+  const handleUpvote = useCallback(async (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
 
-    let currentUserId;
-    if (typeof currentUserRawId === 'string') {
-      currentUserId = currentUserRawId;
-    } else if (currentUserRawId && currentUserRawId.toString) {
-      currentUserId = currentUserRawId.toString();
-    } else {
-      return null;
-    }
-
-    const userEmote = emotesState.find(e => {
-      if (!e || !e.user || !e.type) return false;
-
-      let userId = null;
-      if (typeof e.user === 'string') {
-        userId = e.user;
-      } else if (typeof e.user === 'object' && e.user !== null) {
-        if (e.user._id) {
-          if (typeof e.user._id === 'string') {
-            userId = e.user._id;
-          } else if (e.user._id.toString) {
-            userId = e.user._id.toString();
-          }
-        } else if (e.user.toString && typeof e.user.toString === 'function') {
-          userId = e.user.toString();
-        } else {
-          userId = e.user.id || (e.user.toString ? e.user.toString() : null);
-        }
-      }
-
-      if (!userId) return false;
-      try {
-        return String(userId) === String(currentUserId);
-      } catch (error) {
-        return false;
-      }
-    });
-
-    return userEmote && userEmote.type ? userEmote.type : null;
-  }, [user, emotesState]);
-
-  const userEmote = getUserEmote;
-  const uiUserEmote = localUserEmote !== null ? localUserEmote : userEmote;
-
-  // Count each type of emote - Memoized
-  const counts = useMemo(() => {
-    const counts = {};
-    for (const emo of emotes) counts[emo] = 0;
-    for (const e of emotesState) {
-      if (counts[e.type] !== undefined) counts[e.type]++;
-    }
-    return counts;
-  }, [emotesState]);
-
-  const totalEmotes = useMemo(() =>
-    Object.values(counts).reduce((a, b) => a + b, 0),
-    [counts]
-  );
-
-  // Add/remove emote for the post - Memoized with optimistic update
-  const handleEmote = useCallback(async (emoteType) => {
-    // Login gate for guest users
+    // Login gate
     if (!user) {
       navigate('/login');
       return;
     }
-    if (emotingPost) return;
-
-    const hadEmote = !!uiUserEmote;
-    const previousEmotes = [...emotesState];
-    const previousUserEmote = uiUserEmote;
+    if (upvoting) return;
 
     // Optimistic update
-    setEmotingPost(true);
-    if (hadEmote && previousUserEmote === emoteType) {
-      // Remove emote
-      const newEmotes = emotesState.filter(e => {
-        const userId = e.user?._id || e.user;
-        const currentUserId = user?._id || user?.id;
-        return !(userId && currentUserId && String(userId) === String(currentUserId));
-      });
-      setEmotesState(newEmotes);
-      setLocalUserEmote(null);
-    } else {
-      // Add/change emote
-      const filteredEmotes = emotesState.filter(e => {
-        const userId = e.user?._id || e.user;
-        const currentUserId = user?._id || user?.id;
-        return !(userId && currentUserId && String(userId) === String(currentUserId));
-      });
-      const newEmote = {
-        type: emoteType,
-        user: user?._id || user?.id || user,
-        createdAt: new Date().toISOString()
-      };
-      setEmotesState([...filteredEmotes, newEmote]);
-      setLocalUserEmote(emoteType);
-    }
+    const prevUpvoted = upvoted;
+    const prevCount = upvoteCount;
 
-    if ((emoteType === '👍' || emoteType === '❤️') && !hadEmote) {
+    setUpvoting(true);
+    setUpvoted(!prevUpvoted);
+    setUpvoteCount(prev => prevUpvoted ? Math.max(0, prev - 1) : prev + 1);
+
+    // Heart animation for new upvote
+    if (!prevUpvoted) {
       heartAnimationKey.current += 1;
       setShowHeartAnimation(true);
-      setTimeout(() => setShowHeartAnimation(false), 1000);
+      setTimeout(() => setShowHeartAnimation(false), 600);
     }
 
     try {
-      const res = await api(`/api/posts/${post._id}/emote`, {
-        method: "POST",
-        body: { emote: emoteType }
-      });
-
-      if (res && res.emotes) {
-        const normalizedEmotes = Array.isArray(res.emotes)
-          ? res.emotes.map(e => ({
-            type: e.type,
-            user: e.user || null,
-            createdAt: e.createdAt || null
-          })).filter(Boolean)
-          : [];
-        setEmotesState(normalizedEmotes);
-        setShowEmotePopup(false);
-        if (emotePopupTimeout.current) {
-          clearTimeout(emotePopupTimeout.current);
-        }
+      const res = await api(`/api/posts/${post._id}/upvote`, { method: 'POST' });
+      if (res) {
+        setUpvoted(res.upvoted);
+        setUpvoteCount(res.upvoteCount);
       }
-    } catch (e) {
-      // Revert optimistic update
-      setEmotesState(previousEmotes);
-      setLocalUserEmote(previousUserEmote);
-      showError(e?.message || 'Không thể thêm cảm xúc. Vui lòng thử lại.');
+    } catch (error) {
+      // Rollback on error
+      setUpvoted(prevUpvoted);
+      setUpvoteCount(prevCount);
+      showError(error.message || 'Không thể upvote bài viết');
     } finally {
-      setEmotingPost(false);
+      setUpvoting(false);
     }
-  }, [post._id, uiUserEmote, emotesState, user, emotingPost, showError]);
+  }, [post._id, user, upvoted, upvoteCount, upvoting, navigate, showError]);
 
   // Handle save (toggle saved state) - Memoized with optimistic update
   const handleSave = useCallback(async (e) => {
@@ -488,7 +358,15 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
 
   return (
     <div
-      onClick={() => navigate(`/post/${post.slug || post._id}`)}
+      onClick={() => {
+        if (showPostModal) return;
+        // Mobile: navigate to post detail, Desktop: open modal
+        if (window.innerWidth < 768) {
+          navigate(`/post/${post.slug || post._id}`);
+        } else {
+          setShowPostModal(true);
+        }
+      }}
       className="group relative bg-white dark:bg-[#1a1a1a] rounded-xl sm:rounded-2xl border border-gray-100 dark:border-neutral-800/80 shadow-sm hover:shadow-lg transition-all duration-300 my-2.5 sm:my-3 md:my-4 sm:mx-0 cursor-pointer"
     >
       {/* 1. Header */}
@@ -514,7 +392,15 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               <UserName user={post.author} maxLength={20} />
             </Link>
             <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 font-medium">
-              <span>{timeAgo}</span>
+              <span
+                className="hover:underline cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/post/${post.slug || post._id}`);
+                }}
+              >
+                {timeAgo}
+              </span>
               {isPrivate && (
                 <span className="flex items-center gap-0.5 bg-gray-50 dark:bg-white/5 px-1.5 py-0.5 rounded text-gray-500 text-[10px]">
                   🔒 <span>Riêng tư</span>
@@ -594,27 +480,10 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         {post.content && (
           <ContentWithSeeMore maxHeight={250}>
             <div className="prose dark:prose-invert max-w-none text-[15px] leading-[1.6] text-neutral-800 dark:text-neutral-200 font-normal prose-p:mb-2 prose-headings:mb-2 prose-headings:mt-3">
-              <ReactMarkdown
-                components={{
-                  h1: ({ children }) => <h1 className="text-base sm:text-lg md:text-xl font-bold mb-2 mt-3">{children}</h1>,
-                  h2: ({ children }) => <h2 className="text-sm sm:text-base md:text-lg font-bold mb-2 mt-3">{children}</h2>,
-                  h3: ({ children }) => <h3 className="text-[13px] sm:text-sm md:text-base font-bold mb-2 mt-2">{children}</h3>,
-                  p: ({ children }) => <p className="break-words mb-2">{children}</p>,
-                  code: ({ node, inline, ...props }) => {
-                    if (inline) {
-                      return <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-xs sm:text-sm" {...props} />;
-                    }
-                    return <code className="block bg-gray-100 dark:bg-gray-800 p-2 sm:p-3 rounded-lg overflow-x-auto my-2 text-xs sm:text-sm" {...props} />;
-                  },
-                  a: ({ children, href }) => (
-                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
-                      {children}
-                    </a>
-                  ),
-                }}
-              >
-                {post.content}
-              </ReactMarkdown>
+              <MarkdownWithMentions
+                content={post.content}
+                mentionedUsers={post.mentions || []}
+              />
             </div>
           </ContentWithSeeMore>
         )}
@@ -670,151 +539,92 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-1 sm:gap-2">
-          {/* Emote Button */}
-          <div
-            className="relative emote-trigger"
-            onMouseEnter={() => {
-              if (window.innerWidth >= 768) {
-                if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
-                setShowEmotePopup(true);
-              }
-            }}
-            onMouseLeave={() => {
-              if (window.innerWidth >= 768) {
-                emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 500);
-              }
-            }}
-          >
-            {/* Heart Animation */}
+          {/* NEW: Upvote Button (replaces Emote) */}
+          <div className="relative">
+            {/* Upvote Animation - Enhanced with particles */}
             <AnimatePresence>
               {showHeartAnimation && (
-                <motion.div
-                  key={heartAnimationKey.current}
-                  initial={{ scale: 0, opacity: 0, y: 0 }}
-                  animate={{ scale: 1.5, opacity: 1, y: -40 }}
-                  exit={{ opacity: 0, scale: 0 }}
-                  className="absolute -top-6 left-2 pointer-events-none z-50 text-red-500"
-                >
-                  <Heart fill="currentColor" size={24} />
-                </motion.div>
+                <>
+                  {/* Main arrow flying up */}
+                  <motion.div
+                    key={`main-${heartAnimationKey.current}`}
+                    initial={{ scale: 0.5, opacity: 0, y: 0 }}
+                    animate={{ scale: 1.2, opacity: 1, y: -35 }}
+                    exit={{ opacity: 0, y: -50, scale: 0.8 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="absolute -top-4 left-3 pointer-events-none z-50"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-neutral-900 dark:text-white">
+                      <path d="M12 4l-8 8h5v8h6v-8h5l-8-8z" />
+                    </svg>
+                  </motion.div>
+                  {/* Sparkle particles */}
+                  {[...Array(6)].map((_, i) => (
+                    <motion.div
+                      key={`particle-${i}-${heartAnimationKey.current}`}
+                      initial={{ scale: 0, opacity: 1, x: 0, y: 0 }}
+                      animate={{
+                        scale: [0, 1, 0],
+                        opacity: [1, 1, 0],
+                        x: Math.cos((i * 60) * Math.PI / 180) * 20,
+                        y: Math.sin((i * 60) * Math.PI / 180) * 20 - 15
+                      }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                      className="absolute top-0 left-4 pointer-events-none z-50"
+                    >
+                      <div className="w-1 h-1 rounded-full bg-neutral-700 dark:bg-neutral-300" />
+                    </motion.div>
+                  ))}
+                </>
               )}
             </AnimatePresence>
 
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                if (window.innerWidth < 768) {
-                  setShowEmotePopup(prev => !prev);
-                  return;
-                }
-
-                if (uiUserEmote) {
-                  setLocalUserEmote(null);
-                  handleEmote(uiUserEmote);
-                } else {
-                  setLocalUserEmote('👍');
-                  handleEmote('👍');
-                }
-              }}
+              onClick={handleUpvote}
+              disabled={upvoting}
+              aria-label={upvoted ? "Bỏ upvote" : "Upvote"}
+              title={upvoted ? "Bỏ upvote" : "Upvote bài viết"}
               className={cn(
-                "flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full transition-all duration-200 active:scale-95 group/btn touch-manipulation",
-                uiUserEmote
-                  ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                "flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full transition-all duration-200 group/btn touch-manipulation",
+                upvoting ? "opacity-50 cursor-not-allowed" : "active:scale-95",
+                upvoted
+                  ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
                   : "hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-300"
               )}
             >
-              {uiUserEmote ? (
-                <>
-                  <img
-                    src={`/assets/${emoteMap[uiUserEmote]}`}
-                    alt={uiUserEmote}
-                    className="w-5 h-5 sm:w-6 sm:h-6"
-                    loading="lazy"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      if (e.target.nextSibling) e.target.nextSibling.style.display = 'inline';
-                    }}
-                  />
-                  <span className="hidden text-lg sm:text-xl">{uiUserEmote}</span>
-                </>
-              ) : (
-                <ThumbsUpIcon className="w-5 h-5 sm:w-6 sm:h-6 group-hover/btn:scale-110 transition-transform" />
-              )}
-              {/* Always show label and count */}
+              {/* Upvote Arrow Icon */}
+              <svg
+                viewBox="0 0 24 24"
+                className={cn(
+                  "w-5 h-5 sm:w-6 sm:h-6 transition-transform",
+                  upvoted ? "fill-current" : "fill-none stroke-current stroke-2",
+                  !upvoting && "group-hover/btn:scale-110 group-hover/btn:-translate-y-0.5"
+                )}
+              >
+                <path d="M12 4l-8 8h5v8h6v-8h5l-8-8z" />
+              </svg>
               <span className="text-sm font-semibold">
-                {totalEmotes > 0 ? totalEmotes.toLocaleString() : "Thích"}
+                {upvoteCount > 0 ? upvoteCount.toLocaleString() : ""}
               </span>
             </button>
-
-            {/* Emote Popup */}
-            {showEmotePopup && (
-              <div
-                className="absolute bottom-full left-0 mb-2 emote-picker bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl shadow-lg md:shadow-xl z-20 border border-gray-200 dark:border-gray-700 p-1.5 md:p-2 flex gap-0.5 md:gap-1"
-                onMouseEnter={() => {
-                  if (window.innerWidth >= 768) {
-                    if (emotePopupTimeout.current) clearTimeout(emotePopupTimeout.current);
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (window.innerWidth >= 768) {
-                    emotePopupTimeout.current = setTimeout(() => setShowEmotePopup(false), 500);
-                  }
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {emotes.map(e => {
-                  const isActive = uiUserEmote === e;
-                  return (
-                    <button
-                      key={e}
-                      className={cn(
-                        "emote-btn transition-all hover:scale-110 active:scale-95 p-1 md:p-0 touch-manipulation",
-                        isActive ? 'opacity-100 ring-2 ring-blue-500 rounded-full' : 'opacity-90'
-                      )}
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setLocalUserEmote(prev => prev === e ? null : e);
-                        handleEmote(e);
-                        if (window.innerWidth < 768) {
-                          setTimeout(() => setShowEmotePopup(false), 100);
-                        }
-                      }}
-                      onMouseDown={(e) => e.preventDefault()}
-                      title={isActive ? `Bỏ cảm xúc ${e}` : `Thả cảm xúc ${e}`}
-                    >
-                      <img
-                        src={`/assets/${emoteMap[e]}`}
-                        alt={e}
-                        width={28}
-                        height={28}
-                        className="w-7 h-7 md:w-8 md:h-8"
-                        loading="lazy"
-                        onError={(ev) => {
-                          // Fallback to emoji text if GIF fails
-                          ev.target.style.display = 'none';
-                          if (ev.target.nextSibling) ev.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                      <span className="hidden w-7 h-7 md:w-8 md:h-8 items-center justify-center text-xl md:text-2xl">{e}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           {/* Comment Button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/post/${post.slug || post._id}`);
+              // Desktop: open modal, Mobile: navigate to post detail
+              if (window.innerWidth >= 768) {
+                setShowPostModal(true);
+              } else {
+                navigate(`/post/${post.slug || post._id}`);
+              }
             }}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-300 transition-colors active:scale-95 touch-manipulation"
+            aria-label="Bình luận"
+            title="Bình luận"
+            className="flex items-center gap-2 px-3 py-2.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 text-gray-600 dark:text-gray-300 transition-all duration-200 active:scale-95 touch-manipulation group/comment"
           >
-            <MessageCircle className="w-6 h-6" strokeWidth={2.5} />
+            <span className="text-[22px] sm:text-2xl font-bold leading-none select-none transition-transform group-hover/comment:scale-110" aria-hidden="true">⌘</span>
             <span className="text-sm font-semibold">
               {post.commentCount || "Bình luận"}
             </span>
@@ -962,6 +772,17 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           </form>
         </div>
       )}
+
+      {/* Post Detail Modal */}
+      <PostDetailModal
+        post={post}
+        user={user}
+        isOpen={showPostModal}
+        onClose={() => setShowPostModal(false)}
+        onUpdate={onUpdate}
+        isSaved={saved}
+        onSavedChange={onSavedChange}
+      />
     </div>
   );
 };

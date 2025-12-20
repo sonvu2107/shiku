@@ -84,12 +84,14 @@ export default function AnalyticsTab({
             <SpotlightCard className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold uppercase text-neutral-500 mb-1">Trung bình lượt xem</p>
+                  <p className="text-xs font-bold uppercase text-neutral-500 mb-1">Tổng upvote</p>
                   <p className="text-2xl font-black text-black dark:text-white">
-                    {analytics.avgViewsPerPost?.toLocaleString() || 0}
+                    {analytics.totalUpvotes?.toLocaleString() || 0}
                   </p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-neutral-400" />
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-neutral-400">
+                  <path d="M12 4l-8 8h5v8h6v-8h5l-8-8z" />
+                </svg>
               </div>
             </SpotlightCard>
 
@@ -113,7 +115,7 @@ export default function AnalyticsTab({
           {analytics.recentPosts && analytics.recentPosts.length > 0 && (
             <SpotlightCard className="p-6">
               <h4 className="text-lg font-bold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5" />
+                <FileText className="hidden md:inline-block w-5 h-5" />
                 Các bài viết gần đây ({analytics.period === '7d' ? '7 ngày' : analytics.period === '30d' ? '30 ngày' : analytics.period === '90d' ? '90 ngày' : '1 năm'})
               </h4>
               <div className="space-y-3">
@@ -153,7 +155,7 @@ export default function AnalyticsTab({
           {analytics.topPosts && analytics.topPosts.length > 0 && (
             <SpotlightCard className="p-6">
               <h4 className="text-lg font-bold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
+                <BarChart3 className="hidden md:inline-block w-5 h-5" />
                 Top bài viết có lượt xem cao nhất
               </h4>
               <div className="space-y-3">

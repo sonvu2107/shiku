@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from "framer-motion";
-import { FileText, ArrowRight, Sparkles, Clock, Eye, TrendingUp, ArrowUpDown } from "lucide-react";
+import { FileText, ArrowRight, Sparkles, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import PostCreator from "../PostCreator";
 import ModernPostCard from "../ModernPostCard";
@@ -29,34 +29,29 @@ export default function PostsTab({
   const [sortOption, setSortOption] = React.useState('newest'); // 'newest', 'oldest', 'popular'
   const itemsPerPage = 5;
 
-  // --- HELPERS ---
-  const getSortIcon = React.useCallback((type) => {
-    const iconClassName = "text-gray-600 dark:text-gray-300";
-    switch (type) {
-      case 'newest': return <Clock size={16} className={iconClassName} />;
-      case 'oldest': return <Clock size={16} className={`rotate-180 ${iconClassName}`} />;
-      case 'popular': return <TrendingUp size={16} className={iconClassName} />;
-      default: return <Clock size={16} className={iconClassName} />;
-    }
-  }, []);
+  // Dropdown state
+  const [sortDropdownOpen, setSortDropdownOpen] = React.useState(false);
+  const sortDropdownRef = React.useRef(null);
 
-  const getSortLabel = React.useCallback((type) => {
-    switch (type) {
-      case 'newest': return 'Mới nhất';
-      case 'oldest': return 'Cũ nhất';
-      case 'popular': return 'Phổ biến nhất';
-      default: return 'Mới nhất';
-    }
-  }, []);
+  // Filter options
+  const filterOptions = React.useMemo(() => [
+    { key: 'newest', label: 'Mới nhất' },
+    { key: 'oldest', label: 'Cũ nhất' },
+    { key: 'popular', label: 'Phổ biến nhất' }
+  ], []);
 
-  const cycleSortBy = React.useCallback(() => {
-    const sortOptions = ['newest', 'oldest', 'popular'];
-    setSortOption(prev => {
-      const currentIndex = sortOptions.indexOf(prev);
-      const nextIndex = (currentIndex + 1) % sortOptions.length;
-      return sortOptions[nextIndex];
-    });
-  }, []);
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(e.target)) {
+        setSortDropdownOpen(false);
+      }
+    };
+    if (sortDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [sortDropdownOpen]);
 
   // --- MEMOIZED DATA ---
   const processedPosts = React.useMemo(() => {
@@ -71,15 +66,15 @@ export default function PostsTab({
         result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
         break;
       case 'popular':
-        // Sort by emotes + comments count
+        // Sort by upvotes + comments count
         result.sort((a, b) => {
-          const emotesA = Array.isArray(a.emotes) ? a.emotes.length : 0;
+          const upvotesA = a.upvoteCount ?? 0;
           const commentsA = a.commentCount || (Array.isArray(a.comments) ? a.comments.length : 0);
-          const scoreA = emotesA + commentsA;
+          const scoreA = upvotesA + commentsA;
 
-          const emotesB = Array.isArray(b.emotes) ? b.emotes.length : 0;
+          const upvotesB = b.upvoteCount ?? 0;
           const commentsB = b.commentCount || (Array.isArray(b.comments) ? b.comments.length : 0);
-          const scoreB = emotesB + commentsB;
+          const scoreB = upvotesB + commentsB;
 
           return scoreB - scoreA;
         });
@@ -112,10 +107,10 @@ export default function PostsTab({
   }, [posts.length, sortOption]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" style={{ overflow: 'visible' }}>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Sidebar Info (Sticky Left) */}
-      <div className="hidden lg:block lg:col-span-1" style={{ overflow: 'visible' }}>
-        <div className="sticky top-40 space-y-6" style={{ overflow: 'visible' }}>
+      <div className="hidden lg:block lg:col-span-1">
+        <div className="sticky top-40 space-y-6">
           <SpotlightCard>
             <h3 className="font-bold text-lg text-neutral-900 dark:text-white mb-4">Tiểu sử</h3>
             <div className="pt-2">
@@ -179,8 +174,8 @@ export default function PostsTab({
       </div>
 
       {/* Feed */}
-      <div className="lg:col-span-2 space-y-6" style={{ overflow: 'visible', position: 'relative' }}>
-        <div className="mb-6" style={{ overflow: 'visible' }}>
+      <div className="lg:col-span-2 space-y-6">
+        <div className="mb-6">
           <PostCreator user={user} />
         </div>
 
@@ -188,23 +183,44 @@ export default function PostsTab({
         {posts.length > 0 && (
           <div className="flex items-center justify-between px-1 mb-4">
             <h3 className="font-bold text-lg block">Bài viết ({posts.length})</h3>
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="relative" ref={sortDropdownRef}>
               <button
-                onClick={cycleSortBy}
-                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all duration-200 whitespace-nowrap touch-manipulation flex-shrink-0"
-                aria-label={`Sắp xếp: ${getSortLabel(sortOption)}. Bấm để chuyển sang chế độ khác`}
-                title={`Bấm để chuyển sang chế độ sắp xếp khác`}
+                onClick={() => setSortDropdownOpen(prev => !prev)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all"
               >
-                <span className="hidden sm:inline-flex flex-shrink-0">{getSortIcon(sortOption)}</span>
-                <span className="whitespace-nowrap">{getSortLabel(sortOption)}</span>
-                <ArrowUpDown size={14} className="opacity-60 dark:opacity-70 flex-shrink-0 text-neutral-600 dark:text-neutral-300 hidden sm:inline" />
+                <span>{filterOptions.find(f => f.key === sortOption)?.label || 'Mới nhất'}</span>
+                <ChevronDown size={14} className={`transition-transform ${sortDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
+
+              {sortDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="absolute right-0 top-full mt-2 w-26 bg-white dark:bg-neutral-900 rounded-xl shadow-xl border border-neutral-200 dark:border-neutral-700 py-1.5 z-[200]"
+                >
+                  {filterOptions.map(option => (
+                    <button
+                      key={option.key}
+                      onClick={() => {
+                        setSortOption(option.key);
+                        setSortDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors ${sortOption === option.key
+                        ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white font-medium'
+                        : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/50'
+                        }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
             </div>
           </div>
         )}
 
         {postsLoading ? (
-          <div className="space-y-6" style={{ overflow: 'visible' }}>
+          <div className="space-y-6">
             {[1, 2, 3].map(i => (
               <PostCardSkeleton key={i} />
             ))}
@@ -219,7 +235,6 @@ export default function PostsTab({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
-                style={{ position: 'relative', overflow: 'visible', zIndex: 1 }}
               >
                 <ModernPostCard
                   post={post}

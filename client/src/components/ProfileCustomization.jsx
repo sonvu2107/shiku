@@ -255,12 +255,12 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
         return;
       }
 
-            const response = await api("/api/auth/update-profile", {
+      const response = await api("/api/auth/update-profile", {
         method: "PUT",
         body: updateData
       });
 
-            setSuccess("Cập nhật profile thành công!");
+      setSuccess("Cập nhật profile thành công!");
       onUpdate?.();
 
       setTimeout(() => {
@@ -319,12 +319,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-900/50">
-          <div className="flex items-center gap-2 md:gap-3">
-            <div className="p-1.5 md:p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
-              <Settings className="w-4 h-4 md:w-5 md:h-5 text-neutral-600 dark:text-neutral-400" />
-            </div>
-            <h2 className="text-lg md:text-2xl font-black text-neutral-900 dark:text-white">Tùy chỉnh</h2>
-          </div>
+          <h2 className="text-lg md:text-2xl font-black text-neutral-900 dark:text-white">Tùy chỉnh</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -351,7 +346,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                     : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-black/5 dark:hover:bg-white/10"
                 )}
               >
-                <Icon className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+                <Icon className="hidden md:block w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
                 <span className="text-xs md:text-sm truncate">{label}</span>
               </button>
             ))}
@@ -507,22 +502,32 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                       { key: "showEmail", label: "Email", icon: Mail },
                       { key: "showPhone", label: "Số điện thoại", icon: Phone }
                     ].map(({ key, label, icon: Icon }) => (
-                      <div key={key} className="flex items-center justify-between p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />
-                          <span className="text-neutral-700 dark:text-neutral-300 font-medium">{label}</span>
+                      <div
+                        key={key}
+                        onClick={() => setPrivacy(prev => ({ ...prev, [key]: !prev[key] }))}
+                        className="flex items-center justify-between p-2.5 md:p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 md:gap-3">
+                          <Icon className="w-4 h-4 md:w-5 md:h-5 text-neutral-400 dark:text-neutral-500" />
+                          <span className="text-sm md:text-base text-neutral-700 dark:text-neutral-300 font-medium">{label}</span>
                         </div>
                         <button
-                          onClick={() => setPrivacy(prev => ({ ...prev, [key]: !prev[key] }))}
+                          role="switch"
+                          aria-checked={privacy[key]}
+                          onClick={(e) => { e.stopPropagation(); setPrivacy(prev => ({ ...prev, [key]: !prev[key] })); }}
                           className={cn(
-                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                            privacy[key] ? "bg-black dark:bg-white" : "bg-neutral-200 dark:bg-neutral-700"
+                            "relative flex items-center flex-shrink-0 rounded-full",
+                            "w-11 h-6 min-h-0 aspect-auto",
+                            "px-[3px]",
+                            "transition-colors",
+                            privacy[key] ? "bg-black dark:bg-white" : "bg-neutral-300 dark:bg-neutral-700"
                           )}
                         >
                           <span
                             className={cn(
-                              "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                              privacy[key] ? "translate-x-6" : "translate-x-1"
+                              "block rounded-full transition-transform bg-white dark:bg-black",
+                              "w-5 h-5",
+                              privacy[key] ? "translate-x-5" : "translate-x-0"
                             )}
                           />
                         </button>
@@ -542,22 +547,32 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                       { key: "showWebsite", label: "Website", icon: Globe },
                       { key: "showHobbies", label: "Sở thích", icon: Heart }
                     ].map(({ key, label, icon: Icon }) => (
-                      <div key={key} className="flex items-center justify-between p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />
-                          <span className="text-neutral-700 dark:text-neutral-300 font-medium">{label}</span>
+                      <div
+                        key={key}
+                        onClick={() => setPrivacy(prev => ({ ...prev, [key]: !prev[key] }))}
+                        className="flex items-center justify-between p-2.5 md:p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 md:gap-3">
+                          <Icon className="w-4 h-4 md:w-5 md:h-5 text-neutral-400 dark:text-neutral-500" />
+                          <span className="text-sm md:text-base text-neutral-700 dark:text-neutral-300 font-medium">{label}</span>
                         </div>
                         <button
-                          onClick={() => setPrivacy(prev => ({ ...prev, [key]: !prev[key] }))}
+                          role="switch"
+                          aria-checked={privacy[key]}
+                          onClick={(e) => { e.stopPropagation(); setPrivacy(prev => ({ ...prev, [key]: !prev[key] })); }}
                           className={cn(
-                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                            privacy[key] ? "bg-black dark:bg-white" : "bg-neutral-200 dark:bg-neutral-700"
+                            "relative flex items-center flex-shrink-0 rounded-full",
+                            "w-11 h-6 min-h-0 aspect-auto",
+                            "px-[3px]",
+                            "transition-colors",
+                            privacy[key] ? "bg-black dark:bg-white" : "bg-neutral-300 dark:bg-neutral-700"
                           )}
                         >
                           <span
                             className={cn(
-                              "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                              privacy[key] ? "translate-x-6" : "translate-x-1"
+                              "block rounded-full transition-transform bg-white dark:bg-black",
+                              "w-5 h-5",
+                              privacy[key] ? "translate-x-5" : "translate-x-0"
                             )}
                           />
                         </button>
@@ -574,22 +589,32 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                       { key: "showFriends", label: "Danh sách bạn bè", icon: Users },
                       { key: "showPosts", label: "Bài đăng", icon: FileText }
                     ].map(({ key, label, icon: Icon }) => (
-                      <div key={key} className="flex items-center justify-between p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />
-                          <span className="text-neutral-700 dark:text-neutral-300 font-medium">{label}</span>
+                      <div
+                        key={key}
+                        onClick={() => setPrivacy(prev => ({ ...prev, [key]: !prev[key] }))}
+                        className="flex items-center justify-between p-2.5 md:p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 md:gap-3">
+                          <Icon className="w-4 h-4 md:w-5 md:h-5 text-neutral-400 dark:text-neutral-500" />
+                          <span className="text-sm md:text-base text-neutral-700 dark:text-neutral-300 font-medium">{label}</span>
                         </div>
                         <button
-                          onClick={() => setPrivacy(prev => ({ ...prev, [key]: !prev[key] }))}
+                          role="switch"
+                          aria-checked={privacy[key]}
+                          onClick={(e) => { e.stopPropagation(); setPrivacy(prev => ({ ...prev, [key]: !prev[key] })); }}
                           className={cn(
-                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                            privacy[key] ? "bg-black dark:bg-white" : "bg-neutral-200 dark:bg-neutral-700"
+                            "relative flex items-center flex-shrink-0 rounded-full",
+                            "w-11 h-6 min-h-0 aspect-auto",
+                            "px-[3px]",
+                            "transition-colors",
+                            privacy[key] ? "bg-black dark:bg-white" : "bg-neutral-300 dark:bg-neutral-700"
                           )}
                         >
                           <span
                             className={cn(
-                              "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                              privacy[key] ? "translate-x-6" : "translate-x-1"
+                              "block rounded-full transition-transform bg-white dark:bg-black",
+                              "w-5 h-5",
+                              privacy[key] ? "translate-x-5" : "translate-x-0"
                             )}
                           />
                         </button>
@@ -619,7 +644,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                         <div className={cn(
                           "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center",
                           displayBadgeType === "realm"
-                            ? "bg-gradient-to-br from-purple-500 to-indigo-600 text-white"
+                            ? "bg-purple-500 text-white"
                             : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
                         )}>
                           <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
@@ -659,7 +684,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                         <div className={cn(
                           "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center",
                           displayBadgeType === "title"
-                            ? "bg-gradient-to-br from-amber-500 to-orange-600 text-white"
+                            ? "bg-amber-500 text-white"
                             : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
                         )}>
                           <Shield className="w-4 h-4 md:w-5 md:h-5" />
@@ -699,7 +724,7 @@ export default function ProfileCustomization({ user, onUpdate, onClose }) {
                         <div className={cn(
                           "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center",
                           displayBadgeType === "both"
-                            ? "bg-gradient-to-br from-purple-500 via-pink-500 to-amber-500 text-white"
+                            ? "bg-emerald-500 text-white"
                             : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
                         )}>
                           <Crown className="w-4 h-4 md:w-5 md:h-5" />

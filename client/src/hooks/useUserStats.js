@@ -71,13 +71,11 @@ export function useUserStats(userId) {
             ...(privateRes?.posts || privateRes?.items || [])
           ];
 
-          // Count likes (emotes) and views from posts
-          // Use emoteCount if available, otherwise fallback to emotes.length
+          // Count likes (upvotes) and views from posts
+          // Use upvoteCount if available
           const calculatedLikes = allPosts.reduce((sum, post) => {
-            const postEmotes = typeof post.emoteCount === 'number'
-              ? post.emoteCount
-              : (Array.isArray(post.emotes) ? post.emotes.length : 0);
-            return sum + postEmotes;
+            const postUpvotes = post.upvoteCount ?? 0;
+            return sum + postUpvotes;
           }, 0);
 
           const calculatedViews = allPosts.reduce((sum, post) => {

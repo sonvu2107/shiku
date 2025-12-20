@@ -25,26 +25,26 @@ export default function AdminCharts() {
             const response = await api(`/api/admin/stats/daily?days=${days}`);
             if (response.success && response.chartData) {
                 // Get baseline (items before period start) from server
-                const baseline = response.baseline || { posts: 0, users: 0, comments: 0, emotes: 0 };
+                const baseline = response.baseline || { posts: 0, users: 0, comments: 0, upvotes: 0 };
 
                 // Calculate cumulative growth for area chart, starting from baseline
                 let cumulativePosts = baseline.posts;
                 let cumulativeUsers = baseline.users;
                 let cumulativeComments = baseline.comments;
-                let cumulativeEmotes = baseline.emotes;
+                let cumulativeUpvotes = baseline.upvotes;
 
                 const enrichedData = response.chartData.map(item => {
                     cumulativePosts += item.posts;
                     cumulativeUsers += item.users;
                     cumulativeComments += item.comments;
-                    cumulativeEmotes += item.emotes;
+                    cumulativeUpvotes += item.upvotes;
 
                     return {
                         ...item,
                         cumulativePosts,
                         cumulativeUsers,
                         cumulativeComments,
-                        cumulativeEmotes
+                        cumulativeUpvotes
                     };
                 });
 
@@ -71,7 +71,7 @@ export default function AdminCharts() {
         { key: "posts", label: "Bài viết", color: "#3b82f6" },
         { key: "users", label: "Người dùng", color: "#10b981" },
         { key: "comments", label: "Bình luận", color: "#8b5cf6" },
-        { key: "emotes", label: "Cảm xúc", color: "#ef4444" },
+        { key: "upvotes", label: "Upvotes", color: "#ef4444" },
     ];
 
     const dayOptions = [
@@ -247,8 +247,8 @@ export default function AdminCharts() {
                             {(activeMetric === "all" || activeMetric === "comments") && (
                                 <Bar dataKey="comments" name="Bình luận" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                             )}
-                            {(activeMetric === "all" || activeMetric === "emotes") && (
-                                <Bar dataKey="emotes" name="Cảm xúc" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                            {(activeMetric === "all" || activeMetric === "upvotes") && (
+                                <Bar dataKey="upvotes" name="Upvotes" fill="#ef4444" radius={[4, 4, 0, 0]} />
                             )}
                         </BarChart>
                     ) : (
@@ -269,7 +269,7 @@ export default function AdminCharts() {
                                     <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
                                     <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1} />
                                 </linearGradient>
-                                <linearGradient id="colorEmotes" x1="0" y1="0" x2="0" y2="1">
+                                <linearGradient id="colorUpvotes" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
                                     <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1} />
                                 </linearGradient>
@@ -318,14 +318,14 @@ export default function AdminCharts() {
                                     fill="url(#colorComments)"
                                 />
                             )}
-                            {(activeMetric === "all" || activeMetric === "emotes") && (
+                            {(activeMetric === "all" || activeMetric === "upvotes") && (
                                 <Area
                                     type="monotone"
-                                    dataKey="cumulativeEmotes"
-                                    name="Tổng cảm xúc"
+                                    dataKey="cumulativeUpvotes"
+                                    name="Tổng upvotes"
                                     stroke="#ef4444"
                                     fillOpacity={1}
-                                    fill="url(#colorEmotes)"
+                                    fill="url(#colorUpvotes)"
                                 />
                             )}
                         </AreaChart>
@@ -356,9 +356,9 @@ export default function AdminCharts() {
                     </div>
                     <div className="text-center p-2 sm:p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
                         <div className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">
-                            {allTimeTotals.emotes}
+                            {allTimeTotals.upvotes}
                         </div>
-                        <div className="text-[10px] sm:text-xs text-neutral-600 dark:text-neutral-400">Tổng cảm xúc</div>
+                        <div className="text-[10px] sm:text-xs text-neutral-600 dark:text-neutral-400">Tổng upvotes</div>
                     </div>
                 </div>
             )}

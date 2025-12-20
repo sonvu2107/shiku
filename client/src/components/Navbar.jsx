@@ -712,7 +712,7 @@ function Navbar({ user, setUser, darkMode, setDarkMode }) {
               <Link to="/login" className="hidden md:flex px-5 py-2.5 rounded-full font-bold text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 transition-colors">
                 Đăng nhập
               </Link>
-              <Link to="/register" className="px-5 py-2.5 rounded-full font-bold text-sm bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity shadow-lg shadow-black/20 dark:shadow-white/20">
+              <Link to="/register" className="hidden md:flex px-5 py-2.5 rounded-full font-bold text-sm bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity shadow-lg shadow-black/20 dark:shadow-white/20">
                 Đăng ký
               </Link>
               <div className="md:hidden">

@@ -235,9 +235,9 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
               {/* Group 2: Personal / My Content */}
               <div className="space-y-1">
                 {[
-                  { icon: Bookmark, label: "Bài đã lưu", path: "/saved", show: true },
-                  { icon: Users, label: "Bạn bè", path: "/friends", show: true },
-                  { icon: UserCheck, label: "Nhóm", path: "/groups", show: true },
+                  { icon: Bookmark, label: "Bài đã lưu", path: "/saved", show: !!user },
+                  { icon: Users, label: "Bạn bè", path: "/friends", show: !!user },
+                  { icon: UserCheck, label: "Nhóm", path: "/groups", show: !!user },
                   { icon: MessageCircle, label: "Chat", path: "/chat", show: false }, // Hidden by default config
                   { icon: Bell, label: "Thông báo", path: "/notifications", show: false }, // Hidden by default config
                 ].map((item) => {
@@ -286,13 +286,13 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
               {/* Group 3: Account / System */}
               <div className="space-y-1">
                 {[
-                  { icon: User, label: "Trang cá nhân", path: "/profile", show: true },
-                  { icon: Settings, label: "Cài đặt", path: "/settings", show: true },
+                  { icon: User, label: "Trang cá nhân", path: "/profile", show: !!user },
+                  { icon: Settings, label: "Cài đặt", path: "/settings", show: !!user },
                   { icon: HelpCircle, label: "Trợ giúp", path: "/support", show: true },
                   { icon: Crown, label: "Admin", path: "/admin", show: user && (user.role === "admin" || Object.keys(user.roleData?.permissions || {}).some(k => k.startsWith('admin.') && user.roleData?.permissions[k])), isAdmin: true },
                 ].map((item) => {
                   // Clean check for show
-                  if (item.show === false) return null;
+                  if (!item.show) return null;
 
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
@@ -359,7 +359,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
           </motion.div>
         </>
       )}
-    </AnimatePresence>,
+    </AnimatePresence >,
     document.body
   ) : null;
 

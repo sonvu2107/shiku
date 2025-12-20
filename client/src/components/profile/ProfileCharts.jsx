@@ -25,22 +25,22 @@ export default function ProfileCharts() {
         try {
             const response = await api(`/api/posts/analytics/daily?days=${days}`);
             if (response.success && response.chartData) {
-                const baseline = response.baseline || { posts: 0, views: 0, emotes: 0 };
+                const baseline = response.baseline || { posts: 0, views: 0, upvotes: 0 };
 
                 let cumulativePosts = baseline.posts;
                 let cumulativeViews = baseline.views;
-                let cumulativeEmotes = baseline.emotes;
+                let cumulativeUpvotes = baseline.upvotes;
 
                 const enrichedData = response.chartData.map(item => {
                     cumulativePosts += item.posts;
                     cumulativeViews += item.views;
-                    cumulativeEmotes += item.emotes;
+                    cumulativeUpvotes += item.upvotes;
 
                     return {
                         ...item,
                         cumulativePosts,
                         cumulativeViews,
-                        cumulativeEmotes
+                        cumulativeUpvotes
                     };
                 });
 
@@ -64,7 +64,7 @@ export default function ProfileCharts() {
         { key: "all", label: "Tất cả" },
         { key: "posts", label: "Bài viết", color: "#3b82f6" },
         { key: "views", label: "Lượt xem", color: "#10b981" },
-        { key: "emotes", label: "Cảm xúc", color: "#ef4444" },
+        { key: "upvotes", label: "Upvote", color: "#000000" },
     ];
 
     const dayOptions = [
@@ -124,7 +124,7 @@ export default function ProfileCharts() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <h4 className="text-base sm:text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <BarChart3 className="hidden sm:inline-block w-4 h-4 sm:w-5 sm:h-5" />
                     Biểu đồ hoạt động
                 </h4>
 
@@ -206,8 +206,8 @@ export default function ProfileCharts() {
                             {(activeMetric === "all" || activeMetric === "views") && (
                                 <Bar dataKey="views" name="Lượt xem" fill="#10b981" radius={[4, 4, 0, 0]} />
                             )}
-                            {(activeMetric === "all" || activeMetric === "emotes") && (
-                                <Bar dataKey="emotes" name="Cảm xúc" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                            {(activeMetric === "all" || activeMetric === "upvotes") && (
+                                <Bar dataKey="upvotes" name="Upvote" fill="#000000" radius={[4, 4, 0, 0]} />
                             )}
                         </BarChart>
                     ) : (
@@ -221,9 +221,9 @@ export default function ProfileCharts() {
                                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
                                     <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
                                 </linearGradient>
-                                <linearGradient id="profileColorEmotes" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1} />
+                                <linearGradient id="profileColorUpvotes" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#000000" stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor="#000000" stopOpacity={0.1} />
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" className="stroke-neutral-200 dark:stroke-neutral-700" />
@@ -238,8 +238,8 @@ export default function ProfileCharts() {
                             {(activeMetric === "all" || activeMetric === "views") && (
                                 <Area type="monotone" dataKey="cumulativeViews" name="Tổng lượt xem" stroke="#10b981" fillOpacity={1} fill="url(#profileColorViews)" />
                             )}
-                            {(activeMetric === "all" || activeMetric === "emotes") && (
-                                <Area type="monotone" dataKey="cumulativeEmotes" name="Tổng cảm xúc" stroke="#ef4444" fillOpacity={1} fill="url(#profileColorEmotes)" />
+                            {(activeMetric === "all" || activeMetric === "upvotes") && (
+                                <Area type="monotone" dataKey="cumulativeUpvotes" name="Tổng upvote" stroke="#000000" fillOpacity={1} fill="url(#profileColorUpvotes)" />
                             )}
                         </AreaChart>
                     )}
@@ -257,9 +257,9 @@ export default function ProfileCharts() {
                         <div className="text-base sm:text-xl font-bold text-green-600 dark:text-green-400">{allTimeTotals.views?.toLocaleString()}</div>
                         <div className="text-[9px] sm:text-xs text-neutral-600 dark:text-neutral-400">Lượt xem</div>
                     </div>
-                    <div className="text-center p-1.5 sm:p-2 bg-red-50 dark:bg-red-900/20 rounded-xl">
-                        <div className="text-base sm:text-xl font-bold text-red-600 dark:text-red-400">{allTimeTotals.emotes}</div>
-                        <div className="text-[9px] sm:text-xs text-neutral-600 dark:text-neutral-400">Cảm xúc</div>
+                    <div className="text-center p-1.5 sm:p-2 bg-neutral-100 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                        <div className="text-base sm:text-xl font-bold text-neutral-900 dark:text-white">{allTimeTotals.upvotes?.toLocaleString() || 0}</div>
+                        <div className="text-[9px] sm:text-xs text-neutral-600 dark:text-neutral-400">Upvote</div>
                     </div>
                 </div>
             )}

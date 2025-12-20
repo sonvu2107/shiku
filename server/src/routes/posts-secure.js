@@ -17,6 +17,7 @@ import Comment from "../models/Comment.js";
 import User from "../models/User.js";
 import { authRequired, authOptional } from "../middleware/jwtSecurity.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
+import { postCreationLimiter } from "../middleware/rateLimit.js";
 import { 
   createPostSchema, 
   createCommentSchema, 
@@ -214,6 +215,7 @@ router.get("/:id",
 router.post("/", 
   authRequired,
   checkBanStatus,
+  postCreationLimiter,
   validate(createPostSchema, 'body'),
   async (req, res, next) => {
     try {

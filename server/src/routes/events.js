@@ -15,6 +15,7 @@ import Event from '../models/Event.js';
 import User from '../models/User.js';
 import { authRequired, authOptional } from '../middleware/auth.js';
 import { responseCache, invalidateByPattern } from '../middleware/responseCache.js';
+import { eventCreationLimiter } from '../middleware/rateLimit.js';
 
 const router = express.Router();
 
@@ -417,7 +418,7 @@ router.get('/:id', authOptional, async (req, res) => {
  * @desc    Tạo sự kiện mới
  * @access  Private
  */
-router.post('/', authRequired, async (req, res) => {
+router.post('/', authRequired, eventCreationLimiter, async (req, res) => {
   try {
     const {
       title,

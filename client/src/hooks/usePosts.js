@@ -6,7 +6,7 @@ import { api } from "../api.js";
  * Uses React Query for caching, deduplication, and automatic refetching
  * 
  * @param {Object} options - Query options
- * @param {string} options.sortBy - Sort order: 'recommended' | 'newest' | 'oldest' | 'mostViewed' | 'leastViewed'
+ * @param {string} options.sortBy - Sort order: 'recommended' | 'hot' | 'newest' | 'oldest' | 'mostViewed' | 'leastViewed' | 'mostUpvoted'
  * @param {string} options.searchQuery - Search query string
  * @param {number} options.limit - Posts per page (default: 8 for fast initial load)
  */
