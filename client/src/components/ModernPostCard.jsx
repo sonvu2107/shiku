@@ -588,8 +588,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 "flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full transition-all duration-200 group/btn touch-manipulation",
                 upvoting ? "opacity-50 cursor-not-allowed" : "active:scale-95",
                 upvoted
-                  ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-                  : "hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-300"
+                  ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                  : "hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-100"
               )}
             >
               {/* Upvote Arrow Icon */}

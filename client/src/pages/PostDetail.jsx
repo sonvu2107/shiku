@@ -667,8 +667,8 @@ export default function PostDetail() {
                     "flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-full transition-all active:scale-90 touch-manipulation min-h-[40px] sm:min-h-[44px]",
                     upvoting && "opacity-50 cursor-not-allowed",
                     upvoted
-                      ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-                      : "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400"
+                      ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                      : "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-100"
                   )}
                 >
                   {upvoting ? (

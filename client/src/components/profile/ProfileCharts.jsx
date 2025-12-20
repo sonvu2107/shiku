@@ -64,7 +64,7 @@ export default function ProfileCharts() {
         { key: "all", label: "Tất cả" },
         { key: "posts", label: "Bài viết", color: "#3b82f6" },
         { key: "views", label: "Lượt xem", color: "#10b981" },
-        { key: "upvotes", label: "Upvote", color: "#000000" },
+        { key: "upvotes", label: "Upvote", color: "#ef4444" },
     ];
 
     const dayOptions = [
