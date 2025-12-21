@@ -17,7 +17,9 @@ import {
     AlertTriangle,
     ExternalLink,
     User,
-    Users
+    Users,
+    Pin,
+    PinOff
 } from "lucide-react";
 
 /**
@@ -44,6 +46,9 @@ export default function AdminPostsTab() {
 
     // Confirm modal
     const [confirmModal, setConfirmModal] = useState({ show: false, type: "", data: null });
+
+    // Pinning state
+    const [pinning, setPinning] = useState(null); // post ID being pinned/unpinned
 
     // Load authors list
     useEffect(() => {
@@ -173,6 +178,26 @@ export default function AdminPostsTab() {
     };
 
     const goToPage = (page) => loadPosts(page);
+
+    // Handle pin/unpin toggle
+    const handleTogglePin = async (post) => {
+        if (pinning) return;
+        setPinning(post._id);
+        try {
+            const endpoint = post.isPinned
+                ? `/api/admin/posts/${post._id}/unpin`
+                : `/api/admin/posts/${post._id}/pin`;
+            const response = await api(endpoint, { method: "POST" });
+            if (response.success) {
+                showSuccess(post.isPinned ? "Đã bỏ ghim bài viết" : "Đã ghim bài viết");
+                loadPosts(pagination.page);
+            }
+        } catch (error) {
+            showError(error.message || "Có lỗi xảy ra khi ghim/bỏ ghim");
+        } finally {
+            setPinning(null);
+        }
+    };
     const isAllSelected = posts.length > 0 && selectedIds.size === posts.length;
     const selectedAuthor = authors.find(a => a._id === authorFilter);
 
@@ -330,6 +355,25 @@ export default function AdminPostsTab() {
                                         </td>
                                         <td className="px-3 py-2">
                                             <div className="flex items-center gap-1">
+                                                <button
+                                                    onClick={() => handleTogglePin(post)}
+                                                    disabled={pinning === post._id}
+                                                    className={cn(
+                                                        "p-1.5 rounded transition-colors",
+                                                        post.isPinned
+                                                            ? "text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                                            : "text-neutral-400 hover:text-neutral-600 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                                                    )}
+                                                    title={post.isPinned ? "Bỏ ghim" : "Ghim lên đầu feed"}
+                                                >
+                                                    {pinning === post._id ? (
+                                                        <Loader2 size={14} className="animate-spin" />
+                                                    ) : post.isPinned ? (
+                                                        <PinOff size={14} />
+                                                    ) : (
+                                                        <Pin size={14} />
+                                                    )}
+                                                </button>
                                                 <button
                                                     onClick={() => window.open(`/bai-viet/${post.slug}`, '_blank')}
                                                     className="p-1.5 text-neutral-400 hover:text-black dark:text-white hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-blue-900/20 rounded transition-colors"

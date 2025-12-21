@@ -48,7 +48,7 @@ export const getPosts = async (req, res, next) => {
         const [posts, total] = await Promise.all([
             Post.find(filter)
                 .populate('author', 'name nickname avatarUrl email')
-                .select('title slug author status views upvoteCount createdAt')
+                .select('title slug author status views upvoteCount isPinned pinnedAt createdAt')
                 .sort(sort)
                 .skip(skip)
                 .limit(limitNum)
@@ -287,6 +287,117 @@ export const deletePostsByUser = async (req, res, next) => {
         });
     } catch (error) {
         console.error('[ADMIN] Delete posts by user error:', error);
+        next(error);
+    }
+};
+
+/**
+ * POST /api/admin/posts/:id/pin - Ghim bài viết lên đầu feed
+ */
+export const pinPost = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "ID bài viết không hợp lệ" });
+        }
+
+        const post = await Post.findById(id).populate('author', 'name email');
+        if (!post) {
+            return res.status(404).json({ error: "Không tìm thấy bài viết" });
+        }
+
+        if (post.isPinned) {
+            return res.status(400).json({ error: "Bài viết đã được ghim rồi" });
+        }
+
+        // Update post to pinned
+        post.isPinned = true;
+        post.pinnedAt = new Date();
+        post.pinnedBy = req.user._id;
+        await post.save();
+
+        // Audit log
+        await AuditLog.logAction(req.user._id, 'admin_pin_post', {
+            targetId: id,
+            targetType: 'post',
+            result: 'success',
+            ipAddress: req.ip,
+            clientAgent: getClientAgent(req),
+            details: {
+                postTitle: post.title,
+                authorId: post.author?._id,
+                authorName: post.author?.name
+            }
+        });
+
+        res.json({
+            success: true,
+            message: "Đã ghim bài viết thành công",
+            post: {
+                _id: post._id,
+                title: post.title,
+                isPinned: post.isPinned,
+                pinnedAt: post.pinnedAt
+            }
+        });
+    } catch (error) {
+        console.error('[ADMIN] Pin post error:', error);
+        next(error);
+    }
+};
+
+/**
+ * POST /api/admin/posts/:id/unpin - Bỏ ghim bài viết
+ */
+export const unpinPost = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "ID bài viết không hợp lệ" });
+        }
+
+        const post = await Post.findById(id).populate('author', 'name email');
+        if (!post) {
+            return res.status(404).json({ error: "Không tìm thấy bài viết" });
+        }
+
+        if (!post.isPinned) {
+            return res.status(400).json({ error: "Bài viết chưa được ghim" });
+        }
+
+        // Update post to unpinned
+        post.isPinned = false;
+        post.pinnedAt = null;
+        post.pinnedBy = null;
+        await post.save();
+
+        // Audit log
+        await AuditLog.logAction(req.user._id, 'admin_unpin_post', {
+            targetId: id,
+            targetType: 'post',
+            result: 'success',
+            ipAddress: req.ip,
+            clientAgent: getClientAgent(req),
+            details: {
+                postTitle: post.title,
+                authorId: post.author?._id,
+                authorName: post.author?.name
+            }
+        });
+
+        res.json({
+            success: true,
+            message: "Đã bỏ ghim bài viết thành công",
+            post: {
+                _id: post._id,
+                title: post.title,
+                isPinned: post.isPinned
+            }
+        });
+    } catch (error) {
+        console.error('[ADMIN] Unpin post error:', error);
         next(error);
     }
 };

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, memo, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Star, X, Smile, Image as ImageIcon, Send, Loader2, Play } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Star, X, Smile, Image as ImageIcon, Send, Loader2, Play, Pin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getOptimizedImageUrl } from "../utils/imageOptimization";
 import LazyImage from "./LazyImageSimple";
@@ -401,6 +401,12 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               {isPrivate && (
                 <span className="flex items-center gap-0.5 bg-gray-50 dark:bg-white/5 px-1.5 py-0.5 rounded text-gray-500 text-[10px]">
                   🔒 <span>Riêng tư</span>
+                </span>
+              )}
+              {post.isPinned && (
+                <span className="inline-flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-neutral-600 dark:text-neutral-400 text-[10px]">
+                  <Pin size={10} />
+                  <span>Ghim</span>
                 </span>
               )}
             </div>

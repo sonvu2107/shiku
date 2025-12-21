@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../api";
 import MarkdownWithMentions from "./MarkdownWithMentions";
 import CommentSection from "./CommentSection";
+import MenuActions from "./MenuActions";
 import UserName from "./UserName";
 import UserAvatar from "./UserAvatar";
 import VerifiedBadge from "./VerifiedBadge";
@@ -49,6 +50,9 @@ export default function PostDetailModal({
     // States
     const [saved, setSaved] = useState(isSavedProp);
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [togglingStatus, setTogglingStatus] = useState(false);
+    const [postStatus, setPostStatus] = useState(post?.status || 'published');
 
     // Upvote system state
     const [upvoted, setUpvoted] = useState(() => {
@@ -199,6 +203,49 @@ export default function PostDetailModal({
         });
     }, [post, showSuccess, showError]);
 
+    // Handle delete post
+    const handleDeletePost = useCallback(async () => {
+        if (!window.confirm("Đảm bảo bạn muốn xóa bài viết này?")) return;
+        setDeleting(true);
+        try {
+            await api(`/api/posts/${post._id}`, { method: 'DELETE' });
+            showSuccess("Đã xóa bài viết");
+            onClose();
+            if (onUpdate) onUpdate();
+        } catch (error) {
+            showError(error.message || "Không thể xóa bài viết");
+        } finally {
+            setDeleting(false);
+        }
+    }, [post?._id, onClose, onUpdate, showSuccess, showError]);
+
+    // Handle toggle post status
+    const handleToggleStatus = useCallback(async () => {
+        const newStatus = postStatus === 'private' ? 'published' : 'private';
+        const confirmMsg = newStatus === 'private'
+            ? "Bạn có chắc muốn chuyển bài viết thành riêng tư?"
+            : "Bạn có chắc muốn công khai bài viết này?";
+        if (!window.confirm(confirmMsg)) return;
+
+        setTogglingStatus(true);
+        const previousStatus = postStatus;
+        setPostStatus(newStatus);
+
+        try {
+            await api(`/api/posts/${post._id}`, {
+                method: 'PUT',
+                body: { status: newStatus }
+            });
+            showSuccess(newStatus === 'private' ? "Đã chuyển thành riêng tư" : "Đã công khai bài viết");
+            if (onUpdate) onUpdate();
+        } catch (error) {
+            setPostStatus(previousStatus);
+            showError(error.message || "Không thể thay đổi trạng thái");
+        } finally {
+            setTogglingStatus(false);
+        }
+    }, [post?._id, postStatus, onUpdate, showSuccess, showError]);
+
     // Computed values
     const p = post;
     const timeAgo = p?.createdAt
@@ -313,6 +360,32 @@ export default function PostDetailModal({
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Menu Actions for owner/admin */}
+                                    {user && (() => {
+                                        const currentUserId = user?.id || user?._id;
+                                        const authorId = p.author?._id || p.author?.id;
+                                        const isOwner = currentUserId && authorId && (
+                                            currentUserId === authorId ||
+                                            currentUserId?.toString() === authorId?.toString()
+                                        );
+                                        const isAdmin = user.role === "admin";
+                                        return isOwner || isAdmin;
+                                    })() && (
+                                            <div className="relative flex-shrink-0 ml-2">
+                                                <MenuActions
+                                                    onToggleStatus={handleToggleStatus}
+                                                    onEdit={() => {
+                                                        onClose();
+                                                        navigate(`/edit-post/${p._id}`);
+                                                    }}
+                                                    onDelete={handleDeletePost}
+                                                    onSave={handleSave}
+                                                    isPrivate={postStatus === 'private'}
+                                                    saved={saved}
+                                                />
+                                            </div>
+                                        )}
                                 </div>
 
                                 {/* TITLE - Match PostDetail */}

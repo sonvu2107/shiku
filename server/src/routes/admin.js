@@ -43,7 +43,9 @@ import {
   deletePost,
   bulkDeletePosts,
   getAuthors,
-  deletePostsByUser
+  deletePostsByUser,
+  pinPost,
+  unpinPost
 } from "../controllers/admin/index.js";
 
 const router = express.Router();
@@ -156,6 +158,8 @@ router.get("/posts/authors", adminRateLimit, authRequired, adminRequired, getAut
 router.delete("/posts/:id", strictAdminRateLimit, authRequired, adminRequired, deletePost);
 router.post("/posts/bulk-delete", strictAdminRateLimit, authRequired, adminRequired, bulkDeletePosts);
 router.post("/posts/delete-by-user", strictAdminRateLimit, authRequired, adminRequired, deletePostsByUser);
+router.post("/posts/:id/pin", strictAdminRateLimit, authRequired, adminRequired, pinPost);
+router.post("/posts/:id/unpin", strictAdminRateLimit, authRequired, adminRequired, unpinPost);
 
 // ============================================================
 // DATA INTEGRITY ROUTES

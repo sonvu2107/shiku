@@ -43,7 +43,7 @@ export function calculateEngagementScore(post, commentsCount = 0, interestedPost
 
   // Kiểm tra an toàn: nếu post ở tương lai hoặc invalid, coi như rất mới (0.1 giờ)
   const safeHours = Math.max(hoursSincePost, 0.1);
-  
+
   // NEW FORMULA: Upvote-centric scoring
   // Upvotes = 3 điểm mỗi upvote (tín hiệu mạnh nhất)
   // Comments = logarithmic (chống spam, vẫn có giá trị)
@@ -55,7 +55,7 @@ export function calculateEngagementScore(post, commentsCount = 0, interestedPost
     views * 0.005 -                      // Views có tác động tối thiểu
     (safeHours / 24)                     // Time decay: -1 điểm mỗi 24h
   );
-  
+
   // Đảm bảo score không âm
   engagementScore = Math.max(engagementScore, 0);
 
@@ -101,7 +101,7 @@ export function calculateRankingScore(post) {
   const C = post.commentCount ?? 0;
   const createdAt = new Date(post.createdAt);
   const T = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60); // hours
-  
+
   // Formula: (U * 3) + log(C + 1) * 2 - (T / 24)
   const score = (U * 3) + Math.log(C + 1) * 2 - (T / 24);
   return Math.max(score, 0); // Không cho điểm âm
@@ -178,7 +178,7 @@ export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds =
         $project: {
           title: 1, content: 1, slug: 1, tags: 1, createdAt: 1, author: 1,
           status: 1, views: 1, coverUrl: 1, files: 1,
-          commentCount: 1, savedCount: 1, 
+          commentCount: 1, savedCount: 1,
           upvotes: 1, upvoteCount: 1, // NEW: upvote fields
           emotes: 1, // Legacy
           hasPoll: 1, isEdited: 1, youtubeUrl: 1
@@ -253,20 +253,24 @@ export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, 
       {
         $addFields: {
           // Fallback: upvoteCount hoặc emotes.length (legacy)
-          upvoteScore: { 
-            $ifNull: ["$upvoteCount", { $size: { $ifNull: ["$emotes", []] } }] 
+          upvoteScore: {
+            $ifNull: ["$upvoteCount", { $size: { $ifNull: ["$emotes", []] } }]
           },
           // NEW FORMULA: (U * 3) + log(C + 1) * 2
           engagementBase: {
             $add: [
-              { $multiply: [
-                { $ifNull: ["$upvoteCount", { $size: { $ifNull: ["$emotes", []] } }] }, 
-                3 
-              ] },
-              { $multiply: [
-                { $ln: { $add: [{ $ifNull: ["$commentCount", 0] }, 1] } }, 
-                2 
-              ] },
+              {
+                $multiply: [
+                  { $ifNull: ["$upvoteCount", { $size: { $ifNull: ["$emotes", []] } }] },
+                  3
+                ]
+              },
+              {
+                $multiply: [
+                  { $ln: { $add: [{ $ifNull: ["$commentCount", 0] }, 1] } },
+                  2
+                ]
+              },
               { $multiply: [{ $ifNull: ["$views", 0] }, 0.005] }
             ]
           }
@@ -291,7 +295,7 @@ export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, 
         $project: {
           title: 1, content: 1, slug: 1, tags: 1, createdAt: 1, author: 1,
           status: 1, views: 1, coverUrl: 1, files: 1,
-          commentCount: 1, savedCount: 1, 
+          commentCount: 1, savedCount: 1,
           upvotes: 1, upvoteCount: 1, // NEW: upvote fields
           emotes: 1, // Legacy
           hasPoll: 1, isEdited: 1, youtubeUrl: 1
@@ -621,10 +625,28 @@ export async function generateSmartFeed(userId, totalLimit = 20, page = 1) {
       }
     }
 
+    // ==================== PINNED POSTS (PAGE 1 ONLY) ====================
+    // Lấy các bài viết được ghim (chỉ trên trang 1)
+    let pinnedPosts = [];
+    const isFirstPage = sanitizedPage === 1;
+
+    if (isFirstPage) {
+      pinnedPosts = await Post.find({
+        isPinned: true,
+        status: "published",
+        $or: [
+          { group: { $exists: false } },
+          { group: null }
+        ]
+      })
+        .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache createdAt firstLoginAt")
+        .sort({ pinnedAt: -1 }) // Bài ghim mới nhất lên đầu
+        .lean();
+    }
+
     // ==================== OVER-FETCHING STRATEGY (PAGE 1) ====================
     // Nếu là Page 1, ta lấy số lượng bài nhiều hơn (x2.5) để tạo pool random lớn hơn
     // Các page sau giữ nguyên để đảm bảo pagination ổn định
-    const isFirstPage = sanitizedPage === 1;
     const fetchMultiplier = isFirstPage ? 2.5 : 1;
 
     // Tính limits cho mỗi nguồn (theo phần trăm) với multiplier
@@ -693,15 +715,22 @@ export async function generateSmartFeed(userId, totalLimit = 20, page = 1) {
     }
 
     // ==================== FINAL SHUFFLE & SLICE ====================
+    // Loại bỏ pinned posts khỏi regular feed để tránh duplicate
+    const pinnedIds = new Set(pinnedPosts.map(p => p._id.toString()));
+    const regularFeed = mixedFeed.filter(p => !pinnedIds.has(p._id.toString()));
+
     // Shuffle toàn bộ pool nếu là Page 1 để tạo diversity tối đa
     if (isFirstPage) {
-      for (let i = mixedFeed.length - 1; i > 0; i--) {
+      for (let i = regularFeed.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [mixedFeed[i], mixedFeed[j]] = [mixedFeed[j], mixedFeed[i]];
+        [regularFeed[i], regularFeed[j]] = [regularFeed[j], regularFeed[i]];
       }
+      // Prepend pinned posts lên đầu feed
+      const finalRegular = regularFeed.slice(0, sanitizedLimit - pinnedPosts.length);
+      return [...pinnedPosts, ...finalRegular];
     } else {
       // Các page sau: giữ ổn định, chỉ shuffle nhẹ phần đầu
-      const finalFeed = mixedFeed.slice(0, sanitizedLimit);
+      const finalFeed = regularFeed.slice(0, sanitizedLimit);
       const shuffleCount = Math.max(Math.floor(finalFeed.length * 0.7), 5);
       const topPart = finalFeed.slice(0, shuffleCount);
       const restPart = finalFeed.slice(shuffleCount);
@@ -712,9 +741,6 @@ export async function generateSmartFeed(userId, totalLimit = 20, page = 1) {
       }
       return [...topPart, ...restPart];
     }
-
-    // Cắt về đúng limit yêu cầu
-    return mixedFeed.slice(0, sanitizedLimit);
 
   } catch (error) {
     console.error("[ERROR][SMART-FEED] Error generating smart feed:", error);
