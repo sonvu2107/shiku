@@ -164,9 +164,12 @@ const GroupDetail = () => {
    const [analyticsPeriod, setAnalyticsPeriod] = useState('30d');
 
    // Load group details
-   const loadGroup = async () => {
+   // silent = true: chỉ refresh data không hiển thị loading (dùng sau khi join/leave)
+   const loadGroup = async (silent = false) => {
       try {
-         setLoading(true);
+         if (!silent) {
+            setLoading(true);
+         }
          setError(null);
 
          const timestamp = Date.now();
@@ -193,7 +196,9 @@ const GroupDetail = () => {
       } catch (error) {
          setError(error.response?.data?.message || 'Không thể tải thông tin nhóm');
       } finally {
-         setLoading(false);
+         if (!silent) {
+            setLoading(false);
+         }
       }
    };
 
@@ -239,17 +244,18 @@ const GroupDetail = () => {
 
          if (response.success) {
             if (response.joined) {
-               await loadGroup();
+               // Silent refresh để không gây flash loading
+               await loadGroup(true);
                return;
             }
             if (response.pending || group?.settings?.joinApproval !== 'anyone') {
                setIsPendingJoin(true);
                setActiveTab('posts');
                try { localStorage.setItem(pendingKey, '1'); } catch { }
-               await loadGroup();
+               await loadGroup(true);
                return;
             }
-            await loadGroup();
+            await loadGroup(true);
          }
       } catch (error) {
          // Với nhóm cần duyệt, server trả success, lỗi khác hiển thị như cũ
@@ -268,8 +274,8 @@ const GroupDetail = () => {
          const response = await api(`/api/groups/${id}/leave`, { method: 'POST' });
 
          if (response.success) {
-            // Ở lại trang nhóm và cập nhật UI để có thể tham gia lại
-            await loadGroup();
+            // Silent refresh để UI cập nhật mà không flash loading
+            await loadGroup(true);
             setActiveTab('posts');
          }
       } catch (error) {

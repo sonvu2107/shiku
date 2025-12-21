@@ -16,9 +16,9 @@ const EventCard = ({ event, onJoin }) => {
 
    // Màu sắc badge dựa trên trạng thái tham gia
    let statusBadge = null;
-   if (event.userRole === 'creator') statusBadge = <span className="bg-neutral-200 dark:bg-neutral-800 dark:bg-blue-900/30 text-black dark:text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Của tôi</span>;
-   else if (event.userRole === 'attendee') statusBadge = <span className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Đã tham gia</span>;
-   else if (isUpcoming) statusBadge = <span className="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Sắp diễn ra</span>;
+   if (event.userRole === 'creator') statusBadge = <span className="bg-neutral-200 dark:bg-neutral-800 dark:bg-blue-900/30 text-black dark:text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">Của tôi</span>;
+   else if (event.userRole === 'attendee') statusBadge = <span className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">Đã tham gia</span>;
+   else if (isUpcoming) statusBadge = <span className="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">Sắp diễn ra</span>;
 
    return (
       <SpotlightCard className="h-full flex flex-col p-0 border-0 overflow-hidden group">
@@ -161,7 +161,7 @@ export default function Events() {
          />
 
          {/* Search & Filter Bar */}
-         <div className="flex flex-col md:flex-row gap-4 mb-8 sticky top-24 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-xl p-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm">
+         <div className="flex flex-col md:flex-row gap-4 mb-8 bg-white/80 dark:bg-black/80 backdrop-blur-xl p-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm">
             {/* Search Input */}
             <div className="relative flex-1">
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />

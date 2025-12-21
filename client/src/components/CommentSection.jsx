@@ -11,6 +11,8 @@ import CommentImageUpload from "./CommentImageUpload";
 import MentionText from "./MentionText";
 import MentionAutocomplete from "./MentionAutocomplete";
 import { useToast } from "../contexts/ToastContext";
+import { formatDistanceToNow } from "date-fns";
+import { vi } from "date-fns/locale";
 
 /**
  * Mapping roles with their respective icons (currently unused)
@@ -979,7 +981,7 @@ function CommentSection({ postId, initialComments = [], user, onCommentCountChan
             {/* Comment Actions */}
             <div className="flex items-center gap-1 sm:gap-2 mt-1.5 sm:mt-1.5 ml-0.5 sm:ml-2 flex-wrap">
               <span className="text-[12px] sm:text-xs text-neutral-400 font-medium flex-shrink-0 whitespace-nowrap">
-                {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
+                {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: vi })}
               </span>
 
               {/* Like Button */}

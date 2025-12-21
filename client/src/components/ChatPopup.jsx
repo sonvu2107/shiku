@@ -28,6 +28,33 @@ if (typeof document !== 'undefined') {
 }
 
 /**
+ * Format message time - consistent with MessageList
+ * @param {string} dateString - ISO date string
+ * @returns {string} Formatted time
+ */
+const formatMessageTime = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInHours = (now - date) / (1000 * 60 * 60);
+
+  if (diffInHours < 24) {
+    return date.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } else {
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit'
+    }) + ', ' + date.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+};
+
+/**
  * List of emojis to choose from in chat popup
  */
 const EMOTES = [
@@ -577,7 +604,7 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                         {msg.isDeleted ? (
                           <div
                             className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 italic break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
-                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
+                            title={formatMessageTime(msg.createdAt)}
                           >
                             {msg.content}
                           </div>
@@ -586,20 +613,20 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             src={msg.imageUrl}
                             alt="Ảnh"
                             className="max-w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
+                            title={formatMessageTime(msg.createdAt)}
                             onClick={() => setImageViewer({ isOpen: true, imageUrl: msg.imageUrl, alt: "Ảnh" })}
                           />
                         ) : msg.messageType === "emote" ? (
                           <div
                             className="px-3 py-2 rounded-2xl text-sm chat-bubble-own flex items-center justify-center"
-                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
+                            title={formatMessageTime(msg.createdAt)}
                           >
                             <span className="text-2xl">{msg.emote}</span>
                           </div>
                         ) : (
                           <div
                             className="px-3 py-2 rounded-2xl text-sm chat-bubble-own break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
-                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
+                            title={formatMessageTime(msg.createdAt)}
                           >
                             {parseLinks(msg.content, { linkClassName: "text-blue-200 hover:text-blue-100 underline break-all" })}
                           </div>
@@ -610,6 +637,13 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic text-right">
                             Đã chỉnh sửa
                           </p>
+                        )}
+
+                        {/* Time display - visible on mobile too */}
+                        {!msg.isDeleted && (
+                          <div className="text-[10px] text-gray-400/70 mt-1 text-right">
+                            {formatMessageTime(msg.createdAt)}
+                          </div>
                         )}
 
                         {/* Reaction counters only - picker is now in hover menu */}
@@ -696,20 +730,20 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             src={msg.imageUrl}
                             alt="Ảnh"
                             className="max-w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
+                            title={formatMessageTime(msg.createdAt)}
                             onClick={() => setImageViewer({ isOpen: true, imageUrl: msg.imageUrl, alt: "Ảnh" })}
                           />
                         ) : msg.messageType === "emote" ? (
                           <div
                             className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-neutral-800 text-gray-900 dark:text-gray-100 flex items-center justify-center"
-                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
+                            title={formatMessageTime(msg.createdAt)}
                           >
                             <span className="text-2xl">{msg.emote}</span>
                           </div>
                         ) : (
                           <div
                             className="px-3 py-2 rounded-2xl text-sm bg-gray-200 dark:bg-neutral-800 text-gray-900 dark:text-gray-100 break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full"
-                            title={msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(msg.createdAt).toLocaleDateString('vi-VN') : ''}
+                            title={formatMessageTime(msg.createdAt)}
                           >
                             {parseLinks(msg.content)}
                           </div>
@@ -755,12 +789,8 @@ export default function ChatPopup({ conversation, onClose, setCallOpen, setIsVid
                             </div>
                           )}
                         </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          {msg.createdAt
-                            ? new Date(msg.createdAt).toLocaleTimeString() +
-                            " " +
-                            new Date(msg.createdAt).toLocaleDateString()
-                            : ""}
+                        <div className="text-[10px] text-gray-400/70 mt-1">
+                          {formatMessageTime(msg.createdAt)}
                         </div>
                       </div>
                     </div>

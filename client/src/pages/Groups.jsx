@@ -42,6 +42,7 @@ const SpotlightGroupCard = ({ group, onJoin, onLeave, userRole, isJoining, isLea
 
    const isMember = !!userRole;
    const isOwner = userRole === 'owner';
+   const isPending = !!group.hasPendingJoinRequest;
 
    // Icon loại nhóm
    const TypeIcon = group.settings?.type === 'private' ? Lock : group.settings?.type === 'secret' ? EyeOff : Globe;
@@ -172,6 +173,10 @@ const SpotlightGroupCard = ({ group, onJoin, onLeave, userRole, isJoining, isLea
                            <UserMinus size={18} />
                         </button>
                      </div>
+                  ) : isPending ? (
+                     <button className="w-full py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/50 text-yellow-600 dark:text-yellow-400 font-bold text-sm cursor-default flex items-center justify-center gap-2">
+                        Đang chờ duyệt...
+                     </button>
                   ) : (
                      <button
                         onClick={() => onJoin(group._id)}
@@ -261,8 +266,20 @@ export default function Groups() {
       try {
          const res = await api(`/api/groups/${groupId}/join`, { method: "POST", body: {} });
          if (res.success) {
-            if (activeTab === 'discover') await loadGroups(currentPage, true);
-            await loadMyGroups();
+            // Optimistic update: cập nhật UI ngay lập tức
+            if (res.joined) {
+               // Đã join thành công -> update userRole = 'member' ngay
+               setGroups(prev => prev.map(g =>
+                  g._id === groupId ? { ...g, userRole: 'member' } : g
+               ));
+            } else if (res.pending) {
+               // Đang chờ duyệt -> update để hiển thị pending state
+               setGroups(prev => prev.map(g =>
+                  g._id === groupId ? { ...g, hasPendingJoinRequest: true } : g
+               ));
+            }
+            // Reload data trong background để sync với server
+            loadMyGroups();
          }
       } catch (err) { showError(err.message || 'Không thể tham gia nhóm'); }
       finally { setIsJoining(prev => ({ ...prev, [groupId]: false })); }
@@ -274,8 +291,12 @@ export default function Groups() {
       try {
          const res = await api(`/api/groups/${groupId}/leave`, { method: "POST", body: {} });
          if (res.success) {
-            if (activeTab === 'discover') await loadGroups(currentPage, true);
-            await loadMyGroups();
+            // Optimistic update: xóa userRole ngay lập tức
+            setGroups(prev => prev.map(g =>
+               g._id === groupId ? { ...g, userRole: null, hasPendingJoinRequest: false } : g
+            ));
+            // Reload myGroups trong background
+            loadMyGroups();
          }
       } catch (err) { showError(err.message || 'Không thể rời nhóm'); }
       finally { setIsLeaving(prev => ({ ...prev, [groupId]: false })); }

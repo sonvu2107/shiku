@@ -17,7 +17,7 @@ export default function BottomNavBar({ user, onCreatePost }) {
     const [lastScrollY, setLastScrollY] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Check if any modal is open (same as FloatingDock)
+    // Check if any modal is open
     useEffect(() => {
         const checkModal = () => {
             const modal = document.querySelector('[data-post-creator-modal]') ||

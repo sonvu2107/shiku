@@ -373,7 +373,12 @@ export default function EventDetail() {
 
                         {/* Secondary Actions */}
                         <div className="grid grid-cols-2 gap-3">
-                           {(!event.userRole || event.userRole === 'declined') && upcoming && (
+                           {/* Quan tâm button - show when no role, declined, or already interested */}
+                           {event.userRole === 'interested' ? (
+                              <div className="py-3 px-4 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-bold text-sm flex items-center justify-center gap-2 border border-orange-200 dark:border-orange-800">
+                                 <Heart size={18} className="fill-current" /> Đã quan tâm
+                              </div>
+                           ) : (!event.userRole || event.userRole === 'declined') && upcoming && (
                               <button
                                  onClick={() => handleAction("interested")}
                                  disabled={actionLoading}
@@ -382,7 +387,12 @@ export default function EventDetail() {
                                  <Heart size={18} /> Quan tâm
                               </button>
                            )}
-                           {(!event.userRole || event.userRole === 'interested') && upcoming && (
+                           {/* Từ chối button - show when no role, interested, or already declined */}
+                           {event.userRole === 'declined' ? (
+                              <div className="py-3 px-4 rounded-xl bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 font-bold text-sm flex items-center justify-center gap-2 border border-neutral-300 dark:border-neutral-600">
+                                 <XCircle size={18} /> Đã từ chối
+                              </div>
+                           ) : (!event.userRole || event.userRole === 'interested') && upcoming && (
                               <button
                                  onClick={() => handleAction("decline")}
                                  disabled={actionLoading}
@@ -422,8 +432,8 @@ export default function EventDetail() {
                      </div>
                      {event.attendees.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
-                           {event.attendees.slice(0, 12).map(user => (
-                              <Link key={user._id} to={`/user/${user._id}`} title={user.name}>
+                           {event.attendees.slice(0, 12).map((user, index) => (
+                              <Link key={`${user._id}-${index}`} to={`/user/${user._id}`} title={user.name}>
                                  <Avatar
                                     src={user.avatarUrl}
                                     name={user.name}

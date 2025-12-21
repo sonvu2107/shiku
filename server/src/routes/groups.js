@@ -70,7 +70,7 @@ const uploadToCloudinary = (buffer, folder = 'groups') => {
  * @desc    Lấy danh sách nhóm với phân trang và tìm kiếm
  * @access  Public (chỉ hiển thị public groups) - nhưng cần authOptional để tính userRole
  */
-router.get('/', authOptional, responseCache({ ttlSeconds: 60, prefix: 'groups' }), async (req, res) => {
+router.get('/', authOptional, responseCache({ ttlSeconds: 60, prefix: 'groups', varyByUser: true }), async (req, res) => {
   try {
     const {
       page = 1,
@@ -698,6 +698,9 @@ router.post('/:id/join', authRequired, async (req, res) => {
       // Tự động tham gia
       await group.addMember(userId, 'member');
 
+      // Invalidate cache để UI update ngay lập tức
+      invalidateByPattern('groups:*').catch(() => { });
+
       res.json({
         success: true,
         message: 'Tham gia nhóm thành công',
@@ -781,6 +784,9 @@ router.post('/:id/leave', authRequired, async (req, res) => {
     }
 
     await group.removeMember(userId);
+
+    // Invalidate cache để UI update ngay lập tức
+    invalidateByPattern('groups:*').catch(() => { });
 
     res.json({
       success: true,

@@ -544,6 +544,13 @@ export default function MessageList({
             })()}
           </div>
 
+          {/* Time display - visible on mobile, subtle on desktop */}
+          {!message.isDeleted && isLastInGroup && (
+            <div className={`text-[10px] text-gray-400/70 px-2 ${message.reactions?.length ? 'mt-4' : 'mt-1'} ${isOwn ? 'text-right' : 'text-left'}`}>
+              {formatMessageTime(message.createdAt)}
+            </div>
+          )}
+
           {/* Edited indicator */}
           {message.isEdited && !message.isDeleted && (
             <p className={`text-xs text-gray-400 dark:text-gray-500 mt-1 italic px-2 ${isOwn ? 'text-right' : 'text-left'

@@ -148,9 +148,20 @@ router.post('/:id/join', authRequired, async (req, res) => {
       });
     }
 
-    event.attendees.push(userId);
+    // Add to attendees if not already there
+    const isAlreadyAttendee = event.attendees.some(id => id.toString() === userId.toString());
+    if (!isAlreadyAttendee) {
+      event.attendees.push(userId);
+    }
+    // Remove from interested/declined if exists
+    event.interested = event.interested.filter(id => id.toString() !== userId.toString());
+    event.declined = event.declined.filter(id => id.toString() !== userId.toString());
     await event.save();
+    await event.populate('creator', 'name avatarUrl');
     await event.populate('attendees', 'name avatarUrl');
+    await event.populate('interested', 'name avatarUrl');
+    await event.populate('declined', 'name avatarUrl');
+    event.userRole = 'attendee';
 
     res.json({
       success: true,
@@ -202,7 +213,11 @@ router.post('/:id/leave', authRequired, async (req, res) => {
 
     event.attendees = event.attendees.filter(id => id.toString() !== userId.toString());
     await event.save();
+    await event.populate('creator', 'name avatarUrl');
     await event.populate('attendees', 'name avatarUrl');
+    await event.populate('interested', 'name avatarUrl');
+    await event.populate('declined', 'name avatarUrl');
+    event.userRole = null;
 
     res.json({
       success: true,
@@ -244,8 +259,22 @@ router.post('/:id/interested', authRequired, async (req, res) => {
       });
     }
 
-    await event.addInterested(userId);
+    // Add to interested if not already there and not attendee
+    const isAlreadyInterested = event.interested.some(id => id.toString() === userId.toString());
+    const isAlreadyAttendee = event.attendees.some(id => id.toString() === userId.toString());
+
+    if (!isAlreadyInterested && !isAlreadyAttendee) {
+      event.interested.push(userId);
+      // Remove from declined if exists
+      event.declined = event.declined.filter(id => id.toString() !== userId.toString());
+      await event.save();
+    }
+
+    await event.populate('creator', 'name avatarUrl');
+    await event.populate('attendees', 'name avatarUrl');
     await event.populate('interested', 'name avatarUrl');
+    await event.populate('declined', 'name avatarUrl');
+    event.userRole = 'interested';
 
     res.json({
       success: true,
@@ -287,8 +316,22 @@ router.post('/:id/decline', authRequired, async (req, res) => {
       });
     }
 
-    await event.addDeclined(userId);
+    // Add to declined if not already there and not attendee
+    const isAlreadyDeclined = event.declined.some(id => id.toString() === userId.toString());
+    const isAlreadyAttendee = event.attendees.some(id => id.toString() === userId.toString());
+
+    if (!isAlreadyDeclined && !isAlreadyAttendee) {
+      event.declined.push(userId);
+      // Remove from interested if exists
+      event.interested = event.interested.filter(id => id.toString() !== userId.toString());
+      await event.save();
+    }
+
+    await event.populate('creator', 'name avatarUrl');
+    await event.populate('attendees', 'name avatarUrl');
+    await event.populate('interested', 'name avatarUrl');
     await event.populate('declined', 'name avatarUrl');
+    event.userRole = 'declined';
 
     res.json({
       success: true,
