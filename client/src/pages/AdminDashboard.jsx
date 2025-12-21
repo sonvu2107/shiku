@@ -1032,7 +1032,7 @@ export default function AdminDashboard() {
                                  <button
                                     onClick={handleNotificationSubmit}
                                     disabled={!notificationForm.title || !notificationForm.message}
-                                    className="w-full py-3 bg-black dark:bg-white text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                    className="w-full py-3 bg-black dark:bg-white text-white dark:text-black font-bold rounded-xl hover:opacity-80 transition-colors disabled:opacity-50"
                                  >
                                     Gửi thông báo
                                  </button>

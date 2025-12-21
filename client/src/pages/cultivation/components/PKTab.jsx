@@ -203,22 +203,26 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
           }
 
           // Build compatible result format for PKTab
+          // Use stats from API response if available, otherwise use calculated from logs
+          const challengerHp = data.challenger?.stats?.qiBlood || initialChallengerHp;
+          const challengerMana = data.challenger?.stats?.zhenYuan || initialChallengerMana;
+          const opponentHp = data.opponent?.stats?.qiBlood || initialOpponentHp;
+          const opponentMana = data.opponent?.stats?.zhenYuan || initialOpponentMana;
+
           const compatibleResult = {
             ...data,
             challenger: {
               ...data.challenger,
               stats: {
-                qiBlood: initialChallengerHp,
-                zhenYuan: initialChallengerMana,
-                ...(data.challenger?.stats || {})
+                qiBlood: challengerHp,
+                zhenYuan: challengerMana
               }
             },
             opponent: {
               ...data.opponent,
               stats: {
-                qiBlood: initialOpponentHp,
-                zhenYuan: initialOpponentMana,
-                ...(data.opponent?.stats || {})
+                qiBlood: opponentHp,
+                zhenYuan: opponentMana
               }
             }
           };
@@ -228,10 +232,10 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
           setBattleLogs(logs);
           setCurrentLogIndex(0);
           // Initialize HP and Mana
-          setChallengerCurrentHp(initialChallengerHp);
-          setOpponentCurrentHp(initialOpponentHp);
-          setChallengerCurrentMana(initialChallengerMana);
-          setOpponentCurrentMana(initialOpponentMana);
+          setChallengerCurrentHp(challengerHp);
+          setOpponentCurrentHp(opponentHp);
+          setChallengerCurrentMana(challengerMana);
+          setOpponentCurrentMana(opponentMana);
           setBattlePhase('intro');
           setShowBattleAnimation(true);
           // Start battle after intro delay
