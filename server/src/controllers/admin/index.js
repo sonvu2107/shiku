@@ -6,3 +6,5 @@ export * from './auditController.js';
 export * from './notificationController.js';
 export * from './botController.js';
 export * from './postController.js';
+export * from './adminComments.js';
+export * from './adminReports.js';

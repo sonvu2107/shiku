@@ -13,6 +13,7 @@ import { ToastProvider, useToast } from "./contexts/ToastContext";
 import { PageLoader, LazyErrorBoundary } from "./components/PageLoader.jsx";
 import Loader from "./components/Loader.jsx";
 import OfflineScreen from "./components/OfflineScreen.jsx";
+import BottomNavBar from "./components/BottomNavBar.jsx";
 import { ChatProvider } from "./contexts/ChatContext.jsx";
 import Home from "./pages/Home.jsx"; // Eager load Home for better LCP
 
@@ -551,6 +552,8 @@ export default function App() {
             )}
 
 
+            {/* Mobile Bottom Navigation Bar */}
+            <BottomNavBar user={user} />
           </div>
         </ChatProvider>
       </ToastProvider>

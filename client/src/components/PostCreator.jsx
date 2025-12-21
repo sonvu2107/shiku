@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import BanNotification from "./BanNotification";
 import MarkdownEditor from "./MarkdownEditor";
 import UserAvatar from "./UserAvatar";
+import ImageViewer from "./ImageViewer";
 import { useToast } from "../contexts/ToastContext";
 import YouTubePlayer, { isValidYouTubeUrl } from "./YouTubePlayer";
 
@@ -58,6 +59,9 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
   // YouTube Music states
   const [youtubeUrl, setYoutubeUrl] = useState(""); // YouTube URL for music embed
   const [showYoutubeInput, setShowYoutubeInput] = useState(false); // Show YouTube input field
+
+  // Image fullscreen viewer state
+  const [viewingImage, setViewingImage] = useState(null);
 
   const navigate = useNavigate();
 
@@ -330,8 +334,8 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
               Bạn đang nghĩ gì?
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-              <div 
-                className="p-1.5 sm:p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" 
+              <div
+                className="p-1.5 sm:p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group"
                 title="Emoji"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -340,8 +344,8 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
               >
                 <Smile size={18} className="sm:w-5 sm:h-5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors" />
               </div>
-              <div 
-                className="p-1.5 sm:p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group" 
+              <div
+                className="p-1.5 sm:p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group"
                 title="Thêm ảnh/video"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -659,7 +663,13 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
                       {files.map((f, idx) => (
                         <div key={idx} className="relative group">
                           {f.type === "image" ? (
-                            <img src={f.url} alt="preview" className="w-24 h-24 object-cover rounded-2xl border border-neutral-200 dark:border-neutral-800" loading="lazy" />
+                            <img
+                              src={f.url}
+                              alt="preview"
+                              className="w-24 h-24 object-cover rounded-2xl border border-neutral-200 dark:border-neutral-800 cursor-pointer hover:opacity-90 transition-opacity"
+                              loading="lazy"
+                              onClick={() => setViewingImage(f.url)}
+                            />
                           ) : (
                             <video src={f.url} controls className="w-24 h-24 object-cover rounded-2xl border border-neutral-200 dark:border-neutral-800" />
                           )}
@@ -931,6 +941,14 @@ const PostCreator = forwardRef(function PostCreator({ user, groupId = null, hide
           onClose={() => setShowBanNotification(false)}
         />
       )}
+
+      {/* Image Fullscreen Viewer */}
+      <ImageViewer
+        isOpen={!!viewingImage}
+        imageUrl={viewingImage}
+        onClose={() => setViewingImage(null)}
+        alt="Preview"
+      />
     </>
   );
 });

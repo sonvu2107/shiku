@@ -10,6 +10,8 @@ import SecurityAlerts from '../components/admin/SecurityAlerts';
 import MobileQuickActions from '../components/admin/MobileQuickActions';
 import AdminPostsTab from '../components/admin/AdminPostsTab';
 import AdminInsightsTab from '../components/admin/AdminInsightsTab';
+import AdminCommentsTab from '../components/admin/AdminCommentsTab';
+import AdminReportsTab from '../components/admin/AdminReportsTab';
 import ActiveUsersChart from '../components/admin/ActiveUsersChart';
 import VerifiedBadge from "../components/VerifiedBadge";
 import Avatar from "../components/Avatar";
@@ -51,7 +53,8 @@ import {
    Ban,
    X,
    Sword,
-   Target
+   Target,
+   Flag
 } from "lucide-react";
 
 /**
@@ -79,6 +82,7 @@ export default function AdminDashboard() {
       setUsers,
       // Pagination
       userPagination,
+      userFilters,
       usersLoading,
       goToPage,
       securityAlerts,
@@ -112,6 +116,20 @@ export default function AdminDashboard() {
    const [availableRoles, setAvailableRoles] = useState([]);
    const [userSearchTerm, setUserSearchTerm] = useState("");
    const [userRoleFilter, setUserRoleFilter] = useState("");
+
+   // Debounce timer for server-side search
+   const searchTimeoutRef = React.useRef(null);
+   const handleUserSearch = React.useCallback((value) => {
+      setUserSearchTerm(value);
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = setTimeout(() => {
+         updateUserFilters({ search: value });
+      }, 400);
+   }, [updateUserFilters]);
+   const handleRoleFilterChange = React.useCallback((value) => {
+      setUserRoleFilter(value);
+      updateUserFilters({ role: value });
+   }, [updateUserFilters]);
 
    const navigate = useNavigate();
    const { showError, showSuccess } = useToast();
@@ -230,6 +248,8 @@ export default function AdminDashboard() {
       { id: 'insights', label: 'Insights', icon: Target, permission: 'admin.viewStats' },
       { id: 'users', label: 'Quản lý N.Dùng', icon: Users, permission: 'admin.manageUsers' },
       { id: 'posts', label: 'Quản lý bài viết', icon: FileText, permission: 'admin.managePosts' },
+      { id: 'comments', label: 'Quản lý B.Luận', icon: MessageCircle, permission: 'admin.manageComments' },
+      { id: 'reports', label: 'Báo cáo', icon: Flag, permission: 'admin.manageReports' },
       { id: 'online', label: 'Online & Traffic', icon: Activity, permission: 'admin.viewStats' },
       { id: 'roles', label: 'Phân quyền', icon: Crown, permission: 'admin.manageRoles' },
       { id: 'bans', label: 'Cấm N.Dùng', icon: Ban, permission: 'admin.manageBans' },
@@ -594,13 +614,13 @@ export default function AdminDashboard() {
                                     className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 outline-none text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                     placeholder="Tìm kiếm theo tên, email..."
                                     value={userSearchTerm}
-                                    onChange={e => setUserSearchTerm(e.target.value)}
+                                    onChange={e => handleUserSearch(e.target.value)}
                                  />
                               </div>
                               <select
                                  className="px-4 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 outline-none text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer"
                                  value={userRoleFilter}
-                                 onChange={e => setUserRoleFilter(e.target.value)}
+                                 onChange={e => handleRoleFilterChange(e.target.value)}
                               >
                                  <option value="">Tất cả quyền</option>
                                  {availableRoles.map(r => <option key={r.name} value={r.name}>{r.displayName}</option>)}
@@ -621,163 +641,147 @@ export default function AdminDashboard() {
                                     </tr>
                                  </thead>
                                  <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                                    {users
-                                       .filter(u => {
-                                          const matchSearch = !userSearchTerm || u.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) || u.email?.toLowerCase().includes(userSearchTerm.toLowerCase());
-                                          const matchRole = !userRoleFilter || (u.role?.name || u.role) === userRoleFilter;
-                                          return matchSearch && matchRole;
-                                       })
-                                       .map(u => {
-                                          const isOnline = onlineUsers.some(ou => ou._id === u._id || ou._id?.toString() === u._id?.toString());
-                                          const isBanned = u.isBanned;
-                                          return (
-                                             <tr key={u._id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                                                <td className="px-4 py-3">
-                                                   <div className="flex items-center gap-3">
-                                                      <Avatar src={u.avatarUrl} name={u.name} size={40} className="" />
-                                                      <div className="min-w-0 max-w-[180px]">
-                                                         <div className="font-bold text-sm truncate flex items-center gap-1">
-                                                            {u.name}
-                                                            <VerifiedBadge role={u.role?.name || u.role} isVerified={u.isVerified} />
-                                                         </div>
-                                                         <div className="text-xs text-neutral-500 truncate">{u.email}</div>
+                                    {users.map(u => {
+                                       const isOnline = onlineUsers.some(ou => ou._id === u._id || ou._id?.toString() === u._id?.toString());
+                                       const isBanned = u.isBanned;
+                                       return (
+                                          <tr key={u._id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                                             <td className="px-4 py-3">
+                                                <div className="flex items-center gap-3">
+                                                   <Avatar src={u.avatarUrl} name={u.name} size={40} className="" />
+                                                   <div className="min-w-0 max-w-[180px]">
+                                                      <div className="font-bold text-sm truncate flex items-center gap-1">
+                                                         {u.name}
+                                                         <VerifiedBadge role={u.role?.name || u.role} isVerified={u.isVerified} />
                                                       </div>
+                                                      <div className="text-xs text-neutral-500 truncate">{u.email}</div>
                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                   <div className="flex flex-col gap-1">
-                                                      {isBanned ? (
-                                                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800">
-                                                            <Ban size={12} />
-                                                            Bị cấm
-                                                         </span>
-                                                      ) : isOnline ? (
-                                                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
-                                                            <Wifi size={12} />
-                                                            Đang online
-                                                         </span>
-                                                      ) : (
-                                                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-neutral-800">
-                                                            <WifiOff size={12} />
-                                                            Offline
-                                                         </span>
-                                                      )}
-                                                   </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-neutral-600 dark:text-neutral-400">
-                                                   {u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN', {
-                                                      year: 'numeric',
-                                                      month: '2-digit',
-                                                      day: '2-digit'
-                                                   }) : 'N/A'}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                   <span className="font-semibold text-black dark:text-white">{u.postCount || 0}</span>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                   <select
-                                                      value={u.role?.name || u.role}
-                                                      onChange={(e) => updateUserRole(u._id, e.target.value)}
-                                                      disabled={u._id === user._id || updatingRoles.has(u._id)}
-                                                      className="text-xs bg-transparent border border-neutral-200 dark:border-neutral-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:opacity-50 appearance-none"
-                                                   >
-                                                      {availableRoles.map(r => <option key={r.name} value={r.name}>{r.displayName}</option>)}
-                                                   </select>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                   <button onClick={() => deleteUser(u._id)} disabled={u._id === user._id} className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50">
-                                                      <Trash2 size={16} />
-                                                   </button>
-                                                </td>
-                                             </tr>
-                                          );
-                                       })}
-                                    {users.filter(u => {
-                                       const matchSearch = !userSearchTerm || u.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) || u.email?.toLowerCase().includes(userSearchTerm.toLowerCase());
-                                       const matchRole = !userRoleFilter || (u.role?.name || u.role) === userRoleFilter;
-                                       return matchSearch && matchRole;
-                                    }).length === 0 && (
-                                          <tr>
-                                             <td colSpan="6" className="px-4 py-12 text-center text-neutral-500">
-                                                Không có người dùng nào
+                                                </div>
+                                             </td>
+                                             <td className="px-4 py-3">
+                                                <div className="flex flex-col gap-1">
+                                                   {isBanned ? (
+                                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800">
+                                                         <Ban size={12} />
+                                                         Bị cấm
+                                                      </span>
+                                                   ) : isOnline ? (
+                                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
+                                                         <Wifi size={12} />
+                                                         Đang online
+                                                      </span>
+                                                   ) : (
+                                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-neutral-800">
+                                                         <WifiOff size={12} />
+                                                         Offline
+                                                      </span>
+                                                   )}
+                                                </div>
+                                             </td>
+                                             <td className="px-4 py-3 text-neutral-600 dark:text-neutral-400">
+                                                {u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN', {
+                                                   year: 'numeric',
+                                                   month: '2-digit',
+                                                   day: '2-digit'
+                                                }) : 'N/A'}
+                                             </td>
+                                             <td className="px-4 py-3">
+                                                <span className="font-semibold text-black dark:text-white">{u.postCount || 0}</span>
+                                             </td>
+                                             <td className="px-4 py-3">
+                                                <select
+                                                   value={u.role?.name || u.role}
+                                                   onChange={(e) => updateUserRole(u._id, e.target.value)}
+                                                   disabled={u._id === user._id || updatingRoles.has(u._id)}
+                                                   className="text-xs bg-transparent border border-neutral-200 dark:border-neutral-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:opacity-50 appearance-none"
+                                                >
+                                                   {availableRoles.map(r => <option key={r.name} value={r.name}>{r.displayName}</option>)}
+                                                </select>
+                                             </td>
+                                             <td className="px-4 py-3">
+                                                <button onClick={() => deleteUser(u._id)} disabled={u._id === user._id} className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50">
+                                                   <Trash2 size={16} />
+                                                </button>
                                              </td>
                                           </tr>
-                                       )}
+                                       );
+                                    })}
+                                    {users.length === 0 && (
+                                       <tr>
+                                          <td colSpan="6" className="px-4 py-12 text-center text-neutral-500">
+                                             {usersLoading ? "Đang tải..." : "Không có người dùng nào"}
+                                          </td>
+                                       </tr>
+                                    )}
                                  </tbody>
                               </table>
                            </div>
 
                            {/* Mobile List View */}
                            <div className="md:hidden space-y-2">
-                              {users
-                                 .filter(u => {
-                                    const matchSearch = !userSearchTerm || u.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) || u.email?.toLowerCase().includes(userSearchTerm.toLowerCase());
-                                    const matchRole = !userRoleFilter || (u.role?.name || u.role) === userRoleFilter;
-                                    return matchSearch && matchRole;
-                                 })
-                                 .map(u => {
-                                    const isOnline = onlineUsers.some(ou => ou._id === u._id || ou._id?.toString() === u._id?.toString());
-                                    const isBanned = u.isBanned;
-                                    return (
-                                       <div key={u._id} className="p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-xl transition-all border border-neutral-100 dark:border-neutral-800/50 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-sm hover:shadow-md">
-                                          <div className="flex items-start justify-between mb-2">
-                                             <div className="flex items-center gap-3 overflow-hidden flex-1">
-                                                <Avatar src={u.avatarUrl} name={u.name} size={40} className="flex-shrink-0" />
-                                                <div className="min-w-0 flex-1">
-                                                   <div className="font-bold text-sm truncate flex items-center gap-1">
-                                                      {u.name}
-                                                      <VerifiedBadge role={u.role?.name || u.role} isVerified={u.isVerified} />
-                                                   </div>
-                                                   <div className="text-xs text-neutral-500 truncate">{u.email}</div>
+                              {users.map(u => {
+                                 const isOnline = onlineUsers.some(ou => ou._id === u._id || ou._id?.toString() === u._id?.toString());
+                                 const isBanned = u.isBanned;
+                                 return (
+                                    <div key={u._id} className="p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-xl transition-all border border-neutral-100 dark:border-neutral-800/50 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-sm hover:shadow-md">
+                                       <div className="flex items-start justify-between mb-2">
+                                          <div className="flex items-center gap-3 overflow-hidden flex-1">
+                                             <Avatar src={u.avatarUrl} name={u.name} size={40} className="flex-shrink-0" />
+                                             <div className="min-w-0 flex-1">
+                                                <div className="font-bold text-sm truncate flex items-center gap-1">
+                                                   {u.name}
+                                                   <VerifiedBadge role={u.role?.name || u.role} isVerified={u.isVerified} />
                                                 </div>
-                                             </div>
-                                             <button onClick={() => deleteUser(u._id)} disabled={u._id === user._id} className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50 flex-shrink-0">
-                                                <Trash2 size={16} />
-                                             </button>
-                                          </div>
-                                          <div className="grid grid-cols-2 gap-2 text-xs mb-2">
-                                             <div>
-                                                <span className="text-neutral-500">Trạng thái:</span>
-                                                <div className="mt-1">
-                                                   {isBanned ? (
-                                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                                                         <Ban size={10} />
-                                                         Bị cấm
-                                                      </span>
-                                                   ) : isOnline ? (
-                                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                                                         <Wifi size={10} />
-                                                         Online
-                                                      </span>
-                                                   ) : (
-                                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-400">
-                                                         <WifiOff size={10} />
-                                                         Offline
-                                                      </span>
-                                                   )}
-                                                </div>
-                                             </div>
-                                             <div>
-                                                <span className="text-neutral-500">Số bài viết:</span>
-                                                <div className="mt-1 font-semibold text-black dark:text-white">{u.postCount || 0}</div>
+                                                <div className="text-xs text-neutral-500 truncate">{u.email}</div>
                                              </div>
                                           </div>
-                                          <div className="text-xs text-neutral-500 mb-2">
-                                             Ngày tham gia: {u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                                          <button onClick={() => deleteUser(u._id)} disabled={u._id === user._id} className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50 flex-shrink-0">
+                                             <Trash2 size={16} />
+                                          </button>
+                                       </div>
+                                       <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                                          <div>
+                                             <span className="text-neutral-500">Trạng thái:</span>
+                                             <div className="mt-1">
+                                                {isBanned ? (
+                                                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                                                      <Ban size={10} />
+                                                      Bị cấm
+                                                   </span>
+                                                ) : isOnline ? (
+                                                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                                      <Wifi size={10} />
+                                                      Online
+                                                   </span>
+                                                ) : (
+                                                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-400">
+                                                      <WifiOff size={10} />
+                                                      Offline
+                                                   </span>
+                                                )}
+                                             </div>
                                           </div>
                                           <div>
-                                             <select
-                                                value={u.role?.name || u.role}
-                                                onChange={(e) => updateUserRole(u._id, e.target.value)}
-                                                disabled={u._id === user._id || updatingRoles.has(u._id)}
-                                                className="w-full text-xs bg-transparent border border-neutral-200 dark:border-neutral-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:opacity-50 appearance-none"
-                                             >
-                                                {availableRoles.map(r => <option key={r.name} value={r.name}>{r.displayName}</option>)}
-                                             </select>
+                                             <span className="text-neutral-500">Số bài viết:</span>
+                                             <div className="mt-1 font-semibold text-black dark:text-white">{u.postCount || 0}</div>
                                           </div>
                                        </div>
-                                    );
-                                 })}
+                                       <div className="text-xs text-neutral-500 mb-2">
+                                          Ngày tham gia: {u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                                       </div>
+                                       <div>
+                                          <select
+                                             value={u.role?.name || u.role}
+                                             onChange={(e) => updateUserRole(u._id, e.target.value)}
+                                             disabled={u._id === user._id || updatingRoles.has(u._id)}
+                                             className="w-full text-xs bg-transparent border border-neutral-200 dark:border-neutral-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:opacity-50 appearance-none"
+                                          >
+                                             {availableRoles.map(r => <option key={r.name} value={r.name}>{r.displayName}</option>)}
+                                          </select>
+                                       </div>
+                                    </div>
+                                 );
+                              })}
                            </div>
 
                            {/* Pagination Controls */}
@@ -1062,6 +1066,18 @@ export default function AdminDashboard() {
                   {activeTab === "posts" && (
                      <motion.div key="posts" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                         <AdminPostsTab />
+                     </motion.div>
+                  )}
+
+                  {activeTab === "comments" && (
+                     <motion.div key="comments" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                        <AdminCommentsTab />
+                     </motion.div>
+                  )}
+
+                  {activeTab === "reports" && (
+                     <motion.div key="reports" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                        <AdminReportsTab />
                      </motion.div>
                   )}
 

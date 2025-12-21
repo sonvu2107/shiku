@@ -61,8 +61,7 @@ import equipmentRoutes from "./routes/equipment.js"; // Equipment management rou
 import welcomeRoutes from "./routes/welcome.js"; // Welcome/onboarding routes
 import activityLeaderboardRoutes from "./routes/activityLeaderboard.js"; // Activity leaderboard routes
 import arenaRoutes from "./routes/arena.js"; // Ranked Arena routes
-
-// Environment variables are loaded via `import 'dotenv/config'` at the top
+import reportsRoutes from "./routes/reports.js"; // User reports routes
 
 // Tạo Express app và HTTP server
 const app = express();
@@ -462,8 +461,7 @@ app.use("/api/equipment", apiLimiter, equipmentRoutes); // Equipment management 
 app.use("/api/welcome", welcomeRoutes); // Welcome/onboarding routes
 app.use("/api/activity-leaderboard", apiLimiter, activityLeaderboardRoutes); // Activity leaderboard routes
 app.use("/api/arena", apiLimiter, arenaRoutes); // Ranked Arena routes
-
-// Làm cho Socket.IO instance có thể truy cập từ routes
+app.use("/api/reports", apiLimiter, reportsRoutes); // User reports routes
 app.set("io", io);
 
 // ==================== ERROR HANDLING ====================

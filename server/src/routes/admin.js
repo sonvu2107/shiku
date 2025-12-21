@@ -46,7 +46,19 @@ import {
   getAuthors,
   deletePostsByUser,
   pinPost,
-  unpinPost
+  unpinPost,
+  // Comment management
+  getComments,
+  getCommentAuthors,
+  deleteComment,
+  bulkDeleteComments,
+  deleteCommentsByUser,
+  // Report management
+  getReports,
+  getReportStats,
+  resolveReport,
+  dismissReport,
+  deleteReport
 } from "../controllers/admin/index.js";
 
 const router = express.Router();
@@ -162,6 +174,26 @@ router.post("/posts/bulk-delete", strictAdminRateLimit, authRequired, adminRequi
 router.post("/posts/delete-by-user", strictAdminRateLimit, authRequired, adminRequired, deletePostsByUser);
 router.post("/posts/:id/pin", strictAdminRateLimit, authRequired, adminRequired, pinPost);
 router.post("/posts/:id/unpin", strictAdminRateLimit, authRequired, adminRequired, unpinPost);
+
+// ============================================================
+// COMMENT MANAGEMENT ROUTES
+// ============================================================
+
+router.get("/comments", adminRateLimit, authRequired, adminRequired, getComments);
+router.get("/comments/authors", adminRateLimit, authRequired, adminRequired, getCommentAuthors);
+router.delete("/comments/:id", strictAdminRateLimit, authRequired, adminRequired, deleteComment);
+router.post("/comments/bulk-delete", strictAdminRateLimit, authRequired, adminRequired, bulkDeleteComments);
+router.post("/comments/delete-by-user", strictAdminRateLimit, authRequired, adminRequired, deleteCommentsByUser);
+
+// ============================================================
+// REPORT MANAGEMENT ROUTES
+// ============================================================
+
+router.get("/reports", adminRateLimit, authRequired, adminRequired, getReports);
+router.get("/reports/stats", adminRateLimit, authRequired, adminRequired, getReportStats);
+router.post("/reports/:id/resolve", strictAdminRateLimit, authRequired, adminRequired, resolveReport);
+router.post("/reports/:id/dismiss", strictAdminRateLimit, authRequired, adminRequired, dismissReport);
+router.delete("/reports/:id", strictAdminRateLimit, authRequired, adminRequired, deleteReport);
 
 // ============================================================
 // DATA INTEGRITY ROUTES

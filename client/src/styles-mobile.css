@@ -114,6 +114,18 @@
     padding: 8px;
     gap: 4px;
   }
+
+  /* Bottom Nav Bar padding - prevent content from being covered */
+  .pb-mobile-nav {
+    padding-bottom: 60px !important;
+  }
+
+  /* Apply to main content containers */
+  main,
+  .main-content,
+  .feed-container {
+    padding-bottom: 60px;
+  }
 }
 
 /* ==================== TOUCH OPTIMIZATIONS ==================== */

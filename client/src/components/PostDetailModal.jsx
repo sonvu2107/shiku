@@ -17,6 +17,7 @@ import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 import { cn } from "../utils/cn";
 import { useToast } from "../contexts/ToastContext";
+import { useSwipeGesture } from "../hooks/useSwipeGesture";
 import {
     X,
     Eye,
@@ -122,6 +123,31 @@ export default function PostDetailModal({
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose, showMediaModal]);
+
+    // Swipe gesture for closing modal (swipe down)
+    const { handlers: swipeHandlers, swipeOffset } = useSwipeGesture({
+        onSwipeDown: () => {
+            if (!showMediaModal) onClose();
+        },
+        threshold: 80,
+        velocityThreshold: 0.3
+    });
+
+    // Swipe gesture for media navigation
+    const { handlers: mediaSwipeHandlers } = useSwipeGesture({
+        onSwipeLeft: () => {
+            if (allMedia.length > 1) {
+                setCurrentMediaIndex(prev => (prev + 1) % allMedia.length);
+            }
+        },
+        onSwipeRight: () => {
+            if (allMedia.length > 1) {
+                setCurrentMediaIndex(prev => (prev - 1 + allMedia.length) % allMedia.length);
+            }
+        },
+        onSwipeDown: () => setShowMediaModal(false),
+        threshold: 50
+    });
 
     // Handle upvote
     const handleUpvote = useCallback(async () => {
@@ -306,7 +332,15 @@ export default function PostDetailModal({
                         </div>
 
                         {/* Scrollable Content - Matches PostDetail.jsx layout */}
-                        <div className="flex-1 overflow-y-auto">
+                        <div
+                            className="flex-1 overflow-y-auto"
+                            {...swipeHandlers}
+                            style={{
+                                transform: swipeOffset.y > 0 ? `translateY(${Math.min(swipeOffset.y * 0.5, 100)}px)` : 'none',
+                                opacity: swipeOffset.y > 0 ? Math.max(1 - swipeOffset.y / 200, 0.5) : 1,
+                                transition: swipeOffset.y === 0 ? 'all 0.2s ease-out' : 'none'
+                            }}
+                        >
                             <div className="px-3 sm:px-4 md:px-5 pt-3 sm:pt-4 md:pt-5 pb-3 sm:pb-5 md:pb-6">
 
                                 {/* HEADER - Match PostDetail */}
@@ -736,7 +770,11 @@ export default function PostDetailModal({
                                     </>
                                 )}
 
-                                <div className="max-w-[90vw] max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                                <div
+                                    className="max-w-[90vw] max-h-[90vh]"
+                                    onClick={e => e.stopPropagation()}
+                                    {...mediaSwipeHandlers}
+                                >
                                     {allMedia[currentMediaIndex]?.type === "video" ? (
                                         <video
                                             src={allMedia[currentMediaIndex].url}

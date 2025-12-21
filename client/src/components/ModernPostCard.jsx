@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, memo, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Star, X, Smile, Image as ImageIcon, Send, Loader2, Play, Pin } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Star, X, Smile, Image as ImageIcon, Send, Loader2, Play, Pin, Flag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getOptimizedImageUrl } from "../utils/imageOptimization";
 import LazyImage from "./LazyImageSimple";
@@ -17,6 +17,7 @@ import YouTubePlayer from "./YouTubePlayer";
 import { useToast } from "../contexts/ToastContext";
 import ContentWithSeeMore from "./ContentWithSeeMore";
 import PostDetailModal from "./PostDetailModal";
+import ReportModal from "./ReportModal";
 
 // Emote system removed - using upvote system instead
 
@@ -54,6 +55,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
 
   // Post Detail Modal state
   const [showPostModal, setShowPostModal] = useState(false);
+  // Report Modal state
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Sync upvote state when post changes
   useEffect(() => {
@@ -463,6 +466,18 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                     <X size={14} className="sm:w-4 sm:h-4" />
                     <span>Không quan tâm</span>
                   </button>
+                  <div className="h-px bg-gray-100 dark:bg-neutral-700 my-1" />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMainMenu(false);
+                      setShowReportModal(true);
+                    }}
+                    className="w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 text-red-600 dark:text-red-400"
+                  >
+                    <Flag size={14} className="sm:w-4 sm:h-4" />
+                    <span>Báo cáo bài viết</span>
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -796,6 +811,15 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         onUpdate={onUpdate}
         isSaved={saved}
         onSavedChange={onSavedChange}
+      />
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetType="post"
+        targetId={post._id}
+        targetInfo={{ name: post.title || post.content?.slice(0, 50) }}
       />
     </div>
   );

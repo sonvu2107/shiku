@@ -73,7 +73,7 @@ function BackToTop() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={scrollToTop}
-          className="fixed bottom-4 right-4 z-[9999] p-3 bg-black dark:bg-neutral-700 text-white dark:text-white rounded-full shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+          className="hidden md:block fixed bottom-4 right-4 z-[9999] p-3 bg-black dark:bg-neutral-700 text-white dark:text-white rounded-full shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
           aria-label="Cuộn lên đầu trang"
         >
           <ArrowUp size={24} />

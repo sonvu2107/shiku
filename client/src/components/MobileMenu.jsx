@@ -173,8 +173,8 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
               {/* Group 1: Social / Browse */}
               <div className="space-y-1">
                 {[
-                  { icon: Home, label: "Trang chủ", path: "/", show: true },
-                  { icon: Compass, label: "Khám phá", path: "/explore", show: true },
+                  { icon: Home, label: "Trang chủ", path: "/", show: false }, // In BottomNavBar
+                  { icon: Compass, label: "Khám phá", path: "/explore", show: false }, // In BottomNavBar
                   { icon: Sparkles, label: "Tu Tiên", path: "/cultivation", show: true, highlight: true },
                   { icon: Calendar, label: "Sự kiện", path: "/events", show: true },
                   { icon: Image, label: "Media", path: "/media", show: true },
@@ -237,7 +237,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
                 {[
                   { icon: Bookmark, label: "Bài đã lưu", path: "/saved", show: !!user },
                   { icon: Users, label: "Bạn bè", path: "/friends", show: !!user },
-                  { icon: UserCheck, label: "Nhóm", path: "/groups", show: !!user },
+                  { icon: UserCheck, label: "Nhóm", path: "/groups", show: false }, // In BottomNavBar
                   { icon: MessageCircle, label: "Chat", path: "/chat", show: false }, // Hidden by default config
                   { icon: Bell, label: "Thông báo", path: "/notifications", show: false }, // Hidden by default config
                 ].map((item) => {
@@ -286,7 +286,7 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
               {/* Group 3: Account / System */}
               <div className="space-y-1">
                 {[
-                  { icon: User, label: "Trang cá nhân", path: "/profile", show: !!user },
+                  { icon: User, label: "Trang cá nhân", path: "/profile", show: false }, // In BottomNavBar
                   { icon: Settings, label: "Cài đặt", path: "/settings", show: !!user },
                   { icon: HelpCircle, label: "Trợ giúp", path: "/support", show: true },
                   { icon: Crown, label: "Admin", path: "/admin", show: user && (user.role === "admin" || Object.keys(user.roleData?.permissions || {}).some(k => k.startsWith('admin.') && user.roleData?.permissions[k])), isAdmin: true },
