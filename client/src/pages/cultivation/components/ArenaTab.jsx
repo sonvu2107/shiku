@@ -17,16 +17,16 @@ import { useCultivation } from '../../../hooks/useCultivation.jsx';
 // ==================== CONSTANTS ====================
 
 const RANK_TIERS = [
-    { tier: 1, name: 'Phàm Giả', minMmr: 0, color: '#9CA3AF', logo: '/assets/rank_area/phamgia.jpg', title: '/assets/rank_title/phamgia.jpg' },
-    { tier: 2, name: 'Tu Sĩ', minMmr: 800, color: '#10B981', logo: '/assets/rank_area/tusi.jpg', title: '/assets/rank_title/tusi.jpg' },
-    { tier: 3, name: 'Tinh Anh', minMmr: 1200, color: '#3B82F6', logo: '/assets/rank_area/tinhanh.jpg', title: '/assets/rank_title/tinhanh.jpg' },
-    { tier: 4, name: 'Thiên Kiêu', minMmr: 1600, color: '#8B5CF6', logo: '/assets/rank_area/thienkieu.jpg', title: '/assets/rank_title/thienkieu.jpg' },
-    { tier: 5, name: 'Vương Giả', minMmr: 2000, color: '#F59E0B', logo: '/assets/rank_area/vuonggia.jpg', title: '/assets/rank_title/vuonggia.jpg' },
-    { tier: 6, name: 'Bá Chủ', minMmr: 2400, color: '#EF4444', logo: '/assets/rank_area/bachu.jpg', title: '/assets/rank_title/bachu.jpg' },
-    { tier: 7, name: 'Chí Tôn', minMmr: 2800, color: '#EC4899', logo: '/assets/rank_area/chiton.jpg', title: '/assets/rank_title/chiton.jpg' },
-    { tier: 8, name: 'Tiên Tôn', minMmr: 3200, color: '#FFD700', logo: '/assets/rank_area/tienton.jpg', title: '/assets/rank_title/tienton.jpg', faction: 'tien' },
-    { tier: 8, name: 'Ma Tôn', minMmr: 3200, color: '#7C3AED', logo: '/assets/rank_area/maton.jpg', title: '/assets/rank_title/maton.jpg', faction: 'ma' },
-    { tier: 9, name: 'Truyền Thuyết', minMmr: 4000, color: '#FF00FF', logo: '/assets/rank_area/truyenthuyet.jpg', title: '/assets/rank_title/truyenthuyet.jpg' }
+    { tier: 1, name: 'Phàm Giả', minMmr: 0, color: '#9CA3AF', logo: '/assets/rank_area/phamgia.png', title: '/assets/rank_title/phamgia.jpg' },
+    { tier: 2, name: 'Tu Sĩ', minMmr: 800, color: '#10B981', logo: '/assets/rank_area/tusi.png', title: '/assets/rank_title/tusi.jpg' },
+    { tier: 3, name: 'Tinh Anh', minMmr: 1200, color: '#3B82F6', logo: '/assets/rank_area/tinhanh.png', title: '/assets/rank_title/tinhanh.jpg' },
+    { tier: 4, name: 'Thiên Kiêu', minMmr: 1600, color: '#8B5CF6', logo: '/assets/rank_area/thienkieu.png', title: '/assets/rank_title/thienkieu.jpg' },
+    { tier: 5, name: 'Vương Giả', minMmr: 2000, color: '#F59E0B', logo: '/assets/rank_area/vuonggia.png', title: '/assets/rank_title/vuonggia.jpg' },
+    { tier: 6, name: 'Bá Chủ', minMmr: 2400, color: '#EF4444', logo: '/assets/rank_area/bachu.png', title: '/assets/rank_title/bachu.jpg' },
+    { tier: 7, name: 'Chí Tôn', minMmr: 2800, color: '#EC4899', logo: '/assets/rank_area/chiton.png', title: '/assets/rank_title/chiton.jpg' },
+    { tier: 8, name: 'Tiên Tôn', minMmr: 3200, color: '#FFD700', logo: '/assets/rank_area/tienton.png', title: '/assets/rank_title/tienton.jpg', faction: 'tien' },
+    { tier: 8, name: 'Ma Tôn', minMmr: 3200, color: '#7C3AED', logo: '/assets/rank_area/maton.png', title: '/assets/rank_title/maton.jpg', faction: 'ma' },
+    { tier: 9, name: 'Truyền Thuyết', minMmr: 4000, color: '#FF00FF', logo: '/assets/rank_area/truyenthuyet.png', title: '/assets/rank_title/truyenthuyet.jpg' }
 ];
 
 // ==================== SUB COMPONENTS ====================
@@ -59,34 +59,66 @@ const RankBadge = memo(function RankBadge({ rankData, showProgress = true, onFin
     const isOnCooldown = countdown > 0;
 
     return (
-        <div className="spirit-tablet rounded-xl p-4 lg:p-6">
+        <div className="spirit-tablet rounded-xl p-4 lg:p-6 relative overflow-hidden">
+            {/* Decorative Corners */}
+            <div className="spirit-corner spirit-corner-tl border-amber-500/40"></div>
+            <div className="spirit-corner spirit-corner-tr border-amber-500/40"></div>
+            <div className="spirit-corner spirit-corner-bl border-amber-500/40"></div>
+            <div className="spirit-corner spirit-corner-br border-amber-500/40"></div>
+
+            {/* Qi Particles */}
+            <div className="qi-particle" style={{ top: '10%', left: '10%', animationDelay: '0s' }}></div>
+            <div className="qi-particle" style={{ top: '15%', right: '15%', animationDelay: '1s' }}></div>
+            <div className="qi-particle" style={{ bottom: '20%', left: '20%', animationDelay: '2s' }}></div>
+            <div className="qi-particle" style={{ bottom: '15%', right: '10%', animationDelay: '1.5s' }}></div>
+
+            {/* Floating Chinese Characters */}
+            <span className="floating-char" style={{ left: '5%', top: '25%', animationDelay: '0s' }}>武</span>
+            <span className="floating-char" style={{ right: '8%', top: '30%', animationDelay: '1s' }}>鬥</span>
+            <span className="floating-char" style={{ left: '10%', bottom: '30%', animationDelay: '2s' }}>戰</span>
+            <span className="floating-char" style={{ right: '12%', bottom: '25%', animationDelay: '1.5s' }}>勝</span>
+
             {/* Rank Logo & Info */}
-            <div className="flex flex-col items-center gap-3">
-                <div
-                    className="relative w-24 h-24 lg:w-32 lg:h-32 rounded-full overflow-hidden border-4 shadow-lg"
-                    style={{ borderColor: tierInfo.color, boxShadow: `0 0 20px ${tierInfo.color}40` }}
-                >
+            <div className="flex flex-col items-center relative">
+                {/* Rank Name & MMR - Above logo */}
+                <div className="text-center mb-4">
+                    <h2
+                        className="text-3xl sm:text-4xl lg:text-5xl font-title tracking-widest mb-3 realm-name-glow uppercase"
+                        style={{ color: tierInfo.color }}
+                    >
+                        {rankData.tierName}
+                    </h2>
+
+                    {/* Decorative Line */}
+                    <div className="h-[1px] w-32 sm:w-40 md:w-48 mx-auto bg-gradient-to-r from-transparent via-amber-500/50 to-transparent relative mb-3">
+                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                    </div>
+
+                    {/* MMR Points */}
+                    <p className="text-slate-400 text-sm uppercase tracking-widest">
+                        {rankData.mmr} <span className="text-gold font-bold">MMR</span>
+                    </p>
+                </div>
+
+                {/* Rank Logo - Below name */}
+                <div className="relative w-48 h-48 lg:w-56 lg:h-56">
+                    {/* Animated Ring */}
+                    <div className="absolute inset-0 border-2 border-amber-500/30 rounded-full animate-spin" style={{ animationDuration: '15s' }}></div>
+                    <div className="absolute inset-2 border border-amber-500/20 rounded-full animate-spin" style={{ animationDuration: '20s', animationDirection: 'reverse' }}></div>
+
                     <img
                         src={tierInfo.logo}
                         alt={rankData.tierName}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain drop-shadow-lg relative z-10"
+                        style={{
+                            filter: `drop-shadow(0 0 15px ${tierInfo.color}80)`,
+                            mixBlendMode: 'lighten'
+                        }}
                         onError={(e) => {
                             e.target.onerror = null;
                             e.target.src = '/assets/default-rank.png';
                         }}
                     />
-                </div>
-
-                <div className="text-center">
-                    <h2
-                        className="text-2xl lg:text-3xl font-bold font-title realm-name-glow"
-                        style={{ color: tierInfo.color }}
-                    >
-                        {rankData.tierName}
-                    </h2>
-                    <p className="text-3xl lg:text-4xl font-bold text-gold mt-1">
-                        {rankData.mmr} MMR
-                    </p>
                 </div>
 
                 {/* Placement Info */}

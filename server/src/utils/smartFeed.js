@@ -80,6 +80,18 @@ export function calculateEngagementScore(post, commentsCount = 0, interestedPost
     }
   }
 
+  // ==================== COMMENT FRESHNESS BOOST ====================
+  // Boost bài có comment mới trong 24h để tạo retention loop
+  // Giúp bài "đang hot tranh luận" nổi lên feed
+  if (post.latestCommentAt) {
+    const commentAge = (Date.now() - new Date(post.latestCommentAt).getTime()) / (1000 * 60 * 60);
+    if (commentAge < 24) {
+      // Max +20 điểm cho comment rất mới, giảm dần theo thời gian
+      const freshBonus = Math.max(0, 20 * (1 - commentAge / 24));
+      engagementScore += freshBonus;
+    }
+  }
+
   // ==================== RANDOM FACTOR ====================
   // Thêm random factor ±15% để feed có sự đa dạng khi refresh
   // Tạo trải nghiệm tươi mới mỗi lần load

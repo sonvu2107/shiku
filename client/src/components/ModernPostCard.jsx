@@ -612,7 +612,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             </button>
           </div>
 
-          {/* Comment Button */}
+          {/* Comment Button with Hot Discussion indicator */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -625,9 +625,18 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             }}
             aria-label="Bình luận"
             title="Bình luận"
-            className="flex items-center gap-2 px-3 py-2.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white text-gray-600 dark:text-gray-300 transition-all duration-200 active:scale-95 touch-manipulation group/comment"
+            className={cn(
+              "flex items-center gap-2 px-3 py-2.5 rounded-full transition-all duration-200 active:scale-95 touch-manipulation group/comment",
+              post.commentCount >= 5
+                ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/30"
+                : "hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white text-gray-600 dark:text-gray-300"
+            )}
           >
-            <span className="text-[22px] sm:text-2xl font-bold leading-none select-none transition-transform group-hover/comment:scale-110" aria-hidden="true">⌘</span>
+            {post.commentCount >= 5 ? (
+              <span className="text-base leading-none select-none" aria-hidden="true">🔥</span>
+            ) : (
+              <span className="text-[22px] sm:text-2xl font-bold leading-none select-none transition-transform group-hover/comment:scale-110" aria-hidden="true">⌘</span>
+            )}
             <span className="text-sm font-semibold">
               {post.commentCount || "Bình luận"}
             </span>
@@ -665,11 +674,10 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         </button>
       </div>
 
-      {/* 5. Comment Input Section */}
-      {/* Comment Input Section - Hidden on mobile, show on desktop only */}
+      {/* Comment Input Section with dynamic placeholder */}
       {user && (
         <div
-          className="hidden md:block px-3 sm:px-4 py-2 sm:py-2.5 border-t border-gray-100 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-900/30"
+          className="px-3 sm:px-4 py-2 sm:py-2.5 border-t border-gray-100 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-900/30"
           onClick={e => e.stopPropagation()}
         >
           {/* Image Previews */}
@@ -714,7 +722,9 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 type="text"
                 value={commentContent}
                 onChange={(e) => setCommentContent(e.target.value)}
-                placeholder="Viết bình luận..."
+                placeholder={post.commentCount === 0
+                  ? "Hãy là người bình luận đầu tiên..."
+                  : "Tham gia thảo luận..."}
                 disabled={submittingComment}
                 className="flex-1 bg-transparent border-none outline-none text-xs sm:text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 disabled:opacity-50"
               />

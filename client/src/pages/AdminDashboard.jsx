@@ -9,6 +9,8 @@ import SystemHealth from '../components/admin/SystemHealth';
 import SecurityAlerts from '../components/admin/SecurityAlerts';
 import MobileQuickActions from '../components/admin/MobileQuickActions';
 import AdminPostsTab from '../components/admin/AdminPostsTab';
+import AdminInsightsTab from '../components/admin/AdminInsightsTab';
+import ActiveUsersChart from '../components/admin/ActiveUsersChart';
 import VerifiedBadge from "../components/VerifiedBadge";
 import Avatar from "../components/Avatar";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
@@ -48,7 +50,8 @@ import {
    ChevronRight,
    Ban,
    X,
-   Sword
+   Sword,
+   Target
 } from "lucide-react";
 
 /**
@@ -224,6 +227,7 @@ export default function AdminDashboard() {
    // --- SIDEBAR TABS CONFIGURATION ---
    const allMenuItems = [
       { id: 'stats', label: 'Thống kê', icon: BarChart3, permission: 'admin.viewStats' },
+      { id: 'insights', label: 'Insights', icon: Target, permission: 'admin.viewStats' },
       { id: 'users', label: 'Quản lý N.Dùng', icon: Users, permission: 'admin.manageUsers' },
       { id: 'posts', label: 'Quản lý bài viết', icon: FileText, permission: 'admin.managePosts' },
       { id: 'online', label: 'Online & Traffic', icon: Activity, permission: 'admin.viewStats' },
@@ -831,7 +835,10 @@ export default function AdminDashboard() {
                         {visitorStats && visitorStats.timeStats && (
                            <SpotlightCard>
                               <h3 className="text-lg font-semibold mb-4 text-neutral-900 dark:text-white">Thống kê truy cập theo thời gian</h3>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              {/* Daily Active Users Chart */}
+                              <ActiveUsersChart />
+                              {/* Stats below chart */}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                                  <div className="text-center p-4 bg-green-50/50 dark:bg-green-900/10 rounded-xl">
                                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">{visitorStats.timeStats.today}</div>
                                     <div className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">Hôm nay</div>
@@ -1056,6 +1063,10 @@ export default function AdminDashboard() {
                      <motion.div key="posts" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                         <AdminPostsTab />
                      </motion.div>
+                  )}
+
+                  {activeTab === "insights" && (
+                     <AdminInsightsTab />
                   )}
 
                </AnimatePresence>

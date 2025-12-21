@@ -57,6 +57,7 @@ const PostSchema = new mongoose.Schema({
 
   views: { type: Number, default: 0 }, // Số lượt xem
   commentCount: { type: Number, default: 0 }, // Số lượng bình luận (denormalized)
+  latestCommentAt: { type: Date, default: null, index: true }, // Thời điểm comment mới nhất (cho ranking boost)
   savedCount: { type: Number, default: 0 }, // Số lượng người đã lưu (denormalized)
 
   // ==================== POLL (TÙY CHỌN) ====================

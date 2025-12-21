@@ -6,16 +6,16 @@ const Schema = mongoose.Schema;
  * Cảnh giới xếp hạng trong Võ Đài
  */
 export const RANK_TIERS = [
-    { tier: 1, name: 'Phàm Giả', minMmr: 0, maxMmr: 799, color: '#9CA3AF', logo: '/assets/rank_area/phamgia.jpg', title: '/assets/rank_title/phamgia.jpg' },
-    { tier: 2, name: 'Tu Sĩ', minMmr: 800, maxMmr: 1199, color: '#10B981', logo: '/assets/rank_area/tusi.jpg', title: '/assets/rank_title/tusi.jpg' },
-    { tier: 3, name: 'Tinh Anh', minMmr: 1200, maxMmr: 1599, color: '#3B82F6', logo: '/assets/rank_area/tinhanh.jpg', title: '/assets/rank_title/tinhanh.jpg' },
-    { tier: 4, name: 'Thiên Kiêu', minMmr: 1600, maxMmr: 1999, color: '#8B5CF6', logo: '/assets/rank_area/thienkieu.jpg', title: '/assets/rank_title/thienkieu.jpg' },
-    { tier: 5, name: 'Vương Giả', minMmr: 2000, maxMmr: 2399, color: '#F59E0B', logo: '/assets/rank_area/vuonggia.jpg', title: '/assets/rank_title/vuonggia.jpg' },
-    { tier: 6, name: 'Bá Chủ', minMmr: 2400, maxMmr: 2799, color: '#EF4444', logo: '/assets/rank_area/bachu.jpg', title: '/assets/rank_title/bachu.jpg' },
-    { tier: 7, name: 'Chí Tôn', minMmr: 2800, maxMmr: 3199, color: '#EC4899', logo: '/assets/rank_area/chiton.jpg', title: '/assets/rank_title/chiton.jpg' },
-    { tier: 8, name: 'Tiên Tôn', minMmr: 3200, maxMmr: 3999, color: '#FFD700', logo: '/assets/rank_area/tienton.jpg', title: '/assets/rank_title/tienton.jpg', faction: 'tien' },
-    { tier: 8, name: 'Ma Tôn', minMmr: 3200, maxMmr: 3999, color: '#7C3AED', logo: '/assets/rank_area/maton.jpg', title: '/assets/rank_title/maton.jpg', faction: 'ma' },
-    { tier: 9, name: 'Truyền Thuyết', minMmr: 4000, maxMmr: Infinity, color: '#FF00FF', logo: '/assets/rank_area/truyenthuyet.jpg', title: '/assets/rank_title/truyenthuyet.jpg' }
+    { tier: 1, name: 'Phàm Giả', minMmr: 0, maxMmr: 799, color: '#9CA3AF', logo: '/assets/rank_area/phamgia.png', title: '/assets/rank_title/phamgia.jpg' },
+    { tier: 2, name: 'Tu Sĩ', minMmr: 800, maxMmr: 1199, color: '#10B981', logo: '/assets/rank_area/tusi.png', title: '/assets/rank_title/tusi.jpg' },
+    { tier: 3, name: 'Tinh Anh', minMmr: 1200, maxMmr: 1599, color: '#3B82F6', logo: '/assets/rank_area/tinhanh.png', title: '/assets/rank_title/tinhanh.jpg' },
+    { tier: 4, name: 'Thiên Kiêu', minMmr: 1600, maxMmr: 1999, color: '#8B5CF6', logo: '/assets/rank_area/thienkieu.png', title: '/assets/rank_title/thienkieu.jpg' },
+    { tier: 5, name: 'Vương Giả', minMmr: 2000, maxMmr: 2399, color: '#F59E0B', logo: '/assets/rank_area/vuonggia.png', title: '/assets/rank_title/vuonggia.jpg' },
+    { tier: 6, name: 'Bá Chủ', minMmr: 2400, maxMmr: 2799, color: '#EF4444', logo: '/assets/rank_area/bachu.png', title: '/assets/rank_title/bachu.jpg' },
+    { tier: 7, name: 'Chí Tôn', minMmr: 2800, maxMmr: 3199, color: '#EC4899', logo: '/assets/rank_area/chiton.png', title: '/assets/rank_title/chiton.jpg' },
+    { tier: 8, name: 'Tiên Tôn', minMmr: 3200, maxMmr: 3999, color: '#FFD700', logo: '/assets/rank_area/tienton.png', title: '/assets/rank_title/tienton.jpg', faction: 'tien' },
+    { tier: 8, name: 'Ma Tôn', minMmr: 3200, maxMmr: 3999, color: '#7C3AED', logo: '/assets/rank_area/maton.png', title: '/assets/rank_title/maton.jpg', faction: 'ma' },
+    { tier: 9, name: 'Truyền Thuyết', minMmr: 4000, maxMmr: Infinity, color: '#FF00FF', logo: '/assets/rank_area/truyenthuyet.png', title: '/assets/rank_title/truyenthuyet.jpg' }
 ];
 
 /**

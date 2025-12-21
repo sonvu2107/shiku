@@ -69,7 +69,8 @@ export default function AdminCharts() {
     const metrics = [
         { key: "all", label: "Tất cả" },
         { key: "posts", label: "Bài viết", color: "#3b82f6" },
-        { key: "users", label: "Người dùng", color: "#10b981" },
+        { key: "users", label: "Đăng ký mới", color: "#10b981" },
+        { key: "activeUsers", label: "Hoạt động", color: "#f59e0b" },
         { key: "comments", label: "Bình luận", color: "#8b5cf6" },
         { key: "upvotes", label: "Upvotes", color: "#ef4444" },
     ];
@@ -242,7 +243,10 @@ export default function AdminCharts() {
                                 <Bar dataKey="posts" name="Bài viết" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                             )}
                             {(activeMetric === "all" || activeMetric === "users") && (
-                                <Bar dataKey="users" name="Người dùng" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="users" name="Đăng ký mới" fill="#10b981" radius={[4, 4, 0, 0]} />
+                            )}
+                            {(activeMetric === "all" || activeMetric === "activeUsers") && (
+                                <Bar dataKey="activeUsers" name="Hoạt động" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                             )}
                             {(activeMetric === "all" || activeMetric === "comments") && (
                                 <Bar dataKey="comments" name="Bình luận" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
@@ -264,6 +268,10 @@ export default function AdminCharts() {
                                 <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
                                     <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
+                                </linearGradient>
+                                <linearGradient id="colorActiveUsers" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1} />
                                 </linearGradient>
                                 <linearGradient id="colorComments" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
@@ -302,10 +310,20 @@ export default function AdminCharts() {
                                 <Area
                                     type="monotone"
                                     dataKey="cumulativeUsers"
-                                    name="Tổng người dùng"
+                                    name="Tổng đăng ký"
                                     stroke="#10b981"
                                     fillOpacity={1}
                                     fill="url(#colorUsers)"
+                                />
+                            )}
+                            {(activeMetric === "all" || activeMetric === "activeUsers") && (
+                                <Area
+                                    type="monotone"
+                                    dataKey="activeUsers"
+                                    name="Hoạt động/ngày"
+                                    stroke="#f59e0b"
+                                    fillOpacity={1}
+                                    fill="url(#colorActiveUsers)"
                                 />
                             )}
                             {(activeMetric === "all" || activeMetric === "comments") && (
@@ -335,7 +353,7 @@ export default function AdminCharts() {
 
             {/* Summary - All-time totals */}
             {allTimeTotals && (
-                <div className="mt-4 sm:mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+                <div className="mt-4 sm:mt-6 grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4">
                     <div className="text-center p-2 sm:p-3 bg-neutral-100 dark:bg-neutral-800 rounded-xl">
                         <div className="text-lg sm:text-2xl font-bold text-black dark:text-white">
                             {allTimeTotals.posts}
@@ -346,7 +364,13 @@ export default function AdminCharts() {
                         <div className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
                             {allTimeTotals.users}
                         </div>
-                        <div className="text-[10px] sm:text-xs text-neutral-600 dark:text-neutral-400">Tổng người dùng</div>
+                        <div className="text-[10px] sm:text-xs text-neutral-600 dark:text-neutral-400">Tổng đăng ký</div>
+                    </div>
+                    <div className="text-center p-2 sm:p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
+                        <div className="text-lg sm:text-2xl font-bold text-amber-600 dark:text-amber-400">
+                            {chartData.reduce((sum, d) => sum + (d.activeUsers || 0), 0)}
+                        </div>
+                        <div className="text-[10px] sm:text-xs text-neutral-600 dark:text-neutral-400">Tổng hoạt động</div>
                     </div>
                     <div className="text-center p-2 sm:p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
                         <div className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400">

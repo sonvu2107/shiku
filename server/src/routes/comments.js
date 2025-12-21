@@ -296,7 +296,10 @@ router.post("/post/:postId", authRequired, checkBanStatus, commentCreationLimite
 
     const [c] = await Promise.all([
       Comment.create(commentData),
-      Post.findByIdAndUpdate(post._id, { $inc: { commentCount: 1 } })
+      Post.findByIdAndUpdate(post._id, {
+        $inc: { commentCount: 1 },
+        latestCommentAt: new Date() // Track thời điểm comment mới nhất cho ranking boost
+      })
     ]);
 
     await c.populate([

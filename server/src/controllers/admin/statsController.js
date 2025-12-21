@@ -334,7 +334,7 @@ async function fetchDailyStatsFromDB(days) {
     // Convert back to UTC for MongoDB query
     const startDateUTC = new Date(startDateInVietnam.getTime() - vietnamOffset);
 
-    const [dailyPosts, dailyUsers, dailyComments] = await Promise.all([
+    const [dailyPosts, dailyUsers, dailyComments, dailyActiveUsers] = await Promise.all([
         Post.aggregate([
             { $match: { createdAt: { $gte: startDateUTC } } },
             {
@@ -372,12 +372,26 @@ async function fetchDailyStatsFromDB(days) {
                 }
             },
             { $sort: { _id: 1 } }
+        ]),
+        // Daily active users based on lastSeen
+        User.aggregate([
+            { $match: { lastSeen: { $gte: startDateUTC } } },
+            {
+                $group: {
+                    _id: {
+                        $dateToString: { format: "%Y-%m-%d", date: "$lastSeen", timezone: vietnamTimezone }
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
         ])
     ]);
 
     const postsMap = new Map(dailyPosts.map(d => [d._id, d]));
     const usersMap = new Map(dailyUsers.map(d => [d._id, d.count]));
     const commentsMap = new Map(dailyComments.map(d => [d._id, d.count]));
+    const activeUsersMap = new Map(dailyActiveUsers.map(d => [d._id, d.count]));
 
     const chartData = [];
     for (let i = 0; i < days; i++) {
@@ -398,7 +412,8 @@ async function fetchDailyStatsFromDB(days) {
             views: postData.views || 0,
             upvotes: postData.upvotes || 0,
             users: usersMap.get(dateStr) || 0,
-            comments: commentsMap.get(dateStr) || 0
+            comments: commentsMap.get(dateStr) || 0,
+            activeUsers: activeUsersMap.get(dateStr) || 0
         });
     }
 
@@ -446,3 +461,201 @@ async function fetchDailyStatsFromDB(days) {
         periodTotals
     };
 }
+
+/**
+ * GET /stats/insights - Lấy chỉ số hành vi cốt lõi
+ * Core metrics để theo dõi sức khỏe sản phẩm
+ */
+export const getInsights = async (req, res, next) => {
+    try {
+        const insights = await withCache('admin:insights', async () => {
+            return await fetchInsightsFromDB();
+        }, 300); // Cache 5 minutes
+
+        res.json({ success: true, insights });
+    } catch (e) {
+        next(e);
+    }
+};
+
+/**
+ * Internal function to fetch insights data
+ */
+async function fetchInsightsFromDB() {
+    const now = new Date();
+    const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    // Core metrics từ strategy:
+    // 1. % user đăng bài sau đăng ký
+    // 2. % bài có ≥1 comment
+    // 3. Avg comments/post
+
+    const [
+        totalUsers,
+        usersWithPosts,
+        totalPosts,
+        postsWithComments,
+        totalComments,
+        totalUpvotes,
+        // Last 7 days data
+        newUsers7d,
+        newUsersWithPosts7d,
+        newPosts7d,
+        newPostsWithComments7d,
+        newComments7d,
+        // Users who only upvote but never comment
+        usersWhoUpvoted,
+        usersWhoCommented,
+        // First post within 24h of registration
+        usersFirst24h
+    ] = await Promise.all([
+        // Total counts
+        User.countDocuments({}),
+        User.countDocuments({ postCount: { $gt: 0 } }),
+        Post.countDocuments({ status: "published" }),
+        Post.countDocuments({ status: "published", commentCount: { $gt: 0 } }),
+        Comment.countDocuments({}),
+        Post.aggregate([
+            { $group: { _id: null, total: { $sum: { $ifNull: ["$upvoteCount", 0] } } } }
+        ]).then(r => r[0]?.total || 0),
+
+        // Last 7 days
+        User.countDocuments({ createdAt: { $gte: last7Days } }),
+        User.countDocuments({ createdAt: { $gte: last7Days }, postCount: { $gt: 0 } }),
+        Post.countDocuments({ status: "published", createdAt: { $gte: last7Days } }),
+        Post.countDocuments({ status: "published", createdAt: { $gte: last7Days }, commentCount: { $gt: 0 } }),
+        Comment.countDocuments({ createdAt: { $gte: last7Days } }),
+
+        // Unique users who upvoted
+        Post.aggregate([
+            { $match: { upvotes: { $exists: true, $not: { $size: 0 } } } },
+            { $unwind: "$upvotes" },
+            { $group: { _id: "$upvotes" } },
+            { $count: "total" }
+        ]).then(r => r[0]?.total || 0),
+
+        // Unique users who commented
+        Comment.aggregate([
+            { $group: { _id: "$author" } },
+            { $count: "total" }
+        ]).then(r => r[0]?.total || 0),
+
+        // Users who posted within 24h of registration
+        User.aggregate([
+            {
+                $lookup: {
+                    from: "posts",
+                    let: { userId: "$_id", userCreatedAt: "$createdAt" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ["$author", "$$userId"] },
+                                        { $lte: [{ $subtract: ["$createdAt", "$$userCreatedAt"] }, 24 * 60 * 60 * 1000] }
+                                    ]
+                                }
+                            }
+                        },
+                        { $limit: 1 }
+                    ],
+                    as: "firstPost"
+                }
+            },
+            { $match: { firstPost: { $not: { $size: 0 } } } },
+            { $count: "total" }
+        ]).then(r => r[0]?.total || 0)
+    ]);
+
+    // Tính toán các chỉ số
+    const userPostRate = totalUsers > 0 ? Math.round((usersWithPosts / totalUsers) * 100) : 0;
+    const postCommentRate = totalPosts > 0 ? Math.round((postsWithComments / totalPosts) * 100) : 0;
+    const avgCommentsPerPost = totalPosts > 0 ? Number((totalComments / totalPosts).toFixed(2)) : 0;
+    const upvoteCommentRatio = totalComments > 0 ? Number((totalUpvotes / totalComments).toFixed(2)) : 0;
+    const firstPostIn24hRate = totalUsers > 0 ? Math.round((usersFirst24h / totalUsers) * 100) : 0;
+
+    // 7-day metrics
+    const userPostRate7d = newUsers7d > 0 ? Math.round((newUsersWithPosts7d / newUsers7d) * 100) : 0;
+    const postCommentRate7d = newPosts7d > 0 ? Math.round((newPostsWithComments7d / newPosts7d) * 100) : 0;
+    const avgCommentsPerPost7d = newPosts7d > 0 ? Number((newComments7d / newPosts7d).toFixed(2)) : 0;
+
+    // Dead posts (no upvotes, no comments)
+    const deadPosts = await Post.countDocuments({
+        status: "published",
+        $and: [
+            { $or: [{ upvoteCount: 0 }, { upvoteCount: { $exists: false } }] },
+            { $or: [{ commentCount: 0 }, { commentCount: { $exists: false } }] }
+        ]
+    });
+    const deadPostRate = totalPosts > 0 ? Math.round((deadPosts / totalPosts) * 100) : 0;
+
+    return {
+        core: {
+            userPostRate: {
+                value: userPostRate,
+                label: "% User đăng bài",
+                description: "Tỉ lệ user có ít nhất 1 bài viết",
+                threshold: 20,
+                status: userPostRate >= 20 ? "healthy" : userPostRate >= 10 ? "warning" : "critical"
+            },
+            postCommentRate: {
+                value: postCommentRate,
+                label: "% Bài có comment",
+                description: "Tỉ lệ bài có ít nhất 1 bình luận",
+                threshold: 30,
+                status: postCommentRate >= 30 ? "healthy" : postCommentRate >= 15 ? "warning" : "critical"
+            },
+            avgCommentsPerPost: {
+                value: avgCommentsPerPost,
+                label: "Avg comments/bài",
+                description: "Số bình luận trung bình mỗi bài",
+                threshold: 1.5,
+                status: avgCommentsPerPost >= 1.5 ? "healthy" : avgCommentsPerPost >= 0.5 ? "warning" : "critical"
+            }
+        },
+        secondary: {
+            upvoteCommentRatio: {
+                value: upvoteCommentRatio,
+                label: "Upvote/Comment ratio",
+                description: "Tỉ lệ upvote trên comment. Cao = tương tác nông"
+            },
+            firstPostIn24hRate: {
+                value: firstPostIn24hRate,
+                label: "% Post trong 24h đầu",
+                description: "User đăng bài trong 24h sau đăng ký"
+            },
+            deadPostRate: {
+                value: deadPostRate,
+                label: "% Bài chết",
+                description: "Bài không có upvote và comment"
+            }
+        },
+        comparison: {
+            allTime: {
+                users: totalUsers,
+                usersWithPosts,
+                posts: totalPosts,
+                postsWithComments,
+                comments: totalComments,
+                upvotes: totalUpvotes
+            },
+            last7Days: {
+                newUsers: newUsers7d,
+                newUsersWithPosts: newUsersWithPosts7d,
+                newPosts: newPosts7d,
+                newPostsWithComments: newPostsWithComments7d,
+                newComments: newComments7d,
+                userPostRate: userPostRate7d,
+                postCommentRate: postCommentRate7d,
+                avgCommentsPerPost: avgCommentsPerPost7d
+            }
+        },
+        engagement: {
+            usersWhoUpvoted,
+            usersWhoCommented,
+            lurkers: totalUsers - usersWhoUpvoted - usersWhoCommented
+        }
+    };
+}
+
