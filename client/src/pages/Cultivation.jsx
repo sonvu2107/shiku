@@ -89,7 +89,7 @@ const CultivationContent = memo(function CultivationContent() {
         setIsBreakingThrough(false);
         setModalMsg(`Thiên địa chúc phúc! Đạo hữu đã bước chân vào cảnh giới ${realmName}!`);
         setModalOpen(true);
-        addLog(`ĐỘT PHÁ THÀNH CÔNG! Đạt ${realmName}!`, 'success');
+        addLog(`ĐỘ KIẾP THÀNH CÔNG! Đạt ${realmName}!`, 'success');
       }
     }, 100);
   }, [addLog]);
@@ -277,7 +277,7 @@ const CultivationContent = memo(function CultivationContent() {
     if (isBreakingThrough || checkingIn) return;
 
     setIsBreakingThrough(true);
-    addLog('⚡ BẮT ĐẦU ĐỘ KIẾP!', 'danger');
+    addLog('BẮT ĐẦU ĐỘ KIẾP!', 'danger');
     addLog('Thiên lôi đang tụ lại...', 'danger');
     setIsShaking(true);
 
@@ -325,10 +325,10 @@ const CultivationContent = memo(function CultivationContent() {
     { id: 'dashboard', label: 'Tổng Quan' },
     { id: 'stats', label: 'Thông Số' },
     { id: 'quests', label: 'Nhiệm Vụ' },
-    { id: 'storage', label: 'Kho Báu' }, // Merged: shop + inventory
+    { id: 'storage', label: 'Kho Báu' },
     { id: 'techniques', label: 'Công Pháp' },
     { id: 'dungeon', label: 'Bí Cảnh' },
-    { id: 'combat', label: 'Chiến Đấu' }, // Merged: pk + arena + leaderboard
+    { id: 'combat', label: 'Chiến Đấu' },
   ];
 
   return (
