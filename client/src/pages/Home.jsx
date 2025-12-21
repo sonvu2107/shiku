@@ -964,17 +964,14 @@ function Home({ user, setUser }) {
                       <p className="text-base text-red-600 dark:text-red-400 mb-6 break-words px-2">{error}</p>
                       <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <button
-                          onClick={loadInitial}
+                          onClick={() => refetchPosts()}
                           className="px-6 py-3 bg-red-600 dark:bg-red-700 text-white rounded-xl font-semibold text-base hover:bg-red-700 dark:hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg"
                           aria-label="Thử tải lại bài viết"
                         >
                           Thử lại
                         </button>
                         <button
-                          onClick={() => {
-                            setError(null);
-                            navigate(0);
-                          }}
+                          onClick={() => navigate(0)}
                           className="px-6 py-3 bg-gray-200 dark:bg-neutral-800 text-gray-800 dark:text-gray-200 rounded-xl font-semibold text-base hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
                         >
                           Tải lại trang

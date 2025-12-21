@@ -165,11 +165,11 @@ export default function GroupMembersModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+      <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col border border-gray-200 dark:border-neutral-800">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-neutral-800">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-neutral-200 dark:bg-neutral-800 dark:bg-blue-900 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center">
               <Users size={20} className="text-black dark:text-white" />
             </div>
             <div>
@@ -185,7 +185,7 @@ export default function GroupMembersModal({
             onClick={onClose}
             className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
           >
-            <X size={20} className="text-gray-500" />
+            <X size={20} className="text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
@@ -200,7 +200,7 @@ export default function GroupMembersModal({
           {!loading && (
             <div className="space-y-4">
               {members.map((member) => (
-                <div key={member.user._id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-lg">
+                <div key={member.user._id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
                   <div className="flex items-center space-x-3">
                     {/* Avatar */}
                     <div className="relative">
@@ -222,12 +222,12 @@ export default function GroupMembersModal({
                           {getDisplayName(member)}
                         </h4>
                         {isGroupAdmin(member) && (
-                          <span className="px-2 py-1 text-xs bg-neutral-200 dark:bg-neutral-800 dark:bg-blue-900 text-black dark:text-white rounded-full">
+                          <span className="px-2 py-1 text-xs bg-neutral-200 dark:bg-neutral-700 text-black dark:text-white rounded-full">
                             Admin
                           </span>
                         )}
                         {isCurrentUser(member) && (
-                          <span className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded-full">
+                          <span className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full">
                             Bạn
                           </span>
                         )}
@@ -251,19 +251,19 @@ export default function GroupMembersModal({
                             onChange={(e) => setNewNickname(e.target.value)}
                             onKeyDown={handleKeyPress}
                             placeholder="Nhập biệt danh..."
-                            className="px-3 py-1 text-sm border border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-neutral-700 dark:text-white"
+                            className="px-3 py-1 text-sm border border-gray-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-neutral-700 text-gray-900 dark:text-white"
                             maxLength={30}
                             autoFocus
                           />
                           <button
                             onClick={handleSaveNickname}
-                            className="px-3 py-1 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors"
+                            className="px-3 py-1 text-sm bg-gray-800 dark:bg-black text-white rounded-lg hover:bg-gray-900 dark:hover:bg-neutral-800 transition-colors"
                           >
                             Lưu
                           </button>
                           <button
                             onClick={handleCancelEdit}
-                            className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                            className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
                           >
                             Hủy
                           </button>
@@ -272,7 +272,7 @@ export default function GroupMembersModal({
                         <div className="flex space-x-1">
                           <button
                             onClick={() => handleEditNickname(member)}
-                            className="p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                            className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 rounded transition-colors"
                             title="Chỉnh sửa biệt danh"
                           >
                             <Edit3 size={16} />
@@ -280,7 +280,7 @@ export default function GroupMembersModal({
                           {member.nickname && (
                             <button
                               onClick={() => handleRemoveNickname(member)}
-                              className="p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                              className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 rounded transition-colors"
                               title="Xóa biệt danh"
                             >
                               <Trash2 size={16} />

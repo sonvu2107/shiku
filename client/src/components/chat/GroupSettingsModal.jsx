@@ -134,34 +134,34 @@ const GroupSettingsModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-md h-3/4 flex flex-col">
+      <div className="bg-white dark:bg-neutral-900 rounded-lg w-full max-w-md h-3/4 flex flex-col shadow-xl border border-gray-200 dark:border-neutral-800">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Thông tin nhóm</h2>
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-neutral-800">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Thông tin nhóm</h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-gray-500 dark:text-gray-400"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b">
+        <div className="flex border-b border-gray-200 dark:border-neutral-800">
           <button
             onClick={() => setActiveTab('info')}
-            className={`flex-1 py-3 px-4 text-sm font-medium ${activeTab === 'info'
-                ? 'text-black dark:text-white border-b-2 border-neutral-800 dark:border-neutral-200'
-                : 'text-gray-500 hover:text-gray-700'
+            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${activeTab === 'info'
+              ? 'text-black dark:text-white border-b-2 border-neutral-800 dark:border-neutral-200'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
           >
             Thông tin
           </button>
           <button
             onClick={() => setActiveTab('members')}
-            className={`flex-1 py-3 px-4 text-sm font-medium ${activeTab === 'members'
-                ? 'text-black dark:text-white border-b-2 border-neutral-800 dark:border-neutral-200'
-                : 'text-gray-500 hover:text-gray-700'
+            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${activeTab === 'members'
+              ? 'text-black dark:text-white border-b-2 border-neutral-800 dark:border-neutral-200'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
           >
             Thành viên
@@ -169,9 +169,9 @@ const GroupSettingsModal = ({
           {isGroupAdmin() && (
             <button
               onClick={() => setActiveTab('permissions')}
-              className={`flex-1 py-3 px-4 text-sm font-medium ${activeTab === 'permissions'
-                  ? 'text-black dark:text-white border-b-2 border-neutral-800 dark:border-neutral-200'
-                  : 'text-gray-500 hover:text-gray-700'
+              className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${activeTab === 'permissions'
+                ? 'text-black dark:text-white border-b-2 border-neutral-800 dark:border-neutral-200'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                 }`}
             >
               Quyền
@@ -209,7 +209,7 @@ const GroupSettingsModal = ({
                         <>
                           <label
                             htmlFor="group-avatar-upload"
-                            className="absolute -bottom-1 -right-1 bg-black dark:bg-white text-white p-1.5 rounded-full hover:bg-black dark:bg-white transition-colors cursor-pointer"
+                            className="absolute -bottom-1 -right-1 bg-black dark:bg-neutral-700 text-white p-1.5 rounded-full hover:bg-neutral-800 dark:hover:bg-neutral-600 transition-colors cursor-pointer border border-white dark:border-neutral-900"
                           >
                             <Camera className="w-3 h-3" />
                           </label>
@@ -227,10 +227,10 @@ const GroupSettingsModal = ({
 
                   {/* Group Name */}
                   <div>
-                    <h3 className="font-semibold text-lg text-center">
+                    <h3 className="font-semibold text-lg text-center text-gray-900 dark:text-gray-100">
                       {conversation.groupName || 'Nhóm chat'}
                     </h3>
-                    <p className="text-gray-500 text-center text-sm">
+                    <p className="text-gray-500 dark:text-gray-400 text-center text-sm">
                       {conversationDetails?.memberCount || 0} thành viên
                     </p>
                   </div>
@@ -238,8 +238,8 @@ const GroupSettingsModal = ({
                   {/* Group Description */}
                   {conversation.groupDescription && (
                     <div>
-                      <h4 className="font-medium text-gray-700 mb-2">Mô tả</h4>
-                      <p className="text-gray-600 text-sm">
+                      <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Mô tả</h4>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">
                         {conversation.groupDescription}
                       </p>
                     </div>
@@ -247,11 +247,11 @@ const GroupSettingsModal = ({
 
                   {/* Created info */}
                   <div>
-                    <h4 className="font-medium text-gray-700 mb-2">Thông tin</h4>
-                    <p className="text-gray-600 text-sm">
+                    <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Thông tin</h4>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">
                       Tạo bởi: {conversationDetails?.createdBy?.name || 'Không rõ'}
                     </p>
-                    <p className="text-gray-600 text-sm">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">
                       Ngày tạo: {new Date(conversationDetails?.createdAt).toLocaleDateString('vi-VN')}
                     </p>
                   </div>
@@ -262,12 +262,12 @@ const GroupSettingsModal = ({
               {activeTab === 'members' && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-gray-700">
+                    <h4 className="font-medium text-gray-700 dark:text-gray-300">
                       Thành viên ({conversationDetails?.memberCount || 0})
                     </h4>
                     <button
                       onClick={() => setShowMembersModal(true)}
-                      className="flex items-center space-x-2 px-3 py-1.5 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors"
+                      className="flex items-center space-x-2 px-3 py-1.5 text-sm bg-gray-800 dark:bg-neutral-800 text-white rounded-lg hover:bg-gray-900 dark:hover:bg-neutral-700 transition-colors"
                     >
                       <Edit3 size={16} />
                       <span>Quản lý biệt danh</span>
@@ -276,7 +276,7 @@ const GroupSettingsModal = ({
 
                   <div className="space-y-2">
                     {conversationDetails?.participants.map((participant) => (
-                      <div key={participant.user._id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
+                      <div key={participant.user._id} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-neutral-800/50 rounded-lg transition-colors">
                         <div className="flex items-center space-x-3">
                           <Avatar
                             src={participant.user.avatarUrl}
@@ -285,7 +285,7 @@ const GroupSettingsModal = ({
                             className=""
                           />
                           <div>
-                            <p className="font-medium text-sm">{participant.user.name}</p>
+                            <p className="font-medium text-sm text-gray-900 dark:text-gray-100">{participant.user.name}</p>
                             {/* Do not display email here */}
                             {participant.role === 'admin' && (
                               <p className="text-xs text-orange-500 flex items-center">
@@ -314,11 +314,11 @@ const GroupSettingsModal = ({
               {activeTab === 'permissions' && isGroupAdmin() && (
                 <div className="space-y-6">
                   {/* Member Management Toggle */}
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <label className="flex items-center justify-between">
+                  <div className="bg-gray-50 dark:bg-neutral-800/50 p-4 rounded-lg border border-gray-100 dark:border-neutral-800">
+                    <label className="flex items-center justify-between cursor-pointer">
                       <div>
-                        <div className="font-medium text-sm text-gray-900">Cho phép thành viên quản lý nhóm</div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="font-medium text-sm text-gray-900 dark:text-gray-100">Cho phép thành viên quản lý nhóm</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           Khi bật, tất cả thành viên có thể thêm/xóa người khác và đổi tên nhóm
                         </div>
                       </div>
@@ -326,17 +326,17 @@ const GroupSettingsModal = ({
                         type="checkbox"
                         checked={conversationDetails?.allowMemberManagement || false}
                         onChange={handleToggleMemberManagement}
-                        className="w-4 h-4 text-black dark:text-white bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                        className="w-4 h-4 text-black dark:text-white bg-white dark:bg-neutral-700 border-gray-300 dark:border-neutral-600 rounded focus:ring-blue-500 focus:ring-offset-0"
                       />
                     </label>
                   </div>
 
                   {/* Member Roles */}
                   <div>
-                    <h4 className="font-medium text-gray-700 mb-3">Quyền thành viên</h4>
+                    <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">Quyền thành viên</h4>
                     <div className="space-y-2">
                       {conversationDetails?.participants?.filter(p => !p.leftAt).map((participant) => (
-                        <div key={participant.user._id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                        <div key={participant.user._id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-neutral-800 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800/30 transition-colors">
                           <div className="flex items-center space-x-3">
                             <Avatar
                               src={participant.user.avatarUrl}
@@ -345,8 +345,8 @@ const GroupSettingsModal = ({
                               className=""
                             />
                             <div>
-                              <p className="font-medium text-sm">{participant.user.name}</p>
-                              <p className="text-xs text-gray-500">
+                              <p className="font-medium text-sm text-gray-900 dark:text-gray-100">{participant.user.name}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
                                 {participant.role === 'admin' ? 'Quản trị viên' : 'Thành viên'}
                               </p>
                             </div>
@@ -356,7 +356,7 @@ const GroupSettingsModal = ({
                             <select
                               value={participant.role}
                               onChange={(e) => handleChangeRole(participant.user._id, e.target.value)}
-                              className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="text-sm border border-gray-300 dark:border-neutral-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100"
                             >
                               <option value="member">Thành viên</option>
                               <option value="admin">Quản trị viên</option>

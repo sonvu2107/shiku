@@ -26,10 +26,10 @@ const CULTIVATION_REALMS = [
  * @param {string} size - Kích thước badge: 'sm', 'md', 'lg'
  * @param {string} variant - Kiểu hiển thị: 'default' (tên + chấm) | 'minimal' (chỉ tên) | 'gradient' (gradient đẹp)
  */
-const CultivationBadge = memo(function CultivationBadge({ 
-  cultivation, 
+const CultivationBadge = memo(function CultivationBadge({
+  cultivation,
   size = "sm",
-  variant = "gradient" 
+  variant = "gradient"
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -61,11 +61,11 @@ const CultivationBadge = memo(function CultivationBadge({
   // Handle mouse events
   const handleMouseEnter = (e) => {
     if (!badgeRef.current) return;
-    
+
     const rect = badgeRef.current.getBoundingClientRect();
     const tooltipX = rect.left + rect.width / 2;
     const tooltipY = rect.top - 8;
-    
+
     setTooltipPosition({ x: tooltipX, y: tooltipY });
     setShowTooltip(true);
   };
@@ -147,14 +147,14 @@ const CultivationBadge = memo(function CultivationBadge({
         ref={badgeRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="inline-flex"
+        className="inline-flex flex-shrink-0"
       >
         {renderBadge()}
       </span>
 
       {/* Tooltip with exp info */}
       {showTooltip && createPortal(
-        <div 
+        <div
           className="fixed bg-neutral-900/95 text-white text-xs px-3 py-2 rounded-lg shadow-xl whitespace-nowrap pointer-events-none z-[9999] backdrop-blur-sm border border-neutral-700/50"
           style={{
             left: `${tooltipPosition.x}px`,

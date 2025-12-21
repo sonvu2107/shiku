@@ -190,7 +190,7 @@ export default function MessageInput({ onSendMessage }) {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-black dark:text-white hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 active:bg-neutral-200 dark:bg-neutral-800 dark:active:bg-neutral-600 rounded-full transition-colors touch-target"
+              className="p-2 text-black dark:text-white hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 active:bg-neutral-200 dark:bg-neutral-800 dark:active:bg-neutral-600 rounded-full transition-colors touch-target flex items-center justify-center"
               title="Gửi hình ảnh"
             >
               <Image size={20} />
@@ -201,7 +201,7 @@ export default function MessageInput({ onSendMessage }) {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setShowEmotePicker(!showEmotePicker)}
-              className={`p-2 rounded-full transition-colors touch-target ${showEmotePicker
+              className={`p-2 rounded-full transition-colors touch-target flex items-center justify-center ${showEmotePicker
                 ? 'text-black dark:text-white bg-neutral-100 dark:bg-neutral-800'
                 : 'text-black dark:text-white hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 active:bg-neutral-200 dark:bg-neutral-800 dark:active:bg-neutral-600'
                 }`}
@@ -236,7 +236,7 @@ export default function MessageInput({ onSendMessage }) {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 transition={{ duration: 0.2 }}
-                className="p-2 chat-btn-send rounded-full transition-colors touch-target"
+                className="p-2 chat-btn-send rounded-full transition-colors touch-target flex items-center justify-center"
                 title="Gửi tin nhắn"
               >
                 <Send size={20} />

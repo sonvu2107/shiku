@@ -346,15 +346,12 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
 
       // Show success message
       showSuccess("Bình luận đã được đăng thành công!");
-
-      // Navigate to post to see the new comment
-      navigate(`/post/${post.slug || post._id}`);
     } catch (error) {
       showError(error?.message || "Lỗi khi đăng bình luận");
     } finally {
       setSubmittingComment(false);
     }
-  }, [commentContent, commentImages, user, navigate, post._id, post.slug, onUpdate, showSuccess, showError]);
+  }, [commentContent, commentImages, user, post._id, onUpdate, showSuccess, showError]);
 
   return (
     <div
@@ -367,7 +364,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
           setShowPostModal(true);
         }
       }}
-      className="group relative bg-white dark:bg-[#1a1a1a] rounded-xl sm:rounded-2xl border border-gray-100 dark:border-neutral-800/80 shadow-sm hover:shadow-lg transition-all duration-300 my-2.5 sm:my-3 md:my-4 sm:mx-0 cursor-pointer"
+      className="group relative bg-white dark:bg-neutral-900 rounded-xl sm:rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm hover:shadow-lg transition-all duration-300 my-2.5 sm:my-3 md:my-4 sm:mx-0 cursor-pointer"
     >
       {/* 1. Header */}
       <div className="px-3 sm:px-4 pt-3 sm:pt-3.5 pb-2 flex justify-between items-start">
@@ -663,9 +660,10 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
       </div>
 
       {/* 5. Comment Input Section */}
+      {/* Comment Input Section - Hidden on mobile, show on desktop only */}
       {user && (
         <div
-          className="px-3 sm:px-4 py-2 sm:py-2.5 border-t border-gray-100 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-900/30"
+          className="hidden md:block px-3 sm:px-4 py-2 sm:py-2.5 border-t border-gray-100 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-900/30"
           onClick={e => e.stopPropagation()}
         >
           {/* Image Previews */}

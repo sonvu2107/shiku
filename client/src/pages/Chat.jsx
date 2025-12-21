@@ -917,7 +917,7 @@ export default function Chat() {
               <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Chat</h1>
               <button
                 onClick={() => setShowNewConversationModal(true)}
-                className="p-2 text-black dark:text-white hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-blue-900/20 active:bg-neutral-200 dark:bg-neutral-800 dark:active:bg-blue-900/30 rounded-full transition-colors touch-target"
+                className="p-2 text-black dark:text-white hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-blue-900/20 active:bg-neutral-200 dark:bg-neutral-800 dark:active:bg-blue-900/30 rounded-full transition-colors touch-target flex items-center justify-center"
                 title="Tạo cuộc trò chuyện mới"
               >
                 <Plus className="w-5 h-5" />

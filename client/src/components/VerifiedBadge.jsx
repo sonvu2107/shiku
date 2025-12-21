@@ -52,10 +52,10 @@ const defaultRoleColors = {
  * @param {string} variant - Display variant: 'icon' (chỉ icon) | 'text' (chỉ text) | 'both' (cả hai) | 'minimal' (text đơn giản)
  * @param {string} size - Size: 'sm' | 'md' | 'lg'
  */
-function VerifiedBadge({ 
-  role, 
-  isVerified, 
-  roleData, 
+function VerifiedBadge({
+  role,
+  isVerified,
+  roleData,
   availableRoles = [],
   variant = "icon",
   size = "md"
@@ -70,7 +70,7 @@ function VerifiedBadge({
   const loadDynamicRoles = async () => {
     // Skip nếu đã có availableRoles từ props (admin dashboard)
     if (availableRoles.length > 0) return;
-    
+
     // Skip loading nếu roleData đã được truyền vào và có iconUrl
     if (roleData && roleData.iconUrl) return;
 
@@ -99,11 +99,11 @@ function VerifiedBadge({
   // Handle mouse events to compute tooltip position
   const handleMouseEnter = (e) => {
     if (!badgeRef.current) return;
-    
+
     const rect = badgeRef.current.getBoundingClientRect();
     const tooltipX = rect.left + rect.width / 2;
     const tooltipY = rect.top - 8; // 8px above the badge
-    
+
     setTooltipPosition({ x: tooltipX, y: tooltipY });
     setShowTooltip(true);
   };
@@ -118,7 +118,7 @@ function VerifiedBadge({
   // 3. `dynamicRoles` loaded from cache/API
   // 4. `defaultRoleIcons`/`defaultRoleTooltips` (fallback)
   let icon, tooltip, color;
-  
+
   if (roleData && roleData.iconUrl) {
     // Sử dụng roleData nếu được truyền vào và có iconUrl
     icon = roleData.iconUrl;
@@ -138,14 +138,14 @@ function VerifiedBadge({
     tooltip = dynamicRoles[role].displayName;
     color = dynamicRoles[role].color;
   }
-  
+
   // Fallback to default role icons/tooltips if none found
   if (!icon) {
     icon = defaultRoleIcons[role];
     tooltip = defaultRoleTooltips[role];
     color = defaultRoleColors[role] || "#3B82F6"; // Default color
   }
-  
+
   // Return null if there is still no icon/tooltip available for non-icon variants
   if (!icon && variant === 'icon') return null;
   if (!tooltip && variant !== 'icon') return null;
@@ -215,9 +215,9 @@ function VerifiedBadge({
             }}
           >
             {icon && (
-              <img 
-                src={icon} 
-                alt="" 
+              <img
+                src={icon}
+                alt=""
                 className={`${sizeClass.icon} rounded-full object-cover`}
                 loading="lazy"
               />
@@ -229,20 +229,23 @@ function VerifiedBadge({
       case 'icon':
       default:
         // Chỉ icon (mặc định)
+        // Wrap trong container với background sáng ở dark mode để icon đen không bị chìm
         return (
-          <img 
-            src={icon} 
-            alt="Verified" 
-            className={`${sizeClass.icon} rounded-full align-middle flex-shrink-0 object-cover border-2 border-gray-300`}
-            loading="lazy"
-          />
+          <span className="inline-flex items-center justify-center rounded-full dark:bg-white/90 dark:p-0.5">
+            <img
+              src={icon}
+              alt="Verified"
+              className={`${sizeClass.icon} rounded-full align-middle flex-shrink-0 object-cover border-2 border-gray-300 dark:border-transparent`}
+              loading="lazy"
+            />
+          </span>
         );
     }
   };
 
   return (
     <>
-      <div 
+      <div
         ref={badgeRef}
         className="relative inline-flex items-center"
         onMouseEnter={handleMouseEnter}
@@ -250,10 +253,10 @@ function VerifiedBadge({
       >
         {renderBadgeContent()}
       </div>
-      
+
       {/* Tooltip rendered via portal - only show for icon/both variants */}
       {showTooltip && tooltip && (variant === 'icon' || variant === 'both') && createPortal(
-        <div 
+        <div
           className="fixed bg-neutral-900/95 text-white text-xs px-3 py-2 rounded-lg shadow-xl whitespace-nowrap pointer-events-none z-[9999] backdrop-blur-sm border border-neutral-700/50"
           style={{
             left: `${tooltipPosition.x}px`,

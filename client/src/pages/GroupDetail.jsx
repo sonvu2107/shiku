@@ -901,7 +901,7 @@ const GroupDetail = () => {
                      <div className="flex flex-wrap justify-center md:justify-start gap-2 md:gap-3 mb-6 w-full md:w-auto">
                         {group.userRole ? (
                            <>
-                              <button className="px-4 md:px-6 py-2.5 bg-green-600 text-white rounded-full font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 shadow-lg shadow-green-500/20 min-h-[44px] touch-manipulation flex-1 md:flex-initial">
+                              <button className="px-4 md:px-6 py-2.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-full font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 shadow-sm min-h-[44px] touch-manipulation flex-1 md:flex-initial cursor-default">
                                  <UserCheck size={16} className="md:w-[18px] md:h-[18px]" /> <span className="whitespace-nowrap">Đã tham gia</span>
                               </button>
                               {canPost() && (
@@ -1356,7 +1356,7 @@ const GroupDetail = () => {
                                                    showSuccess('Đã duyệt yêu cầu tham gia');
                                                 } catch (e) { showError(e.message || 'Lỗi duyệt yêu cầu'); }
                                              }}
-                                             className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-full font-bold text-xs sm:text-sm hover:bg-green-700 active:bg-green-800 transition-colors flex items-center gap-1.5 touch-manipulation min-h-[36px] sm:min-h-[40px]"
+                                             className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-neutral-800 dark:bg-white text-white dark:text-black rounded-full font-bold text-xs sm:text-sm hover:bg-neutral-900 dark:hover:bg-neutral-200 transition-colors flex items-center gap-1.5 touch-manipulation min-h-[36px] sm:min-h-[40px]"
                                           >
                                              <UserCheck size={14} className="hidden sm:block" /> Duyệt
                                           </button>
@@ -1372,7 +1372,7 @@ const GroupDetail = () => {
                                                    showSuccess('Đã từ chối yêu cầu tham gia');
                                                 } catch (e) { showError(e.message || 'Lỗi từ chối yêu cầu'); }
                                              }}
-                                             className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-red-600 text-white rounded-full font-bold text-xs sm:text-sm hover:bg-red-700 active:bg-red-800 transition-colors flex items-center gap-1.5 touch-manipulation min-h-[36px] sm:min-h-[40px]"
+                                             className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-full font-bold text-xs sm:text-sm hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors flex items-center gap-1.5 touch-manipulation min-h-[36px] sm:min-h-[40px]"
                                           >
                                              <UserX size={14} className="hidden sm:block" /> Từ chối
                                           </button>

@@ -73,9 +73,12 @@ export default function UserName({ user, className = "", maxLength = 50, showToo
 	// Only show VerifiedBadge when user chose 'none' (no cultivation badges)
 	const showVerifiedBadge = badgeType === 'none';
 
+	// Check if we have any badges to show (for conditional wrapping)
+	const hasBadges = showVerifiedBadge || showRealm || showTitle;
+
 	return (
 		<span
-			className={`inline-flex items-center gap-1 max-w-full overflow-hidden ${className}`}
+			className={`inline-flex items-center gap-1 max-w-full overflow-hidden ${hasBadges ? 'flex-wrap sm:flex-nowrap' : ''} ${className}`}
 			title={showTooltip && displayName.length > maxLength ? displayName : undefined}
 		>
 			{/* Display name or nickname */}
@@ -109,7 +112,7 @@ export default function UserName({ user, className = "", maxLength = 50, showToo
 			{/* Title badge - Danh hiệu tu tiên */}
 			{showTitle && (
 				<span
-					className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium"
+					className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0"
 					style={{
 						background: `linear-gradient(135deg, ${titleConfig.color}20, ${titleConfig.color}40)`,
 						color: titleConfig.color,

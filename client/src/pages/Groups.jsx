@@ -161,7 +161,7 @@ const SpotlightGroupCard = ({ group, onJoin, onLeave, userRole, isJoining, isLea
                      </button>
                   ) : isMember ? (
                      <div className="flex gap-2">
-                        <button onClick={() => navigate(`/groups/${group._id}`)} className="flex-1 py-2.5 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
+                        <button onClick={() => navigate(`/groups/${group._id}`)} className="flex-1 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white font-bold text-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors flex items-center justify-center gap-2">
                            <Check size={16} /> Đã tham gia
                         </button>
                         <button

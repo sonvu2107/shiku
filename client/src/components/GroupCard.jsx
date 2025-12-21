@@ -105,17 +105,18 @@ const GroupCard = ({
   };
 
   // Check participation status
-  const isMember = !!userRole; // Already a member (has userRole)
-  const isOwner = userRole === 'owner';
+  const effectiveRole = userRole || group.userRole;
+  const isMember = !!effectiveRole;
+  const isOwner = effectiveRole === 'owner';
 
   // Check if can join (not a member yet)
-  const canJoin = !userRole;
+  const canJoin = !effectiveRole;
 
   // Check if can leave (already a member but not owner)
-  const canLeave = userRole && userRole !== 'owner';
+  const canLeave = effectiveRole && effectiveRole !== 'owner';
 
   // Check if can edit (owner or admin)
-  const canEdit = userRole === 'owner' || userRole === 'admin';
+  const canEdit = effectiveRole === 'owner' || effectiveRole === 'admin';
 
   return (
     <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-md dark:shadow-gray-900/20 hover:shadow-lg transition-shadow duration-200 overflow-hidden border border-gray-200 dark:border-neutral-800">
@@ -284,15 +285,15 @@ const GroupCard = ({
             </div>
 
             {/* User Role Badge */}
-            {userRole && (
+            {effectiveRole && (
               <div className="flex items-center gap-1">
-                {userRole === 'owner' && (
+                {effectiveRole === 'owner' && (
                   <Shield className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
                 )}
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400 capitalize">
-                  {userRole === 'owner' ? 'Chủ sở hữu' :
-                    userRole === 'admin' ? 'Quản trị viên' :
-                      userRole === 'moderator' ? 'Điều hành viên' : 'Thành viên'}
+                  {effectiveRole === 'owner' ? 'Chủ sở hữu' :
+                    effectiveRole === 'admin' ? 'Quản trị viên' :
+                      effectiveRole === 'moderator' ? 'Điều hành viên' : 'Thành viên'}
                 </span>
               </div>
             )}
@@ -317,7 +318,7 @@ const GroupCard = ({
               <div className="flex gap-2 flex-1">
                 <Link
                   to={`/groups/${group._id}`}
-                  className="flex-1 bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 dark:hover:bg-green-600 transition-colors text-center flex items-center justify-center gap-2"
+                  className="flex-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-center flex items-center justify-center gap-2"
                 >
                   <UserCheck className="w-4 h-4" />
                   Đã tham gia
