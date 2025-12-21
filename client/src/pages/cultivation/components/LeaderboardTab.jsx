@@ -13,7 +13,7 @@ import StatsComparisonModal from './StatsComparisonModal.jsx';
 
 const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
   const { leaderboard, loadLeaderboard, loading, cultivation } = useCultivation();
-  const [activeTab, setActiveTab] = useState('realm'); // 'realm' or 'pk'
+  const [activeTab, setActiveTab] = useState('realm'); // 'realm', 'pk', or 'arena'
   const [fixing, setFixing] = useState(false);
   const [comparingUserId, setComparingUserId] = useState(null);
   const [compareStats, setCompareStats] = useState(null);
@@ -22,6 +22,11 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
   // PK Ranking state
   const [pkRanking, setPkRanking] = useState([]);
   const [loadingPk, setLoadingPk] = useState(false);
+
+  // Arena Ranking state
+  const [arenaRanking, setArenaRanking] = useState([]);
+  const [loadingArena, setLoadingArena] = useState(false);
+  const [userArenaRank, setUserArenaRank] = useState(null);
 
   useEffect(() => {
     if (activeTab === 'realm') {
@@ -44,11 +49,29 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
     }
   }, []);
 
+  // Load Arena ranking
+  const loadArenaRanking = useCallback(async () => {
+    setLoadingArena(true);
+    try {
+      const response = await api('/api/arena/leaderboard');
+      if (response.success) {
+        setArenaRanking(response.data.leaderboard || []);
+        setUserArenaRank(response.data.userRank);
+      }
+    } catch (err) {
+      console.error('Load Arena ranking error:', err);
+    } finally {
+      setLoadingArena(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'pk') {
       loadPkRanking();
+    } else if (activeTab === 'arena') {
+      loadArenaRanking();
     }
-  }, [activeTab, loadPkRanking]);
+  }, [activeTab, loadPkRanking, loadArenaRanking]);
 
   const handleFixRealms = async () => {
     if (!window.confirm('Bạn có chắc muốn fix lại tất cả cảnh giới dựa trên exp?')) return;
@@ -89,7 +112,7 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
   const currentUserStats = cultivation?.combatStats || getCombatStats(cultivation);
   const currentUserName = cultivation?.user?.name || cultivation?.user?.nickname || 'Bạn';
 
-  const isLoading = (activeTab === 'realm' && (loading || !leaderboard)) || (activeTab === 'pk' && loadingPk);
+  const isLoading = (activeTab === 'realm' && (loading || !leaderboard)) || (activeTab === 'pk' && loadingPk) || (activeTab === 'arena' && loadingArena);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -129,6 +152,15 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
             }`}
         >
           Luận Võ
+        </button>
+        <button
+          onClick={() => setActiveTab('arena')}
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'arena'
+            ? 'bg-purple-900/50 text-purple-300 border border-purple-500/50'
+            : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300'
+            }`}
+        >
+          Võ Đài
         </button>
       </div>
 
@@ -228,6 +260,63 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
                 <div className="text-right">
                   <p className="text-sm font-bold text-green-400">{user.wins} Thắng</p>
                   <p className="text-xs text-slate-500">{user.winRate}% tỷ lệ</p>
+                </div>
+              </motion.div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Arena Ranking */}
+      {activeTab === 'arena' && (
+        <div className="space-y-3">
+          {userArenaRank && (
+            <div className="text-sm text-center text-purple-300 mb-2">
+              Bạn đang ở hạng #{userArenaRank}
+            </div>
+          )}
+          {arenaRanking.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              <p>Chưa có dữ liệu xếp hạng</p>
+            </div>
+          ) : (
+            arenaRanking.slice(0, 20).map((player, idx) => (
+              <motion.div
+                key={player.userId || idx}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.03 }}
+                className={`spirit-tablet rounded-xl p-4 flex items-center gap-4 ${player.userId === cultivation?.user ? 'border-purple-500/50 bg-purple-900/20' : ''
+                  }`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-amber-500 text-black' :
+                    idx === 1 ? 'bg-slate-400 text-black' :
+                      idx === 2 ? 'bg-amber-700 text-white' :
+                        'bg-slate-700 text-slate-300'
+                  }`}>
+                  {player.rank || idx + 1}
+                </div>
+                <div
+                  className="w-10 h-10 rounded-full bg-slate-800 border-2 overflow-hidden"
+                  style={{ borderColor: player.tierColor || '#8B5CF6' }}
+                >
+                  {player.avatar ? (
+                    <img src={player.avatar} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-purple-400 font-bold">
+                      {player.username?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-slate-100 truncate">{player.username}</p>
+                  <p className="text-xs" style={{ color: player.tierColor || '#A78BFA' }}>
+                    {player.tierName} • {player.mmr} MMR
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-purple-300">{player.winRate}%</p>
+                  <p className="text-xs text-slate-500">{player.seasonWins}W/{player.seasonLosses}L</p>
                 </div>
               </motion.div>
             ))

@@ -41,7 +41,7 @@ const characterVariants = {
   } // Tàn ảnh né tránh
 };
 
-const PKTab = memo(function PKTab() {
+const PKTab = memo(function PKTab({ onSwitchTab }) {
   const { cultivation } = useCultivation();
   const [activeView, setActiveView] = useState('opponents'); // 'opponents', 'history'
   const [opponents, setOpponents] = useState([]);
@@ -168,6 +168,82 @@ const PKTab = memo(function PKTab() {
     }
   }, [activeView, loadOpponents, loadBots, loadHistory]);
 
+  // Check for ranked battle data from ArenaTab
+  useEffect(() => {
+    const rankedBattleStr = sessionStorage.getItem('rankedBattle');
+    if (rankedBattleStr) {
+      try {
+        const rankedBattle = JSON.parse(rankedBattleStr);
+        // Clear sessionStorage immediately to prevent re-triggering
+        sessionStorage.removeItem('rankedBattle');
+
+        if (rankedBattle.battleData) {
+          const data = rankedBattle.battleData;
+          const logs = data.battleLogs || [];
+
+          // For Arena API, extract initial HP from first log (before any damage)
+          // If logs exist, first log has initial HP values
+          // Otherwise use reasonable defaults based on realm
+          let initialChallengerHp = 1000;
+          let initialOpponentHp = 1000;
+          let initialChallengerMana = 100;
+          let initialOpponentMana = 100;
+
+          if (logs.length > 0) {
+            // Get max HP from battle logs (first log before any damage)
+            const firstLog = logs[0];
+            // HP at turn 1 before damage is applied = current HP + damage dealt
+            if (firstLog.attacker === 'challenger') {
+              initialOpponentHp = (firstLog.opponentHp || 0) + (firstLog.damage || 0);
+              initialChallengerHp = firstLog.challengerHp || firstLog.opponentHp || 1000;
+            } else {
+              initialChallengerHp = (firstLog.challengerHp || 0) + (firstLog.damage || 0);
+              initialOpponentHp = firstLog.opponentHp || firstLog.challengerHp || 1000;
+            }
+          }
+
+          // Build compatible result format for PKTab
+          const compatibleResult = {
+            ...data,
+            challenger: {
+              ...data.challenger,
+              stats: {
+                qiBlood: initialChallengerHp,
+                zhenYuan: initialChallengerMana,
+                ...(data.challenger?.stats || {})
+              }
+            },
+            opponent: {
+              ...data.opponent,
+              stats: {
+                qiBlood: initialOpponentHp,
+                zhenYuan: initialOpponentMana,
+                ...(data.opponent?.stats || {})
+              }
+            }
+          };
+
+          // Start battle animation with the data from ranked match
+          setBattleResult(compatibleResult);
+          setBattleLogs(logs);
+          setCurrentLogIndex(0);
+          // Initialize HP and Mana
+          setChallengerCurrentHp(initialChallengerHp);
+          setOpponentCurrentHp(initialOpponentHp);
+          setChallengerCurrentMana(initialChallengerMana);
+          setOpponentCurrentMana(initialOpponentMana);
+          setBattlePhase('intro');
+          setShowBattleAnimation(true);
+          // Start battle after intro delay
+          setTimeout(() => setBattlePhase('fighting'), 1500);
+        }
+      } catch (e) {
+        console.error('Failed to parse ranked battle data:', e);
+        sessionStorage.removeItem('rankedBattle');
+      }
+    }
+  }, []);
+
   // Challenge opponent
   const handleChallenge = async (opponentId, opponentName) => {
     if (challenging) return;
@@ -259,6 +335,8 @@ const PKTab = memo(function PKTab() {
 
   // Close battle result modal
   const closeBattleResult = () => {
+    const wasRankedBattle = battleResult?.challenger?.mmrChange !== undefined;
+
     setShowBattleAnimation(false);
     setBattleResult(null);
     setBattleLogs([]);
@@ -275,6 +353,11 @@ const PKTab = memo(function PKTab() {
     // Reload history if on history tab
     if (activeView === 'history') {
       loadHistory();
+    }
+
+    // Switch back to Arena tab if this was a ranked battle
+    if (wasRankedBattle && onSwitchTab) {
+      onSwitchTab('arena');
     }
   };
 
@@ -1431,30 +1514,55 @@ const PKTab = memo(function PKTab() {
                           </h2>
                         </motion.div>
 
-                        {/* Rewards Section - Chiến Lợi Phẩm */}
-                        <div className="w-full bg-black/40 rounded-lg p-3 sm:p-4 border border-white/10">
-                          <p className="text-center text-amber-200/80 text-xs uppercase mb-3 tracking-widest">
-                            Chiến Lợi Phẩm
-                          </p>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="flex flex-col items-center p-2 sm:p-3 bg-slate-800/50 rounded border border-slate-700/50">
-                              <span className="text-xs text-slate-400 mb-1">Tu Vi</span>
-                              <span className="font-bold text-purple-300 text-sm sm:text-base">
-                                +{battleResult.winner === 'challenger' || battleResult.isDraw
-                                  ? battleResult.rewards.winnerExp
-                                  : battleResult.rewards.loserExp}
-                              </span>
-                            </div>
-                            {(battleResult.winner === 'challenger' || battleResult.isDraw) && battleResult.rewards.winnerSpiritStones > 0 && (
+                        {/* Rewards Section - Chiến Lợi Phẩm (only for normal battles with rewards) */}
+                        {battleResult.rewards && (
+                          <div className="w-full bg-black/40 rounded-lg p-3 sm:p-4 border border-white/10">
+                            <p className="text-center text-amber-200/80 text-xs uppercase mb-3 tracking-widest">
+                              Chiến Lợi Phẩm
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
                               <div className="flex flex-col items-center p-2 sm:p-3 bg-slate-800/50 rounded border border-slate-700/50">
-                                <span className="text-xs text-slate-400 mb-1">Linh Thạch</span>
-                                <span className="font-bold text-yellow-300 text-sm sm:text-base">
-                                  +{battleResult.rewards.winnerSpiritStones}
+                                <span className="text-xs text-slate-400 mb-1">Tu Vi</span>
+                                <span className="font-bold text-purple-300 text-sm sm:text-base">
+                                  +{battleResult.winner === 'challenger' || battleResult.isDraw
+                                    ? battleResult.rewards.winnerExp
+                                    : battleResult.rewards.loserExp}
                                 </span>
                               </div>
-                            )}
+                              {(battleResult.winner === 'challenger' || battleResult.isDraw) && battleResult.rewards.winnerSpiritStones > 0 && (
+                                <div className="flex flex-col items-center p-2 sm:p-3 bg-slate-800/50 rounded border border-slate-700/50">
+                                  <span className="text-xs text-slate-400 mb-1">Linh Thạch</span>
+                                  <span className="font-bold text-yellow-300 text-sm sm:text-base">
+                                    +{battleResult.rewards.winnerSpiritStones}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        )}
+
+                        {/* MMR Change Section - For ranked Arena battles */}
+                        {battleResult.challenger?.mmrChange !== undefined && (
+                          <div className="w-full bg-black/40 rounded-lg p-3 sm:p-4 border border-white/10">
+                            <p className="text-center text-amber-200/80 text-xs uppercase mb-3 tracking-widest">
+                              Xếp Hạng
+                            </p>
+                            <div className="flex justify-center items-center gap-4">
+                              <div className="flex flex-col items-center">
+                                <span className="text-xs text-slate-400 mb-1">MMR</span>
+                                <span className={`font-bold text-lg ${battleResult.challenger.mmrChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {battleResult.challenger.mmrChange >= 0 ? '+' : ''}{battleResult.challenger.mmrChange}
+                                </span>
+                              </div>
+                              <div className="flex flex-col items-center">
+                                <span className="text-xs text-slate-400 mb-1">MMR Mới</span>
+                                <span className="font-bold text-lg text-amber-300">
+                                  {battleResult.challenger.newMmr}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Action Button */}
                         <motion.button

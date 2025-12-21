@@ -7,10 +7,10 @@ import React from 'react';
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { 
-      hasError: false, 
-      error: null, 
-      errorInfo: null 
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null
     };
   }
 
@@ -33,52 +33,21 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
-      // Fallback UI
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
-            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            
-            <h2 className="text-xl font-semibold text-gray-900 text-center mb-2">
-              Đã xảy ra lỗi
-            </h2>
-            
-            <p className="text-gray-600 text-center mb-6">
-              Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => window.location.reload()}
-                className="flex-1 bg-black dark:bg-white text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Tải lại trang
-              </button>
-              
-              <button
-                onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
-                className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Thử lại
-              </button>
-            </div>
+      // Auto-refresh after 2 seconds instead of showing error
+      // This handles cases where server just restarted after deploy
+      if (!this.state.retrying) {
+        this.setState({ retrying: true });
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }
 
-            {/* Show error details in development */}
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <details className="mt-4 p-4 bg-gray-100 rounded-lg">
-                <summary className="cursor-pointer text-sm font-medium text-gray-700">
-                  Chi tiết lỗi (Development)
-                </summary>
-                <pre className="mt-2 text-xs text-gray-600 overflow-auto">
-                  {this.state.error && this.state.error.toString()}
-                  {this.state.errorInfo.componentStack}
-                </pre>
-              </details>
-            )}
+      // Show minimal loading indicator while retrying
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Đang tải lại...</p>
           </div>
         </div>
       );

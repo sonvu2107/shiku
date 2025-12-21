@@ -18,12 +18,10 @@ import {
   DashboardTab,
   QuestsTab,
   StatsTab,
-  ShopTab,
-  InventoryTab,
   TechniquesTab,
-  PKTab,
-  LeaderboardTab,
-  DungeonTab
+  DungeonTab,
+  StorageTab,
+  CombatTab
 } from './cultivation/components';
 import { LOG_MESSAGES } from './cultivation/utils/constants';
 
@@ -76,7 +74,7 @@ const CultivationContent = memo(function CultivationContent() {
 
   const triggerBreakthroughEffect = useCallback((realmName) => {
     setIsBreakingThrough(true);
-    addLog("⚡ BẮT ĐẦU ĐỘ KIẾP!", 'danger');
+    addLog("BẮT ĐẦU ĐỘ KIẾP!", 'danger');
     addLog("Thiên lôi đang tụ lại...", 'danger');
     setIsShaking(true);
 
@@ -327,12 +325,10 @@ const CultivationContent = memo(function CultivationContent() {
     { id: 'dashboard', label: 'Tổng Quan' },
     { id: 'stats', label: 'Thông Số' },
     { id: 'quests', label: 'Nhiệm Vụ' },
-    { id: 'shop', label: 'Cửa Hàng' },
-    { id: 'inventory', label: 'Túi Đồ' },
+    { id: 'storage', label: 'Kho Báu' }, // Merged: shop + inventory
     { id: 'techniques', label: 'Công Pháp' },
     { id: 'dungeon', label: 'Bí Cảnh' },
-    { id: 'pk', label: 'Luận Võ' },
-    { id: 'leaderboard', label: 'Xếp Hạng' }
+    { id: 'combat', label: 'Chiến Đấu' }, // Merged: pk + arena + leaderboard
   ];
 
   return (
@@ -479,12 +475,10 @@ const CultivationContent = memo(function CultivationContent() {
 
           {activeTab === 'stats' && <StatsTab />}
           {activeTab === 'quests' && <QuestsTab onCheckIn={handleCheckIn} checkingIn={checkingIn} />}
-          {activeTab === 'shop' && <ShopTab />}
-          {activeTab === 'inventory' && <InventoryTab />}
+          {activeTab === 'storage' && <StorageTab />}
           {activeTab === 'techniques' && <TechniquesTab practiceTechnique={practiceTechnique} />}
           {activeTab === 'dungeon' && <DungeonTab />}
-          {activeTab === 'pk' && <PKTab />}
-          {activeTab === 'leaderboard' && <LeaderboardTab isAdmin={isAdmin} />}
+          {activeTab === 'combat' && <CombatTab onSwitchTab={setActiveTab} isAdmin={isAdmin} />}
         </div>
       </div>
 
