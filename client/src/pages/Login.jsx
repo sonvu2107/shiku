@@ -17,14 +17,14 @@ import { useToast } from "../contexts/ToastContext";
 // Input Field Custom with enhanced focus animations
 const InputGroup = ({ icon: Icon, ...props }) => (
   <div className="relative group">
-    <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-neutral-300 group-focus-within:scale-110 transition-all duration-300">
+    <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-10 text-neutral-600 group-focus-within:text-neutral-800 group-focus-within:scale-110 transition-all duration-300">
       <Icon size={18} className="sm:w-5 sm:h-5" strokeWidth={1.5} />
     </div>
     {/* Focus glow effect */}
     <div className="absolute inset-0 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-r from-neutral-600/5 via-neutral-500/5 to-neutral-600/5 blur-xl"></div>
     <input
       {...props}
-      className="relative w-full bg-neutral-900/50 border border-neutral-700 text-neutral-100 rounded-xl py-3 sm:py-4 pl-10 sm:pl-12 pr-4 text-sm sm:text-base outline-none focus:border-neutral-500 focus:bg-neutral-900/80 focus:ring-2 focus:ring-neutral-500/30 focus:shadow-[0_0_15px_rgba(120,120,120,0.1)] transition-all duration-300 placeholder:text-neutral-500"
+      className="relative w-full bg-white border border-neutral-300 text-black rounded-xl py-3 sm:py-4 pl-10 sm:pl-12 pr-4 text-sm sm:text-base outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-300/50 focus:shadow-[0_0_15px_rgba(120,120,120,0.1)] transition-all duration-300 placeholder:text-neutral-400 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:[-webkit-text-fill-color:black] [&:-webkit-autofill]:shadow-[0_0_0_1000px_white_inset]"
     />
   </div>
 );
@@ -98,13 +98,13 @@ export default function Login({ setUser }) {
         const { loadUser } = await import("../utils/userCache");
         const cachedUser = await loadUser();
         if (cachedUser) {
-                    navigate("/", { replace: true });
+          navigate("/", { replace: true });
         } else {
           setCheckingAuth(false);
         }
       } catch (err) {
         // User not logged in, stay on login page
-                setCheckingAuth(false);
+        setCheckingAuth(false);
       }
     };
     checkUser();

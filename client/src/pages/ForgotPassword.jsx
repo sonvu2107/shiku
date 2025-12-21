@@ -17,12 +17,12 @@ const GridPattern = () => (
 // Input Field Custom
 const InputGroup = ({ icon: Icon, ...props }) => (
   <div className="relative group">
-    <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-white transition-colors duration-300">
+    <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-600 group-focus-within:text-neutral-800 transition-colors duration-300">
       <Icon size={18} className="sm:w-5 sm:h-5" strokeWidth={1.5} />
     </div>
     <input
       {...props}
-      className="w-full bg-neutral-900/50 border border-neutral-800 text-white rounded-xl py-3 sm:py-4 pl-10 sm:pl-12 pr-4 text-sm sm:text-base outline-none focus:border-neutral-500 focus:bg-neutral-900 focus:ring-1 focus:ring-neutral-500 transition-all duration-300 placeholder:text-neutral-600"
+      className="w-full bg-white border border-neutral-300 text-black rounded-xl py-3 sm:py-4 pl-10 sm:pl-12 pr-4 text-sm sm:text-base outline-none focus:border-neutral-400 focus:bg-white focus:ring-1 focus:ring-neutral-300/50 transition-all duration-300 placeholder:text-neutral-400 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:[-webkit-text-fill-color:black] [&:-webkit-autofill]:shadow-[0_0_0_1000px_white_inset]"
     />
   </div>
 );

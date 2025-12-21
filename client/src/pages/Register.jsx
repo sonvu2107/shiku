@@ -14,19 +14,19 @@ import BackgroundControls from "../components/BackgroundControls";
 // --- TÁI SỬ DỤNG UI COMPONENTS ---
 const InputGroup = ({ icon: Icon, type = "text", showPasswordToggle = false, passwordVisible = false, onTogglePassword, ...props }) => (
   <div className="relative group">
-    <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-neutral-300 transition-colors duration-300">
+    <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-600 group-focus-within:text-neutral-800 transition-colors duration-300">
       <Icon size={18} className="sm:w-5 sm:h-5" strokeWidth={1.5} />
     </div>
     <input
       type={showPasswordToggle ? (passwordVisible ? "text" : "password") : type}
       {...props}
-      className="w-full bg-neutral-900/50 border border-neutral-700 text-neutral-100 rounded-xl py-3 sm:py-4 pl-10 sm:pl-12 pr-4 text-sm sm:text-base outline-none focus:border-neutral-500 focus:bg-neutral-900/80 focus:ring-1 focus:ring-neutral-500/30 transition-all duration-300 placeholder:text-neutral-500"
+      className="w-full bg-white border border-neutral-300 text-black rounded-xl py-3 sm:py-4 pl-10 sm:pl-12 pr-4 text-sm sm:text-base outline-none focus:border-neutral-400 focus:bg-white focus:ring-1 focus:ring-neutral-300/50 transition-all duration-300 placeholder:text-neutral-400 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:[-webkit-text-fill-color:black] [&:-webkit-autofill]:shadow-[0_0_0_1000px_white_inset]"
     />
     {showPasswordToggle && (
       <button
         type="button"
         onClick={onTogglePassword}
-        className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors p-1"
+        className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors p-1"
       >
         {passwordVisible ? <EyeOff size={18} className="sm:w-5 sm:h-5" /> : <Eye size={18} className="sm:w-5 sm:h-5" />}
       </button>
@@ -110,13 +110,13 @@ export default function Register({ setUser }) {
         const { loadUser } = await import("../utils/userCache");
         const cachedUser = await loadUser();
         if (cachedUser) {
-                    navigate("/", { replace: true });
+          navigate("/", { replace: true });
         } else {
           setCheckingAuth(false);
         }
       } catch (err) {
         // User not logged in, stay on register page
-                setCheckingAuth(false);
+        setCheckingAuth(false);
       }
     };
     checkUser();
@@ -360,7 +360,7 @@ export default function Register({ setUser }) {
                   />
 
                   <div className="relative group">
-                    <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-neutral-300 transition-colors duration-300">
+                    <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-600 group-focus-within:text-neutral-800 transition-colors duration-300">
                       <Calendar size={18} className="sm:w-5 sm:h-5" strokeWidth={1.5} />
                     </div>
                     <input
@@ -368,7 +368,7 @@ export default function Register({ setUser }) {
                       value={dateOfBirth}
                       onChange={(e) => { setDateOfBirth(e.target.value); setError(""); }}
                       max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
-                      className="w-full bg-neutral-900/50 border border-neutral-700 text-neutral-100 rounded-xl py-3 sm:py-4 pl-10 sm:pl-12 pr-4 text-sm sm:text-base outline-none focus:border-neutral-500 focus:bg-neutral-900/80 focus:ring-1 focus:ring-neutral-500/30 transition-all duration-300 placeholder:text-neutral-500"
+                      className="w-full bg-white border border-neutral-300 text-black rounded-xl py-3 sm:py-4 pl-10 sm:pl-12 pr-4 text-sm sm:text-base outline-none focus:border-neutral-400 focus:bg-white focus:ring-1 focus:ring-neutral-300/50 transition-all duration-300 placeholder:text-neutral-400 [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
                       required
                     />
                   </div>
