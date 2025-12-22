@@ -368,6 +368,25 @@
   }
 }
 
+/* ==================== SAFE AREA SUPPORT ==================== */
+/* Handle safe area insets for devices with notch/home bar */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Fix extra whitespace below bottom navbar - set html/body to full height */
+@supports (height: 100dvh) {
+
+  html,
+  body {
+    min-height: 100dvh;
+  }
+}
+
 /* ==================== DARK MODE SUPPORT ==================== */
 @media (prefers-color-scheme: dark) {
   .dark-mode-mobile {
