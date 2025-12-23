@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../api";
-import { Heart, Users, Settings, Play, BarChart3, CheckCircle, Eye, Wrench, RefreshCw, MessageCircle } from "lucide-react";
+import { ArrowUp, Users, Settings, Play, BarChart3, CheckCircle, Eye, Wrench, RefreshCw, MessageCircle } from "lucide-react";
 
 export default function AutoLikeBot() {
   const [isRunning, setIsRunning] = useState(false);
   const [loading, setLoading] = useState(false);
   const [testUsers, setTestUsers] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
-  const [botMode, setBotMode] = useState("like");
+  const [botMode, setBotMode] = useState("upvote");
   const [config, setConfig] = useState({
     maxPostsPerUser: 4,
-    likeProbability: 1,
-    emoteTypes: ["👍", "❤️", "😂", "😮", "😢", "😡"],
     maxViewsPerUser: 8,
-    forceOverride: false, // Option to override old reactions
+    forceOverride: false, // Option to override old upvotes
     loopCount: 1, // Number of loops for view bot
   });
   const [results, setResults] = useState(null);
@@ -38,7 +36,7 @@ export default function AutoLikeBot() {
     }
   };
 
-  const runAutoLikeBot = async () => {
+  const runAutoUpvoteBot = async () => {
     if (selectedUsers.length === 0) {
       setError("Vui lòng chọn ít nhất một tài khoản để chạy bot.");
       return;
@@ -50,15 +48,11 @@ export default function AutoLikeBot() {
     setResults(null);
 
     try {
-      const res = await api("/api/admin/auto-like-posts", {
+      const res = await api("/api/admin/auto-upvote-posts", {
         method: "POST",
         body: {
           maxPostsPerUser: config.maxPostsPerUser,
-          likeProbability: config.likeProbability,
           selectedUsers,
-          emoteTypes: config.emoteTypes,
-          enableAutoView: false, // Only like, no view
-          maxViewsPerUser: 0,
           forceOverride: config.forceOverride,
         },
       });
@@ -111,8 +105,8 @@ export default function AutoLikeBot() {
   const selectAllUsers = () => setSelectedUsers(testUsers.map((u) => u.email));
   const clearUserSelection = () => setSelectedUsers([]);
 
-  const clearAllReactions = async () => {
-    if (!confirm("Bạn có chắc muốn xóa tất cả cảm xúc của các tài khoản test? Hành động này không thể hoàn tác.")) {
+  const clearAllUpvotes = async () => {
+    if (!confirm("Bạn có chắc muốn xóa tất cả upvotes của các tài khoản test? Hành động này không thể hoàn tác.")) {
       return;
     }
 
@@ -128,7 +122,7 @@ export default function AutoLikeBot() {
       alert(` ${res.message}`);
       setResults(null); // Clear previous results
     } catch (err) {
-      setError(err.message || "Đã xảy ra lỗi khi xóa cảm xúc.");
+      setError(err.message || "Đã xảy ra lỗi khi xóa upvotes.");
     } finally {
       setClearingReactions(false);
     }
@@ -163,14 +157,14 @@ export default function AutoLikeBot() {
         {/* Header - Mobile Responsive */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-6">
           <div className="p-3 bg-black text-white rounded-xl w-fit">
-            {botMode === "like" ? <Heart className="w-5 h-5 md:w-6 md:h-6" /> : <Eye className="w-5 h-5 md:w-6 md:h-6" />}
+            {botMode === "upvote" ? <ArrowUp className="w-5 h-5 md:w-6 md:h-6" /> : <Eye className="w-5 h-5 md:w-6 md:h-6" />}
           </div>
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
               Auto BOT
             </h2>
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-              Tự động tăng likes và views bằng tài khoản test (Admin)
+              Tự động tăng upvotes và views bằng tài khoản test (Admin)
             </p>
           </div>
         </div>
@@ -178,14 +172,14 @@ export default function AutoLikeBot() {
         {/* Bot Mode Tabs - Mobile Responsive */}
         <div className="flex bg-gray-100 dark:bg-neutral-800 rounded-xl p-1 mb-6 md:mb-8">
           <button
-            onClick={() => setBotMode("like")}
-            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-semibold transition-all text-sm sm:text-base ${botMode === "like"
+            onClick={() => setBotMode("upvote")}
+            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-semibold transition-all text-sm sm:text-base ${botMode === "upvote"
               ? "bg-white dark:bg-neutral-700 text-black dark:text-white shadow-sm"
               : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
               }`}
           >
-            <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="text-xs sm:text-sm">Auto Like Bot</span>
+            <ArrowUp className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-xs sm:text-sm">Auto Upvote Bot</span>
           </button>
           <button
             onClick={() => setBotMode("view")}
@@ -209,16 +203,16 @@ export default function AutoLikeBot() {
             </div>
 
             <div className="bg-gray-100 dark:bg-neutral-800 rounded-xl p-3 md:p-4 space-y-3 md:space-y-4">
-              {botMode === "like" && (
+              {botMode === "upvote" && (
                 <>
                   <div>
                     <label className="block text-xs md:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                      Số bài viết tối đa mỗi tài khoản (Like)
+                      Số bài viết tối đa mỗi tài khoản (Upvote)
                     </label>
                     <input
                       type="number"
                       min="1"
-                      max="10"
+                      max="20"
                       value={config.maxPostsPerUser}
                       onChange={(e) =>
                         setConfig((p) => ({
@@ -231,51 +225,6 @@ export default function AutoLikeBot() {
                   </div>
 
                   <div>
-                    <label className="block text-xs md:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                      Xác suất like (0–1)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="1"
-                      step="0.1"
-                      value={config.likeProbability}
-                      onChange={(e) =>
-                        setConfig((p) => ({
-                          ...p,
-                          likeProbability: parseFloat(e.target.value),
-                        }))
-                      }
-                      className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-neutral-700 dark:text-white touch-target"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs md:text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                      Loại cảm xúc
-                    </label>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                      {["👍", "❤️", "😂", "😮", "😢", "😡"].map((emote) => (
-                        <button
-                          key={emote}
-                          onClick={() => {
-                            const list = config.emoteTypes.includes(emote)
-                              ? config.emoteTypes.filter((e) => e !== emote)
-                              : [...config.emoteTypes, emote];
-                            setConfig((p) => ({ ...p, emoteTypes: list }));
-                          }}
-                          className={`px-2 py-2 md:px-3 md:py-2 rounded-lg text-lg border transition-all touch-target ${config.emoteTypes.includes(emote)
-                            ? "bg-black dark:bg-black dark:bg-white text-white border-black dark:border-neutral-800 dark:border-neutral-200"
-                            : "bg-white dark:bg-neutral-700 border-gray-300 dark:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-500"
-                            }`}
-                        >
-                          {emote}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
                     <label className="flex items-center gap-2 text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300">
                       <input
                         type="checkbox"
@@ -285,10 +234,10 @@ export default function AutoLikeBot() {
                         }
                         className="w-3 h-3 sm:w-3 sm:h-3 accent-black dark:accent-blue-400 rounded focus:ring-0"
                       />
-                      <span>Force Override - Ghi đè reactions cũ</span>
+                      <span>Cho phép upvote lại bài đã upvote</span>
                     </label>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-                      Bật tùy chọn này để thay thế reactions cũ bằng reactions mới
+                      Bật tùy chọn này để bỏ qua kiểm tra đã upvote
                     </p>
                   </div>
                 </>
@@ -367,11 +316,11 @@ export default function AutoLikeBot() {
                   Bỏ chọn
                 </button>
                 <button
-                  onClick={clearAllReactions}
+                  onClick={clearAllUpvotes}
                   disabled={clearingReactions}
                   className="text-xs px-2 md:px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition disabled:bg-red-400 touch-target"
                 >
-                  {clearingReactions ? "Đang xóa..." : "Xóa Reactions"}
+                  {clearingReactions ? "Đang xóa..." : "Xóa Upvotes"}
                 </button>
               </div>
             </div>
@@ -420,9 +369,9 @@ export default function AutoLikeBot() {
 
         {/* Run Bot Button - Mobile Responsive */}
         <div className="mt-6 md:mt-8">
-          {botMode === "like" ? (
+          {botMode === "upvote" ? (
             <button
-              onClick={runAutoLikeBot}
+              onClick={runAutoUpvoteBot}
               disabled={loading || isRunning || selectedUsers.length === 0}
               className={`w-full py-3 md:py-2.5 font-medium rounded-lg text-white text-sm md:text-base transition-all flex items-center justify-center gap-2 touch-target ${loading || isRunning || selectedUsers.length === 0
                 ? "bg-gray-400 cursor-not-allowed"
@@ -436,8 +385,8 @@ export default function AutoLikeBot() {
                 </>
               ) : (
                 <>
-                  <Heart className="w-4 h-4" />
-                  Khởi chạy Bot
+                  <ArrowUp className="w-4 h-4" />
+                  Khởi chạy Upvote Bot
                 </>
               )}
             </button>
@@ -458,7 +407,7 @@ export default function AutoLikeBot() {
               ) : (
                 <>
                   <Eye className="w-4 h-4" />
-                  Khởi chạy Bot
+                  Khởi chạy View Bot
                 </>
               )}
             </button>
@@ -546,24 +495,20 @@ export default function AutoLikeBot() {
               </h3>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 mb-4 md:mb-6">
-              <Stat label="Tổng lượt like" value={results.totalLikes} />
-              <Stat label="Tổng view" value={results.totalViews || 0} />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+              <Stat label="Tổng upvotes" value={results.totalUpvotes || 0} />
+              <Stat label="Tổng views" value={results.totalViews || 0} />
               <Stat label="Tài khoản chạy" value={results.usersProcessed} />
               <Stat label="Bài viết có sẵn" value={results.postsAvailable} />
-              <Stat
-                label="Thành công"
-                value={results.results?.filter((r) => !r.error).length || 0}
-              />
             </div>
 
-            <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-              <p className="text-gray-800 font-medium mb-2">
+            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-gray-200 dark:border-neutral-700 shadow-sm">
+              <p className="text-gray-800 dark:text-gray-200 font-medium mb-2">
                 {results.message}
               </p>
 
               {results.results && (
-                <div className="max-h-40 overflow-y-auto divide-y divide-gray-200 text-sm">
+                <div className="max-h-40 overflow-y-auto divide-y divide-gray-200 dark:divide-neutral-700 text-sm">
                   {results.results.map((r, i) => (
                     <div
                       key={i}
@@ -576,7 +521,7 @@ export default function AutoLikeBot() {
                         <span className="text-red-600 dark:text-red-400 text-xs">Lỗi: {r.error}</span>
                       ) : (
                         <span className="text-green-600 dark:text-green-400 text-xs">
-                          {r.likesGiven} likes • {r.viewsGiven || 0} views • {r.postsProcessed} bài xử lý • {r.skippedPosts || 0} bài đã like
+                          {r.upvotesGiven ?? r.likesGiven ?? 0} upvotes • {r.viewsGiven || 0} views • {r.postsProcessed} bài xử lý • {r.skippedPosts || 0} bỏ qua
                         </span>
                       )}
                     </div>

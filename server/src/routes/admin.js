@@ -37,6 +37,7 @@ import {
   testSendNotification,
   // Bot
   autoLikePosts,
+  autoUpvotePosts,
   autoViewPosts,
   clearTestReactions,
   // Post management
@@ -160,6 +161,7 @@ router.get("/test-send-notification", authRequired, adminRequired, testSendNotif
 // ============================================================
 
 router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimit, autoLikePosts);
+router.post("/auto-upvote-posts", authRequired, adminRequired, strictAdminRateLimit, autoUpvotePosts);
 router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimit, autoViewPosts);
 router.post("/clear-test-reactions", authRequired, adminRequired, strictAdminRateLimit, clearTestReactions);
 

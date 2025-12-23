@@ -121,6 +121,7 @@ export default function ChatWindow({
                 hasMore={hasMoreMessages}
                 onLoadMore={onLoadMoreMessages}
                 conversation={conversation}
+                scrollContainerRef={scrollContainerRef}
               />
               <div ref={messagesEndRef} />
             </div>

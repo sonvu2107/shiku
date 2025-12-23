@@ -129,6 +129,123 @@ export const autoLikePosts = async (req, res, next) => {
 };
 
 /**
+ * POST /auto-upvote-posts - Auto upvote posts using test accounts (NEW upvote system)
+ */
+export const autoUpvotePosts = async (req, res, next) => {
+    try {
+        const {
+            maxPostsPerUser = 10,
+            selectedUsers = [],
+            forceOverride = false
+        } = req.body;
+
+        if (!selectedUsers || selectedUsers.length === 0) {
+            return res.status(400).json({ error: "Vui lòng chọn ít nhất một tài khoản test" });
+        }
+
+        const testUsers = await User.find({
+            email: { $in: selectedUsers }
+        }).select('_id email name').lean();
+
+        if (testUsers.length === 0) {
+            return res.status(404).json({ error: "Không tìm thấy tài khoản test nào" });
+        }
+
+        const posts = await Post.find({
+            status: 'published',
+            $or: [
+                { group: null },
+                { group: { $exists: false } }
+            ]
+        })
+            .select('_id title upvotes upvoteCount')
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .lean();
+
+        if (posts.length === 0) {
+            return res.status(404).json({ error: "Không có bài viết nào để upvote" });
+        }
+
+        let totalUpvotes = 0;
+        const results = [];
+
+        for (const testUser of testUsers) {
+            let userUpvotes = 0;
+            let postsProcessed = 0;
+            let skippedPosts = 0;
+
+            const shuffledPosts = [...posts].sort(() => Math.random() - 0.5);
+            const postsToProcess = shuffledPosts.slice(0, maxPostsPerUser);
+
+            for (const post of postsToProcess) {
+                postsProcessed++;
+
+                // Check if user already upvoted
+                const alreadyUpvoted = post.upvotes?.some(
+                    uid => uid?.toString() === testUser._id.toString()
+                );
+
+                if (alreadyUpvoted && !forceOverride) {
+                    skippedPosts++;
+                    continue;
+                }
+
+                try {
+                    if (!alreadyUpvoted) {
+                        // Add upvote
+                        await Post.updateOne(
+                            { _id: post._id },
+                            {
+                                $addToSet: { upvotes: testUser._id },
+                                $inc: { upvoteCount: 1 }
+                            }
+                        );
+                        userUpvotes++;
+                        totalUpvotes++;
+                    }
+                } catch (err) {
+                    console.error(`[ADMIN] Error upvoting post ${post._id} for ${testUser.email}:`, err);
+                }
+            }
+
+            results.push({
+                user: testUser.email,
+                upvotesGiven: userUpvotes,
+                postsProcessed,
+                skippedPosts
+            });
+        }
+
+        await AuditLog.logAction(req.user._id, 'admin_auto_upvote', {
+            result: 'success',
+            ipAddress: req.ip,
+            clientAgent: getClientAgent(req),
+            details: {
+                action: 'auto_upvote_posts',
+                totalUpvotes,
+                usersProcessed: results.length,
+                forceOverride
+            }
+        });
+
+        res.json({
+            success: true,
+            message: `Đã thêm ${totalUpvotes} upvotes từ ${testUsers.length} tài khoản`,
+            totalUpvotes,
+            usersProcessed: testUsers.length,
+            postsAvailable: posts.length,
+            results
+        });
+
+    } catch (error) {
+        console.error('[ADMIN] Auto-upvote error:', error);
+        next(error);
+    }
+};
+
+
+/**
  * POST /auto-view-posts - Auto view posts using test accounts
  */
 export const autoViewPosts = async (req, res, next) => {

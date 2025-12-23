@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import AdminFeedback from "./AdminFeedback";
 import APIMonitoring from "../components/APIMonitoring";
 import RoleManagement from "../components/RoleManagement";
-// AutoLikeBot removed - replaced by upvote system
+import AutoLikeBot from "../components/AutoLikeBot";
 import AdminCharts from "../components/AdminCharts";
 import Pagination from '../components/admin/Pagination';
 import SystemHealth from '../components/admin/SystemHealth';
@@ -255,6 +255,7 @@ export default function AdminDashboard() {
       { id: 'bans', label: 'Cấm N.Dùng', icon: Ban, permission: 'admin.manageBans' },
       { id: 'notifications', label: 'Thông báo', icon: Bell, permission: 'admin.sendNotifications' },
       { id: 'feedback', label: 'Phản hồi', icon: MessageCircle, permission: 'admin.viewFeedback' },
+      { id: 'bot', label: 'Auto Bot', icon: Heart, permission: 'admin.manageUsers' },
       { id: 'equipment', label: 'Trang Bị', icon: Sword, external: true, path: '/admin/equipment', permission: 'admin.manageEquipment' },
       { id: 'api-monitoring', label: 'API Monitor', icon: Code, permission: 'admin.viewAPI' },
 
@@ -1083,6 +1084,12 @@ export default function AdminDashboard() {
 
                   {activeTab === "insights" && (
                      <AdminInsightsTab />
+                  )}
+
+                  {activeTab === "bot" && (
+                     <motion.div key="bot" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                        <AutoLikeBot />
+                     </motion.div>
                   )}
 
                </AnimatePresence>

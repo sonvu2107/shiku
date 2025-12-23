@@ -21,6 +21,30 @@ import { getClient, isRedisConnected, redisConfig } from "../services/redisClien
 const mem = new Map(); // key -> { exp, body }
 const now = () => Date.now();
 
+// ============================================================
+// IN-FLIGHT COALESCING (Thundering Herd Protection)
+// ============================================================
+
+const inFlight = new Map(); // key -> { exp: number, p: Promise<{ status, payload, ct }> }
+
+function getInFlight(key) {
+    const entry = inFlight.get(key);
+    if (!entry) return null;
+    if (entry.exp <= now()) {
+        inFlight.delete(key);
+        return null;
+    }
+    return entry.p;
+}
+
+function setInFlight(key, ttlSeconds, promise) {
+    // Cap wait window to 5-30s to avoid stuck requests
+    const waitSeconds = Math.min(Math.max(ttlSeconds, 5), 30);
+    inFlight.set(key, { exp: now() + waitSeconds * 1000, p: promise });
+    promise.finally(() => inFlight.delete(key));
+    return promise;
+}
+
 function getMem(key) {
     const it = mem.get(key);
     if (!it) return null;
@@ -207,8 +231,45 @@ function responseCache({ ttlSeconds = 30, prefix = "get", varyByUser = false, ma
             return res.status(200).send(memHit.body);
         }
 
+        // 2.5) In-flight coalescing: if same key is being computed, wait for it
+        const pending = getInFlight(key);
+        if (pending) {
+            recordMetric(prefix, 'hit'); // Count as HIT since we avoid DB
+            res.set("X-Cache", "WAIT");
+            try {
+                const { status, payload, ct } = await pending;
+                if (ct) res.type(ct);
+                else res.type("application/json");
+                return res.status(status || 200).send(payload);
+            } catch (e) {
+                // If leader fails, follower falls back to running handler
+                res.set("X-Cache", "WAIT-ERR");
+                // Continue to next() below
+            }
+        }
+
         // Record MISS here (correct place: no cache found, will run handler)
         recordMetric(prefix, 'miss');
+
+        // Create in-flight promise (this request becomes the leader)
+        let resolveInFlight, rejectInFlight;
+        const inFlightPromise = setInFlight(
+            key,
+            typeof ttlSeconds === "number" ? ttlSeconds : 30,
+            new Promise((resolve, reject) => {
+                resolveInFlight = resolve;
+                rejectInFlight = reject;
+            })
+        );
+
+        // Safety: reject if connection closes before resolve (client abort)
+        res.on("close", () => {
+            if (rejectInFlight) {
+                rejectInFlight(new Error("leader-connection-closed"));
+                resolveInFlight = null;
+                rejectInFlight = null;
+            }
+        });
 
         // 3) Hook BOTH res.json and res.send to cache the response
         const originalJson = res.json.bind(res);
@@ -227,12 +288,22 @@ function responseCache({ ttlSeconds = 30, prefix = "get", varyByUser = false, ma
                     // SAFETY: Skip non-JSON payloads (Buffer, stream, non-JSON content-type)
                     if (Buffer.isBuffer(body)) {
                         res.set("X-Cache", "SKIP-TYPE");
+                        if (rejectInFlight) {
+                            rejectInFlight(new Error("skip-type-buffer"));
+                            resolveInFlight = null;
+                            rejectInFlight = null;
+                        }
                         return useSend ? originalSend(body) : originalJson(body);
                     }
 
                     const ct = res.getHeader("Content-Type");
                     if (ct && !String(ct).includes("application/json")) {
                         res.set("X-Cache", "SKIP-TYPE");
+                        if (rejectInFlight) {
+                            rejectInFlight(new Error("skip-type-content"));
+                            resolveInFlight = null;
+                            rejectInFlight = null;
+                        }
                         return useSend ? originalSend(body) : originalJson(body);
                     }
 
@@ -242,11 +313,27 @@ function responseCache({ ttlSeconds = 30, prefix = "get", varyByUser = false, ma
                         const looksJson = (s.startsWith("{") && s.endsWith("}")) || (s.startsWith("[") && s.endsWith("]"));
                         if (!looksJson) {
                             res.set("X-Cache", "SKIP-TYPE");
+                            if (rejectInFlight) {
+                                rejectInFlight(new Error("skip-type-string"));
+                                resolveInFlight = null;
+                                rejectInFlight = null;
+                            }
                             return useSend ? originalSend(body) : originalJson(body);
                         }
                     }
 
                     const payload = typeof body === "string" ? body : JSON.stringify(body);
+
+                    // Resolve in-flight followers as early as possible
+                    try {
+                        if (resolveInFlight) {
+                            const status = res.statusCode || 200;
+                            const ctHeader = res.getHeader("Content-Type") || "application/json";
+                            resolveInFlight({ status, payload, ct: String(ctHeader) });
+                            resolveInFlight = null;
+                            rejectInFlight = null;
+                        }
+                    } catch (_) { }
 
                     // SAFETY: Don't cache oversized responses
                     if (payload.length > maxSize) {

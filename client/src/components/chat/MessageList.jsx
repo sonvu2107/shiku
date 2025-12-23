@@ -27,7 +27,8 @@ export default function MessageList({
   onLoadMore,
   conversation,
   onEditMessage,
-  onDeleteMessage
+  onDeleteMessage,
+  scrollContainerRef: externalScrollRef // Optional external scroll container ref
 }) {
   const { showError } = useToast();
   // ==================== STATE MANAGEMENT ====================
@@ -58,13 +59,15 @@ export default function MessageList({
   }, []);
 
   useEffect(() => {
-    const container = messagesContainerRef.current;
+    // Use external scroll ref if provided, otherwise use internal ref
+    const container = externalScrollRef?.current || messagesContainerRef.current;
     if (!container) return;
 
     const handleScroll = () => {
       const { scrollTop } = container;
-      // Infinite scroll: load more when reach top
-      if (scrollTop === 0 && hasMore && !loading) {
+      // Infinite scroll: load more when near top (threshold 100px)
+      if (scrollTop < 100 && hasMore && !loading) {
+        console.log('[MessageList] Loading more messages...', { scrollTop, hasMore, loading });
         prevScrollHeight.current = container.scrollHeight;
         prevMessagesLength.current = messages.length;
         onLoadMore();
@@ -73,11 +76,11 @@ export default function MessageList({
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [hasMore, loading, onLoadMore, messages.length]);
+  }, [hasMore, loading, onLoadMore, messages.length, externalScrollRef]);
 
   // When loading more old messages, maintain scroll position
   useEffect(() => {
-    const container = messagesContainerRef.current;
+    const container = externalScrollRef?.current || messagesContainerRef.current;
     if (!container) return;
     // If the number of messages increases (loading more old messages), maintain scroll position
     if (messages.length > prevMessagesLength.current) {
@@ -86,15 +89,23 @@ export default function MessageList({
     }
     prevMessagesLength.current = messages.length;
     prevScrollHeight.current = container.scrollHeight;
-  }, [messages]);
+  }, [messages, externalScrollRef]);
 
   // When there is a new message (sent/received), auto-scroll to bottom
+  // But NOT when loading more old messages (prepending)
+  const prevLastMessageId = useRef(null);
   useEffect(() => {
-    const container = messagesContainerRef.current;
+    const container = externalScrollRef?.current || messagesContainerRef.current;
     if (!container || !messages.length) return;
-    // If the newest message is from the current user or is a new message, scroll to bottom
-    container.scrollTop = container.scrollHeight;
-  }, [messages[messages.length - 1]?._id]);
+
+    const lastMessageId = messages[messages.length - 1]?._id;
+    // Only scroll if last message actually changed (new message added at bottom)
+    // Skip if this is initial load or if old messages were prepended
+    if (prevLastMessageId.current && prevLastMessageId.current !== lastMessageId) {
+      container.scrollTop = container.scrollHeight;
+    }
+    prevLastMessageId.current = lastMessageId;
+  }, [messages, externalScrollRef]);
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -626,11 +637,11 @@ export default function MessageList({
   };
 
   return (
-    <div className="relative flex-1 overflow-hidden">
-      {/* Messages container */}
+    <div className="relative flex-1">
+      {/* Messages container - no overflow here, parent handles scrolling */}
       <div
         ref={messagesContainerRef}
-        className="h-full overflow-y-auto pb-6"
+        className="h-full pb-6"
       >
         {/* Load more indicator */}
         {loading && (
