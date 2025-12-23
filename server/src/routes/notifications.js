@@ -27,7 +27,7 @@ router.get("/", authRequired, async (req, res, next) => {
       parseInt(limit),
       filter
     );
-    
+
     res.json(result);
   } catch (error) {
     next(error);
@@ -40,8 +40,8 @@ router.get("/unread-count", authRequired, async (req, res, next) => {
   try {
     const userId = req.user._id.toString();
     const cacheKey = `notifications:unread:${userId}`;
-    
-    // Cache for 10 seconds - unread count doesn't need to be real-time
+
+    // Cache for 30 seconds - unread count doesn't need to be real-time
     const unreadCount = await withCache(statsCache, cacheKey, async () => {
       // Direct count using indexed fields { recipient, read }
       const count = await NotificationService.countUnread?.(userId);
@@ -51,8 +51,8 @@ router.get("/unread-count", authRequired, async (req, res, next) => {
       // Fallback if countUnread helper not implemented yet
       const { default: Notification } = await import("../models/Notification.js");
       return await Notification.countDocuments({ recipient: userId, read: false });
-    }, 10 * 1000); // 10 seconds cache
-    
+    }, 30 * 1000); // 30 seconds cache - OPTIMIZED from 10s
+
     res.json({ unreadCount });
   } catch (error) {
     next(error);
@@ -97,7 +97,7 @@ router.post("/system", authRequired, async (req, res, next) => {
     }
 
     const { title, message, targetRole } = req.body;
-    
+
     if (!title || !message) {
       return res.status(400).json({ error: "Thiếu tiêu đề hoặc nội dung" });
     }
@@ -117,7 +117,7 @@ router.post("/broadcast", authRequired, async (req, res, next) => {
     }
 
     const { title, message } = req.body;
-    
+
     if (!title || !message) {
       return res.status(400).json({ error: "Thiếu tiêu đề hoặc nội dung" });
     }

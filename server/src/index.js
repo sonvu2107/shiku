@@ -1173,6 +1173,24 @@ if (process.env.DISABLE_SERVER_START === "true") {
       console.warn('[WARN][SERVER] DB monitoring setup skipped:', monitorError.message);
     }
 
+    // Create performance indexes if not exist
+    try {
+      const { default: addPerformanceIndexes } = await import("./utils/addPerformanceIndexes.js");
+      await addPerformanceIndexes();
+      console.log('[INFO][SERVER] Performance indexes verified');
+    } catch (indexError) {
+      console.warn('[WARN][SERVER] Performance indexes check skipped:', indexError.message);
+    }
+
+    // Preload roles cache to eliminate Role.find() from request path
+    try {
+      const { refreshRolesCache } = await import("./utils/rolesCache.js");
+      await refreshRolesCache();
+      console.log('[INFO][SERVER] Roles cache preloaded');
+    } catch (rolesError) {
+      console.warn('[WARN][SERVER] Roles cache preload skipped:', rolesError.message);
+    }
+
     // Run API monitoring cleanup after DB connection
     await cleanupInvalidEnvKeys();
 

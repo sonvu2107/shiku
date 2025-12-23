@@ -1,7 +1,7 @@
 // Import environment configuration
 import { API_CONFIG, SECURITY_CONFIG, isProduction } from './config/environment.js';
 
-// URL của API server - sử dụng environment config
+// URL of API server - using environment config
 const API_URL = API_CONFIG.baseURL;
 
 import { getValidAccessToken, clearTokens, refreshAccessToken } from "./utils/tokenManager.js";
@@ -15,21 +15,19 @@ import {
 } from "./utils/rateLimitHandler.js";
 import { compressImage } from './utils/imageOptimization.js';
 
-// Deprecated: getToken() function đã được thay thế bởi getValidAccessToken() trong tokenManager.js
-
 /**
- * Hàm chính để gọi API với authentication và error handling
- * @param {string} path - Đường dẫn API endpoint
- * @param {Object} options - Các tùy chọn request
+ * Main function to call API with authentication and error handling
+ * @param {string} path - API endpoint path
+ * @param {Object} options - Request options
  * @param {string} options.method - HTTP method (GET, POST, PUT, DELETE)
  * @param {Object} options.body - Request body data
  * @param {Object} options.headers - Additional headers
  * @param {boolean} options._isRetry - Internal flag to prevent infinite retry loops
- * @returns {Promise<Object>} Response data từ API
- * @throws {Error} Lỗi với thông tin ban nếu user bị cấm
+ * @returns {Promise<Object>} API response data
+ * @throws {Error} Error with ban information if user is banned
  */
 export async function api(path, { method = "GET", body, headers = {}, _isRetry = false } = {}) {
-  // Lấy valid access token (tự động refresh nếu cần)
+  // Get valid access token (automatically refresh if needed)
   const token = await getValidAccessToken();
 
   if (token) {
@@ -45,7 +43,7 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
     headers["X-CSRF-Token"] = csrf;
   }
 
-  // Chuẩn bị request options
+  // Prepare request options
   const isFormData = body instanceof FormData;
 
   const requestHeaders = {
@@ -76,7 +74,7 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
     });
     clearTimeout(timeoutId);
 
-    // Parse và xử lý rate limit headers
+    // Parse and handle rate limit headers
     const rateLimitInfo = parseRateLimitHeaders(res);
     if (rateLimitInfo.limit) {
       storeRateLimitInfo(path, rateLimitInfo);
@@ -87,46 +85,42 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
       }
     }
 
-    // Xử lý lỗi response
+    // Handle error response
     if (!res.ok) {
-      // Nếu là lỗi 401, chỉ retry nếu chưa từng retry (tránh vòng lặp)
+      // If is 401 and not retry, try to refresh access token
       if (res.status === 401 && !_isRetry) {
-                const refreshResult = await refreshAccessToken();
+        const refreshResult = await refreshAccessToken();
         if (refreshResult) {
-                    // Retry request với token mới
+          // Retry request with new token
           return await api(path, { method, body, headers: { ...headers, Authorization: `Bearer ${refreshResult}` }, _isRetry: true });
         }
 
-        // Refresh failed, clear tokens and redirect (chỉ redirect nếu không phải đang ở trang login)
-                clearTokens();
-        // Chỉ redirect nếu không phải đang ở trang login hoặc register
-        // Chỉ redirect nếu không phải đang ở trang login, register, home hoặc welcome
+        // Refresh failed, clear tokens and redirect (only redirect if not login or register)
+        clearTokens();
         if (!window.location.pathname.includes('/login') &&
           !window.location.pathname.includes('/register') &&
           window.location.pathname !== '/' &&
           window.location.pathname !== '/welcome') {
-                    window.location.href = "/login";
+          window.location.href = "/login";
         }
         return;
       }
 
       // If this was a retry and still got 401, give up
       if (res.status === 401 && _isRetry) {
-                clearTokens();
-        // Chỉ redirect nếu không phải đang ở trang login hoặc register
-        // Chỉ redirect nếu không phải đang ở trang login, register, home hoặc welcome
+        clearTokens();
         if (!window.location.pathname.includes('/login') &&
           !window.location.pathname.includes('/register') &&
           window.location.pathname !== '/' &&
           window.location.pathname !== '/welcome') {
-                    window.location.href = "/login";
+          window.location.href = "/login";
         }
         return;
       }
 
-      // Nếu là lỗi 403 (CSRF token invalid), thử refresh CSRF token
+      // If is 403 and not GET, try to refresh CSRF token 
       if (res.status === 403 && method !== "GET") {
-        const newCSRFToken = await getCSRFToken(true); // Force refresh
+        const newCSRFToken = await getCSRFToken(true);
 
         if (newCSRFToken) {
           headers["X-CSRF-Token"] = newCSRFToken;

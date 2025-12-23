@@ -19,7 +19,7 @@ import sanitizeHtml from "sanitize-html";
 import { authRequired, authOptional } from "../middleware/auth.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
 import { paginate } from "../utils/paginate.js";
-import { withCache, postCache, invalidateCache } from "../utils/cache.js";
+import { withCache, postCache, statsCache, invalidateCache, hashFilter } from "../utils/cache.js";
 import { responseCache, invalidateByPattern } from "../middleware/responseCache.js";
 import { generateSmartFeed } from "../utils/smartFeed.js";
 import mongoose from "mongoose";
@@ -27,6 +27,7 @@ import { addExpForAction, addExpForReceiver } from "../services/cultivationServi
 import WelcomeService from "../services/WelcomeService.js";
 import { sanitizeText, containsXSS, sanitizeUrl as sanitizeUrlXSS } from "../utils/xssSanitizer.js";
 import { postCreationLimiter, postInteractionLimiter } from "../middleware/rateLimit.js";
+import { getCachedRoles } from "../utils/rolesCache.js";
 
 const PLAIN_SANITIZE_OPTIONS = { allowedTags: [], allowedAttributes: {} };
 const CONTENT_SANITIZE_OPTIONS = {
@@ -607,18 +608,9 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
     // NOTE: responseCache middleware handles caching at a higher level
     // Removed old postCache.get() to avoid conflict
 
-    // Get blocked list first (cache per user for 60s)
-    let blockedIds = [];
-    if (req.user) {
-      const blockedCacheKey = `blocked:${req.user._id}`;
-      let cachedBlocked = postCache.get(blockedCacheKey);
-      if (!cachedBlocked) {
-        const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
-        cachedBlocked = (currentUser?.blockedUsers || []).map(id => id.toString());
-        postCache.set(blockedCacheKey, cachedBlocked, 60);
-      }
-      blockedIds = cachedBlocked;
-    }
+    // FIX #3: Use blockedUsers from auth middleware instead of DB query
+    // blockedUsers should be loaded during auth, not during feed request
+    const blockedIds = (req.user?.blockedUsers || []).map(id => id.toString());
 
     const filter = {};
 
@@ -708,53 +700,55 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
         }
       },
       { $unwind: { path: "$authorData", preserveNullAndEmptyArrays: true } },
-      // Lookup group
-      {
-        $lookup: {
-          from: "groups",
-          localField: "group",
-          foreignField: "_id",
-          as: "groupData",
-          pipeline: [{ $project: { name: 1, coverUrl: 1, privacy: 1 } }]
-        }
-      },
-      { $unwind: { path: "$groupData", preserveNullAndEmptyArrays: true } },
+      // FIX #2: Only lookup group when NOT homepage feed (homepage already filters group: null)
+      ...(isHomepageFeed ? [] : [
+        {
+          $lookup: {
+            from: "groups",
+            localField: "group",
+            foreignField: "_id",
+            as: "groupData",
+            pipeline: [{ $project: { name: 1, coverUrl: 1, privacy: 1 } }]
+          }
+        },
+        { $unwind: { path: "$groupData", preserveNullAndEmptyArrays: true } }
+      ]),
       // Project only needed fields - IMPORTANT: _id is excluded by default in $project, must explicitly include
       {
         $project: {
           _id: 1, // Must include _id explicitly!
           title: 1,
-          content: { $substrCP: ["$content", 0, 500] }, // Truncate content for list view
+          content: 1, // FIX #1: Remove $substrCP - truncate in Node instead
           slug: 1,
           tags: 1,
           createdAt: 1,
           views: 1,
           coverUrl: 1,
           status: 1, // Include status for profile filtering
-          files: { $slice: ["$files", 4] }, // Limit files to 4
-          commentCount: { $ifNull: ["$commentCount", 0] },
-          savedCount: { $ifNull: ["$savedCount", 0] },
-          emotes: { $slice: ["$emotes", 10] }, // Limit emotes to 10 for list view (legacy)
-          emoteCount: { $size: { $ifNull: ["$emotes", []] } }, // Total emote count for stats (legacy)
-          // NEW: Upvote system
-          upvotes: { $ifNull: ["$upvotes", []] },
-          upvoteCount: { $ifNull: ["$upvoteCount", 0] },
-          rankingScore: { $ifNull: ["$rankingScore", 0] },
+          files: 1, // Full files array - slice in Node
+          commentCount: 1, // Handle null in Node
+          savedCount: 1, // Handle null in Node
+          emotes: 1, // Full emotes - slice in Node
+          // Upvote system
+          upvotes: 1,
+          upvoteCount: 1,
+          rankingScore: 1,
           hasPoll: 1,
           youtubeUrl: 1,
           author: "$authorData",
-          group: "$groupData"
+          group: isHomepageFeed ? null : "$groupData"
         }
       }
     ];
 
     // Run items query and count in parallel
+    // FIX #5: Increase count cache TTL to 3 minutes (counts don't need to be exact)
+    const filterHash = hashFilter(filter);
     const [items, total] = await Promise.all([
       Post.aggregate(pipeline),
-      // Use estimatedDocumentCount for homepage (much faster), countDocuments for filtered
-      isHomepageFeed && pageNum === 1
+      isHomepageFeed
         ? Post.estimatedDocumentCount()
-        : Post.countDocuments(filter)
+        : withCache(statsCache, `posts:count:${filterHash}`, () => Post.countDocuments(filter), 3 * 60 * 1000)
     ]);
 
     // FIX NESTED POPULATE: Fetch all roles in ONE query instead of nested populate
@@ -773,15 +767,8 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
       }
     });
 
-    // Single query for all roles (only if we have valid IDs)
-    let rolesMap = new Map();
-    if (roleIds.size > 0) {
-      const Role = mongoose.model('Role');
-      const roles = await Role.find({ _id: { $in: Array.from(roleIds) } })
-        .select("name displayName iconUrl")
-        .lean();
-      roles.forEach(r => rolesMap.set(r._id.toString(), r));
-    }
+    // FIX #4: Use globally cached roles instead of Role.find() query
+    const rolesMap = getCachedRoles(roleIds);
 
     // Manually populate roles
     const itemsWithRoles = items.map(post => {
@@ -812,6 +799,22 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
           return emote;
         });
       }
+
+      // FIX #1: Truncate content in Node instead of MongoDB $substrCP
+      if (postCopy.content && postCopy.content.length > 500) {
+        postCopy.content = postCopy.content.slice(0, 500);
+      }
+
+      // FIX: Move $slice and $ifNull operations from Mongo to Node
+      // This reduces MongoDB CPU load significantly
+      postCopy.files = (postCopy.files || []).slice(0, 4);
+      postCopy.emotes = (postCopy.emotes || []).slice(0, 10);
+      postCopy.emoteCount = postCopy.emotes?.length ?? 0;
+      postCopy.commentCount = postCopy.commentCount ?? 0;
+      postCopy.savedCount = postCopy.savedCount ?? 0;
+      postCopy.upvotes = postCopy.upvotes ?? [];
+      postCopy.upvoteCount = postCopy.upvoteCount ?? 0;
+      postCopy.rankingScore = postCopy.rankingScore ?? 0;
 
       return postCopy;
     });
@@ -1268,13 +1271,13 @@ router.post("/:id/upvote", authRequired, postInteractionLimiter, async (req, res
 
     const userId = req.user._id;
     const userIdStr = userId.toString();
-    
+
     // Check if user already upvoted
     const upvoteIndex = post.upvotes.findIndex(id => id.toString() === userIdStr);
     const hasUpvoted = upvoteIndex !== -1;
-    
+
     let isNewUpvote = false;
-    
+
     if (hasUpvoted) {
       // Remove upvote
       post.upvotes.splice(upvoteIndex, 1);
@@ -1285,14 +1288,14 @@ router.post("/:id/upvote", authRequired, postInteractionLimiter, async (req, res
       post.upvoteCount = (post.upvoteCount || 0) + 1;
       isNewUpvote = true;
     }
-    
+
     // Recalculate ranking score
     const { calculateRankingScore } = await import("../utils/smartFeed.js");
     post.rankingScore = calculateRankingScore(post);
     post.lastRankingUpdate = new Date();
-    
+
     await post.save();
-    
+
     // Award EXP for new upvotes
     if (isNewUpvote) {
       try {
@@ -1301,7 +1304,7 @@ router.post("/:id/upvote", authRequired, postInteractionLimiter, async (req, res
         // EXP for author (if not self-upvote)
         if (post.author.toString() !== userIdStr) {
           await addExpForReceiver(post.author, 'upvote');
-          
+
           // Check achievement: "popular_post" - có bài viết được 50 upvote
           try {
             const Cultivation = (await import("../models/Cultivation.js")).default;
@@ -1312,11 +1315,11 @@ router.post("/:id/upvote", authRequired, postInteractionLimiter, async (req, res
               if (popularPostQuest && !popularPostQuest.completed) {
                 // Check if any post has reached the threshold
                 const Post = (await import("../models/Post.js")).default;
-                const topPost = await Post.findOne({ 
+                const topPost = await Post.findOne({
                   author: post.author,
                   upvoteCount: { $gte: 50 }
                 }).sort({ upvoteCount: -1 }).lean();
-                
+
                 if (topPost) {
                   // Update progress to max (achievement completed)
                   popularPostQuest.progress = 50;
@@ -1334,7 +1337,7 @@ router.post("/:id/upvote", authRequired, postInteractionLimiter, async (req, res
         console.error('[POSTS] Error adding upvote exp:', expError);
       }
     }
-    
+
     // Send notification for new upvotes
     if (isNewUpvote && post.author.toString() !== userIdStr) {
       try {
@@ -1344,8 +1347,8 @@ router.post("/:id/upvote", authRequired, postInteractionLimiter, async (req, res
         console.error('[POSTS] Error creating upvote notification:', notifError);
       }
     }
-    
-    res.json({ 
+
+    res.json({
       upvoted: !hasUpvoted,
       upvoteCount: post.upvoteCount,
       rankingScore: post.rankingScore
@@ -1360,10 +1363,10 @@ router.get("/:id/upvote", authRequired, async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.id).select('upvotes upvoteCount').lean();
     if (!post) return res.status(404).json({ error: "Không tìm thấy bài viết" });
-    
+
     const userIdStr = req.user._id.toString();
     const hasUpvoted = post.upvotes?.some(id => id.toString() === userIdStr) || false;
-    
+
     res.json({
       upvoted: hasUpvoted,
       upvoteCount: post.upvoteCount || 0
@@ -1752,46 +1755,93 @@ router.post("/:id/interest", authRequired, postInteractionLimiter, async (req, r
   }
 });
 
-// Get saved posts list
+// Get saved posts list - OPTIMIZED with caching and order preservation
 router.get("/saved/list", authRequired, async (req, res, next) => {
   try {
     const { page = 1, limit = 20 } = req.query;
-    const user = await User.findById(req.user._id).select("savedPosts");
-    const ids = (user.savedPosts || []).map(id => id.toString());
+    const userId = req.user._id.toString();
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const cacheKey = `saved:list:${userId}:${pageNum}:${limitNum}`;
 
-    const start = (parseInt(page) - 1) * parseInt(limit);
-    const end = start + parseInt(limit);
-    const pageIds = ids.slice(start, end);
+    // Cache for 30 seconds
+    const result = await withCache(postCache, cacheKey, async () => {
+      // Get user's saved posts IDs first (fast, indexed)
+      const user = await User.findById(userId).select("savedPosts").lean();
+      const allIds = (user?.savedPosts || []);
+      const total = allIds.length;
 
-    const posts = await Post.find({ _id: { $in: pageIds } })
-      .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache")
-      .populate("group", "name")
-      .populate({
-        path: "emotes.user",
-        select: "name nickname avatarUrl role displayBadgeType cultivationCache"
-      })
-      .sort({ createdAt: -1 });
-
-    // Use denormalized savedCount directly
-    const postsWithSavedCount = posts.map(post => {
-      const postObj = post.toObject ? post.toObject() : post;
-      return {
-        ...postObj,
-        savedCount: post.savedCount || 0
-      };
-    });
-
-    res.json({
-      posts: postsWithSavedCount,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: ids.length,
-        pages: Math.ceil(ids.length / parseInt(limit))
+      if (total === 0) {
+        return {
+          posts: [],
+          pagination: { page: pageNum, limit: limitNum, total: 0, pages: 0 }
+        };
       }
-    });
+
+      // Paginate IDs before querying posts
+      const start = (pageNum - 1) * limitNum;
+      const pageIds = allIds.slice(start, start + limitNum).map(id => new mongoose.Types.ObjectId(id));
+
+      if (pageIds.length === 0) {
+        return {
+          posts: [],
+          pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) }
+        };
+      }
+
+      // Use aggregation to preserve saved order with $indexOfArray
+      const posts = await Post.aggregate([
+        { $match: { _id: { $in: pageIds } } },
+        // Preserve order: add __order field based on position in pageIds array
+        { $addFields: { __order: { $indexOfArray: [pageIds, "$_id"] } } },
+        { $sort: { __order: 1 } },
+        // Lookup author
+        {
+          $lookup: {
+            from: "users",
+            localField: "author",
+            foreignField: "_id",
+            as: "author",
+            pipeline: [
+              { $project: { name: 1, nickname: 1, avatarUrl: 1, role: 1, displayBadgeType: 1, cultivationCache: 1 } }
+            ]
+          }
+        },
+        { $unwind: { path: "$author", preserveNullAndEmptyArrays: true } },
+        // Lookup group
+        {
+          $lookup: {
+            from: "groups",
+            localField: "group",
+            foreignField: "_id",
+            as: "group",
+            pipeline: [{ $project: { name: 1 } }]
+          }
+        },
+        { $unwind: { path: "$group", preserveNullAndEmptyArrays: true } },
+        // Project needed fields
+        {
+          $project: {
+            __order: 0 // Remove helper field
+          }
+        }
+      ]);
+
+      return {
+        posts,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages: Math.ceil(total / limitNum)
+        }
+      };
+    }, 30 * 1000);
+
+    res.json(result);
   } catch (e) { next(e); }
 });
+
 
 // ==================== FEATURED POSTS ====================
 // Toggle feature/unfeature a post on user profile

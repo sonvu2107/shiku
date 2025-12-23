@@ -39,12 +39,12 @@ class SimpleCache {
   get(key) {
     const item = this.cache.get(key);
     if (!item) return null;
-    
+
     if (Date.now() > item.expires) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return item.value;
   }
 
@@ -71,7 +71,7 @@ class SimpleCache {
     const now = Date.now();
     let valid = 0;
     let expired = 0;
-    
+
     for (const [key, item] of this.cache.entries()) {
       if (now > item.expires) {
         expired++;
@@ -79,7 +79,7 @@ class SimpleCache {
         valid++;
       }
     }
-    
+
     return {
       total: this.cache.size,
       valid,
@@ -93,6 +93,22 @@ export const userCache = new SimpleCache(10 * 60 * 1000); // 10 phút
 export const postCache = new SimpleCache(5 * 60 * 1000);  // 5 phút
 export const statsCache = new SimpleCache(2 * 60 * 1000); // 2 phút
 export const queryCache = new SimpleCache(1 * 60 * 1000); // 1 phút - cho queries ngắn hạn
+
+/**
+ * Hash a filter object to create a short, stable cache key
+ * Using djb2 hash algorithm for speed
+ * @param {Object} filter - MongoDB filter object
+ * @returns {string} Short hash string
+ */
+export function hashFilter(filter) {
+  const str = JSON.stringify(filter, Object.keys(filter).sort());
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return (hash >>> 0).toString(36); // Convert to base36 for shorter string
+}
 
 // Cache statistics tracking
 let cacheHits = 0;
@@ -136,12 +152,12 @@ export async function withCache(cache, key, fn, ttl = null) {
  */
 export async function withSWR(cache, key, fn, ttl = 5 * 60 * 1000, staleTime = 60 * 1000) {
   const cached = cache.get(key);
-  
+
   if (cached !== null) {
     // Check if stale - cần revalidate
     const item = cache.cache.get(key);
     const isStale = item && (Date.now() > item.expires - (ttl - staleTime));
-    
+
     if (isStale) {
       // Background revalidate
       setImmediate(async () => {
@@ -153,11 +169,11 @@ export async function withSWR(cache, key, fn, ttl = 5 * 60 * 1000, staleTime = 6
         }
       });
     }
-    
+
     cacheHits++;
     return cached;
   }
-  
+
   cacheMisses++;
   const result = await fn();
   cache.set(key, result, ttl);
@@ -228,7 +244,7 @@ export function resetCacheStats() {
 export function cleanupAllCaches() {
   const caches = [userCache, postCache, statsCache, queryCache];
   let cleaned = 0;
-  
+
   caches.forEach(cache => {
     const now = Date.now();
     for (const [key, item] of cache.cache.entries()) {
@@ -238,7 +254,7 @@ export function cleanupAllCaches() {
       }
     }
   });
-  
+
   return cleaned;
 }
 

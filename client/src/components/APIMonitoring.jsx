@@ -11,10 +11,12 @@ import {
   Users,
   Shield,
   Menu,
-  X
+  X,
+  Gauge
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAPIMonitoring } from '../hooks/useAPIMonitoring';
+import PerformanceCharts from './admin/PerformanceCharts';
 import '../styles-mobile-api-monitoring.css';
 
 /**
@@ -40,6 +42,7 @@ export default function APIMonitoring() {
 
   const sections = [
     { id: 'overview', label: 'Overview', icon: Activity },
+    { id: 'performance', label: 'Performance', icon: Gauge },
     { id: 'charts', label: 'Charts', icon: BarChart3 },
     { id: 'limits', label: 'Rate Limits', icon: Shield },
     { id: 'realtime', label: 'Real-time', icon: Clock },
@@ -159,8 +162,8 @@ export default function APIMonitoring() {
                   key={section.id}
                   onClick={() => scrollToSection(section.id)}
                   className={`flex items-center gap-2 p-3 rounded-lg text-sm font-medium transition-colors ${activeSection === section.id
-                      ? 'bg-neutral-200 dark:bg-neutral-800 text-blue-700'
-                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                    ? 'bg-neutral-200 dark:bg-neutral-800 text-blue-700'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                     }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -181,8 +184,8 @@ export default function APIMonitoring() {
               key={section.id}
               onClick={() => scrollToSection(section.id)}
               className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeSection === section.id
-                  ? 'bg-white text-blue-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                ? 'bg-white text-blue-700 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                 }`}
             >
               <Icon className="w-4 h-4" />
@@ -249,6 +252,11 @@ export default function APIMonitoring() {
             {(stats.topEndpoints && stats.topEndpoints[0]?.endpoint) || 'N/A'}
           </div>
         </div>
+      </div>
+
+      {/* Performance Monitoring Section - NEW */}
+      <div id="performance" className="bg-white dark:bg-neutral-900 border rounded-lg p-4 sm:p-6">
+        <PerformanceCharts />
       </div>
 
       {/* Charts Section - Mobile Optimized */}
@@ -419,7 +427,7 @@ export default function APIMonitoring() {
               >
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${update.statusCode >= 400 ? 'bg-red-500' :
-                      update.statusCode >= 300 ? 'bg-yellow-500' : 'bg-green-500'
+                    update.statusCode >= 300 ? 'bg-yellow-500' : 'bg-green-500'
                     }`}></div>
                   <div className="min-w-0 flex-1">
                     <div className="font-mono text-xs sm:text-sm">
@@ -434,7 +442,7 @@ export default function APIMonitoring() {
                 </div>
                 <div className="text-right flex-shrink-0 ml-2">
                   <div className={`text-xs sm:text-sm font-bold ${update.statusCode >= 400 ? 'text-red-600' :
-                      update.statusCode >= 300 ? 'text-yellow-600' : 'text-green-600'
+                    update.statusCode >= 300 ? 'text-yellow-600' : 'text-green-600'
                     }`}>
                     {update.statusCode}
                   </div>

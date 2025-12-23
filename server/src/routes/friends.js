@@ -274,7 +274,7 @@ router.get('/sent-requests', authRequired, async (req, res) => {
 /**
  * GET /list - Lấy danh sách bạn bè
  * Lấy tất cả friends của user hiện tại với thông tin online status
- * OPTIMIZED: Sử dụng cache và aggregation
+ * OPTIMIZED: Removed $facet/$unwind, use simple pagination on IDs + $in lookup
  * @returns {Array} Danh sách bạn bè
  */
 router.get('/list', authRequired, async (req, res) => {
@@ -286,42 +286,36 @@ router.get('/list', authRequired, async (req, res) => {
 
     // Cache for 30 seconds
     const data = await withCache(userCache, cacheKey, async () => {
-      const result = await User.aggregate([
-        { $match: { _id: new mongoose.Types.ObjectId(userId) } },
-        { $project: { friends: 1 } },
-        { $unwind: { path: '$friends', preserveNullAndEmptyArrays: true } },
-        { $match: { friends: { $exists: true, $ne: null } } },
-        {
-          $facet: {
-            data: [
-              { $skip: (page - 1) * limit },
-              { $limit: limit },
-              {
-                $lookup: {
-                  from: 'users',
-                  localField: 'friends',
-                  foreignField: '_id',
-                  as: 'friendData',
-                  pipeline: [
-                    { $project: { name: 1, nickname: 1, email: 1, avatarUrl: 1, isOnline: 1, lastSeen: 1 } }
-                  ]
-                }
-              },
-              { $unwind: '$friendData' },
-              { $replaceRoot: { newRoot: '$friendData' } }
-            ],
-            totalCount: [
-              { $count: 'count' }
-            ]
-          }
-        }
-      ]);
+      // Step 1: Get user's friends array (fast, indexed)
+      const user = await User.findById(userId).select('friends').lean();
+      const friendIds = user?.friends || [];
+      const total = friendIds.length;
 
-      const friendsList = result[0]?.data || [];
-      const total = result[0]?.totalCount[0]?.count || 0;
+      if (total === 0) {
+        return {
+          friends: [],
+          pagination: { page, limit, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false }
+        };
+      }
+
+      // Step 2: Paginate the IDs in memory
+      const start = (page - 1) * limit;
+      const paginatedIds = friendIds.slice(start, start + limit);
+
+      if (paginatedIds.length === 0) {
+        return {
+          friends: [],
+          pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNextPage: false, hasPrevPage: page > 1 }
+        };
+      }
+
+      // Step 3: Query only the needed friends with $in (fast, uses _id index)
+      const friends = await User.find({ _id: { $in: paginatedIds } })
+        .select('name nickname email avatarUrl isOnline lastSeen')
+        .lean();
 
       // Ensure default values
-      const processedFriends = friendsList.map(friend => ({
+      const processedFriends = friends.map(friend => ({
         ...friend,
         isOnline: friend.isOnline || false,
         lastSeen: friend.lastSeen || new Date()

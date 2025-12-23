@@ -693,7 +693,11 @@ router.post('/challenge-bot', async (req, res, next) => {
                     avatar: challenger.avatarUrl,
                     mmrChange: rankedResult.challengerMmrChange,
                     newMmr: rankedResult.challengerNewMmr,
-                    tier: rankedResult.challengerTier
+                    tier: rankedResult.challengerTier,
+                    stats: {
+                        qiBlood: challengerStats.qiBlood,
+                        zhenYuan: challengerStats.zhenYuan || challengerStats.qiBlood * 0.5
+                    }
                 },
                 opponent: {
                     id: `bot_${bot.id}`,
@@ -704,7 +708,11 @@ router.post('/challenge-bot', async (req, res, next) => {
                     tierName: tierInfo?.name,
                     tierColor: tierInfo?.color,
                     statMultiplier: bot.statMultiplier,
-                    isBot: true
+                    isBot: true,
+                    stats: {
+                        qiBlood: botStats.qiBlood,
+                        zhenYuan: botStats.zhenYuan || botStats.qiBlood * 0.5
+                    }
                 },
 
                 battleLogs: battleResult.logs,

@@ -20,7 +20,7 @@ import mongoose from "mongoose";
 export const cleanupInvalidEnvKeys = async () => {
   try {
     console.log('[INFO][API-MONITORING] Starting cleanup...');
-    
+
     // Remove invalid 'env' keys (simplified - no $* syntax)
     const result = await ApiStats.updateMany({}, {
       $unset: {
@@ -28,11 +28,11 @@ export const cleanupInvalidEnvKeys = async () => {
         "dailyTopStats.topEndpoints.env": ""
       }
     });
-    
+
     if (result.modifiedCount) {
       console.log(`[INFO][API-MONITORING] Removed invalid 'env' keys: ${result.modifiedCount} docs updated`);
     }
-    
+
     // Check if any problematic docs still exist
     const problematicDocs = await ApiStats.find({
       $or: [
@@ -40,7 +40,7 @@ export const cleanupInvalidEnvKeys = async () => {
         { "dailyTopStats.topEndpoints.env": { $exists: true } }
       ]
     });
-    
+
     if (problematicDocs.length > 0) {
       console.log(`[INFO][API-MONITORING] Found ${problematicDocs.length} problematic docs, deleting all...`);
       await ApiStats.deleteMany({});
@@ -48,7 +48,7 @@ export const cleanupInvalidEnvKeys = async () => {
     } else {
       console.log('[INFO][API-MONITORING] No problematic documents found');
     }
-    
+
   } catch (err) {
     console.error("[ERROR][API-MONITORING] Cleanup failed:", err.message);
     // If cleanup fails, delete everything as last resort
@@ -70,14 +70,14 @@ const getVietnamTime = () => {
   // Use a more reliable method with proper timezone handling
   try {
     // Create a new date in Vietnam timezone
-    const vietnamTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
-    
+    const vietnamTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+
     // If the conversion failed, fallback to simple UTC+7
     if (isNaN(vietnamTime.getTime())) {
       console.log('[INFO][API-MONITORING] Vietnam time conversion failed, using UTC+7 fallback');
       return new Date(now.getTime() + (7 * 60 * 60 * 1000));
     }
-    
+
     console.log('[INFO][API-MONITORING] Vietnam time conversion successful:', vietnamTime.toISOString());
     return vietnamTime;
   } catch (error) {
@@ -98,7 +98,9 @@ const statsBuffer = {
   dailyEndpointCounts: new Map(),
   dailyIPCounts: new Map(),
   rateLimitByEndpoint: new Map(),
-  realtimeUpdates: []
+  realtimeUpdates: [],
+  // NEW: Latency tracking for performance charts
+  latencyBuffer: new Map() // endpoint -> array of latencies
 };
 
 let batchWriteInterval = null;
@@ -121,7 +123,7 @@ const flushStatsBuffer = async () => {
   if (statsBuffer.totalRequests === 0) return; // Nothing to flush
   if (isFlushingBuffer) return; // Prevent overlapping flushes
   isFlushingBuffer = true;
-  
+
   // Check if MongoDB is connected before attempting to flush
   if (!isMongoConnected()) {
     consecutiveErrors++;
@@ -131,7 +133,7 @@ const flushStatsBuffer = async () => {
     }
     return; // Skip flushing when MongoDB is unavailable
   }
-  
+
   try {
     const updateOps = {
       $inc: {
@@ -192,7 +194,8 @@ const flushStatsBuffer = async () => {
     statsBuffer.dailyIPCounts.clear();
     statsBuffer.rateLimitByEndpoint.clear();
     statsBuffer.realtimeUpdates = [];
-    
+    // Keep latency buffer - only clear when fetching performance stats
+
     // Reset error counter on successful flush
     if (consecutiveErrors > 0) {
       console.log(`[INFO][API-MONITORING] Stats buffer flushed successfully after ${consecutiveErrors} failed attempts`);
@@ -244,7 +247,11 @@ export const trackAPICall = async (req, res, next) => {
   if (!monitoringEnabled) {
     return next();
   }
-  
+
+  // Track request start time for latency calculation
+  const startTime = process.hrtime.bigint();
+  req._startTime = startTime;
+
   // Call next() immediately to not block request
   next();
 
@@ -253,13 +260,13 @@ export const trackAPICall = async (req, res, next) => {
     try {
       // Normalize endpoint to safe MongoDB Map key
       let endpoint = req.path.replace(/\./g, '_').replace(/\//g, '_').replace(/:/g, '_');
-      
+
       if (!endpoint || endpoint.length === 0) {
         endpoint = 'unknown_endpoint';
       }
-      
+
       endpoint = endpoint.replace(/[^a-zA-Z0-9_]/g, '_');
-      
+
       const ip = req.ip;
       const vietnamTime = getVietnamTime();
       const hour = vietnamTime.getHours();
@@ -269,7 +276,7 @@ export const trackAPICall = async (req, res, next) => {
 
       // Add to buffer (non-blocking)
       statsBuffer.totalRequests++;
-      
+
       // Increment counters in buffer
       statsBuffer.endpointCounts.set(
         endpoint,
@@ -304,6 +311,22 @@ export const trackAPICall = async (req, res, next) => {
           endpoint,
           (statsBuffer.rateLimitByEndpoint.get(endpoint) || 0) + 1
         );
+      }
+
+      // NEW: Track latency for performance charts
+      if (req._startTime) {
+        const endTime = process.hrtime.bigint();
+        const latencyMs = Number(endTime - req._startTime) / 1e6; // Convert nanoseconds to milliseconds
+
+        // Store latency per endpoint (keep last 1000 samples per endpoint)
+        if (!statsBuffer.latencyBuffer.has(endpoint)) {
+          statsBuffer.latencyBuffer.set(endpoint, []);
+        }
+        const latencies = statsBuffer.latencyBuffer.get(endpoint);
+        latencies.push(latencyMs);
+        if (latencies.length > 1000) {
+          latencies.shift(); // Remove oldest sample
+        }
       }
 
       // Get stats for websocket emission (non-blocking, async)
@@ -364,10 +387,10 @@ export const trackAPICall = async (req, res, next) => {
             requestsPerMinute: parseFloat(requestsPerMinute),
             dailyRequestsPerMinute: parseFloat(dailyRequestsPerMinute),
             requestsByEndpoint: mapToObject(stats.currentPeriod?.requestsByEndpoint),
-            requestsByIP: stats.currentPeriod?.requestsByIP 
-              ? (stats.currentPeriod.requestsByIP instanceof Map 
-                  ? stats.currentPeriod.requestsByIP.size 
-                  : Object.keys(stats.currentPeriod.requestsByIP).length)
+            requestsByIP: stats.currentPeriod?.requestsByIP
+              ? (stats.currentPeriod.requestsByIP instanceof Map
+                ? stats.currentPeriod.requestsByIP.size
+                : Object.keys(stats.currentPeriod.requestsByIP).length)
               : 0,
             hourlyDistribution: mapToObject(stats.currentPeriod?.requestsByHour)
           }
@@ -431,17 +454,17 @@ if (monitoringEnabled) {
     const tomorrow = new Date(vietnamNow);
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0); // Set to midnight Vietnam time
-    
+
     // Calculate time until Vietnam midnight
     const timeUntilMidnight = tomorrow.getTime() - vietnamNow.getTime();
-    
+
     const midnightTimeout = setTimeout(() => setImmediate(async () => {
       try {
         const stats = await ApiStats.getOrCreateStats();
         stats.resetHourlyStats();
         await stats.save();
         console.log(`[INFO][API-MONITORING] API Hourly Stats reset at ${new Date().toISOString()} (Scheduled midnight reset)`);
-        
+
         // Schedule next reset
         scheduleDailyReset();
       } catch (error) {
@@ -451,10 +474,10 @@ if (monitoringEnabled) {
       }
     }), timeUntilMidnight);
     if (midnightTimeout.unref) midnightTimeout.unref();
-    
+
     // Store timeout for cleanup
     monitoringIntervals.push(midnightTimeout);
-    
+
     console.log(`[INFO][API-MONITORING] Next hourly stats reset scheduled for Vietnam time: ${tomorrow.toISOString()}`);
   };
 
@@ -487,7 +510,7 @@ if (monitoringEnabled) {
 router.get("/stats", authRequired, async (req, res) => {
   try {
     const stats = await ApiStats.getOrCreateStats();
-    
+
     // Ensure dailyReset field exists (migration for old documents)
     if (!stats.dailyReset) {
       stats.dailyReset = {
@@ -496,44 +519,44 @@ router.get("/stats", authRequired, async (req, res) => {
       };
       await stats.save();
     }
-    
+
     // Calculate top endpoints from daily stats (reset at midnight)
     const topEndpointsMap = stats?.dailyTopStats?.topEndpoints;
     const topEndpoints = Array.from((topEndpointsMap && typeof topEndpointsMap.entries === 'function') ? topEndpointsMap.entries() : [])
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 10)
-      .map(([endpoint, count]) => ({ 
+      .map(([endpoint, count]) => ({
         endpoint: endpoint.replace(/_/g, '/'), // Decode endpoint for display
-        count 
+        count
       }));
-    
+
     // Calculate top IPs from daily stats (reset at midnight)
     const topIPsMap = stats?.dailyTopStats?.topIPs;
     const topIPs = Array.from((topIPsMap && typeof topIPsMap.entries === 'function') ? topIPsMap.entries() : [])
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 10)
-      .map(([encodedIP, count]) => ({ 
+      .map(([encodedIP, count]) => ({
         ip: encodedIP.replace(/_/g, '.'), // Decode IP address for display
-        count 
+        count
       }));
-    
+
     // Calculate hourly distribution from current period
     const requestsByHour = stats?.currentPeriod?.requestsByHour;
     const hourlyDistribution = Array.from({ length: 24 }, (_, hour) => ({
       hour,
       requests: (requestsByHour && typeof requestsByHour.get === 'function') ? (requestsByHour.get(hour.toString()) || 0) : 0
     }));
-    
+
     // Calculate rate limit hit rate
-    const rateLimitHitRate = stats.totalRequests > 0 
+    const rateLimitHitRate = stats.totalRequests > 0
       ? ((stats.rateLimitHits / stats.totalRequests) * 100).toFixed(2)
       : 0;
-    
+
     // Calculate requests per minute (based on daily reset - since midnight Vietnam time)
     const vietnamNow = getVietnamTime();
     let timeSinceMidnight = 0;
     let requestsPerMinute = 0;
-    
+
     // Validate Date object
     if (isNaN(vietnamNow.getTime())) {
       console.error('Invalid Vietnam time:', vietnamNow);
@@ -546,7 +569,7 @@ router.get("/stats", authRequired, async (req, res) => {
       const vietnamMidnight = new Date(vietnamNow);
       vietnamMidnight.setHours(0, 0, 0, 0);
       timeSinceMidnight = (vietnamNow - vietnamMidnight) / 1000 / 60; // minutes since midnight
-      
+
       // Debug logging
       console.log('Vietnam time debug:', {
         vietnamNow: vietnamNow.toISOString(),
@@ -555,22 +578,22 @@ router.get("/stats", authRequired, async (req, res) => {
         dailyTotalRequests: stats.dailyReset?.dailyTotalRequests || 0
       });
     }
-    
-    requestsPerMinute = timeSinceMidnight > 0 
+
+    requestsPerMinute = timeSinceMidnight > 0
       ? ((stats.dailyReset?.dailyTotalRequests || 0) / timeSinceMidnight).toFixed(2)
       : 0;
-    
+
     // Calculate daily requests per minute (total since midnight)
-    const dailyRequestsPerMinute = timeSinceMidnight > 0 
+    const dailyRequestsPerMinute = timeSinceMidnight > 0
       ? (stats.totalRequests / timeSinceMidnight).toFixed(2)
       : 0;
-    
+
     // Convert Maps to objects for JSON response
     const rlhbe = stats?.currentPeriod?.rateLimitHitsByEndpoint;
     const rateLimitHitsByEndpoint = rlhbe && typeof rlhbe.entries === 'function'
       ? Object.fromEntries(rlhbe)
       : {};
-    
+
     res.json({
       success: true,
       data: {
@@ -639,7 +662,7 @@ router.get("/rate-limits", authRequired, (req, res) => {
         description: "Messages and chat"
       }
     };
-    
+
     res.json({
       success: true,
       data: rateLimits
@@ -662,7 +685,7 @@ router.post("/reset", authRequired, async (req, res) => {
     // Hard reset: delete all documents and recreate fresh
     await ApiStats.deleteMany({});
     await ApiStats.getOrCreateStats();
-    
+
     res.json({
       success: true,
       message: "API stats reset successfully"
@@ -691,4 +714,103 @@ router.get("/health", (req, res) => {
   });
 });
 
+/**
+ * GET /api-monitoring/performance - Get performance metrics (latency, P95, etc.)
+ * @returns {Object} Performance statistics for charts
+ */
+router.get("/performance", authRequired, async (req, res) => {
+  try {
+    // Helper function to calculate percentile
+    const calculatePercentile = (arr, percentile) => {
+      if (!arr || arr.length === 0) return 0;
+      const sorted = [...arr].sort((a, b) => a - b);
+      const index = Math.ceil((percentile / 100) * sorted.length) - 1;
+      return sorted[Math.max(0, index)];
+    };
+
+    // Helper function to calculate average
+    const calculateAverage = (arr) => {
+      if (!arr || arr.length === 0) return 0;
+      return arr.reduce((a, b) => a + b, 0) / arr.length;
+    };
+
+    // Process latency buffer for each endpoint
+    const endpointPerformance = [];
+    const allLatencies = [];
+
+    for (const [endpoint, latencies] of statsBuffer.latencyBuffer.entries()) {
+      if (latencies.length > 0) {
+        const stats = {
+          endpoint: endpoint.replace(/_/g, '/'), // Decode endpoint
+          requestCount: latencies.length,
+          avg: Math.round(calculateAverage(latencies) * 100) / 100,
+          p50: Math.round(calculatePercentile(latencies, 50) * 100) / 100,
+          p95: Math.round(calculatePercentile(latencies, 95) * 100) / 100,
+          p99: Math.round(calculatePercentile(latencies, 99) * 100) / 100,
+          min: Math.round(Math.min(...latencies) * 100) / 100,
+          max: Math.round(Math.max(...latencies) * 100) / 100
+        };
+        endpointPerformance.push(stats);
+        allLatencies.push(...latencies);
+      }
+    }
+
+    // Sort by P95 (slowest first)
+    const slowestEndpoints = [...endpointPerformance]
+      .sort((a, b) => b.p95 - a.p95)
+      .slice(0, 10);
+
+    // Sort by request count (most traffic)
+    const topTrafficEndpoints = [...endpointPerformance]
+      .sort((a, b) => b.requestCount - a.requestCount)
+      .slice(0, 10);
+
+    // Overall performance stats
+    const overallStats = {
+      totalSamples: allLatencies.length,
+      avg: allLatencies.length > 0 ? Math.round(calculateAverage(allLatencies) * 100) / 100 : 0,
+      p50: allLatencies.length > 0 ? Math.round(calculatePercentile(allLatencies, 50) * 100) / 100 : 0,
+      p95: allLatencies.length > 0 ? Math.round(calculatePercentile(allLatencies, 95) * 100) / 100 : 0,
+      p99: allLatencies.length > 0 ? Math.round(calculatePercentile(allLatencies, 99) * 100) / 100 : 0,
+      min: allLatencies.length > 0 ? Math.round(Math.min(...allLatencies) * 100) / 100 : 0,
+      max: allLatencies.length > 0 ? Math.round(Math.max(...allLatencies) * 100) / 100 : 0,
+      endpointCount: endpointPerformance.length
+    };
+
+    // Performance threshold status
+    const thresholds = {
+      good: 100,   // < 100ms = green
+      warning: 250, // < 250ms = yellow
+      critical: 500 // >= 500ms = red
+    };
+
+    const healthStatus = overallStats.p95 < thresholds.good ? 'excellent' :
+      overallStats.p95 < thresholds.warning ? 'good' :
+        overallStats.p95 < thresholds.critical ? 'warning' : 'critical';
+
+    res.json({
+      success: true,
+      data: {
+        overall: {
+          ...overallStats,
+          healthStatus,
+          thresholds
+        },
+        slowestEndpoints,
+        topTrafficEndpoints,
+        allEndpoints: endpointPerformance,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Error getting performance stats:', error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to get performance stats",
+      message: error.message
+    });
+  }
+});
+
 export default router;
+
