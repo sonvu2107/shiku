@@ -274,7 +274,7 @@ router.get('/sent-requests', authRequired, async (req, res) => {
 /**
  * GET /list - Lấy danh sách bạn bè
  * Lấy tất cả friends của user hiện tại với thông tin online status
- * OPTIMIZED: Removed $facet/$unwind, use simple pagination on IDs + $in lookup
+ * OPTIMIZED: Removed double caching and $facet/$unwind, use simple pagination on IDs + $in lookup
  * @returns {Array} Danh sách bạn bè
  */
 router.get('/list', authRequired, responseCache({ ttlSeconds: 30, prefix: 'friends-list', varyByUser: true }), async (req, res) => {
@@ -282,63 +282,59 @@ router.get('/list', authRequired, responseCache({ ttlSeconds: 30, prefix: 'frien
     const userId = req.user._id.toString();
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const cacheKey = `friends:list:${userId}:${page}:${limit}`;
 
-    // Cache for 30 seconds
-    const data = await withCache(userCache, cacheKey, async () => {
-      // Step 1: Get user's friends array (fast, indexed)
-      const user = await User.findById(userId).select('friends').lean();
-      const friendIds = user?.friends || [];
-      const total = friendIds.length;
+    // responseCache already handles caching - no additional withCache layer needed
+    // Step 1: Get user's friends array (fast, indexed)
+    const user = await User.findById(userId).select('friends').lean();
+    const friendIds = user?.friends || [];
+    const total = friendIds.length;
 
-      if (total === 0) {
-        return {
-          friends: [],
-          pagination: { page, limit, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false }
-        };
+    if (total === 0) {
+      return res.json({
+        friends: [],
+        pagination: { page, limit, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false }
+      });
+    }
+
+    // Step 2: Paginate the IDs in memory
+    const start = (page - 1) * limit;
+    const paginatedIds = friendIds.slice(start, start + limit);
+
+    if (paginatedIds.length === 0) {
+      return res.json({
+        friends: [],
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNextPage: false, hasPrevPage: page > 1 }
+      });
+    }
+
+    // Step 3: Query only the needed friends with $in (fast, uses _id index)
+    const friends = await User.find({ _id: { $in: paginatedIds } })
+      .select('name nickname email avatarUrl isOnline lastSeen')
+      .lean();
+
+    // Ensure default values
+    const processedFriends = friends.map(friend => ({
+      ...friend,
+      isOnline: friend.isOnline || false,
+      lastSeen: friend.lastSeen || new Date()
+    }));
+
+    res.json({
+      friends: processedFriends,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1
       }
-
-      // Step 2: Paginate the IDs in memory
-      const start = (page - 1) * limit;
-      const paginatedIds = friendIds.slice(start, start + limit);
-
-      if (paginatedIds.length === 0) {
-        return {
-          friends: [],
-          pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNextPage: false, hasPrevPage: page > 1 }
-        };
-      }
-
-      // Step 3: Query only the needed friends with $in (fast, uses _id index)
-      const friends = await User.find({ _id: { $in: paginatedIds } })
-        .select('name nickname email avatarUrl isOnline lastSeen')
-        .lean();
-
-      // Ensure default values
-      const processedFriends = friends.map(friend => ({
-        ...friend,
-        isOnline: friend.isOnline || false,
-        lastSeen: friend.lastSeen || new Date()
-      }));
-
-      return {
-        friends: processedFriends,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-          hasNextPage: page * limit < total,
-          hasPrevPage: page > 1
-        }
-      };
-    }, 30 * 1000);
-
-    res.json(data);
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
+
 
 /**
  * GET /user/:userId - Lấy danh sách bạn bè của user khác (có pagination)

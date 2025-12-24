@@ -184,7 +184,7 @@ router.get('/my-groups', authRequired, responseCache({ ttlSeconds: 60, prefix: '
 
     // Cache for 60 seconds
     const result = await withCache(userCache, cacheKey, async () => {
-      // OPTIMIZATION: Use aggregation pipeline instead of find + populate
+      // OPTIMIZATION: Use aggregation pipeline with $facet for single query
       const matchStage = { isActive: true };
 
       if (role !== 'all') {
@@ -201,52 +201,55 @@ router.get('/my-groups', authRequired, responseCache({ ttlSeconds: 60, prefix: '
         ];
       }
 
-      const pipeline = [
+      // OPTIMIZATION: Use $facet to run data and count in single aggregation instead of 2
+      const result = await Group.aggregate([
         { $match: matchStage },
-        { $sort: { updatedAt: -1 } },
-        { $skip: (parseInt(page) - 1) * parseInt(limit) },
-        { $limit: parseInt(limit) },
-        // Lookup owner with minimal fields
         {
-          $lookup: {
-            from: 'users',
-            localField: 'owner',
-            foreignField: '_id',
-            as: 'owner',
-            pipeline: [{ $project: { name: 1, avatarUrl: 1 } }]
-          }
-        },
-        { $unwind: { path: '$owner', preserveNullAndEmptyArrays: true } },
-        // Project only needed fields (skip full members populate for list view)
-        {
-          $project: {
-            name: 1,
-            description: 1,
-            avatar: 1,
-            coverImage: 1,
-            owner: 1,
-            settings: 1,
-            memberCount: { $size: '$members' },
-            // Include minimal member info for role detection
-            members: {
-              $filter: {
-                input: '$members',
-                as: 'member',
-                cond: { $eq: ['$$member.user', userId] }
+          $facet: {
+            data: [
+              { $sort: { updatedAt: -1 } },
+              { $skip: (parseInt(page) - 1) * parseInt(limit) },
+              { $limit: parseInt(limit) },
+              // Lookup owner with minimal fields
+              {
+                $lookup: {
+                  from: 'users',
+                  localField: 'owner',
+                  foreignField: '_id',
+                  as: 'owner',
+                  pipeline: [{ $project: { name: 1, avatarUrl: 1 } }]
+                }
+              },
+              { $unwind: { path: '$owner', preserveNullAndEmptyArrays: true } },
+              // Project only needed fields
+              {
+                $project: {
+                  name: 1,
+                  description: 1,
+                  avatar: 1,
+                  coverImage: 1,
+                  owner: 1,
+                  settings: 1,
+                  memberCount: { $size: '$members' },
+                  members: {
+                    $filter: {
+                      input: '$members',
+                      as: 'member',
+                      cond: { $eq: ['$$member.user', userId] }
+                    }
+                  },
+                  createdAt: 1,
+                  updatedAt: 1
+                }
               }
-            },
-            createdAt: 1,
-            updatedAt: 1
+            ],
+            count: [{ $count: 'total' }]
           }
         }
-      ];
-
-      const [groups, totalResult] = await Promise.all([
-        Group.aggregate(pipeline),
-        Group.aggregate([{ $match: matchStage }, { $count: 'total' }])
       ]);
 
-      const total = totalResult[0]?.total || 0;
+      const groups = result[0]?.data || [];
+      const total = result[0]?.count[0]?.total || 0;
 
       // Add userRole to each group
       const groupsWithRole = groups.map(group => {

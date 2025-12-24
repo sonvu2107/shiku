@@ -6,7 +6,7 @@ import { api } from "../api.js";
  * Uses React Query for caching, deduplication, and automatic refetching
  * 
  * @param {Object} options - Query options
- * @param {string} options.sortBy - Sort order: 'recommended' | 'hot' | 'newest' | 'oldest' | 'mostViewed' | 'leastViewed' | 'mostUpvoted'
+ * @param {string} options.sortBy - Sort order: 'recommended' | 'hot' | 'newest' | 'mostViewed' | 'mostUpvoted'
  * @param {string} options.searchQuery - Search query string
  * @param {number} options.limit - Posts per page (default: 8 for fast initial load)
  */
@@ -14,18 +14,31 @@ export function usePosts({ sortBy = 'recommended', searchQuery = '', limit = 8 }
     return useInfiniteQuery({
         queryKey: ['posts', { sortBy, searchQuery }],
         queryFn: async ({ pageParam = 1 }) => {
-            let response;
+            // Map 'recommended' to 'hot' for server (uses rankingScore)
+            const serverSort = sortBy === 'recommended' ? 'hot' : sortBy;
+            const response = await api(`/api/posts/feed?page=${pageParam}&limit=${limit}&q=${encodeURIComponent(searchQuery)}&sort=${serverSort}`);
 
-            if (sortBy === 'recommended') {
-                // Smart feed endpoint
-                response = await api(`/api/posts/feed/smart?page=${pageParam}&limit=${limit}`);
-            } else {
-                // Unified feed for other sort options
-                response = await api(`/api/posts/feed?page=${pageParam}&limit=${limit}&q=${encodeURIComponent(searchQuery)}&sort=${sortBy}`);
+            let items = response.items || [];
+
+            // Client-side shuffle for 'recommended' to give fresh experience on each refresh
+            // BUT keep pinned posts at the top (don't shuffle them)
+            if (sortBy === 'recommended' && items.length > 1) {
+                // Separate pinned and non-pinned posts
+                const pinnedPosts = items.filter(post => post.isPinned);
+                const regularPosts = items.filter(post => !post.isPinned);
+
+                // Fisher-Yates shuffle only for regular posts
+                for (let i = regularPosts.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [regularPosts[i], regularPosts[j]] = [regularPosts[j], regularPosts[i]];
+                }
+
+                // Combine: pinned first, then shuffled regular posts
+                items = [...pinnedPosts, ...regularPosts];
             }
 
             return {
-                items: response.items || [],
+                items,
                 page: pageParam,
                 hasMore: (response.items || []).length >= limit
             };
@@ -40,6 +53,7 @@ export function usePosts({ sortBy = 'recommended', searchQuery = '', limit = 8 }
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff: 1s, 2s, 4s (max 5s)
     });
 }
+
 
 /**
  * Hook to get all posts flattened from infinite query pages
@@ -137,20 +151,17 @@ export function usePrefetchPosts() {
             queryFn: async ({ pageParam = 1 }) => {
                 const sortBy = options.sortBy || 'recommended';
                 const limit = options.limit || 20;
-
-                if (sortBy === 'recommended') {
-                    const response = await api(`/api/posts/feed/smart?page=${pageParam}&limit=${limit}`);
-                    return { items: response.items || [], page: pageParam, hasMore: (response.items || []).length >= limit };
-                } else {
-                    const response = await api(`/api/posts/feed?page=${pageParam}&limit=${limit}&sort=${sortBy}`);
-                    return { items: response.items || [], page: pageParam, hasMore: (response.items || []).length >= limit };
-                }
+                // Map 'recommended' to 'hot' for server
+                const serverSort = sortBy === 'recommended' ? 'hot' : sortBy;
+                const response = await api(`/api/posts/feed?page=${pageParam}&limit=${limit}&sort=${serverSort}`);
+                return { items: response.items || [], page: pageParam, hasMore: (response.items || []).length >= limit };
             },
             initialPageParam: 1,
             pages: 1, // Only prefetch first page
         });
     };
 }
+
 
 /**
  * Hook to update a post's comment count in cache

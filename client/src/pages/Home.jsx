@@ -92,12 +92,14 @@ function Home({ user, setUser }) {
   const [sortBy, setSortBy] = useState(() => {
     try {
       const saved = localStorage.getItem('home:sortBy');
-      if (saved && ['recommended', 'hot', 'newest', 'oldest', 'mostViewed', 'leastViewed', 'mostUpvoted'].includes(saved)) {
+      // Only allow valid sort options (removed: 'oldest', 'leastViewed', 'hot' - merged into recommended)
+      if (saved && ['recommended', 'newest', 'mostViewed', 'mostUpvoted'].includes(saved)) {
         return saved;
       }
     } catch { }
     return 'recommended';
   });
+
 
   // Save sortBy to localStorage when changed
   useEffect(() => {
@@ -124,16 +126,14 @@ function Home({ user, setUser }) {
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const filterDropdownRef = useRef(null);
 
-  // Filter options - thay vì cycle
+  // Filter options - simplified (removed: hot, oldest, leastViewed)
   const filterOptions = useMemo(() => [
     { key: 'recommended', label: 'Đề xuất' },
-    { key: 'hot', label: 'Hot' },
     { key: 'newest', label: 'Mới nhất' },
-    { key: 'oldest', label: 'Cũ nhất' },
     { key: 'mostUpvoted', label: 'Upvote nhiều' },
-    { key: 'mostViewed', label: 'Xem nhiều' },
-    { key: 'leastViewed', label: 'Xem ít' }
+    { key: 'mostViewed', label: 'Xem nhiều' }
   ], []);
+
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -211,13 +211,13 @@ function Home({ user, setUser }) {
   const getSortLabel = useCallback((type) => {
     switch (type) {
       case 'recommended': return 'Đề xuất';
-      case 'hot': return '🔥 Hot';
       case 'newest': return 'Mới nhất';
       case 'mostUpvoted': return '▲ Upvote';
       case 'mostViewed': return 'Xem nhiều';
       default: return 'Đề xuất';
     }
   }, []);
+
 
   // ==================== INFINITE SCROLL ====================
   // Using React Query's fetchNextPage instead of manual loadMore

@@ -35,24 +35,16 @@ router.get("/", authRequired, responseCache({ ttlSeconds: 15, prefix: 'notif-lis
   }
 });
 
-// Get unread count - OPTIMIZED with caching
+// Get unread count - OPTIMIZED: removed double caching, responseCache is sufficient
 // Lightweight unread count (PHASE 4 optimization: avoid full notifications fetch)
 router.get("/unread-count", authRequired, responseCache({ ttlSeconds: 30, prefix: 'notif-unread', varyByUser: true }), async (req, res, next) => {
   try {
     const userId = req.user._id.toString();
-    const cacheKey = `notifications:unread:${userId}`;
 
-    // Cache for 30 seconds - unread count doesn't need to be real-time
-    const unreadCount = await withCache(statsCache, cacheKey, async () => {
-      // Direct count using indexed fields { recipient, read }
-      const count = await NotificationService.countUnread?.(userId);
-      if (typeof count === 'number') {
-        return count;
-      }
-      // Fallback if countUnread helper not implemented yet
-      const { default: Notification } = await import("../models/Notification.js");
-      return await Notification.countDocuments({ recipient: userId, read: false });
-    }, 30 * 1000); // 30 seconds cache - OPTIMIZED from 10s
+    // Direct count using indexed fields { recipient, read } - no additional cache layer needed
+    // responseCache already caches the response for 30s
+    const { default: Notification } = await import("../models/Notification.js");
+    const unreadCount = await Notification.countDocuments({ recipient: userId, read: false });
 
     res.json({ unreadCount });
   } catch (error) {

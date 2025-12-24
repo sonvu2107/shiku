@@ -21,7 +21,7 @@ import { checkBanStatus } from "../middleware/banCheck.js";
 import { paginate } from "../utils/paginate.js";
 import { withCache, postCache, statsCache, invalidateCache, hashFilter } from "../utils/cache.js";
 import { responseCache, invalidateByPattern } from "../middleware/responseCache.js";
-import { generateSmartFeed } from "../utils/smartFeed.js";
+// REMOVED: Smart feed utility deleted for performance optimization
 import mongoose from "mongoose";
 import { addExpForAction, addExpForReceiver } from "../services/cultivationService.js";
 import WelcomeService from "../services/WelcomeService.js";
@@ -260,103 +260,9 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
   }
 });
 
-/**
- * Smart Feed Endpoint - AI-powered personalized feed
- * Uses engagement scoring, friend posts, trending, personalized, and fresh content
- * Algorithm: 40% friends + 30% trending + 20% personalized + 10% fresh
- */
-router.get("/feed/smart", authOptional, async (req, res, next) => {
-  try {
-    // Prevent browser caching để shuffle có tác dụng mỗi lần F5
-    res.set({
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
-    });
+// REMOVED: /feed/smart endpoint - now using /feed with sort=hot for performance
+// Client-side shuffle handles randomization for 'recommended' sort
 
-    const { page = 1, limit = 20 } = req.query;
-    const sanitizedLimit = Math.min(parseInt(limit) || 20, 500); // Increased max limit to 500
-    const userId = req.user?._id?.toString() || null;
-    const pg = Number(page) || 1;
-
-    // Generate smart feed with pagination support
-    const smartFeedPosts = await generateSmartFeed(userId, sanitizedLimit, pg);
-
-    // Use denormalized counts directly
-    const itemsWithCommentCount = smartFeedPosts.map(post => ({
-      ...post,
-      commentCount: post.commentCount || 0,
-      savedCount: post.savedCount || 0
-    }));
-
-    // Filter blocked users if logged in
-    // Filter blocked users (mutual blocking with batch fetch)
-    let filteredItems = itemsWithCommentCount;
-    if (req.user?._id && itemsWithCommentCount.length > 0) {
-      const currentUser = await User.findById(req.user._id).select("blockedUsers").lean();
-      const currentUserId = req.user._id.toString();
-      const blockedSet = new Set((currentUser.blockedUsers || []).map(id => id.toString()));
-
-      // Batch fetch all authors' blocked lists
-      const authorIds = [...new Set(
-        itemsWithCommentCount
-          .map(post => post.author?._id?.toString())
-          .filter(Boolean)
-      )];
-
-      const authorsWithBlocked = await User.find({
-        _id: { $in: authorIds }
-      })
-        .select("_id blockedUsers")
-        .lean();
-
-      // Create a Map for O(1) lookup
-      const authorsBlockedMap = new Map();
-      authorsWithBlocked.forEach(author => {
-        const authorId = author._id.toString();
-        authorsBlockedMap.set(
-          authorId,
-          new Set((author.blockedUsers || []).map(id => id.toString()))
-        );
-      });
-
-      // Filter posts: remove if either user blocked the other
-      filteredItems = itemsWithCommentCount.filter(post => {
-        const author = post.author;
-        if (!author) return false;
-        const authorId = author._id.toString();
-
-        // Check if current user blocked this author
-        if (blockedSet.has(authorId)) {
-          return false;
-        }
-
-        // Check if author blocked current user (mutual blocking)
-        const authorBlockedSet = authorsBlockedMap.get(authorId);
-        if (authorBlockedSet && authorBlockedSet.has(currentUserId)) {
-          return false;
-        }
-
-        return true;
-      });
-    }
-
-    res.json({
-      items: filteredItems,
-      total: filteredItems.length,
-      page: pg,
-      algorithm: "smart-feed-v1",
-      mix: {
-        description: "40% friends, 30% trending, 20% personalized, 10% fresh",
-        isPersonalized: !!userId
-      }
-    });
-  } catch (error) {
-    console.error("[ERROR][POSTS] Smart feed error:", error);
-    // Fallback to regular feed if smart feed fails
-    next(error);
-  }
-});
 
 // Combined feed endpoint - Optimized single query for published + private
 router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed" }), async (req, res, next) => {
@@ -365,13 +271,12 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
     const pg = Math.max(1, Number(page) || 1);
     const lim = Math.min(parseInt(limit) || 20, 500);
 
-    // Determine sort option
+    // Determine sort option (simplified: removed oldest, leastViewed)
+    // For hot/recommended: pinned posts first, then by rankingScore
     let sortOption = { createdAt: -1 }; // Default newest
-    if (sort === 'oldest') sortOption = { createdAt: 1 };
-    else if (sort === 'mostViewed') sortOption = { views: -1 };
-    else if (sort === 'leastViewed') sortOption = { views: 1 };
-    else if (sort === 'hot') sortOption = { rankingScore: -1, createdAt: -1 }; // NEW: Hot feed by ranking
-    else if (sort === 'mostUpvoted') sortOption = { upvoteCount: -1, createdAt: -1 }; // NEW: Most upvoted
+    if (sort === 'mostViewed') sortOption = { views: -1 };
+    else if (sort === 'hot' || sort === 'recommended') sortOption = { isPinned: -1, rankingScore: -1, createdAt: -1 }; // Pinned first, then by ranking
+    else if (sort === 'mostUpvoted') sortOption = { upvoteCount: -1, createdAt: -1 }; // Most upvoted
 
     // Build blocked list
     let blockedIds = [];
@@ -436,7 +341,7 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
       title: 1, content: 1, slug: 1, tags: 1, createdAt: 1, author: 1, role: 1,
       status: 1, views: 1, coverUrl: 1, files: 1,
       commentCount: 1, savedCount: 1, hasPoll: 1, youtubeUrl: 1,
-      upvotes: 1, upvoteCount: 1, rankingScore: 1 // NEW: upvote system
+      upvotes: 1, upvoteCount: 1, rankingScore: 1, isPinned: 1 // NEW: upvote system + pinned
     };
 
     // Execute Query
@@ -644,6 +549,7 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
           rankingScore: 1,
           hasPoll: 1,
           youtubeUrl: 1,
+          isPinned: 1, // For client-side pinned posts handling
           author: "$authorData",
           group: isHomepageFeed ? null : "$groupData"
         }
@@ -1554,90 +1460,85 @@ router.post("/:id/interest", authRequired, postInteractionLimiter, async (req, r
   }
 });
 
-// Get saved posts list - OPTIMIZED with caching and order preservation
+// Get saved posts list - OPTIMIZED: removed double caching, responseCache is sufficient
 router.get("/saved/list", authRequired, responseCache({ ttlSeconds: 30, prefix: 'saved-list', varyByUser: true }), async (req, res, next) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const userId = req.user._id.toString();
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
-    const cacheKey = `saved:list:${userId}:${pageNum}:${limitNum}`;
 
-    // Cache for 30 seconds
-    const result = await withCache(postCache, cacheKey, async () => {
-      // Get user's saved posts IDs first (fast, indexed)
-      const user = await User.findById(userId).select("savedPosts").lean();
-      const allIds = (user?.savedPosts || []);
-      const total = allIds.length;
+    // responseCache already handles caching - no need for additional withCache layer
+    // Get user's saved posts IDs first (fast, indexed)
+    const user = await User.findById(userId).select("savedPosts").lean();
+    const allIds = (user?.savedPosts || []);
+    const total = allIds.length;
 
-      if (total === 0) {
-        return {
-          posts: [],
-          pagination: { page: pageNum, limit: limitNum, total: 0, pages: 0 }
-        };
-      }
+    if (total === 0) {
+      return res.json({
+        posts: [],
+        pagination: { page: pageNum, limit: limitNum, total: 0, pages: 0 }
+      });
+    }
 
-      // Paginate IDs before querying posts
-      const start = (pageNum - 1) * limitNum;
-      const pageIds = allIds.slice(start, start + limitNum).map(id => new mongoose.Types.ObjectId(id));
+    // Paginate IDs before querying posts
+    const start = (pageNum - 1) * limitNum;
+    const pageIds = allIds.slice(start, start + limitNum).map(id => new mongoose.Types.ObjectId(id));
 
-      if (pageIds.length === 0) {
-        return {
-          posts: [],
-          pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) }
-        };
-      }
+    if (pageIds.length === 0) {
+      return res.json({
+        posts: [],
+        pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) }
+      });
+    }
 
-      // Use aggregation to preserve saved order with $indexOfArray
-      const posts = await Post.aggregate([
-        { $match: { _id: { $in: pageIds } } },
-        // Preserve order: add __order field based on position in pageIds array
-        { $addFields: { __order: { $indexOfArray: [pageIds, "$_id"] } } },
-        { $sort: { __order: 1 } },
-        // Lookup author
-        {
-          $lookup: {
-            from: "users",
-            localField: "author",
-            foreignField: "_id",
-            as: "author",
-            pipeline: [
-              { $project: { name: 1, nickname: 1, avatarUrl: 1, role: 1, displayBadgeType: 1, cultivationCache: 1 } }
-            ]
-          }
-        },
-        { $unwind: { path: "$author", preserveNullAndEmptyArrays: true } },
-        // Lookup group
-        {
-          $lookup: {
-            from: "groups",
-            localField: "group",
-            foreignField: "_id",
-            as: "group",
-            pipeline: [{ $project: { name: 1 } }]
-          }
-        },
-        { $unwind: { path: "$group", preserveNullAndEmptyArrays: true } },
-        // Project needed fields
-        {
-          $project: {
-            __order: 0 // Remove helper field
-          }
+    // Use aggregation to preserve saved order with $indexOfArray
+    const posts = await Post.aggregate([
+      { $match: { _id: { $in: pageIds } } },
+      // Preserve order: add __order field based on position in pageIds array
+      { $addFields: { __order: { $indexOfArray: [pageIds, "$_id"] } } },
+      { $sort: { __order: 1 } },
+      // Lookup author
+      {
+        $lookup: {
+          from: "users",
+          localField: "author",
+          foreignField: "_id",
+          as: "author",
+          pipeline: [
+            { $project: { name: 1, nickname: 1, avatarUrl: 1, role: 1, displayBadgeType: 1, cultivationCache: 1 } }
+          ]
         }
-      ]);
-
-      return {
-        posts,
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          pages: Math.ceil(total / limitNum)
+      },
+      { $unwind: { path: "$author", preserveNullAndEmptyArrays: true } },
+      // Lookup group
+      {
+        $lookup: {
+          from: "groups",
+          localField: "group",
+          foreignField: "_id",
+          as: "group",
+          pipeline: [{ $project: { name: 1 } }]
         }
-      };
-    }, 30 * 1000);
+      },
+      { $unwind: { path: "$group", preserveNullAndEmptyArrays: true } },
+      // Project needed fields
+      {
+        $project: {
+          __order: 0 // Remove helper field
+        }
+      }
+    ]);
 
-    res.json(result);
+    res.json({
+      posts,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
   } catch (e) { next(e); }
 });
 
