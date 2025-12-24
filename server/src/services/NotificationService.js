@@ -13,6 +13,7 @@
 
 import Notification from "../models/Notification.js";
 import User from "../models/User.js";
+import { statsCache, invalidateCacheByPrefix } from "../utils/cache.js";
 
 class NotificationService {
 
@@ -46,6 +47,9 @@ class NotificationService {
       });
 
       await notification.save();
+
+      // Invalidate unread count cache for recipient
+      invalidateCacheByPrefix(statsCache, `notifications:unread:${recipient}`);
 
       // Emit socket event để client nhận realtime update
       try {
@@ -463,6 +467,8 @@ class NotificationService {
       { _id: notificationId, recipient: userId },
       { read: true }
     );
+    // Invalidate unread count cache
+    invalidateCacheByPrefix(statsCache, `notifications:unread:${userId}`);
   }
 
   /**
@@ -474,6 +480,8 @@ class NotificationService {
       { recipient: userId, read: false },
       { read: true }
     );
+    // Invalidate unread count cache
+    invalidateCacheByPrefix(statsCache, `notifications:unread:${userId}`);
   }
 
   /**

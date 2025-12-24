@@ -30,4 +30,11 @@ const friendRequestSchema = new mongoose.Schema({
 // Ngăn chặn duplicate requests từ cùng `from` tới cùng `to`
 friendRequestSchema.index({ from: 1, to: 1 }, { unique: true });
 
+// Indexes for query optimization
+// Query pending requests received (GET /requests)
+friendRequestSchema.index({ to: 1, status: 1, createdAt: -1 });
+// Query sent requests (GET /sent-requests)
+friendRequestSchema.index({ from: 1, status: 1, createdAt: -1 });
+
 export default mongoose.model('FriendRequest', friendRequestSchema);
+

@@ -24,9 +24,9 @@ function registerServiceWorker() {
         const registration = await navigator.serviceWorker.register('/sw.js', {
           scope: '/',
         });
-        
+
         console.log('[App] Service Worker registered:', registration.scope);
-        
+
         // Handle updates
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
@@ -66,8 +66,9 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 phút
-      gcTime: 10 * 60 * 1000, // 10 phút (cacheTime đổi tên thành gcTime trong v5)
+      gcTime: 15 * 60 * 1000, // 15 phút (tăng từ 10 phút để giữ cache lâu hơn)
       refetchOnWindowFocus: false,
+      refetchOnReconnect: false, // Không refetch khi reconnect - tránh API calls không cần thiết
       retry: 1,
     },
   },

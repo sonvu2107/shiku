@@ -86,9 +86,34 @@ export default defineConfig(({ command, mode }) => {
           assetFileNames: 'assets/[name]-[hash].[ext]',
           format: 'es',
 
-          // De Vite tu dong xu ly thu tu load dung
+          // Vendor chunk splitting for parallel loading
           manualChunks: (id) => {
             if (id.includes('node_modules')) {
+              // React core - load first, cache separately
+              if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
+                return 'react-vendor';
+              }
+              // Animation libraries - heavy, separate chunk
+              if (id.includes('framer-motion')) {
+                return 'animation-vendor';
+              }
+              // Icons - lazy load, used across many pages
+              if (id.includes('lucide-react') || id.includes('react-icons')) {
+                return 'icons-vendor';
+              }
+              // Charts - only admin dashboard needs this
+              if (id.includes('recharts') || id.includes('d3-')) {
+                return 'charts-vendor';
+              }
+              // React Query - used everywhere
+              if (id.includes('@tanstack')) {
+                return 'query-vendor';
+              }
+              // Date utilities
+              if (id.includes('date-fns')) {
+                return 'date-vendor';
+              }
+              // Let Vite decide for other modules
               return undefined;
             }
 

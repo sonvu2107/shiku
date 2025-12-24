@@ -277,7 +277,7 @@ router.get('/sent-requests', authRequired, async (req, res) => {
  * OPTIMIZED: Removed $facet/$unwind, use simple pagination on IDs + $in lookup
  * @returns {Array} Danh sách bạn bè
  */
-router.get('/list', authRequired, async (req, res) => {
+router.get('/list', authRequired, responseCache({ ttlSeconds: 30, prefix: 'friends-list', varyByUser: true }), async (req, res) => {
   try {
     const userId = req.user._id.toString();
     const page = parseInt(req.query.page) || 1;

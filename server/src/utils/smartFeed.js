@@ -149,13 +149,11 @@ export async function getFriendsPosts(userId, limit = 10, notInterestedPostIds =
     const blockedObjectIds = blockedUserIds.map(id => new mongoose.Types.ObjectId(id));
 
     // OPTIMIZATION: Xây dựng match stage cho aggregation
+    // NOTE: group field is normalized to null (no more $exists: false)
     const matchStage = {
       author: { $in: friendObjectIds },
       status: "published",
-      $or: [
-        { group: { $exists: false } },
-        { group: null }
-      ]
+      group: null  // Simplified: data normalized to always have group: null or ObjectId
     };
 
     // Loại trừ blocked users
@@ -239,13 +237,11 @@ export async function getTrendingPosts(limit = 10, notInterestedPostIds = null, 
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     // OPTIMIZATION: Build match stage for aggregation
+    // NOTE: group field is normalized to null
     const matchStage = {
       status: "published",
       createdAt: { $gte: oneDayAgo },
-      $or: [
-        { group: { $exists: false } },
-        { group: null }
-      ]
+      group: null
     };
 
     // Loại trừ blocked users
@@ -421,16 +417,14 @@ export async function getPersonalizedPosts(userId, limit = 10, notInterestedPost
     if (topTags.length === 0) return [];
 
     // Xây dựng query cho posts cá nhân hóa
+    // NOTE: group field is normalized to null
     const personalizedQuery = {
       tags: { $in: topTags },
       status: "published",
       author: { $nin: [userId, ...blockedUserIds] }, // Không phải của user hiện tại và không phải của users bị block
       "emotes.user": { $ne: userId }, // User chưa emote
       _id: { $nin: commentedPostIds }, // User chưa comment
-      $or: [
-        { group: { $exists: false } },
-        { group: null }
-      ]
+      group: null
     };
 
     // Loại trừ posts user không quan tâm
@@ -444,10 +438,7 @@ export async function getPersonalizedPosts(userId, limit = 10, notInterestedPost
     // Tìm posts với các tags này mà user chưa tương tác
     const personalizedPosts = await Post.find(personalizedQuery)
       .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache createdAt firstLoginAt")
-      .populate({
-        path: "emotes.user",
-        select: "name nickname avatarUrl role displayBadgeType cultivationCache"
-      })
+      // NOTE: emotes.user populate removed (legacy system)
       .sort({ createdAt: -1 })
       .skip(skip) // Bỏ qua posts cho pagination
       .limit(limit * 2)
@@ -492,14 +483,12 @@ export async function getFreshPosts(limit = 5, notInterestedPostIds = null, bloc
   try {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
+    // NOTE: group field is normalized to null
     const query = {
       status: "published",
       createdAt: { $gte: twoHoursAgo },
       ...(blockedUserIds.length > 0 && { author: { $nin: blockedUserIds } }),
-      $or: [
-        { group: { $exists: false } },
-        { group: null }
-      ]
+      group: null
     };
 
     // Loại trừ posts user không quan tâm
@@ -509,10 +498,7 @@ export async function getFreshPosts(limit = 5, notInterestedPostIds = null, bloc
 
     const posts = await Post.find(query)
       .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache createdAt firstLoginAt")
-      .populate({
-        path: "emotes.user",
-        select: "name nickname avatarUrl role displayBadgeType cultivationCache"
-      })
+      // NOTE: emotes.user populate removed (legacy system)
       .sort({ createdAt: -1 })
       .skip(skip) // Bỏ qua posts cho pagination
       .limit(limit)
@@ -643,13 +629,11 @@ export async function generateSmartFeed(userId, totalLimit = 20, page = 1) {
     const isFirstPage = sanitizedPage === 1;
 
     if (isFirstPage) {
+      // NOTE: group field is normalized to null
       pinnedPosts = await Post.find({
         isPinned: true,
         status: "published",
-        $or: [
-          { group: { $exists: false } },
-          { group: null }
-        ]
+        group: null
       })
         .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache createdAt firstLoginAt")
         .sort({ pinnedAt: -1 }) // Bài ghim mới nhất lên đầu
@@ -704,14 +688,12 @@ export async function generateSmartFeed(userId, totalLimit = 20, page = 1) {
       // Tính skip cho filler posts (skip phần còn lại sau mixed feed)
       const fillerSkip = Math.max(totalSkip - mixedFeed.length, 0);
 
+      // NOTE: group field is normalized to null
       const fillerPosts = await Post.find({
         status: "published",
         _id: { $nin: excludedIds },
         ...(blockedUserIds.length > 0 && { author: { $nin: blockedUserIds } }),
-        $or: [
-          { group: { $exists: false } },
-          { group: null }
-        ]
+        group: null
       })
         .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache")
         .populate({

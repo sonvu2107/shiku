@@ -14,11 +14,12 @@ import express from "express";
 import { authRequired } from "../middleware/auth.js";
 import NotificationService from "../services/NotificationService.js";
 import { withCache, statsCache, invalidateCacheByPrefix } from "../utils/cache.js";
+import { responseCache } from "../middleware/responseCache.js";
 
 const router = express.Router();
 
-// Get user notifications
-router.get("/", authRequired, async (req, res, next) => {
+// Get user notifications - with responseCache for coalescing
+router.get("/", authRequired, responseCache({ ttlSeconds: 15, prefix: 'notif-list', varyByUser: true }), async (req, res, next) => {
   try {
     const { page = 1, limit = 20, filter } = req.query;
     const result = await NotificationService.getUserNotifications(
@@ -36,7 +37,7 @@ router.get("/", authRequired, async (req, res, next) => {
 
 // Get unread count - OPTIMIZED with caching
 // Lightweight unread count (PHASE 4 optimization: avoid full notifications fetch)
-router.get("/unread-count", authRequired, async (req, res, next) => {
+router.get("/unread-count", authRequired, responseCache({ ttlSeconds: 30, prefix: 'notif-unread', varyByUser: true }), async (req, res, next) => {
   try {
     const userId = req.user._id.toString();
     const cacheKey = `notifications:unread:${userId}`;

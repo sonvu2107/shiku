@@ -97,6 +97,9 @@ PostSchema.index({ upvoteCount: -1, createdAt: -1 }); // Sort by upvotes
 PostSchema.index({ rankingScore: -1, status: 1 }); // HOT feed
 PostSchema.index({ 'upvotes': 1 }); // Check if user upvoted
 
+// NEW: Compound index for friends feed query (covers author $in + status + group + sort)
+PostSchema.index({ author: 1, status: 1, group: 1, createdAt: -1 });
+
 // NEW: Index for pinned posts
 PostSchema.index({ isPinned: -1, pinnedAt: -1, status: 1 }); // Pinned posts first
 

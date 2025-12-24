@@ -134,17 +134,11 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
     const cacheKey = `my-posts:${userId}:${page}:${sanitizedLimit}:${statusFilter}`;
 
     const result = await withCache(postCache, cacheKey, async () => {
+      // NOTE: group field is normalized to null
       const filter = {
         author: req.user._id,
         status: status || { $in: ["published", "private"] },
-        $and: [
-          {
-            $or: [
-              { group: { $exists: false } },
-              { group: null }
-            ]
-          }
-        ]
+        group: null
       };
 
       // Use aggregation for better performance
@@ -172,55 +166,8 @@ router.get("/my-posts", authRequired, async (req, res, next) => {
               pipeline: [{ $project: { name: 1 } }]
             }
           },
-          // Populate emotes.user
-          {
-            $unwind: {
-              path: "$emotes",
-              preserveNullAndEmptyArrays: true
-            }
-          },
-          {
-            $lookup: {
-              from: "users",
-              localField: "emotes.user",
-              foreignField: "_id",
-              as: "emotes.user",
-              pipeline: [{ $project: { name: 1, nickname: 1, avatarUrl: 1, role: 1, displayBadgeType: 1, cultivationCache: 1 } }]
-            }
-          },
-          {
-            $addFields: {
-              "emotes.user": { $arrayElemAt: ["$emotes.user", 0] }
-            }
-          },
-          {
-            $group: {
-              _id: "$_id",
-              author: { $first: "$author" },
-              group: { $first: "$group" },
-              title: { $first: "$title" },
-              slug: { $first: "$slug" },
-              content: { $first: "$content" },
-              tags: { $first: "$tags" },
-              status: { $first: "$status" },
-              views: { $first: "$views" },
-              coverUrl: { $first: "$coverUrl" },
-              files: { $first: "$files" },
-              createdAt: { $first: "$createdAt" },
-              isEdited: { $first: "$isEdited" },
-              hasPoll: { $first: "$hasPoll" },
-              youtubeUrl: { $first: "$youtubeUrl" },
-              emotes: {
-                $push: {
-                  $cond: [
-                    { $ne: ["$emotes", null] },
-                    "$emotes",
-                    "$$REMOVE"
-                  ]
-                }
-              }
-            }
-          },
+
+          // Simplified pipeline for better performance
           {
             $addFields: {
               author: { $arrayElemAt: ["$author", 0] },
@@ -284,26 +231,14 @@ router.get("/user-posts", authOptional, async (req, res, next) => {
 
     const filter = {
       author: userId,
-      status: "published" // Only public posts
+      status: "published", // Only public posts
+      group: null // NOTE: group field is normalized to null
     };
-
-    // Exclude group posts from user profile
-    filter.$and = [
-      {
-        $or: [
-          { group: { $exists: false } },
-          { group: null }
-        ]
-      }
-    ];
 
     const posts = await Post.find(filter)
       .populate("author", "name nickname avatarUrl role displayBadgeType cultivationCache")
       .populate("group", "name")
-      .populate({
-        path: "emotes.user",
-        select: "name nickname avatarUrl role displayBadgeType cultivationCache"
-      })
+      // NOTE: emotes.user populate removed (legacy system)
       .sort({ createdAt: -1 })
       .limit(sanitizedLimit)
       .skip((page - 1) * sanitizedLimit)
@@ -447,13 +382,9 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
 
     // Build Query Criteria
     // Base condition: Posts that are NOT in groups (Home feed usually excludes group posts)
+    // NOTE: group field is normalized to null
     const baseConditions = [
-      {
-        $or: [
-          { group: { $exists: false } },
-          { group: null }
-        ]
-      }
+      { group: null }
     ];
 
     // Search text
@@ -504,7 +435,7 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
     const postProjection = {
       title: 1, content: 1, slug: 1, tags: 1, createdAt: 1, author: 1, role: 1,
       status: 1, views: 1, coverUrl: 1, files: 1,
-      commentCount: 1, savedCount: 1, emotes: 1, hasPoll: 1, youtubeUrl: 1,
+      commentCount: 1, savedCount: 1, hasPoll: 1, youtubeUrl: 1,
       upvotes: 1, upvoteCount: 1, rankingScore: 1 // NEW: upvote system
     };
 
@@ -512,7 +443,7 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
     const [items, total] = await Promise.all([
       Post.find(filter, postProjection)
         .populate({ path: "author", select: "name nickname avatarUrl role displayBadgeType cultivationCache" })
-        .populate({ path: "emotes.user", select: "name nickname avatarUrl role displayBadgeType cultivationCache" })
+        // NOTE: emotes.user populate removed (legacy system)
         .sort(sortOption)
         .skip((pg - 1) * lim)
         .limit(lim)
@@ -527,13 +458,7 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
       if (post.author?.role && mongoose.Types.ObjectId.isValid(post.author.role)) {
         roleIds.add(post.author.role.toString());
       }
-      if (post.emotes) {
-        post.emotes.forEach(emote => {
-          if (emote.user?.role && mongoose.Types.ObjectId.isValid(emote.user.role)) {
-            roleIds.add(emote.user.role.toString());
-          }
-        });
-      }
+      // NOTE: emotes role collection removed (legacy system)
     });
 
     // Single query for all roles (only if we have valid IDs)
@@ -559,22 +484,7 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
         };
       }
 
-      // Populate emotes.user.role
-      if (postCopy.emotes) {
-        postCopy.emotes = postCopy.emotes.map(emote => {
-          if (emote.user?.role) {
-            const roleId = emote.user.role.toString();
-            return {
-              ...emote,
-              user: {
-                ...emote.user,
-                role: rolesMap.get(roleId) || emote.user.role
-              }
-            };
-          }
-          return emote;
-        });
-      }
+      // NOTE: emotes.user.role processing removed (legacy system)
 
       return postCopy;
     });
@@ -728,7 +638,6 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
           files: 1, // Full files array - slice in Node
           commentCount: 1, // Handle null in Node
           savedCount: 1, // Handle null in Node
-          emotes: 1, // Full emotes - slice in Node
           // Upvote system
           upvotes: 1,
           upvoteCount: 1,
@@ -758,13 +667,7 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
       if (post.author?.role && mongoose.Types.ObjectId.isValid(post.author.role)) {
         roleIds.add(post.author.role.toString());
       }
-      if (post.emotes) {
-        post.emotes.forEach(emote => {
-          if (emote.user?.role && mongoose.Types.ObjectId.isValid(emote.user.role)) {
-            roleIds.add(emote.user.role.toString());
-          }
-        });
-      }
+      // NOTE: emotes role processing removed (legacy system)
     });
 
     // FIX #4: Use globally cached roles instead of Role.find() query
@@ -783,33 +686,11 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
         };
       }
 
-      // Populate emotes.user.role
-      if (postCopy.emotes) {
-        postCopy.emotes = postCopy.emotes.map(emote => {
-          if (emote.user?.role) {
-            const roleId = emote.user.role.toString();
-            return {
-              ...emote,
-              user: {
-                ...emote.user,
-                role: rolesMap.get(roleId) || emote.user.role
-              }
-            };
-          }
-          return emote;
-        });
-      }
-
       // FIX #1: Truncate content in Node instead of MongoDB $substrCP
       if (postCopy.content && postCopy.content.length > 500) {
         postCopy.content = postCopy.content.slice(0, 500);
       }
-
-      // FIX: Move $slice and $ifNull operations from Mongo to Node
-      // This reduces MongoDB CPU load significantly
       postCopy.files = (postCopy.files || []).slice(0, 4);
-      postCopy.emotes = (postCopy.emotes || []).slice(0, 10);
-      postCopy.emoteCount = postCopy.emotes?.length ?? 0;
       postCopy.commentCount = postCopy.commentCount ?? 0;
       postCopy.savedCount = postCopy.savedCount ?? 0;
       postCopy.upvotes = postCopy.upvotes ?? [];
@@ -825,9 +706,6 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
       page: pageNum,
       pages: Math.ceil(total / sanitizedLimit)
     };
-
-    // NOTE: responseCache middleware handles caching, removed old postCache.set()
-
     res.json(response);
   } catch (e) {
     next(e);
@@ -837,8 +715,6 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
 // Get by slug - Enhanced with isSaved and groupContext
 router.get("/slug/:slug", authOptional, async (req, res, next) => {
   try {
-    // FIX DUPLICATE QUERY: Query once with $or instead of twice
-    // FIX NESTED POPULATE: Only populate 1 level, fetch roles separately
     let post = await Post.findOneAndUpdate(
       {
         slug: req.params.slug,
@@ -848,7 +724,7 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
       { new: true }
     )
       .populate({ path: "author", select: "name nickname avatarUrl role displayBadgeType blockedUsers cultivationCache" })
-      .populate({ path: "emotes.user", select: "name nickname avatarUrl role cultivationCache" })
+      // NOTE: emotes.user populate removed (legacy system)
       .populate({ path: "mentions", select: "name nickname avatarUrl email _id" })
       .populate({ path: "group", select: "name settings members" })
       .lean();
@@ -883,13 +759,7 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
     if (post.author?.role && mongoose.Types.ObjectId.isValid(post.author.role)) {
       roleIds.add(post.author.role.toString());
     }
-    if (post.emotes) {
-      post.emotes.forEach(emote => {
-        if (emote.user?.role && mongoose.Types.ObjectId.isValid(emote.user.role)) {
-          roleIds.add(emote.user.role.toString());
-        }
-      });
-    }
+    // NOTE: emotes role collection removed (legacy system)
 
     // Single query for all roles (only if we have valid IDs)
     let rolesMap = new Map();
@@ -907,21 +777,7 @@ router.get("/slug/:slug", authOptional, async (req, res, next) => {
       post.author.role = rolesMap.get(roleId) || post.author.role;
     }
 
-    if (post.emotes) {
-      post.emotes = post.emotes.map(emote => {
-        if (emote.user?.role) {
-          const roleId = emote.user.role.toString();
-          return {
-            ...emote,
-            user: {
-              ...emote.user,
-              role: rolesMap.get(roleId) || emote.user.role
-            }
-          };
-        }
-        return emote;
-      });
-    }
+    // NOTE: emotes role processing removed (legacy system)
 
     // Fetch comments and check if saved in parallel
     const [comments, isSaved] = await Promise.all([
@@ -1200,63 +1056,6 @@ router.delete("/:id", authRequired, async (req, res, next) => {
     invalidateByPattern("smart:*").catch(() => { });
 
     res.json({ ok: true });
-  } catch (e) {
-    next(e);
-  }
-});
-
-// Emote
-router.post("/:id/emote", authRequired, async (req, res, next) => {
-  try {
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ error: "Không tìm thấy bài viết" });
-
-    const { emote } = req.body;
-    if (!emote || typeof emote !== "string") {
-      return res.status(400).json({ error: "Biểu cảm không hợp lệ" });
-    }
-
-    const uid = req.user._id.toString();
-    const existed = post.emotes.find(e => e.user.toString() === uid && e.type === emote);
-
-    let isNewLike = false;
-    if (existed) {
-      post.emotes = post.emotes.filter(e => !(e.user.toString() === uid && e.type === emote));
-    } else {
-      const hadPreviousEmote = post.emotes.some(e => e.user.toString() === uid);
-      post.emotes = post.emotes.filter(e => e.user.toString() !== uid);
-      post.emotes.push({ user: req.user._id, type: emote });
-      isNewLike = !hadPreviousEmote; // Chỉ cộng exp nếu là lần đầu like
-    }
-
-    await post.save();
-    await post.populate("emotes.user", "name nickname avatarUrl role");
-
-    // Cộng exp cho cả người like và người được like (nếu là lần đầu)
-    if (isNewLike) {
-      try {
-        // Cộng exp cho người like
-        await addExpForAction(req.user._id, 'like', { description: 'Thích bài viết' });
-        // Cộng exp cho tác giả bài viết
-        if (post.author.toString() !== req.user._id.toString()) {
-          await addExpForReceiver(post.author, 'like');
-        }
-      } catch (expError) {
-        console.error('[POSTS] Error adding emote exp:', expError);
-      }
-    }
-
-    // Gửi notification cho tác giả bài viết (nếu không phải bỏ emote)
-    if (!existed) {
-      try {
-        const NotificationService = (await import("../services/NotificationService.js")).default;
-        await NotificationService.createReactionNotification(post, req.user, emote);
-      } catch (notifError) {
-        console.error('[POSTS] Error creating reaction notification:', notifError);
-      }
-    }
-
-    res.json({ emotes: post.emotes });
   } catch (e) {
     next(e);
   }
@@ -1703,7 +1502,7 @@ router.post("/:id/interest", authRequired, postInteractionLimiter, async (req, r
   try {
     const postId = req.params.id;
     const userId = req.user._id;
-    const { interested } = req.body; // true = quan tâm, false = không quan tâm
+    const { interested } = req.body; // true = interested, false = not interested
 
     if (!mongoose.Types.ObjectId.isValid(postId)) {
       return res.status(400).json({ error: "Post ID không hợp lệ" });
@@ -1756,7 +1555,7 @@ router.post("/:id/interest", authRequired, postInteractionLimiter, async (req, r
 });
 
 // Get saved posts list - OPTIMIZED with caching and order preservation
-router.get("/saved/list", authRequired, async (req, res, next) => {
+router.get("/saved/list", authRequired, responseCache({ ttlSeconds: 30, prefix: 'saved-list', varyByUser: true }), async (req, res, next) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const userId = req.user._id.toString();
@@ -1840,105 +1639,6 @@ router.get("/saved/list", authRequired, async (req, res, next) => {
 
     res.json(result);
   } catch (e) { next(e); }
-});
-
-
-// ==================== FEATURED POSTS ====================
-// Toggle feature/unfeature a post on user profile
-router.post("/:id/feature", authRequired, postInteractionLimiter, async (req, res, next) => {
-  try {
-    const postId = req.params.id;
-    const userId = req.user._id;
-
-    if (!mongoose.Types.ObjectId.isValid(postId)) {
-      return res.status(400).json({ error: "Post ID không hợp lệ" });
-    }
-
-    // Verify post exists and belongs to user
-    const post = await Post.findById(postId).select("_id author status");
-    if (!post) {
-      return res.status(404).json({ error: "Không tìm thấy bài viết" });
-    }
-
-    // Only allow featuring own posts
-    if (post.author.toString() !== userId.toString()) {
-      return res.status(403).json({ error: "Chỉ có thể ghim bài viết của bạn" });
-    }
-
-    // Only allow featuring published posts
-    if (post.status !== "published") {
-      return res.status(400).json({ error: "Chỉ có thể ghim bài viết đã công khai" });
-    }
-
-    const user = await User.findById(userId).select("featuredPosts");
-    const featuredPosts = user.featuredPosts || [];
-    const postIdStr = postId.toString();
-    const idx = featuredPosts.findIndex(id => id.toString() === postIdStr);
-
-    let isFeatured = false;
-    if (idx >= 0) {
-      // Unfeature
-      featuredPosts.splice(idx, 1);
-    } else {
-      // Feature - check limit
-      if (featuredPosts.length >= 5) {
-        return res.status(400).json({
-          error: "Đã đạt giới hạn 5 bài viết ghim. Vui lòng bỏ ghim bài khác trước."
-        });
-      }
-      featuredPosts.unshift(new mongoose.Types.ObjectId(postId));
-      isFeatured = true;
-    }
-
-    user.featuredPosts = featuredPosts;
-    await user.save();
-
-    res.json({
-      success: true,
-      isFeatured,
-      featuredPosts: user.featuredPosts,
-      message: isFeatured ? "Đã ghim bài viết lên profile" : "Đã bỏ ghim bài viết"
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Get featured posts for a user
-router.get("/featured/:userId", authOptional, async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ error: "User ID không hợp lệ" });
-    }
-
-    const user = await User.findById(userId)
-      .select("featuredPosts")
-      .populate({
-        path: "featuredPosts",
-        populate: {
-          path: "author",
-          select: "name nickname avatarUrl role displayBadgeType cultivationCache"
-        }
-      });
-
-    if (!user) {
-      return res.status(404).json({ error: "Không tìm thấy người dùng" });
-    }
-
-    // Filter out any posts that no longer exist or are private
-    const validPosts = (user.featuredPosts || []).filter(post =>
-      post && post.status === "published"
-    );
-
-    res.json({
-      success: true,
-      featuredPosts: validPosts
-    });
-  } catch (error) {
-    next(error);
-  }
 });
 
 export default router;

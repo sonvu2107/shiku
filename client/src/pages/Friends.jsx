@@ -244,9 +244,9 @@ export default function Friends() {
                     await handleFriendAction('remove', userData._id);
                   }
                 }}
-                className="flex-1 px-3 md:px-4 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 hover:bg-neutral-800 dark:hover:bg-neutral-200 active:bg-neutral-700 dark:active:bg-neutral-300 transition-colors max-w-fit md:max-w-none min-h-[44px] touch-manipulation"
+                className="flex-1 px-4 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-neutral-800 dark:hover:bg-neutral-200 active:bg-neutral-700 dark:active:bg-neutral-300 transition-colors min-h-[44px] touch-manipulation"
               >
-                <UserCheck size={14} className="md:w-4 md:h-4" /> <span className="hidden sm:inline">Đã kết bạn</span><span className="sm:hidden">Bạn bè</span>
+                <UserCheck size={16} /> Đã kết bạn
               </button>
               <button
                 onClick={(e) => {

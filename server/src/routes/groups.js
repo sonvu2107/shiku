@@ -174,7 +174,7 @@ router.get('/', authOptional, responseCache({ ttlSeconds: 60, prefix: 'groups', 
  * @access  Private
  * OPTIMIZED: Sử dụng aggregation và cache
  */
-router.get('/my-groups', authRequired, async (req, res) => {
+router.get('/my-groups', authRequired, responseCache({ ttlSeconds: 60, prefix: 'my-groups', varyByUser: true }), async (req, res) => {
   try {
     const userId = req.user._id;
     const userIdStr = userId.toString();
