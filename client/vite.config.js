@@ -86,44 +86,9 @@ export default defineConfig(({ command, mode }) => {
           assetFileNames: 'assets/[name]-[hash].[ext]',
           format: 'es',
 
-          // Vendor chunk splitting - IMPORTANT: React-dependent libs must be in react-vendor
-          manualChunks: (id) => {
-            if (id.includes('node_modules')) {
-              // React core + ALL React-dependent libraries - must load together
-              if (
-                id.includes('/react/') ||
-                id.includes('/react-dom/') ||
-                id.includes('/scheduler/') ||
-                id.includes('lucide-react') ||
-                id.includes('react-icons') ||
-                id.includes('framer-motion') ||
-                id.includes('@tanstack') ||
-                id.includes('recharts')
-              ) {
-                return 'react-vendor';
-              }
-              // Charts dependencies (d3) - no React dependency
-              if (id.includes('d3-')) {
-                return 'charts-vendor';
-              }
-              // Date utilities - no React dependency
-              if (id.includes('date-fns')) {
-                return 'date-vendor';
-              }
-              // Let Vite decide for other modules
-              return undefined;
-            }
-
-            // Admin pages
-            if (id.includes('/src/pages/Admin') || id.includes('/src/pages/admin/')) {
-              return 'admin';
-            }
-
-            // Cultivation system
-            if (id.includes('/src/pages/Cultivation')) {
-              return 'cultivation';
-            }
-          }
+          // Let Vite handle chunking automatically to ensure proper dependency order
+          // Manual chunking was causing React to not be available when other chunks load
+          // manualChunks: disabled
         }
       },
       chunkSizeWarningLimit: 1500,
