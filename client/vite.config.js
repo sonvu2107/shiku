@@ -86,30 +86,27 @@ export default defineConfig(({ command, mode }) => {
           assetFileNames: 'assets/[name]-[hash].[ext]',
           format: 'es',
 
-          // Vendor chunk splitting for parallel loading
+          // Vendor chunk splitting - IMPORTANT: React-dependent libs must be in react-vendor
           manualChunks: (id) => {
             if (id.includes('node_modules')) {
-              // React core + icons that depend on React - load together to avoid forwardRef issues
-              if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/') || id.includes('lucide-react')) {
+              // React core + ALL React-dependent libraries - must load together
+              if (
+                id.includes('/react/') ||
+                id.includes('/react-dom/') ||
+                id.includes('/scheduler/') ||
+                id.includes('lucide-react') ||
+                id.includes('react-icons') ||
+                id.includes('framer-motion') ||
+                id.includes('@tanstack') ||
+                id.includes('recharts')
+              ) {
                 return 'react-vendor';
               }
-              // Animation libraries - heavy, separate chunk
-              if (id.includes('framer-motion')) {
-                return 'animation-vendor';
-              }
-              // Other icons - lazy load
-              if (id.includes('react-icons')) {
-                return 'icons-vendor';
-              }
-              // Charts - only admin dashboard needs this
-              if (id.includes('recharts') || id.includes('d3-')) {
+              // Charts dependencies (d3) - no React dependency
+              if (id.includes('d3-')) {
                 return 'charts-vendor';
               }
-              // React Query - used everywhere
-              if (id.includes('@tanstack')) {
-                return 'query-vendor';
-              }
-              // Date utilities
+              // Date utilities - no React dependency
               if (id.includes('date-fns')) {
                 return 'date-vendor';
               }
