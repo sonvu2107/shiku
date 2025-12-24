@@ -311,7 +311,7 @@ const ChristmasBanner = ({ onClose }) => {
     return (
         <AnimatePresence>
             <motion.div
-                className="fixed top-20 md:top-20 left-1/2 -translate-x-1/2 z-50 px-4 w-full max-w-sm"
+                className="fixed top-16 md:top-20 inset-x-0 mx-auto z-50 px-4 w-full max-w-sm"
                 initial={{ y: -100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -100, opacity: 0 }}
