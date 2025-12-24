@@ -102,24 +102,33 @@ export function getRankedBot(tier, faction = 'none') {
  * Generate bot stats based on tier
  */
 export function generateBotStats(tier, statMultiplier) {
-    // Base stats by tier (same as cultivation base stats)
+    // Base stats by tier - tăng mạnh cho tier cao
     const baseStatsByTier = {
-        1: { attack: 10, defense: 5, qiBlood: 100, zhenYuan: 50, speed: 10, criticalRate: 5, criticalDamage: 150, accuracy: 80, dodge: 5, penetration: 0, resistance: 0, lifesteal: 0, regeneration: 0.5, luck: 5 },
-        2: { attack: 25, defense: 12, qiBlood: 250, zhenYuan: 120, speed: 15, criticalRate: 8, criticalDamage: 160, accuracy: 85, dodge: 8, penetration: 2, resistance: 2, lifesteal: 1, regeneration: 1, luck: 8 },
-        3: { attack: 50, defense: 25, qiBlood: 500, zhenYuan: 250, speed: 20, criticalRate: 10, criticalDamage: 170, accuracy: 88, dodge: 10, penetration: 5, resistance: 5, lifesteal: 2, regeneration: 1.5, luck: 10 },
-        4: { attack: 100, defense: 50, qiBlood: 1000, zhenYuan: 500, speed: 25, criticalRate: 12, criticalDamage: 180, accuracy: 90, dodge: 12, penetration: 8, resistance: 8, lifesteal: 3, regeneration: 2, luck: 12 },
-        5: { attack: 200, defense: 100, qiBlood: 2000, zhenYuan: 1000, speed: 30, criticalRate: 15, criticalDamage: 190, accuracy: 92, dodge: 15, penetration: 12, resistance: 12, lifesteal: 5, regeneration: 3, luck: 15 },
-        6: { attack: 400, defense: 200, qiBlood: 4000, zhenYuan: 2000, speed: 35, criticalRate: 18, criticalDamage: 200, accuracy: 94, dodge: 18, penetration: 15, resistance: 15, lifesteal: 7, regeneration: 4, luck: 18 },
-        7: { attack: 800, defense: 400, qiBlood: 8000, zhenYuan: 4000, speed: 40, criticalRate: 20, criticalDamage: 210, accuracy: 96, dodge: 20, penetration: 18, resistance: 18, lifesteal: 10, regeneration: 5, luck: 20 },
-        8: { attack: 1600, defense: 800, qiBlood: 16000, zhenYuan: 8000, speed: 45, criticalRate: 22, criticalDamage: 220, accuracy: 97, dodge: 22, penetration: 20, resistance: 20, lifesteal: 12, regeneration: 6, luck: 22 },
-        9: { attack: 3200, defense: 1600, qiBlood: 32000, zhenYuan: 16000, speed: 50, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 7, luck: 25 }
+        1: { attack: 15, defense: 8, qiBlood: 150, zhenYuan: 80, speed: 12, criticalRate: 5, criticalDamage: 150, accuracy: 80, dodge: 5, penetration: 0, resistance: 0, lifesteal: 0, regeneration: 0.5, luck: 5 },
+        2: { attack: 40, defense: 20, qiBlood: 400, zhenYuan: 200, speed: 18, criticalRate: 8, criticalDamage: 160, accuracy: 85, dodge: 8, penetration: 2, resistance: 2, lifesteal: 1, regeneration: 1, luck: 8 },
+        3: { attack: 80, defense: 40, qiBlood: 800, zhenYuan: 400, speed: 25, criticalRate: 10, criticalDamage: 170, accuracy: 88, dodge: 10, penetration: 5, resistance: 5, lifesteal: 2, regeneration: 1.5, luck: 10 },
+        4: { attack: 180, defense: 90, qiBlood: 1800, zhenYuan: 900, speed: 32, criticalRate: 12, criticalDamage: 180, accuracy: 90, dodge: 12, penetration: 8, resistance: 8, lifesteal: 3, regeneration: 2, luck: 12 },
+        5: { attack: 400, defense: 200, qiBlood: 4000, zhenYuan: 2000, speed: 40, criticalRate: 15, criticalDamage: 190, accuracy: 92, dodge: 15, penetration: 12, resistance: 12, lifesteal: 5, regeneration: 3, luck: 15 },
+        6: { attack: 900, defense: 450, qiBlood: 9000, zhenYuan: 4500, speed: 50, criticalRate: 18, criticalDamage: 200, accuracy: 94, dodge: 18, penetration: 15, resistance: 15, lifesteal: 7, regeneration: 4, luck: 18 },
+        7: { attack: 2000, defense: 1000, qiBlood: 20000, zhenYuan: 10000, speed: 60, criticalRate: 20, criticalDamage: 210, accuracy: 96, dodge: 20, penetration: 18, resistance: 18, lifesteal: 10, regeneration: 5, luck: 20 },
+        8: { attack: 5000, defense: 2500, qiBlood: 50000, zhenYuan: 25000, speed: 75, criticalRate: 22, criticalDamage: 220, accuracy: 97, dodge: 22, penetration: 20, resistance: 20, lifesteal: 12, regeneration: 6, luck: 22 },
+        9: { attack: 12000, defense: 6000, qiBlood: 120000, zhenYuan: 60000, speed: 90, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 7, luck: 25 }
     };
+
+    // Stats that should NOT be scaled (percentage-based)
+    const noScaleStats = ['criticalRate', 'criticalDamage', 'accuracy', 'dodge', 'resistance', 'lifesteal', 'regeneration', 'luck'];
 
     const baseStats = baseStatsByTier[tier] || baseStatsByTier[1];
     const stats = {};
 
     for (const [key, value] of Object.entries(baseStats)) {
-        stats[key] = Math.floor(value * statMultiplier);
+        if (noScaleStats.includes(key)) {
+            // Percentage stats: keep as-is (no scaling)
+            stats[key] = value;
+        } else {
+            // Combat stats: scale with multiplier
+            stats[key] = Math.floor(value * statMultiplier);
+        }
     }
 
     return stats;
@@ -329,10 +338,49 @@ export async function claimSeasonRewards(userId) {
                 acquiredAt: new Date(),
                 metadata: {
                     source: `Mùa ${season.seasonNumber}`,
-                    tier: rank.highestTier
+                    tier: rank.highestTier,
+                    rarity: rank.highestTier >= 7 ? 'legendary' : rank.highestTier >= 5 ? 'epic' : 'rare'
                 }
             };
             cultivation.inventory.push(titleItem);
+        }
+
+        // Add avatar frame if any (tier 8+)
+        if (rewards.avatarFrame) {
+            const frameItem = {
+                itemId: `season_${season.seasonNumber}_${rewards.avatarFrame}`,
+                name: `Khung ${rewards.tierName} Mùa ${season.seasonNumber}`,
+                type: 'avatar_frame',
+                quantity: 1,
+                equipped: false,
+                acquiredAt: new Date(),
+                metadata: {
+                    source: `Mùa ${season.seasonNumber}`,
+                    tier: rank.highestTier,
+                    rarity: 'legendary'
+                }
+            };
+            cultivation.inventory.push(frameItem);
+        }
+
+        // Add pet if any (tier 9)
+        if (rewards.pet) {
+            const petItem = {
+                itemId: `season_${season.seasonNumber}_${rewards.pet}`,
+                name: `Linh Thú Huyền Thoại Mùa ${season.seasonNumber}`,
+                type: 'pet',
+                quantity: 1,
+                equipped: false,
+                acquiredAt: new Date(),
+                metadata: {
+                    source: `Mùa ${season.seasonNumber}`,
+                    tier: rank.highestTier,
+                    rarity: 'legendary',
+                    expBonus: 0.15,
+                    spiritStoneBonus: 0.10
+                }
+            };
+            cultivation.inventory.push(petItem);
         }
 
         await cultivation.save();

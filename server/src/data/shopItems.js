@@ -57,6 +57,11 @@ export const SHOP_ITEMS = [
     { id: "frame_ice", name: "Băng Tinh Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 500, description: "Khung avatar với tinh thể băng giá", color: "#06B6D4", rarity: "epic", animated: true },
     { id: "frame_celestial", name: "Thiên Giới Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 1500, description: "Khung avatar huyền thoại từ thiên giới", color: "#FBBF24", rarity: "legendary", animated: true },
 
+    // ==================== KHUNG AVATAR PHẦN THƯỞNG RANK (KHÔNG BÁN) ====================
+    { id: "frame_tienton", name: "Tiên Tôn Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 0, description: "Khung avatar độc quyền cho Tiên Tôn rank - Hào quang tiên giới bao phủ", color: "#FBBF24", rarity: "legendary", animated: true, exclusive: true, rankTier: 8 },
+    { id: "frame_maton", name: "Ma Tôn Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 0, description: "Khung avatar độc quyền cho Ma Tôn rank - Ma khí hắc ám cuồn cuộn", color: "#7C3AED", rarity: "legendary", animated: true, exclusive: true, rankTier: 8 },
+    { id: "frame_truyenthuyet", name: "Huyền Thoại Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 0, description: "Khung avatar tối thượng - Chỉ dành cho những bậc Truyền Thuyết", color: "#F59E0B", rarity: "legendary", animated: true, exclusive: true, rankTier: 9 },
+
     // ==================== HIỆU ỨNG PROFILE (PROFILE_EFFECT) ====================
     { id: "effect_sparkle", name: "Tinh Quang Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 400, description: "Hiệu ứng lấp lánh trên profile", rarity: "rare" },
     { id: "effect_aurora", name: "Cực Quang Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 500, description: "Hiệu ứng cực quang huyền ảo trên profile", rarity: "epic" },
@@ -96,6 +101,9 @@ export const SHOP_ITEMS = [
     { id: "pet_crane", name: "Tiên Hạc", type: ITEM_TYPES.PET, price: 700, description: "Hạc tiên, tăng 8% exp nhiệm vụ", questExpBonus: 0.08, rarity: "epic" },
     { id: "pet_cat", name: "Chiêu Tài Miêu", type: ITEM_TYPES.PET, price: 400, description: "Mèo may mắn, tăng 5% linh thạch", spiritStoneBonus: 0.05, rarity: "rare" },
     { id: "pet_rabbit", name: "Ngọc Thố", type: ITEM_TYPES.PET, price: 350, description: "Thỏ ngọc từ cung trăng", rarity: "rare" },
+
+    // ==================== LINH THÚ PHẦN THƯỞNG RANK (KHÔNG BÁN) ====================
+    { id: "pet_legendary", name: "Hồng Mông Cổ Thú", type: ITEM_TYPES.PET, price: 0, description: "Linh thú thần cấp từ Hồng Mông - Tăng 15% exp và 10% linh thạch", expBonus: 0.15, spiritStoneBonus: 0.1, rarity: "legendary", exclusive: true, rankTier: 9 },
 
     // ==================== LINH THÚ CƯỠI (MOUNT) ====================
     { id: "mount_cloud", name: "Thần Vân", type: ITEM_TYPES.MOUNT, price: 1000, description: "Đám mây thần kỳ, tăng 15% Né Tránh", rarity: "epic", stats: { dodge: 0.15 } },

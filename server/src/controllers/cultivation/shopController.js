@@ -10,20 +10,23 @@ export const getShop = async (req, res, next) => {
         const userId = req.user.id;
         const cultivation = await Cultivation.getOrCreate(userId);
 
-        const shopItems = SHOP_ITEMS.map(item => {
-            if (item.type === 'technique') {
-                const isOwned = cultivation.learnedTechniques?.some(t => t.techniqueId === item.id) || false;
+        // Lọc bỏ items độc quyền rank (price: 0 hoặc exclusive: true)
+        const shopItems = SHOP_ITEMS
+            .filter(item => item.price > 0 && !item.exclusive)
+            .map(item => {
+                if (item.type === 'technique') {
+                    const isOwned = cultivation.learnedTechniques?.some(t => t.techniqueId === item.id) || false;
+                    return { ...item, owned: isOwned, canAfford: cultivation.spiritStones >= item.price };
+                }
+
+                const isOwned = cultivation.inventory.some(i => {
+                    if (i.itemId && i.itemId.toString() === item.id) return true;
+                    if (i._id && i._id.toString() === item.id) return true;
+                    return false;
+                });
+
                 return { ...item, owned: isOwned, canAfford: cultivation.spiritStones >= item.price };
-            }
-
-            const isOwned = cultivation.inventory.some(i => {
-                if (i.itemId && i.itemId.toString() === item.id) return true;
-                if (i._id && i._id.toString() === item.id) return true;
-                return false;
             });
-
-            return { ...item, owned: isOwned, canAfford: cultivation.spiritStones >= item.price };
-        });
 
         const availableEquipment = await Equipment.find({
             is_active: true,

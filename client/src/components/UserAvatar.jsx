@@ -92,6 +92,38 @@ const AVATAR_FRAMES = {
     animated: true,
     animationType: 'celestial',
     legendary: true
+  },
+  // ==================== KHUNG PHẦN THƯỞNG RANK (ĐỘC QUYỀN) ====================
+  frame_tienton: {
+    name: 'Tiên Tôn Khung',
+    borderColor: '#FBBF24',
+    glowColor: 'rgba(251, 191, 36, 1)',
+    gradient: 'linear-gradient(135deg, #FFD700, #FFF8E7, #FFE4B5, #FFF8E7, #FFD700)',
+    animated: true,
+    animationType: 'tienton',
+    legendary: true,
+    exclusive: true
+  },
+  frame_maton: {
+    name: 'Ma Tôn Khung',
+    borderColor: '#7C3AED',
+    glowColor: 'rgba(124, 58, 237, 1)',
+    gradient: 'linear-gradient(135deg, #4C1D95, #7C3AED, #1F0A3C, #7C3AED, #4C1D95)',
+    animated: true,
+    animationType: 'maton',
+    legendary: true,
+    exclusive: true
+  },
+  frame_truyenthuyet: {
+    name: 'Huyền Thoại Khung',
+    borderColor: '#F59E0B',
+    glowColor: 'rgba(245, 158, 11, 1)',
+    gradient: 'linear-gradient(135deg, #FFD700, #FF8C00, #FFD700, #FFA500, #FFD700, #FF8C00, #FFD700)',
+    animated: true,
+    animationType: 'legendary',
+    legendary: true,
+    exclusive: true,
+    ultimate: true
   }
 };
 
@@ -317,17 +349,50 @@ const UserAvatar = memo(function UserAvatar({
               height: containerSize,
               top: 0,
               left: 0,
-              background: 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%)',
+              background: frameConfig.animationType === 'maton'
+                ? 'linear-gradient(45deg, transparent 40%, rgba(124, 58, 237, 0.6) 50%, transparent 60%)'
+                : 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%)',
               backgroundSize: '200% 200%'
             }}
             animate={{
               backgroundPosition: ['200% 200%', '-100% -100%']
             }}
             transition={{
-              duration: 2,
+              duration: frameConfig.ultimate ? 1.5 : 2,
               repeat: Infinity,
-              repeatDelay: 1,
+              repeatDelay: frameConfig.ultimate ? 0.5 : 1,
               ease: 'easeInOut'
+            }}
+          />
+        )}
+
+        {/* Hiệu ứng đặc biệt cho Truyền Thuyết - vòng sáng xoay */}
+        {frameConfig?.ultimate && (
+          <motion.div
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              width: containerSize + glowSize * 2,
+              height: containerSize + glowSize * 2,
+              top: -glowSize,
+              left: -glowSize,
+              border: '2px dashed rgba(255, 215, 0, 0.5)',
+              borderRadius: '50%'
+            }}
+            animate={{
+              rotate: [0, 360],
+              opacity: [0.3, 0.8, 0.3]
+            }}
+            transition={{
+              rotate: {
+                duration: 8,
+                repeat: Infinity,
+                ease: 'linear'
+              },
+              opacity: {
+                duration: 2,
+                repeat: Infinity,
+                ease: 'easeInOut'
+              }
             }}
           />
         )}

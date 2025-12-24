@@ -585,6 +585,25 @@ CultivationSchema.methods.getRealmProgress = function () {
 };
 
 /**
+ * Lấy bonus từ pet đang trang bị
+ * @returns {Object} { expBonus, spiritStoneBonus, questExpBonus }
+ */
+CultivationSchema.methods.getPetBonuses = function () {
+  const bonuses = { expBonus: 0, spiritStoneBonus: 0, questExpBonus: 0 };
+
+  if (this.equipped?.pet) {
+    const pet = SHOP_ITEMS_MAP.get(this.equipped.pet);
+    if (pet && pet.type === ITEM_TYPES.PET) {
+      bonuses.expBonus = pet.expBonus || 0;
+      bonuses.spiritStoneBonus = pet.spiritStoneBonus || 0;
+      bonuses.questExpBonus = pet.questExpBonus || 0;
+    }
+  }
+
+  return bonuses;
+};
+
+/**
  * Cộng exp và cập nhật cảnh giới
  * @param {number} amount 
  * @param {string} source 
@@ -601,7 +620,11 @@ CultivationSchema.methods.addExp = function (amount, source, description = "") {
     }
   }
 
-  const finalAmount = Math.floor(amount * multiplier);
+  // Thêm bonus từ pet (cộng dồn)
+  const petBonuses = this.getPetBonuses();
+  const petExpMultiplier = 1 + petBonuses.expBonus;
+
+  const finalAmount = Math.floor(amount * multiplier * petExpMultiplier);
   const oldExp = this.exp;
   this.exp += finalAmount;
 
@@ -639,8 +662,13 @@ CultivationSchema.methods.addExp = function (amount, source, description = "") {
  * Cộng linh thạch
  */
 CultivationSchema.methods.addSpiritStones = function (amount, source) {
-  this.spiritStones += amount;
-  this.totalSpiritStonesEarned += amount;
+  // Thêm bonus từ pet
+  const petBonuses = this.getPetBonuses();
+  const petSpiritStoneMultiplier = 1 + petBonuses.spiritStoneBonus;
+
+  const finalAmount = Math.floor(amount * petSpiritStoneMultiplier);
+  this.spiritStones += finalAmount;
+  this.totalSpiritStonesEarned += finalAmount;
   return this.spiritStones;
 };
 
