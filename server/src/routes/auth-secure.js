@@ -1,7 +1,7 @@
 import { Router } from "express";
 const router = Router();
 import crypto from "crypto";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import Cultivation from "../models/Cultivation.js";

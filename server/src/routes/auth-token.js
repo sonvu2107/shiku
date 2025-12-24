@@ -8,7 +8,7 @@
  */
 
 import express from "express";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import WelcomeService from "../services/WelcomeService.js";
