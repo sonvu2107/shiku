@@ -89,16 +89,16 @@ export default defineConfig(({ command, mode }) => {
           // Vendor chunk splitting for parallel loading
           manualChunks: (id) => {
             if (id.includes('node_modules')) {
-              // React core - load first, cache separately
-              if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
+              // React core + icons that depend on React - load together to avoid forwardRef issues
+              if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/') || id.includes('lucide-react')) {
                 return 'react-vendor';
               }
               // Animation libraries - heavy, separate chunk
               if (id.includes('framer-motion')) {
                 return 'animation-vendor';
               }
-              // Icons - lazy load, used across many pages
-              if (id.includes('lucide-react') || id.includes('react-icons')) {
+              // Other icons - lazy load
+              if (id.includes('react-icons')) {
                 return 'icons-vendor';
               }
               // Charts - only admin dashboard needs this
