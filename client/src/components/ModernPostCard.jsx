@@ -391,7 +391,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             >
               <UserName user={post.author} maxLength={20} />
             </Link>
-            <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 font-medium">
+            <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 font-medium">
               <span
                 className="hover:underline cursor-pointer"
                 onClick={(e) => {
@@ -669,15 +669,19 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 showError("Không thể sao chép liên kết");
               });
             }}
+            aria-label="Chia sẻ bài viết"
+            title="Chia sẻ"
             className="p-2 sm:p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-colors active:scale-95 touch-manipulation"
           >
-            <Share2 className="w-5 h-5" strokeWidth={2.5} />
+            <Share2 className="w-5 h-5" strokeWidth={2.5} aria-hidden="true" />
           </button>
         </div>
 
         {/* Save Button */}
         <button
           onClick={handleSave}
+          aria-label={saved ? "Bỏ lưu bài viết" : "Lưu bài viết"}
+          title={saved ? "Bỏ lưu" : "Lưu bài viết"}
           className={cn(
             "p-2 sm:p-2.5 rounded-full transition-all duration-200 active:scale-90 touch-manipulation",
             saved
@@ -685,7 +689,7 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
               : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 hover:text-yellow-500"
           )}
         >
-          <Bookmark className={cn("w-5 h-5", saved && "fill-current")} strokeWidth={2.5} />
+          <Bookmark className={cn("w-5 h-5", saved && "fill-current")} strokeWidth={2.5} aria-hidden="true" />
         </button>
       </div>
 

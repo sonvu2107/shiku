@@ -28,7 +28,7 @@ export const generateOptimizedImageUrls = (originalUrl, options = {}) => {
     optimizedUrls[format] = {
       // Single URL for the largest size
       url: `${baseUrl}_${Math.max(...sizes)}.${format}`,
-      
+
       // Responsive srcSet
       srcSet: sizes.map(size => `${baseUrl}_${size}.${format} ${size}w`).join(', ')
     };
@@ -53,12 +53,34 @@ export const generateOptimizedImageUrls = (originalUrl, options = {}) => {
  */
 export const getOptimizedImageUrl = (url, width = 600) => {
   if (!url) return '';
-  
+
   // Check if it's a Cloudinary URL
   if (url.includes('cloudinary.com')) {
     return url.replace('/upload/', `/upload/w_${width},q_auto,f_auto/`);
   }
-  
+
+  return url;
+};
+
+/**
+ * Get optimized avatar URL (for small images like avatars, badges)
+ * Uses higher quality settings and exact size for crisp display on retina screens
+ * @param {string} url - Original avatar URL
+ * @param {number} size - Display size in pixels (will use 2x for retina)
+ * @returns {string} Optimized URL
+ */
+export const getOptimizedAvatarUrl = (url, size = 44) => {
+  if (!url) return '';
+
+  // Use 2x size for retina screens, cap at reasonable max
+  const targetSize = Math.min(size * 2, 200);
+
+  // Check if it's a Cloudinary URL
+  if (url.includes('cloudinary.com')) {
+    // For avatars: use fill crop mode, high quality, auto format
+    return url.replace('/upload/', `/upload/w_${targetSize},h_${targetSize},c_fill,g_face,q_auto:good,f_auto/`);
+  }
+
   return url;
 };
 
@@ -78,23 +100,23 @@ export const generateBlurPlaceholder = async (imageUrl, width = 40, height = 40)
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    
+
     return new Promise((resolve, reject) => {
       img.onload = () => {
         // Draw image on canvas with blur effect
         ctx.filter = 'blur(4px)';
         ctx.drawImage(img, 0, 0, width, height);
-        
+
         // Convert to base64
         const dataURL = canvas.toDataURL('image/jpeg', 0.3);
         resolve(dataURL);
       };
-      
+
       img.onerror = () => {
         // Fallback placeholder
         resolve(generateDefaultPlaceholder(width, height));
       };
-      
+
       img.src = imageUrl;
     });
   } catch (error) {
@@ -123,7 +145,7 @@ export const generateDefaultPlaceholder = (width = 40, height = 40) => {
       <polygon points="20%,65% 30%,50% 45%,60% 60%,45% 80%,65% 80%,80% 20%,80%" fill="#9ca3af" opacity="0.5"/>
     </svg>
   `;
-  
+
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 };
 
@@ -135,7 +157,7 @@ export const checkImageFormatSupport = () => {
   const canvas = document.createElement('canvas');
   canvas.width = 1;
   canvas.height = 1;
-  
+
   return {
     webp: canvas.toDataURL('image/webp').startsWith('data:image/webp'),
     avif: canvas.toDataURL('image/avif').startsWith('data:image/avif'),
@@ -150,12 +172,12 @@ export const checkImageFormatSupport = () => {
  */
 export const getOptimalImageFormat = (availableFormats = ['avif', 'webp', 'jpg']) => {
   const support = checkImageFormatSupport();
-  
+
   // Priority order: AVIF > WebP > JPG/PNG
   if (availableFormats.includes('avif') && support.avif) return 'avif';
   if (availableFormats.includes('webp') && support.webp) return 'webp';
   if (availableFormats.includes('heic') && support.heic) return 'heic';
-  
+
   // Fallback to traditional formats
   return availableFormats.find(format => ['jpg', 'jpeg', 'png', 'gif'].includes(format)) || 'jpg';
 };
@@ -187,18 +209,18 @@ export const calculateResponsiveSizes = (options = {}) => {
  */
 export const preloadImages = (imageUrls, options = {}) => {
   const { format = 'webp', priority = 'high' } = options;
-  
+
   imageUrls.forEach(url => {
     const link = document.createElement('link');
     link.rel = 'preload';
     link.as = 'image';
     link.href = url;
     link.fetchPriority = priority;
-    
+
     if (format) {
       link.type = `image/${format}`;
     }
-    
+
     document.head.appendChild(link);
   });
 };
@@ -210,11 +232,11 @@ export const preloadImages = (imageUrls, options = {}) => {
  */
 export const trackImagePerformance = (imageUrl, label = 'image-load') => {
   const startTime = performance.now();
-  
+
   const img = new Image();
   img.onload = () => {
     const loadTime = performance.now() - startTime;
-    
+
     // Send to analytics if available
     if (window.gtag) {
       window.gtag('event', 'timing_complete', {
@@ -223,11 +245,11 @@ export const trackImagePerformance = (imageUrl, label = 'image-load') => {
       });
     }
   };
-  
+
   img.onerror = () => {
     // Failed to load image
   };
-  
+
   img.src = imageUrl;
 };
 
@@ -253,12 +275,12 @@ export const compressImage = async (file, options = {}) => {
     img.onload = () => {
       // Calculate new dimensions
       let { width, height } = img;
-      
+
       if (width > maxWidth) {
         height = (height * maxWidth) / width;
         width = maxWidth;
       }
-      
+
       if (height > maxHeight) {
         width = (width * maxHeight) / height;
         height = maxHeight;
@@ -269,7 +291,7 @@ export const compressImage = async (file, options = {}) => {
 
       // Draw and compress
       ctx.drawImage(img, 0, 0, width, height);
-      
+
       canvas.toBlob(
         (blob) => {
           const compressedFile = new File([blob], file.name, {

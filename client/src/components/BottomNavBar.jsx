@@ -112,9 +112,10 @@ export default function BottomNavBar({ user, onCreatePost }) {
                                     <button
                                         key="create"
                                         onClick={() => handleTabClick(tab)}
+                                        aria-label="Đăng bài mới"
                                         className="flex items-center justify-center w-12 h-12 -mt-4 bg-black dark:bg-white rounded-full shadow-lg shadow-black/20 active:scale-95 transition-transform"
                                     >
-                                        <Plus size={24} className="text-white dark:text-black" strokeWidth={2.5} />
+                                        <Plus size={24} className="text-white dark:text-black" strokeWidth={2.5} aria-hidden="true" />
                                     </button>
                                 );
                             }
@@ -127,8 +128,9 @@ export default function BottomNavBar({ user, onCreatePost }) {
                                         "flex flex-col items-center justify-center flex-1 py-2 transition-colors",
                                         isActive
                                             ? "text-black dark:text-white"
-                                            : "text-neutral-400 dark:text-neutral-500"
+                                            : "text-neutral-500 dark:text-neutral-400"
                                     )}
+                                    aria-label={tab.label}
                                 >
                                     <Icon
                                         size={22}
@@ -137,9 +139,10 @@ export default function BottomNavBar({ user, onCreatePost }) {
                                             "transition-transform",
                                             isActive && "scale-110"
                                         )}
+                                        aria-hidden="true"
                                     />
                                     <span className={cn(
-                                        "text-[10px] mt-0.5",
+                                        "text-[11px] mt-0.5",
                                         isActive ? "font-medium" : "font-normal"
                                     )}>
                                         {tab.label}

@@ -7,6 +7,7 @@
 import { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { isVideoUrl } from '../utils/mediaUtils';
+import { getOptimizedAvatarUrl } from '../utils/imageOptimization';
 import {
   GiFlame,
   GiSnowflake2,
@@ -163,10 +164,11 @@ const UserAvatar = memo(function UserAvatar({
     return TITLES[equipped.title];
   }, [showTitle, equipped.title]);
 
-  // Tạo avatar URL và kiểm tra xem có phải video không
+  // Tạo avatar URL với optimization cho Cloudinary
   const avatarUrl = useMemo(() => {
     if (user?.avatarUrl && user.avatarUrl.trim() !== '') {
-      return user.avatarUrl;
+      // Optimize Cloudinary URLs với size phù hợp
+      return getOptimizedAvatarUrl(user.avatarUrl, size);
     }
     const name = user?.name || user?.nickname || 'User';
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&length=2&background=cccccc&color=222222&size=${size * 2}`;

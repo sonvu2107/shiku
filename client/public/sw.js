@@ -25,20 +25,20 @@ const PRECACHE_ASSETS = [
 
 // Cache duration in milliseconds
 const CACHE_DURATION = {
-  static: 30 * 24 * 60 * 60 * 1000, // 30 days
-  images: 7 * 24 * 60 * 60 * 1000,  // 7 days
-  api: 5 * 60 * 1000,               // 5 minutes
+  static: 90 * 24 * 60 * 60 * 1000, // 90 days - static assets dùng hash nên cache lâu
+  images: 14 * 24 * 60 * 60 * 1000, // 14 days - images cached lâu hơn
+  api: 10 * 60 * 1000,              // 10 minutes - API data
 };
 
 // Max items in image cache
-const MAX_IMAGE_CACHE_ITEMS = 100;
+const MAX_IMAGE_CACHE_ITEMS = 200; // Tăng từ 100 lên 200
 
 /**
  * Install event - Precache critical assets
  */
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing Service Worker...');
-  
+
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
@@ -60,7 +60,7 @@ self.addEventListener('install', (event) => {
  */
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating Service Worker...');
-  
+
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
@@ -108,7 +108,8 @@ self.addEventListener('fetch', (event) => {
   } else if (isImageUrl(url.href)) {
     event.respondWith(cacheFirstWithLimit(request, IMAGES_CACHE, MAX_IMAGE_CACHE_ITEMS));
   } else if (isApiRequest(url.pathname)) {
-    event.respondWith(networkFirstWithCache(request, API_CACHE));
+    // Use stale-while-revalidate for faster API responses
+    event.respondWith(staleWhileRevalidate(request, API_CACHE));
   } else if (isNavigationRequest(request)) {
     event.respondWith(networkFirst(request));
   }
@@ -128,11 +129,11 @@ async function cacheFirst(request, cacheName) {
 
   try {
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     console.error('[SW] Network fetch failed:', error);
@@ -154,7 +155,7 @@ async function cacheFirstWithLimit(request, cacheName, maxItems) {
 
   try {
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       // Check cache size and trim if needed
       const keys = await cache.keys();
@@ -163,10 +164,10 @@ async function cacheFirstWithLimit(request, cacheName, maxItems) {
         const toDelete = keys.slice(0, keys.length - maxItems + 1);
         await Promise.all(toDelete.map(key => cache.delete(key)));
       }
-      
+
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     console.error('[SW] Image fetch failed:', error);
@@ -186,11 +187,11 @@ async function networkFirst(request) {
   } catch (error) {
     const cache = await caches.open(STATIC_CACHE);
     const cachedResponse = await cache.match(request);
-    
+
     if (cachedResponse) {
       return cachedResponse;
     }
-    
+
     // Return offline page or error
     return new Response('Offline', { status: 503 });
   }
@@ -205,28 +206,59 @@ async function networkFirstWithCache(request, cacheName) {
 
   try {
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       // Only cache successful API responses
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     // Try to return cached response
     const cachedResponse = await cache.match(request);
-    
+
     if (cachedResponse) {
       console.log('[SW] Returning cached API response for:', request.url);
       return cachedResponse;
     }
-    
+
     // Return error response
     return new Response(JSON.stringify({ error: 'Offline' }), {
       status: 503,
       headers: { 'Content-Type': 'application/json' }
     });
   }
+}
+
+/**
+ * Stale-While-Revalidate strategy for API
+ * Return cached data immediately, revalidate in background for faster responses
+ */
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cachedResponse = await cache.match(request);
+
+  // Background revalidation - update cache for next request
+  const fetchPromise = fetch(request)
+    .then(networkResponse => {
+      if (networkResponse.ok) {
+        cache.put(request, networkResponse.clone());
+      }
+      return networkResponse;
+    })
+    .catch(error => {
+      console.log('[SW] Background revalidation failed:', error);
+      return cachedResponse; // Return cached on network error
+    });
+
+  // Return cached immediately if available, otherwise wait for network
+  if (cachedResponse) {
+    // Trigger background revalidation
+    fetchPromise;
+    return cachedResponse;
+  }
+
+  return fetchPromise;
 }
 
 /**
@@ -238,20 +270,20 @@ function isStaticAsset(pathname) {
 
 function isImageUrl(url) {
   return /\.(jpg|jpeg|png|gif|webp|avif|ico)(\?.*)?$/i.test(url) ||
-         url.includes('cloudinary.com') ||
-         url.includes('res.cloudinary.com');
+    url.includes('cloudinary.com') ||
+    url.includes('res.cloudinary.com');
 }
 
 function isApiRequest(pathname) {
-  return pathname.startsWith('/api/') && 
-         !pathname.includes('/auth/') && 
-         !pathname.includes('/me') &&
-         !pathname.includes('/my-');
+  return pathname.startsWith('/api/') &&
+    !pathname.includes('/auth/') &&
+    !pathname.includes('/me') &&
+    !pathname.includes('/my-');
 }
 
 function isNavigationRequest(request) {
-  return request.mode === 'navigate' || 
-         request.headers.get('accept')?.includes('text/html');
+  return request.mode === 'navigate' ||
+    request.headers.get('accept')?.includes('text/html');
 }
 
 /**
@@ -264,19 +296,19 @@ self.addEventListener('message', (event) => {
     case 'SKIP_WAITING':
       self.skipWaiting();
       break;
-      
+
     case 'CLEAR_CACHE':
       event.waitUntil(
-        caches.keys().then((names) => 
+        caches.keys().then((names) =>
           Promise.all(names.map((name) => caches.delete(name)))
         )
       );
       break;
-      
+
     case 'CLEAR_API_CACHE':
       event.waitUntil(caches.delete(API_CACHE));
       break;
-      
+
     default:
       break;
   }

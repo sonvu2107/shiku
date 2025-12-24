@@ -65,11 +65,12 @@ import { bootstrapAuth } from "./bootstrapAuth.js";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 phút
-      gcTime: 15 * 60 * 1000, // 15 phút (tăng từ 10 phút để giữ cache lâu hơn)
+      staleTime: 10 * 60 * 1000, // 10 phút - data fresh lâu hơn
+      gcTime: 30 * 60 * 1000, // 30 phút - giữ cache lâu hơn để tăng tốc navigation
       refetchOnWindowFocus: false,
       refetchOnReconnect: false, // Không refetch khi reconnect - tránh API calls không cần thiết
       retry: 1,
+      networkMode: 'offlineFirst', // Ưu tiên cache khi offline
     },
   },
 });

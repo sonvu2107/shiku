@@ -13,8 +13,8 @@ export function useFriends() {
       // Optional chaining to avoid crash if response has no data
       return response?.friends ?? [];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - friends ít thay đổi
+    gcTime: 30 * 60 * 1000, // 30 minutes
     retry: 3, // Retry 3 times before showing error
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });

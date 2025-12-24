@@ -89,14 +89,15 @@ export default function LazyImageSimple({
       )}
 
       {/* Actual image with blur-up effect */}
-      {isInView && (
+      {/* For priority images, always render immediately to avoid LCP delay */}
+      {(priority || isInView) && (
         <img
           src={src}
           alt={alt}
           onLoad={handleLoad}
           onError={handleError}
           loading={priority ? 'eager' : 'lazy'}
-          fetchPriority={priority ? 'high' : 'auto'}
+          fetchpriority={priority ? 'high' : 'auto'}
           decoding={priority ? 'sync' : 'async'}
           className="w-full h-full object-cover transition-opacity duration-300 ease-out"
           style={{

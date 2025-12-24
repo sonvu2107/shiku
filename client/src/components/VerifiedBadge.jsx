@@ -230,13 +230,18 @@ function VerifiedBadge({
       default:
         // Chỉ icon (mặc định)
         // Wrap trong container với background sáng ở dark mode để icon đen không bị chìm
+        // Note: For local assets like admin.jpg, consider using pre-resized images (64x64)
+        const iconSize = size === 'sm' ? 16 : size === 'lg' ? 24 : 20;
         return (
           <span className="inline-flex items-center justify-center rounded-full dark:bg-white/90 dark:p-0.5">
             <img
               src={icon}
               alt="Verified"
+              width={iconSize}
+              height={iconSize}
               className={`${sizeClass.icon} rounded-full align-middle flex-shrink-0 object-cover border-2 border-gray-300 dark:border-transparent`}
               loading="lazy"
+              decoding="async"
             />
           </span>
         );
