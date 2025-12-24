@@ -980,45 +980,54 @@ function Home({ user, setUser }) {
                     </motion.div>
                   ) : items.length > 0 ? (
                     <div className="space-y-3 sm:space-y-4">
-                      {items.map((post, index) => {
-                        const isLastPost = index === items.length - 1;
-                        // Chỉ animate 3 post đầu tiên để giảm lag
-                        const shouldAnimate = index < 3;
-
-                        return shouldAnimate ? (
-                          <motion.div
-                            key={post._id}
-                            ref={isLastPost ? lastPostElementRef : null}
-                            initial={{ opacity: 0, y: 12 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{
-                              duration: 0.3,
-                              delay: index * 0.05,
-                              ease: "easeOut"
-                            }}
-                          >
-                            <ModernPostCard
-                              post={post}
-                              user={user}
-                              onUpdate={refetchPosts}
-                              isSaved={savedMap[post._id]}
-                              onSavedChange={updateSavedState}
-                              isFirst={index === 0}
-                            />
-                          </motion.div>
-                        ) : (
-                          <div key={post._id} ref={isLastPost ? lastPostElementRef : null}>
-                            <ModernPostCard
-                              post={post}
-                              user={user}
-                              onUpdate={refetchPosts}
-                              isSaved={savedMap[post._id]}
-                              onSavedChange={updateSavedState}
-                              isFirst={index === 0}
-                            />
-                          </div>
+                      {(() => {
+                        // Find the first post with media for LCP optimization
+                        const firstPostWithMediaIndex = items.findIndex(
+                          post => post.media && post.media.length > 0
                         );
-                      })}
+
+                        return items.map((post, index) => {
+                          const isLastPost = index === items.length - 1;
+                          // Chỉ animate 3 post đầu tiên để giảm lag
+                          const shouldAnimate = index < 3;
+                          // Mark as first only if this is the first post WITH media
+                          const isFirstWithMedia = index === firstPostWithMediaIndex;
+
+                          return shouldAnimate ? (
+                            <motion.div
+                              key={post._id}
+                              ref={isLastPost ? lastPostElementRef : null}
+                              initial={{ opacity: 0, y: 12 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                duration: 0.3,
+                                delay: index * 0.05,
+                                ease: "easeOut"
+                              }}
+                            >
+                              <ModernPostCard
+                                post={post}
+                                user={user}
+                                onUpdate={refetchPosts}
+                                isSaved={savedMap[post._id]}
+                                onSavedChange={updateSavedState}
+                                isFirst={isFirstWithMedia}
+                              />
+                            </motion.div>
+                          ) : (
+                            <div key={post._id} ref={isLastPost ? lastPostElementRef : null}>
+                              <ModernPostCard
+                                post={post}
+                                user={user}
+                                onUpdate={refetchPosts}
+                                isSaved={savedMap[post._id]}
+                                onSavedChange={updateSavedState}
+                                isFirst={isFirstWithMedia}
+                              />
+                            </div>
+                          );
+                        });
+                      })()}
 
                       {/* Loading more indicator */}
                       {loadingMore && (
