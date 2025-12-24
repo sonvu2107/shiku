@@ -994,11 +994,6 @@ router.post("/:id/upvote", authRequired, postInteractionLimiter, async (req, res
       isNewUpvote = true;
     }
 
-    // Recalculate ranking score
-    const { calculateRankingScore } = await import("../utils/smartFeed.js");
-    post.rankingScore = calculateRankingScore(post);
-    post.lastRankingUpdate = new Date();
-
     await post.save();
 
     // Award EXP for new upvotes

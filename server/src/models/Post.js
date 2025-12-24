@@ -2,17 +2,8 @@ import mongoose from "mongoose";
 import slugify from "slugify";
 
 /**
- * Emote Schema
- * Cấu trúc cho các reaction (emote) trên bài viết: user + loại emote
- */
-const EmoteSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // User thực hiện emote
-  type: { type: String, required: true } // Loại emote: 👍, ❤️, 😂, 😮, 😢, 😡
-}, { _id: false }); // Không tạo _id riêng cho emote
-
-/**
  * Post Schema
- * Lưu thông tin bài viết: tác giả, tiêu đề, nội dung, media, tags, emotes và thống kê
+ * Lưu thông tin bài viết: tác giả, tiêu đề, nội dung, media, tags, upvotes và thống kê
  */
 const PostSchema = new mongoose.Schema({
   // ==================== THÔNG TIN CƠ BẢN ====================
@@ -48,8 +39,7 @@ const PostSchema = new mongoose.Schema({
   }], // Users đã upvote
   upvoteCount: { type: Number, default: 0, index: true }, // Số upvotes (denormalized)
 
-  // Legacy emotes (read-only, kept for migration)
-  emotes: [EmoteSchema], // Danh sách emotes/reactions (legacy)
+
 
   // Ranking score (cached, recalculated periodically)
   rankingScore: { type: Number, default: 0, index: true }, // Score cho HOT feed
