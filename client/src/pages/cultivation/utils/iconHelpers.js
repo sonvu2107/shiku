@@ -30,6 +30,7 @@ export const SHOP_ICON_MAP = {
   avatar_frame: AvatarFrameImage,
   profile_effect: ProfileEffectImage,
   exp_boost: ExpBoostImage,
+  breakthrough_boost: ExpBoostImage, // Sử dụng cùng icon với đan dược
   consumable: ConsumableImage,
   pet: PetImage,
   mount: MountImage,
@@ -55,6 +56,7 @@ export const ITEM_TYPE_LABELS = {
   avatar_frame: { label: ' Khung Avatar', color: 'text-purple-300' },
   profile_effect: { label: ' Hiệu Ứng', color: 'text-pink-300' },
   exp_boost: { label: ' Đan Dược', color: 'text-emerald-300' },
+  breakthrough_boost: { label: ' Độ Kiếp Đan', color: 'text-amber-400' },
   consumable: { label: ' Vật Phẩm', color: 'text-blue-300' },
   pet: { label: ' Linh Thú', color: 'text-orange-300' },
   mount: { label: ' Tọa Kỵ', color: 'text-indigo-300' },

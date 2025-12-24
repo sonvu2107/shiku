@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES } from "../../models/Cultivation.js";
+import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES, TECHNIQUES_MAP, SHOP_ITEMS_MAP } from "../../models/Cultivation.js";
 import {
     DUNGEON_TEMPLATES,
     DIFFICULTY_CONFIG,
@@ -556,7 +556,8 @@ export const battleMonster = async (req, res, next) => {
             const maxMana = combatStats.zhenYuan || 1000;
 
             cultivation.learnedTechniques.forEach(learned => {
-                const technique = SHOP_ITEMS.find(t => t.id === learned.techniqueId && t.type === ITEM_TYPES.TECHNIQUE);
+                // Use TECHNIQUES_MAP for O(1) lookup
+                const technique = TECHNIQUES_MAP.get(learned.techniqueId);
                 if (technique && technique.skill) {
                     // Calculate mana cost as percentage of max mana (matching PK system)
                     const manaCostPercentMap = { 'common': 0.15, 'uncommon': 0.20, 'rare': 0.25, 'epic': 0.30, 'legendary': 0.35 };
@@ -597,7 +598,8 @@ export const battleMonster = async (req, res, next) => {
             if (Math.random() < rewards.itemDropRate) {
                 itemDropped = rollItemDrop(dungeon.difficulty);
                 if (itemDropped) {
-                    const shopItem = SHOP_ITEMS.find(i => i.id === itemDropped);
+                    // Use SHOP_ITEMS_MAP for O(1) lookup
+                    const shopItem = SHOP_ITEMS_MAP.get(itemDropped);
                     if (shopItem) {
                         // Add to inventory
                         const existingItem = cultivation.inventory.find(i => i.itemId === itemDropped);
@@ -654,7 +656,8 @@ export const battleMonster = async (req, res, next) => {
             });
 
             if (itemDropped) {
-                const shopItem = SHOP_ITEMS.find(i => i.id === itemDropped);
+                // Use SHOP_ITEMS_MAP for O(1) lookup
+                const shopItem = SHOP_ITEMS_MAP.get(itemDropped);
                 run.itemsEarned.push({
                     itemId: itemDropped,
                     name: shopItem?.name || itemDropped,
@@ -713,7 +716,7 @@ export const battleMonster = async (req, res, next) => {
                     rewards: {
                         exp: rewards.exp,
                         spiritStones: rewards.spiritStones,
-                        item: itemDropped ? SHOP_ITEMS.find(i => i.id === itemDropped) : null
+                        item: itemDropped ? SHOP_ITEMS_MAP.get(itemDropped) : null
                     },
                     progress: {
                         currentFloor,

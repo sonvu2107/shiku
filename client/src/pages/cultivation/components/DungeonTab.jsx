@@ -540,7 +540,7 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
                     {/* Mana Bar */}
                     <div className="w-20 bg-black h-2 border border-white/20">
                         <motion.div
-                            className="h-full bg-black dark:bg-white"
+                            className="h-full bg-blue-500"
                             animate={{ width: `${battleResult?.maxMonsterMana ? (monsterMana / battleResult.maxMonsterMana) * 100 : 0}%` }}
                         />
                     </div>
@@ -574,7 +574,7 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
                     {/* Mana Bar */}
                     <div className="w-20 bg-black h-2 border border-white/20">
                         <motion.div
-                            className="h-full bg-black dark:bg-white"
+                            className="h-full bg-blue-500"
                             animate={{ width: `${battleResult?.maxPlayerMana ? (playerMana / battleResult.maxPlayerMana) * 100 : 0}%` }}
                         />
                     </div>

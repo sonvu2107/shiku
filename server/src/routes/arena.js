@@ -8,7 +8,7 @@ import { authRequired } from '../middleware/auth.js';
 import Rank, { RANK_TIERS, RANKED_BOTS } from '../models/Rank.js';
 import RankedMatch from '../models/RankedMatch.js';
 import Season, { SEASON_REWARDS } from '../models/Season.js';
-import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES } from '../models/Cultivation.js';
+import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES, TECHNIQUES_MAP } from '../models/Cultivation.js';
 import Battle from '../models/Battle.js';
 import User from '../models/User.js';
 import arenaService from '../services/arenaService.js';
@@ -71,7 +71,8 @@ function getLearnedSkills(cultivation, maxMana = null) {
 
     if (cultivation.learnedTechniques && cultivation.learnedTechniques.length > 0) {
         cultivation.learnedTechniques.forEach(learned => {
-            const technique = SHOP_ITEMS.find(t => t.id === learned.techniqueId && t.type === ITEM_TYPES.TECHNIQUE);
+            // Use TECHNIQUES_MAP for O(1) lookup
+            const technique = TECHNIQUES_MAP.get(learned.techniqueId);
             if (technique && technique.skill) {
                 skills.push({
                     ...technique.skill,

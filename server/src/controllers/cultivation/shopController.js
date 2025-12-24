@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Cultivation, { SHOP_ITEMS } from "../../models/Cultivation.js";
+import Cultivation, { SHOP_ITEMS, SHOP_ITEMS_MAP, TECHNIQUES_MAP } from "../../models/Cultivation.js";
 import Equipment from "../../models/Equipment.js";
 
 /**
@@ -96,7 +96,8 @@ export const buyItem = async (req, res, next) => {
         const cultivation = await Cultivation.getOrCreate(userId);
 
         // 1. Kiểm tra xem item có trong danh sách SHOP_ITEMS không (để tránh nhầm lẫn ID 12 ký tự với ObjectId)
-        const shopItem = SHOP_ITEMS.find(i => i.id === itemId);
+        // Use SHOP_ITEMS_MAP for O(1) lookup
+        const shopItem = SHOP_ITEMS_MAP.get(itemId);
 
         if (shopItem) {
             // Normal item purchase
@@ -108,7 +109,8 @@ export const buyItem = async (req, res, next) => {
 
                 if (result && result.type === 'technique') {
                     responseData.learnedTechnique = result.learnedTechnique;
-                    const techniqueItem = SHOP_ITEMS.find(t => t.id === itemId && t.type === 'technique');
+                    // Use TECHNIQUES_MAP for O(1) lookup
+                    const techniqueItem = TECHNIQUES_MAP.get(itemId);
                     if (techniqueItem) {
                         responseData.skill = techniqueItem.skill;
                     }

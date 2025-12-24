@@ -1,4 +1,4 @@
-import Cultivation, { SHOP_ITEMS } from "../../models/Cultivation.js";
+import Cultivation, { SHOP_ITEMS, SHOP_ITEMS_MAP } from "../../models/Cultivation.js";
 import User from "../../models/User.js";
 import { mergeEquipmentStatsIntoCombatStats } from "./coreController.js";
 
@@ -210,7 +210,8 @@ export const useItem = async (req, res, next) => {
         }
 
         const item = cultivation.inventory[itemIndex];
-        const itemData = SHOP_ITEMS.find(i => i.id === itemId);
+        // Use SHOP_ITEMS_MAP for O(1) lookup
+        const itemData = SHOP_ITEMS_MAP.get(itemId);
 
         if (!itemData) {
             return res.status(404).json({ success: false, message: "Vật phẩm không hợp lệ" });
@@ -232,7 +233,76 @@ export const useItem = async (req, res, next) => {
                 break;
 
             case 'consumable':
-                if (itemData.expReward) {
+                // Handle loot box items
+                if (itemData.isLootBox) {
+                    const config = itemData.lootBoxConfig;
+                    const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+                    const minRarityIndex = rarityOrder.indexOf(config.minRarity || 'rare');
+
+                    // Get all eligible items (rare+ from allowed types, not already owned)
+                    const eligibleItems = SHOP_ITEMS.filter(shopItem => {
+                        // Check rarity
+                        const itemRarityIndex = rarityOrder.indexOf(shopItem.rarity || 'common');
+                        if (itemRarityIndex < minRarityIndex) return false;
+
+                        // Check type
+                        if (!config.dropTypes.includes(shopItem.type)) return false;
+
+                        // Check if already owned (for non-stackable items)
+                        if (shopItem.type === 'technique') {
+                            const alreadyLearned = cultivation.learnedTechniques?.some(t => t.techniqueId === shopItem.id);
+                            if (alreadyLearned) return false;
+                        } else {
+                            const alreadyOwned = cultivation.inventory.some(i => i.itemId === shopItem.id);
+                            if (alreadyOwned) return false;
+                        }
+
+                        return true;
+                    });
+
+                    if (eligibleItems.length === 0) {
+                        // If player owns all eligible items, give spirit stones instead
+                        const spiritStoneReward = 500;
+                        cultivation.spiritStones += spiritStoneReward;
+                        cultivation.totalSpiritStonesEarned += spiritStoneReward;
+                        message = `Bạn đã sở hữu tất cả vật phẩm! Nhận được ${spiritStoneReward} linh thạch thay thế`;
+                        reward = { type: 'spiritStones', amount: spiritStoneReward };
+                    } else {
+                        // Weighted random: higher rarity = lower chance
+                        const weights = { rare: 60, epic: 30, legendary: 10 };
+                        const weightedItems = [];
+                        eligibleItems.forEach(item => {
+                            const weight = weights[item.rarity] || 30;
+                            for (let i = 0; i < weight; i++) {
+                                weightedItems.push(item);
+                            }
+                        });
+
+                        const droppedItem = weightedItems[Math.floor(Math.random() * weightedItems.length)];
+
+                        // Add dropped item to inventory or learn technique
+                        if (droppedItem.type === 'technique') {
+                            cultivation.learnedTechniques.push({
+                                techniqueId: droppedItem.id,
+                                level: 1,
+                                learnedAt: new Date()
+                            });
+                            message = `Chúc mừng! Bạn đã học được công pháp [${droppedItem.rarity.toUpperCase()}] ${droppedItem.name}!`;
+                        } else {
+                            cultivation.inventory.push({
+                                itemId: droppedItem.id,
+                                name: droppedItem.name,
+                                type: droppedItem.type,
+                                quantity: 1,
+                                equipped: false,
+                                acquiredAt: new Date()
+                            });
+                            message = `Chúc mừng! Bạn đã nhận được [${droppedItem.rarity.toUpperCase()}] ${droppedItem.name}!`;
+                        }
+
+                        reward = { type: 'lootbox', droppedItem: droppedItem };
+                    }
+                } else if (itemData.expReward) {
                     cultivation.exp += itemData.expReward;
                     message = `Đã sử dụng ${item.name}! Nhận được ${itemData.expReward} tu vi`;
                     reward = { type: 'exp', amount: itemData.expReward };

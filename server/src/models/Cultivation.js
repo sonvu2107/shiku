@@ -129,187 +129,18 @@ export const QUEST_TEMPLATES = {
   ]
 };
 
-// ==================== VẬT PHẨM ====================
-export const ITEM_TYPES = {
-  TITLE: "title",           // Danh hiệu
-  BADGE: "badge",           // Huy hiệu
-  AVATAR_FRAME: "avatar_frame", // Khung avatar
-  PROFILE_EFFECT: "profile_effect", // Hiệu ứng profile
-  EXP_BOOST: "exp_boost",   // Tăng exp
-  BREAKTHROUGH_BOOST: "breakthrough_boost", // Tăng tỷ lệ độ kiếp
-  CONSUMABLE: "consumable", // Vật phẩm tiêu hao
-  PET: "pet",               // Linh thú
-  MOUNT: "mount",           // Linh thú cưỡi
-  TECHNIQUE: "technique"    // Công pháp
-};
+// ==================== VẬT PHẨM (imported from data/shopItems.js) ====================
+// Re-export for backward compatibility
+export {
+  ITEM_TYPES,
+  SHOP_ITEMS,
+  SHOP_ITEMS_MAP,
+  SHOP_ITEMS_BY_TYPE,
+  TECHNIQUES_MAP
+} from '../data/shopItems.js';
 
-export const SHOP_ITEMS = [
-  // ==================== DANH HIỆU (TITLE) ====================
-  { id: "title_swordsman", name: "Kiếm Khách", type: ITEM_TYPES.TITLE, price: 100, description: "Danh hiệu cho người yêu kiếm thuật", rarity: "common" },
-  { id: "title_scholar", name: "Thư Sinh", type: ITEM_TYPES.TITLE, price: 100, description: "Danh hiệu cho người ham học", rarity: "common" },
-  { id: "title_hermit", name: "Ẩn Sĩ", type: ITEM_TYPES.TITLE, price: 200, description: "Danh hiệu cho người thích ẩn dật", rarity: "uncommon" },
-  { id: "title_sage", name: "Hiền Giả", type: ITEM_TYPES.TITLE, price: 500, description: "Danh hiệu cao quý của bậc hiền triết", rarity: "rare" },
-  { id: "title_demon_slayer", name: "Diệt Ma Giả", type: ITEM_TYPES.TITLE, price: 300, description: "Danh hiệu người diệt trừ yêu ma", rarity: "uncommon" },
-  { id: "title_alchemist", name: "Luyện Đan Sư", type: ITEM_TYPES.TITLE, price: 400, description: "Danh hiệu bậc thầy luyện đan", rarity: "rare" },
-  { id: "title_immortal", name: "Tiên Nhân", type: ITEM_TYPES.TITLE, price: 1000, description: "Danh hiệu tối cao - Tiên Nhân", rarity: "legendary" },
-  { id: "title_dragon_rider", name: "Long Kỵ Sĩ", type: ITEM_TYPES.TITLE, price: 800, description: "Danh hiệu người cưỡi rồng", rarity: "epic" },
-  { id: "title_night_walker", name: "Dạ Du Thần", type: ITEM_TYPES.TITLE, price: 350, description: "Danh hiệu kẻ lang thang trong đêm", rarity: "uncommon" },
-  { id: "title_phoenix", name: "Phượng Hoàng Sứ Giả", type: ITEM_TYPES.TITLE, price: 1200, description: "Danh hiệu huyền thoại - Phượng Hoàng", rarity: "legendary" },
-
-  // ==================== HUY HIỆU (BADGE) ====================
-  { id: "badge_fire", name: "Hỏa Diễm Huy Hiệu", type: ITEM_TYPES.BADGE, price: 150, description: "Huy hiệu lửa rực cháy", rarity: "common" },
-  { id: "badge_ice", name: "Băng Tuyết Huy Hiệu", type: ITEM_TYPES.BADGE, price: 150, description: "Huy hiệu băng lạnh", rarity: "common" },
-  { id: "badge_thunder", name: "Lôi Điện Huy Hiệu", type: ITEM_TYPES.BADGE, price: 150, description: "Huy hiệu sấm sét", rarity: "common" },
-  { id: "badge_wind", name: "Cuồng Phong Huy Hiệu", type: ITEM_TYPES.BADGE, price: 150, description: "Huy hiệu gió cuồng", rarity: "common" },
-  { id: "badge_earth", name: "Đại Địa Huy Hiệu", type: ITEM_TYPES.BADGE, price: 150, description: "Huy hiệu đất đai vững chắc", rarity: "common" },
-  { id: "badge_water", name: "Thủy Nguyên Huy Hiệu", type: ITEM_TYPES.BADGE, price: 150, description: "Huy hiệu nước trong veo", rarity: "common" },
-  { id: "badge_yin_yang", name: "Âm Dương Huy Hiệu", type: ITEM_TYPES.BADGE, price: 400, description: "Huy hiệu cân bằng âm dương", rarity: "rare" },
-  { id: "badge_dragon", name: "Long Văn Huy Hiệu", type: ITEM_TYPES.BADGE, price: 600, description: "Huy hiệu rồng thiêng", rarity: "epic" },
-  { id: "badge_star", name: "Tinh Thần Huy Hiệu", type: ITEM_TYPES.BADGE, price: 250, description: "Huy hiệu ngôi sao lấp lánh", rarity: "uncommon" },
-  { id: "badge_moon", name: "Nguyệt Quang Huy Hiệu", type: ITEM_TYPES.BADGE, price: 300, description: "Huy hiệu ánh trăng huyền bí", rarity: "uncommon" },
-  { id: "badge_sun", name: "Thái Dương Huy Hiệu", type: ITEM_TYPES.BADGE, price: 350, description: "Huy hiệu mặt trời rực rỡ", rarity: "rare" },
-  { id: "badge_chaos", name: "Hỗn Độn Huy Hiệu", type: ITEM_TYPES.BADGE, price: 1000, description: "Huy hiệu hỗn độn nguyên thủy", rarity: "legendary" },
-
-  // ==================== KHUNG AVATAR (AVATAR_FRAME) ====================
-  { id: "frame_gold", name: "Kim Sắc Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 300, description: "Khung avatar màu vàng kim quý phái", color: "#FFD700", rarity: "rare" },
-  { id: "frame_purple", name: "Tử Sắc Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 300, description: "Khung avatar màu tím huyền bí", color: "#8B5CF6", rarity: "rare" },
-  { id: "frame_jade", name: "Ngọc Bích Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 350, description: "Khung avatar ngọc bích thanh thoát", color: "#10B981", rarity: "rare" },
-  { id: "frame_ruby", name: "Hồng Ngọc Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 350, description: "Khung avatar hồng ngọc rực rỡ", color: "#EF4444", rarity: "rare" },
-  { id: "frame_sapphire", name: "Thanh Ngọc Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 350, description: "Khung avatar thanh ngọc trong sáng", color: "#3B82F6", rarity: "rare" },
-  { id: "frame_rainbow", name: "Thất Sắc Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 800, description: "Khung avatar 7 màu lung linh", color: "rainbow", rarity: "epic" },
-  { id: "frame_flames", name: "Hỏa Viêm Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 500, description: "Khung avatar với ngọn lửa bập bùng", color: "#F97316", rarity: "epic", animated: true },
-  { id: "frame_ice", name: "Băng Tinh Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 500, description: "Khung avatar với tinh thể băng giá", color: "#06B6D4", rarity: "epic", animated: true },
-  { id: "frame_celestial", name: "Thiên Giới Khung", type: ITEM_TYPES.AVATAR_FRAME, price: 1500, description: "Khung avatar huyền thoại từ thiên giới", color: "#FBBF24", rarity: "legendary", animated: true },
-
-  // ==================== HIỆU ỨNG PROFILE (PROFILE_EFFECT) ====================
-  { id: "effect_sparkle", name: "Tinh Quang Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 400, description: "Hiệu ứng lấp lánh trên profile", rarity: "rare" },
-  { id: "effect_aurora", name: "Cực Quang Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 500, description: "Hiệu ứng cực quang huyền ảo trên profile", rarity: "epic" },
-  { id: "effect_snow", name: "Tuyết Hoa Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 400, description: "Hiệu ứng tuyết rơi trên profile", rarity: "rare" },
-  { id: "effect_petals", name: "Hoa Vũ Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 350, description: "Hiệu ứng cánh hoa bay trên profile", rarity: "rare" },
-  { id: "effect_lightning", name: "Lôi Điện Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 600, description: "Hiệu ứng sấm chớp trên profile", rarity: "epic" },
-  { id: "effect_aura", name: "Linh Khí Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 800, description: "Hiệu ứng linh khí tỏa sáng", rarity: "epic" },
-  { id: "effect_galaxy", name: "Tinh Hà Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 1200, description: "Hiệu ứng ngân hà huyền bí", rarity: "legendary" },
-
-  // ==================== ĐAN DƯỢC (EXP_BOOST) ====================
-  { id: "exp_boost_2x", name: "Tu Luyện Đan (2x)", type: ITEM_TYPES.EXP_BOOST, price: 200, description: "Tăng gấp đôi exp trong 24h", duration: 24, multiplier: 2, rarity: "uncommon" },
-  { id: "exp_boost_3x", name: "Thiên Tài Đan (3x)", type: ITEM_TYPES.EXP_BOOST, price: 500, description: "Tăng gấp 3 exp trong 24h", duration: 24, multiplier: 3, rarity: "rare" },
-  { id: "exp_boost_5x", name: "Thần Đan (5x)", type: ITEM_TYPES.EXP_BOOST, price: 1000, description: "Tăng gấp 5 exp trong 12h", duration: 12, multiplier: 5, rarity: "epic" },
-  { id: "exp_boost_mini", name: "Tiểu Hoàn Đan", type: ITEM_TYPES.EXP_BOOST, price: 50, description: "Tăng 50% exp trong 6h", duration: 6, multiplier: 1.5, rarity: "common" },
-
-  // ==================== ĐAN DƯỢC ĐỘ KIẾP (BREAKTHROUGH_BOOST) ====================
-  { id: "breakthrough_pill_small", name: "Tiểu Độ Kiếp Đan", type: ITEM_TYPES.BREAKTHROUGH_BOOST, price: 300, description: "Tăng 10% tỷ lệ độ kiếp (1 lần sử dụng)", breakthroughBonus: 10, img: "/assets/danduoc.jpg", rarity: "uncommon" },
-  { id: "breakthrough_pill_medium", name: "Trung Độ Kiếp Đan", type: ITEM_TYPES.BREAKTHROUGH_BOOST, price: 600, description: "Tăng 20% tỷ lệ độ kiếp (1 lần sử dụng)", breakthroughBonus: 20, img: "/assets/danduoc.jpg", rarity: "rare" },
-  { id: "breakthrough_pill_large", name: "Đại Độ Kiếp Đan", type: ITEM_TYPES.BREAKTHROUGH_BOOST, price: 1200, description: "Tăng 30% tỷ lệ độ kiếp (1 lần sử dụng)", breakthroughBonus: 30, img: "/assets/danduoc.jpg", rarity: "epic" },
-  { id: "breakthrough_pill_perfect", name: "Hoàn Mỹ Độ Kiếp Đan", type: ITEM_TYPES.BREAKTHROUGH_BOOST, price: 2500, description: "Tăng 50% tỷ lệ độ kiếp (1 lần sử dụng)", breakthroughBonus: 50, rarity: "legendary" },
-
-  // ==================== VẬT PHẨM TIÊU HAO (CONSUMABLE) ====================
-  { id: "spirit_stone_pack_small", name: "Tiểu Linh Thạch Túi", type: ITEM_TYPES.CONSUMABLE, price: 0, description: "Nhận 50 linh thạch (chỉ mua bằng điểm)", spiritStoneReward: 50, rarity: "common" },
-  { id: "lucky_charm", name: "Phúc Lộc Bùa", type: ITEM_TYPES.CONSUMABLE, price: 100, description: "Tăng 20% linh thạch nhận được trong 24h", duration: 24, spiritStoneBonus: 0.2, rarity: "uncommon" },
-  { id: "meditation_incense", name: "Thiền Định Hương", type: ITEM_TYPES.CONSUMABLE, price: 80, description: "Nhận ngay 100 exp", expReward: 100, rarity: "common" },
-  { id: "cultivation_manual", name: "Tu Luyện Bí Kíp", type: ITEM_TYPES.CONSUMABLE, price: 150, description: "Nhận ngay 300 exp", expReward: 300, rarity: "uncommon" },
-  { id: "heavenly_scripture", name: "Thiên Thư", type: ITEM_TYPES.CONSUMABLE, price: 500, description: "Nhận ngay 1000 exp", expReward: 1000, rarity: "rare" },
-  { id: "quest_refresh", name: "Nhiệm Vụ Lệnh", type: ITEM_TYPES.CONSUMABLE, price: 150, description: "Làm mới nhiệm vụ hàng ngày", rarity: "uncommon" },
-  { id: "streak_protector", name: "Hộ Mệnh Phù", type: ITEM_TYPES.CONSUMABLE, price: 300, description: "Bảo vệ streak đăng nhập 1 lần", rarity: "rare" },
-
-  // ==================== LINH THÚ (PET) ====================
-  { id: "pet_fox", name: "Cửu Vĩ Hồ", type: ITEM_TYPES.PET, price: 800, description: "Linh thú hồ ly 9 đuôi, tăng 5% exp", expBonus: 0.05, rarity: "epic" },
-  { id: "pet_dragon_baby", name: "Tiểu Long", type: ITEM_TYPES.PET, price: 1500, description: "Rồng con đáng yêu, tăng 10% exp", expBonus: 0.1, rarity: "legendary" },
-  { id: "pet_phoenix_baby", name: "Tiểu Phượng", type: ITEM_TYPES.PET, price: 1500, description: "Phượng hoàng con, tăng 10% linh thạch", spiritStoneBonus: 0.1, rarity: "legendary" },
-  { id: "pet_turtle", name: "Huyền Vũ Quy", type: ITEM_TYPES.PET, price: 600, description: "Rùa thần, bảo vệ streak đăng nhập", rarity: "rare" },
-  { id: "pet_crane", name: "Tiên Hạc", type: ITEM_TYPES.PET, price: 700, description: "Hạc tiên, tăng 8% exp nhiệm vụ", questExpBonus: 0.08, rarity: "epic" },
-  { id: "pet_cat", name: "Chiêu Tài Miêu", type: ITEM_TYPES.PET, price: 400, description: "Mèo may mắn, tăng 5% linh thạch", spiritStoneBonus: 0.05, rarity: "rare" },
-  { id: "pet_rabbit", name: "Ngọc Thố", type: ITEM_TYPES.PET, price: 350, description: "Thỏ ngọc từ cung trăng", rarity: "rare" },
-
-  // ==================== LINH THÚ CƯỠI (MOUNT) ====================
-  { id: "mount_cloud", name: "Thần Vân", type: ITEM_TYPES.MOUNT, price: 1000, description: "Đám mây thần kỳ, tăng 15% Né Tránh", rarity: "epic", stats: { dodge: 0.15 } },
-  { id: "mount_sword", name: "Ngự Kiếm", type: ITEM_TYPES.MOUNT, price: 1200, description: "Phi kiếm hành không, tăng 20% Tốc Độ và 10% Xuyên Thấu", rarity: "epic", stats: { speed: 0.20, penetration: 0.10 } },
-  { id: "mount_lotus", name: "Liên Hoa Đài", type: ITEM_TYPES.MOUNT, price: 800, description: "Đài sen thần tiên, tăng 10% Hồi Phục và 10% Kháng Cự", rarity: "rare", stats: { regeneration: 0.10, resistance: 0.10 } },
-  { id: "mount_tiger", name: "Bạch Hổ", type: ITEM_TYPES.MOUNT, price: 1500, description: "Bạch hổ thần thú, tăng 15% Tấn Công và 10% Chí Mạng", rarity: "legendary", stats: { attack: 0.15, criticalRate: 0.10 } },
-  { id: "mount_dragon", name: "Thanh Long", type: ITEM_TYPES.MOUNT, price: 2000, description: "Thanh long uy nghiêm, tăng 15% Phòng Thủ và 15% Khí Huyết", rarity: "legendary", stats: { defense: 0.15, qiBlood: 0.15 } },
-  { id: "mount_phoenix", name: "Chu Tước", type: ITEM_TYPES.MOUNT, price: 2000, description: "Chu tước lửa thiêng, tăng 20% Chí Mạng và 15% Hấp Huyết", rarity: "legendary", stats: { criticalRate: 0.20, lifesteal: 0.15 } },
-
-  // ==================== CÔNG PHÁP (TECHNIQUE) ====================
-  {
-    id: "technique_basic_qi",
-    name: "Cơ Bản Tụ Khí Pháp",
-    type: ITEM_TYPES.TECHNIQUE,
-    price: 500,
-    description: "Công pháp cơ bản, tăng 5% Tấn Công và Phòng Thủ",
-    rarity: "common",
-    stats: { attack: 0.05, defense: 0.05 },
-    skill: { name: "Tụ Khí", description: "Tăng 10% Khí Huyết trong 5 giây", cooldown: 30 }
-  },
-  {
-    id: "technique_sword_heart",
-    name: "Kiếm Tâm Quyết",
-    type: ITEM_TYPES.TECHNIQUE,
-    price: 1000,
-    description: "Công pháp kiếm thuật, tăng 10% Tấn Công và 5% Chí Mạng",
-    rarity: "uncommon",
-    stats: { attack: 0.10, criticalRate: 0.05 },
-    skill: { name: "Kiếm Khí", description: "Gây sát thương bằng 150% Tấn Công", cooldown: 20 }
-  },
-  {
-    id: "technique_iron_body",
-    name: "Thiết Bốc Công",
-    type: ITEM_TYPES.TECHNIQUE,
-    price: 1000,
-    description: "Công pháp luyện thể, tăng 10% Phòng Thủ và 5% Khí Huyết",
-    rarity: "uncommon",
-    stats: { defense: 0.10, qiBlood: 0.05 },
-    skill: { name: "Thiết Bốc", description: "Giảm 30% sát thương nhận trong 5 giây", cooldown: 25 }
-  },
-  {
-    id: "technique_lightning_step",
-    name: "Lôi Điện Bộ",
-    type: ITEM_TYPES.TECHNIQUE,
-    price: 1500,
-    description: "Công pháp thân pháp, tăng 15% Tốc Độ và 10% Né Tránh",
-    rarity: "rare",
-    stats: { speed: 0.15, dodge: 0.10 },
-    skill: { name: "Lôi Điện", description: "Tăng 50% Tốc Độ trong 8 giây", cooldown: 40 }
-  },
-  {
-    id: "technique_dragon_breath",
-    name: "Long Tức Công",
-    type: ITEM_TYPES.TECHNIQUE,
-    price: 2000,
-    description: "Công pháp hô hấp, tăng 10% Chân Nguyên và 5% Hồi Phục",
-    rarity: "rare",
-    stats: { zhenYuan: 0.10, regeneration: 0.05 },
-    skill: { name: "Long Tức", description: "Hồi 20% Chân Nguyên", cooldown: 30 }
-  },
-  {
-    id: "technique_phoenix_rebirth",
-    name: "Phượng Hoàng Tái Sinh",
-    type: ITEM_TYPES.TECHNIQUE,
-    price: 3000,
-    description: "Công pháp huyền thoại, tăng 15% tất cả thông số",
-    rarity: "legendary",
-    stats: { attack: 0.15, defense: 0.15, qiBlood: 0.15, zhenYuan: 0.15, speed: 0.15, criticalRate: 0.15 },
-    skill: { name: "Tái Sinh", description: "Hồi 50% Khí Huyết và Chân Nguyên", cooldown: 60 }
-  },
-  {
-    id: "technique_void_walk",
-    name: "Hư Không Bộ",
-    type: ITEM_TYPES.TECHNIQUE,
-    price: 2500,
-    description: "Công pháp không gian, tăng 20% Xuyên Thấu và Kháng Cự",
-    rarity: "epic",
-    stats: { penetration: 0.20, resistance: 0.20 },
-    skill: { name: "Hư Không", description: "Miễn dịch sát thương trong 2 giây", cooldown: 45 }
-  },
-  {
-    id: "technique_blood_drain",
-    name: "Hấp Huyết Đại Pháp",
-    type: ITEM_TYPES.TECHNIQUE,
-    price: 1800,
-    description: "Công pháp tà đạo, tăng 15% Hấp Huyết",
-    rarity: "epic",
-    stats: { lifesteal: 0.15 },
-    skill: { name: "Hấp Huyết", description: "Gây sát thương và hồi 30% sát thương gây ra", cooldown: 35 }
-  }
-];
+// Import for use in this file
+import { ITEM_TYPES, SHOP_ITEMS, SHOP_ITEMS_MAP, TECHNIQUES_MAP } from '../data/shopItems.js';
 
 // ==================== QUEST PROGRESS SCHEMA ====================
 const QuestProgressSchema = new mongoose.Schema({
@@ -507,6 +338,10 @@ CultivationSchema.index({ exp: -1 });
 CultivationSchema.index({ realmLevel: -1, exp: -1 });
 CultivationSchema.index({ spiritStones: -1 });
 CultivationSchema.index({ loginStreak: -1 });
+// Dungeon progress optimization
+CultivationSchema.index({ 'dungeonProgress.dungeonId': 1 });
+// Quest lookups optimization
+CultivationSchema.index({ 'dailyQuests.questId': 1 });
 
 // ==================== INSTANCE METHODS ====================
 
@@ -580,7 +415,8 @@ CultivationSchema.methods.calculateCombatStats = function () {
   // Thêm bonus từ công pháp đã học
   if (this.learnedTechniques && this.learnedTechniques.length > 0) {
     this.learnedTechniques.forEach(learned => {
-      const technique = SHOP_ITEMS.find(t => t.id === learned.techniqueId && t.type === ITEM_TYPES.TECHNIQUE);
+      // Use TECHNIQUES_MAP for O(1) lookup instead of O(n) array search
+      const technique = TECHNIQUES_MAP.get(learned.techniqueId);
       if (technique && technique.stats) {
         // Bonus tăng theo cấp độ công pháp (level 1 = 100%, level 10 = 200%)
         const levelMultiplier = 1 + (learned.level - 1) * 0.1;
@@ -606,8 +442,9 @@ CultivationSchema.methods.calculateCombatStats = function () {
 
   // Thêm bonus từ linh thú (pet) đang trang bị
   if (this.equipped?.pet) {
-    const pet = SHOP_ITEMS.find(p => p.id === this.equipped.pet && p.type === ITEM_TYPES.PET);
-    if (pet) {
+    // Use SHOP_ITEMS_MAP for O(1) lookup
+    const pet = SHOP_ITEMS_MAP.get(this.equipped.pet);
+    if (pet && pet.type === ITEM_TYPES.PET) {
       // Pets thường tăng stats nhỏ dựa trên loại
       if (pet.expBonus) {
         // Pet tăng exp sẽ tăng luck để tăng cơ hội nhận bonus
@@ -624,8 +461,9 @@ CultivationSchema.methods.calculateCombatStats = function () {
 
   // Thêm bonus từ tọa kỵ (mount) đang trang bị
   if (this.equipped?.mount) {
-    const mount = SHOP_ITEMS.find(m => m.id === this.equipped.mount && m.type === ITEM_TYPES.MOUNT);
-    if (mount && mount.stats) {
+    // Use SHOP_ITEMS_MAP for O(1) lookup
+    const mount = SHOP_ITEMS_MAP.get(this.equipped.mount);
+    if (mount && mount.type === ITEM_TYPES.MOUNT && mount.stats) {
       // Áp dụng stats bonus từ mount
       Object.keys(mount.stats).forEach(statKey => {
         const bonusPercent = mount.stats[statKey];
@@ -693,7 +531,8 @@ CultivationSchema.methods.getSkills = function () {
   }
 
   return this.learnedTechniques.map(learned => {
-    const technique = SHOP_ITEMS.find(t => t.id === learned.techniqueId && t.type === ITEM_TYPES.TECHNIQUE);
+    // Use TECHNIQUES_MAP for O(1) lookup
+    const technique = TECHNIQUES_MAP.get(learned.techniqueId);
     if (technique && technique.skill) {
       return {
         techniqueId: learned.techniqueId,
@@ -1204,7 +1043,8 @@ CultivationSchema.methods.claimQuestReward = function (questId) {
  * Mua vật phẩm
  */
 CultivationSchema.methods.buyItem = function (itemId) {
-  const item = SHOP_ITEMS.find(i => i.id === itemId);
+  // Use SHOP_ITEMS_MAP for O(1) lookup
+  const item = SHOP_ITEMS_MAP.get(itemId);
   if (!item) {
     throw new Error("Vật phẩm không tồn tại");
   }
@@ -1679,9 +1519,30 @@ CultivationSchema.statics.getLeaderboard = async function (type = 'exp', limit =
 
 // ==================== POST-SAVE MIDDLEWARE ====================
 /**
- * Sync cultivation cache to User after save
+ * Sync cultivation cache to User after save - ONLY when critical fields change
+ * Uses modifiedPaths from pre-save to avoid unnecessary database writes
  */
+
+// Track modified paths in pre-save
+CultivationSchema.pre('save', function (next) {
+  // Store which cache-critical fields were modified
+  this._cacheFieldsModified =
+    this.isModified('realmLevel') ||
+    this.isModified('realmName') ||
+    this.isModified('exp') ||
+    this.isModified('equipped.title') ||
+    this.isModified('equipped.badge') ||
+    this.isModified('equipped.avatarFrame') ||
+    this.isModified('equipped.profileEffect');
+  next();
+});
+
 CultivationSchema.post('save', async function (doc) {
+  // Skip sync if no cache-critical fields were modified
+  if (!this._cacheFieldsModified) {
+    return;
+  }
+
   try {
     const User = mongoose.model('User');
     await User.findByIdAndUpdate(doc.user, {

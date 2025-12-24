@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES } from "../../models/Cultivation.js";
+import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES, SHOP_ITEMS_MAP } from "../../models/Cultivation.js";
 import { formatCultivationResponse, mergeEquipmentStatsIntoCombatStats } from "./coreController.js";
 
 const hasAdminAccess = async (user) => {
@@ -73,9 +73,10 @@ export const breakthrough = async (req, res, next) => {
             item.type === ITEM_TYPES.BREAKTHROUGH_BOOST && !item.used && (!item.expiresAt || new Date(item.expiresAt) > now)
         );
         if (breakthroughPills.length > 0) {
-            breakthroughPills.sort((a, b) => (SHOP_ITEMS.find(i => i.id === b.itemId)?.breakthroughBonus || 0) - (SHOP_ITEMS.find(i => i.id === a.itemId)?.breakthroughBonus || 0));
+            // Use SHOP_ITEMS_MAP for O(1) lookups
+            breakthroughPills.sort((a, b) => (SHOP_ITEMS_MAP.get(b.itemId)?.breakthroughBonus || 0) - (SHOP_ITEMS_MAP.get(a.itemId)?.breakthroughBonus || 0));
             usedPill = breakthroughPills[0];
-            breakthroughBonus = SHOP_ITEMS.find(i => i.id === usedPill.itemId)?.breakthroughBonus || 0;
+            breakthroughBonus = SHOP_ITEMS_MAP.get(usedPill.itemId)?.breakthroughBonus || 0;
         }
 
         const failureBonus = (cultivation.breakthroughFailureCount || 0) * bonus;

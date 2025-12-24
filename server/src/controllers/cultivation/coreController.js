@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Cultivation, { CULTIVATION_REALMS } from "../../models/Cultivation.js";
+import Cultivation, { CULTIVATION_REALMS, QUEST_TEMPLATES } from "../../models/Cultivation.js";
 import Equipment from "../../models/Equipment.js";
 import User from "../../models/User.js";
 
@@ -116,8 +116,7 @@ export const formatCultivationResponse = async (cultivation) => {
         return item.toObject ? item.toObject() : item;
     });
 
-    // Import QUEST_TEMPLATES dynamically
-    const { QUEST_TEMPLATES } = await import("../../models/Cultivation.js");
+    // QUEST_TEMPLATES is now imported statically at the top of the file
 
     return {
         _id: cultivation._id,

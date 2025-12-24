@@ -2,12 +2,177 @@
  * Inventory Tab - Display and manage inventory items
  */
 import { useState, memo, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { RARITY_COLORS, SHOP_ITEM_DATA, EQUIPMENT_SUBTYPES } from '../utils/constants.js';
 import { getItemIcon, IMAGE_COMPONENTS, ITEM_TYPE_LABELS } from '../utils/iconHelpers.js';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
 import ItemTooltip from './ItemTooltip.jsx';
+import Pagination from './Pagination.jsx';
+
+// Loot Box Result Modal - Phong cách tu tiên
+const LootboxResultModal = memo(({ result, onClose }) => {
+  if (!result) return null;
+
+  const rarityStyles = {
+    common: {
+      bg: 'from-stone-800/95 via-stone-900/95 to-stone-800/95',
+      border: 'border-stone-500/50',
+      text: 'text-stone-300',
+      glow: '',
+      accent: 'bg-stone-600'
+    },
+    uncommon: {
+      bg: 'from-emerald-900/95 via-stone-900/95 to-emerald-900/95',
+      border: 'border-emerald-500/50',
+      text: 'text-emerald-300',
+      glow: 'shadow-[0_0_30px_rgba(16,185,129,0.3)]',
+      accent: 'bg-emerald-600'
+    },
+    rare: {
+      bg: 'from-sky-900/95 via-slate-900/95 to-sky-900/95',
+      border: 'border-sky-400/50',
+      text: 'text-sky-300',
+      glow: 'shadow-[0_0_40px_rgba(56,189,248,0.4)]',
+      accent: 'bg-sky-500'
+    },
+    epic: {
+      bg: 'from-purple-900/95 via-slate-900/95 to-purple-900/95',
+      border: 'border-purple-400/60',
+      text: 'text-purple-300',
+      glow: 'shadow-[0_0_50px_rgba(168,85,247,0.5)]',
+      accent: 'bg-purple-500'
+    },
+    legendary: {
+      bg: 'from-amber-800/95 via-orange-900/95 to-amber-800/95',
+      border: 'border-amber-400/70',
+      text: 'text-amber-200',
+      glow: 'shadow-[0_0_60px_rgba(251,191,36,0.6)]',
+      accent: 'bg-gradient-to-r from-amber-500 to-orange-500'
+    }
+  };
+
+  const styles = rarityStyles[result.rarity] || rarityStyles.common;
+  const rarityLabel = {
+    common: 'Phàm Phẩm',
+    uncommon: 'Tinh Phẩm',
+    rare: 'Trân Phẩm',
+    epic: 'Cực Phẩm',
+    legendary: 'Thần Phẩm'
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0, rotateX: -15 }}
+        animate={{ scale: 1, opacity: 1, rotateX: 0 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+        className={`relative bg-gradient-to-b ${styles.bg} border ${styles.border} rounded-lg p-1 max-w-xs w-full ${styles.glow}`}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Viền trang trí */}
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-transparent via-amber-500/80 to-transparent" />
+        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-transparent via-amber-500/80 to-transparent" />
+
+        {/* Main content */}
+        <div className="bg-slate-900/60 rounded-md p-5 border border-amber-900/30">
+          {/* Header */}
+          <div className="text-center mb-4">
+            <p className="text-xs text-amber-400/80 tracking-[0.3em] uppercase font-medium">Khai Bảo Thành Công</p>
+          </div>
+
+          {/* Icon với hiệu ứng */}
+          <motion.div
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.15, type: 'spring', damping: 12 }}
+            className="relative mb-5"
+          >
+            {/* Vòng sáng nền */}
+            {(result.rarity === 'legendary' || result.rarity === 'epic') && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className={`w-28 h-28 rounded-full ${result.rarity === 'legendary' ? 'bg-amber-500/20' : 'bg-purple-500/20'} blur-xl animate-pulse`} />
+              </div>
+            )}
+
+            <div className={`w-20 h-20 mx-auto rounded-lg bg-gradient-to-br from-slate-800 to-slate-900 border-2 ${styles.border} flex items-center justify-center relative overflow-hidden`}>
+              {/* Hiệu ứng ánh sáng cho legendary */}
+              {result.rarity === 'legendary' && (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-t from-amber-500/30 to-transparent animate-pulse" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.3),transparent_60%)]" />
+                </>
+              )}
+              {(() => {
+                const ItemIcon = getItemIcon(result);
+                return IMAGE_COMPONENTS.includes(ItemIcon) ? (
+                  <ItemIcon size={40} />
+                ) : (
+                  <ItemIcon size={32} className={styles.text} />
+                );
+              })()}
+            </div>
+          </motion.div>
+
+          {/* Tên vật phẩm */}
+          <motion.h3
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className={`text-lg font-bold ${styles.text} text-center mb-2 font-title`}
+          >
+            {result.name}
+          </motion.h3>
+
+          {/* Độ hiếm */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.35 }}
+            className="flex justify-center mb-3"
+          >
+            <span className={`px-3 py-1 ${styles.accent} rounded text-xs font-bold text-white tracking-wider`}>
+              {rarityLabel[result.rarity] || result.rarity}
+            </span>
+          </motion.div>
+
+          {/* Mô tả */}
+          {result.description && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.45 }}
+              className="text-xs text-slate-400 text-center leading-relaxed mb-4 px-2"
+            >
+              {result.description}
+            </motion.p>
+          )}
+
+          {/* Nút đóng */}
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            onClick={onClose}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full py-2 bg-gradient-to-r from-amber-600/20 via-amber-500/30 to-amber-600/20 hover:from-amber-600/30 hover:via-amber-500/40 hover:to-amber-600/30 border border-amber-500/40 rounded text-amber-300 text-sm font-medium transition-all"
+          >
+            Xác Nhận
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+});
+
 
 const InventoryTab = memo(function InventoryTab() {
   const { cultivation, equip, unequip, equipEquipment, unequipEquipment, useItem, loading } = useCultivation();
@@ -16,6 +181,9 @@ const InventoryTab = memo(function InventoryTab() {
   const [activeSubCategory, setActiveSubCategory] = useState('all');
   const [hoveredItem, setHoveredItem] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [lootboxResult, setLootboxResult] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
   const isProcessingRef = useRef(false); // Sync ref to prevent double-clicks
 
   const handleMouseEnter = (item, e) => {
@@ -96,7 +264,11 @@ const InventoryTab = memo(function InventoryTab() {
     setEquipping(itemId);
     try {
       if (useItem) {
-        await useItem(itemId);
+        const result = await useItem(itemId);
+        // Kiểm tra nếu là loot box result
+        if (result?.reward?.type === 'lootbox' && result?.reward?.droppedItem) {
+          setLootboxResult(result.reward.droppedItem);
+        }
       }
     } finally {
       setEquipping(null);
@@ -140,6 +312,7 @@ const InventoryTab = memo(function InventoryTab() {
     consumable_group: [
       { id: 'all', label: 'Tất cả' },
       { id: 'exp_boost', label: 'Đan Dược' },
+      { id: 'breakthrough_boost', label: 'Độ Kiếp Đan' },
       { id: 'consumable', label: 'Tiêu Hao' }
     ],
     companion: [
@@ -154,7 +327,7 @@ const InventoryTab = memo(function InventoryTab() {
     if (category === 'all') return true;
     if (category === 'equipment') return item.type?.startsWith('equipment_');
     if (category === 'decoration') return ['title', 'badge', 'avatar_frame', 'profile_effect'].includes(item.type);
-    if (category === 'consumable_group') return ['exp_boost', 'consumable'].includes(item.type);
+    if (category === 'consumable_group') return ['exp_boost', 'breakthrough_boost', 'consumable'].includes(item.type);
     if (category === 'companion') return ['pet', 'mount'].includes(item.type);
     // Direct type match
     return item.type === category;
@@ -314,6 +487,7 @@ const InventoryTab = memo(function InventoryTab() {
                 onClick={() => {
                   setActiveCategory(cat.id);
                   setActiveSubCategory('all');
+                  setCurrentPage(1);
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === cat.id
                   ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300'
@@ -340,7 +514,7 @@ const InventoryTab = memo(function InventoryTab() {
               return (
                 <button
                   key={sub.id}
-                  onClick={() => setActiveSubCategory(sub.id)}
+                  onClick={() => { setActiveSubCategory(sub.id); setCurrentPage(1); }}
                   className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${activeSubCategory === sub.id
                     ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300'
                     : 'bg-slate-700/30 border border-slate-600/50 text-slate-400 hover:text-slate-300'
@@ -363,277 +537,289 @@ const InventoryTab = memo(function InventoryTab() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filteredItems.map((item, index) => {
-            const shopItem = SHOP_ITEM_DATA[item.itemId];
-            // Rarity priority: item.rarity -> metadata.rarity -> SHOP_ITEM_DATA.rarity -> common
-            const rarityKey = item.rarity || item.metadata?.rarity || shopItem?.rarity || 'common';
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, index) => {
+              const shopItem = SHOP_ITEM_DATA[item.itemId];
+              // Rarity priority: item.rarity -> metadata.rarity -> SHOP_ITEM_DATA.rarity -> common
+              const rarityKey = item.rarity || item.metadata?.rarity || shopItem?.rarity || 'common';
 
-            const rarity = RARITY_COLORS[rarityKey] || RARITY_COLORS.common;
-            const typeInfo = ITEM_TYPE_LABELS[item.type] || { label: 'Khác', color: 'text-slate-300' };
-            const equipped = isItemEquipped(item);
-            const consumable = isConsumable(item.type);
-            const ItemIcon = getItemIcon(item);
+              const rarity = RARITY_COLORS[rarityKey] || RARITY_COLORS.common;
+              const typeInfo = ITEM_TYPE_LABELS[item.type] || { label: 'Khác', color: 'text-slate-300' };
+              const equipped = isItemEquipped(item);
+              const consumable = isConsumable(item.type);
+              const ItemIcon = getItemIcon(item);
 
-            return (
-              <div
-                key={item._id || `${item.itemId}-${index}`}
-                className={`relative rounded-xl p-4 flex justify-between items-center transition-all border ${rarity.bg} ${rarity.border} ${equipped ? 'ring-2 ring-emerald-500/50' : ''} hover:scale-[1.02] hover:z-50`}
-                onMouseEnter={(e) => handleMouseEnter(item, e)}
-                onMouseLeave={handleMouseLeave}
-                onMouseMove={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setTooltipPosition({
-                    x: rect.right,
-                    y: rect.top,
-                    left: rect.left,
-                    right: rect.right,
-                    top: rect.top,
-                    bottom: rect.bottom
-                  });
-                }}
-              >
-                <div className="flex items-start gap-3 flex-1 mr-3">
-                  <div className="relative w-10 h-10 rounded-full bg-black border border-amber-500/40 flex items-center justify-center shadow-[0_0_8px_rgba(245,158,11,0.25)] overflow-hidden">
-                    {(item.metadata?.img || item.img) ? (
-                      <img
-                        src={item.metadata?.img || item.img}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    ) : null}
-                    <div className={`absolute inset-0 flex items-center justify-center ${(item.metadata?.img || item.img) ? 'hidden' : ''}`}>
-                      {IMAGE_COMPONENTS.includes(ItemIcon) ? (
-                        <ItemIcon size={28} />
-                      ) : (
-                        <ItemIcon size={20} className="text-amber-300" />
-                      )}
-                    </div>
-                    {equipped && (
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full flex items-center justify-center text-[8px] z-10">✓</span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h4 className={`font-bold text-sm ${rarity.text}`}>
-                        {item.name}
-                      </h4>
-                      <span className="bg-slate-700/50 text-slate-300 text-[10px] px-1.5 py-0.5 rounded font-mono">
-                        x{item.quantity || 1}
-                      </span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${rarity.bg} ${rarity.text} border ${rarity.border}`}>
-                        {rarity.label}
-                      </span>
-                      {(item.subtype || item.metadata?.subtype) && EQUIPMENT_SUBTYPES[item.subtype || item.metadata?.subtype] && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 border border-slate-600/50">
-                          {EQUIPMENT_SUBTYPES[item.subtype || item.metadata?.subtype]}
-                        </span>
-                      )}
-                      {equipped && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                          Đang dùng
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-400 leading-tight">{item.description || item.metadata?.description || ''}</p>
-                    {/* Hiển thị stats cho equipment */}
-                    {item.type?.startsWith('equipment_') && (item.metadata?.stats || item.stats) && (() => {
-                      const stats = item.metadata?.stats || item.stats || {};
-                      const statLabels = {
-                        attack: { label: 'Tấn Công', color: 'text-red-400' },
-                        defense: { label: 'Phòng Thủ', color: 'text-blue-400' },
-                        hp: { label: 'Khí Huyết', color: 'text-green-400' },
-                        qiBlood: { label: 'Khí Huyết', color: 'text-pink-400' },
-                        zhenYuan: { label: 'Chân Nguyên', color: 'text-purple-400' },
-                        speed: { label: 'Tốc Độ', color: 'text-cyan-400' },
-                        crit_rate: { label: 'Chí Mạng', color: 'text-yellow-400' },
-                        criticalRate: { label: 'Chí Mạng', color: 'text-yellow-400' },
-                        crit_damage: { label: 'Sát Thương Chí Mạng', color: 'text-yellow-300' },
-                        dodge: { label: 'Né Tránh', color: 'text-green-400' },
-                        evasion: { label: 'Né Tránh', color: 'text-green-400' },
-                        penetration: { label: 'Xuyên Thấu', color: 'text-orange-400' },
-                        hit_rate: { label: 'Chính Xác', color: 'text-blue-300' },
-                        resistance: { label: 'Kháng Cự', color: 'text-teal-400' },
-                        luck: { label: 'Vận Khí', color: 'text-indigo-400' }
-                      };
-
-                      const statsToShow = Object.entries(stats)
-                        .filter(([key, value]) => {
-                          // Bỏ qua elemental_damage (là object/Map)
-                          if (key === 'elemental_damage') return false;
-                          // Chỉ hiển thị stats có giá trị > 0 và là number (không phải object/array)
-                          return value != null &&
-                            value !== 0 &&
-                            typeof value === 'number' &&
-                            !isNaN(value) &&
-                            isFinite(value);
-                        })
-                        .slice(0, 5); // Hiển thị tối đa 5 stats đầu tiên
-
-                      if (statsToShow.length === 0) return null;
-
-                      return (
-                        <div className="text-[10px] text-slate-400 mt-1 space-y-0.5">
-                          {statsToShow.map(([stat, value]) => {
-                            const statInfo = statLabels[stat] || { label: stat, color: 'text-slate-400' };
-                            // Đảm bảo value là number trước khi format
-                            const numValue = typeof value === 'number' ? value : (typeof value === 'string' ? parseFloat(value) : 0);
-                            const displayValue = numValue > 0 ? `+${numValue.toLocaleString()}` : numValue.toLocaleString();
-                            const suffix = (stat === 'crit_rate' || stat === 'criticalRate' || stat === 'crit_damage' || stat === 'dodge' || stat === 'evasion' || stat === 'hit_rate') ? '%' : '';
-
-                            return (
-                              <p key={stat}>
-                                {statInfo.label}: <span className={statInfo.color}>{displayValue}{suffix}</span>
-                              </p>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
-                    {/* Hiển thị chi tiết cho đan dược và vật phẩm tiêu hao */}
-                    {(item.type === 'exp_boost' || item.type === 'consumable' || item.type === 'breakthrough_boost') && (() => {
-                      const metadata = item.metadata || {};
-                      const effects = [];
-
-                      // Hiệu ứng tăng exp
-                      if (metadata.expBoost || metadata.exp_boost) {
-                        const boost = metadata.expBoost || metadata.exp_boost;
-                        effects.push({ label: 'Tăng Tu Vi', value: `x${boost}`, color: 'text-green-400' });
-                      }
-                      if (metadata.expMultiplier) {
-                        effects.push({ label: 'Nhân Tu Vi', value: `x${metadata.expMultiplier}`, color: 'text-green-400' });
-                      }
-                      if (metadata.flatExp) {
-                        effects.push({ label: 'Tu Vi', value: `+${metadata.flatExp.toLocaleString()}`, color: 'text-green-400' });
-                      }
-
-                      // Thời gian hiệu lực
-                      if (metadata.duration) {
-                        const hours = Math.floor(metadata.duration / 60);
-                        const minutes = metadata.duration % 60;
-                        const durationText = hours > 0 ? `${hours}h${minutes > 0 ? ` ${minutes}p` : ''}` : `${minutes} phút`;
-                        effects.push({ label: 'Thời gian', value: durationText, color: 'text-cyan-400' });
-                      }
-
-                      // Breakthrough boost
-                      if (metadata.breakthroughBoost || metadata.breakthrough_boost) {
-                        const boost = metadata.breakthroughBoost || metadata.breakthrough_boost;
-                        effects.push({ label: 'Tăng độ kiếp', value: `+${boost}%`, color: 'text-purple-400' });
-                      }
-
-                      // Hiệu ứng hồi phục
-                      if (metadata.healHp || metadata.heal_hp) {
-                        effects.push({ label: 'Hồi Khí Huyết', value: `+${(metadata.healHp || metadata.heal_hp).toLocaleString()}`, color: 'text-pink-400' });
-                      }
-                      if (metadata.healMana || metadata.heal_mana) {
-                        effects.push({ label: 'Hồi Chân Nguyên', value: `+${(metadata.healMana || metadata.heal_mana).toLocaleString()}`, color: 'text-blue-400' });
-                      }
-
-                      // Tăng stats tạm thời
-                      if (metadata.attackBoost) {
-                        effects.push({ label: 'Tấn Công', value: `+${metadata.attackBoost}`, color: 'text-red-400' });
-                      }
-                      if (metadata.defenseBoost) {
-                        effects.push({ label: 'Phòng Thủ', value: `+${metadata.defenseBoost}`, color: 'text-blue-400' });
-                      }
-
-                      if (effects.length === 0) return null;
-
-                      return (
-                        <div className="mt-2 space-y-1 text-xs">
-                          {effects.map((effect, idx) => (
-                            <div key={idx} className="flex justify-between">
-                              <span className="text-slate-500">{effect.label}:</span>
-                              <span className={effect.color}>{effect.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                    {/* Hiển thị stats cho linh thú (pet) và tọa kỵ (mount) */}
-                    {(item.type === 'pet' || item.type === 'mount') && (() => {
-                      const metadata = item.metadata || {};
-                      const effects = [];
-
-                      // Pet bonuses - kiểm tra cả ở metadata và item level
-                      const expBonus = metadata.expBonus ?? item.expBonus;
-                      const spiritStoneBonus = metadata.spiritStoneBonus ?? item.spiritStoneBonus;
-                      const questExpBonus = metadata.questExpBonus ?? item.questExpBonus;
-
-                      if (expBonus) {
-                        effects.push({ label: 'Tăng Tu Vi', value: `+${Math.round(expBonus * 100)}%`, color: 'text-green-400' });
-                      }
-                      if (spiritStoneBonus) {
-                        effects.push({ label: 'Tăng Linh Thạch', value: `+${Math.round(spiritStoneBonus * 100)}%`, color: 'text-amber-400' });
-                      }
-                      if (questExpBonus) {
-                        effects.push({ label: 'Tăng Exp Nhiệm Vụ', value: `+${Math.round(questExpBonus * 100)}%`, color: 'text-cyan-400' });
-                      }
-
-                      // Mount/Pet stats - kiểm tra cả ở metadata.stats và item.stats
-                      // Fallback: nếu không có stats trong metadata, lấy từ SHOP_ITEM_DATA
-                      const fallbackStats = (SHOP_ITEM_DATA[item.itemId]) ? SHOP_ITEM_DATA[item.itemId].stats : {};
-                      const stats = metadata.stats || item.stats || fallbackStats || {};
-                      const statLabels = {
-                        attack: 'Tấn Công',
-                        defense: 'Phòng Thủ',
-                        qiBlood: 'Khí Huyết',
-                        speed: 'Tốc Độ',
-                        criticalRate: 'Chí Mạng',
-                        dodge: 'Né Tránh',
-                        penetration: 'Xuyên Thấu',
-                        resistance: 'Kháng Cự',
-                        lifesteal: 'Hấp Huyết',
-                        regeneration: 'Hồi Phục',
-                        luck: 'Vận Khí'
-                      };
-
-                      Object.entries(stats).forEach(([key, value]) => {
-                        if (value && statLabels[key]) {
-                          effects.push({
-                            label: statLabels[key],
-                            value: `+${Math.round(value * 100)}%`,
-                            color: 'text-purple-400'
-                          });
-                        }
-                      });
-
-                      if (effects.length === 0) return null;
-
-                      return (
-                        <div className="mt-2 space-y-1 text-xs">
-                          {effects.map((effect, idx) => (
-                            <div key={idx} className="flex justify-between">
-                              <span className="text-slate-500">{effect.label}:</span>
-                              <span className={effect.color}>{effect.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                    <p className={`text-[10px] mt-1 ${typeInfo.color}`}>{typeInfo.label}</p>
-                  </div>
-                </div>
-                <motion.button
-                  onClick={() => consumable ? handleUse(item.itemId) : handleEquip(item, equipped)}
-                  disabled={!!equipping}
-                  className={`rounded-lg px-4 py-2 text-xs font-bold uppercase transition-all min-w-[70px] ${consumable
-                    ? 'bg-orange-900/30 hover:bg-orange-800/50 border border-orange-500/30 text-orange-300'
-                    : equipped
-                      ? 'bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 text-red-300'
-                      : 'bg-emerald-900/30 hover:bg-emerald-800/50 border border-emerald-500/30 text-emerald-300'
-                    }`}
-                  whileTap={{ scale: 0.95 }}
+              return (
+                <div
+                  key={item._id || `${item.itemId}-${index}`}
+                  className={`relative rounded-xl p-4 flex justify-between items-center transition-all border ${rarity.bg} ${rarity.border} ${equipped ? 'ring-2 ring-emerald-500/50' : ''} hover:scale-[1.02] hover:z-50`}
+                  onMouseEnter={(e) => handleMouseEnter(item, e)}
+                  onMouseLeave={handleMouseLeave}
+                  onMouseMove={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setTooltipPosition({
+                      x: rect.right,
+                      y: rect.top,
+                      left: rect.left,
+                      right: rect.right,
+                      top: rect.top,
+                      bottom: rect.bottom
+                    });
+                  }}
                 >
-                  {equipping === item.itemId ? '...' : consumable ? 'Dùng' : equipped ? 'Tháo' : 'Trang bị'}
-                </motion.button>
-              </div>
-            );
-          })}
-        </div>
+                  <div className="flex items-start gap-3 flex-1 mr-3">
+                    <div className="relative w-10 h-10 rounded-full bg-black border border-amber-500/40 flex items-center justify-center shadow-[0_0_8px_rgba(245,158,11,0.25)] overflow-hidden">
+                      {(item.metadata?.img || item.img) ? (
+                        <img
+                          src={item.metadata?.img || item.img}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      ) : null}
+                      <div className={`absolute inset-0 flex items-center justify-center ${(item.metadata?.img || item.img) ? 'hidden' : ''}`}>
+                        {IMAGE_COMPONENTS.includes(ItemIcon) ? (
+                          <ItemIcon size={28} />
+                        ) : (
+                          <ItemIcon size={20} className="text-amber-300" />
+                        )}
+                      </div>
+                      {equipped && (
+                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full flex items-center justify-center text-[8px] z-10">✓</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h4 className={`font-bold text-sm ${rarity.text}`}>
+                          {item.name}
+                        </h4>
+                        <span className="bg-slate-700/50 text-slate-300 text-[10px] px-1.5 py-0.5 rounded font-mono">
+                          x{item.quantity || 1}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${rarity.bg} ${rarity.text} border ${rarity.border}`}>
+                          {rarity.label}
+                        </span>
+                        {(item.subtype || item.metadata?.subtype) && EQUIPMENT_SUBTYPES[item.subtype || item.metadata?.subtype] && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 border border-slate-600/50">
+                            {EQUIPMENT_SUBTYPES[item.subtype || item.metadata?.subtype]}
+                          </span>
+                        )}
+                        {equipped && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Đang dùng
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 leading-tight">{item.description || item.metadata?.description || ''}</p>
+                      {/* Hiển thị stats cho equipment */}
+                      {item.type?.startsWith('equipment_') && (item.metadata?.stats || item.stats) && (() => {
+                        const stats = item.metadata?.stats || item.stats || {};
+                        const statLabels = {
+                          attack: { label: 'Tấn Công', color: 'text-red-400' },
+                          defense: { label: 'Phòng Thủ', color: 'text-blue-400' },
+                          hp: { label: 'Khí Huyết', color: 'text-green-400' },
+                          qiBlood: { label: 'Khí Huyết', color: 'text-pink-400' },
+                          zhenYuan: { label: 'Chân Nguyên', color: 'text-purple-400' },
+                          speed: { label: 'Tốc Độ', color: 'text-cyan-400' },
+                          crit_rate: { label: 'Chí Mạng', color: 'text-yellow-400' },
+                          criticalRate: { label: 'Chí Mạng', color: 'text-yellow-400' },
+                          crit_damage: { label: 'Sát Thương Chí Mạng', color: 'text-yellow-300' },
+                          dodge: { label: 'Né Tránh', color: 'text-green-400' },
+                          evasion: { label: 'Né Tránh', color: 'text-green-400' },
+                          penetration: { label: 'Xuyên Thấu', color: 'text-orange-400' },
+                          hit_rate: { label: 'Chính Xác', color: 'text-blue-300' },
+                          resistance: { label: 'Kháng Cự', color: 'text-teal-400' },
+                          luck: { label: 'Vận Khí', color: 'text-indigo-400' }
+                        };
+
+                        const statsToShow = Object.entries(stats)
+                          .filter(([key, value]) => {
+                            // Bỏ qua elemental_damage (là object/Map)
+                            if (key === 'elemental_damage') return false;
+                            // Chỉ hiển thị stats có giá trị > 0 và là number (không phải object/array)
+                            return value != null &&
+                              value !== 0 &&
+                              typeof value === 'number' &&
+                              !isNaN(value) &&
+                              isFinite(value);
+                          })
+                          .slice(0, 5); // Hiển thị tối đa 5 stats đầu tiên
+
+                        if (statsToShow.length === 0) return null;
+
+                        return (
+                          <div className="text-[10px] text-slate-400 mt-1 space-y-0.5">
+                            {statsToShow.map(([stat, value]) => {
+                              const statInfo = statLabels[stat] || { label: stat, color: 'text-slate-400' };
+                              // Đảm bảo value là number trước khi format
+                              const numValue = typeof value === 'number' ? value : (typeof value === 'string' ? parseFloat(value) : 0);
+                              const displayValue = numValue > 0 ? `+${numValue.toLocaleString()}` : numValue.toLocaleString();
+                              const suffix = (stat === 'crit_rate' || stat === 'criticalRate' || stat === 'crit_damage' || stat === 'dodge' || stat === 'evasion' || stat === 'hit_rate') ? '%' : '';
+
+                              return (
+                                <p key={stat}>
+                                  {statInfo.label}: <span className={statInfo.color}>{displayValue}{suffix}</span>
+                                </p>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                      {/* Hiển thị chi tiết cho đan dược và vật phẩm tiêu hao */}
+                      {(item.type === 'exp_boost' || item.type === 'consumable' || item.type === 'breakthrough_boost') && (() => {
+                        const metadata = item.metadata || {};
+                        const shopItemData = SHOP_ITEM_DATA[item.itemId] || {};
+                        const effects = [];
+
+                        // Hiệu ứng tăng exp
+                        if (metadata.expBoost || metadata.exp_boost || shopItemData.multiplier) {
+                          const boost = metadata.expBoost || metadata.exp_boost || shopItemData.multiplier;
+                          effects.push({ label: 'Tăng Tu Vi', value: `x${boost}`, color: 'text-green-400' });
+                        }
+                        if (metadata.expMultiplier) {
+                          effects.push({ label: 'Nhân Tu Vi', value: `x${metadata.expMultiplier}`, color: 'text-green-400' });
+                        }
+                        if (metadata.flatExp || shopItemData.expReward) {
+                          const exp = metadata.flatExp || shopItemData.expReward;
+                          effects.push({ label: 'Tu Vi', value: `+${exp.toLocaleString()}`, color: 'text-green-400' });
+                        }
+
+                        // Thời gian hiệu lực
+                        if (metadata.duration || shopItemData.duration) {
+                          const dur = metadata.duration || shopItemData.duration;
+                          const hours = Math.floor(dur / 60);
+                          const minutes = dur % 60;
+                          const durationText = hours > 0 ? `${hours}h${minutes > 0 ? ` ${minutes}p` : ''}` : `${minutes} phút`;
+                          effects.push({ label: 'Thời gian', value: durationText, color: 'text-cyan-400' });
+                        }
+
+                        // Breakthrough boost - check both metadata and shopItemData
+                        if (metadata.breakthroughBoost || metadata.breakthrough_boost || shopItemData.breakthroughBonus) {
+                          const boost = metadata.breakthroughBonus || metadata.breakthroughBoost || metadata.breakthrough_boost || shopItemData.breakthroughBonus;
+                          effects.push({ label: 'Tăng Độ Kiếp', value: `+${boost}%`, color: 'text-purple-400' });
+                        }
+
+                        // Hiệu ứng hồi phục
+                        if (metadata.healHp || metadata.heal_hp) {
+                          effects.push({ label: 'Hồi Khí Huyết', value: `+${(metadata.healHp || metadata.heal_hp).toLocaleString()}`, color: 'text-pink-400' });
+                        }
+                        if (metadata.healMana || metadata.heal_mana) {
+                          effects.push({ label: 'Hồi Chân Nguyên', value: `+${(metadata.healMana || metadata.heal_mana).toLocaleString()}`, color: 'text-blue-400' });
+                        }
+
+                        // Tăng stats tạm thời
+                        if (metadata.attackBoost) {
+                          effects.push({ label: 'Tấn Công', value: `+${metadata.attackBoost}`, color: 'text-red-400' });
+                        }
+                        if (metadata.defenseBoost) {
+                          effects.push({ label: 'Phòng Thủ', value: `+${metadata.defenseBoost}`, color: 'text-blue-400' });
+                        }
+
+                        if (effects.length === 0) return null;
+
+                        return (
+                          <div className="mt-2 space-y-1 text-xs">
+                            {effects.map((effect, idx) => (
+                              <div key={idx} className="flex justify-between">
+                                <span className="text-slate-500">{effect.label}:</span>
+                                <span className={effect.color}>{effect.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                      {/* Hiển thị stats cho linh thú (pet) và tọa kỵ (mount) */}
+                      {(item.type === 'pet' || item.type === 'mount') && (() => {
+                        const metadata = item.metadata || {};
+                        const effects = [];
+
+                        // Pet bonuses - kiểm tra cả ở metadata và item level
+                        const expBonus = metadata.expBonus ?? item.expBonus;
+                        const spiritStoneBonus = metadata.spiritStoneBonus ?? item.spiritStoneBonus;
+                        const questExpBonus = metadata.questExpBonus ?? item.questExpBonus;
+
+                        if (expBonus) {
+                          effects.push({ label: 'Tăng Tu Vi', value: `+${Math.round(expBonus * 100)}%`, color: 'text-green-400' });
+                        }
+                        if (spiritStoneBonus) {
+                          effects.push({ label: 'Tăng Linh Thạch', value: `+${Math.round(spiritStoneBonus * 100)}%`, color: 'text-amber-400' });
+                        }
+                        if (questExpBonus) {
+                          effects.push({ label: 'Tăng Exp Nhiệm Vụ', value: `+${Math.round(questExpBonus * 100)}%`, color: 'text-cyan-400' });
+                        }
+
+                        // Mount/Pet stats - kiểm tra cả ở metadata.stats và item.stats
+                        // Fallback: nếu không có stats trong metadata, lấy từ SHOP_ITEM_DATA
+                        const fallbackStats = (SHOP_ITEM_DATA[item.itemId]) ? SHOP_ITEM_DATA[item.itemId].stats : {};
+                        const stats = metadata.stats || item.stats || fallbackStats || {};
+                        const statLabels = {
+                          attack: 'Tấn Công',
+                          defense: 'Phòng Thủ',
+                          qiBlood: 'Khí Huyết',
+                          speed: 'Tốc Độ',
+                          criticalRate: 'Chí Mạng',
+                          dodge: 'Né Tránh',
+                          penetration: 'Xuyên Thấu',
+                          resistance: 'Kháng Cự',
+                          lifesteal: 'Hấp Huyết',
+                          regeneration: 'Hồi Phục',
+                          luck: 'Vận Khí'
+                        };
+
+                        Object.entries(stats).forEach(([key, value]) => {
+                          if (value && statLabels[key]) {
+                            effects.push({
+                              label: statLabels[key],
+                              value: `+${Math.round(value * 100)}%`,
+                              color: 'text-purple-400'
+                            });
+                          }
+                        });
+
+                        if (effects.length === 0) return null;
+
+                        return (
+                          <div className="mt-2 space-y-1 text-xs">
+                            {effects.map((effect, idx) => (
+                              <div key={idx} className="flex justify-between">
+                                <span className="text-slate-500">{effect.label}:</span>
+                                <span className={effect.color}>{effect.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                      <p className={`text-[10px] mt-1 ${typeInfo.color}`}>{typeInfo.label}</p>
+                    </div>
+                  </div>
+                  <motion.button
+                    onClick={() => consumable ? handleUse(item.itemId) : handleEquip(item, equipped)}
+                    disabled={!!equipping}
+                    className={`rounded-lg px-4 py-2 text-xs font-bold uppercase transition-all min-w-[70px] ${consumable
+                      ? 'bg-orange-900/30 hover:bg-orange-800/50 border border-orange-500/30 text-orange-300'
+                      : equipped
+                        ? 'bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 text-red-300'
+                        : 'bg-emerald-900/30 hover:bg-emerald-800/50 border border-emerald-500/30 text-emerald-300'
+                      }`}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {equipping === item.itemId ? '...' : consumable ? 'Dùng' : equipped ? 'Tháo' : 'Trang bị'}
+                  </motion.button>
+                </div>
+              );
+            })}
+          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(filteredItems.length / itemsPerPage)}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredItems.length}
+          />
+        </>
       )}
 
       {/* Tooltip Portal */}
@@ -644,6 +830,16 @@ const InventoryTab = memo(function InventoryTab() {
           position={tooltipPosition}
         />
       )}
+
+      {/* Loot Box Result Modal */}
+      <AnimatePresence>
+        {lootboxResult && (
+          <LootboxResultModal
+            result={lootboxResult}
+            onClose={() => setLootboxResult(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 });

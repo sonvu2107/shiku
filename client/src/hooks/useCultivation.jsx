@@ -349,14 +349,25 @@ export function CultivationProvider({ children }) {
         setCultivation(prev => ({
           ...prev,
           ...response.data.cultivation,
-          inventory: response.data.inventory || prev.inventory
+          inventory: response.data.inventory || prev.inventory,
+          // Cập nhật learnedTechniques nếu drop được công pháp
+          learnedTechniques: response.data.cultivation?.learnedTechniques || prev?.learnedTechniques
         }));
 
-        // Hiển thị thông báo nếu có
-        if (response.data.message) {
+        // Xử lý thông báo cho loot box
+        if (response.data.reward?.type === 'lootbox') {
+          const droppedItem = response.data.reward.droppedItem;
           setNotification({
             type: 'success',
-            message: response.data.message,
+            title: 'Mở rương thành công!',
+            message: response.message,
+            lootboxResult: droppedItem
+          });
+        } else {
+          // Thông báo thường cho các item khác
+          setNotification({
+            type: 'success',
+            message: response.message,
             reward: response.data.reward
           });
         }

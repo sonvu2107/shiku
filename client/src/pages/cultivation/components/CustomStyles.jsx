@@ -5,9 +5,9 @@
 
 const CustomStyles = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Serif+SC:wght@300;400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Noto+Serif+SC:wght@300;400;700&display=swap');
     
-    .font-title { font-family: 'Cinzel', serif; }
+    .font-title { font-family: 'Playfair Display', serif; }
     .font-cultivation { font-family: 'Noto Serif SC', serif; }
 
     /* Cosmic Background Animation */
