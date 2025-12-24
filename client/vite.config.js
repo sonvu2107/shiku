@@ -110,7 +110,7 @@ export default defineConfig(({ command, mode }) => {
         cssCodeSplit: true,
         cssMinify: true,
         sourcemap: false,
-        treeshake: true, // Enabled for dead code elimination
+        treeshake: false,
       } : {
         sourcemap: true,
       })
