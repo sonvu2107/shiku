@@ -189,6 +189,12 @@ export default function AdminDashboard() {
       return user.roleData?.permissions?.[permKey] === true;
    };
 
+   // Helper function to format numbers with K/M suffixes
+   const formatNumber = (num) => {
+      if (num === null || num === undefined) return '0';
+      return num.toLocaleString('vi-VN');
+   };
+
    async function updateUserRole(userId, newRoleName) {
       if (!window.confirm(`Bạn có chắc muốn đổi role user này thành ${newRoleName}?`)) return;
 
@@ -243,26 +249,48 @@ export default function AdminDashboard() {
    }
 
    // --- SIDEBAR TABS CONFIGURATION ---
-   const allMenuItems = [
-      { id: 'stats', label: 'Thống kê', icon: BarChart3, permission: 'admin.viewStats' },
-      { id: 'insights', label: 'Insights', icon: Target, permission: 'admin.viewStats' },
-      { id: 'users', label: 'Quản lý N.Dùng', icon: Users, permission: 'admin.manageUsers' },
-      { id: 'posts', label: 'Quản lý bài viết', icon: FileText, permission: 'admin.managePosts' },
-      { id: 'comments', label: 'Quản lý B.Luận', icon: MessageCircle, permission: 'admin.manageComments' },
-      { id: 'reports', label: 'Báo cáo', icon: Flag, permission: 'admin.manageReports' },
-      { id: 'online', label: 'Online & Traffic', icon: Activity, permission: 'admin.viewStats' },
-      { id: 'roles', label: 'Phân quyền', icon: Crown, permission: 'admin.manageRoles' },
-      { id: 'bans', label: 'Cấm N.Dùng', icon: Ban, permission: 'admin.manageBans' },
-      { id: 'notifications', label: 'Thông báo', icon: Bell, permission: 'admin.sendNotifications' },
-      { id: 'feedback', label: 'Phản hồi', icon: MessageCircle, permission: 'admin.viewFeedback' },
-      { id: 'bot', label: 'Auto Bot', icon: Heart, permission: 'admin.manageUsers' },
-      { id: 'equipment', label: 'Trang Bị', icon: Sword, external: true, path: '/admin/equipment', permission: 'admin.manageEquipment' },
-      { id: 'api-monitoring', label: 'API Monitor', icon: Code, permission: 'admin.viewAPI' },
-
+   const menuGroups = [
+      {
+         label: 'Phân tích',
+         items: [
+            { id: 'stats', label: 'Thống kê', icon: BarChart3, permission: 'admin.viewStats' },
+            { id: 'insights', label: 'Insights', icon: Target, permission: 'admin.viewStats' },
+            { id: 'online', label: 'Online & Traffic', icon: Activity, permission: 'admin.viewStats' },
+         ]
+      },
+      {
+         label: 'Nội dung',
+         items: [
+            { id: 'posts', label: 'Quản lý bài viết', icon: FileText, permission: 'admin.managePosts' },
+            { id: 'comments', label: 'Quản lý bình luận', icon: MessageCircle, permission: 'admin.manageComments' },
+            { id: 'reports', label: 'Báo cáo', icon: Flag, permission: 'admin.manageReports' },
+         ]
+      },
+      {
+         label: 'Người dùng',
+         items: [
+            { id: 'users', label: 'Quản lý người dùng', icon: Users, permission: 'admin.manageUsers' },
+            { id: 'roles', label: 'Phân quyền', icon: Crown, permission: 'admin.manageRoles' },
+            { id: 'bans', label: 'Cấm người dùng', icon: Ban, permission: 'admin.manageBans' },
+         ]
+      },
+      {
+         label: 'Hệ thống',
+         items: [
+            { id: 'notifications', label: 'Thông báo', icon: Bell, permission: 'admin.sendNotifications' },
+            { id: 'feedback', label: 'Phản hồi', icon: MessageCircle, permission: 'admin.viewFeedback' },
+            { id: 'bot', label: 'Auto Bot', icon: Heart, permission: 'admin.manageUsers' },
+            { id: 'equipment', label: 'Trang Bị', icon: Sword, external: true, path: '/admin/equipment', permission: 'admin.manageEquipment' },
+            { id: 'api-monitoring', label: 'API Monitor', icon: Code, permission: 'admin.viewAPI' },
+         ]
+      }
    ];
 
-   // Filter menu items based on user permissions
-   const menuItems = allMenuItems.filter(item => hasPermission(item.permission));
+   // Filter menu groups based on user permissions
+   const filteredGroups = menuGroups.map(group => ({
+      ...group,
+      items: group.items.filter(item => hasPermission(item.permission))
+   })).filter(group => group.items.length > 0);
 
    return (
       <PageLayout>
@@ -291,45 +319,54 @@ export default function AdminDashboard() {
 
             {/* --- LEFT SIDEBAR --- */}
             <div className="lg:col-span-3 space-y-6">
-               <div className="bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl rounded-2xl p-2 border border-neutral-200/80 dark:border-neutral-800/80 shadow-sm sticky top-24 overflow-y-auto max-h-[calc(100vh-8rem)] custom-scrollbar">
-                  {menuItems.map((item) => {
-                     if (item.external) {
-                        return (
-                           <button
-                              key={item.id}
-                              onClick={() => navigate(item.path)}
-                              className={cn(
-                                 "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all mb-1 last:mb-0",
-                                 "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-200"
-                              )}
-                           >
-                              <div className="flex items-center gap-3">
-                                 <item.icon size={18} />
-                                 {item.label}
-                              </div>
-                              <ChevronRight size={16} />
-                           </button>
-                        );
-                     }
-                     return (
-                        <button
-                           key={item.id}
-                           onClick={() => setActiveTab(item.id)}
-                           className={cn(
-                              "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all mb-1 last:mb-0",
-                              activeTab === item.id
-                                 ? "bg-black dark:bg-white text-white dark:text-black shadow-md"
-                                 : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-200"
-                           )}
-                        >
-                           <div className="flex items-center gap-3">
-                              <item.icon size={18} />
-                              {item.label}
-                           </div>
-                           {activeTab === item.id && <ChevronRight size={16} />}
-                        </button>
-                     );
-                  })}
+               <div className="bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl rounded-2xl p-3 border border-neutral-200/80 dark:border-neutral-800/80 shadow-sm sticky top-24 overflow-y-auto max-h-[calc(100vh-8rem)] custom-scrollbar">
+                  {filteredGroups.map((group, groupIndex) => (
+                     <div key={group.label} className={groupIndex > 0 ? "mt-4 pt-4 border-t border-neutral-200/60 dark:border-neutral-700/60" : ""}>
+                        {/* Group Header */}
+                        <div className="px-3 py-2 text-[11px] uppercase font-semibold tracking-wider text-neutral-400 dark:text-neutral-500">
+                           {group.label}
+                        </div>
+                        {/* Group Items */}
+                        {group.items.map((item) => {
+                           if (item.external) {
+                              return (
+                                 <button
+                                    key={item.id}
+                                    onClick={() => navigate(item.path)}
+                                    className={cn(
+                                       "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-1 last:mb-0",
+                                       "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800/60 hover:text-neutral-900 dark:hover:text-neutral-200"
+                                    )}
+                                 >
+                                    <div className="flex items-center gap-3">
+                                       <item.icon size={18} className="text-neutral-400 dark:text-neutral-500" />
+                                       {item.label}
+                                    </div>
+                                    <ChevronRight size={16} className="text-neutral-400" />
+                                 </button>
+                              );
+                           }
+                           return (
+                              <button
+                                 key={item.id}
+                                 onClick={() => setActiveTab(item.id)}
+                                 className={cn(
+                                    "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-1 last:mb-0",
+                                    activeTab === item.id
+                                       ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 shadow-md"
+                                       : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800/60 hover:text-neutral-900 dark:hover:text-neutral-200"
+                                 )}
+                              >
+                                 <div className="flex items-center gap-3">
+                                    <item.icon size={18} className={activeTab === item.id ? "text-white dark:text-neutral-900" : "text-neutral-400 dark:text-neutral-500"} />
+                                    {item.label}
+                                 </div>
+                                 {activeTab === item.id && <ChevronRight size={16} />}
+                              </button>
+                           );
+                        })}
+                     </div>
+                  ))}
                </div>
             </div>
 
@@ -344,218 +381,230 @@ export default function AdminDashboard() {
                            <div className="py-20 flex justify-center"><Loader2 className="animate-spin" /></div>
                         ) : (
                            <>
-                              {/* Overview Cards */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                 {/* Posts */}
-                                 <SpotlightCard className="p-4 bg-neutral-100 dark:bg-neutral-800/50 dark:bg-blue-900/10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                       <FileText className="text-black dark:text-white" size={24} />
-                                       <div className="text-2xl font-bold text-black dark:text-white">
-                                          {stats?.overview ? stats?.overview.totalPosts.count : (stats.totalPosts || 0)}
-                                       </div>
-                                    </div>
-                                    <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng bài viết</div>
-                                    {stats?.overview && (
-                                       <div className="space-y-1 text-xs">
-                                          <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats?.overview.totalPosts.thisMonth}
-                                          </div>
-                                          <div className={`flex items-center gap-1 ${stats?.overview.totalPosts.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats?.overview.totalPosts.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats?.overview.totalPosts.growth)}% so với tháng trước
-                                          </div>
-                                       </div>
-                                    )}
-                                 </SpotlightCard>
+                              {/* Overview Cards - Grouped Layout */}
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                                 {/* Views */}
-                                 <SpotlightCard className="p-4 bg-green-50/50 dark:bg-green-900/10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                       <Eye className="text-green-600 dark:text-green-400" size={24} />
-                                       <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                          {stats?.overview ? stats?.overview.totalViews.count : (stats.totalViews || 0)}
-                                       </div>
-                                    </div>
-                                    <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng lượt xem</div>
-                                    {stats?.overview && (
-                                       <div className="space-y-1 text-xs">
-                                          <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats?.overview.totalViews.thisMonth}
+                                 {/* Content Stats Group */}
+                                 <SpotlightCard className="p-5 dark:bg-neutral-800/60 border dark:border-neutral-700/50">
+                                    <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 mb-4">Nội dung</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                       {/* Posts */}
+                                       <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
+                                          <div className="flex items-center gap-2 mb-1">
+                                             <FileText className="text-blue-600 dark:text-blue-400" size={18} />
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Bài viết</span>
                                           </div>
-                                          <div className={`flex items-center gap-1 ${stats?.overview.totalViews.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats?.overview.totalViews.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats?.overview.totalViews.growth)}% so với tháng trước
+                                          <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                             {formatNumber(stats?.overview ? stats?.overview.totalPosts.count : (stats.totalPosts || 0))}
                                           </div>
+                                          {stats?.overview && (
+                                             <div className="text-xs flex items-center gap-1.5 mt-1">
+                                                <span className="text-neutral-500 dark:text-neutral-400">+{formatNumber(stats?.overview.totalPosts.thisMonth)} tháng này</span>
+                                                <span className="text-neutral-300 dark:text-neutral-600">•</span>
+                                                <span className={stats?.overview.totalPosts.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                                                   {stats?.overview.totalPosts.growth >= 0 ? '+' : ''}{stats?.overview.totalPosts.growth}%
+                                                </span>
+                                             </div>
+                                          )}
                                        </div>
-                                    )}
-                                 </SpotlightCard>
-
-                                 {/* Comments */}
-                                 <SpotlightCard className="p-4 bg-purple-50/50 dark:bg-purple-900/10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                       <MessageCircle className="text-purple-600 dark:text-purple-400" size={24} />
-                                       <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                                          {stats?.overview ? stats?.overview.totalComments.count : (stats.totalComments || 0)}
-                                       </div>
-                                    </div>
-                                    <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng bình luận</div>
-                                    {stats?.overview && (
-                                       <div className="space-y-1 text-xs">
-                                          <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats?.overview.totalComments.thisMonth}
+                                       {/* Views */}
+                                       <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
+                                          <div className="flex items-center gap-2 mb-1">
+                                             <Eye className="text-green-600 dark:text-green-400" size={18} />
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Lượt xem</span>
                                           </div>
-                                          <div className={`flex items-center gap-1 ${stats?.overview.totalComments.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats?.overview.totalComments.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats?.overview.totalComments.growth)}% so với tháng trước
+                                          <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                             {formatNumber(stats?.overview ? stats?.overview.totalViews.count : (stats.totalViews || 0))}
                                           </div>
+                                          {stats?.overview && (
+                                             <div className="text-xs flex items-center gap-1.5 mt-1">
+                                                <span className="text-neutral-500 dark:text-neutral-400">+{formatNumber(stats?.overview.totalViews.thisMonth)} tháng này</span>
+                                                <span className="text-neutral-300 dark:text-neutral-600">•</span>
+                                                <span className={stats?.overview.totalViews.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                                                   {stats?.overview.totalViews.growth >= 0 ? '+' : ''}{stats?.overview.totalViews.growth}%
+                                                </span>
+                                             </div>
+                                          )}
                                        </div>
-                                    )}
-                                 </SpotlightCard>
-
-                                 {/* Upvotes */}
-                                 <SpotlightCard className="p-4 bg-red-50/50 dark:bg-red-900/10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                       <Heart className="text-red-600 dark:text-red-400" size={24} />
-                                       <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                                          {stats?.overview ? stats?.overview.totalUpvotes?.count ?? 0 : (stats.totalUpvotes || 0)}
-                                       </div>
-                                    </div>
-                                    <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng upvotes</div>
-                                    {stats?.overview?.totalUpvotes && (
-                                       <div className="space-y-1 text-xs">
-                                          <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats?.overview.totalUpvotes.thisMonth ?? 0}
+                                       {/* Comments */}
+                                       <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
+                                          <div className="flex items-center gap-2 mb-1">
+                                             <MessageCircle className="text-purple-600 dark:text-purple-400" size={18} />
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Bình luận</span>
                                           </div>
-                                          <div className={`flex items-center gap-1 ${(stats?.overview.totalUpvotes.growth ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {(stats?.overview.totalUpvotes.growth ?? 0) >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats?.overview.totalUpvotes.growth ?? 0)}% so với tháng trước
+                                          <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                             {formatNumber(stats?.overview ? stats?.overview.totalComments.count : (stats.totalComments || 0))}
                                           </div>
+                                          {stats?.overview && (
+                                             <div className="text-xs flex items-center gap-1.5 mt-1">
+                                                <span className="text-neutral-500 dark:text-neutral-400">+{formatNumber(stats?.overview.totalComments.thisMonth)} tháng này</span>
+                                                <span className="text-neutral-300 dark:text-neutral-600">•</span>
+                                                <span className={stats?.overview.totalComments.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                                                   {stats?.overview.totalComments.growth >= 0 ? '+' : ''}{stats?.overview.totalComments.growth}%
+                                                </span>
+                                             </div>
+                                          )}
                                        </div>
-                                    )}
-                                 </SpotlightCard>
-
-                                 {/* Users */}
-                                 <SpotlightCard className="p-4 bg-yellow-50/50 dark:bg-yellow-900/10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                       <Users className="text-yellow-600 dark:text-yellow-400" size={24} />
-                                       <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                                          {stats?.overview ? stats?.overview.totalUsers.count : (stats.totalUsers || 0)}
-                                       </div>
-                                    </div>
-                                    <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng người dùng</div>
-                                    {stats?.overview && (
-                                       <div className="space-y-1 text-xs">
-                                          <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats?.overview.totalUsers.thisMonth}
+                                       {/* Upvotes */}
+                                       <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
+                                          <div className="flex items-center gap-2 mb-1">
+                                             <Heart className="text-red-600 dark:text-red-400" size={18} />
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Upvotes</span>
                                           </div>
-                                          <div className={`flex items-center gap-1 ${stats?.overview.totalUsers.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats?.overview.totalUsers.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats?.overview.totalUsers.growth)}% so với tháng trước
+                                          <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                             {formatNumber(stats?.overview ? stats?.overview.totalUpvotes?.count ?? 0 : (stats.totalUpvotes || 0))}
                                           </div>
+                                          {stats?.overview?.totalUpvotes && (
+                                             <div className="text-xs flex items-center gap-1.5 mt-1">
+                                                <span className="text-neutral-500 dark:text-neutral-400">+{formatNumber(stats?.overview.totalUpvotes.thisMonth ?? 0)} tháng này</span>
+                                                <span className="text-neutral-300 dark:text-neutral-600">•</span>
+                                                <span className={(stats?.overview.totalUpvotes.growth ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                                                   {(stats?.overview.totalUpvotes.growth ?? 0) >= 0 ? '+' : ''}{stats?.overview.totalUpvotes.growth ?? 0}%
+                                                </span>
+                                             </div>
+                                          )}
                                        </div>
-                                    )}
-                                 </SpotlightCard>
-
-                                 {/* Published posts */}
-                                 <SpotlightCard className="p-4 bg-indigo-50/50 dark:bg-indigo-900/10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                       <FileText className="text-indigo-600 dark:text-indigo-400" size={24} />
-                                       <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                                          {stats?.overview ? stats?.overview.publishedPosts.count : (stats.publishedPosts || 0)}
-                                       </div>
-                                    </div>
-                                    <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Bài đã đăng</div>
-                                    {stats?.overview && (
-                                       <div className="space-y-1 text-xs">
-                                          <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats?.overview.publishedPosts.thisMonth}
-                                          </div>
-                                          <div className={`flex items-center gap-1 ${stats?.overview.publishedPosts.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats?.overview.publishedPosts.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats?.overview.publishedPosts.growth)}% so với tháng trước
-                                          </div>
-                                       </div>
-                                    )}
-                                 </SpotlightCard>
-
-                                 {/* Draft posts */}
-                                 <SpotlightCard className="p-4 bg-gray-50/50 dark:bg-neutral-900/50">
-                                    <div className="flex items-center gap-2 mb-2">
-                                       <Edit className="text-gray-600 dark:text-gray-400" size={24} />
-                                       <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                                          {stats?.overview ? stats?.overview.draftPosts.count : (stats.draftPosts || 0)}
-                                       </div>
-                                    </div>
-                                    <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Bài riêng tư</div>
-                                    {stats?.overview && (
-                                       <div className="space-y-1 text-xs">
-                                          <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats?.overview.draftPosts.thisMonth}
-                                          </div>
-                                          <div className={`flex items-center gap-1 ${stats?.overview.draftPosts.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats?.overview.draftPosts.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats?.overview.draftPosts.growth)}% so với tháng trước
-                                          </div>
-                                       </div>
-                                    )}
-                                 </SpotlightCard>
-
-                                 {/* Admin */}
-                                 <SpotlightCard className="p-4 bg-pink-50/50 dark:bg-pink-900/10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                       <Crown className="text-pink-600 dark:text-pink-400" size={24} />
-                                       <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
-                                          {stats?.overview ? stats?.overview.adminUsers.count : (stats.adminUsers || 0)}
-                                       </div>
-                                    </div>
-                                    <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Admin</div>
-                                    {stats?.overview && (
-                                       <div className="space-y-1 text-xs">
-                                          <div className="text-neutral-500 dark:text-neutral-400">
-                                             Tháng này: {stats?.overview.adminUsers.thisMonth}
-                                          </div>
-                                          <div className={`flex items-center gap-1 ${stats?.overview.adminUsers.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                             {stats?.overview.adminUsers.growth >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                             {Math.abs(stats?.overview.adminUsers.growth)}% so với tháng trước
-                                          </div>
-                                       </div>
-                                    )}
-                                 </SpotlightCard>
-
-                                 {/* Online users */}
-                                 <SpotlightCard className="p-4 bg-emerald-50/50 dark:bg-emerald-900/10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                       <Wifi className="text-emerald-600 dark:text-emerald-400" size={24} />
-                                       <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                                          {onlineUsers.length}
-                                       </div>
-                                    </div>
-                                    <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Đang online</div>
-                                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                                       {stats?.overview ?
-                                          Math.max(0, stats?.overview.totalUsers.count - onlineUsers.length) :
-                                          Math.max(0, users.length - onlineUsers.length)
-                                       } người offline
                                     </div>
                                  </SpotlightCard>
 
-                                 {/* Total visitors */}
-                                 <SpotlightCard className="p-4 bg-cyan-50/50 dark:bg-cyan-900/10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                       <UserCheck className="text-cyan-600 dark:text-cyan-400" size={24} />
-                                       <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
-                                          {totalVisitors.toLocaleString()}
+                                 {/* User Stats Group */}
+                                 <SpotlightCard className="p-5 dark:bg-neutral-800/60 border dark:border-neutral-700/50">
+                                    <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 mb-4">Người dùng</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                       {/* Total Users */}
+                                       <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
+                                          <div className="flex items-center gap-2 mb-1">
+                                             <Users className="text-amber-600 dark:text-amber-400" size={18} />
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Tổng N.Dùng</span>
+                                          </div>
+                                          <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                             {formatNumber(stats?.overview ? stats?.overview.totalUsers.count : (stats.totalUsers || 0))}
+                                          </div>
+                                          {stats?.overview && (
+                                             <div className="text-xs flex items-center gap-1.5 mt-1">
+                                                <span className="text-neutral-500 dark:text-neutral-400">+{formatNumber(stats?.overview.totalUsers.thisMonth)} tháng này</span>
+                                                <span className="text-neutral-300 dark:text-neutral-600">•</span>
+                                                <span className={stats?.overview.totalUsers.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                                                   {stats?.overview.totalUsers.growth >= 0 ? '+' : ''}{stats?.overview.totalUsers.growth}%
+                                                </span>
+                                             </div>
+                                          )}
+                                       </div>
+                                       {/* Online */}
+                                       <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
+                                          <div className="flex items-center gap-2 mb-1">
+                                             <Wifi className="text-emerald-600 dark:text-emerald-400" size={18} />
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Đang online</span>
+                                          </div>
+                                          <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                             {onlineUsers.length}
+                                          </div>
+                                          <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                                             {stats?.overview ?
+                                                Math.max(0, stats?.overview.totalUsers.count - onlineUsers.length) :
+                                                Math.max(0, users.length - onlineUsers.length)
+                                             } offline
+                                          </div>
+                                       </div>
+                                       {/* Admins */}
+                                       <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
+                                          <div className="flex items-center gap-2 mb-1">
+                                             <Crown className="text-pink-600 dark:text-pink-400" size={18} />
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Admin</span>
+                                          </div>
+                                          <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                             {stats?.overview ? stats?.overview.adminUsers.count : (stats.adminUsers || 0)}
+                                          </div>
+                                          {stats?.overview && (
+                                             <div className={`text-xs flex items-center gap-1 mt-1 ${stats?.overview.adminUsers.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                {stats?.overview.adminUsers.growth >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                                                {Math.abs(stats?.overview.adminUsers.growth)}%
+                                             </div>
+                                          )}
+                                       </div>
+                                       {/* Visitors */}
+                                       <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
+                                          <div className="flex items-center gap-2 mb-1">
+                                             <UserCheck className="text-cyan-600 dark:text-cyan-400" size={18} />
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Lượt truy cập</span>
+                                          </div>
+                                          <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                             {formatNumber(totalVisitors)}
+                                          </div>
+                                          {visitorStats && (
+                                             <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                                                {visitorStats.usersWithActivity} hoạt động
+                                             </div>
+                                          )}
                                        </div>
                                     </div>
-                                    <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tổng lượt truy cập</div>
-                                    {visitorStats && (
-                                       <div className="space-y-1 text-xs text-neutral-500 dark:text-neutral-400">
-                                          <div>{visitorStats.totalUsers} người đã đăng ký</div>
-                                          <div>{visitorStats.usersWithActivity} người đã hoạt động</div>
-                                          <div>{visitorStats.onlineUsers} đang online</div>
-                                       </div>
-                                    )}
                                  </SpotlightCard>
+
+                                 {/* Post Status Group */}
+                                 <SpotlightCard className="p-5 dark:bg-neutral-800/60 border dark:border-neutral-700/50 lg:col-span-2">
+                                    <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 mb-4">Trạng thái bài viết</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                       {/* Published */}
+                                       <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
+                                          <div className="flex items-center gap-2 mb-1">
+                                             <FileText className="text-indigo-600 dark:text-indigo-400" size={18} />
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Đã đăng</span>
+                                          </div>
+                                          <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                             {formatNumber(stats?.overview ? stats?.overview.publishedPosts.count : (stats.publishedPosts || 0))}
+                                          </div>
+                                          {stats?.overview && (
+                                             <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                                                +{stats?.overview.publishedPosts.thisMonth} tháng này
+                                             </div>
+                                          )}
+                                       </div>
+                                       {/* Draft */}
+                                       <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
+                                          <div className="flex items-center gap-2 mb-1">
+                                             <Edit className="text-gray-600 dark:text-gray-400" size={18} />
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Riêng tư</span>
+                                          </div>
+                                          <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                             {formatNumber(stats?.overview ? stats?.overview.draftPosts.count : (stats.draftPosts || 0))}
+                                          </div>
+                                          {stats?.overview && (
+                                             <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                                                +{stats?.overview.draftPosts.thisMonth} tháng này
+                                             </div>
+                                          )}
+                                       </div>
+                                       {/* This Month Posts */}
+                                       <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
+                                          <div className="flex items-center gap-2 mb-1">
+                                             <TrendingUp className="text-green-600 dark:text-green-400" size={18} />
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Tháng này</span>
+                                          </div>
+                                          <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                             {stats?.overview?.totalPosts.thisMonth || 0}
+                                          </div>
+                                          {stats?.overview && (
+                                             <div className={`text-xs flex items-center gap-1 mt-1 ${stats?.overview.totalPosts.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                {stats?.overview.totalPosts.growth >= 0 ? '+' : ''}{stats?.overview.totalPosts.growth}% so tháng trước
+                                             </div>
+                                          )}
+                                       </div>
+                                       {/* Activity */}
+                                       <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
+                                          <div className="flex items-center gap-2 mb-1">
+                                             <Activity className="text-orange-600 dark:text-orange-400" size={18} />
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Hoạt động</span>
+                                          </div>
+                                          <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                             {formatNumber((stats?.overview?.totalComments.thisMonth || 0) + (stats?.overview?.totalPosts.thisMonth || 0))}
+                                          </div>
+                                          <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                                             Bài + Bình luận tháng này
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </SpotlightCard>
+
                               </div>
 
                               {/* Top Lists */}
@@ -802,30 +851,30 @@ export default function AdminDashboard() {
 
                         {/* Visitor Stats Summary */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                           <SpotlightCard className="p-4 text-center bg-emerald-50/50 dark:bg-emerald-900/10">
+                           <SpotlightCard className="p-4 text-center dark:bg-emerald-950/40 border dark:border-emerald-800/30">
                               <Wifi size={32} className="mx-auto text-emerald-600 dark:text-emerald-400 mb-2" />
-                              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{onlineUsers.length}</div>
+                              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatNumber(onlineUsers.length)}</div>
                               <div className="text-sm text-neutral-600 dark:text-neutral-400">Đang online</div>
                            </SpotlightCard>
-                           <SpotlightCard className="p-4 text-center bg-gray-50/50 dark:bg-neutral-900/50">
+                           <SpotlightCard className="p-4 text-center dark:bg-neutral-800/60 border dark:border-neutral-700/50">
                               <WifiOff size={32} className="mx-auto text-gray-600 dark:text-gray-400 mb-2" />
                               <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                                 {stats?.overview ?
+                                 {formatNumber(stats?.overview ?
                                     Math.max(0, stats?.overview.totalUsers.count - onlineUsers.length) :
                                     Math.max(0, users.length - onlineUsers.length)
-                                 }
+                                 )}
                               </div>
                               <div className="text-sm text-neutral-600 dark:text-neutral-400">Offline</div>
                            </SpotlightCard>
-                           <SpotlightCard className="p-4 text-center bg-neutral-100 dark:bg-neutral-800/50 dark:bg-blue-900/10">
-                              <UserCheck size={32} className="mx-auto text-black dark:text-white mb-2" />
-                              <div className="text-2xl font-bold text-black dark:text-white">{totalVisitors.toLocaleString()}</div>
+                           <SpotlightCard className="p-4 text-center dark:bg-cyan-950/40 border dark:border-cyan-800/30">
+                              <UserCheck size={32} className="mx-auto text-cyan-600 dark:text-cyan-400 mb-2" />
+                              <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{formatNumber(totalVisitors)}</div>
                               <div className="text-sm text-neutral-600 dark:text-neutral-400">Tổng lượt truy cập</div>
                            </SpotlightCard>
-                           <SpotlightCard className="p-4 text-center bg-purple-50/50 dark:bg-purple-900/10">
+                           <SpotlightCard className="p-4 text-center dark:bg-purple-950/40 border dark:border-purple-800/30">
                               <Users size={32} className="mx-auto text-purple-600 dark:text-purple-400 mb-2" />
                               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                                 {stats?.overview ? stats?.overview.totalUsers.count : users.length}
+                                 {formatNumber(stats?.overview ? stats?.overview.totalUsers.count : users.length)}
                               </div>
                               <div className="text-sm text-neutral-600 dark:text-neutral-400">Tổng người dùng</div>
                            </SpotlightCard>
@@ -844,16 +893,16 @@ export default function AdminDashboard() {
                               <ActiveUsersChart />
                               {/* Stats below chart */}
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                                 <div className="text-center p-4 bg-green-50/50 dark:bg-green-900/10 rounded-xl">
-                                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{visitorStats.timeStats.today}</div>
+                                 <div className="text-center p-4 dark:bg-green-950/40 border dark:border-green-800/30 rounded-xl">
+                                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{formatNumber(visitorStats.timeStats.today)}</div>
                                     <div className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">Hôm nay</div>
                                  </div>
-                                 <div className="text-center p-4 bg-neutral-100 dark:bg-neutral-800/50 dark:bg-blue-900/10 rounded-xl">
-                                    <div className="text-2xl font-bold text-black dark:text-white">{visitorStats.timeStats.thisWeek}</div>
+                                 <div className="text-center p-4 dark:bg-blue-950/40 border dark:border-blue-800/30 rounded-xl">
+                                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatNumber(visitorStats.timeStats.thisWeek)}</div>
                                     <div className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">Tuần này</div>
                                  </div>
-                                 <div className="text-center p-4 bg-purple-50/50 dark:bg-purple-900/10 rounded-xl">
-                                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{visitorStats.timeStats.thisMonth}</div>
+                                 <div className="text-center p-4 dark:bg-purple-950/40 border dark:border-purple-800/30 rounded-xl">
+                                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{formatNumber(visitorStats.timeStats.thisMonth)}</div>
                                     <div className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">Tháng này</div>
                                  </div>
                               </div>

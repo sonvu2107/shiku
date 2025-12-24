@@ -46,11 +46,11 @@ export default function PerformanceCharts() {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'excellent': return 'text-green-600 bg-green-100';
-            case 'good': return 'text-blue-600 bg-blue-100';
-            case 'warning': return 'text-yellow-600 bg-yellow-100';
-            case 'critical': return 'text-red-600 bg-red-100';
-            default: return 'text-gray-600 bg-gray-100';
+            case 'excellent': return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-950/40 border border-green-200 dark:border-green-800/50';
+            case 'good': return 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50';
+            case 'warning': return 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800/50';
+            case 'critical': return 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50';
+            default: return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-neutral-800/60 border border-gray-200 dark:border-neutral-700/50';
         }
     };
 
@@ -62,10 +62,10 @@ export default function PerformanceCharts() {
     };
 
     const getLatencyTextColor = (p95, thresholds) => {
-        if (p95 < thresholds.good) return 'text-green-600';
-        if (p95 < thresholds.warning) return 'text-blue-600';
-        if (p95 < thresholds.critical) return 'text-yellow-600';
-        return 'text-red-600';
+        if (p95 < thresholds.good) return 'text-green-600 dark:text-green-400';
+        if (p95 < thresholds.warning) return 'text-blue-600 dark:text-blue-400';
+        if (p95 < thresholds.critical) return 'text-yellow-600 dark:text-yellow-400';
+        return 'text-red-600 dark:text-red-400';
     };
 
     if (loading && !perfData) {
@@ -79,8 +79,8 @@ export default function PerformanceCharts() {
 
     if (error) {
         return (
-            <div className="bg-red-50 p-4 rounded-lg">
-                <div className="flex items-center text-red-600">
+            <div className="bg-red-50 dark:bg-red-950/40 p-4 rounded-lg border border-red-200 dark:border-red-800/50">
+                <div className="flex items-center text-red-600 dark:text-red-400">
                     <AlertTriangle className="w-5 h-5 mr-2" />
                     <span>Error: {error}</span>
                 </div>
@@ -113,12 +113,12 @@ export default function PerformanceCharts() {
                     <Activity className="w-5 h-5" />
                     Performance Monitoring
                 </h3>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                     <Clock className="w-4 h-4" />
                     Updated: {lastUpdate.toLocaleTimeString()}
                     <button
                         onClick={fetchPerformanceData}
-                        className="p-1 hover:bg-gray-100 rounded"
+                        className="p-1 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded"
                         disabled={loading}
                     >
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -143,38 +143,38 @@ export default function PerformanceCharts() {
                 </div>
 
                 {/* P50 */}
-                <div className="p-4 rounded-lg bg-neutral-100 dark:bg-neutral-800">
+                <div className="p-4 rounded-lg bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/50">
                     <div className="flex items-center gap-2 mb-2">
-                        <Zap className="w-5 h-5 text-green-600" />
+                        <Zap className="w-5 h-5 text-green-600 dark:text-green-400" />
                         <span className="font-medium">Median</span>
                     </div>
-                    <div className="text-2xl font-bold text-green-600">{overall.p50}ms</div>
-                    <div className="text-sm text-gray-500">P50 Latency</div>
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{overall.p50}ms</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">P50 Latency</div>
                 </div>
 
                 {/* Average */}
-                <div className="p-4 rounded-lg bg-neutral-100 dark:bg-neutral-800">
+                <div className="p-4 rounded-lg bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/50">
                     <div className="flex items-center gap-2 mb-2">
-                        <TrendingUp className="w-5 h-5 text-blue-600" />
+                        <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         <span className="font-medium">Average</span>
                     </div>
-                    <div className="text-2xl font-bold text-blue-600">{overall.avg}ms</div>
-                    <div className="text-sm text-gray-500">Avg Response</div>
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{overall.avg}ms</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Avg Response</div>
                 </div>
 
                 {/* Samples */}
-                <div className="p-4 rounded-lg bg-neutral-100 dark:bg-neutral-800">
+                <div className="p-4 rounded-lg bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/50">
                     <div className="flex items-center gap-2 mb-2">
-                        <BarChart3 className="w-5 h-5 text-purple-600" />
+                        <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                         <span className="font-medium">Samples</span>
                     </div>
-                    <div className="text-2xl font-bold text-purple-600">{overall.totalSamples.toLocaleString()}</div>
-                    <div className="text-sm text-gray-500">{overall.endpointCount} endpoints</div>
+                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{overall.totalSamples.toLocaleString()}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{overall.endpointCount} endpoints</div>
                 </div>
             </div>
 
             {/* P95 Latency Bar Chart - Slowest Endpoints */}
-            <div className="bg-white dark:bg-neutral-900 border rounded-lg p-4">
+            <div className="bg-white dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/50 rounded-lg p-4">
                 <h4 className="text-base font-semibold mb-4 flex items-center gap-2">
                     <TrendingDown className="w-4 h-4 text-red-500" />
                     Slowest Endpoints (by P95)
@@ -218,7 +218,7 @@ export default function PerformanceCharts() {
                 </div>
 
                 {/* Legend */}
-                <div className="mt-4 pt-4 border-t flex flex-wrap gap-4 text-xs text-gray-500">
+                <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700/50 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
                     <div className="flex items-center gap-1">
                         <div className="w-3 h-3 rounded bg-green-500" />
                         <span>&lt;{thresholds.good}ms (Excellent)</span>
@@ -239,7 +239,7 @@ export default function PerformanceCharts() {
             </div>
 
             {/* Top Traffic Endpoints */}
-            <div className="bg-white dark:bg-neutral-900 border rounded-lg p-4">
+            <div className="bg-white dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/50 rounded-lg p-4">
                 <h4 className="text-base font-semibold mb-4 flex items-center gap-2">
                     <BarChart3 className="w-4 h-4 text-blue-500" />
                     Top Traffic Endpoints
@@ -251,7 +251,7 @@ export default function PerformanceCharts() {
                         </div>
                     ) : (
                         topTrafficEndpoints.map((endpoint, index) => (
-                            <div key={endpoint.endpoint} className="flex items-center justify-between py-2 border-b last:border-0">
+                            <div key={endpoint.endpoint} className="flex items-center justify-between py-2 border-b border-neutral-200 dark:border-neutral-700/50 last:border-0">
                                 <div className="flex items-center gap-2 min-w-0 flex-1">
                                     <span className="font-medium text-gray-500 w-6">{index + 1}.</span>
                                     <span className="truncate text-sm" title={endpoint.endpoint}>
@@ -272,7 +272,7 @@ export default function PerformanceCharts() {
             </div>
 
             {/* Detailed Stats Table */}
-            <div className="bg-white dark:bg-neutral-900 border rounded-lg p-4">
+            <div className="bg-white dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/50 rounded-lg p-4">
                 <h4 className="text-base font-semibold mb-4 flex items-center gap-2">
                     <Activity className="w-4 h-4" />
                     Detailed Latency Stats

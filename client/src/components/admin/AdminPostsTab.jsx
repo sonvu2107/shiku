@@ -375,8 +375,8 @@ export default function AdminPostsTab() {
                                                     )}
                                                 </button>
                                                 <button
-                                                    onClick={() => window.open(`/bai-viet/${post.slug}`, '_blank')}
-                                                    className="p-1.5 text-neutral-400 hover:text-black dark:text-white hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                                    onClick={() => window.open(`/post/${post.slug}`, '_blank')}
+                                                    className="p-1.5 text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"
                                                     title="Xem"
                                                 >
                                                     <ExternalLink size={14} />

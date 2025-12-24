@@ -48,13 +48,13 @@ export default function AdminInsightsTab() {
     const getStatusColor = (status) => {
         switch (status) {
             case "healthy":
-                return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
+                return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800/50";
             case "warning":
-                return "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800";
+                return "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800/50";
             case "critical":
-                return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
+                return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/50";
             default:
-                return "text-neutral-600 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800";
+                return "text-neutral-600 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-800/60 border-neutral-200 dark:border-neutral-700/50";
         }
     };
 
@@ -154,7 +154,7 @@ export default function AdminInsightsTab() {
                 <h3 className="font-bold text-lg mb-4">Chỉ số phụ</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {Object.entries(insights.secondary).map(([key, metric]) => (
-                        <div key={key} className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl">
+                        <div key={key} className="p-4 bg-neutral-50 dark:bg-neutral-800/60 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
                             <div className="text-2xl font-bold text-neutral-900 dark:text-white mb-1">
                                 {metric.value}{key.includes('Rate') ? '%' : ''}
                             </div>
@@ -173,22 +173,22 @@ export default function AdminInsightsTab() {
             <SpotlightCard className="p-5">
                 <h3 className="font-bold text-lg mb-4">So sánh 7 ngày gần nhất</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl">
+                    <div className="text-center p-4 bg-neutral-50 dark:bg-blue-950/40 rounded-xl border border-neutral-100 dark:border-blue-800/30">
                         <Users className="mx-auto mb-2 text-blue-500" size={24} />
                         <div className="text-2xl font-bold">{insights.comparison.last7Days.newUsers}</div>
                         <div className="text-xs text-neutral-500">User mới</div>
                     </div>
-                    <div className="text-center p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl">
+                    <div className="text-center p-4 bg-neutral-50 dark:bg-blue-950/40 rounded-xl border border-neutral-100 dark:border-blue-800/30">
                         <FileText className="mx-auto mb-2 text-green-500" size={24} />
                         <div className="text-2xl font-bold">{insights.comparison.last7Days.newPosts}</div>
                         <div className="text-xs text-neutral-500">Bài mới</div>
                     </div>
-                    <div className="text-center p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl">
+                    <div className="text-center p-4 bg-neutral-50 dark:bg-blue-950/40 rounded-xl border border-neutral-100 dark:border-blue-800/30">
                         <MessageCircle className="mx-auto mb-2 text-purple-500" size={24} />
                         <div className="text-2xl font-bold">{insights.comparison.last7Days.newComments}</div>
                         <div className="text-xs text-neutral-500">Comment mới</div>
                     </div>
-                    <div className="text-center p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl">
+                    <div className="text-center p-4 bg-neutral-50 dark:bg-blue-950/40 rounded-xl border border-neutral-100 dark:border-blue-800/30">
                         <div className="text-2xl font-bold">{insights.comparison.last7Days.userPostRate}%</div>
                         <div className="text-xs text-neutral-500">User mới có đăng bài</div>
                     </div>
@@ -199,7 +199,7 @@ export default function AdminInsightsTab() {
             <SpotlightCard className="p-5">
                 <h3 className="font-bold text-lg mb-4">Phân loại người dùng</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                    <div className="p-4 bg-green-50 dark:bg-green-950/40 rounded-xl border border-green-200 dark:border-green-800/50">
                         <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                             {insights.engagement.usersWhoCommented}
                         </div>
@@ -210,7 +210,7 @@ export default function AdminInsightsTab() {
                             Tương tác sâu
                         </div>
                     </div>
-                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-950/40 rounded-xl border border-yellow-200 dark:border-yellow-800/50">
                         <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                             {insights.engagement.usersWhoUpvoted}
                         </div>
@@ -221,7 +221,7 @@ export default function AdminInsightsTab() {
                             Tương tác nông
                         </div>
                     </div>
-                    <div className="p-4 bg-neutral-100 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                    <div className="p-4 bg-neutral-100 dark:bg-neutral-800/60 rounded-xl border border-neutral-200 dark:border-neutral-700/50">
                         <div className="text-2xl font-bold text-neutral-600 dark:text-neutral-400">
                             {Math.max(0, insights.engagement.lurkers)}
                         </div>

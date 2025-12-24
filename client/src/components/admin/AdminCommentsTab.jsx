@@ -311,7 +311,7 @@ export default function AdminCommentsTab() {
                                         <td className="px-3 py-2">
                                             {comment.post ? (
                                                 <a
-                                                    href={`/bai-viet/${comment.post.slug}`}
+                                                    href={`/post/${comment.post.slug}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate max-w-[150px] block"
@@ -330,7 +330,7 @@ export default function AdminCommentsTab() {
                                             <div className="flex items-center gap-1">
                                                 {comment.post?.slug && (
                                                     <button
-                                                        onClick={() => window.open(`/bai-viet/${comment.post.slug}`, '_blank')}
+                                                        onClick={() => window.open(`/post/${comment.post.slug}`, '_blank')}
                                                         className="p-1.5 text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"
                                                         title="Xem bài viết"
                                                     >

@@ -198,57 +198,57 @@ export default function APIMonitoring() {
       {/* Overview Cards - Mobile Optimized */}
       <div id="overview" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Requests */}
-        <div className="bg-neutral-100 dark:bg-neutral-800 p-3 sm:p-4 rounded-lg mobile-card">
+        <div className="bg-blue-50 dark:bg-blue-950/40 p-3 sm:p-4 rounded-lg mobile-card border border-blue-100 dark:border-blue-800/30">
           <div className="flex items-center gap-2 mb-1 sm:mb-2">
-            <Server className="text-black dark:text-white w-4 h-4 sm:w-6 sm:h-6 flex-shrink-0" />
-            <div className="text-lg sm:text-2xl font-bold text-black dark:text-white truncate mobile-number">
+            <Server className="text-blue-600 dark:text-blue-400 w-4 h-4 sm:w-6 sm:h-6 flex-shrink-0" />
+            <div className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400 truncate mobile-number">
               {stats.overview.totalRequests.toLocaleString()}
             </div>
           </div>
-          <div className="text-xs sm:text-sm text-gray-600 mobile-text">Tổng requests</div>
-          <div className="text-xs text-gray-500 mt-1 truncate mobile-text">
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mobile-text">Tổng requests</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate mobile-text">
             {stats.overview.requestsPerMinute} req/min
           </div>
         </div>
 
         {/* Rate Limit Hits */}
-        <div className="bg-red-50 p-3 sm:p-4 rounded-lg mobile-card">
+        <div className="bg-red-50 dark:bg-red-950/40 p-3 sm:p-4 rounded-lg mobile-card border border-red-100 dark:border-red-800/30">
           <div className="flex items-center gap-2 mb-1 sm:mb-2">
-            <Shield className="text-red-600 w-4 h-4 sm:w-6 sm:h-6 flex-shrink-0" />
-            <div className="text-lg sm:text-2xl font-bold text-red-600 mobile-number">
+            <Shield className="text-red-600 dark:text-red-400 w-4 h-4 sm:w-6 sm:h-6 flex-shrink-0" />
+            <div className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400 mobile-number">
               {stats.overview.rateLimitHits}
             </div>
           </div>
-          <div className="text-xs sm:text-sm text-gray-600 mobile-text">Rate limit hits</div>
-          <div className="text-xs text-gray-500 mt-1 mobile-text">
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mobile-text">Rate limit hits</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 mobile-text">
             {stats.overview.rateLimitHitRate}% hit rate
           </div>
         </div>
 
         {/* Time Since Reset */}
-        <div className="bg-green-50 p-3 sm:p-4 rounded-lg mobile-card">
+        <div className="bg-green-50 dark:bg-green-950/40 p-3 sm:p-4 rounded-lg mobile-card border border-green-100 dark:border-green-800/30">
           <div className="flex items-center gap-2 mb-1 sm:mb-2">
-            <Clock className="text-green-600 w-4 h-4 sm:w-6 sm:h-6 flex-shrink-0" />
-            <div className="text-lg sm:text-2xl font-bold text-green-600 mobile-number">
+            <Clock className="text-green-600 dark:text-green-400 w-4 h-4 sm:w-6 sm:h-6 flex-shrink-0" />
+            <div className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400 mobile-number">
               {stats.overview?.timeSinceReset || 0}
             </div>
           </div>
-          <div className="text-xs sm:text-sm text-gray-600 mobile-text">Phút từ reset</div>
-          <div className="text-xs text-gray-500 mt-1 truncate mobile-text">
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mobile-text">Phút từ reset</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate mobile-text">
             {stats.overview?.lastReset ? new Date(stats.overview.lastReset).toLocaleTimeString() : 'Chưa có dữ liệu'}
           </div>
         </div>
 
         {/* Top Endpoint */}
-        <div className="bg-purple-50 p-3 sm:p-4 rounded-lg mobile-card">
+        <div className="bg-purple-50 dark:bg-purple-950/40 p-3 sm:p-4 rounded-lg mobile-card border border-purple-100 dark:border-purple-800/30">
           <div className="flex items-center gap-2 mb-1 sm:mb-2">
-            <TrendingUp className="text-purple-600 w-4 h-4 sm:w-6 sm:h-6 flex-shrink-0" />
-            <div className="text-lg sm:text-2xl font-bold text-purple-600 mobile-number">
+            <TrendingUp className="text-purple-600 dark:text-purple-400 w-4 h-4 sm:w-6 sm:h-6 flex-shrink-0" />
+            <div className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400 mobile-number">
               {(stats.topEndpoints && stats.topEndpoints[0]?.count) || 0}
             </div>
           </div>
-          <div className="text-xs sm:text-sm text-gray-600 mobile-text">Top endpoint</div>
-          <div className="text-xs text-gray-500 mt-1 truncate mobile-text">
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mobile-text">Top endpoint</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate mobile-text">
             {(stats.topEndpoints && stats.topEndpoints[0]?.endpoint) || 'N/A'}
           </div>
         </div>
