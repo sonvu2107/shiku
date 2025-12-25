@@ -608,7 +608,7 @@ function Home({ user, setUser }) {
     <div className="min-h-screen bg-white dark:bg-black transition-colors duration-300 pb-32 relative font-sans selection:bg-neutral-200 dark:selection:bg-neutral-800">
       <NoiseOverlay />
       <GridPattern />
-      <ChristmasDecorations />
+      <ChristmasDecorations enableLights={false} />
 
       <div className="relative z-10">
         {/* Accessible, SEO-friendly heading without affecting layout */}

@@ -22,7 +22,8 @@ import {
   Sparkles,
   Moon,
   Sun,
-  Trophy
+  Trophy,
+  Gift
 } from "lucide-react";
 import { removeAuthToken } from "../utils/auth.js";
 import { invalidateUserCache } from "../utils/userCache.js";
@@ -228,6 +229,18 @@ export default function MobileMenu({ user, setUser, darkMode, setDarkMode }) {
                   );
                 })}
               </div>
+
+              {/* Recap 2025 Button - Special Entry */}
+              {user && (
+                <Link
+                  to="/recap/2025"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group w-full text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 bg-gradient-to-r from-amber-50 dark:from-amber-900/10 to-transparent"
+                >
+                  <Gift size={20} strokeWidth={2} className="transition-transform group-hover:scale-110" />
+                  <span className="font-medium text-[15px]">Recap 2025</span>
+                </Link>
+              )}
 
               {/* Divider */}
               <div className="border-t border-neutral-100 dark:border-neutral-800/60 mx-2" />

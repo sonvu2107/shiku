@@ -21,6 +21,8 @@
     "date-fns": "^4.1.0",
     "face-api.js": "^0.22.2",
     "framer-motion": "^12.23.24",
+    "html-to-image": "^1.11.13",
+    "html2canvas": "^1.4.1",
     "idb": "^8.0.3",
     "lodash.debounce": "^4.0.8",
     "lodash.throttle": "^4.1.1",

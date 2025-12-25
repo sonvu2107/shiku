@@ -12,20 +12,17 @@ import {
   UserPlus,
   ChevronLeft,
   ChevronRight,
-  FileText,
-  Heart,
-  Eye,
   HelpCircle,
   Sparkles,
   Search,
   Crown,
-  Trophy
+  Trophy,
+  Gift
 } from 'lucide-react';
 import { removeAuthToken } from '../utils/auth';
 import { invalidateUserCache } from '../utils/userCache';
 import { api } from '../api';
 import { getCachedRole, loadRoles } from '../utils/roleCache';
-import { useUserStats } from '../hooks/useUserStats';
 import UserAvatar, { UserTitle } from './UserAvatar';
 
 /**
@@ -36,17 +33,6 @@ function LeftSidebar({ user, setUser }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [roleLabel, setRoleLabel] = useState('Member');
-
-  // Lấy stats của user
-  const userId = user?.id || user?._id;
-  const { data: stats } = useUserStats(userId);
-
-  const displayStats = useMemo(() => stats || {
-    postCount: 0,
-    friendCount: 0,
-    likeCount: 0,
-    viewCount: 0
-  }, [stats]);
 
   // Xử lý state collapse
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -286,6 +272,32 @@ function LeftSidebar({ user, setUser }) {
       {/* 3. Main Navigation */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-neutral-800 scrollbar-track-transparent py-2">
         {menuItems.map((item) => <NavItem key={item.path} item={item} />)}
+
+        {/* Recap 2025 Button - Special item */}
+        {user && (
+          <Link
+            to="/recap/2025"
+            className={`
+              relative flex items-center group transition-all duration-300 ease-out
+              ${isCollapsed ? 'justify-center w-12 h-12 rounded-2xl mx-auto mb-2' : 'gap-4 px-4 py-3 rounded-2xl mx-2 mb-1'}
+              text-amber-400 hover:bg-amber-500/10 hover:text-amber-300
+              bg-gradient-to-r from-amber-500/5 to-transparent
+            `}
+          >
+            <div className="relative transition-transform duration-300 group-hover:scale-110">
+              <Gift size={24} strokeWidth={2} />
+            </div>
+            {!isCollapsed && (
+              <span className="text-[15px] tracking-wide font-medium">Recap 2025</span>
+            )}
+            {isCollapsed && (
+              <div className="absolute left-full ml-4 px-3 py-1.5 bg-neutral-800 text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 translate-x-[-10px] group-hover:translate-x-0 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-neutral-700">
+                Recap 2025
+                <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-neutral-800 rotate-45 border-l border-b border-neutral-700"></div>
+              </div>
+            )}
+          </Link>
+        )}
       </nav>
 
       {/* 4. Stats & Profile Footer */}

@@ -62,6 +62,7 @@ import welcomeRoutes from "./routes/welcome.js"; // Welcome/onboarding routes
 import activityLeaderboardRoutes from "./routes/activityLeaderboard.js"; // Activity leaderboard routes
 import arenaRoutes from "./routes/arena.js"; // Ranked Arena routes
 import reportsRoutes from "./routes/reports.js"; // User reports routes
+import recapRoutes from "./routes/recap.js"; // Recap 2025 routes
 
 // Tạo Express app và HTTP server
 const app = express();
@@ -462,6 +463,7 @@ app.use("/api/welcome", welcomeRoutes); // Welcome/onboarding routes
 app.use("/api/activity-leaderboard", apiLimiter, activityLeaderboardRoutes); // Activity leaderboard routes
 app.use("/api/arena", apiLimiter, arenaRoutes); // Ranked Arena routes
 app.use("/api/reports", apiLimiter, reportsRoutes); // User reports routes
+app.use("/api/recap", apiLimiter, recapRoutes); // Recap 2025 routes
 app.set("io", io);
 
 // ==================== ERROR HANDLING ====================

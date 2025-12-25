@@ -82,7 +82,7 @@ export default function BottomNavBar({ user, onCreatePost }) {
     };
 
     // Don't show on certain pages
-    const hiddenPaths = ["/login", "/register", "/admin", "/cultivation", "/chat"];
+    const hiddenPaths = ["/login", "/register", "/admin", "/cultivation", "/chat", "/recap"];
     if (hiddenPaths.some(p => location.pathname.startsWith(p))) {
         return null;
     }
