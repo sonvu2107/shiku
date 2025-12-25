@@ -38,10 +38,17 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
 
   // Upvote system state
   const [upvoted, setUpvoted] = useState(() => {
-    if (!user?._id || !post.upvotes) return false;
-    return post.upvotes.some(id =>
-      (typeof id === 'string' ? id : id?.toString?.()) === user._id.toString()
-    );
+    const userId = user?._id || user?.id;
+    if (!userId || !Array.isArray(post.upvotes) || post.upvotes.length === 0) return false;
+    const userIdStr = String(userId);
+    return post.upvotes.some(id => {
+      let idStr = '';
+      if (typeof id === 'string') idStr = id;
+      else if (id?.$oid) idStr = id.$oid;
+      else if (id?._id) idStr = String(id._id);
+      else if (id?.toString) idStr = id.toString();
+      return idStr === userIdStr;
+    });
   });
   const [upvoteCount, setUpvoteCount] = useState(post.upvoteCount ?? post.emotes?.length ?? 0);
   const [upvoting, setUpvoting] = useState(false);
@@ -61,13 +68,23 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
   // Sync upvote state when post changes
   useEffect(() => {
     setUpvoteCount(post.upvoteCount ?? post.emotes?.length ?? 0);
-    if (user?._id && post.upvotes) {
-      const hasUpvoted = post.upvotes.some(id =>
-        (typeof id === 'string' ? id : id?.toString?.()) === user._id.toString()
-      );
+    const userId = user?._id || user?.id;
+    if (userId && Array.isArray(post.upvotes)) {
+      const userIdStr = String(userId);
+      const hasUpvoted = post.upvotes.some(id => {
+        let idStr = '';
+        if (typeof id === 'string') idStr = id;
+        else if (id?.$oid) idStr = id.$oid;
+        else if (id?._id) idStr = String(id._id);
+        else if (id?.toString) idStr = id.toString();
+        return idStr === userIdStr;
+      });
       setUpvoted(hasUpvoted);
+    } else if (userId) {
+      // User is logged in but upvotes array is empty
+      setUpvoted(false);
     }
-  }, [post.upvoteCount, post.upvotes, post.emotes, user?._id]);
+  }, [post.upvoteCount, post.upvotes, post.emotes, user?._id, user?.id]);
 
   // Sync saved state
   useEffect(() => {

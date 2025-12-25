@@ -195,6 +195,53 @@ export function useUpdatePostCommentCount() {
 }
 
 /**
+ * Hook to update a post's upvote state in cache
+ * Updates both the infinite query cache for sync between PostDetail and ModernPostCard
+ * @returns {Function} updateUpvote(postId, upvoted, upvoteCount, userId) 
+ */
+export function useUpdatePostUpvote() {
+    const queryClient = useQueryClient();
+
+    return (postId, upvoted, upvoteCount, userId) => {
+        // Update the post in all cached pages
+        queryClient.setQueriesData({ queryKey: ["posts"] }, (oldData) => {
+            if (!oldData?.pages) return oldData;
+
+            return {
+                ...oldData,
+                pages: oldData.pages.map(page => ({
+                    ...page,
+                    items: page.items.map(post => {
+                        if (post._id !== postId) return post;
+
+                        // Update upvotes array
+                        let newUpvotes = post.upvotes ? [...post.upvotes] : [];
+                        if (upvoted) {
+                            // Add userId if not already in array
+                            if (!newUpvotes.includes(userId)) {
+                                newUpvotes.push(userId);
+                            }
+                        } else {
+                            // Remove userId from array
+                            newUpvotes = newUpvotes.filter(id =>
+                                (typeof id === 'string' ? id : id?.toString?.()) !== userId
+                            );
+                        }
+
+                        return {
+                            ...post,
+                            upvoted,
+                            upvoteCount,
+                            upvotes: newUpvotes
+                        };
+                    })
+                }))
+            };
+        });
+    };
+}
+
+/**
  * Hook to invalidate posts cache (simple invalidation)
  * Useful when you just want to mark cache as stale
  */
@@ -205,3 +252,4 @@ export function useInvalidatePosts() {
         queryClient.invalidateQueries({ queryKey: ["posts"] });
     };
 }
+

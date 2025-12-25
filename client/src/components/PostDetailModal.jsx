@@ -18,6 +18,7 @@ import { vi } from "date-fns/locale";
 import { cn } from "../utils/cn";
 import { useToast } from "../contexts/ToastContext";
 import { useSwipeGesture } from "../hooks/useSwipeGesture";
+import { useUpdatePostUpvote } from "../hooks/usePosts";
 import {
     X,
     Eye,
@@ -47,6 +48,7 @@ export default function PostDetailModal({
 }) {
     const navigate = useNavigate();
     const { showSuccess, showError } = useToast();
+    const updatePostUpvote = useUpdatePostUpvote();
 
     // States
     const [saved, setSaved] = useState(isSavedProp);
@@ -57,10 +59,17 @@ export default function PostDetailModal({
 
     // Upvote system state
     const [upvoted, setUpvoted] = useState(() => {
-        if (!user?._id || !post?.upvotes) return false;
-        return post.upvotes.some(id =>
-            (typeof id === 'string' ? id : id?.toString?.()) === user._id.toString()
-        );
+        const userId = user?._id || user?.id;
+        if (!userId || !Array.isArray(post?.upvotes) || post.upvotes.length === 0) return false;
+        const userIdStr = String(userId);
+        return post.upvotes.some(id => {
+            let idStr = '';
+            if (typeof id === 'string') idStr = id;
+            else if (id?.$oid) idStr = id.$oid;
+            else if (id?._id) idStr = String(id._id);
+            else if (id?.toString) idStr = id.toString();
+            return idStr === userIdStr;
+        });
     });
     const [upvoteCount, setUpvoteCount] = useState(post?.upvoteCount ?? post?.emotes?.length ?? 0);
     const [upvoting, setUpvoting] = useState(false);
@@ -80,11 +89,20 @@ export default function PostDetailModal({
                     if (res?.post) {
                         // Upvote data
                         setUpvoteCount(res.post.upvoteCount ?? res.post.emotes?.length ?? 0);
-                        if (user?._id && res.post.upvotes) {
-                            const hasUpvoted = res.post.upvotes.some(id =>
-                                (typeof id === 'string' ? id : id?.toString?.()) === user._id.toString()
-                            );
+                        const userId = user?._id || user?.id;
+                        if (userId && Array.isArray(res.post.upvotes)) {
+                            const userIdStr = String(userId);
+                            const hasUpvoted = res.post.upvotes.some(id => {
+                                let idStr = '';
+                                if (typeof id === 'string') idStr = id;
+                                else if (id?.$oid) idStr = id.$oid;
+                                else if (id?._id) idStr = String(id._id);
+                                else if (id?.toString) idStr = id.toString();
+                                return idStr === userIdStr;
+                            });
                             setUpvoted(hasUpvoted);
+                        } else if (userId) {
+                            setUpvoted(false);
                         }
                     }
                 } catch (e) {
@@ -94,7 +112,7 @@ export default function PostDetailModal({
             };
             fetchFullPostData();
         }
-    }, [isOpen, post?._id, post?.slug, user?._id]);
+    }, [isOpen, post?._id, post?.slug, user?._id, user?.id]);
 
 
     useEffect(() => {
@@ -177,6 +195,11 @@ export default function PostDetailModal({
             if (res) {
                 setUpvoted(res.upvoted);
                 setUpvoteCount(res.upvoteCount);
+                // Sync with posts cache for ModernPostCard
+                const userId = user?._id || user?.id;
+                if (userId) {
+                    updatePostUpvote(post._id, res.upvoted, res.upvoteCount, userId);
+                }
             }
         } catch (error) {
             // Rollback on error
@@ -186,7 +209,7 @@ export default function PostDetailModal({
         } finally {
             setUpvoting(false);
         }
-    }, [post?._id, user, upvoted, upvoteCount, upvoting, navigate, showError]);
+    }, [post?._id, user, upvoted, upvoteCount, upvoting, navigate, showError, updatePostUpvote]);
 
     // Handle save
     const handleSave = useCallback(async () => {

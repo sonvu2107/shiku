@@ -18,7 +18,7 @@ import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 import { cn } from "../utils/cn";
 import { useToast } from "../contexts/ToastContext";
-import { useUpdatePostCommentCount } from "../hooks/usePosts";
+import { useUpdatePostCommentCount, useUpdatePostUpvote } from "../hooks/usePosts";
 import ContentWithSeeMore from "../components/ContentWithSeeMore";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -73,6 +73,7 @@ export default function PostDetail() {
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   const updatePostCommentCount = useUpdatePostCommentCount();
+  const updatePostUpvote = useUpdatePostUpvote();
   const [data, setDataRaw] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
@@ -114,14 +115,36 @@ export default function PostDetail() {
   useEffect(() => {
     if (data?.post) {
       setUpvoteCount(data.post.upvoteCount ?? data.post.emotes?.length ?? 0);
-      if (user?._id && data.post.upvotes) {
-        const hasUpvoted = data.post.upvotes.some(id =>
-          (typeof id === 'string' ? id : id?.toString?.()) === user._id.toString()
-        );
+
+      // Check if user has upvoted - handle both user.id and user._id
+      const userId = user?._id || user?.id;
+      if (userId && Array.isArray(data.post.upvotes) && data.post.upvotes.length > 0) {
+        const userIdStr = String(userId);
+        const hasUpvoted = data.post.upvotes.some(id => {
+          // Handle multiple ID formats from MongoDB:
+          // - string: "507f1f77bcf86cd799439011"
+          // - ObjectId (with toString): { toString: () => "..." }
+          // - Extended JSON: { $oid: "507f1f77bcf86cd799439011" }
+          // - Nested object: { _id: "..." }
+          let idStr = '';
+          if (typeof id === 'string') {
+            idStr = id;
+          } else if (id?.$oid) {
+            idStr = id.$oid;
+          } else if (id?._id) {
+            idStr = String(id._id);
+          } else if (id?.toString) {
+            idStr = id.toString();
+          }
+          return idStr === userIdStr;
+        });
         setUpvoted(hasUpvoted);
+      } else if (userId) {
+        // User is logged in but upvotes array is empty or undefined
+        setUpvoted(false);
       }
     }
-  }, [data?.post, user?._id]);
+  }, [data?.post, user?._id, user?.id]);
 
   useEffect(() => {
     if (!data || data.post?.slug !== slug) {
@@ -226,6 +249,11 @@ export default function PostDetail() {
       if (res) {
         setUpvoted(res.upvoted);
         setUpvoteCount(res.upvoteCount);
+        // Sync with posts cache for ModernPostCard
+        const userId = user?._id || user?.id;
+        if (userId) {
+          updatePostUpvote(data.post._id, res.upvoted, res.upvoteCount, userId);
+        }
       }
     } catch (error) {
       // Rollback on error

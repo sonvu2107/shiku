@@ -54,7 +54,42 @@ export function useMarkNotificationRead() {
       });
       return response;
     },
-    onSuccess: () => {
+    // Optimistic update - UI phản hồi ngay lập tức
+    onMutate: async (notificationId) => {
+      await queryClient.cancelQueries({ queryKey: ["notifications"] });
+      await queryClient.cancelQueries({ queryKey: ["unreadNotificationsCount"] });
+
+      const previousNotifications = queryClient.getQueryData(["notifications"]);
+      const previousUnreadCount = queryClient.getQueryData(["unreadNotificationsCount"]);
+
+      // Optimistically mark the notification as read
+      queryClient.setQueryData(["notifications"], (old) => {
+        if (!old?.notifications) return old;
+        return {
+          ...old,
+          notifications: old.notifications.map((n) =>
+            n._id === notificationId ? { ...n, read: true } : n
+          ),
+        };
+      });
+
+      // Optimistically decrement unread count
+      queryClient.setQueryData(["unreadNotificationsCount"], (old) => {
+        if (!old) return old;
+        return { unreadCount: Math.max(0, (old.unreadCount || 0) - 1) };
+      });
+
+      return { previousNotifications, previousUnreadCount };
+    },
+    onError: (_err, _notificationId, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(["notifications"], context.previousNotifications);
+      }
+      if (context?.previousUnreadCount) {
+        queryClient.setQueryData(["unreadNotificationsCount"], context.previousUnreadCount);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
     },
@@ -74,7 +109,43 @@ export function useMarkAllNotificationsRead() {
       });
       return response;
     },
-    onSuccess: () => {
+    // Optimistic update - UI phản hồi ngay lập tức
+    onMutate: async () => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["notifications"] });
+      await queryClient.cancelQueries({ queryKey: ["unreadNotificationsCount"] });
+
+      // Snapshot previous values for rollback
+      const previousNotifications = queryClient.getQueryData(["notifications"]);
+      const previousUnreadCount = queryClient.getQueryData(["unreadNotificationsCount"]);
+
+      // Optimistically update unreadCount to 0
+      queryClient.setQueryData(["unreadNotificationsCount"], { unreadCount: 0 });
+
+      // Optimistically mark all notifications as read
+      queryClient.setQueryData(["notifications"], (old) => {
+        if (!old?.notifications) return old;
+        return {
+          ...old,
+          notifications: old.notifications.map((n) => ({ ...n, read: true })),
+          unreadCount: 0,
+        };
+      });
+
+      // Return context with snapshots for rollback
+      return { previousNotifications, previousUnreadCount };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(["notifications"], context.previousNotifications);
+      }
+      if (context?.previousUnreadCount) {
+        queryClient.setQueryData(["unreadNotificationsCount"], context.previousUnreadCount);
+      }
+    },
+    onSettled: () => {
+      // Refetch to ensure data is in sync with server
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
     },
@@ -94,7 +165,49 @@ export function useDeleteNotification() {
       });
       return response;
     },
-    onSuccess: () => {
+    // Optimistic update - xóa ngay khỏi UI
+    onMutate: async (notificationId) => {
+      await queryClient.cancelQueries({ queryKey: ["notifications"] });
+      await queryClient.cancelQueries({ queryKey: ["unreadNotificationsCount"] });
+
+      const previousNotifications = queryClient.getQueryData(["notifications"]);
+      const previousUnreadCount = queryClient.getQueryData(["unreadNotificationsCount"]);
+
+      // Find the notification to check if it was unread
+      const targetNotification = previousNotifications?.notifications?.find(
+        (n) => n._id === notificationId
+      );
+      const wasUnread = targetNotification && !targetNotification.read;
+
+      // Optimistically remove the notification
+      queryClient.setQueryData(["notifications"], (old) => {
+        if (!old?.notifications) return old;
+        return {
+          ...old,
+          notifications: old.notifications.filter((n) => n._id !== notificationId),
+          total: Math.max(0, (old.total || 0) - 1),
+        };
+      });
+
+      // Optimistically decrement unread count if the deleted notification was unread
+      if (wasUnread) {
+        queryClient.setQueryData(["unreadNotificationsCount"], (old) => {
+          if (!old) return old;
+          return { unreadCount: Math.max(0, (old.unreadCount || 0) - 1) };
+        });
+      }
+
+      return { previousNotifications, previousUnreadCount };
+    },
+    onError: (_err, _notificationId, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(["notifications"], context.previousNotifications);
+      }
+      if (context?.previousUnreadCount) {
+        queryClient.setQueryData(["unreadNotificationsCount"], context.previousUnreadCount);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
     },
