@@ -106,7 +106,7 @@ const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
   return createPortal(
     <div
       ref={tooltipRef}
-      className="fixed z-[9999] w-72 max-h-[calc(100vh-20px)] overflow-y-auto bg-slate-900 border-2 border-amber-500/60 rounded-xl p-4 shadow-2xl pointer-events-none custom-scrollbar"
+      className="fixed z-[9999] w-72 max-h-[calc(100vh-20px)] overflow-y-auto bg-slate-900 border-2 border-amber-500/60 rounded-xl p-4 shadow-2xl pointer-events-none scrollbar-cultivation"
       style={tooltipStyle}
     >
       {/* Header với ảnh và tên */}

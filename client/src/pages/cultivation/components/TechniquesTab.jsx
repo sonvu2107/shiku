@@ -8,15 +8,16 @@ import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { RARITY_COLORS } from '../utils/constants.js';
 import { getItemIcon, IMAGE_COMPONENTS } from '../utils/iconHelpers.js';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
+import FlyingReward from './FlyingReward.jsx';
 
 const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
   const { cultivation, shop, loadShop, loading } = useCultivation();
   const [practicing, setPracticing] = useState(null);
   const [expGain] = useState(10); // Exp mỗi lần luyện
   const [cooldowns, setCooldowns] = useState({}); // techniqueId -> remaining seconds
-  const [searchQuery, setSearchQuery] = useState('');
   const [filterRarity, setFilterRarity] = useState('all'); // 'all', 'common', 'uncommon', 'rare', 'epic', 'legendary'
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'learned', 'notLearned'
+  const [rewardsAnimation, setRewardsAnimation] = useState([]);
 
   // Load shop data khi component mount nếu chưa có
   // Đảm bảo công pháp luôn hiển thị dù user vào tab này trước Cửa Hàng
@@ -68,16 +69,6 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
   );
 
   // Filter functions
-  const filterBySearch = (items) => {
-    if (!searchQuery.trim()) return items;
-    const query = searchQuery.toLowerCase();
-    return items.filter(item => {
-      const technique = item.technique || item;
-      return technique.name?.toLowerCase().includes(query) ||
-        technique.description?.toLowerCase().includes(query);
-    });
-  };
-
   const filterByRarity = (items) => {
     if (filterRarity === 'all') return items;
     return items.filter(item => {
@@ -93,8 +84,8 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
   };
 
   // Apply filters
-  const filteredLearned = filterByRarity(filterBySearch(learned));
-  const filteredNotLearned = filterByRarity(filterBySearch(notLearned));
+  const filteredLearned = filterByRarity(learned);
+  const filteredNotLearned = filterByRarity(notLearned);
   const { learned: finalLearned, notLearned: finalNotLearned } = filterByStatus(filteredLearned, filteredNotLearned);
 
   const getPracticeCooldown = (technique) => {
@@ -122,9 +113,44 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
     // Đang cooldown thì bỏ qua
     if (cooldowns[techniqueId] > 0) return;
 
+    // Lưu vị trí click để chạy animation (Relative to Card)
+    let startPos = { x: 50, y: 50 }; // Default fallback
+    let targetPos = { x: 0, y: 0 };
+
+    if (e && e.currentTarget) {
+      const btn = e.currentTarget;
+      const card = btn.closest('.spirit-tablet'); // Tim the cha
+
+      if (card) {
+        const btnRect = btn.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+
+        // Convert viewport coords to card-relative coords
+        startPos = {
+          x: btnRect.left - cardRect.left + btnRect.width / 2,
+          y: btnRect.top - cardRect.top + btnRect.height / 2
+        };
+
+        // Target: Left of button (Progress bar area)
+        targetPos = {
+          x: startPos.x - 120, // Move left
+          y: startPos.y - 10   // Move slightly up
+        };
+      }
+    }
+
     setPracticing(techniqueId);
     try {
       await practiceTechnique(techniqueId, expGain);
+
+      // Trigger animation with techniqueId
+      setRewardsAnimation(prev => [...prev, {
+        id: Date.now(),
+        techniqueId, // Add techniqueId to track which card
+        startPos,
+        targetPos,
+        rewards: [{ type: 'exp', amount: expGain }]
+      }]);
 
       const cd = getPracticeCooldown(technique);
       setCooldowns(prev => ({
@@ -142,81 +168,60 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
     <div className="space-y-6 pb-2">
       <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">LUYỆN CÔNG PHÁP</h3>
 
-      {/* Search & Filter Bar */}
-      <div className="spirit-tablet rounded-xl p-4 space-y-3">
-        {/* Search */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Tìm kiếm công pháp..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
-            >
-              <X size={18} />
-            </button>
-          )}
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2">
+      {/* Filter Bar */}
+      <div className="spirit-tablet rounded-xl p-4">
+        {/* Filters - Improved UI */}
+        <div className="flex flex-col sm:flex-row gap-4">
           {/* Rarity Filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 uppercase tracking-wider">Độ hiếm:</span>
-            <select
-              value={filterRarity}
-              onChange={(e) => setFilterRarity(e.target.value)}
-              className="px-3 py-1.5 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-amber-500/50"
-            >
-              <option value="all">Tất cả</option>
-              <option value="common">Thường</option>
-              <option value="uncommon">Tinh</option>
-              <option value="rare">Hiếm</option>
-              <option value="epic">Sử Thi</option>
-              <option value="legendary">Huyền Thoại</option>
-            </select>
+          <div className="flex-1 space-y-2">
+            <span className="text-xs text-slate-400 uppercase tracking-wider font-bold">Phẩm cấp</span>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'all', label: 'Tất cả', color: 'bg-slate-800 border-slate-600 text-slate-300' },
+                { id: 'common', label: 'Phàm Phẩm', color: 'bg-slate-800 border-slate-500 text-slate-300' },
+                { id: 'uncommon', label: 'Tinh Phẩm', color: 'bg-emerald-900/30 border-emerald-500/30 text-emerald-400' },
+                { id: 'rare', label: 'Hiếm Có', color: 'bg-blue-900/30 border-blue-500/30 text-blue-400' },
+                { id: 'epic', label: 'Cực Phẩm', color: 'bg-purple-900/30 border-purple-500/30 text-purple-400' },
+                { id: 'legendary', label: 'Thần Bảo', color: 'bg-amber-900/30 border-amber-500/30 text-amber-400' },
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setFilterRarity(opt.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${filterRarity === opt.id
+                    ? 'bg-amber-600 border-amber-400 text-white shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                    : `${opt.color} hover:bg-slate-700`
+                    }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Status Filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 uppercase tracking-wider">Trạng thái:</span>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-1.5 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-amber-500/50"
-            >
-              <option value="all">Tất cả</option>
-              <option value="learned">Đã học</option>
-              <option value="notLearned">Chưa học</option>
-            </select>
+          <div className="space-y-2">
+            <span className="text-xs text-slate-400 uppercase tracking-wider font-bold">Trạng thái</span>
+            <div className="flex gap-2">
+              {[
+                { id: 'all', label: 'Tất cả' },
+                { id: 'learned', label: 'Đã lĩnh ngộ' },
+                { id: 'notLearned', label: 'Chưa học' },
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setFilterStatus(opt.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${filterStatus === opt.id
+                    ? 'bg-amber-600 border-amber-400 text-white shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                    : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
+                    }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Kỹ Năng Đã Học */}
-      {skills.length > 0 && (
-        <div className="spirit-tablet rounded-xl p-5">
-          <h4 className="text-lg font-bold text-amber-400 mb-4 font-title">CÔNG PHÁP ĐÃ HỌC</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {skills.map((skill, idx) => (
-              <div key={idx} className="bg-black/40 border border-purple-500/20 p-4 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <h5 className="font-bold text-purple-300">{skill.skillName}</h5>
-                  <span className="text-xs bg-purple-900/30 text-purple-400 px-2 py-1 rounded">Lv.{skill.level}</span>
-                </div>
-                <p className="text-xs text-slate-400 mb-2">{skill.skillDescription}</p>
-                <p className="text-xs text-slate-500">Từ: {skill.techniqueName}</p>
-                <p className="text-xs text-cyan-400 mt-1">Cooldown: {skill.cooldown}s</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Công Pháp Đã Học */}
       {finalLearned.length > 0 && (
@@ -335,6 +340,18 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                     </button>
                   </div>
 
+                  {/* Local Rewards Animation */}
+                  {rewardsAnimation.filter(a => a.techniqueId === learnedItem.techniqueId).map(anim => (
+                    <FlyingReward
+                      key={anim.id}
+                      inline={true}
+                      startPos={anim.startPos}
+                      targetPos={anim.targetPos}
+                      rewards={anim.rewards}
+                      onComplete={() => setRewardsAnimation(prev => prev.filter(p => p.id !== anim.id))}
+                    />
+                  ))}
+
                   {/* Skill info - compact */}
                   {technique.skill && (
                     <div className="mt-2 pt-2 border-t border-purple-500/20 text-xs">
@@ -395,14 +412,13 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
       {finalLearned.length === 0 && finalNotLearned.length === 0 && (
         <div className="text-center text-slate-500 py-10">
           <p className="text-sm">
-            {searchQuery || filterRarity !== 'all' || filterStatus !== 'all'
+            {filterRarity !== 'all' || filterStatus !== 'all'
               ? 'Không tìm thấy công pháp phù hợp'
               : 'Chưa có công pháp nào'}
           </p>
-          {(searchQuery || filterRarity !== 'all' || filterStatus !== 'all') && (
+          {(filterRarity !== 'all' || filterStatus !== 'all') && (
             <button
               onClick={() => {
-                setSearchQuery('');
                 setFilterRarity('all');
                 setFilterStatus('all');
               }}

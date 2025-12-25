@@ -687,6 +687,9 @@ export const battleMonster = async (req, res, next) => {
                 run.completedAt = new Date();
 
                 cultivation.dungeonStats.totalDungeonsCleared = (cultivation.dungeonStats.totalDungeonsCleared || 0) + 1;
+
+                // Update quest progress cho nhiệm vụ hoàn thành bí cảnh
+                cultivation.updateQuestProgress('dungeon_clear', 1);
             }
 
             // Cập nhật quest progress cho nhiệm vụ thám hiểm bí cảnh

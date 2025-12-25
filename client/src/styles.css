@@ -1069,3 +1069,33 @@ select.appearance-none {
     animation: none !important;
   }
 }
+
+/* Cultivation Scrollbar Style */
+.scrollbar-cultivation::-webkit-scrollbar {
+  width: 4px;
+  /* Thin scrollbar */
+  height: 4px;
+  /* Thin horizontal scrollbar */
+}
+
+.scrollbar-cultivation::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+}
+
+.scrollbar-cultivation::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #d97706, #b45309);
+  /* Amber-600 to 700 */
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.scrollbar-cultivation::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #f59e0b, #d97706);
+  /* Amber-500 to 600 */
+}
+
+.scrollbar-cultivation {
+  scrollbar-width: thin;
+  scrollbar-color: #d97706 rgba(0, 0, 0, 0.2);
+}

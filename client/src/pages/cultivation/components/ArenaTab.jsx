@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../../api';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
+import FlyingReward from './FlyingReward.jsx';
 
 // ==================== CONSTANTS ====================
 
@@ -662,6 +663,7 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
     const [searchTimer, setSearchTimer] = useState(0);
     const [botOffer, setBotOffer] = useState(null);
     const [battleResult, setBattleResult] = useState(null);
+    const [rewardsAnimation, setRewardsAnimation] = useState([]); // Animation state
 
     // ==================== API CALLS ====================
 
@@ -821,9 +823,22 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
         try {
             const response = await api('/api/arena/claim-rewards', { method: 'POST' });
             if (response?.success) {
+                // Trigger FlyingReward animation
+                const animRewards = [];
+                if (response.data.exp > 0) animRewards.push({ type: 'exp', amount: response.data.exp });
+                if (response.data.spiritStones > 0) animRewards.push({ type: 'stone', amount: response.data.spiritStones });
+
+                if (animRewards.length > 0) {
+                    setRewardsAnimation(prev => [...prev, {
+                        id: Date.now(),
+                        startPos: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+                        rewards: animRewards
+                    }]);
+                }
+
                 await fetchSeasonData();
                 await fetchRankData();
-                alert(`Nhận thưởng thành công! +${response.data.spiritStones} Linh Thạch, +${response.data.exp} EXP`);
+                // alert(`Nhận thưởng thành công! +${response.data.spiritStones} Linh Thạch, +${response.data.exp} EXP`);
             }
         } catch (error) {
             alert(error.message || 'Không thể nhận thưởng');
@@ -855,7 +870,7 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-cultivation">
                 {[
                     { id: 'rank', label: 'Xếp Hạng' },
                     { id: 'history', label: 'Lịch Sử' }
@@ -866,7 +881,7 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                         className={`
               px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap
               ${activeView === tab.id
-                                ? 'bg-amber-600 text-amber-100'
+                                ? 'bg-amber-600 text-amber-100 shadow-lg shadow-amber-900/50 border border-amber-400/50'
                                 : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700/50'
                             }
             `}
@@ -947,6 +962,16 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                     />
                 )}
             </AnimatePresence>
+
+            {/* Rewards Animation */}
+            {rewardsAnimation.map(anim => (
+                <FlyingReward
+                    key={anim.id}
+                    startPos={anim.startPos}
+                    rewards={anim.rewards}
+                    onComplete={() => setRewardsAnimation(prev => prev.filter(p => p.id !== anim.id))}
+                />
+            ))}
         </div>
     );
 });

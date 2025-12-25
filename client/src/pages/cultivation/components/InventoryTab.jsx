@@ -183,6 +183,7 @@ const InventoryTab = memo(function InventoryTab() {
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [lootboxResult, setLootboxResult] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [rewardsAnimation, setRewardsAnimation] = useState([]); // Animation state
   const itemsPerPage = 12;
   const isProcessingRef = useRef(false); // Sync ref to prevent double-clicks
 
@@ -256,8 +257,17 @@ const InventoryTab = memo(function InventoryTab() {
     }
   };
 
-  const handleUse = async (itemId) => {
-    // Synchronous check using ref (prevents clicks within same event loop)
+  const handleUse = async (itemId, e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
+    // Capture click position before async op
+    let startPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    if (e && e.currentTarget) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      startPos = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
+
     if (isProcessingRef.current) return;
     isProcessingRef.current = true;
 
@@ -265,6 +275,24 @@ const InventoryTab = memo(function InventoryTab() {
     try {
       if (useItem) {
         const result = await useItem(itemId);
+
+        // Trigger FlyingReward if there is a direct reward (exp/money)
+        if (result?.reward) {
+          const { type, amount, spiritStones, exp } = result.reward;
+          const rewards = [];
+
+          if (type === 'exp' || exp > 0) rewards.push({ type: 'exp', amount: amount || exp });
+          if (type === 'money' || type === 'spirit_stones' || spiritStones > 0) rewards.push({ type: 'stone', amount: amount || spiritStones });
+
+          if (rewards.length > 0) {
+            setRewardsAnimation(prev => [...prev, {
+              id: Date.now(),
+              startPos,
+              rewards
+            }]);
+          }
+        }
+
         // Kiểm tra nếu là loot box result
         if (result?.reward?.type === 'lootbox' && result?.reward?.droppedItem) {
           setLootboxResult(result.reward.droppedItem);
@@ -489,9 +517,9 @@ const InventoryTab = memo(function InventoryTab() {
                   setActiveSubCategory('all');
                   setCurrentPage(1);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === cat.id
-                  ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300'
-                  : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${activeCategory === cat.id
+                  ? 'bg-emerald-600 border-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                  : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
                   }`}
               >
                 {cat.label}
@@ -515,9 +543,9 @@ const InventoryTab = memo(function InventoryTab() {
                 <button
                   key={sub.id}
                   onClick={() => { setActiveSubCategory(sub.id); setCurrentPage(1); }}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${activeSubCategory === sub.id
-                    ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300'
-                    : 'bg-slate-700/30 border border-slate-600/50 text-slate-400 hover:text-slate-300'
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all border ${activeSubCategory === sub.id
+                    ? 'bg-amber-600 border-amber-400 text-white shadow-[0_0_8px_rgba(245,158,11,0.3)]'
+                    : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
                     }`}
                 >
                   {sub.label}
@@ -796,7 +824,7 @@ const InventoryTab = memo(function InventoryTab() {
                     </div>
                   </div>
                   <motion.button
-                    onClick={() => consumable ? handleUse(item.itemId) : handleEquip(item, equipped)}
+                    onClick={(e) => consumable ? handleUse(item.itemId, e) : handleEquip(item, equipped)}
                     disabled={!!equipping}
                     className={`rounded-lg px-4 py-2 text-xs font-bold uppercase transition-all min-w-[70px] ${consumable
                       ? 'bg-orange-900/30 hover:bg-orange-800/50 border border-orange-500/30 text-orange-300'
@@ -830,6 +858,16 @@ const InventoryTab = memo(function InventoryTab() {
           position={tooltipPosition}
         />
       )}
+
+      {/* Rewards Animation */}
+      {rewardsAnimation.map(anim => (
+        <FlyingReward
+          key={anim.id}
+          startPos={anim.startPos}
+          rewards={anim.rewards}
+          onComplete={() => setRewardsAnimation(prev => prev.filter(p => p.id !== anim.id))}
+        />
+      ))}
 
       {/* Loot Box Result Modal */}
       <AnimatePresence>

@@ -71,7 +71,7 @@ const CharacterAppearanceModal = memo(function CharacterAppearanceModal({
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <motion.div
-                    className="bg-slate-900 border-2 border-amber-500/40 rounded-xl sm:rounded-2xl p-3 sm:p-5 w-full max-w-[320px] sm:max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto"
+                    className="bg-slate-900 border-2 border-amber-500/40 rounded-xl sm:rounded-2xl p-3 sm:p-5 w-full max-w-[320px] sm:max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto scrollbar-cultivation"
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}

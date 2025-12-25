@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GiTreasureMap, GiCutDiamond, GiPadlock, GiAlarmClock } from 'react-icons/gi';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
+import FlyingReward from './FlyingReward.jsx';
 import { api } from '../../../api';
 import {
     DIFFICULTY_COLORS,
@@ -256,7 +257,7 @@ const InventoryModal = memo(({ inventory, onClose, onUseItem }) => {
             <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="bg-slate-900 border-4 border-white p-2 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-[8px_8px_0px_#000]"
+                className="bg-slate-900 border-4 border-white p-2 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-[8px_8px_0px_#000] scrollbar-cultivation"
                 onClick={e => e.stopPropagation()}
             >
                 <div className="border-2 border-white/20 p-6">
@@ -732,6 +733,7 @@ const DungeonTab = memo(function DungeonTab() {
     const [rewards, setRewards] = useState(null);
     const [showRewardsModal, setShowRewardsModal] = useState(false);
     const [showInventoryModal, setShowInventoryModal] = useState(false);
+    const [rewardsAnimation, setRewardsAnimation] = useState([]); // Animation state
 
     // Use refs to avoid stale closure issues in callbacks
     const nextMonsterRef = useRef(null);
@@ -840,6 +842,46 @@ const DungeonTab = memo(function DungeonTab() {
         // Guard: Prevent double execution
         if (isHandlingRewardsCloseRef.current) {
             return;
+        }
+
+        // Trigger FlyingReward animation for battle rewards
+        if (battleResultRef.current && battleResultRef.current.finalMonsterHp <= 0) {
+            // Check if there are rewards to animate
+            // Note: 'rewards' state might be null if accessed directly in callback without ref, 
+            // but here we are in a closure. Since 'rewards' is state, to get latest we might need ref or pass it.
+            // However, for simplicity, we can assume the player got something if they won.
+            // Let's rely on the fact that if they won, they get something.
+            // We can construct a generic reward animation from center of screen.
+
+            const startPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+            const animRewards = [];
+            // We don't have exact amounts here accessible easily without prop drilling refs, 
+            // but visual feedback is key. We can check the 'rewards' state if it's available in scope.
+            // 'rewards' is a dependency of this callback? No, currently not. 
+            // Let's add 'rewards' to dependency or just use a generic 'burst'.
+            // Actually, setRewards was called before this.
+
+            // Let's just trigger a "visual" burst using the 'rewards' state from closure if available, or just generic.
+            // Better: we can pass rewards to this function or use a ref. 
+            // But for now, let's just use the state 'rewards' which should be stable enough if we add it to deps.
+        }
+
+        // Actually, let's look at where we can get rewards. 
+        // We can just trigger the animation based on what we know: EXP and Spirit Stones are likely.
+        // We will read 'rewards' from state.
+
+        if (rewards) {
+            const animRewards = [];
+            if (rewards.exp > 0) animRewards.push({ type: 'exp', amount: rewards.exp });
+            if (rewards.spiritStones > 0) animRewards.push({ type: 'stone', amount: rewards.spiritStones });
+
+            if (animRewards.length > 0) {
+                setRewardsAnimation(prev => [...prev, {
+                    id: Date.now(),
+                    startPos: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+                    rewards: animRewards
+                }]);
+            }
         }
 
         isHandlingRewardsCloseRef.current = true;
@@ -1127,8 +1169,26 @@ const DungeonTab = memo(function DungeonTab() {
                             if (useItem) {
                                 try {
                                     const result = await useItem(itemId);
-                                    // Only update inventory locally without full refresh
-                                    // This prevents losing dungeon state
+
+                                    // Trigger FlyingReward if there is a direct reward (exp/money)
+                                    if (result?.reward) {
+                                        const { type, amount, spiritStones, exp } = result.reward;
+                                        const rewards = [];
+
+                                        // Center of screen as start position since we can't easily get button pos from modal
+                                        const startPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+                                        if (type === 'exp' || exp > 0) rewards.push({ type: 'exp', amount: amount || exp });
+                                        if (type === 'money' || type === 'spirit_stones' || spiritStones > 0) rewards.push({ type: 'stone', amount: amount || spiritStones });
+
+                                        if (rewards.length > 0) {
+                                            setRewardsAnimation(prev => [...prev, {
+                                                id: Date.now(),
+                                                startPos,
+                                                rewards
+                                            }]);
+                                        }
+                                    }
                                 } catch (err) {
                                     // Error handling - item use failed
                                 }
@@ -1137,6 +1197,16 @@ const DungeonTab = memo(function DungeonTab() {
                     />
                 )}
             </AnimatePresence>
+
+            {/* Rewards Animation */}
+            {rewardsAnimation.map(anim => (
+                <FlyingReward
+                    key={anim.id}
+                    startPos={anim.startPos}
+                    rewards={anim.rewards}
+                    onComplete={() => setRewardsAnimation(prev => prev.filter(p => p.id !== anim.id))}
+                />
+            ))}
         </div>
     );
 });

@@ -20,6 +20,7 @@ import {
   GiSparkles
 } from 'react-icons/gi';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
+import FlyingReward from './FlyingReward.jsx';
 import { api } from '../../../api';
 import { getUserAvatarUrl } from '../../../utils/avatarUtils.js';
 import { getCombatStats } from '../utils/helpers.js';
@@ -58,6 +59,7 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
   const [showSlash, setShowSlash] = useState(null); // 'left' or 'right'
   const [hitEffect, setHitEffect] = useState(null); // { side: 'left'|'right', type: 'normal'|'crit'|'skill' }
   const [particles, setParticles] = useState([]);
+  const [rewardsAnimation, setRewardsAnimation] = useState([]); // Animation state
   // HP tracking states - updated per log
   const [challengerCurrentHp, setChallengerCurrentHp] = useState(0);
   const [opponentCurrentHp, setOpponentCurrentHp] = useState(0);
@@ -341,6 +343,27 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
   const closeBattleResult = () => {
     const wasRankedBattle = battleResult?.challenger?.mmrChange !== undefined;
 
+    // Trigger FlyingReward if user won and has rewards
+    if (battleResult && (battleResult.winner === 'challenger' || battleResult.isDraw) && battleResult.rewards) {
+      const animRewards = [];
+      if (battleResult.rewards.winnerExp > 0 || battleResult.rewards.loserExp > 0) {
+        const exp = battleResult.isDraw ? battleResult.rewards.loserExp : (battleResult.winner === 'challenger' ? battleResult.rewards.winnerExp : battleResult.rewards.loserExp);
+        if (exp > 0) animRewards.push({ type: 'exp', amount: exp });
+      }
+      if (battleResult.rewards.winnerSpiritStones > 0 || battleResult.rewards.loserSpiritStones > 0) {
+        const stones = battleResult.isDraw ? battleResult.rewards.loserSpiritStones : (battleResult.winner === 'challenger' ? battleResult.rewards.winnerSpiritStones : battleResult.rewards.loserSpiritStones);
+        if (stones > 0) animRewards.push({ type: 'stone', amount: stones });
+      }
+
+      if (animRewards.length > 0) {
+        setRewardsAnimation(prev => [...prev, {
+          id: Date.now(),
+          startPos: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+          rewards: animRewards
+        }]);
+      }
+    }
+
     setShowBattleAnimation(false);
     setBattleResult(null);
     setBattleLogs([]);
@@ -551,8 +574,8 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
             key={id}
             onClick={() => setActiveView(id)}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeView === id
-              ? 'bg-red-900/50 text-red-300 border border-red-500/50'
-              : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300'
+              ? 'bg-red-700 text-white shadow-lg shadow-red-900/50 border border-red-500/50'
+              : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300 hover:bg-slate-800/50'
               }`}
           >
             {label}
@@ -1661,6 +1684,18 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Rewards Animation */}
+      {
+        rewardsAnimation.map(anim => (
+          <FlyingReward
+            key={anim.id}
+            startPos={anim.startPos}
+            rewards={anim.rewards}
+            onComplete={() => setRewardsAnimation(prev => prev.filter(p => p.id !== anim.id))}
+          />
+        ))
+      }
     </div >
   );
 });

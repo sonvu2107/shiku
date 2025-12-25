@@ -165,7 +165,7 @@ const ShopTab = memo(function ShopTab() {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         {/* Main Categories - Horizontal scroll on mobile */}
-        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide flex-1 w-full sm:w-auto">
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 sm:pb-0 scrollbar-cultivation flex-1 w-full sm:w-auto">
           <div className="flex gap-2 min-w-max sm:flex-wrap sm:min-w-0">
             {parentCategories.map(cat => (
               <button
@@ -175,9 +175,9 @@ const ShopTab = memo(function ShopTab() {
                   setSubCategory('all'); // Reset sub category when changing parent
                   setCurrentPage(1);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === cat.id
-                  ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300'
-                  : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300'
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${activeCategory === cat.id
+                  ? 'bg-amber-600 border-amber-400 text-white shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                  : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
                   }`}
               >
                 {cat.label}
@@ -197,15 +197,15 @@ const ShopTab = memo(function ShopTab() {
       </div>
 
       {subCategories[activeCategory] && (
-        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 animate-in fade-in slide-in-from-top-2 duration-300 scrollbar-hide">
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 animate-in fade-in slide-in-from-top-2 duration-300 scrollbar-cultivation">
           <div className="flex gap-2 min-w-max sm:flex-wrap sm:min-w-0">
             {subCategories[activeCategory].map(sub => (
               <button
                 key={sub.id}
                 onClick={() => { setSubCategory(sub.id); setCurrentPage(1); }}
-                className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all ${subCategory === sub.id
-                  ? 'bg-slate-700 text-amber-300 border border-amber-500/30'
-                  : 'bg-slate-800/30 text-slate-400 border border-transparent hover:bg-slate-700/50'
+                className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all border ${subCategory === sub.id
+                  ? 'bg-slate-700 text-amber-300 border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
+                  : 'bg-slate-800/30 text-slate-400 border-transparent hover:bg-slate-700/50 hover:text-slate-300'
                   }`}
               >
                 {sub.label}

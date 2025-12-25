@@ -97,6 +97,10 @@ export const breakthrough = async (req, res, next) => {
             cultivation.breakthroughFailureCount = 0;
             cultivation.breakthroughSuccessRate = baseRates[nextRealm.level] || 30;
             cultivation.breakthroughCooldownUntil = null;
+
+            // Cập nhật achievement realm
+            cultivation.updateQuestProgress('realm', nextRealm.level);
+
             await cultivation.save();
             res.json({ success: true, breakthroughSuccess: true, message: `Chúc mừng! Đạt cảnh giới ${nextRealm.name}!`, data: { oldRealm: oldRealm.name, newRealm: nextRealm, successRate: currentSuccessRate, usedPill: usedPill ? { name: usedPill.name, bonus: breakthroughBonus } : null, cultivation: await formatCultivationResponse(cultivation) } });
         } else {

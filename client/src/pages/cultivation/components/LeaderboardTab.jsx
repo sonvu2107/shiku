@@ -138,8 +138,8 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
         <button
           onClick={() => setActiveTab('realm')}
           className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'realm'
-            ? 'bg-amber-900/50 text-amber-300 border border-amber-500/50'
-            : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300'
+            ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/50 border border-amber-500/50'
+            : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300 hover:bg-slate-800/50'
             }`}
         >
           Cảnh Giới
@@ -147,8 +147,8 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
         <button
           onClick={() => setActiveTab('pk')}
           className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'pk'
-            ? 'bg-red-900/50 text-red-300 border border-red-500/50'
-            : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300'
+            ? 'bg-red-700 text-white shadow-lg shadow-red-900/50 border border-red-500/50'
+            : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300 hover:bg-slate-800/50'
             }`}
         >
           Luận Võ
@@ -156,8 +156,8 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
         <button
           onClick={() => setActiveTab('arena')}
           className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'arena'
-            ? 'bg-purple-900/50 text-purple-300 border border-purple-500/50'
-            : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300'
+            ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50 border border-purple-500/50'
+            : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300 hover:bg-slate-800/50'
             }`}
         >
           Võ Đài
@@ -290,9 +290,9 @@ const LeaderboardTab = memo(function LeaderboardTab({ isAdmin = false }) {
                   }`}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-amber-500 text-black' :
-                    idx === 1 ? 'bg-slate-400 text-black' :
-                      idx === 2 ? 'bg-amber-700 text-white' :
-                        'bg-slate-700 text-slate-300'
+                  idx === 1 ? 'bg-slate-400 text-black' :
+                    idx === 2 ? 'bg-amber-700 text-white' :
+                      'bg-slate-700 text-slate-300'
                   }`}>
                   {player.rank || idx + 1}
                 </div>

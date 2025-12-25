@@ -1,9 +1,10 @@
 /**
  * Dashboard Tab - Main cultivation interface
  */
-import { memo } from 'react';
-import { motion } from 'framer-motion';
+import { useState, memo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CULTIVATION_REALMS } from '../../../services/cultivationAPI.js';
+import FlyingReward from './FlyingReward.jsx';
 
 const DashboardTab = memo(function DashboardTab({
   cultivation,
@@ -24,6 +25,7 @@ const DashboardTab = memo(function DashboardTab({
   setLogExpanded,
   logEndRef
 }) {
+  const [rewardsAnimation, setRewardsAnimation] = useState([]); // Animation state
   // Tính tỷ lệ thành công cho độ kiếp dựa trên cảnh giới
   const baseSuccessRatesByRealm = {
     1: 90,  // Phàm Nhân -> Luyện Khí: 90%
@@ -150,7 +152,16 @@ const DashboardTab = memo(function DashboardTab({
               src="/assets/yinyang.png"
               alt="Âm Dương"
               className="yinyang"
-              onClick={onYinYangClick}
+              onClick={(e) => {
+                onYinYangClick(e);
+                // Trigger small EXP flying reward
+                const rect = e.target.getBoundingClientRect();
+                setRewardsAnimation(prev => [...prev, {
+                  id: Date.now(),
+                  startPos: { x: e.clientX || (rect.left + rect.width / 2), y: e.clientY || (rect.top + rect.height / 2) },
+                  rewards: [{ type: 'exp', amount: 1 }] // Visual only, accurate amount handled by backend log
+                }]);
+              }}
               onMouseDown={(e) => e.preventDefault()}
               tabIndex={-1}
               whileTap={{ scale: 0.9 }}
@@ -190,7 +201,7 @@ const DashboardTab = memo(function DashboardTab({
             </h4>
           </button>
           <div
-            className={`bg-black/50 rounded-xl border-2 border-cyan-500/10 p-3 overflow-y-auto custom-scrollbar font-cultivation text-[11px] leading-5 transition-all duration-300 relative ${logExpanded ? 'h-40' : 'h-16'}`}
+            className={`bg-black/50 rounded-xl border-2 border-cyan-500/10 p-3 overflow-y-auto scrollbar-cultivation font-cultivation text-[11px] leading-5 transition-all duration-300 relative ${logExpanded ? 'h-40' : 'h-16'}`}
             style={{
               backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.05) 0%, transparent 50%)'
             }}
@@ -365,7 +376,17 @@ const DashboardTab = memo(function DashboardTab({
         </div>
 
         <motion.button
-          onClick={onCollectPassiveExp}
+          onClick={(e) => {
+            onCollectPassiveExp(e);
+            if (passiveExpStatus?.pendingExp > 0) {
+              const rect = e.target.getBoundingClientRect();
+              setRewardsAnimation(prev => [...prev, {
+                id: Date.now(),
+                startPos: { x: e.clientX || (rect.left + rect.width / 2), y: e.clientY || (rect.top + rect.height / 2) },
+                rewards: [{ type: 'exp', amount: passiveExpStatus.pendingExp }]
+              }]);
+            }
+          }}
           disabled={collectingPassiveExp || (passiveExpStatus?.pendingExp || 0) < 1}
           className={`w-full py-3 px-4 rounded-xl font-bold uppercase tracking-wide transition-all ${(passiveExpStatus?.pendingExp || 0) >= 1
             ? 'bg-gradient-to-r from-emerald-700 to-emerald-900 text-emerald-100 border border-emerald-500/30 hover:from-emerald-600 hover:to-emerald-800 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
@@ -387,7 +408,7 @@ const DashboardTab = memo(function DashboardTab({
         <h3 className="font-bold text-gold mb-5 font-title tracking-wide text-lg">
           CỬU TRỌNG CẢNH GIỚI
         </h3>
-        <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+        <div className="space-y-3 max-h-80 overflow-y-auto scrollbar-cultivation pr-2">
           {CULTIVATION_REALMS.map((realm) => {
             const isCurrent = cultivation.realm?.level === realm.level;
             const isUnlocked = cultivation.exp >= realm.minExp;
@@ -427,6 +448,16 @@ const DashboardTab = memo(function DashboardTab({
           })}
         </div>
       </div>
+
+      {/* Rewards Animation */}
+      {rewardsAnimation.map(anim => (
+        <FlyingReward
+          key={anim.id}
+          startPos={anim.startPos}
+          rewards={anim.rewards}
+          onComplete={() => setRewardsAnimation(prev => prev.filter(p => p.id !== anim.id))}
+        />
+      ))}
     </div>
   );
 });

@@ -331,13 +331,12 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
 
           {/* Tooltip Content */}
           <div
-            className={`fixed z-[9999] 
-              ${window.innerWidth < 768 ? 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-32px)]' : 'w-[300px]'}
-              max-w-xs max-h-[80vh] md:max-h-[400px] overflow-y-auto
-              bg-slate-900/95 backdrop-blur-sm
-              border-2 border-amber-500/60 
-              rounded-xl p-3 md:p-4 
-              shadow-2xl`}
+            className={`fixed z-[9999] ${window.innerWidth < 768 ? 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-32px)]' : 'w-[300px]'}
+            max-w-xs max-h-[80vh] md:max-h-[400px] overflow-y-auto scrollbar-cultivation
+            bg-slate-900/95 backdrop-blur-sm
+            border-2 border-amber-500/60
+            rounded-xl p-3 md:p-4
+            shadow-2xl`}
             style={window.innerWidth >= 768 ? {
               left: `${tooltipPosition.left}px`,
               top: `${tooltipPosition.top}px`,
@@ -480,11 +479,12 @@ const WeaponSlot = memo(function WeaponSlot({ slotName, slotType, icon: Icon, ic
                 </div>
               )}
             </div>
-          </div>
+          </div >
         </>,
         document.body
-      )}
-    </motion.div>
+      )
+      }
+    </motion.div >
   );
 });
 

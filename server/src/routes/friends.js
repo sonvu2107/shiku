@@ -152,6 +152,17 @@ router.post('/accept-request/:requestId', authRequired, async (req, res) => {
 
     // Invalidate friend suggestions cache for both users
     invalidateByPattern('friendsug:*').catch(() => { });
+
+    // Cộng EXP và cập nhật nhiệm vụ kết bạn cho cả 2 người
+    try {
+      const { addExpForAction } = await import('../services/cultivationService.js');
+      // Người chấp nhận (current user)
+      await addExpForAction(userId, 'friend', { description: `Quy y kết bạn với ${friendRequest.from.name}` });
+      // Người gửi (sender)
+      await addExpForAction(friendRequest.from, 'friend', { description: `Được ${req.user.name} chấp nhận kết bạn` });
+    } catch (expError) {
+      console.error('[FRIENDS] Error adding exp:', expError);
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

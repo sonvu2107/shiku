@@ -270,7 +270,7 @@ function LeftSidebar({ user, setUser }) {
       </div>
 
       {/* 3. Main Navigation */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-neutral-800 scrollbar-track-transparent py-2">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide py-2">
         {menuItems.map((item) => <NavItem key={item.path} item={item} />)}
 
         {/* Recap 2025 Button - Special item */}

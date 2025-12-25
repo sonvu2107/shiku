@@ -139,7 +139,7 @@ const IdentityHeader = memo(function IdentityHeader({ cultivation, currentRealm 
                   <X size={14} />
                 </button>
               </div>
-              <div className="p-3 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+              <div className="p-3 space-y-2 max-h-96 overflow-y-auto scrollbar-cultivation">
                 {/* Advanced Stats */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex justify-between">

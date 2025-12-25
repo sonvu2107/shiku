@@ -116,16 +116,28 @@ export const QUEST_TEMPLATES = {
   weekly: [
     { id: "weekly_posts", name: "Tinh cần tu luyện", description: "Đăng 7 bài viết trong tuần", expReward: 200, spiritStoneReward: 100, type: "weekly", requirement: { action: "post", count: 7 } },
     { id: "weekly_social", name: "Kết giao đạo hữu", description: "Kết bạn với 3 người", expReward: 150, spiritStoneReward: 80, type: "weekly", requirement: { action: "friend", count: 3 } },
-    { id: "weekly_event", name: "Tham gia hội đạo", description: "Tham gia 1 sự kiện", expReward: 100, spiritStoneReward: 50, type: "weekly", requirement: { action: "event", count: 1 } }
+    { id: "weekly_event", name: "Tham gia hội đạo", description: "Tham gia 1 sự kiện", expReward: 100, spiritStoneReward: 50, type: "weekly", requirement: { action: "event", count: 1 } },
+    // === NHIỆM VỤ BÍ CẢNH ===
+    { id: "weekly_dungeon_clear", name: "Chinh phục bí cảnh", description: "Hoàn thành 1 bí cảnh (clear full)", expReward: 300, spiritStoneReward: 150, type: "weekly", requirement: { action: "dungeon_clear", count: 1 } },
+    { id: "weekly_dungeon_master", name: "Bí cảnh đại sư", description: "Hoàn thành 3 bí cảnh trong tuần", expReward: 600, spiritStoneReward: 300, type: "weekly", requirement: { action: "dungeon_clear", count: 3 } }
   ],
   achievement: [
     { id: "first_post", name: "Bước đầu nhập đạo", description: "Đăng bài viết đầu tiên", expReward: 50, spiritStoneReward: 30, type: "achievement", requirement: { action: "post", count: 1 } },
     { id: "social_butterfly", name: "Nhân duyên quảng đại", description: "Có 10 bạn bè", expReward: 100, spiritStoneReward: 50, type: "achievement", requirement: { action: "friend", count: 10 } },
     { id: "popular_post", name: "Danh tiếng nổi khắp", description: "Có bài viết được 50 upvote", expReward: 200, spiritStoneReward: 100, type: "achievement", requirement: { action: "post_upvotes", count: 50 } },
+    // === LOGIN STREAK MILESTONES ===
     { id: "streak_7", name: "Kiên trì tu luyện", description: "Đăng nhập 7 ngày liên tục", expReward: 150, spiritStoneReward: 70, type: "achievement", requirement: { action: "login_streak", count: 7 } },
     { id: "streak_30", name: "Đạo tâm kiên định", description: "Đăng nhập 30 ngày liên tục", expReward: 500, spiritStoneReward: 250, type: "achievement", requirement: { action: "login_streak", count: 30 } },
+    { id: "streak_60", name: "Tu luyện bất khuất", description: "Đăng nhập 60 ngày liên tục", expReward: 1000, spiritStoneReward: 500, type: "achievement", requirement: { action: "login_streak", count: 60 } },
+    { id: "streak_90", name: "Đạo cốt phi phàm", description: "Đăng nhập 90 ngày liên tục", expReward: 2000, spiritStoneReward: 1000, type: "achievement", requirement: { action: "login_streak", count: 90 } },
+    { id: "streak_365", name: "Thiên Đạo Vĩnh Hằng", description: "Đăng nhập 365 ngày liên tục", expReward: 10000, spiritStoneReward: 5000, type: "achievement", requirement: { action: "login_streak", count: 365 } },
+    // === REALM ACHIEVEMENTS ===
     { id: "realm_jindan", name: "Kim Đan thành tựu", description: "Đạt cảnh giới Kim Đan", expReward: 0, spiritStoneReward: 500, type: "achievement", requirement: { action: "realm", count: 4 } },
-    { id: "realm_yuanying", name: "Nguyên Anh xuất thế", description: "Đạt cảnh giới Nguyên Anh", expReward: 0, spiritStoneReward: 1000, type: "achievement", requirement: { action: "realm", count: 5 } }
+    { id: "realm_yuanying", name: "Nguyên Anh xuất thế", description: "Đạt cảnh giới Nguyên Anh", expReward: 0, spiritStoneReward: 1000, type: "achievement", requirement: { action: "realm", count: 5 } },
+    // === DUNGEON ACHIEVEMENTS ===
+    { id: "dungeon_first_clear", name: "Sơ nhập bí cảnh", description: "Hoàn thành bí cảnh đầu tiên", expReward: 100, spiritStoneReward: 50, type: "achievement", requirement: { action: "dungeon_clear", count: 1 } },
+    { id: "dungeon_explorer", name: "Bí cảnh thám hiểm gia", description: "Hoàn thành 10 bí cảnh", expReward: 500, spiritStoneReward: 250, type: "achievement", requirement: { action: "dungeon_clear", count: 10 } },
+    { id: "dungeon_master", name: "Bí cảnh chí tôn", description: "Hoàn thành 50 bí cảnh", expReward: 2000, spiritStoneReward: 1000, type: "achievement", requirement: { action: "dungeon_clear", count: 50 } }
   ]
 };
 
@@ -485,6 +497,13 @@ CultivationSchema.methods.calculateCombatStats = function () {
   // Tích hợp equipment stats (async - sẽ được gọi riêng nếu cần)
   // Equipment stats sẽ được tính riêng qua getEquipmentStats() và merge ở route level
 
+  // ==================== HARD CAPS FOR PERCENTAGE STATS ====================
+  // Apply hard caps to prevent overpowered builds
+  finalStats.dodge = Math.min(50, finalStats.dodge);           // Max 50% dodge
+  finalStats.criticalRate = Math.min(60, finalStats.criticalRate); // Max 60% crit rate
+  finalStats.accuracy = Math.min(100, finalStats.accuracy);    // Max 100% accuracy
+  finalStats.lifesteal = Math.min(30, finalStats.lifesteal);   // Max 30% lifesteal
+
   return finalStats;
 };
 
@@ -499,26 +518,30 @@ CultivationSchema.methods.practiceTechnique = function (techniqueId, expGain = 1
     throw new Error("Bạn chưa học công pháp này");
   }
 
-  // Exp cần để lên cấp: level * 100
-  const expNeeded = learned.level * 100;
-
   learned.exp += expGain;
   learned.lastPracticedAt = new Date();
 
-  // Kiểm tra lên cấp
+  // Kiểm tra lên cấp - recalculate expNeeded each iteration
   let leveledUp = false;
-  while (learned.exp >= expNeeded && learned.level < 10) {
-    learned.exp -= expNeeded;
-    learned.level += 1;
-    leveledUp = true;
+  while (learned.level < 10) {
+    const expNeeded = learned.level * 100; // Recalculate based on current level
+    if (learned.exp >= expNeeded) {
+      learned.exp -= expNeeded;
+      learned.level += 1;
+      leveledUp = true;
+    } else {
+      break;
+    }
   }
 
   // Giới hạn exp ở level 10
+  // Cap exp at max for level 10
   if (learned.level >= 10) {
-    learned.exp = Math.min(learned.exp, expNeeded - 1);
+    const maxExpAtLevel10 = 10 * 100 - 1; // 999
+    learned.exp = Math.min(learned.exp, maxExpAtLevel10);
   }
 
-  return { leveledUp, newLevel: learned.level, currentExp: learned.exp, expNeeded };
+  return { leveledUp, newLevel: learned.level, currentExp: learned.exp, expNeeded: learned.level * 100 };
 };
 
 /**
@@ -620,9 +643,10 @@ CultivationSchema.methods.addExp = function (amount, source, description = "") {
     }
   }
 
-  // Thêm bonus từ pet (cộng dồn)
+  // Thêm bonus từ pet (dùng Math.max để nhất quán với boost logic)
   const petBonuses = this.getPetBonuses();
-  const petExpMultiplier = 1 + petBonuses.expBonus;
+  // Pet exp bonus: chọn giá trị cao nhất thay vì cộng dồn
+  const petExpMultiplier = petBonuses.expBonus > 0 ? Math.max(1, 1 + petBonuses.expBonus) : 1;
 
   const finalAmount = Math.floor(amount * multiplier * petExpMultiplier);
   const oldExp = this.exp;
@@ -852,12 +876,18 @@ CultivationSchema.methods.processLogin = function () {
   const baseStones = 10;
   const streakStoneBonus = Math.min(this.loginStreak * 2, 20);
 
-  // Milestone bonuses cho streak 7 và 30
+  // Milestone bonuses cho streak 7, 30, 60, 90, 365
   let milestoneBonus = 0;
   if (this.loginStreak === 7) {
     milestoneBonus = 70;
   } else if (this.loginStreak === 30) {
     milestoneBonus = 250;
+  } else if (this.loginStreak === 60) {
+    milestoneBonus = 500;
+  } else if (this.loginStreak === 90) {
+    milestoneBonus = 1000;
+  } else if (this.loginStreak === 365) {
+    milestoneBonus = 5000;
   }
 
   const totalStones = baseStones + streakStoneBonus + milestoneBonus;
@@ -947,8 +977,93 @@ CultivationSchema.methods.resetWeeklyQuests = function () {
 };
 
 /**
- * Cập nhật tiến độ nhiệm vụ
+ * Sync tiến độ achievements từ dữ liệu hiện có của user (retroactive)
+ * Gọi method này khi user login hoặc khi init achievements lần đầu
+ * @param {Object} options - Optional data từ bên ngoài
+ * @param {number} options.friendsCount - Số bạn bè hiện tại của user
  */
+CultivationSchema.methods.syncAchievementsProgress = function (options = {}) {
+  // Khởi tạo achievements nếu chưa có
+  if (!this.achievements || this.achievements.length === 0) {
+    this.achievements = QUEST_TEMPLATES.achievement.map(quest => ({
+      questId: quest.id,
+      progress: 0,
+      completed: false,
+      claimed: false
+    }));
+  }
+
+  // Thêm các achievements mới nếu có
+  for (const template of QUEST_TEMPLATES.achievement) {
+    const existing = this.achievements.find(a => a.questId === template.id);
+    if (!existing) {
+      this.achievements.push({
+        questId: template.id,
+        progress: 0,
+        completed: false,
+        claimed: false
+      });
+    }
+  }
+
+  // Lấy dữ liệu hiện có từ user
+  const loginStreak = this.loginStreak || 0;
+  const longestStreak = this.longestStreak || 0;
+  const totalDungeonsCleared = this.dungeonStats?.totalDungeonsCleared || 0;
+  const realmLevel = this.realmLevel || 1;
+  const totalPostsCreated = this.stats?.totalPostsCreated || 0;
+  const friendsCount = options.friendsCount || 0;
+
+  // Cập nhật progress cho từng achievement dựa trên dữ liệu hiện có
+  for (const achievement of this.achievements) {
+    if (achievement.claimed) continue; // Đã nhận rồi thì bỏ qua
+
+    const template = QUEST_TEMPLATES.achievement.find(t => t.id === achievement.questId);
+    if (!template || !template.requirement) continue;
+
+    let currentProgress = 0;
+
+    switch (template.requirement.action) {
+      case 'login_streak':
+        // Dùng max của streak hiện tại và longestStreak
+        currentProgress = Math.max(loginStreak, longestStreak);
+        break;
+
+      case 'dungeon_clear':
+        currentProgress = totalDungeonsCleared;
+        break;
+
+      case 'realm':
+        currentProgress = realmLevel;
+        break;
+
+      case 'post':
+        currentProgress = totalPostsCreated;
+        break;
+
+      case 'friend':
+        currentProgress = friendsCount;
+        break;
+
+      // Các action khác như post_upvotes sẽ được track realtime
+      default:
+        continue;
+    }
+
+    // Chỉ cập nhật nếu progress mới cao hơn
+    if (currentProgress > achievement.progress) {
+      achievement.progress = Math.min(currentProgress, template.requirement.count);
+
+      // Check hoàn thành
+      if (achievement.progress >= template.requirement.count && !achievement.completed) {
+        achievement.completed = true;
+        achievement.completedAt = new Date();
+      }
+    }
+  }
+
+  return this.achievements;
+};
 CultivationSchema.methods.updateQuestProgress = function (action, count = 1) {
   const results = [];
 
@@ -1013,6 +1128,7 @@ CultivationSchema.methods.updateQuestProgress = function (action, count = 1) {
     case 'pk_battle':
     case 'pk_win':
     case 'dungeon_floor':
+    case 'dungeon_clear':
     case 'passive_collect':
       // Chỉ dùng cho quest tracking, không cần dailyProgress riêng
       break;
@@ -1490,6 +1606,22 @@ CultivationSchema.statics.getOrCreate = async function (userId) {
       });
       needsSave = true;
     }
+  }
+
+  // Lấy số bạn bè của user để sync achievement
+  let friendsCount = 0;
+  try {
+    const User = mongoose.model('User');
+    const user = await User.findById(userId).select('friends').lean();
+    friendsCount = user?.friends?.length || 0;
+  } catch (err) {
+    console.error('[CULTIVATION] Error getting friends count:', err);
+  }
+
+  // Sync achievement progress từ dữ liệu hiện có (retroactive)
+  const achievementsSynced = cultivation.syncAchievementsProgress({ friendsCount });
+  if (achievementsSynced) {
+    needsSave = true;
   }
 
   if (needsSave) {

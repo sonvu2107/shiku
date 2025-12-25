@@ -50,7 +50,7 @@ const StatsComparisonModal = memo(function StatsComparisonModal({
           onClick={onClose}
         >
           <motion.div
-            className="relative bg-[#0f172a] border-2 border-amber-600 p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto rounded-xl shadow-lg"
+            className="relative bg-[#0f172a] border-2 border-amber-600 p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto rounded-xl shadow-lg scrollbar-cultivation"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}

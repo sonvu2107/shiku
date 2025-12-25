@@ -7,16 +7,55 @@ import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
 import StatBox from './StatBox.jsx';
 import QuestItem from './QuestItem.jsx';
+import AchievementItem from './AchievementItem.jsx';
+import FlyingReward from './FlyingReward.jsx';
 
 const QuestsTab = memo(function QuestsTab({ onCheckIn, checkingIn }) {
   const { cultivation, claimReward, loading } = useCultivation();
   const [claiming, setClaiming] = useState(null);
   const [claimingAll, setClaimingAll] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState('quests');
+  const [rewardsAnimation, setRewardsAnimation] = useState([]);
+  const [activeFilter, setActiveFilter] = useState('all');
 
-  const handleClaim = async (questId) => {
+  const FILTERS = [
+    { id: 'all', label: 'Tất cả' },
+    { id: 'cultivation', label: 'Tu Luyện', actions: ['login_streak', 'realm'] },
+    { id: 'social', label: 'Xã Hội', actions: ['friend', 'post', 'upvote', 'comment'] },
+    { id: 'dungeon', label: 'Bí Cảnh', actions: ['dungeon_clear'] }
+  ];
+
+  const handleClaim = async (questId, event) => {
+    // Lấy thông tin quest để biết reward
+    const allQuests = [
+      ...(cultivation.dailyQuests || []),
+      ...(cultivation.weeklyQuests || []),
+      ...(cultivation.achievements || [])
+    ];
+    const quest = allQuests.find(q => q.questId === questId);
+
+    // Lưu vị trí click để chạy animation
+    let startPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    if (event && event.currentTarget) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      startPos = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
+
     setClaiming(questId);
     try {
       await claimReward(questId);
+
+      // Trigger animation nếu claim thành công
+      if (quest) {
+        setRewardsAnimation(prev => [...prev, {
+          id: Date.now(),
+          startPos,
+          rewards: [
+            { type: 'exp', amount: quest.expReward || 0 },
+            { type: 'stone', amount: quest.spiritStoneReward || 0 }
+          ].filter(r => r.amount > 0)
+        }]);
+      }
     } finally {
       setClaiming(null);
     }
@@ -46,7 +85,8 @@ const QuestsTab = memo(function QuestsTab({ onCheckIn, checkingIn }) {
 
   const dailyQuests = cultivation.dailyQuests || [];
   const weeklyQuests = cultivation.weeklyQuests || [];
-  const hasNoQuests = dailyQuests.length === 0 && weeklyQuests.length === 0;
+  const achievements = cultivation.achievements || [];
+  const hasNoQuests = dailyQuests.length === 0 && weeklyQuests.length === 0 && achievements.length === 0;
 
   // Tính tổng phần thưởng có thể nhận
   const pendingRewards = [...dailyQuests, ...weeklyQuests].filter(q => q.completed && !q.claimed);
@@ -181,17 +221,38 @@ const QuestsTab = memo(function QuestsTab({ onCheckIn, checkingIn }) {
         )}
       </div>
 
-      <div className="flex items-center justify-between">
-        <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">NHIỆM VỤ TU LUYỆN</h3>
-        {pendingRewards.length > 0 && (
-          <div className="text-xs bg-amber-500/20 text-amber-300 px-3 py-1.5 rounded-full border border-amber-500/30">
-            {pendingRewards.length} nhiệm vụ chờ nhận thưởng
-          </div>
-        )}
+      {/* Sub Tab Toggle */}
+      <div className="sticky top-0 z-30 flex gap-2 mb-4 bg-[#0B0B15]/95 backdrop-blur-md py-3 -mx-4 px-4 border-b border-white/5">
+        <button
+          onClick={() => setActiveSubTab('quests')}
+          className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-bold uppercase tracking-wide transition-all ${activeSubTab === 'quests'
+            ? 'bg-gradient-to-r from-cyan-600/30 to-cyan-700/30 border border-cyan-500/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
+            : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300 hover:border-slate-600'
+            }`}
+        >
+          Nhiệm Vụ
+          {pendingRewards.length > 0 && (
+            <span className="ml-2 px-1.5 py-0.5 bg-amber-500/30 text-amber-300 text-xs rounded-full">
+              {pendingRewards.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveSubTab('achievements')}
+          className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-bold uppercase tracking-wide transition-all ${activeSubTab === 'achievements'
+            ? 'bg-gradient-to-r from-amber-600/30 to-amber-700/30 border border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+            : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300 hover:border-slate-600'
+            }`}
+        >
+          Thành Tựu
+          <span className="ml-2 text-xs text-slate-500">
+            ({achievements.filter(a => a.completed).length}/{achievements.length})
+          </span>
+        </button>
       </div>
 
-      {/* Tổng phần thưởng chờ nhận */}
-      {pendingRewards.length > 0 && (
+      {/* Tổng phần thưởng chờ nhận - chỉ hiện khi ở tab quests */}
+      {activeSubTab === 'quests' && pendingRewards.length > 0 && (
         <div className="spirit-tablet-jade rounded-xl p-4 flex items-center justify-between">
           <div>
             <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Phần thưởng chờ nhận</p>
@@ -212,51 +273,119 @@ const QuestsTab = memo(function QuestsTab({ onCheckIn, checkingIn }) {
         </div>
       )}
 
-      {hasNoQuests ? (
-        <div className="h-48 flex flex-col items-center justify-center text-slate-500 opacity-50">
-          <p className="text-xs uppercase tracking-widest">Chưa có nhiệm vụ</p>
-        </div>
-      ) : (
+      {/* Nội dung dựa trên sub tab */}
+      {activeSubTab === 'quests' ? (
         <>
-          {/* Nhiệm vụ hàng ngày */}
-          {dailyQuests.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
-                <h4 className="text-sm font-bold text-jade uppercase tracking-wider">Nhiệm Vụ Hàng Ngày</h4>
-                <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
+          {dailyQuests.length === 0 && weeklyQuests.length === 0 ? (
+            <div className="h-48 flex flex-col items-center justify-center text-slate-500 opacity-50">
+              <p className="text-xs uppercase tracking-widest text-center">
+                "Đường tu tiên còn dài,<br />hôm nay đạo hữu hãy nghỉ ngơi"
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Nhiệm vụ hàng ngày */}
+              <div className="space-y-3 p-3 lg:p-4 rounded-xl bg-cyan-950/20 border border-cyan-500/20 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                <div className="flex items-center gap-2">
+                  <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
+                  <h4 className="text-sm font-bold text-jade uppercase tracking-wider whitespace-nowrap">Hàng Ngày</h4>
+                  <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
+                </div>
+                {dailyQuests.length > 0 ? (
+                  dailyQuests.map((quest) => (
+                    <QuestItem
+                      key={quest.questId}
+                      quest={quest}
+                      onClaim={handleClaim}
+                      claiming={claiming}
+                    />
+                  ))
+                ) : (
+                  <div className="h-24 flex items-center justify-center text-slate-500 opacity-50 spirit-tablet rounded-xl">
+                    <p className="text-xs">Không có nhiệm vụ</p>
+                  </div>
+                )}
               </div>
-              {dailyQuests.map((quest) => (
-                <QuestItem
-                  key={quest.questId}
-                  quest={quest}
-                  onClaim={handleClaim}
-                  claiming={claiming}
-                />
-              ))}
+
+              {/* Nhiệm vụ hàng tuần */}
+              <div className="space-y-3 p-3 lg:p-4 rounded-xl bg-purple-950/20 border border-purple-500/20 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                <div className="flex items-center gap-2">
+                  <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-purple-500/30 to-transparent"></div>
+                  <h4 className="text-sm font-bold text-purple-400 uppercase tracking-wider whitespace-nowrap">Hàng Tuần</h4>
+                  <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-purple-500/30 to-transparent"></div>
+                </div>
+                {weeklyQuests.length > 0 ? (
+                  weeklyQuests.map((quest) => (
+                    <QuestItem
+                      key={quest.questId}
+                      quest={quest}
+                      onClaim={handleClaim}
+                      claiming={claiming}
+                    />
+                  ))
+                ) : (
+                  <div className="h-24 flex items-center justify-center text-slate-500 opacity-50 spirit-tablet rounded-xl">
+                    <p className="text-xs">Không có nhiệm vụ</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
+        </>
+      ) : (
+        <>
+          {/* Tab Thành Tựu */}
+          {/* Tab Thành Tựu */}
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-cultivation">
+            {FILTERS.map(filter => (
+              <button
+                key={filter.id}
+                onClick={() => setActiveFilter(filter.id)}
+                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${activeFilter === filter.id
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
 
-          {/* Nhiệm vụ hàng tuần */}
-          {weeklyQuests.length > 0 && (
+          {achievements.length === 0 ? (
+            <div className="h-48 flex flex-col items-center justify-center text-slate-500 opacity-50">
+              <p className="text-xs uppercase tracking-widest">Chưa có thành tựu</p>
+            </div>
+          ) : (
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-purple-500/30 to-transparent"></div>
-                <h4 className="text-sm font-bold text-purple-400 uppercase tracking-wider">Nhiệm Vụ Hàng Tuần</h4>
-                <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-purple-500/30 to-transparent"></div>
-              </div>
-              {weeklyQuests.map((quest) => (
-                <QuestItem
-                  key={quest.questId}
-                  quest={quest}
-                  onClaim={handleClaim}
-                  claiming={claiming}
-                />
-              ))}
+              {achievements
+                .filter(achievement => {
+                  if (activeFilter === 'all') return true;
+                  const filter = FILTERS.find(f => f.id === activeFilter);
+                  return filter?.actions.includes(achievement.requirement?.action);
+                })
+                .map((achievement) => (
+                  <AchievementItem
+                    key={achievement.questId}
+                    achievement={achievement}
+                    onClaim={handleClaim}
+                    claiming={claiming}
+                  />
+                ))}
             </div>
           )}
         </>
       )}
+      {/* Rewards Animation */}
+      {rewardsAnimation.map(anim => (
+        <FlyingReward
+          key={anim.id}
+          startPos={anim.startPos}
+          rewards={anim.rewards}
+          onComplete={() => setRewardsAnimation(prev => prev.filter(p => p.id !== anim.id))}
+        />
+      ))}
     </div>
   );
 });
