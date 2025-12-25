@@ -480,35 +480,65 @@ export const getInsights = async (req, res, next) => {
 
 /**
  * Internal function to fetch insights data
+ * Metrics based on 30-day engagement window
  */
 async function fetchInsightsFromDB() {
+    // ==================== 1) TIME WINDOWS ====================
     const now = new Date();
-    const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const from30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    // Core metrics từ strategy:
-    // 1. % user đăng bài sau đăng ký
-    // 2. % bài có ≥1 comment
-    // 3. Avg comments/post
+    // Helper: calculate percentile from histogram
+    function percentileFromHistogram(hist, p) {
+        const total = hist.reduce((s, x) => s + x.n, 0);
+        if (!total) return 0;
+        const target = Math.ceil(total * p);
+        let cum = 0;
+        for (const { _id, n } of hist) {
+            cum += n;
+            if (cum >= target) return _id;
+        }
+        return hist[hist.length - 1]?._id ?? 0;
+    }
 
+    // ==================== 2) PARALLEL QUERIES ====================
     const [
+        // Basic counts
         totalUsers,
         usersWithPosts,
         totalPosts,
         postsWithComments,
         totalComments,
-        totalUpvotes,
-        // Last 7 days data
-        newUsers7d,
-        newUsersWithPosts7d,
-        newPosts7d,
-        newPostsWithComments7d,
-        newComments7d,
-        // Users who only upvote but never comment
-        usersWhoUpvoted,
-        usersWhoCommented,
-        // First post within 24h of registration
-        usersFirst24h
+        totalUpvotesAgg,
+
+        // Active users (30d) - proxy via lastSeen
+        activeUsersCount,
+
+        // Commenters in 30d
+        commentersArray,
+
+        // Upvoters in 30d (proxy: posts updated in 30d with upvotes)
+        upvoterAgg,
+
+        // Creators in 30d
+        creatorsArray,
+
+        // Users who posted within 24h of registration
+        usersFirst24h,
+
+        // Comment histogram for median/p75
+        commentHistogram,
+
+        // Posts with ≥2 comments
+        postsWith2PlusComments,
+
+        // Dead posts (no upvotes, no comments)
+        deadPostsCount,
+
+        // Last 30 days posts data
+        newPosts30d,
+        newPostsWithComments30d,
+        newComments30d
     ] = await Promise.all([
         // Total counts
         User.countDocuments({}),
@@ -518,28 +548,24 @@ async function fetchInsightsFromDB() {
         Comment.countDocuments({}),
         Post.aggregate([
             { $group: { _id: null, total: { $sum: { $ifNull: ["$upvoteCount", 0] } } } }
-        ]).then(r => r[0]?.total || 0),
+        ]),
 
-        // Last 7 days
-        User.countDocuments({ createdAt: { $gte: last7Days } }),
-        User.countDocuments({ createdAt: { $gte: last7Days }, postCount: { $gt: 0 } }),
-        Post.countDocuments({ status: "published", createdAt: { $gte: last7Days } }),
-        Post.countDocuments({ status: "published", createdAt: { $gte: last7Days }, commentCount: { $gt: 0 } }),
-        Comment.countDocuments({ createdAt: { $gte: last7Days } }),
+        // Active users (30d) based on lastSeen
+        User.countDocuments({ lastSeen: { $gte: from30d } }),
 
-        // Unique users who upvoted
+        // Distinct commenters in 30d
+        Comment.distinct("author", { createdAt: { $gte: from30d } }),
+
+        // Upvoters from posts updated in 30d (proxy since upvotes don't have timestamps)
         Post.aggregate([
-            { $match: { upvotes: { $exists: true, $not: { $size: 0 } } } },
+            { $match: { status: "published", updatedAt: { $gte: from30d }, upvotes: { $exists: true, $ne: [] } } },
+            { $project: { upvotes: 1 } },
             { $unwind: "$upvotes" },
-            { $group: { _id: "$upvotes" } },
-            { $count: "total" }
-        ]).then(r => r[0]?.total || 0),
+            { $group: { _id: "$upvotes" } }
+        ]),
 
-        // Unique users who commented
-        Comment.aggregate([
-            { $group: { _id: "$author" } },
-            { $count: "total" }
-        ]).then(r => r[0]?.total || 0),
+        // Creators in 30d
+        Post.distinct("author", { status: "published", createdAt: { $gte: from30d } }),
 
         // Users who posted within 24h of registration
         User.aggregate([
@@ -565,39 +591,101 @@ async function fetchInsightsFromDB() {
             },
             { $match: { firstPost: { $not: { $size: 0 } } } },
             { $count: "total" }
-        ]).then(r => r[0]?.total || 0)
+        ]),
+
+        // Comment histogram for percentile calculation
+        Post.aggregate([
+            { $match: { status: "published" } },
+            { $project: { c: { $ifNull: ["$commentCount", 0] } } },
+            { $group: { _id: "$c", n: { $sum: 1 } } },
+            { $sort: { _id: 1 } }
+        ]),
+
+        // Posts with ≥2 comments
+        Post.countDocuments({ status: "published", commentCount: { $gte: 2 } }),
+
+        // Dead posts (no upvotes, no comments)
+        Post.countDocuments({
+            status: "published",
+            $and: [
+                { $or: [{ commentCount: { $lte: 0 } }, { commentCount: { $exists: false } }] },
+                { $or: [{ upvoteCount: { $lte: 0 } }, { upvoteCount: { $exists: false } }] }
+            ]
+        }),
+
+        // 30d comparison data
+        Post.countDocuments({ status: "published", createdAt: { $gte: from30d } }),
+        Post.countDocuments({ status: "published", createdAt: { $gte: from30d }, commentCount: { $gt: 0 } }),
+        Comment.countDocuments({ createdAt: { $gte: from30d } })
     ]);
 
-    // Tính toán các chỉ số
+    const totalUpvotes = totalUpvotesAgg[0]?.total || 0;
+
+    // ==================== 3) ENGAGED USERS CALCULATION ====================
+    // Engaged = union(commenters ∪ upvoters) in 30d
+    const commenterSet = new Set(commentersArray.map(String));
+    const upvoterSet = new Set(upvoterAgg.map(x => String(x._id)));
+    const engagedSet = new Set([...commenterSet, ...upvoterSet]);
+    const engagedUsersCount = engagedSet.size;
+
+    // ==================== 4) LURKERS (30d) ====================
+    // Lurkers = active users who didn't engage
+    const lurkersCount = Math.max(activeUsersCount - engagedUsersCount, 0);
+
+    // ==================== 5) CREATORS (30d) ====================
+    const creatorsCount = creatorsArray.length;
+
+    // ==================== 6) FUNNEL CONVERSIONS ====================
+    const engagedFromActive = activeUsersCount
+        ? +(engagedUsersCount / activeUsersCount * 100).toFixed(1)
+        : 0;
+
+    const creatorsFromActive = activeUsersCount
+        ? +(creatorsCount / activeUsersCount * 100).toFixed(1)
+        : 0;
+
+    // Creator among engaged (intersection)
+    const engagedCreatorCount = creatorsArray.reduce(
+        (acc, id) => acc + (engagedSet.has(String(id)) ? 1 : 0),
+        0
+    );
+    const creatorsAmongEngaged = engagedUsersCount
+        ? +(engagedCreatorCount / engagedUsersCount * 100).toFixed(1)
+        : 0;
+
+    // ==================== 7) VOTE-ONLY / COMMENT-ONLY / BOTH ====================
+    const voteOnlyCount = [...upvoterSet].filter(id => !commenterSet.has(id)).length;
+    const commentOnlyCount = [...commenterSet].filter(id => !upvoterSet.has(id)).length;
+    const bothCount = [...upvoterSet].filter(id => commenterSet.has(id)).length;
+
+    // ==================== 8) MEDIAN & P75 COMMENTS/POST ====================
+    const medianCommentsPerPost = percentileFromHistogram(commentHistogram, 0.5);
+    const p75CommentsPerPost = percentileFromHistogram(commentHistogram, 0.75);
+
+    // ==================== 9) CORE METRICS ====================
     const userPostRate = totalUsers > 0 ? Math.round((usersWithPosts / totalUsers) * 100) : 0;
     const postCommentRate = totalPosts > 0 ? Math.round((postsWithComments / totalPosts) * 100) : 0;
     const avgCommentsPerPost = totalPosts > 0 ? Number((totalComments / totalPosts).toFixed(2)) : 0;
     const upvoteCommentRatio = totalComments > 0 ? Number((totalUpvotes / totalComments).toFixed(2)) : 0;
-    const firstPostIn24hRate = totalUsers > 0 ? Math.round((usersFirst24h / totalUsers) * 100) : 0;
+    const firstPostIn24hRate = totalUsers > 0 ? Math.round((usersFirst24h[0]?.total || 0) / totalUsers * 100) : 0;
 
-    // 7-day metrics
-    const userPostRate7d = newUsers7d > 0 ? Math.round((newUsersWithPosts7d / newUsers7d) * 100) : 0;
-    const postCommentRate7d = newPosts7d > 0 ? Math.round((newPostsWithComments7d / newPosts7d) * 100) : 0;
-    const avgCommentsPerPost7d = newPosts7d > 0 ? Number((newComments7d / newPosts7d).toFixed(2)) : 0;
+    // Post quality rates
+    const postsWith2PlusRate = totalPosts ? +(postsWith2PlusComments / totalPosts * 100).toFixed(1) : 0;
+    const deadPostRate = totalPosts ? +(deadPostsCount / totalPosts * 100).toFixed(1) : 0;
 
-    // Dead posts (no upvotes, no comments)
-    const deadPosts = await Post.countDocuments({
-        status: "published",
-        $and: [
-            { $or: [{ upvoteCount: 0 }, { upvoteCount: { $exists: false } }] },
-            { $or: [{ commentCount: 0 }, { commentCount: { $exists: false } }] }
-        ]
-    });
-    const deadPostRate = totalPosts > 0 ? Math.round((deadPosts / totalPosts) * 100) : 0;
+    // 30d metrics
+    const userPostRate30d = activeUsersCount > 0 ? Math.round((creatorsCount / activeUsersCount) * 100) : 0;
+    const postCommentRate30d = newPosts30d > 0 ? Math.round((newPostsWithComments30d / newPosts30d) * 100) : 0;
+    const avgCommentsPerPost30d = newPosts30d > 0 ? Number((newComments30d / newPosts30d).toFixed(2)) : 0;
 
     return {
         core: {
             userPostRate: {
-                value: userPostRate,
-                label: "% User đăng bài",
-                description: "Tỉ lệ user có ít nhất 1 bài viết",
+                value: userPostRate30d,
+                label: "% Creator/Active (30d)",
+                description: "Tỉ lệ active users đã đăng bài trong 30 ngày",
                 threshold: 20,
-                status: userPostRate >= 20 ? "healthy" : userPostRate >= 10 ? "warning" : "critical"
+                status: userPostRate30d >= 20 ? "healthy" : userPostRate30d >= 10 ? "warning" : "critical"
             },
             postCommentRate: {
                 value: postCommentRate,
@@ -615,20 +703,93 @@ async function fetchInsightsFromDB() {
             }
         },
         secondary: {
+            // Độ sâu bình luận (quan trọng nhất)
+            medianCommentsPerPost: {
+                value: medianCommentsPerPost,
+                label: "Số bình luận trung vị",
+                description: "Hơn 50% bài viết có số bình luận bằng hoặc ít hơn con số này"
+            },
+            p75CommentsPerPost: {
+                value: p75CommentsPerPost,
+                label: "Bình luận phân vị 75",
+                description: "25% bài viết có nhiều bình luận nhất đạt ít nhất con số này"
+            },
+            postsWith2PlusRate: {
+                value: postsWith2PlusRate,
+                label: "% Bài có ≥2 bình luận",
+                description: "Bài có hội thoại thực sự (từ 2 bình luận trở lên)"
+            },
+            // Chất lượng tương tác
             upvoteCommentRatio: {
                 value: upvoteCommentRatio,
-                label: "Upvote/Comment ratio",
-                description: "Tỉ lệ upvote trên comment. Cao = tương tác nông"
+                label: "Tỉ lệ upvote/bình luận",
+                description: "Chuẩn: 2-4. Cao hơn = tương tác nông"
+            },
+            // Chỉ số khác
+            deadPostRate: {
+                value: deadPostRate,
+                label: "% Bài không tương tác",
+                description: "Bài không có upvote và bình luận nào"
             },
             firstPostIn24hRate: {
                 value: firstPostIn24hRate,
-                label: "% Post trong 24h đầu",
-                description: "User đăng bài trong 24h sau đăng ký"
+                label: "% Đăng bài trong 24h đầu",
+                description: "Người dùng đăng bài trong 24h sau khi đăng ký"
+            }
+        },
+        funnel: {
+            activeUsers: {
+                value: activeUsersCount,
+                label: "Active Users (30d)",
+                description: "Users có hoạt động trong 30 ngày (lastSeen)"
             },
-            deadPostRate: {
-                value: deadPostRate,
-                label: "% Bài chết",
-                description: "Bài không có upvote và comment"
+            engagedUsers: {
+                value: engagedUsersCount,
+                label: "Engaged Users (30d)",
+                description: "Users đã vote hoặc comment trong 30 ngày",
+                note: "Upvote window là proxy (dựa vào updatedAt của post)"
+            },
+            creators: {
+                value: creatorsCount,
+                label: "Creators (30d)",
+                description: "Users đã đăng bài trong 30 ngày"
+            },
+            lurkers: {
+                value: lurkersCount,
+                label: "Lurkers (30d)",
+                description: "Active nhưng không engage (activeUsers - engagedUsers)"
+            },
+            engagedFromActive: {
+                value: engagedFromActive,
+                label: "% Engaged/Active",
+                description: "Tỉ lệ chuyển đổi Active → Engaged"
+            },
+            creatorsFromActive: {
+                value: creatorsFromActive,
+                label: "% Creator/Active",
+                description: "Tỉ lệ chuyển đổi Active → Creator"
+            },
+            creatorsAmongEngaged: {
+                value: creatorsAmongEngaged,
+                label: "Creators cũng engage",
+                description: "Creators vừa đăng bài vừa vote/comment (Creator không bắt buộc phải engage)"
+            }
+        },
+        engagementBreakdown: {
+            voteOnly: {
+                value: voteOnlyCount,
+                label: "Vote-only",
+                description: "Users chỉ upvote, không comment (30d)"
+            },
+            commentOnly: {
+                value: commentOnlyCount,
+                label: "Comment-only",
+                description: "Users chỉ comment, không upvote (30d)"
+            },
+            both: {
+                value: bothCount,
+                label: "Vote & Comment",
+                description: "Users vừa upvote vừa comment (30d)"
             }
         },
         comparison: {
@@ -640,22 +801,51 @@ async function fetchInsightsFromDB() {
                 comments: totalComments,
                 upvotes: totalUpvotes
             },
-            last7Days: {
-                newUsers: newUsers7d,
-                newUsersWithPosts: newUsersWithPosts7d,
-                newPosts: newPosts7d,
-                newPostsWithComments: newPostsWithComments7d,
-                newComments: newComments7d,
-                userPostRate: userPostRate7d,
-                postCommentRate: postCommentRate7d,
-                avgCommentsPerPost: avgCommentsPerPost7d
+            last30Days: {
+                activeUsers: activeUsersCount,
+                engagedUsers: engagedUsersCount,
+                creators: creatorsCount,
+                newPosts: newPosts30d,
+                newPostsWithComments: newPostsWithComments30d,
+                newComments: newComments30d,
+                userPostRate: userPostRate30d,
+                postCommentRate: postCommentRate30d,
+                avgCommentsPerPost: avgCommentsPerPost30d
             }
         },
-        engagement: {
-            usersWhoUpvoted,
-            usersWhoCommented,
-            lurkers: totalUsers - usersWhoUpvoted - usersWhoCommented
-        }
+        // Nhận định quan trọng
+        highlights: [
+            voteOnlyCount > bothCount && {
+                type: "warning",
+                text: `${Math.round(voteOnlyCount / engagedUsersCount * 100)}% người tương tác chỉ vote, không bình luận`,
+                action: "Gợi ý bình luận sau khi vote để tăng độ sâu hội thoại"
+            },
+            medianCommentsPerPost === 0 && {
+                type: "critical",
+                text: ">50% bài viết không có bình luận nào",
+                action: "Tập trung tăng tỉ lệ bình luận đầu tiên"
+            },
+            postsWith2PlusRate < 30 && {
+                type: "warning",
+                text: `Chỉ ${postsWith2PlusRate}% bài có hội thoại (≥2 bình luận)`,
+                action: "Khuyến khích trả lời, không chỉ bình luận đầu"
+            },
+            upvoteCommentRatio > 5 && {
+                type: "info",
+                text: `Tỉ lệ Vote/Bình luận = ${upvoteCommentRatio} (cao = tương tác nông)`,
+                action: "Cải thiện trải nghiệm sau khi vote"
+            },
+            lurkersCount / activeUsersCount < 0.6 && {
+                type: "healthy",
+                text: `${Math.round((1 - lurkersCount / activeUsersCount) * 100)}% người hoạt động đã tương tác - rất tốt!`,
+                action: null
+            },
+            userPostRate30d >= 20 && {
+                type: "healthy",
+                text: `${userPostRate30d}% người hoạt động đã đăng bài - khỏe mạnh`,
+                action: null
+            }
+        ].filter(Boolean)
     };
 }
 

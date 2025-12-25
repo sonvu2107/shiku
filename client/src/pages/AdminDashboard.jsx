@@ -475,7 +475,7 @@ export default function AdminDashboard() {
                                        <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
                                           <div className="flex items-center gap-2 mb-1">
                                              <Users className="text-amber-600 dark:text-amber-400" size={18} />
-                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Tổng N.Dùng</span>
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Tổng người dùng</span>
                                           </div>
                                           <div className="text-2xl font-bold text-neutral-900 dark:text-white">
                                              {formatNumber(stats?.overview ? stats?.overview.totalUsers.count : (stats.totalUsers || 0))}
@@ -526,14 +526,14 @@ export default function AdminDashboard() {
                                        <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
                                           <div className="flex items-center gap-2 mb-1">
                                              <UserCheck className="text-cyan-600 dark:text-cyan-400" size={18} />
-                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Lượt truy cập</span>
+                                             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Đã đăng ký</span>
                                           </div>
                                           <div className="text-2xl font-bold text-neutral-900 dark:text-white">
                                              {formatNumber(totalVisitors)}
                                           </div>
                                           {visitorStats && (
                                              <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                                                {visitorStats.usersWithActivity} hoạt động
+                                                {visitorStats.usersWithActivity} có hoạt động
                                              </div>
                                           )}
                                        </div>
@@ -869,7 +869,7 @@ export default function AdminDashboard() {
                            <SpotlightCard className="p-4 text-center dark:bg-cyan-950/40 border dark:border-cyan-800/30">
                               <UserCheck size={32} className="mx-auto text-cyan-600 dark:text-cyan-400 mb-2" />
                               <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{formatNumber(totalVisitors)}</div>
-                              <div className="text-sm text-neutral-600 dark:text-neutral-400">Tổng lượt truy cập</div>
+                              <div className="text-sm text-neutral-600 dark:text-neutral-400">Tổng lượt đăng ký</div>
                            </SpotlightCard>
                            <SpotlightCard className="p-4 text-center dark:bg-purple-950/40 border dark:border-purple-800/30">
                               <Users size={32} className="mx-auto text-purple-600 dark:text-purple-400 mb-2" />

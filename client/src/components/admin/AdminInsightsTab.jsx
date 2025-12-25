@@ -4,15 +4,9 @@ import { SpotlightCard } from "../ui/DesignSystem";
 import { motion } from "framer-motion";
 import { cn } from "../../utils/cn";
 import {
-    TrendingUp,
-    TrendingDown,
     AlertTriangle,
     CheckCircle2,
     Loader2,
-    Users,
-    FileText,
-    MessageCircle,
-    Heart,
     RefreshCw
 } from "lucide-react";
 
@@ -71,6 +65,13 @@ export default function AdminInsightsTab() {
         }
     };
 
+    const formatNumber = (num) => {
+        if (num >= 1000) {
+            return num.toLocaleString('vi-VN');
+        }
+        return num;
+    };
+
     if (loading) {
         return (
             <div className="py-20 flex justify-center">
@@ -107,7 +108,7 @@ export default function AdminInsightsTab() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-bold text-neutral-900 dark:text-white">Chỉ số hành vi</h2>
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400">Theo dõi sức khỏe sản phẩm</p>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">Theo dõi sức khỏe sản phẩm (30 ngày)</p>
                 </div>
                 <button
                     onClick={loadInsights}
@@ -149,10 +150,162 @@ export default function AdminInsightsTab() {
                 ))}
             </div>
 
+            {/* Key Insights Highlights */}
+            {insights.highlights && insights.highlights.length > 0 && (
+                <SpotlightCard className="p-5">
+                    <h3 className="font-bold text-lg mb-4">Nhận định quan trọng</h3>
+                    <div className="space-y-3">
+                        {insights.highlights.map((insight, idx) => (
+                            <div
+                                key={idx}
+                                className={cn(
+                                    "p-3 rounded-lg border",
+                                    insight.type === "critical" && "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50",
+                                    insight.type === "warning" && "bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800/50",
+                                    insight.type === "info" && "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50",
+                                    insight.type === "healthy" && "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50"
+                                )}
+                            >
+                                <div className={cn(
+                                    "font-medium text-sm",
+                                    insight.type === "critical" && "text-red-700 dark:text-red-300",
+                                    insight.type === "warning" && "text-yellow-700 dark:text-yellow-300",
+                                    insight.type === "info" && "text-blue-700 dark:text-blue-300",
+                                    insight.type === "healthy" && "text-green-700 dark:text-green-300"
+                                )}>
+                                    {insight.text}
+                                </div>
+                                {insight.action && (
+                                    <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                                        → {insight.action}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </SpotlightCard>
+            )}
+
+            {/* User Funnel (30d) */}
+            {insights.funnel && (
+                <SpotlightCard className="p-5">
+                    <h3 className="font-bold text-lg mb-4">Phễu người dùng (30 ngày)</h3>
+
+                    {/* Funnel Visualization */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div className="p-4 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-800/50 text-center">
+                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                {formatNumber(insights.funnel.activeUsers.value)}
+                            </div>
+                            <div className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                Có truy cập
+                            </div>
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                Truy cập trong 30 ngày qua
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-green-50 dark:bg-green-950/40 rounded-xl border border-green-200 dark:border-green-800/50 text-center">
+                            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                {formatNumber(insights.funnel.engagedUsers.value)}
+                            </div>
+                            <div className="text-sm font-medium text-green-700 dark:text-green-300">
+                                Có tương tác
+                            </div>
+                            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                Đã upvote hoặc bình luận
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-purple-50 dark:bg-purple-950/40 rounded-xl border border-purple-200 dark:border-purple-800/50 text-center">
+                            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                                {formatNumber(insights.funnel.creators.value)}
+                            </div>
+                            <div className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                                Đăng bài
+                            </div>
+                            <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                                Đã viết ít nhất 1 bài
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Conversion Rates & Lurkers */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="p-3 bg-neutral-50 dark:bg-neutral-800/60 rounded-lg border border-neutral-100 dark:border-neutral-700/50 text-center">
+                            <div className="text-xl font-bold">{insights.funnel.engagedFromActive.value}%</div>
+                            <div className="text-xs text-neutral-500">Tỉ lệ tương tác</div>
+                        </div>
+                        <div className="p-3 bg-neutral-50 dark:bg-neutral-800/60 rounded-lg border border-neutral-100 dark:border-neutral-700/50 text-center">
+                            <div className="text-xl font-bold">{insights.funnel.creatorsFromActive.value}%</div>
+                            <div className="text-xs text-neutral-500">Tỉ lệ đăng bài</div>
+                        </div>
+                        <div className="p-3 bg-neutral-50 dark:bg-neutral-800/60 rounded-lg border border-neutral-100 dark:border-neutral-700/50 text-center">
+                            <div className="text-xl font-bold">{insights.funnel.creatorsAmongEngaged.value}%</div>
+                            <div className="text-xs text-neutral-500">Người đăng bài có tương tác</div>
+                        </div>
+                        <div className="p-3 bg-neutral-100 dark:bg-neutral-800/60 rounded-lg border border-neutral-200 dark:border-neutral-700/50 text-center">
+                            <div className="text-xl font-bold text-neutral-600 dark:text-neutral-400">
+                                {formatNumber(insights.funnel.lurkers.value)}
+                            </div>
+                            <div className="text-xs text-neutral-500">Chỉ xem, không tương tác</div>
+                        </div>
+                    </div>
+
+                    {insights.funnel.engagedUsers.note && (
+                        <div className="mt-3 text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded">
+                            Lưu ý: {insights.funnel.engagedUsers.note}
+                        </div>
+                    )}
+                </SpotlightCard>
+            )}
+
+            {/* Engagement Breakdown (30d) */}
+            {insights.engagementBreakdown && (
+                <SpotlightCard className="p-5">
+                    <h3 className="font-bold text-lg mb-4">Phân loại người tương tác (30 ngày)</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="p-4 bg-yellow-50 dark:bg-yellow-950/40 rounded-xl border border-yellow-200 dark:border-yellow-800/50">
+                            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                                {formatNumber(insights.engagementBreakdown.voteOnly.value)}
+                            </div>
+                            <div className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
+                                Chỉ upvote
+                            </div>
+                            <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                Upvote nhưng không bình luận
+                            </div>
+                        </div>
+                        <div className="p-4 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-800/50">
+                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                {formatNumber(insights.engagementBreakdown.commentOnly.value)}
+                            </div>
+                            <div className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                Chỉ bình luận
+                            </div>
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                Bình luận nhưng không upvote
+                            </div>
+                        </div>
+                        <div className="p-4 bg-green-50 dark:bg-green-950/40 rounded-xl border border-green-200 dark:border-green-800/50">
+                            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                {formatNumber(insights.engagementBreakdown.both.value)}
+                            </div>
+                            <div className="text-sm font-medium text-green-700 dark:text-green-300">
+                                Cả hai
+                            </div>
+                            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                Vừa upvote vừa bình luận
+                            </div>
+                        </div>
+                    </div>
+                </SpotlightCard>
+            )}
+
             {/* Secondary Metrics */}
             <SpotlightCard className="p-5">
                 <h3 className="font-bold text-lg mb-4">Chỉ số phụ</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {Object.entries(insights.secondary).map(([key, metric]) => (
                         <div key={key} className="p-4 bg-neutral-50 dark:bg-neutral-800/60 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
                             <div className="text-2xl font-bold text-neutral-900 dark:text-white mb-1">
@@ -169,68 +322,25 @@ export default function AdminInsightsTab() {
                 </div>
             </SpotlightCard>
 
-            {/* 7-Day Comparison */}
+            {/* 30-Day Comparison */}
             <SpotlightCard className="p-5">
-                <h3 className="font-bold text-lg mb-4">So sánh 7 ngày gần nhất</h3>
+                <h3 className="font-bold text-lg mb-4">30 ngày gần nhất</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-neutral-50 dark:bg-blue-950/40 rounded-xl border border-neutral-100 dark:border-blue-800/30">
-                        <Users className="mx-auto mb-2 text-blue-500" size={24} />
-                        <div className="text-2xl font-bold">{insights.comparison.last7Days.newUsers}</div>
-                        <div className="text-xs text-neutral-500">User mới</div>
+                    <div className="text-center p-4 bg-neutral-50 dark:bg-neutral-800/60 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
+                        <div className="text-2xl font-bold">{formatNumber(insights.comparison.last30Days?.activeUsers || 0)}</div>
+                        <div className="text-xs text-neutral-500">Người hoạt động</div>
                     </div>
-                    <div className="text-center p-4 bg-neutral-50 dark:bg-blue-950/40 rounded-xl border border-neutral-100 dark:border-blue-800/30">
-                        <FileText className="mx-auto mb-2 text-green-500" size={24} />
-                        <div className="text-2xl font-bold">{insights.comparison.last7Days.newPosts}</div>
+                    <div className="text-center p-4 bg-neutral-50 dark:bg-neutral-800/60 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
+                        <div className="text-2xl font-bold">{formatNumber(insights.comparison.last30Days?.newPosts || 0)}</div>
                         <div className="text-xs text-neutral-500">Bài mới</div>
                     </div>
-                    <div className="text-center p-4 bg-neutral-50 dark:bg-blue-950/40 rounded-xl border border-neutral-100 dark:border-blue-800/30">
-                        <MessageCircle className="mx-auto mb-2 text-purple-500" size={24} />
-                        <div className="text-2xl font-bold">{insights.comparison.last7Days.newComments}</div>
-                        <div className="text-xs text-neutral-500">Comment mới</div>
+                    <div className="text-center p-4 bg-neutral-50 dark:bg-neutral-800/60 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
+                        <div className="text-2xl font-bold">{formatNumber(insights.comparison.last30Days?.newComments || 0)}</div>
+                        <div className="text-xs text-neutral-500">Bình luận mới</div>
                     </div>
-                    <div className="text-center p-4 bg-neutral-50 dark:bg-blue-950/40 rounded-xl border border-neutral-100 dark:border-blue-800/30">
-                        <div className="text-2xl font-bold">{insights.comparison.last7Days.userPostRate}%</div>
-                        <div className="text-xs text-neutral-500">User mới có đăng bài</div>
-                    </div>
-                </div>
-            </SpotlightCard>
-
-            {/* Engagement Breakdown */}
-            <SpotlightCard className="p-5">
-                <h3 className="font-bold text-lg mb-4">Phân loại người dùng</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-4 bg-green-50 dark:bg-green-950/40 rounded-xl border border-green-200 dark:border-green-800/50">
-                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {insights.engagement.usersWhoCommented}
-                        </div>
-                        <div className="text-sm font-medium text-green-700 dark:text-green-300">
-                            Người đã comment
-                        </div>
-                        <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                            Tương tác sâu
-                        </div>
-                    </div>
-                    <div className="p-4 bg-yellow-50 dark:bg-yellow-950/40 rounded-xl border border-yellow-200 dark:border-yellow-800/50">
-                        <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                            {insights.engagement.usersWhoUpvoted}
-                        </div>
-                        <div className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
-                            Người đã upvote
-                        </div>
-                        <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                            Tương tác nông
-                        </div>
-                    </div>
-                    <div className="p-4 bg-neutral-100 dark:bg-neutral-800/60 rounded-xl border border-neutral-200 dark:border-neutral-700/50">
-                        <div className="text-2xl font-bold text-neutral-600 dark:text-neutral-400">
-                            {Math.max(0, insights.engagement.lurkers)}
-                        </div>
-                        <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                            Lurkers
-                        </div>
-                        <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                            Chưa tương tác
-                        </div>
+                    <div className="text-center p-4 bg-neutral-50 dark:bg-neutral-800/60 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
+                        <div className="text-2xl font-bold">{insights.comparison.last30Days?.postCommentRate || 0}%</div>
+                        <div className="text-xs text-neutral-500">Bài có bình luận</div>
                     </div>
                 </div>
             </SpotlightCard>
@@ -240,27 +350,27 @@ export default function AdminInsightsTab() {
                 <h3 className="font-bold text-lg mb-4">Tổng quan toàn thời gian</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-center">
                     <div>
-                        <div className="text-xl font-bold">{insights.comparison.allTime.users}</div>
-                        <div className="text-xs text-neutral-500">Users</div>
+                        <div className="text-xl font-bold">{formatNumber(insights.comparison.allTime.users)}</div>
+                        <div className="text-xs text-neutral-500">Tổng người dùng</div>
                     </div>
                     <div>
-                        <div className="text-xl font-bold">{insights.comparison.allTime.usersWithPosts}</div>
+                        <div className="text-xl font-bold">{formatNumber(insights.comparison.allTime.usersWithPosts)}</div>
                         <div className="text-xs text-neutral-500">Có bài viết</div>
                     </div>
                     <div>
-                        <div className="text-xl font-bold">{insights.comparison.allTime.posts}</div>
+                        <div className="text-xl font-bold">{formatNumber(insights.comparison.allTime.posts)}</div>
                         <div className="text-xs text-neutral-500">Bài viết</div>
                     </div>
                     <div>
-                        <div className="text-xl font-bold">{insights.comparison.allTime.postsWithComments}</div>
-                        <div className="text-xs text-neutral-500">Bài có comment</div>
+                        <div className="text-xl font-bold">{formatNumber(insights.comparison.allTime.postsWithComments)}</div>
+                        <div className="text-xs text-neutral-500">Có bình luận</div>
                     </div>
                     <div>
-                        <div className="text-xl font-bold">{insights.comparison.allTime.comments}</div>
-                        <div className="text-xs text-neutral-500">Comments</div>
+                        <div className="text-xl font-bold">{formatNumber(insights.comparison.allTime.comments)}</div>
+                        <div className="text-xs text-neutral-500">Bình luận</div>
                     </div>
                     <div>
-                        <div className="text-xl font-bold">{insights.comparison.allTime.upvotes}</div>
+                        <div className="text-xl font-bold">{formatNumber(insights.comparison.allTime.upvotes)}</div>
                         <div className="text-xs text-neutral-500">Upvotes</div>
                     </div>
                 </div>
