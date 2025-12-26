@@ -6,6 +6,7 @@ import { api } from '../api';
 import UserName from './UserName';
 import UserAvatar from './UserAvatar';
 import OnlineFriends from './OnlineFriends';
+import VibeCheck from './VibeCheck';
 import { useToast } from '../contexts/ToastContext';
 
 /**
@@ -134,7 +135,10 @@ function RightSidebar({ user }) {
   }
 
   return (
-    <div className="space-y-6 max-h-[calc(100vh-5rem)] overflow-y-auto scrollbar-hide pb-20">
+    <div className="space-y-4 max-h-[calc(100vh-5rem)] overflow-y-auto scrollbar-hide pb-20">
+      {/* Vibe Check Widget */}
+      <VibeCheck />
+
       {/* Friend Suggestions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

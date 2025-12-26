@@ -24,6 +24,7 @@ import PostCreator from "../components/PostCreator";
 import VirtualizedFeed from "../components/VirtualizedFeed";
 import { useIsDesktop } from "../hooks/useIsDesktop";
 import ChristmasDecorations from "../components/ChristmasDecorations";
+import VibeCheck from "../components/VibeCheck";
 
 // --- VISUAL COMPONENTS ---
 const NoiseOverlay = () => (
@@ -944,6 +945,13 @@ function Home({ user, setUser }) {
                   {user && (
                     <div className="md:hidden mb-4">
                       <PostCreator user={user} />
+                    </div>
+                  )}
+
+                  {/* Vibe Check - Mobile only (desktop shows in RightSidebar) */}
+                  {user && (
+                    <div className="md:hidden mb-4">
+                      <VibeCheck />
                     </div>
                   )}
 
