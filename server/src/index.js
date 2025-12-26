@@ -124,12 +124,10 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin only in development (Postman, curl, etc.)
+    // Allow requests with no origin (from monitoring services like UpTimeRobot, curl, Postman)
+    // These requests don't have Origin header and are safe for health check endpoints
     if (!origin) {
-      if (!isProduction) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'));
+      return callback(null, true);
     }
 
     if (allowedOrigins.includes(origin)) {
