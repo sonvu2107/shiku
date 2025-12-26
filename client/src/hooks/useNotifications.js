@@ -15,7 +15,7 @@ export function useNotifications() {
     },
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 30 * 1000, // Auto refetch every 30 seconds
+    // Removed refetchInterval to prevent overwriting optimistic updates
     retry: 3, // Retry 3 times before showing error
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });
@@ -35,7 +35,7 @@ export function useUnreadNotificationsCount() {
     },
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 30 * 1000, // Auto refetch every 30 seconds
+    // Removed refetchInterval to prevent overwriting optimistic updates
     retry: 3, // Retry 3 times before showing error
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });
@@ -90,8 +90,11 @@ export function useMarkNotificationRead() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
+      // Delay invalidation to let backend cache invalidate first
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
+      }, 500);
     },
   });
 }
@@ -144,10 +147,18 @@ export function useMarkAllNotificationsRead() {
         queryClient.setQueryData(["unreadNotificationsCount"], context.previousUnreadCount);
       }
     },
+    onSuccess: () => {
+      // Don't refetch immediately - let optimistic update persist
+      // Backend cache has been invalidated by the API route
+      // If we refetch too soon, we might get stale data
+    },
     onSettled: () => {
-      // Refetch to ensure data is in sync with server
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
+      // Delay invalidation to let backend cache invalidate first
+      // This prevents fetching stale cached data immediately after mutation
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
+      }, 500); // 500ms delay
     },
   });
 }
@@ -208,8 +219,11 @@ export function useDeleteNotification() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
+      // Delay invalidation to let backend cache invalidate first
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] });
+      }, 500);
     },
   });
 }

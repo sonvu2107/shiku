@@ -21,6 +21,8 @@ import { useChat } from "../contexts/ChatContext";
 import BackToTop from "../components/BackToTop";
 import PullToRefresh from "../components/PullToRefresh";
 import PostCreator from "../components/PostCreator";
+import VirtualizedFeed from "../components/VirtualizedFeed";
+import { useIsDesktop } from "../hooks/useIsDesktop";
 import ChristmasDecorations from "../components/ChristmasDecorations";
 
 // --- VISUAL COMPONENTS ---
@@ -122,6 +124,9 @@ function Home({ user, setUser }) {
 
   const error = postsError?.message || null;
   const { savedMap, updateSavedState } = useSavedPosts(items, { enabled: !!user });
+
+  // Desktop detection for VirtualizedFeed
+  const isDesktop = useIsDesktop();
 
   // Filter dropdown state
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
@@ -981,18 +986,16 @@ function Home({ user, setUser }) {
                       </div>
                     </motion.div>
                   ) : items.length > 0 ? (
+                    /* Standard rendering - VirtualizedFeed disabled due to react-window v2 API issues */
                     <div className="space-y-3 sm:space-y-4">
                       {(() => {
-                        // Find the first post with media for LCP optimization
                         const firstPostWithMediaIndex = items.findIndex(
                           post => post.media && post.media.length > 0
                         );
 
                         return items.map((post, index) => {
                           const isLastPost = index === items.length - 1;
-                          // Chỉ animate 3 post đầu tiên để giảm lag
                           const shouldAnimate = index < 3;
-                          // Mark as first only if this is the first post WITH media
                           const isFirstWithMedia = index === firstPostWithMediaIndex;
 
                           return shouldAnimate ? (

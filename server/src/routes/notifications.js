@@ -14,7 +14,7 @@ import express from "express";
 import { authRequired } from "../middleware/auth.js";
 import NotificationService from "../services/NotificationService.js";
 import { withCache, statsCache, invalidateCacheByPrefix } from "../utils/cache.js";
-import { responseCache } from "../middleware/responseCache.js";
+import { responseCache, invalidateByPattern } from "../middleware/responseCache.js";
 
 const router = express.Router();
 
@@ -56,6 +56,12 @@ router.get("/unread-count", authRequired, responseCache({ ttlSeconds: 30, prefix
 router.put("/:id/read", authRequired, async (req, res, next) => {
   try {
     await NotificationService.markAsRead(req.params.id, req.user._id);
+
+    // Invalidate response cache for notifications
+    // Cache keys are: shiku:prefix:HASH, so pattern prefix:* will match all
+    await invalidateByPattern('notif-list:*');
+    await invalidateByPattern('notif-unread:*');
+
     res.json({ message: "Đã đánh dấu đã đọc" });
   } catch (error) {
     next(error);
@@ -66,6 +72,12 @@ router.put("/:id/read", authRequired, async (req, res, next) => {
 router.put("/mark-all-read", authRequired, async (req, res, next) => {
   try {
     await NotificationService.markAllAsRead(req.user._id);
+
+    // Invalidate response cache for notifications
+    // Cache keys are: shiku:prefix:HASH, so pattern prefix:* will match all
+    await invalidateByPattern('notif-list:*');
+    await invalidateByPattern('notif-unread:*');
+
     res.json({ message: "Đã đánh dấu tất cả đã đọc" });
   } catch (error) {
     next(error);
