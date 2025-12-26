@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 /**
- * LazyImageSimple - Simplified lazy loading image component
+ * LazyImageSimple - Simplified lazy loading image component with responsive support
  * A lighter version of LazyImage for basic use cases
  * @param {Object} props - Component props
  * @param {string} props.src - Image source URL
+ * @param {string} props.srcSet - Responsive image srcSet for different widths
+ * @param {string} props.sizes - Responsive sizes attribute
  * @param {string} props.alt - Alt text
  * @param {string} props.className - CSS classes
  * @param {Object} props.style - Inline styles
@@ -15,6 +17,8 @@ import React, { useState, useRef, useEffect } from 'react';
  */
 export default function LazyImageSimple({
   src,
+  srcSet = '',
+  sizes = '',
   alt = '',
   className = '',
   style = {},
@@ -93,6 +97,8 @@ export default function LazyImageSimple({
       {(priority || isInView) && (
         <img
           src={src}
+          srcSet={srcSet || undefined}
+          sizes={sizes || undefined}
           alt={alt}
           onLoad={handleLoad}
           onError={handleError}

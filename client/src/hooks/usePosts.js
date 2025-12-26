@@ -1,6 +1,37 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api.js";
 
+// ==================== SEEDED RANDOM FOR CONSISTENT SHUFFLE ====================
+// Session seed - unique per page load, consistent during session
+const SESSION_SEED = Date.now();
+
+/**
+ * Mulberry32 - Fast seeded PRNG with good distribution
+ * @param {number} seed - Seed value
+ * @returns {number} Random number between 0 and 1
+ */
+const seededRandom = (seed) => {
+    let t = seed + 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+};
+
+/**
+ * Seeded Fisher-Yates shuffle - consistent per seed
+ * @param {Array} array - Array to shuffle
+ * @param {number} seed - Seed for random
+ * @returns {Array} Shuffled array (new array, doesn't mutate original)
+ */
+const seededShuffle = (array, seed) => {
+    const result = [...array];
+    for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(seededRandom(seed + i) * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+};
+
 /**
  * Hook to fetch posts feed with infinite scroll support
  * Uses React Query for caching, deduplication, and automatic refetching
@@ -20,21 +51,20 @@ export function usePosts({ sortBy = 'recommended', searchQuery = '', limit = 8 }
 
             let items = response.items || [];
 
-            // Client-side shuffle for 'recommended' to give fresh experience on each refresh
+            // Client-side shuffle for 'recommended' to give fresh experience on each page refresh
+            // Uses SEEDED random to keep consistent order during scrolling/refetch
             // BUT keep pinned posts at the top (don't shuffle them)
             if (sortBy === 'recommended' && items.length > 1) {
                 // Separate pinned and non-pinned posts
                 const pinnedPosts = items.filter(post => post.isPinned);
                 const regularPosts = items.filter(post => !post.isPinned);
 
-                // Fisher-Yates shuffle only for regular posts
-                for (let i = regularPosts.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [regularPosts[i], regularPosts[j]] = [regularPosts[j], regularPosts[i]];
-                }
+                // Seeded shuffle - same seed = same order (stable during session)
+                // Different pageParam = slightly different but deterministic order
+                const shuffled = seededShuffle(regularPosts, SESSION_SEED + pageParam);
 
                 // Combine: pinned first, then shuffled regular posts
-                items = [...pinnedPosts, ...regularPosts];
+                items = [...pinnedPosts, ...shuffled];
             }
 
             return {
@@ -53,6 +83,7 @@ export function usePosts({ sortBy = 'recommended', searchQuery = '', limit = 8 }
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff: 1s, 2s, 4s (max 5s)
     });
 }
+
 
 
 /**

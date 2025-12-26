@@ -7,6 +7,20 @@ const CustomStyles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Noto+Serif+SC:wght@300;400;700&display=swap');
     
+    /* Override body background for Cultivation page - all screen sizes */
+    html, body {
+      background-color: #050511 !important;
+      background: #050511 !important;
+    }
+    
+    /* Ensure mobile also has dark background */
+    @media (max-width: 640px) {
+      html, body {
+        background-color: #050511 !important;
+        background: #050511 !important;
+      }
+    }
+    
     .font-title { font-family: 'Playfair Display', serif; }
     .font-cultivation { font-family: 'Noto Serif SC', serif; }
 

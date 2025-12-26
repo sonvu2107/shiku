@@ -49,12 +49,10 @@
         background-color: #111111 !important;
     }
 
-    /* Navbar solid background trên mobile - thay thế cho blur effect */
-    /* Target cụ thể cấu trúc Navbar trong Home.jsx */
     nav[role="navigation"]>div.fixed,
     nav[role="navigation"],
     nav.fixed,
-    .sticky {
+    .sticky:not(.font-cultivation .sticky):not([style*="background-color"]) {
         background-color: #ffffff !important;
         border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
         backdrop-filter: none !important;
@@ -64,7 +62,7 @@
     .dark nav[role="navigation"]>div.fixed,
     .dark nav[role="navigation"],
     .dark nav.fixed,
-    .dark .sticky {
+    .dark .sticky:not(.font-cultivation .sticky):not([style*="background-color"]) {
         background-color: #111111 !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     }

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, memo, useCallback, useMemo } from "
 import { Link, useNavigate } from "react-router-dom";
 import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Star, X, Smile, Image as ImageIcon, Send, Loader2, Play, Pin, Flag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getOptimizedImageUrl } from "../utils/imageOptimization";
+import { getOptimizedImageUrl, getCloudinarySrcSet, getCloudinarySizes } from "../utils/imageOptimization";
 import LazyImage from "./LazyImageSimple";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -545,6 +545,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
             ) : (
               <LazyImage
                 src={getOptimizedImageUrl(displayMedia.url, 800)}
+                srcSet={getCloudinarySrcSet(displayMedia.url)}
+                sizes={getCloudinarySizes('feed')}
                 alt={post.title || "Post media"}
                 priority={isFirst}
                 className="w-full h-auto object-cover transition-transform duration-300 group-hover/media:scale-[1.01] max-h-[320px] sm:max-h-[380px] md:max-h-[420px]"

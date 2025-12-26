@@ -1,7 +1,18 @@
-import React, { useState, useEffect, memo } from 'react';
-import Galaxy from './Galaxy/Galaxy';
-import GridScan from './GridScan/GridScan';
-import LightRays from './LightRays/LightRays';
+import React, { useState, useEffect, memo, Suspense, lazy } from 'react';
+
+// =====================================================================
+// LAZY LOAD HEAVY BACKGROUND COMPONENTS
+// These components use WebGL libraries (THREE.js, OGL, face-api.js)
+// Total ~1MB+ - only load when user selects the effect type
+// =====================================================================
+const Galaxy = lazy(() => import('./Galaxy/Galaxy'));
+const GridScan = lazy(() => import('./GridScan/GridScan'));
+const LightRays = lazy(() => import('./LightRays/LightRays'));
+
+// Loading fallback for background effects
+const BackgroundLoadingFallback = () => (
+  <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-black to-neutral-900 animate-pulse" />
+);
 
 // Preload image utility
 const preloadImage = (src) => {
@@ -58,23 +69,37 @@ StaticBackground.displayName = 'StaticBackground';
 export default function BackgroundWrapper({ config }) {
   const { type } = config;
 
-  // Static gradient (no animation) - default
+  // Static gradient (no animation) - default, no lazy loading needed
   if (type === 'none') {
     return <StaticBackground />;
   }
 
+  // Heavy effects - lazy loaded with Suspense
   if (type === 'gridscan') {
-    return <GridScan {...config.gridscan} />;
+    return (
+      <Suspense fallback={<BackgroundLoadingFallback />}>
+        <GridScan {...config.gridscan} />
+      </Suspense>
+    );
   }
 
   if (type === 'lightrays') {
-    return <LightRays {...config.lightrays} />;
+    return (
+      <Suspense fallback={<BackgroundLoadingFallback />}>
+        <LightRays {...config.lightrays} />
+      </Suspense>
+    );
   }
 
   if (type === 'galaxy') {
-    return <Galaxy {...config.galaxy} />;
+    return (
+      <Suspense fallback={<BackgroundLoadingFallback />}>
+        <Galaxy {...config.galaxy} />
+      </Suspense>
+    );
   }
 
   // Fallback to static background
   return <StaticBackground />;
 }
+

@@ -85,6 +85,50 @@ export const getOptimizedAvatarUrl = (url, size = 44) => {
 };
 
 /**
+ * Generate Cloudinary srcSet for responsive images
+ * @param {string} url - Original Cloudinary URL
+ * @param {Array} widths - Array of widths to generate (default: common breakpoints)
+ * @returns {string} srcSet string for <img srcSet>
+ */
+export const getCloudinarySrcSet = (url, widths = [400, 600, 800, 1200]) => {
+  if (!url) return '';
+
+  // Only works with Cloudinary URLs
+  if (!url.includes('cloudinary.com')) {
+    return '';
+  }
+
+  return widths
+    .map(w => {
+      const optimizedUrl = url.replace('/upload/', `/upload/w_${w},q_auto,f_auto/`);
+      return `${optimizedUrl} ${w}w`;
+    })
+    .join(', ');
+};
+
+/**
+ * Generate sizes attribute for responsive images
+ * Common patterns for social feed images
+ * @param {string} layout - Layout type: 'feed' | 'detail' | 'thumbnail'
+ * @returns {string} sizes attribute string
+ */
+export const getCloudinarySizes = (layout = 'feed') => {
+  switch (layout) {
+    case 'detail':
+      // Full viewport on mobile, max 1200px on desktop
+      return '(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 1200px';
+    case 'thumbnail':
+      // Small fixed sizes
+      return '(max-width: 640px) 120px, 200px';
+    case 'feed':
+    default:
+      // Feed images: full width mobile, constrained on tablet/desktop
+      return '(max-width: 640px) 100vw, (max-width: 768px) 600px, 800px';
+  }
+};
+
+
+/**
  * Generate blur placeholder from image
  * @param {string} imageUrl - Image URL
  * @param {number} width - Placeholder width

@@ -222,12 +222,22 @@ const QuestsTab = memo(function QuestsTab({ onCheckIn, checkingIn }) {
       </div>
 
       {/* Sub Tab Toggle */}
-      <div className="sticky top-0 z-30 flex gap-2 mb-4 bg-[#0B0B15]/95 backdrop-blur-md py-3 -mx-4 px-4 border-b border-white/5">
+      <div
+        className="sticky top-0 z-30 flex gap-2 mb-4 py-3 border-b border-white/5"
+        style={{
+          backgroundColor: '#050511',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.8)',
+          marginLeft: '-2rem',
+          marginRight: '-2rem',
+          paddingLeft: '2rem',
+          paddingRight: '2rem'
+        }}
+      >
         <button
           onClick={() => setActiveSubTab('quests')}
           className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-bold uppercase tracking-wide transition-all ${activeSubTab === 'quests'
-            ? 'bg-gradient-to-r from-cyan-600/30 to-cyan-700/30 border border-cyan-500/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
-            : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300 hover:border-slate-600'
+            ? 'bg-gradient-to-r from-cyan-900/80 to-cyan-800/80 border border-cyan-500/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
+            : 'bg-slate-900/90 border border-slate-700/50 text-slate-400 hover:text-slate-300 hover:border-slate-600'
             }`}
         >
           Nhiệm Vụ
@@ -240,8 +250,8 @@ const QuestsTab = memo(function QuestsTab({ onCheckIn, checkingIn }) {
         <button
           onClick={() => setActiveSubTab('achievements')}
           className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-bold uppercase tracking-wide transition-all ${activeSubTab === 'achievements'
-            ? 'bg-gradient-to-r from-amber-600/30 to-amber-700/30 border border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
-            : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-slate-300 hover:border-slate-600'
+            ? 'bg-gradient-to-r from-amber-900/80 to-amber-800/80 border border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+            : 'bg-slate-900/90 border border-slate-700/50 text-slate-400 hover:text-slate-300 hover:border-slate-600'
             }`}
         >
           Thành Tựu

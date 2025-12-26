@@ -29,7 +29,7 @@ export const loadAsyncCSS = (href, media = 'all') => {
     link.media = media;
   };
   document.head.appendChild(link);
-  
+
   // Fallback for browsers that don't support preload
   const noscript = document.createElement('noscript');
   const fallbackLink = document.createElement('link');
@@ -48,11 +48,11 @@ export const addResourceHints = (hints) => {
     const link = document.createElement('link');
     link.rel = rel;
     link.href = href;
-    
+
     if (as) link.as = as;
     if (type) link.type = type;
     if (crossorigin) link.crossOrigin = crossorigin;
-    
+
     document.head.appendChild(link);
   });
 };
@@ -75,35 +75,61 @@ export const optimizeFontLoading = (fontUrls) => {
 
 /**
  * Setup performance monitoring
+ * Tracks Core Web Vitals: LCP, FID, CLS
  */
 export const setupPerformanceMonitoring = () => {
-  // Temporarily disable performance monitoring to fix errors
-  return;
-  
-  // Monitor Core Web Vitals
-  const observer = new PerformanceObserver((list) => {
-    for (const entry of list.getEntries()) {
-      // Safely handle entry values
-      if (!entry || typeof entry.value === 'undefined' || entry.value === null) {
-        continue;
-      }
-      
-      // Send metrics to analytics
-      if (window.gtag) {
-        window.gtag('event', 'web_vitals', {
-          metric_name: entry.name,
-          metric_value: Math.round(entry.value),
-          metric_rating: entry.rating || 'good'
-        });
-      }
-    }
-  });
+  // Check if PerformanceObserver is supported
+  if (typeof PerformanceObserver === 'undefined') {
+    return;
+  }
 
-  // Observe various performance metrics
   try {
-    observer.observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift'] });
+    // Monitor Core Web Vitals
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        // Safely handle entry values
+        if (!entry || !entry.name) {
+          continue;
+        }
+
+        // Get value safely (some entries use startTime instead of value)
+        const value = entry.value ?? entry.startTime ?? null;
+        if (value === null || typeof value !== 'number') {
+          continue;
+        }
+
+        // Log to console in development
+        if (import.meta.env?.DEV) {
+          console.log(`[WebVitals] ${entry.name}: ${Math.round(value)}ms`);
+        }
+
+        // Send metrics to analytics (if available)
+        if (typeof window !== 'undefined' && window.gtag) {
+          window.gtag('event', 'web_vitals', {
+            metric_name: entry.name,
+            metric_value: Math.round(value),
+            metric_rating: entry.rating || 'unknown'
+          });
+        }
+      }
+    });
+
+    // Observe Core Web Vitals metrics
+    observer.observe({
+      type: 'largest-contentful-paint',
+      buffered: true
+    });
+    observer.observe({
+      type: 'first-input',
+      buffered: true
+    });
+    observer.observe({
+      type: 'layout-shift',
+      buffered: true
+    });
   } catch (e) {
-    // Performance Observer not supported
+    // Graceful degradation - performance monitoring is optional
+    console.warn('[Performance] Observer setup failed:', e.message);
   }
 };
 
@@ -120,7 +146,7 @@ export const removeUnusedCSS = (css, usedSelectors) => {
     const selector = rule.split('{')[0].trim();
     return usedSelectors.some(used => selector.includes(used));
   });
-  
+
   return optimizedRules.join('}');
 };
 
@@ -148,7 +174,7 @@ export const setupServiceWorker = async (swPath = '/sw.js') => {
   if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register(swPath);
-      
+
       // Handle updates
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
@@ -161,7 +187,7 @@ export const setupServiceWorker = async (swPath = '/sw.js') => {
           }
         });
       });
-      
+
     } catch (error) {
       // Service Worker registration failed
     }
@@ -178,10 +204,10 @@ export const optimizeImages = (images) => {
     if ('loading' in HTMLImageElement.prototype) {
       img.loading = 'lazy';
     }
-    
+
     // Add decoding hint
     img.decoding = 'async';
-    
+
     // Set importance for critical images
     if (img.classList.contains('critical')) {
       img.loading = 'eager';
@@ -212,7 +238,7 @@ export const preloadCriticalResources = () => {
     { href: '/src/App.jsx', as: 'script' },
     { href: '/src/api.js', as: 'script' }
   ];
-  
+
   criticalResources.forEach(({ href, as }) => {
     const link = document.createElement('link');
     link.rel = 'modulepreload';
@@ -228,16 +254,16 @@ export const preloadCriticalResources = () => {
 export const measurePerformance = () => {
   // Temporarily disable to fix errors
   return;
-  
+
   window.addEventListener('load', () => {
     setTimeout(() => {
       const perfData = performance.getEntriesByType('navigation')[0];
       const paintData = performance.getEntriesByType('paint');
-      
+
       if (!perfData) {
         return;
       }
-      
+
       const metrics = {
         'DNS Lookup': perfData.domainLookupEnd - perfData.domainLookupStart,
         'TCP Connect': perfData.connectEnd - perfData.connectStart,
@@ -247,15 +273,15 @@ export const measurePerformance = () => {
         'Resource Load': perfData.loadEventEnd - perfData.domContentLoadedEventEnd,
         'Total Load': perfData.loadEventEnd - perfData.navigationStart
       };
-      
+
       paintData.forEach(paint => {
         if (paint && paint.name && typeof paint.startTime === 'number') {
           metrics[paint.name] = paint.startTime;
         }
       });
-      
+
       console.table(metrics);
-      
+
       // Send to analytics if available
       if (window.gtag) {
         Object.entries(metrics).forEach(([name, value]) => {
