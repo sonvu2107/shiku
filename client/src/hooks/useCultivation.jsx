@@ -166,6 +166,16 @@ export function CultivationProvider({ children }) {
       setError(null);
       const response = await buyItem(itemId);
 
+      // Xử lý trường hợp đã mua starter pack rồi
+      if (response.alreadyPurchased) {
+        setNotification({
+          type: 'info',
+          title: 'Thông báo',
+          message: response.message || 'Bạn đã nhận gói quà này rồi!'
+        });
+        return response.data;
+      }
+
       if (response.success) {
         // Update cultivation with new inventory and spirit stones
         const updateData = {

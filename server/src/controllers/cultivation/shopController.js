@@ -11,21 +11,37 @@ export const getShop = async (req, res, next) => {
         const cultivation = await Cultivation.getOrCreate(userId);
 
         // Lọc bỏ items độc quyền rank (price: 0 hoặc exclusive: true)
+        // NHƯNG giữ lại items oneTimePurchase (starter pack) với price: 0
         const shopItems = SHOP_ITEMS
-            .filter(item => item.price > 0 && !item.exclusive)
+            .filter(item => (item.price > 0 || item.oneTimePurchase) && !item.exclusive)
             .map(item => {
                 if (item.type === 'technique') {
                     const isOwned = cultivation.learnedTechniques?.some(t => t.techniqueId === item.id) || false;
                     return { ...item, owned: isOwned, canAfford: cultivation.spiritStones >= item.price };
                 }
 
+                // Kiểm tra đã mua cho oneTimePurchase items (kiểm tra purchasedOneTimeItems)
+                if (item.oneTimePurchase) {
+                    const isPurchased = cultivation.purchasedOneTimeItems?.includes(item.id) || false;
+                    return {
+                        ...item,
+                        owned: isPurchased, // Đánh dấu "Đã sở hữu" nếu đã mua
+                        canAfford: true // Miễn phí
+                    };
+                }
+
+                // Kiểm tra đã nhận cho các item thường
                 const isOwned = cultivation.inventory.some(i => {
                     if (i.itemId && i.itemId.toString() === item.id) return true;
                     if (i._id && i._id.toString() === item.id) return true;
                     return false;
                 });
 
-                return { ...item, owned: isOwned, canAfford: cultivation.spiritStones >= item.price };
+                return {
+                    ...item,
+                    owned: isOwned,
+                    canAfford: cultivation.spiritStones >= item.price
+                };
             });
 
         const availableEquipment = await Equipment.find({
@@ -109,6 +125,25 @@ export const buyItem = async (req, res, next) => {
                 await cultivation.save();
 
                 const responseData = { spiritStones: cultivation.spiritStones, inventory: cultivation.inventory };
+
+                // Xử lý response đặc biệt cho starter pack
+                if (result && result.type === 'starter_pack') {
+                    // Đã mua rồi - trả về thông báo thân thiện
+                    if (result.alreadyPurchased) {
+                        return res.json({
+                            success: false,
+                            alreadyPurchased: true,
+                            message: result.message,
+                            data: responseData
+                        });
+                    }
+                    // Mua thành công
+                    return res.json({
+                        success: true,
+                        message: `Đã mua ${result.name}! Vào túi đồ và bấm "Dùng" để nhận phần thưởng.`,
+                        data: responseData
+                    });
+                }
 
                 if (result && result.type === 'technique') {
                     responseData.learnedTechnique = result.learnedTechnique;

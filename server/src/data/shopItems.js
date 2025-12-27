@@ -93,6 +93,25 @@ export const SHOP_ITEMS = [
     { id: "streak_protector", name: "Hộ Mệnh Phù", type: ITEM_TYPES.CONSUMABLE, price: 300, description: "Bảo vệ streak đăng nhập 1 lần", rarity: "rare" },
     { id: "weekly_pack", name: "Tuần Lễ Bảo Rương", type: ITEM_TYPES.CONSUMABLE, price: 1000, description: "Mở ra nhận ngẫu nhiên 1 vật phẩm Rare trở lên", rarity: "epic", isLootBox: true, lootBoxConfig: { minRarity: "rare", dropTypes: ["title", "badge", "avatar_frame", "profile_effect", "pet", "mount", "technique"] } },
 
+    // ==================== GÓI TÂN THỦ (MUA 1 LẦN) ====================
+    {
+        id: "starter_pack",
+        name: "Tân Thủ Lễ Bao",
+        type: ITEM_TYPES.CONSUMABLE,
+        price: 0, // Miễn phí, mua 1 lần
+        description: "Gói quà chào mừng tân thủ! Nhận 500 linh thạch, 3 Tiểu Hoàn Đan, 1 Tiểu Độ Kiếp Đan. Chỉ mua được 1 lần duy nhất.",
+        rarity: "legendary",
+        oneTimePurchase: true, // Đánh dấu chỉ mua 1 lần
+        rewards: {
+            spiritStones: 500,
+            items: [
+                { itemId: "exp_boost_mini", quantity: 3 }, // 3 Tiểu Hoàn Đan
+                { itemId: "breakthrough_pill_small", quantity: 1 } // 1 Tiểu Độ Kiếp Đan
+            ]
+        },
+        img: "/assets/danduoc.jpg"
+    },
+
     // ==================== LINH THÚ (PET) ====================
     { id: "pet_fox", name: "Cửu Vĩ Hồ", type: ITEM_TYPES.PET, price: 800, description: "Linh thú hồ ly 9 đuôi, tăng 5% exp", expBonus: 0.05, rarity: "epic" },
     { id: "pet_dragon_baby", name: "Tiểu Long", type: ITEM_TYPES.PET, price: 1500, description: "Rồng con đáng yêu, tăng 10% exp", expBonus: 0.1, rarity: "legendary" },

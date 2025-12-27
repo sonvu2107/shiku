@@ -340,7 +340,11 @@ const CultivationSchema = new mongoose.Schema({
     totalBossesKilled: { type: Number, default: 0 },
     totalDungeonExpEarned: { type: Number, default: 0 },
     totalDungeonSpiritStonesEarned: { type: Number, default: 0 }
-  }
+  },
+
+  // ==================== GÓI MUA 1 LẦN ====================
+  // Track các item oneTimePurchase đã mua (để chặn mua lại dù đã dùng)
+  purchasedOneTimeItems: [{ type: String }]
 }, {
   timestamps: true
 });
@@ -873,8 +877,19 @@ CultivationSchema.methods.processLogin = function () {
   // Phần thưởng đăng nhập
   const baseExp = 20;
   const streakBonus = Math.min(this.loginStreak * 5, 50); // Max +50 exp cho streak
-  const baseStones = 10;
-  const streakStoneBonus = Math.min(this.loginStreak * 2, 20);
+
+  // Linh thạch: Tăng mạnh cho tuần đầu tiên để hỗ trợ tân thủ
+  let baseStones = 10;
+  if (this.loginStreak === 1) {
+    baseStones = 50; // Ngày đầu tiên: 50 linh thạch (welcome bonus)
+  } else if (this.loginStreak === 2) {
+    baseStones = 30; // Ngày 2: 30 linh thạch
+  } else if (this.loginStreak === 3) {
+    baseStones = 40; // Ngày 3: 40 linh thạch  
+  } else if (this.loginStreak <= 7) {
+    baseStones = 20; // Ngày 4-7: 20 linh thạch
+  }
+  const streakStoneBonus = Math.min((this.loginStreak - 1) * 2, 20); // -1 để không double bonus ngày đầu
 
   // Milestone bonuses cho streak 7, 30, 60, 90, 365
   let milestoneBonus = 0;
@@ -1191,6 +1206,51 @@ CultivationSchema.methods.buyItem = function (itemId) {
   const item = SHOP_ITEMS_MAP.get(itemId);
   if (!item) {
     throw new Error("Vật phẩm không tồn tại");
+  }
+
+  // Xử lý items chỉ mua 1 lần (starter pack)
+  if (item.oneTimePurchase) {
+    // Kiểm tra đã mua chưa (dùng purchasedOneTimeItems để track vĩnh viễn)
+    if (!this.purchasedOneTimeItems) {
+      this.purchasedOneTimeItems = [];
+    }
+
+    if (this.purchasedOneTimeItems.includes(itemId)) {
+      // Trả về thông báo thay vì throw error
+      return {
+        type: 'starter_pack',
+        alreadyPurchased: true,
+        name: item.name,
+        message: 'Bạn đã nhận gói quà này rồi!'
+      };
+    }
+
+    // Đánh dấu đã mua (vĩnh viễn, không thể mua lại)
+    this.purchasedOneTimeItems.push(itemId);
+
+    // CHỈ thêm gói vào inventory, KHÔNG cộng rewards ngay
+    // Rewards sẽ được cộng khi user bấm "Dùng"
+    const inventoryItem = {
+      itemId: item.id,
+      name: item.name,
+      type: ITEM_TYPES.CONSUMABLE,
+      quantity: 1,
+      equipped: false,
+      acquiredAt: new Date(),
+      metadata: {
+        ...item, // Copy toàn bộ thông tin gốc
+        oneTimePurchase: true,
+        unopened: true // Đánh dấu chưa mở
+      }
+    };
+    this.inventory.push(inventoryItem);
+
+    return {
+      type: 'starter_pack',
+      name: item.name,
+      purchased: true, // Chỉ mua, chưa mở
+      message: 'Đã thêm vào túi đồ. Bấm "Dùng" để nhận phần thưởng!'
+    };
   }
 
   // Kiểm tra đã có chưa (trừ consumable items và exp boost)

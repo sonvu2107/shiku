@@ -316,6 +316,42 @@ export const useItem = async (req, res, next) => {
                     cultivation.activeBoosts.push({ type: 'spiritStones', multiplier: 1 + itemData.spiritStoneBonus, expiresAt });
                     message = `Đã kích hoạt ${item.name}! Tăng ${Math.round(itemData.spiritStoneBonus * 100)}% linh thạch trong ${itemData.duration}h`;
                     reward = { type: 'boost', bonus: itemData.spiritStoneBonus, duration: itemData.duration };
+                } else if (itemData.oneTimePurchase && itemData.rewards) {
+                    // Xử lý starter pack / gói quà 1 lần
+                    const rewards = itemData.rewards;
+                    let spiritStonesGained = 0;
+                    const itemsGained = [];
+
+                    // Cộng linh thạch
+                    if (rewards.spiritStones) {
+                        cultivation.spiritStones += rewards.spiritStones;
+                        cultivation.totalSpiritStonesEarned += rewards.spiritStones;
+                        spiritStonesGained = rewards.spiritStones;
+                    }
+
+                    // Thêm các items vào inventory
+                    if (rewards.items && rewards.items.length > 0) {
+                        for (const rewardItem of rewards.items) {
+                            const rewardItemData = SHOP_ITEMS_MAP.get(rewardItem.itemId);
+                            if (rewardItemData) {
+                                const newItem = {
+                                    itemId: rewardItemData.id,
+                                    name: rewardItemData.name,
+                                    type: rewardItemData.type,
+                                    quantity: rewardItem.quantity || 1,
+                                    equipped: false,
+                                    acquiredAt: new Date(),
+                                    metadata: { ...rewardItemData }
+                                };
+                                cultivation.inventory.push(newItem);
+                                itemsGained.push({ name: rewardItemData.name, quantity: rewardItem.quantity || 1 });
+                            }
+                        }
+                    }
+
+                    const itemsStr = itemsGained.map(i => `${i.quantity}x ${i.name}`).join(', ');
+                    message = `Đã mở ${item.name}! Nhận được ${spiritStonesGained} linh thạch và ${itemsStr}`;
+                    reward = { type: 'starter_pack', spiritStones: spiritStonesGained, items: itemsGained };
                 } else {
                     message = `Đã sử dụng ${item.name}!`;
                 }
