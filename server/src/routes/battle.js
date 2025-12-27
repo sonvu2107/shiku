@@ -190,9 +190,13 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
       }
     }
 
-    // Tính toán né tránh
-    const hitChance = (attacker.accuracy - defender.dodge) / 100;
-    const isDodged = Math.random() > Math.max(0.1, hitChance);
+    // Tính toán né tránh (improved formula)
+    // OLD: hitChance = (accuracy - dodge) / 100 -> 100 accuracy vs 50 dodge = 50% hit (too low!)
+    // NEW: Use multiplicative formula - accuracy reduces dodge effectiveness
+    const accuracyFactor = Math.min((attacker.accuracy || 100) / 100, 1.5);
+    const dodgeReduction = (defender.dodge || 0) / ((defender.dodge || 0) + (attacker.accuracy || 100));
+    const hitChance = accuracyFactor * (1 - dodgeReduction);
+    const isDodged = Math.random() > Math.max(0.3, Math.min(hitChance, 0.95));
 
     let damage = 0;
     let isCritical = false;

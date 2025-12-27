@@ -161,8 +161,14 @@ function simulateBattle(challengerStats, opponentStats, challengerSkills = [], o
         }
 
         // Calculate dodge (using accuracy vs dodge)
-        const hitChance = ((attacker.accuracy || 100) - (defender.dodge || 0)) / 100;
-        const isDodged = Math.random() > Math.max(0.1, hitChance);
+        // OLD: hitChance = (accuracy - dodge) / 100 -> 100 accuracy vs 50 dodge = 50% hit (too low!)
+        // NEW: Use multiplicative formula - accuracy reduces dodge effectiveness
+        // accuracy 100 vs dodge 50 -> hitChance = 1.0 * (1 - 50/(50+100)) = 1.0 * 0.67 = 67%
+        // accuracy 100 vs dodge 25 -> hitChance = 1.0 * (1 - 25/(25+100)) = 1.0 * 0.80 = 80%
+        const accuracyFactor = Math.min((attacker.accuracy || 100) / 100, 1.5); // Cap at 150%
+        const dodgeReduction = (defender.dodge || 0) / ((defender.dodge || 0) + (attacker.accuracy || 100));
+        const hitChance = accuracyFactor * (1 - dodgeReduction);
+        const isDodged = Math.random() > Math.max(0.3, Math.min(hitChance, 0.95)); // Min 30% hit, max 95% hit
 
         let damage = 0;
         let isCritical = false;
