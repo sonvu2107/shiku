@@ -531,9 +531,10 @@ export default function PostDetailModal({
                                 )}
                                 {allMedia.length > 1 && (
                                     <div className="mb-4 sm:mb-5 -mx-3 sm:mx-0">
-                                        <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                                        <div className="flex gap-1 sm:gap-1.5 h-[280px] sm:h-[360px] rounded-2xl sm:rounded-3xl overflow-hidden bg-neutral-100 dark:bg-neutral-900">
+                                            {/* Main image - takes 2/3 width */}
                                             <div
-                                                className="col-span-2 row-span-2 h-48 sm:h-64 rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer group/media touch-manipulation"
+                                                className="flex-[2] relative cursor-pointer group/media touch-manipulation overflow-hidden"
                                                 onClick={() => {
                                                     setCurrentMediaIndex(0);
                                                     setShowMediaModal(true);
@@ -542,7 +543,7 @@ export default function PostDetailModal({
                                                 {allMedia[0].type === "video" ? (
                                                     <video
                                                         src={allMedia[0].url}
-                                                        className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
+                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover/media:scale-105"
                                                         controls
                                                         playsInline
                                                     />
@@ -550,40 +551,45 @@ export default function PostDetailModal({
                                                     <LazyImage
                                                         src={getOptimizedImageUrl(allMedia[0].url, 800)}
                                                         alt={p.title}
-                                                        className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
+                                                        objectFit="cover"
+                                                        className="w-full h-full transition-transform duration-500 group-hover/media:scale-105"
                                                     />
                                                 )}
                                             </div>
-                                            {allMedia.slice(1, 3).map((m, idx) => (
-                                                <div
-                                                    key={idx + 1}
-                                                    className="h-24 sm:h-36 rounded-2xl sm:rounded-3xl overflow-hidden relative cursor-pointer group/media touch-manipulation"
-                                                    onClick={() => {
-                                                        setCurrentMediaIndex(idx + 1);
-                                                        setShowMediaModal(true);
-                                                    }}
-                                                >
-                                                    {m.type === "video" ? (
-                                                        <video
-                                                            src={m.url}
-                                                            className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
-                                                            controls
-                                                            playsInline
-                                                        />
-                                                    ) : (
-                                                        <LazyImage
-                                                            src={getOptimizedImageUrl(m.url, 400)}
-                                                            alt={p.title}
-                                                            className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
-                                                        />
-                                                    )}
-                                                    {idx === 1 && allMedia.length > 3 && (
-                                                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-2xl sm:rounded-3xl text-white text-lg sm:text-2xl font-bold">
-                                                            +{allMedia.length - 3} ảnh
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
+                                            {/* Secondary images - column on right */}
+                                            <div className="flex-1 flex flex-col gap-1 sm:gap-1.5">
+                                                {allMedia.slice(1, 3).map((m, idx) => (
+                                                    <div
+                                                        key={idx + 1}
+                                                        className="flex-1 relative cursor-pointer group/media touch-manipulation overflow-hidden"
+                                                        onClick={() => {
+                                                            setCurrentMediaIndex(idx + 1);
+                                                            setShowMediaModal(true);
+                                                        }}
+                                                    >
+                                                        {m.type === "video" ? (
+                                                            <video
+                                                                src={m.url}
+                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover/media:scale-105"
+                                                                controls
+                                                                playsInline
+                                                            />
+                                                        ) : (
+                                                            <LazyImage
+                                                                src={getOptimizedImageUrl(m.url, 400)}
+                                                                alt={p.title}
+                                                                objectFit="cover"
+                                                                className="w-full h-full transition-transform duration-500 group-hover/media:scale-105"
+                                                            />
+                                                        )}
+                                                        {idx === 1 && allMedia.length > 3 && (
+                                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xl sm:text-2xl font-bold">
+                                                                +{allMedia.length - 3}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
