@@ -23,6 +23,8 @@ export default function LazyImageSimple({
   className = '',
   style = {},
   priority = false,
+  objectFit = 'cover',
+  objectPosition = 'center',
   onLoad,
   onError,
   ...props
@@ -73,7 +75,9 @@ export default function LazyImageSimple({
       className={`lazy-image-simple ${className}`}
       style={{
         position: 'relative',
-        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         ...style
       }}
       {...props}
@@ -105,12 +109,14 @@ export default function LazyImageSimple({
           loading={priority ? 'eager' : 'lazy'}
           fetchPriority={priority ? 'high' : 'auto'}
           decoding={priority ? 'sync' : 'async'}
-          className="w-full h-full object-cover transition-opacity duration-300 ease-out"
+          className="max-w-full max-h-full transition-opacity duration-300 ease-out"
           style={{
             opacity: isLoaded ? 1 : 0,
             filter: isLoaded ? 'blur(0px)' : 'blur(10px)',
             transform: isLoaded ? 'scale(1)' : 'scale(1.1)',
-            transition: 'opacity 0.3s ease-out, filter 0.3s ease-out, transform 0.3s ease-out'
+            transition: 'opacity 0.3s ease-out, filter 0.3s ease-out, transform 0.3s ease-out',
+            objectFit: objectFit,
+            objectPosition: objectPosition
           }}
         />
       )}

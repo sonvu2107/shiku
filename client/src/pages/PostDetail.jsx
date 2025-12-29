@@ -530,11 +530,11 @@ export default function PostDetail() {
             </div>
           )}
 
-          {/* Hiển thị preview media trong bài */}
+          {/* Hiển thị preview media trong bài - Facebook style */}
           {allMedia.length === 1 && (
             <div className="mb-4 sm:mb-5 -mx-3 sm:mx-0">
               <div
-                className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-100 dark:bg-black cursor-pointer group/media touch-manipulation"
+                className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-neutral-100 dark:bg-neutral-900 cursor-pointer group/media touch-manipulation"
                 onClick={() => {
                   setCurrentIndex(0);
                   setShowMediaModal(true);
@@ -543,7 +543,7 @@ export default function PostDetail() {
                 {allMedia[0].type === "video" ? (
                   <video
                     src={allMedia[0].url}
-                    className="w-full max-h-[50vh] sm:max-h-[70vh] object-contain bg-black transition-transform duration-700 group-hover/media:scale-105"
+                    className="w-full object-contain bg-black transition-transform duration-700 group-hover/media:scale-105"
                     controls
                     playsInline
                   />
@@ -551,7 +551,8 @@ export default function PostDetail() {
                   <LazyImage
                     src={getOptimizedImageUrl(allMedia[0].url, 1200)}
                     alt={p.title}
-                    className="w-full object-contain max-h-[50vh] sm:max-h-[70vh] transition-transform duration-700 group-hover/media:scale-105"
+                    objectFit="contain"
+                    className="w-full h-auto transition-transform duration-700 group-hover/media:scale-105"
                   />
                 )}
               </div>

@@ -524,17 +524,17 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
         )}
       </div>
 
-      {/* 3. Media - Facebook/Twitter style: constrained aspect ratio */}
+      {/* 3. Media - Facebook style: max-height with object-cover (center crop) */}
       {displayMedia && (
         <div className="mt-1 mb-2 px-2 sm:px-3">
           <div className={cn(
-            "relative w-full overflow-hidden rounded-lg sm:rounded-xl bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-neutral-800/50",
+            "relative w-full overflow-hidden rounded-lg sm:rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-gray-100 dark:border-neutral-800/50",
             displayMedia.type !== 'video' && 'group/media'
           )}>
             {displayMedia.type === 'video' ? (
               <video
                 src={displayMedia.url}
-                className="w-full max-h-[280px] sm:max-h-[320px] md:max-h-[380px] object-contain bg-black"
+                className="w-full object-contain bg-black rounded-lg sm:rounded-xl"
                 controls
                 controlsList="nodownload"
                 playsInline
@@ -549,7 +549,8 @@ const ModernPostCard = ({ post, user, onUpdate, isSaved: isSavedProp, onSavedCha
                 sizes={getCloudinarySizes('feed')}
                 alt={post.title || "Post media"}
                 priority={isFirst}
-                className="w-full h-auto object-cover transition-transform duration-300 group-hover/media:scale-[1.01] max-h-[320px] sm:max-h-[380px] md:max-h-[420px]"
+                objectFit="contain"
+                className="w-full h-auto transition-transform duration-300 group-hover/media:scale-[1.01]"
               />
             )}
           </div>
