@@ -11,8 +11,10 @@ export default function AutoLikeBot() {
   const [config, setConfig] = useState({
     maxPostsPerUser: 4,
     maxViewsPerUser: 8,
+    maxCommentsPerUser: 3,
     forceOverride: false, // Option to override old upvotes
     loopCount: 1, // Number of loops for view bot
+    commentStyle: 'friendly', // friendly, curious, supportive, humorous
   });
   const [results, setResults] = useState(null);
   const [error, setError] = useState("");
@@ -83,6 +85,35 @@ export default function AutoLikeBot() {
           maxViewsPerUser: config.maxViewsPerUser,
           selectedUsers,
           loopCount: config.loopCount,
+        },
+      });
+      setResults(res);
+    } catch (err) {
+      setError(err.message || "Đã xảy ra lỗi khi chạy Bot.");
+    } finally {
+      setLoading(false);
+      setIsRunning(false);
+    }
+  };
+
+  const runAutoCommentBot = async () => {
+    if (selectedUsers.length === 0) {
+      setError("Vui lòng chọn ít nhất một tài khoản để chạy bot.");
+      return;
+    }
+
+    setLoading(true);
+    setIsRunning(true);
+    setError("");
+    setResults(null);
+
+    try {
+      const res = await api("/api/admin/auto-comment-posts", {
+        method: "POST",
+        body: {
+          maxCommentsPerUser: config.maxCommentsPerUser,
+          selectedUsers,
+          commentStyle: config.commentStyle,
         },
       });
       setResults(res);
@@ -191,6 +222,16 @@ export default function AutoLikeBot() {
             <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="text-xs sm:text-sm">Auto View Bot</span>
           </button>
+          <button
+            onClick={() => setBotMode("comment")}
+            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-semibold transition-all text-sm sm:text-base ${botMode === "comment"
+              ? "bg-white dark:bg-neutral-700 text-black dark:text-white shadow-sm"
+              : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
+              }`}
+          >
+            <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-xs sm:text-sm">AI Comment</span>
+          </button>
         </div>
 
         {/* Layout - Mobile First */}
@@ -290,6 +331,68 @@ export default function AutoLikeBot() {
                   </div>
                 </>
               )}
+
+              {botMode === "comment" && (
+                <>
+                  <div>
+                    <label className="block text-xs md:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      Số comment tối đa mỗi tài khoản
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={config.maxCommentsPerUser}
+                      onChange={(e) =>
+                        setConfig((p) => ({
+                          ...p,
+                          maxCommentsPerUser: parseInt(e.target.value) || 3,
+                        }))
+                      }
+                      className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-black dark:focus:ring-blue-500 focus:outline-none dark:bg-neutral-700 dark:text-white touch-target"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs md:text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                      Phong cách bình luận (AI)
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: 'friendly', label: '😊 Thân thiện', desc: 'Bạn bè, emoji nhẹ' },
+                        { value: 'curious', label: '🤔 Tò mò', desc: 'Đặt câu hỏi' },
+                        { value: 'supportive', label: '💪 Khích lệ', desc: 'Động viên, ủng hộ' },
+                        { value: 'humorous', label: '😄 Hài hước', desc: 'Vui vẻ, wordplay' },
+                      ].map((style) => (
+                        <label
+                          key={style.value}
+                          className={`flex flex-col p-3 rounded-lg border-2 cursor-pointer transition-all ${config.commentStyle === style.value
+                            ? 'border-black dark:border-blue-500 bg-gray-100 dark:bg-neutral-700'
+                            : 'border-gray-200 dark:border-neutral-600 hover:border-gray-400'
+                            }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="commentStyle"
+                              value={style.value}
+                              checked={config.commentStyle === style.value}
+                              onChange={(e) => setConfig((p) => ({ ...p, commentStyle: e.target.value }))}
+                              className="accent-black dark:accent-blue-400"
+                            />
+                            <span className="font-medium text-sm text-gray-900 dark:text-white">{style.label}</span>
+                          </div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-5">{style.desc}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 text-xs text-yellow-800 dark:text-yellow-300">
+                    ⚡ Comment được tạo bởi Gemini AI dựa trên tiêu đề bài viết. Mỗi comment mất ~0.5s để tránh rate limit.
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -369,7 +472,7 @@ export default function AutoLikeBot() {
 
         {/* Run Bot Button - Mobile Responsive */}
         <div className="mt-6 md:mt-8">
-          {botMode === "upvote" ? (
+          {botMode === "upvote" && (
             <button
               onClick={runAutoUpvoteBot}
               disabled={loading || isRunning || selectedUsers.length === 0}
@@ -390,7 +493,9 @@ export default function AutoLikeBot() {
                 </>
               )}
             </button>
-          ) : (
+          )}
+
+          {botMode === "view" && (
             <button
               onClick={runAutoViewBot}
               disabled={loading || isRunning || selectedUsers.length === 0}
@@ -408,6 +513,29 @@ export default function AutoLikeBot() {
                 <>
                   <Eye className="w-4 h-4" />
                   Khởi chạy View Bot
+                </>
+              )}
+            </button>
+          )}
+
+          {botMode === "comment" && (
+            <button
+              onClick={runAutoCommentBot}
+              disabled={loading || isRunning || selectedUsers.length === 0}
+              className={`w-full py-3 md:py-2.5 font-medium rounded-lg text-white text-sm md:text-base transition-all flex items-center justify-center gap-2 touch-target ${loading || isRunning || selectedUsers.length === 0
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-md"
+                }`}
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Đang tạo comment AI...
+                </>
+              ) : (
+                <>
+                  <MessageCircle className="w-4 h-4" />
+                  Khởi chạy AI Comment Bot
                 </>
               )}
             </button>
@@ -498,6 +626,7 @@ export default function AutoLikeBot() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
               <Stat label="Tổng upvotes" value={results.totalUpvotes || 0} />
               <Stat label="Tổng views" value={results.totalViews || 0} />
+              <Stat label="Tổng comments" value={results.totalComments || 0} />
               <Stat label="Tài khoản chạy" value={results.usersProcessed} />
               <Stat label="Bài viết có sẵn" value={results.postsAvailable} />
             </div>

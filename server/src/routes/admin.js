@@ -40,6 +40,7 @@ import {
   autoUpvotePosts,
   autoViewPosts,
   clearTestReactions,
+  autoCommentPosts,
   // Post management
   getPosts,
   deletePost,
@@ -164,6 +165,7 @@ router.post("/auto-like-posts", authRequired, adminRequired, strictAdminRateLimi
 router.post("/auto-upvote-posts", authRequired, adminRequired, strictAdminRateLimit, autoUpvotePosts);
 router.post("/auto-view-posts", authRequired, adminRequired, strictAdminRateLimit, autoViewPosts);
 router.post("/clear-test-reactions", authRequired, adminRequired, strictAdminRateLimit, clearTestReactions);
+router.post("/auto-comment-posts", authRequired, adminRequired, strictAdminRateLimit, autoCommentPosts);
 
 // ============================================================
 // POST MANAGEMENT ROUTES

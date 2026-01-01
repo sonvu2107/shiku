@@ -1,7 +1,9 @@
 import User from "../../models/User.js";
 import Post from "../../models/Post.js";
+import Comment from "../../models/Comment.js";
 import AuditLog from "../../models/AuditLog.js";
 import { getClientAgent } from "../../utils/clientAgent.js";
+import geminiService from "../../services/geminiService.js";
 
 /**
  * POST /auto-like-posts - Auto like posts using test accounts
@@ -402,6 +404,238 @@ export const clearTestReactions = async (req, res, next) => {
         });
 
     } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /auto-comment-posts - Auto comment posts using test accounts and Gemini AI
+ * Comments are generated based on post title for natural conversation
+ */
+export const autoCommentPosts = async (req, res, next) => {
+    try {
+        const {
+            maxCommentsPerUser = 5,
+            selectedUsers = [],
+            commentStyle = 'friendly' // friendly, curious, supportive, humorous
+        } = req.body;
+
+        if (!selectedUsers || selectedUsers.length === 0) {
+            return res.status(400).json({ error: "Vui lòng chọn ít nhất một tài khoản test" });
+        }
+
+        const testUsers = await User.find({
+            email: { $in: selectedUsers }
+        }).select('_id email name').lean();
+
+        if (testUsers.length === 0) {
+            return res.status(404).json({ error: "Không tìm thấy tài khoản test nào" });
+        }
+
+        // Get recent posts that haven't been commented by test users too much
+        const posts = await Post.find({
+            status: 'published',
+            $or: [
+                { group: null },
+                { group: { $exists: false } }
+            ]
+        })
+            .select('_id title content author')
+            .populate('author', 'name')
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .lean();
+
+        if (posts.length === 0) {
+            return res.status(404).json({ error: "Không có bài viết nào để comment" });
+        }
+
+        // Style prompts for different comment styles
+        const stylePrompts = {
+            friendly: 'Viết như một người bạn thân thiện, sử dụng ngôn ngữ tự nhiên, có thể dùng emoji nhẹ nhàng.',
+            curious: 'Viết như một người tò mò, đặt câu hỏi hoặc muốn tìm hiểu thêm về nội dung.',
+            supportive: 'Viết như một người ủng hộ, khích lệ, động viên tác giả.',
+            humorous: 'Viết hài hước nhẹ nhàng, có thể dùng wordplay, nhưng không châm chọc.'
+        };
+
+        const styleInstruction = stylePrompts[commentStyle] || stylePrompts.friendly;
+
+        // Rate limiting: Gemini free tier allows 5 requests/minute
+        // So we need at least 12-15 seconds between requests
+        const DELAY_BETWEEN_REQUESTS = 15000; // 15 seconds
+        const MAX_TOTAL_COMMENTS = 4; // Max comments per run to avoid timeout
+
+        let totalComments = 0;
+        let totalErrors = 0;
+        const results = [];
+        const generatedComments = [];
+
+        for (const testUser of testUsers) {
+            // Stop if we've reached max comments
+            if (totalComments >= MAX_TOTAL_COMMENTS) {
+                results.push({
+                    user: testUser.email,
+                    commentsGiven: 0,
+                    postsProcessed: 0,
+                    skippedPosts: 0,
+                    errors: 0,
+                    note: 'Đã đạt giới hạn comment'
+                });
+                continue;
+            }
+
+            let userComments = 0;
+            let postsProcessed = 0;
+            let skippedPosts = 0;
+            let errors = 0;
+
+            // Shuffle and pick posts
+            const shuffledPosts = [...posts].sort(() => Math.random() - 0.5);
+            const postsToProcess = shuffledPosts.slice(0, maxCommentsPerUser);
+
+            for (const post of postsToProcess) {
+                // Stop if we've reached max comments
+                if (totalComments >= MAX_TOTAL_COMMENTS) {
+                    break;
+                }
+
+                postsProcessed++;
+
+                // Skip if commenting on own post
+                if (post.author?._id?.toString() === testUser._id.toString()) {
+                    skippedPosts++;
+                    continue;
+                }
+
+                // Check if this user already commented on this post
+                const existingComment = await Comment.findOne({
+                    post: post._id,
+                    author: testUser._id
+                }).lean();
+
+                if (existingComment) {
+                    skippedPosts++;
+                    continue;
+                }
+
+                try {
+                    // Generate comment using Gemini AI
+                    const prompt = `Dựa trên tiêu đề bài viết: "${post.title}"
+
+${styleInstruction}
+
+Yêu cầu:
+- Viết MỘT bình luận ngắn gọn (15-40 từ) bằng tiếng Việt
+- Không nhắc lại tiêu đề
+- Không dùng "Bài viết", "Tiêu đề"
+- Tự nhiên như người thật viết
+- Có thể dùng 1-2 emoji phù hợp
+- Không cần lời chào, đi thẳng vào nội dung
+
+Chỉ trả về nội dung bình luận, không giải thích gì thêm.`;
+
+                    console.log(`[ADMIN] Generating AI comment for post: ${post.title.slice(0, 30)}...`);
+                    const response = await geminiService.sendSimpleMessage(prompt);
+
+                    if (!response?.success || !response.text) {
+                        errors++;
+                        totalErrors++;
+                        continue;
+                    }
+
+                    // Clean up the comment
+                    let commentContent = response.text.trim();
+                    // Remove markdown quotes if present
+                    commentContent = commentContent.replace(/^["'`]|["'`]$/g, '');
+                    // Remove "Bình luận:" prefix if AI added it
+                    commentContent = commentContent.replace(/^(Bình luận|Comment):\s*/i, '');
+
+                    // Skip if comment is too short or too long
+                    if (commentContent.length < 10 || commentContent.length > 500) {
+                        errors++;
+                        totalErrors++;
+                        continue;
+                    }
+
+                    // Create the comment
+                    await Comment.create({
+                        post: post._id,
+                        author: testUser._id,
+                        content: commentContent
+                    });
+
+                    // Update post comment count
+                    await Post.updateOne(
+                        { _id: post._id },
+                        {
+                            $inc: { commentCount: 1 },
+                            latestCommentAt: new Date()
+                        }
+                    );
+
+                    userComments++;
+                    totalComments++;
+                    generatedComments.push({
+                        postTitle: post.title.slice(0, 50),
+                        comment: commentContent.slice(0, 100),
+                        user: testUser.name || testUser.email
+                    });
+
+                    console.log(`[ADMIN] Created comment #${totalComments}: "${commentContent.slice(0, 50)}..."`);
+
+                    // Rate limit delay: 15 seconds to stay within 5 requests/minute
+                    if (totalComments < MAX_TOTAL_COMMENTS) {
+                        console.log(`[ADMIN] Waiting ${DELAY_BETWEEN_REQUESTS / 1000}s for rate limit...`);
+                        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
+                    }
+
+                } catch (err) {
+                    console.error(`[ADMIN] Error commenting on post ${post._id}:`, err.message);
+                    errors++;
+                    totalErrors++;
+
+                    // If rate limited, wait longer before next attempt
+                    if (err.message?.includes('429') || err.message?.includes('quota')) {
+                        console.log(`[ADMIN] Rate limited! Waiting 60s...`);
+                        await new Promise(resolve => setTimeout(resolve, 60000));
+                    }
+                }
+            }
+
+            results.push({
+                user: testUser.email,
+                commentsGiven: userComments,
+                postsProcessed,
+                skippedPosts,
+                errors
+            });
+        }
+
+        await AuditLog.logAction(req.user._id, 'admin_auto_comment', {
+            result: 'success',
+            ipAddress: req.ip,
+            clientAgent: getClientAgent(req),
+            details: {
+                action: 'auto_comment_posts',
+                totalComments,
+                usersProcessed: results.length,
+                commentStyle
+            }
+        });
+
+        res.json({
+            success: true,
+            message: `Đã thêm ${totalComments} bình luận AI từ ${testUsers.length} tài khoản`,
+            totalComments,
+            usersProcessed: testUsers.length,
+            postsAvailable: posts.length,
+            commentStyle,
+            results,
+            sampleComments: generatedComments.slice(0, 5) // Show first 5 samples
+        });
+
+    } catch (error) {
+        console.error('[ADMIN] Auto-comment error:', error);
         next(error);
     }
 };
