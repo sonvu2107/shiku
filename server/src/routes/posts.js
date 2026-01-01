@@ -621,12 +621,20 @@ router.get("/", authOptional, responseCache({ ttlSeconds: 30, prefix: "posts" })
 // Get by slug - Enhanced with isSaved and groupContext
 router.get("/slug/:slug", authOptional, async (req, res, next) => {
   try {
+    // Get current month key for monthly tracking
+    const monthKey = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+
     let post = await Post.findOneAndUpdate(
       {
         slug: req.params.slug,
         status: { $in: ["published", "private"] }
       },
-      { $inc: { views: 1 } },
+      {
+        $inc: {
+          views: 1,
+          [`monthlyViews.${monthKey}`]: 1
+        }
+      },
       { new: true }
     )
       .populate({ path: "author", select: "name nickname avatarUrl role displayBadgeType blockedUsers cultivationCache" })

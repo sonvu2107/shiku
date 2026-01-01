@@ -92,6 +92,11 @@ async function fetchStatsFromDB() {
     const privateGrowth = calculateGrowth(thisMonthPrivates, lastMonthPrivates);
     const adminsGrowth = calculateGrowth(thisMonthAdmins, lastMonthAdmins);
 
+    // Get current and last month keys
+    const thisMonthKey = now.toISOString().slice(0, 7); // 'YYYY-MM'
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthKey = lastMonthDate.toISOString().slice(0, 7);
+
     const [viewsData, upvotesData] = await Promise.all([
         Post.aggregate([
             {
@@ -100,27 +105,10 @@ async function fetchStatsFromDB() {
                     totalViews: { $sum: "$views" },
                     thisMonthViews: {
                         $sum: {
-                            $cond: [
-                                { $gte: ["$createdAt", thisMonth] },
-                                "$views",
-                                0
-                            ]
+                            $ifNull: [{ $arrayElemAt: [{ $objectToArray: "$monthlyViews" }, { $indexOfArray: [{ $map: { input: { $objectToArray: "$monthlyViews" }, as: "m", in: "$$m.k" } }, thisMonthKey] }] }, 0]
                         }
                     },
-                    lastMonthViews: {
-                        $sum: {
-                            $cond: [
-                                {
-                                    $and: [
-                                        { $gte: ["$createdAt", lastMonth] },
-                                        { $lt: ["$createdAt", thisMonth] }
-                                    ]
-                                },
-                                "$views",
-                                0
-                            ]
-                        }
-                    }
+                    // Simplified: just sum monthly views for current/last month
                 }
             }
         ]),
@@ -157,9 +145,19 @@ async function fetchStatsFromDB() {
         ])
     ]);
 
+    // Get monthly views using simpler JavaScript aggregation
+    const monthlyViewsAgg = await Post.aggregate([
+        { $match: { monthlyViews: { $exists: true } } },
+        { $project: { monthlyViews: { $objectToArray: "$monthlyViews" } } },
+        { $unwind: "$monthlyViews" },
+        { $group: { _id: "$monthlyViews.k", total: { $sum: "$monthlyViews.v" } } }
+    ]);
+
+    const monthlyViewsMap = new Map(monthlyViewsAgg.map(m => [m._id, m.total]));
+    const thisMonthViews = monthlyViewsMap.get(thisMonthKey) || 0;
+    const lastMonthViews = monthlyViewsMap.get(lastMonthKey) || 0;
+
     const totalViews = viewsData[0]?.totalViews || 0;
-    const thisMonthViews = viewsData[0]?.thisMonthViews || 0;
-    const lastMonthViews = viewsData[0]?.lastMonthViews || 0;
     const totalUpvotes = upvotesData[0]?.totalUpvotes || 0;
     const thisMonthUpvotes = upvotesData[0]?.thisMonthUpvotes || 0;
     const lastMonthUpvotes = upvotesData[0]?.lastMonthUpvotes || 0;

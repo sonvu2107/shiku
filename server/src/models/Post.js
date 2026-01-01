@@ -45,7 +45,8 @@ const PostSchema = new mongoose.Schema({
   rankingScore: { type: Number, default: 0, index: true }, // Score cho HOT feed
   lastRankingUpdate: { type: Date, default: Date.now }, // Lần cuối tính score
 
-  views: { type: Number, default: 0 }, // Số lượt xem
+  views: { type: Number, default: 0 }, // Số lượt xem tổng
+  monthlyViews: { type: Map, of: Number, default: {} }, // Views theo tháng, key: 'YYYY-MM', value: số lượt xem
   commentCount: { type: Number, default: 0 }, // Số lượng bình luận (denormalized)
   latestCommentAt: { type: Date, default: null, index: true }, // Thời điểm comment mới nhất (cho ranking boost)
   savedCount: { type: Number, default: 0 }, // Số lượng người đã lưu (denormalized)
