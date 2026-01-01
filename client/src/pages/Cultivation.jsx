@@ -21,7 +21,8 @@ import {
   TechniquesTab,
   DungeonTab,
   StorageTab,
-  CombatTab
+  CombatTab,
+  SectTab
 } from './cultivation/components';
 import { LOG_MESSAGES } from './cultivation/utils/constants';
 
@@ -329,6 +330,7 @@ const CultivationContent = memo(function CultivationContent() {
     { id: 'techniques', label: 'Công Pháp' },
     { id: 'dungeon', label: 'Bí Cảnh' },
     { id: 'combat', label: 'Chiến Đấu' },
+    { id: 'sect', label: 'Tông Môn' },
   ];
 
   return (
@@ -479,6 +481,7 @@ const CultivationContent = memo(function CultivationContent() {
           {activeTab === 'techniques' && <TechniquesTab practiceTechnique={practiceTechnique} />}
           {activeTab === 'dungeon' && <DungeonTab />}
           {activeTab === 'combat' && <CombatTab onSwitchTab={setActiveTab} isAdmin={isAdmin} />}
+          {activeTab === 'sect' && <SectTab />}
         </div>
       </div>
 

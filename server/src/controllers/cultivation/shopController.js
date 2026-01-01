@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Cultivation, { SHOP_ITEMS, SHOP_ITEMS_MAP, TECHNIQUES_MAP } from "../../models/Cultivation.js";
 import Equipment from "../../models/Equipment.js";
+import { getSectBuildingBonuses } from "../../services/sectBuildingBonusService.js";
 
 /**
  * GET /shop - Lấy danh sách vật phẩm trong shop
@@ -10,14 +11,24 @@ export const getShop = async (req, res, next) => {
         const userId = req.user.id;
         const cultivation = await Cultivation.getOrCreate(userId);
 
+        // Lấy bonus từ Tông Môn (nếu có)
+        const sectBonuses = await getSectBuildingBonuses(userId);
+        const shopDiscount = sectBonuses.shopDiscount || 0; // Đan Phòng giảm giá
+
         // Lọc bỏ items độc quyền rank (price: 0 hoặc exclusive: true)
         // NHƯNG giữ lại items oneTimePurchase (starter pack) với price: 0
         const shopItems = SHOP_ITEMS
             .filter(item => (item.price > 0 || item.oneTimePurchase) && !item.exclusive)
             .map(item => {
+                // Tính giá sau giảm (chỉ áp dụng cho đan dược)
+                const isAlchemyItem = item.type === 'exp_boost' || item.type === 'breakthrough_boost' || item.type === 'consumable';
+                const discountedPrice = isAlchemyItem
+                    ? Math.floor(item.price * (1 - shopDiscount))
+                    : item.price;
+
                 if (item.type === 'technique') {
                     const isOwned = cultivation.learnedTechniques?.some(t => t.techniqueId === item.id) || false;
-                    return { ...item, owned: isOwned, canAfford: cultivation.spiritStones >= item.price };
+                    return { ...item, price: discountedPrice, originalPrice: item.price, owned: isOwned, canAfford: cultivation.spiritStones >= discountedPrice };
                 }
 
                 // Kiểm tra đã mua cho oneTimePurchase items (kiểm tra purchasedOneTimeItems)
@@ -39,8 +50,10 @@ export const getShop = async (req, res, next) => {
 
                 return {
                     ...item,
+                    price: discountedPrice,
+                    originalPrice: item.price,
                     owned: isOwned,
-                    canAfford: cultivation.spiritStones >= item.price
+                    canAfford: cultivation.spiritStones >= discountedPrice
                 };
             });
 
@@ -119,9 +132,19 @@ export const buyItem = async (req, res, next) => {
         const shopItem = SHOP_ITEMS_MAP.get(itemId);
 
         if (shopItem) {
-            // Normal item purchase
+            // Lấy bonus giảm giá từ Tông Môn (Đan Phòng)
+            const sectBonuses = await getSectBuildingBonuses(userId);
+            const shopDiscount = sectBonuses.shopDiscount || 0;
+
+            // Tính giá sau giảm (chỉ áp dụng cho đan dược)
+            const isAlchemyItem = shopItem.type === 'exp_boost' || shopItem.type === 'breakthrough_boost' || shopItem.type === 'consumable';
+            const discountedPrice = isAlchemyItem
+                ? Math.floor(shopItem.price * (1 - shopDiscount))
+                : shopItem.price;
+
+            // Normal item purchase với giá đã giảm
             try {
-                const result = cultivation.buyItem(itemId);
+                const result = cultivation.buyItem(itemId, discountedPrice);
                 await cultivation.save();
 
                 const responseData = { spiritStones: cultivation.spiritStones, inventory: cultivation.inventory };

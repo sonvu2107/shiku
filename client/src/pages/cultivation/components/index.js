@@ -22,6 +22,7 @@ export { default as CombatTab } from './CombatTab.jsx';
 export { default as WeaponSlot } from './WeaponSlot.jsx';
 export { default as WeaponEquipmentSection } from './WeaponEquipmentSection.jsx';
 export { default as StatsComparisonModal } from './StatsComparisonModal.jsx';
+export { default as SectTab } from './SectTab.jsx';
 
 export {
   TechniqueImage,

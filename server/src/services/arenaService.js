@@ -7,6 +7,7 @@ import Rank, { RANK_TIERS, RANKED_BOTS } from '../models/Rank.js';
 import RankedMatch from '../models/RankedMatch.js';
 import Season, { SEASON_REWARDS } from '../models/Season.js';
 import Cultivation from '../models/Cultivation.js';
+import { getSectBuildingBonuses } from './sectBuildingBonusService.js';
 
 // ==================== MMR CALCULATION ====================
 
@@ -324,8 +325,17 @@ export async function claimSeasonRewards(userId) {
     // Apply rewards to cultivation
     const cultivation = await Cultivation.findOne({ user: userId });
     if (cultivation) {
-        cultivation.exp += rewards.exp;
-        cultivation.spiritStones += rewards.spiritStones;
+        // Lấy bonus từ Luyện Công Trường
+        const sectBonuses = await getSectBuildingBonuses(userId);
+        const arenaBonus = sectBonuses.arenaBonus || 0;
+
+        // Tính phần thưởng với bonus từ Tông Môn
+        const bonusMultiplier = 1 + arenaBonus;
+        const finalExp = Math.floor(rewards.exp * bonusMultiplier);
+        const finalSpiritStones = Math.floor(rewards.spiritStones * bonusMultiplier);
+
+        cultivation.exp += finalExp;
+        cultivation.spiritStones += finalSpiritStones;
 
         // Add title if any
         if (rewards.title) {

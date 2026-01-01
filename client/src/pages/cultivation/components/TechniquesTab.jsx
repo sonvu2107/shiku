@@ -58,6 +58,23 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
   const learnedTechniques = cultivation.learnedTechniques || [];
   const skills = cultivation.skills || [];
 
+  // Công pháp tông môn đã học
+  const sectTechniquesData = cultivation.sectTechniques || [];
+  const SECT_TECHNIQUES_INFO = {
+    sect_basic_qi: { name: 'Tông Môn Thổ Nạp Pháp', description: 'Tăng 8% Tấn Công và Phòng Thủ', rarity: 'common', stats: { attack: 0.08, defense: 0.08 } },
+    sect_spirit_gathering: { name: 'Linh Khí Quy Tụ Pháp', description: 'Tăng 10% Chân Nguyên và 5% Hồi Phục', rarity: 'uncommon', stats: { zhenYuan: 0.10, regeneration: 0.05 } },
+    sect_unity_strike: { name: 'Đồng Tâm Quyết', description: 'Tăng 12% Tấn Công và 8% Chí Mạng', rarity: 'rare', stats: { attack: 0.12, criticalRate: 0.08 } },
+    sect_guardian_aura: { name: 'Hộ Tông Thần Công', description: 'Tăng 15% Phòng Thủ và 10% Kháng Cự', rarity: 'rare', stats: { defense: 0.15, resistance: 0.10 } },
+    sect_swift_formation: { name: 'Tốc Chiến Trận Pháp', description: 'Tăng 15% Tốc Độ và 12% Né Tránh', rarity: 'rare', stats: { speed: 0.15, dodge: 0.12 } },
+    sect_hegemon_art: { name: 'Bá Vương Tông Pháp', description: 'Tăng 18% Tấn Công, 12% Chí Mạng và 10% Xuyên Thấu', rarity: 'epic', stats: { attack: 0.18, criticalRate: 0.12, penetration: 0.10 } },
+    sect_immortal_body: { name: 'Bất Tử Tông Thể', description: 'Tăng 20% Khí Huyết và 15% Hồi Phục', rarity: 'epic', stats: { qiBlood: 0.20, regeneration: 0.15 } },
+    sect_ancestral_legacy: { name: 'Tổ Sư Di Huấn', description: 'Tăng 15% tất cả chỉ số chiến đấu', rarity: 'legendary', stats: { attack: 0.15, defense: 0.15, qiBlood: 0.15, zhenYuan: 0.15, speed: 0.15, criticalRate: 0.10 } },
+  };
+  const learnedSectTechniques = sectTechniquesData.map(st => ({
+    ...st,
+    technique: SECT_TECHNIQUES_INFO[st.id] || null
+  })).filter(st => st.technique);
+
   // Tách công pháp đã học và chưa học
   const learned = learnedTechniques.map(learned => {
     const technique = allTechniques.find(t => t.id === learned.techniqueId);
@@ -222,6 +239,71 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
           </div>
         </div>
       </div>
+
+      {/* Công Pháp Tông Môn */}
+      {learnedSectTechniques.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-bold text-blue-400 font-title">CÔNG PHÁP TÔNG MÔN</h4>
+            <span className="text-xs text-slate-500">({learnedSectTechniques.length})</span>
+          </div>
+          <p className="text-xs text-slate-500">Học từ Tàng Kinh Các - Chỉ số cộng vĩnh viễn</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {learnedSectTechniques.map((item) => {
+              const { technique, id, learnedAt } = item;
+              const rarity = RARITY_COLORS[technique.rarity] || RARITY_COLORS.common;
+              const statLabels = {
+                attack: 'Tấn Công',
+                defense: 'Phòng Thủ',
+                qiBlood: 'Khí Huyết',
+                zhenYuan: 'Chân Nguyên',
+                speed: 'Tốc Độ',
+                criticalRate: 'Chí Mạng',
+                dodge: 'Né Tránh',
+                penetration: 'Xuyên Thấu',
+                resistance: 'Kháng Cự',
+                lifesteal: 'Hấp Huyết',
+                regeneration: 'Hồi Phục',
+                luck: 'Vận Khí'
+              };
+
+              return (
+                <div
+                  key={id}
+                  className={`spirit-tablet rounded-xl p-3 ${rarity.bg} ${rarity.border}`}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-blue-900/50 border border-blue-500/40 flex items-center justify-center flex-shrink-0">
+                      <span className="text-blue-300 text-xs font-title">宗</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <h5 className={`font-bold text-base truncate ${rarity.text}`}>{technique.name}</h5>
+                        <span className="text-[10px] bg-blue-900/30 text-blue-300 px-2 py-0.5 rounded uppercase">
+                          {rarity.label}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 truncate">{technique.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  {technique.stats && (
+                    <div className="flex flex-wrap gap-1">
+                      {Object.entries(technique.stats).map(([stat, value]) => (
+                        <span key={stat} className="text-[10px] bg-slate-800/50 text-emerald-300 px-1.5 py-0.5 rounded">
+                          {statLabels[stat]}: +{Math.round(value * 100)}%
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Công Pháp Đã Học */}
       {finalLearned.length > 0 && (

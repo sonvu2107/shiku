@@ -153,6 +153,7 @@ export {
 
 // Import for use in this file
 import { ITEM_TYPES, SHOP_ITEMS, SHOP_ITEMS_MAP, TECHNIQUES_MAP } from '../data/shopItems.js';
+import { SECT_TECHNIQUES_MAP } from '../data/sectTechniques.js';
 
 // ==================== QUEST PROGRESS SCHEMA ====================
 const QuestProgressSchema = new mongoose.Schema({
@@ -256,6 +257,12 @@ const CultivationSchema = new mongoose.Schema({
 
   // ==================== KHO ĐỒ ====================
   inventory: [InventoryItemSchema],
+
+  // ==================== CÔNG PHÁP TÔNG MÔN ====================
+  sectTechniques: [{
+    id: { type: String, required: true },
+    learnedAt: { type: Date, default: Date.now }
+  }],
 
   // ==================== TRANG BỊ ĐANG DÙNG ====================
   equipped: {
@@ -449,6 +456,29 @@ CultivationSchema.methods.calculateCombatStats = function () {
             } else {
               // Tăng theo phần trăm (criticalRate, dodge, accuracy, lifesteal, regeneration)
               finalStats[statKey] = Math.min(100, finalStats[statKey] + (bonusPercent * 100 * levelMultiplier));
+            }
+          }
+        });
+      }
+    });
+  }
+
+  // Thêm bonus từ công pháp tông môn (sect techniques)
+  if (this.sectTechniques && this.sectTechniques.length > 0) {
+    this.sectTechniques.forEach(learned => {
+      const technique = SECT_TECHNIQUES_MAP.get(learned.id);
+      if (technique && technique.stats) {
+        // Công pháp tông môn không có level, áp dụng 100% stats
+        Object.keys(technique.stats).forEach(statKey => {
+          const bonusPercent = technique.stats[statKey];
+          if (finalStats[statKey] !== undefined) {
+            if (statKey === 'attack' || statKey === 'defense' || statKey === 'qiBlood' || statKey === 'zhenYuan') {
+              finalStats[statKey] = Math.floor(finalStats[statKey] * (1 + bonusPercent));
+            } else if (statKey === 'speed' || statKey === 'penetration' || statKey === 'resistance' || statKey === 'luck') {
+              finalStats[statKey] = Math.floor(finalStats[statKey] + (baseStats[statKey] * bonusPercent));
+            } else {
+              // criticalRate, dodge, accuracy, lifesteal, regeneration
+              finalStats[statKey] = Math.min(100, finalStats[statKey] + (bonusPercent * 100));
             }
           }
         });
@@ -1200,8 +1230,10 @@ CultivationSchema.methods.claimQuestReward = function (questId) {
 
 /**
  * Mua vật phẩm
+ * @param {string} itemId - ID vật phẩm
+ * @param {number} overridePrice - Giá đã được giảm từ Đan Phòng (optional)
  */
-CultivationSchema.methods.buyItem = function (itemId) {
+CultivationSchema.methods.buyItem = function (itemId, overridePrice = null) {
   // Use SHOP_ITEMS_MAP for O(1) lookup
   const item = SHOP_ITEMS_MAP.get(itemId);
   if (!item) {
@@ -1269,8 +1301,9 @@ CultivationSchema.methods.buyItem = function (itemId) {
     }
   }
 
-  // Trừ linh thạch
-  this.spendSpiritStones(item.price);
+  // Trừ linh thạch (dùng giá đã giảm nếu có)
+  const finalPrice = overridePrice !== null ? overridePrice : item.price;
+  this.spendSpiritStones(finalPrice);
 
   // Xử lý công pháp: tự động học khi mua
   if (item.type === ITEM_TYPES.TECHNIQUE) {

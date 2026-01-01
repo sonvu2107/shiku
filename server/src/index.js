@@ -64,6 +64,7 @@ import arenaRoutes from "./routes/arena.js"; // Ranked Arena routes
 import reportsRoutes from "./routes/reports.js"; // User reports routes
 import recapRoutes from "./routes/recap.js"; // Recap 2025 routes
 import vibecheckRoutes from "./routes/vibecheck.js"; // Vibe Check routes
+import sectRoutes from "./routes/sects.js"; // Tông Môn (Sect) routes
 
 // Tạo Express app và HTTP server
 const app = express();
@@ -464,6 +465,7 @@ app.use("/api/arena", apiLimiter, arenaRoutes); // Ranked Arena routes
 app.use("/api/reports", apiLimiter, reportsRoutes); // User reports routes
 app.use("/api/recap", apiLimiter, recapRoutes); // Recap 2025 routes
 app.use("/api/vibecheck", apiLimiter, vibecheckRoutes); // Vibe Check routes
+app.use("/api/sects", apiLimiter, sectRoutes); // Tông Môn (Sect) routes
 app.set("io", io);
 
 // ==================== ERROR HANDLING ====================
