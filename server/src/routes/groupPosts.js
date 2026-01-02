@@ -12,7 +12,7 @@ router.get("/:groupId/posts", authRequired, async (req, res, next) => {
   try {
     const { page = 1, limit = 10 } = req.query;
     const groupId = req.params.groupId;
-    
+
     // Kiểm tra groupId hợp lệ
     if (!groupId || !groupId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({ error: "groupId không hợp lệ" });
@@ -26,23 +26,21 @@ router.get("/:groupId/posts", authRequired, async (req, res, next) => {
 
     // Kiểm tra quyền truy cập nhóm
     const userId = req.user._id;
-    const canViewPosts = group.settings.type === 'public' || group.isMember(userId) || group.owner.toString() === userId.toString();
-    
+    const canViewPosts = group.settings?.type === 'public' || group.isMember(userId) || group.owner.toString() === userId.toString();
+
     if (!canViewPosts) {
       return res.status(403).json({ error: "Bạn không có quyền xem bài viết trong nhóm này" });
     }
 
     // Tìm bài viết trong nhóm
-    const filter = { group: groupId, status: "published" };
-    
+    // FIX: Dùng group._id (ObjectId) thay vì groupId (string) để match đúng với MongoDB
+    const filter = { group: group._id, status: "published" };
+
     const skip = (Number(page) - 1) * Number(limit);
     const posts = await Post.find(filter)
-      .populate("author", "name avatarUrl")
+      .populate("author", "name avatarUrl nickname role displayBadgeType cultivationCache")
       .populate("group", "name avatar")
-      .populate({
-        path: "emotes.user",
-        select: "name nickname avatarUrl role"
-      })
+      // NOTE: emotes.user populate removed - using upvote system now
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit));
@@ -51,7 +49,7 @@ router.get("/:groupId/posts", authRequired, async (req, res, next) => {
     // Lưu ý: populate nested paths như emotes.user có thể không hoạt động đúng với .toObject()
     // Nên chúng ta cần populate lại thủ công
     const postIds = posts.map(p => p._id);
-    
+
     // Batch query comment counts
     const commentCounts = await Comment.aggregate([
       { $match: { post: { $in: postIds } } },
@@ -60,7 +58,7 @@ router.get("/:groupId/posts", authRequired, async (req, res, next) => {
     const commentCountMap = new Map(
       commentCounts.map(c => [c._id.toString(), c.count])
     );
-    
+
     // Batch query saved counts
     const savedCounts = await User.aggregate([
       { $match: { savedPosts: { $in: postIds } } },
@@ -71,81 +69,23 @@ router.get("/:groupId/posts", authRequired, async (req, res, next) => {
     const savedCountMap = new Map(
       savedCounts.map(c => [c._id.toString(), c.count])
     );
-    
-    // FIX N+1: Collect ALL user IDs from ALL posts FIRST
-    const allEmoteUserIds = new Set();
-    posts.forEach(post => {
-      if (post.emotes && Array.isArray(post.emotes)) {
-        post.emotes.forEach(emote => {
-          if (emote && emote.user) {
-            let userId = null;
-            // Extract user ID regardless of format
-            if (typeof emote.user === 'object' && emote.user._id) {
-              userId = emote.user._id.toString();
-            } else if (typeof emote.user === 'string') {
-              userId = emote.user;
-            } else if (emote.user && emote.user.toString) {
-              userId = emote.user.toString();
-            }
-            if (userId) {
-              allEmoteUserIds.add(userId);
-            }
-          }
-        });
-      }
-    });
-    
-    // SINGLE QUERY for all users across all posts
-    let globalUserMap = new Map();
-    if (allEmoteUserIds.size > 0) {
-      const allUsers = await User.find({ _id: { $in: Array.from(allEmoteUserIds) } })
-        .select("name nickname avatarUrl role cultivationCache displayBadgeType")
-        .lean();
-      allUsers.forEach(u => globalUserMap.set(u._id.toString(), u));
-    }
-    
-    // Map posts with no additional queries
+
+    // NOTE: emotes processing removed - using upvote system now
+
+    // Map posts with comment and saved counts
     const itemsWithCommentCount = posts.map(post => {
       const postObj = post.toObject();
       const commentCount = commentCountMap.get(post._id.toString()) || 0;
       const savedCount = savedCountMap.get(post._id.toString()) || 0;
-      
-      // Populate emotes.user from global user map
-      if (postObj.emotes && Array.isArray(postObj.emotes) && postObj.emotes.length > 0) {
-        postObj.emotes = postObj.emotes.map(emote => {
-          if (emote && emote.user) {
-            // If already populated with full data, keep it
-            if (typeof emote.user === 'object' && emote.user._id && emote.user.name) {
-              return emote;
-            }
-            
-            // Extract user ID and populate from global map
-            let userId = null;
-            if (typeof emote.user === 'object' && emote.user._id) {
-              userId = emote.user._id.toString();
-            } else if (typeof emote.user === 'string') {
-              userId = emote.user;
-            } else if (emote.user && emote.user.toString) {
-              userId = emote.user.toString();
-            }
-            
-            if (userId && globalUserMap.has(userId)) {
-              return { ...emote, user: globalUserMap.get(userId) };
-            }
-          }
-          return emote;
-        });
-      }
-      
       return { ...postObj, commentCount, savedCount };
     });
 
     // Đếm tổng số bài viết
     const total = await Post.countDocuments(filter);
 
-    res.json({ 
-      items: itemsWithCommentCount, 
-      total, 
+    res.json({
+      items: itemsWithCommentCount,
+      total,
       page: Number(page),
       pages: Math.ceil(total / Number(limit))
     });
