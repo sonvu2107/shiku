@@ -7,6 +7,71 @@ import AuditLog from "../../models/AuditLog.js";
 import { getClientAgent } from "../../utils/clientAgent.js";
 
 /**
+ * Helper: Batch fetch targets cho reports - tránh N+1 query problem
+ * Giảm từ N queries xuống còn 3 queries (1 per targetType)
+ */
+async function enrichReportsWithTargets(reports) {
+    if (!reports || reports.length === 0) return [];
+
+    // Group report IDs by targetType
+    const postIds = [];
+    const commentIds = [];
+    const userIds = [];
+
+    for (const report of reports) {
+        const id = report.targetId;
+        if (!id) continue;
+
+        if (report.targetType === 'post') postIds.push(id);
+        else if (report.targetType === 'comment') commentIds.push(id);
+        else if (report.targetType === 'user') userIds.push(id);
+    }
+
+    // Batch fetch - chỉ 3 queries thay vì N queries
+    const [posts, comments, users] = await Promise.all([
+        postIds.length > 0
+            ? Post.find({ _id: { $in: postIds } })
+                .select('title slug author')
+                .populate('author', 'name avatarUrl')
+                .lean()
+            : [],
+        commentIds.length > 0
+            ? Comment.find({ _id: { $in: commentIds } })
+                .select('content author post')
+                .populate('author', 'name avatarUrl')
+                .populate('post', 'title slug')
+                .lean()
+            : [],
+        userIds.length > 0
+            ? User.find({ _id: { $in: userIds } })
+                .select('name email avatarUrl')
+                .lean()
+            : []
+    ]);
+
+    // Build Maps for O(1) lookup
+    const postMap = new Map(posts.map(p => [p._id.toString(), p]));
+    const commentMap = new Map(comments.map(c => [c._id.toString(), c]));
+    const userMap = new Map(users.map(u => [u._id.toString(), u]));
+
+    // Enrich reports với map lookup - không có thêm query nào
+    return reports.map(report => {
+        let target = null;
+        const id = report.targetId?.toString();
+
+        if (report.targetType === 'post') target = postMap.get(id);
+        else if (report.targetType === 'comment') target = commentMap.get(id);
+        else if (report.targetType === 'user') target = userMap.get(id);
+
+        return {
+            ...report,
+            target,
+            isTargetDeleted: !target
+        };
+    });
+}
+
+/**
  * GET /api/admin/reports
  * Lấy danh sách reports với pagination và filters
  */
@@ -25,35 +90,8 @@ export async function getReports(req, res, next) {
             sortOrder
         });
 
-        // Enrich reports with target data
-        const enrichedReports = await Promise.all(
-            result.reports.map(async (report) => {
-                let target = null;
-
-                if (report.targetType === 'post') {
-                    target = await Post.findById(report.targetId)
-                        .select('title slug author')
-                        .populate('author', 'name avatarUrl')
-                        .lean();
-                } else if (report.targetType === 'comment') {
-                    target = await Comment.findById(report.targetId)
-                        .select('content author post')
-                        .populate('author', 'name avatarUrl')
-                        .populate('post', 'title slug')
-                        .lean();
-                } else if (report.targetType === 'user') {
-                    target = await User.findById(report.targetId)
-                        .select('name email avatarUrl')
-                        .lean();
-                }
-
-                return {
-                    ...report,
-                    target,
-                    isTargetDeleted: !target
-                };
-            })
-        );
+        // Batch fetch targets - 3 queries thay vì N queries
+        const enrichedReports = await enrichReportsWithTargets(result.reports);
 
         res.json({
             success: true,
@@ -72,31 +110,44 @@ export async function getReports(req, res, next) {
  */
 export async function getReportStats(req, res, next) {
     try {
-        const [pending, resolved, dismissed, total] = await Promise.all([
-            Report.countDocuments({ status: 'pending' }),
-            Report.countDocuments({ status: 'resolved' }),
-            Report.countDocuments({ status: 'dismissed' }),
-            Report.countDocuments()
+        // Single $facet pipeline - 1 query thay vì 6 queries
+        const [statsResult] = await Report.aggregate([
+            {
+                $facet: {
+                    byStatus: [
+                        { $group: { _id: '$status', count: { $sum: 1 } } }
+                    ],
+                    byType: [
+                        { $group: { _id: '$targetType', count: { $sum: 1 } } }
+                    ],
+                    byReason: [
+                        { $match: { status: 'pending' } },
+                        { $group: { _id: '$reason', count: { $sum: 1 } } }
+                    ],
+                    total: [
+                        { $count: 'count' }
+                    ]
+                }
+            }
         ]);
 
-        const byType = await Report.aggregate([
-            { $group: { _id: '$targetType', count: { $sum: 1 } } }
-        ]);
+        // Parse status counts
+        const statusCounts = { pending: 0, resolved: 0, dismissed: 0 };
+        for (const s of statsResult.byStatus) {
+            if (s._id) statusCounts[s._id] = s.count;
+        }
 
-        const byReason = await Report.aggregate([
-            { $match: { status: 'pending' } },
-            { $group: { _id: '$reason', count: { $sum: 1 } } }
-        ]);
+        const total = statsResult.total[0]?.count || 0;
 
         res.json({
             success: true,
             stats: {
-                pending,
-                resolved,
-                dismissed,
+                pending: statusCounts.pending,
+                resolved: statusCounts.resolved,
+                dismissed: statusCounts.dismissed,
                 total,
-                byType: Object.fromEntries(byType.map(t => [t._id, t.count])),
-                byReason: Object.fromEntries(byReason.map(r => [r._id, r.count]))
+                byType: Object.fromEntries(statsResult.byType.map(t => [t._id, t.count])),
+                byReason: Object.fromEntries(statsResult.byReason.map(r => [r._id, r.count]))
             }
         });
     } catch (error) {

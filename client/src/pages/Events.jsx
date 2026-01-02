@@ -6,6 +6,7 @@ import { useSEO } from "../utils/useSEO";
 import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSystem";
 import { motion } from "framer-motion";
 import { cn } from "../utils/cn";
+import Pagination from "../components/admin/Pagination";
 
 // --- COMPONENT CON: EVENT CARD (STYLE MỚI) ---
 const EventCard = ({ event, onJoin }) => {
@@ -98,6 +99,10 @@ export default function Events() {
    const [loading, setLoading] = useState(true); // Mặc định true để tránh flash empty state
    const [searchQuery, setSearchQuery] = useState("");
    const [filter, setFilter] = useState("all");
+   const [currentPage, setCurrentPage] = useState(1);
+   const [pagination, setPagination] = useState({
+      page: 1, totalPages: 1, total: 0, hasPrevPage: false, hasNextPage: false
+   });
 
    useSEO({
       title: "Sự kiện - Shiku",
@@ -114,9 +119,20 @@ export default function Events() {
             const params = new URLSearchParams();
             if (searchQuery) params.append("search", searchQuery);
             if (filter !== "all") params.append("filter", filter);
+            params.append("page", currentPage.toString());
+            params.append("limit", "12");
 
             const res = await api(`/api/events?${params.toString()}`);
             setEvents(res.events || []);
+            if (res.pagination) {
+               setPagination({
+                  page: res.pagination.current,
+                  totalPages: res.pagination.pages,
+                  total: res.pagination.total,
+                  hasPrevPage: res.pagination.current > 1,
+                  hasNextPage: res.pagination.current < res.pagination.pages
+               });
+            }
          } catch (error) {
             setEvents([]);
          } finally {
@@ -127,7 +143,17 @@ export default function Events() {
       // Debounce search
       const timer = setTimeout(fetchEvents, 300);
       return () => clearTimeout(timer);
+   }, [filter, searchQuery, currentPage]);
+
+   // Reset page when filter/search changes
+   useEffect(() => {
+      setCurrentPage(1);
    }, [filter, searchQuery]);
+
+   const handlePageChange = (newPage) => {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+   };
 
    const handleJoinEvent = async (eventId) => {
       try {
@@ -200,18 +226,28 @@ export default function Events() {
                   {[1, 2, 3, 4].map(i => <div key={i} className="h-80 bg-neutral-100 dark:bg-neutral-900 rounded-2xl animate-pulse" />)}
                </div>
             ) : events.length > 0 ? (
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
-                  {events.map(event => (
-                     <motion.div
-                        key={event._id}
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                     >
-                        <EventCard event={event} onJoin={handleJoinEvent} />
-                     </motion.div>
-                  ))}
-               </div>
+               <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+                     {events.map(event => (
+                        <motion.div
+                           key={event._id}
+                           initial={{ opacity: 0, y: 20 }}
+                           whileInView={{ opacity: 1, y: 0 }}
+                           viewport={{ once: true }}
+                        >
+                           <EventCard event={event} onJoin={handleJoinEvent} />
+                        </motion.div>
+                     ))}
+                  </div>
+
+                  {/* Pagination */}
+                  <Pagination
+                     pagination={pagination}
+                     onPageChange={handlePageChange}
+                     loading={loading}
+                     itemLabel="sự kiện"
+                  />
+               </>
             ) : (
                <div className="text-center py-24">
                   <div className="w-20 h-20 bg-neutral-100 dark:bg-neutral-900 rounded-full flex items-center justify-center mx-auto mb-6">

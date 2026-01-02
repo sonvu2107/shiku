@@ -6,6 +6,25 @@ import { getClientAgent } from "../../utils/clientAgent.js";
 import geminiService from "../../services/geminiService.js";
 
 /**
+ * Helper: Partial shuffle - random pick n items không cần copy toàn bộ array
+ * Giảm memory allocation so với [...arr].sort()
+ */
+function partialShuffle(array, count) {
+    const max = Math.min(count, array.length);
+    const result = [];
+    const usedIndices = new Set();
+
+    while (result.length < max) {
+        const idx = Math.floor(Math.random() * array.length);
+        if (!usedIndices.has(idx)) {
+            usedIndices.add(idx);
+            result.push(array[idx]);
+        }
+    }
+    return result;
+}
+
+/**
  * POST /auto-like-posts - Auto like posts using test accounts
  */
 export const autoLikePosts = async (req, res, next) => {
@@ -48,14 +67,15 @@ export const autoLikePosts = async (req, res, next) => {
 
         let totalLikes = 0;
         const results = [];
+        const allBulkOps = []; // Collect all bulk operations
 
         for (const testUser of testUsers) {
             let userLikes = 0;
             let postsProcessed = 0;
             let skippedPosts = 0;
 
-            const shuffledPosts = [...posts].sort(() => Math.random() - 0.5);
-            const postsToProcess = shuffledPosts.slice(0, maxPostsPerUser);
+            // Sử dụng partialShuffle thay vì copy + sort toàn bộ array
+            const postsToProcess = partialShuffle(posts, maxPostsPerUser);
 
             for (const post of postsToProcess) {
                 postsProcessed++;
@@ -73,23 +93,23 @@ export const autoLikePosts = async (req, res, next) => {
 
                 const emoteType = emoteTypes[Math.floor(Math.random() * emoteTypes.length)];
 
-                try {
-                    if (forceOverride || !existingEmote) {
-                        await Post.updateOne(
-                            { _id: post._id },
-                            { $pull: { emotes: { user: testUser._id } } }
-                        );
-
-                        await Post.updateOne(
-                            { _id: post._id },
-                            { $push: { emotes: { user: testUser._id, type: emoteType } } }
-                        );
-
-                        userLikes++;
-                        totalLikes++;
-                    }
-                } catch (err) {
-                    console.error(`[ADMIN] Error liking post ${post._id} for ${testUser.email}:`, err);
+                if (forceOverride || !existingEmote) {
+                    // Pull existing emote trước
+                    allBulkOps.push({
+                        updateOne: {
+                            filter: { _id: post._id },
+                            update: { $pull: { emotes: { user: testUser._id } } }
+                        }
+                    });
+                    // Push new emote
+                    allBulkOps.push({
+                        updateOne: {
+                            filter: { _id: post._id },
+                            update: { $push: { emotes: { user: testUser._id, type: emoteType } } }
+                        }
+                    });
+                    userLikes++;
+                    totalLikes++;
                 }
             }
 
@@ -100,6 +120,15 @@ export const autoLikePosts = async (req, res, next) => {
                 skippedPosts,
                 viewsGiven: 0
             });
+        }
+
+        // Execute all operations in single bulkWrite - N sequential writes -> 1 bulk write
+        if (allBulkOps.length > 0) {
+            try {
+                await Post.bulkWrite(allBulkOps, { ordered: false });
+            } catch (err) {
+                console.error('[ADMIN] Bulk write error:', err);
+            }
         }
 
         await AuditLog.logAction(req.user._id, 'admin_auto_like', {
@@ -171,14 +200,15 @@ export const autoUpvotePosts = async (req, res, next) => {
 
         let totalUpvotes = 0;
         const results = [];
+        const allBulkOps = []; // Collect all bulk operations
 
         for (const testUser of testUsers) {
             let userUpvotes = 0;
             let postsProcessed = 0;
             let skippedPosts = 0;
 
-            const shuffledPosts = [...posts].sort(() => Math.random() - 0.5);
-            const postsToProcess = shuffledPosts.slice(0, maxPostsPerUser);
+            // Sử dụng partialShuffle thay vì copy + sort
+            const postsToProcess = partialShuffle(posts, maxPostsPerUser);
 
             for (const post of postsToProcess) {
                 postsProcessed++;
@@ -193,21 +223,19 @@ export const autoUpvotePosts = async (req, res, next) => {
                     continue;
                 }
 
-                try {
-                    if (!alreadyUpvoted) {
-                        // Add upvote
-                        await Post.updateOne(
-                            { _id: post._id },
-                            {
+                if (!alreadyUpvoted) {
+                    // Collect upvote operation
+                    allBulkOps.push({
+                        updateOne: {
+                            filter: { _id: post._id },
+                            update: {
                                 $addToSet: { upvotes: testUser._id },
                                 $inc: { upvoteCount: 1 }
                             }
-                        );
-                        userUpvotes++;
-                        totalUpvotes++;
-                    }
-                } catch (err) {
-                    console.error(`[ADMIN] Error upvoting post ${post._id} for ${testUser.email}:`, err);
+                        }
+                    });
+                    userUpvotes++;
+                    totalUpvotes++;
                 }
             }
 
@@ -217,6 +245,15 @@ export const autoUpvotePosts = async (req, res, next) => {
                 postsProcessed,
                 skippedPosts
             });
+        }
+
+        // Execute all operations in single bulkWrite
+        if (allBulkOps.length > 0) {
+            try {
+                await Post.bulkWrite(allBulkOps, { ordered: false });
+            } catch (err) {
+                console.error('[ADMIN] Bulk write error:', err);
+            }
         }
 
         await AuditLog.logAction(req.user._id, 'admin_auto_upvote', {
@@ -291,6 +328,7 @@ export const autoViewPosts = async (req, res, next) => {
         let totalViews = 0;
         const results = [];
         const userViewsMap = new Map();
+        const allBulkOps = []; // Collect all view operations
 
         for (const testUser of testUsers) {
             userViewsMap.set(testUser.email, { viewsGiven: 0, postsProcessed: 0 });
@@ -298,24 +336,32 @@ export const autoViewPosts = async (req, res, next) => {
 
         for (let loop = 0; loop < actualLoopCount; loop++) {
             for (const testUser of testUsers) {
-                const shuffledPosts = [...posts].sort(() => Math.random() - 0.5);
-                const postsToProcess = shuffledPosts.slice(0, maxViewsPerUser);
+                // Sử dụng partialShuffle thay vì copy + sort
+                const postsToProcess = partialShuffle(posts, maxViewsPerUser);
 
                 for (const post of postsToProcess) {
-                    try {
-                        await Post.updateOne(
-                            { _id: post._id },
-                            { $inc: { views: 1 } }
-                        );
+                    // Collect view operation
+                    allBulkOps.push({
+                        updateOne: {
+                            filter: { _id: post._id },
+                            update: { $inc: { views: 1 } }
+                        }
+                    });
 
-                        const userData = userViewsMap.get(testUser.email);
-                        userData.viewsGiven++;
-                        userData.postsProcessed++;
-                        totalViews++;
-                    } catch (err) {
-                        console.error(`[ADMIN] Error viewing post ${post._id} for ${testUser.email}:`, err);
-                    }
+                    const userData = userViewsMap.get(testUser.email);
+                    userData.viewsGiven++;
+                    userData.postsProcessed++;
+                    totalViews++;
                 }
+            }
+        }
+
+        // Execute all view operations in single bulkWrite
+        if (allBulkOps.length > 0) {
+            try {
+                await Post.bulkWrite(allBulkOps, { ordered: false });
+            } catch (err) {
+                console.error('[ADMIN] Bulk write error:', err);
             }
         }
 

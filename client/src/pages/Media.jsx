@@ -7,6 +7,7 @@ import { PageLayout, PageHeader, SpotlightCard } from "../components/ui/DesignSy
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../utils/cn";
 import BackToTop from "../components/BackToTop";
+import Pagination from "../components/admin/Pagination";
 
 // --- HELPER FUNCTIONS ---
 const formatDate = (dateString) => {
@@ -34,13 +35,19 @@ export default function Media() {
    const [filter, setFilter] = useState("all"); // all, image, video
    const [showUploadModal, setShowUploadModal] = useState(false);
    const [viewingMedia, setViewingMedia] = useState(null);
+   const [currentPage, setCurrentPage] = useState(1);
+   const [pagination, setPagination] = useState({
+      page: 1, totalPages: 1, total: 0, hasPrevPage: false, hasNextPage: false
+   });
 
    // ==================== API CALLS ====================
-   const loadMedia = async () => {
+   const loadMedia = async (pageNum = currentPage) => {
       setLoading(true);
       try {
          const params = new URLSearchParams();
          if (searchQuery) params.append("search", searchQuery);
+         params.append("page", pageNum.toString());
+         params.append("limit", "20");
 
          // FIX: Đảm bảo gửi đúng type (image/video) thay vì (images/videos)
          if (filter !== "all") params.append("type", filter);
@@ -54,6 +61,17 @@ export default function Media() {
          }
 
          setMedia(fetchedMedia);
+
+         // Update pagination
+         if (res.pagination) {
+            setPagination({
+               page: res.pagination.current,
+               totalPages: res.pagination.pages,
+               total: res.pagination.total,
+               hasPrevPage: res.pagination.current > 1,
+               hasNextPage: res.pagination.current < res.pagination.pages
+            });
+         }
       } catch (error) {
          setMedia([]);
       } finally {
@@ -61,18 +79,28 @@ export default function Media() {
       }
    };
 
-   // Load khi filter thay đổi
+   // Load khi filter thay đổi - reset về page 1
    useEffect(() => {
-      loadMedia();
+      setCurrentPage(1);
+      loadMedia(1);
    }, [filter]);
 
-   // Debounce search
+   // Debounce search - reset về page 1
    useEffect(() => {
       const timer = setTimeout(() => {
-         if (searchQuery || searchQuery === "") loadMedia();
+         if (searchQuery || searchQuery === "") {
+            setCurrentPage(1);
+            loadMedia(1);
+         }
       }, 500);
       return () => clearTimeout(timer);
    }, [searchQuery]);
+
+   const handlePageChange = (newPage) => {
+      setCurrentPage(newPage);
+      loadMedia(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+   };
 
    const handleViewMedia = async (mediaId) => {
       try {
@@ -170,91 +198,101 @@ export default function Media() {
                   ))}
                </div>
             ) : media.length > 0 ? (
-               <div className={cn("pb-20", viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" : "flex flex-col gap-3")}>
-                  {media.map((item, index) => (
-                     <motion.div
-                        key={item._id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.05 }}
-                        className={cn(
-                           "group relative bg-white dark:bg-[#111] border border-neutral-200 dark:border-neutral-800 overflow-hidden hover:border-neutral-300 dark:hover:border-neutral-600 transition-all duration-300 cursor-pointer",
-                           viewMode === 'grid' ? "rounded-2xl aspect-square" : "rounded-xl flex items-center p-3 h-24"
-                        )}
-                        onClick={() => handleViewMedia(item._id)}
-                     >
-                        {/* Thumbnail */}
-                        <div className={cn("relative overflow-hidden bg-neutral-100 dark:bg-neutral-900", viewMode === 'grid' ? "w-full h-full" : "w-24 h-full rounded-lg flex-shrink-0")}>
-                           {item.type === 'video' ? (
-                              <>
-                                 <video src={item.url} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" muted />
-                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white shadow-lg">
-                                       <Play size={14} fill="currentColor" />
+               <>
+                  <div className={cn("pb-20", viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" : "flex flex-col gap-3")}>
+                     {media.map((item, index) => (
+                        <motion.div
+                           key={item._id}
+                           initial={{ opacity: 0, scale: 0.9 }}
+                           animate={{ opacity: 1, scale: 1 }}
+                           transition={{ delay: index * 0.05 }}
+                           className={cn(
+                              "group relative bg-white dark:bg-[#111] border border-neutral-200 dark:border-neutral-800 overflow-hidden hover:border-neutral-300 dark:hover:border-neutral-600 transition-all duration-300 cursor-pointer",
+                              viewMode === 'grid' ? "rounded-2xl aspect-square" : "rounded-xl flex items-center p-3 h-24"
+                           )}
+                           onClick={() => handleViewMedia(item._id)}
+                        >
+                           {/* Thumbnail */}
+                           <div className={cn("relative overflow-hidden bg-neutral-100 dark:bg-neutral-900", viewMode === 'grid' ? "w-full h-full" : "w-24 h-full rounded-lg flex-shrink-0")}>
+                              {item.type === 'video' ? (
+                                 <>
+                                    <video src={item.url} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" muted />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                       <div className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white shadow-lg">
+                                          <Play size={14} fill="currentColor" />
+                                       </div>
+                                    </div>
+                                 </>
+                              ) : (
+                                 <img
+                                    src={item.thumbnail || item.url}
+                                    alt={item.title}
+                                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                                    loading="lazy"
+                                 />
+                              )}
+
+                              {/* Overlay Actions (Grid Mode) */}
+                              {viewMode === 'grid' && (
+                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                                    <div className="p-2 bg-white/20 hover:bg-white text-white hover:text-black rounded-full transition-colors backdrop-blur-md shadow-lg">
+                                       <Eye size={18} />
+                                    </div>
+                                    <a href={item.url} download onClick={(e) => e.stopPropagation()} className="p-2 bg-white/20 hover:bg-white text-white hover:text-black rounded-full transition-colors backdrop-blur-md shadow-lg">
+                                       <Download size={18} />
+                                    </a>
+                                 </div>
+                              )}
+                           </div>
+
+                           {/* Info (List Mode or Grid Overlay) */}
+                           {viewMode === 'list' ? (
+                              <div className="ml-4 flex-1 min-w-0 flex flex-col justify-center">
+                                 <h3 className="font-bold text-neutral-900 dark:text-white truncate">{item.title || "Không có tên"}</h3>
+                                 <div className="flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                                    <span className="uppercase tracking-wider font-semibold flex items-center gap-1">
+                                       {item.type === 'image' ? <Image size={12} /> : <Video size={12} />}
+                                       {item.type}
+                                    </span>
+                                    <span>•</span>
+                                    <span>{formatSize(item.size)}</span>
+                                    <span>•</span>
+                                    <span>{formatDate(item.uploadedAt)}</span>
+                                 </div>
+                              </div>
+                           ) : (
+                              // Grid Info (Gradient Overlay at bottom)
+                              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                 <p className="text-white text-xs font-medium truncate">{item.title || "Không tên"}</p>
+                                 <div className="flex justify-between items-center mt-1">
+                                    <p className="text-white/70 text-[10px]">{formatSize(item.size)}</p>
+                                    <div className="flex items-center gap-1 text-white/70 text-[10px]">
+                                       <Eye size={10} /> {item.views}
                                     </div>
                                  </div>
-                              </>
-                           ) : (
-                              <img
-                                 src={item.thumbnail || item.url}
-                                 alt={item.title}
-                                 className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
-                                 loading="lazy"
-                              />
+                              </div>
                            )}
 
-                           {/* Overlay Actions (Grid Mode) */}
-                           {viewMode === 'grid' && (
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 backdrop-blur-[2px]">
-                                 <div className="p-2 bg-white/20 hover:bg-white text-white hover:text-black rounded-full transition-colors backdrop-blur-md shadow-lg">
-                                    <Eye size={18} />
-                                 </div>
-                                 <a href={item.url} download onClick={(e) => e.stopPropagation()} className="p-2 bg-white/20 hover:bg-white text-white hover:text-black rounded-full transition-colors backdrop-blur-md shadow-lg">
-                                    <Download size={18} />
+                           {/* Actions (List Mode) */}
+                           {viewMode === 'list' && (
+                              <div className="flex items-center gap-2 pr-2">
+                                 <a href={item.url} download onClick={(e) => e.stopPropagation()} className="p-2 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors">
+                                    <Download size={20} />
                                  </a>
                               </div>
                            )}
-                        </div>
+                        </motion.div>
+                     ))}
+                  </div>
 
-                        {/* Info (List Mode or Grid Overlay) */}
-                        {viewMode === 'list' ? (
-                           <div className="ml-4 flex-1 min-w-0 flex flex-col justify-center">
-                              <h3 className="font-bold text-neutral-900 dark:text-white truncate">{item.title || "Không có tên"}</h3>
-                              <div className="flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                                 <span className="uppercase tracking-wider font-semibold flex items-center gap-1">
-                                    {item.type === 'image' ? <Image size={12} /> : <Video size={12} />}
-                                    {item.type}
-                                 </span>
-                                 <span>•</span>
-                                 <span>{formatSize(item.size)}</span>
-                                 <span>•</span>
-                                 <span>{formatDate(item.uploadedAt)}</span>
-                              </div>
-                           </div>
-                        ) : (
-                           // Grid Info (Gradient Overlay at bottom)
-                           <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                              <p className="text-white text-xs font-medium truncate">{item.title || "Không tên"}</p>
-                              <div className="flex justify-between items-center mt-1">
-                                 <p className="text-white/70 text-[10px]">{formatSize(item.size)}</p>
-                                 <div className="flex items-center gap-1 text-white/70 text-[10px]">
-                                    <Eye size={10} /> {item.views}
-                                 </div>
-                              </div>
-                           </div>
-                        )}
-
-                        {/* Actions (List Mode) */}
-                        {viewMode === 'list' && (
-                           <div className="flex items-center gap-2 pr-2">
-                              <a href={item.url} download onClick={(e) => e.stopPropagation()} className="p-2 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors">
-                                 <Download size={20} />
-                              </a>
-                           </div>
-                        )}
-                     </motion.div>
-                  ))}
-               </div>
+                  {/* Pagination */}
+                  <Pagination
+                     pagination={pagination}
+                     onPageChange={handlePageChange}
+                     loading={loading}
+                     itemLabel="file"
+                  />
+               </>
             ) : (
                // Empty State
                <div className="flex flex-col items-center justify-center py-32 text-center border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-[32px]">

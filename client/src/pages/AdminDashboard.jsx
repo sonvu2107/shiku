@@ -117,6 +117,11 @@ export default function AdminDashboard() {
    const [userSearchTerm, setUserSearchTerm] = useState("");
    const [userRoleFilter, setUserRoleFilter] = useState("");
 
+   // State cho search users trong ban tab
+   const [banSearchResults, setBanSearchResults] = useState([]);
+   const [banSearchLoading, setBanSearchLoading] = useState(false);
+   const banSearchTimeoutRef = React.useRef(null);
+
    // Debounce timer for server-side search
    const searchTimeoutRef = React.useRef(null);
    const handleUserSearch = React.useCallback((value) => {
@@ -130,6 +135,34 @@ export default function AdminDashboard() {
       setUserRoleFilter(value);
       updateUserFilters({ role: value });
    }, [updateUserFilters]);
+
+   // Search users cho ban form (server-side)
+   const searchUsersForBan = React.useCallback(async (searchTerm) => {
+      if (!searchTerm || searchTerm.length < 2) {
+         setBanSearchResults([]);
+         return;
+      }
+      setBanSearchLoading(true);
+      try {
+         const res = await api(`/api/admin/users?search=${encodeURIComponent(searchTerm)}&limit=50`);
+         // Filter: không bị ban và không phải admin
+         const filtered = (res.users || []).filter(u => !u.isBanned && u.role !== 'admin');
+         setBanSearchResults(filtered);
+      } catch (e) {
+         setBanSearchResults([]);
+      } finally {
+         setBanSearchLoading(false);
+      }
+   }, []);
+
+   // Handle ban search input với debounce
+   const handleBanSearch = React.useCallback((value) => {
+      setBanForm({ ...banForm, searchTerm: value, userId: '' });
+      if (banSearchTimeoutRef.current) clearTimeout(banSearchTimeoutRef.current);
+      banSearchTimeoutRef.current = setTimeout(() => {
+         searchUsersForBan(value);
+      }, 400);
+   }, [banForm, setBanForm, searchUsersForBan]);
 
    const navigate = useNavigate();
    const { showError, showSuccess } = useToast();
@@ -958,11 +991,16 @@ export default function AdminDashboard() {
                                  <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Tìm người dùng</label>
                                  <input
                                     type="text"
-                                    placeholder="Nhập tên hoặc email để tìm..."
+                                    placeholder="Nhập tên hoặc email để tìm (tối thiểu 2 ký tự)..."
                                     value={banForm.searchTerm || ''}
-                                    onChange={e => setBanForm({ ...banForm, searchTerm: e.target.value, userId: '' })}
+                                    onChange={e => handleBanSearch(e.target.value)}
                                     className="w-full p-3 bg-neutral-50 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
                                  />
+                                 {banSearchLoading && (
+                                    <div className="text-xs text-neutral-500 mt-1 flex items-center gap-1">
+                                       <Loader2 size={12} className="animate-spin" /> Đang tìm...
+                                    </div>
+                                 )}
                               </div>
                               <div>
                                  <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Chọn người dùng</label>
@@ -971,22 +1009,18 @@ export default function AdminDashboard() {
                                     onChange={e => setBanForm({ ...banForm, userId: e.target.value })}
                                     className="w-full p-3 bg-neutral-50 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none cursor-pointer"
                                  >
-                                    <option value="">Chọn người dùng...</option>
-                                    {users
-                                       .filter(u => !u.isBanned && u.role !== 'admin')
-                                       .filter(u => {
-                                          if (!banForm.searchTerm) return true;
-                                          const term = banForm.searchTerm.toLowerCase();
-                                          return u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term);
-                                       })
-                                       .slice(0, 50)
-                                       .map(u => (
-                                          <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
-                                       ))}
+                                    <option value="">
+                                       {banForm.searchTerm && banForm.searchTerm.length >= 2
+                                          ? (banSearchResults.length > 0 ? 'Chọn người dùng...' : 'Không tìm thấy')
+                                          : 'Nhập tên để tìm kiếm...'}
+                                    </option>
+                                    {banSearchResults.map(u => (
+                                       <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
+                                    ))}
                                  </select>
-                                 {banForm.searchTerm && (
+                                 {banForm.searchTerm && banSearchResults.length > 0 && (
                                     <div className="text-xs text-neutral-500 mt-1">
-                                       Hiển thị tối đa 50 kết quả phù hợp
+                                       Tìm thấy {banSearchResults.length} người dùng
                                     </div>
                                  )}
                               </div>

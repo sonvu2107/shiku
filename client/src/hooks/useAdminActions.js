@@ -6,13 +6,14 @@ import { api } from '../api';
  */
 export function useAdminActions() {
   // ==================== STATE ====================
-  
-  const [banForm, setBanForm] = useState({ 
+
+  const [banForm, setBanForm] = useState({
     userId: "",
     duration: "",
-    reason: ""
+    reason: "",
+    searchTerm: ""  // Thêm searchTerm để tìm kiếm user
   });
-  const [notificationForm, setNotificationForm] = useState({ 
+  const [notificationForm, setNotificationForm] = useState({
     title: "",
     message: "",
     targetRole: ""
@@ -34,15 +35,15 @@ export function useAdminActions() {
       if (duration && duration !== "permanent") {
         banDurationMinutes = parseInt(duration);
       }
-      
+
       await api("/api/admin/ban-user", {
         method: "POST",
         body: { userId, banDurationMinutes, reason }
       });
 
       setSuccess(`Đã cấm người dùng ${userId} thành công`);
-      setBanForm({ userId: "", duration: "", reason: "" });
-      
+      setBanForm({ userId: "", duration: "", reason: "", searchTerm: "" });
+
       return true;
     } catch (e) {
       setError(`Lỗi cấm người dùng: ${e.message}`);
@@ -88,7 +89,7 @@ export function useAdminActions() {
 
       setSuccess("Đã gửi thông báo thành công");
       setNotificationForm({ title: "", message: "", targetRole: "" });
-      
+
       return true;
     } catch (e) {
       setError(`Lỗi gửi thông báo: ${e.message}`);
@@ -102,7 +103,7 @@ export function useAdminActions() {
 
   const handleBanSubmit = useCallback(async (e) => {
     e.preventDefault();
-    
+
     if (!banForm.userId || !banForm.duration || !banForm.reason) {
       setError("Vui lòng điền đầy đủ thông tin");
       return false;
@@ -113,15 +114,15 @@ export function useAdminActions() {
 
   const handleNotificationSubmit = useCallback(async (e) => {
     e.preventDefault();
-    
+
     if (!notificationForm.title || !notificationForm.message) {
       setError("Vui lòng điền đầy đủ thông tin");
       return;
     }
 
     await sendNotification(
-      notificationForm.title, 
-      notificationForm.message, 
+      notificationForm.title,
+      notificationForm.message,
       notificationForm.targetRole
     );
   }, [notificationForm, sendNotification]);
@@ -145,20 +146,20 @@ export function useAdminActions() {
     loading,
     error,
     success,
-    
+
     // Setters
     setBanForm,
     setNotificationForm,
-    
+
     // Actions
     banUser,
     unbanUser,
     sendNotification,
-    
+
     // Form handlers
     handleBanSubmit,
     handleNotificationSubmit,
-    
+
     // Clear functions
     clearError,
     clearSuccess

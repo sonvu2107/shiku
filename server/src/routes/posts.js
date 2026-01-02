@@ -271,12 +271,15 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
     const pg = Math.max(1, Number(page) || 1);
     const lim = Math.min(parseInt(limit) || 20, 500);
 
+    // Flag để sử dụng aggregation pipeline cho recommended sort
+    const useRecommendedSort = (sort === 'hot' || sort === 'recommended');
+
     // Determine sort option (simplified: removed oldest, leastViewed)
-    // For hot/recommended: pinned posts first, then by rankingScore
+    // For hot/recommended: sử dụng aggregation để tính time boost
     let sortOption = { createdAt: -1 }; // Default newest
     if (sort === 'mostViewed') sortOption = { views: -1 };
-    else if (sort === 'hot' || sort === 'recommended') sortOption = { isPinned: -1, rankingScore: -1, createdAt: -1 }; // Pinned first, then by ranking
     else if (sort === 'mostUpvoted') sortOption = { upvoteCount: -1, createdAt: -1 }; // Most upvoted
+    // NOTE: hot/recommended xử lý riêng bằng aggregation bên dưới
 
     // Build blocked list
     let blockedIds = [];
@@ -345,16 +348,84 @@ router.get("/feed", authOptional, responseCache({ ttlSeconds: 30, prefix: "feed"
     };
 
     // Execute Query
-    const [items, total] = await Promise.all([
-      Post.find(filter, postProjection)
-        .populate({ path: "author", select: "name nickname avatarUrl role displayBadgeType cultivationCache" })
-        // NOTE: emotes.user populate removed (legacy system)
-        .sort(sortOption)
-        .skip((pg - 1) * lim)
-        .limit(lim)
-        .lean(),
-      Post.countDocuments(filter)
-    ]);
+    let items, total;
+
+    if (useRecommendedSort) {
+      // RECOMMENDED SORT: Sử dụng aggregation để ưu tiên bài mới
+      // - Bước 1: Bài pinned lên đầu
+      // - Bước 2: Bài mới < 24h được ưu tiên (isRecent = 1)
+      // - Bước 3: Trong cùng nhóm, sắp xếp theo rankingScore + createdAt
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+      const pipeline = [
+        { $match: filter },
+        {
+          $addFields: {
+            // isRecent: 1 nếu bài đăng trong 24h, 0 nếu cũ hơn
+            isRecent: { $cond: [{ $gte: ["$createdAt", twentyFourHoursAgo] }, 1, 0] },
+            // Tính score kết hợp: rankingScore + time decay bonus
+            // Bài mới < 6h: +1000, < 12h: +500, < 24h: +200
+            timeBonus: {
+              $switch: {
+                branches: [
+                  { case: { $gte: ["$createdAt", new Date(now.getTime() - 6 * 60 * 60 * 1000)] }, then: 1000 },
+                  { case: { $gte: ["$createdAt", new Date(now.getTime() - 12 * 60 * 60 * 1000)] }, then: 500 },
+                  { case: { $gte: ["$createdAt", twentyFourHoursAgo] }, then: 200 }
+                ],
+                default: 0
+              }
+            }
+          }
+        },
+        {
+          $addFields: {
+            // Combined score = rankingScore + timeBonus
+            combinedScore: { $add: [{ $ifNull: ["$rankingScore", 0] }, "$timeBonus"] }
+          }
+        },
+        {
+          // Sort: isPinned DESC -> combinedScore DESC -> createdAt DESC
+          $sort: { isPinned: -1, combinedScore: -1, createdAt: -1 }
+        },
+        { $skip: (pg - 1) * lim },
+        { $limit: lim },
+        {
+          // Lookup author
+          $lookup: {
+            from: "users",
+            localField: "author",
+            foreignField: "_id",
+            as: "authorData",
+            pipeline: [
+              { $project: { name: 1, nickname: 1, avatarUrl: 1, role: 1, displayBadgeType: 1, cultivationCache: 1 } }
+            ]
+          }
+        },
+        {
+          $addFields: {
+            author: { $arrayElemAt: ["$authorData", 0] }
+          }
+        },
+        { $project: { authorData: 0, isRecent: 0, timeBonus: 0, combinedScore: 0 } }
+      ];
+
+      [items, total] = await Promise.all([
+        Post.aggregate(pipeline),
+        Post.countDocuments(filter)
+      ]);
+    } else {
+      // Standard sort for other options
+      [items, total] = await Promise.all([
+        Post.find(filter, postProjection)
+          .populate({ path: "author", select: "name nickname avatarUrl role displayBadgeType cultivationCache" })
+          .sort(sortOption)
+          .skip((pg - 1) * lim)
+          .limit(lim)
+          .lean(),
+        Post.countDocuments(filter)
+      ]);
+    }
 
     // FIX NESTED POPULATE: Fetch all roles in ONE query instead of nested populate
     const roleIds = new Set();

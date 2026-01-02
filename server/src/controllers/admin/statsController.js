@@ -32,53 +32,73 @@ async function fetchStatsFromDB() {
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-    const [
-        totalPosts,
-        totalUsers,
-        totalComments,
-        publishedPosts,
-        privatePosts,
-        adminUsers
-    ] = await Promise.all([
-        Post.estimatedDocumentCount(),
-        User.estimatedDocumentCount(),
-        Comment.estimatedDocumentCount(),
-        Post.countDocuments({ status: "published" }),
-        Post.countDocuments({ status: "private" }),
-        User.countDocuments({ role: "admin" })
+    // ==================== OPTIMIZED: Use $facet to consolidate counts ====================
+    // Instead of 18 separate countDocuments, use 3 $facet aggregations (one per collection)
+    const [postStats, userStats, commentStats] = await Promise.all([
+        // POST counts in single aggregation
+        Post.aggregate([
+            {
+                $facet: {
+                    total: [{ $count: "count" }],
+                    published: [{ $match: { status: "published" } }, { $count: "count" }],
+                    private: [{ $match: { status: "private" } }, { $count: "count" }],
+                    thisMonth: [{ $match: { createdAt: { $gte: thisMonth } } }, { $count: "count" }],
+                    thisMonthPublished: [{ $match: { status: "published", createdAt: { $gte: thisMonth } } }, { $count: "count" }],
+                    thisMonthPrivate: [{ $match: { status: "private", createdAt: { $gte: thisMonth } } }, { $count: "count" }],
+                    lastMonth: [{ $match: { createdAt: { $gte: lastMonth, $lt: thisMonth } } }, { $count: "count" }],
+                    lastMonthPublished: [{ $match: { status: "published", createdAt: { $gte: lastMonth, $lt: thisMonth } } }, { $count: "count" }],
+                    lastMonthPrivate: [{ $match: { status: "private", createdAt: { $gte: lastMonth, $lt: thisMonth } } }, { $count: "count" }]
+                }
+            }
+        ]),
+        // USER counts in single aggregation
+        User.aggregate([
+            {
+                $facet: {
+                    total: [{ $count: "count" }],
+                    admins: [{ $match: { role: "admin" } }, { $count: "count" }],
+                    thisMonth: [{ $match: { createdAt: { $gte: thisMonth } } }, { $count: "count" }],
+                    thisMonthAdmins: [{ $match: { role: "admin", createdAt: { $gte: thisMonth } } }, { $count: "count" }],
+                    lastMonth: [{ $match: { createdAt: { $gte: lastMonth, $lt: thisMonth } } }, { $count: "count" }],
+                    lastMonthAdmins: [{ $match: { role: "admin", createdAt: { $gte: lastMonth, $lt: thisMonth } } }, { $count: "count" }]
+                }
+            }
+        ]),
+        // COMMENT counts in single aggregation
+        Comment.aggregate([
+            {
+                $facet: {
+                    total: [{ $count: "count" }],
+                    thisMonth: [{ $match: { createdAt: { $gte: thisMonth } } }, { $count: "count" }],
+                    lastMonth: [{ $match: { createdAt: { $gte: lastMonth, $lt: thisMonth } } }, { $count: "count" }]
+                }
+            }
+        ])
     ]);
 
-    const [
-        thisMonthPosts,
-        thisMonthUsers,
-        thisMonthComments,
-        thisMonthPublished,
-        thisMonthPrivates,
-        thisMonthAdmins
-    ] = await Promise.all([
-        Post.countDocuments({ createdAt: { $gte: thisMonth } }),
-        User.countDocuments({ createdAt: { $gte: thisMonth } }),
-        Comment.countDocuments({ createdAt: { $gte: thisMonth } }),
-        Post.countDocuments({ status: "published", createdAt: { $gte: thisMonth } }),
-        Post.countDocuments({ status: "private", createdAt: { $gte: thisMonth } }),
-        User.countDocuments({ role: "admin", createdAt: { $gte: thisMonth } })
-    ]);
+    // Extract counts from facet results (default to 0 if empty)
+    const getCount = (facetResult, key) => facetResult[0]?.[key]?.[0]?.count || 0;
 
-    const [
-        lastMonthPosts,
-        lastMonthUsers,
-        lastMonthComments,
-        lastMonthPublished,
-        lastMonthPrivates,
-        lastMonthAdmins
-    ] = await Promise.all([
-        Post.countDocuments({ createdAt: { $gte: lastMonth, $lt: thisMonth } }),
-        User.countDocuments({ createdAt: { $gte: lastMonth, $lt: thisMonth } }),
-        Comment.countDocuments({ createdAt: { $gte: lastMonth, $lt: thisMonth } }),
-        Post.countDocuments({ status: "published", createdAt: { $gte: lastMonth, $lt: thisMonth } }),
-        Post.countDocuments({ status: "private", createdAt: { $gte: lastMonth, $lt: thisMonth } }),
-        User.countDocuments({ role: "admin", createdAt: { $gte: lastMonth, $lt: thisMonth } })
-    ]);
+    const totalPosts = getCount(postStats, 'total');
+    const publishedPosts = getCount(postStats, 'published');
+    const privatePosts = getCount(postStats, 'private');
+    const thisMonthPosts = getCount(postStats, 'thisMonth');
+    const thisMonthPublished = getCount(postStats, 'thisMonthPublished');
+    const thisMonthPrivates = getCount(postStats, 'thisMonthPrivate');
+    const lastMonthPosts = getCount(postStats, 'lastMonth');
+    const lastMonthPublished = getCount(postStats, 'lastMonthPublished');
+    const lastMonthPrivates = getCount(postStats, 'lastMonthPrivate');
+
+    const totalUsers = getCount(userStats, 'total');
+    const adminUsers = getCount(userStats, 'admins');
+    const thisMonthUsers = getCount(userStats, 'thisMonth');
+    const thisMonthAdmins = getCount(userStats, 'thisMonthAdmins');
+    const lastMonthUsers = getCount(userStats, 'lastMonth');
+    const lastMonthAdmins = getCount(userStats, 'lastMonthAdmins');
+
+    const totalComments = getCount(commentStats, 'total');
+    const thisMonthComments = getCount(commentStats, 'thisMonth');
+    const lastMonthComments = getCount(commentStats, 'lastMonth');
 
     const calculateGrowth = (current, previous) => {
         if (previous === 0) return current > 0 ? 100 : 0;
@@ -213,12 +233,16 @@ async function fetchStatsFromDB() {
 
 /**
  * GET /online-users - Lấy danh sách người dùng đang online
+ * Cached for 30 seconds to reduce DB load
  */
 export const getOnlineUsers = async (req, res, next) => {
     try {
-        const onlineUsers = await User.find({ isOnline: true })
-            .select('name email avatarUrl role lastSeen isOnline cultivationCache displayBadgeType')
-            .sort({ lastSeen: -1 });
+        const onlineUsers = await withCache('admin:online-users', async () => {
+            return await User.find({ isOnline: true })
+                .select('name email avatarUrl role lastSeen isOnline cultivationCache displayBadgeType')
+                .sort({ lastSeen: -1 })
+                .lean();
+        }, 30); // 30 seconds cache
 
         res.json({ onlineUsers });
     } catch (e) {
