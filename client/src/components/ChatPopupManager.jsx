@@ -63,6 +63,7 @@ export default function ChatPopupManager({ conversations = [], onCloseConversati
   const [incomingCall, setIncomingCall] = useState(null);
   const [incomingOffer, setIncomingOffer] = useState(null);
   const [activeConversationId, setActiveConversationId] = useState(null);
+  const [remoteUser, setRemoteUser] = useState(null); // Store remote user info independently
 
   // ==================== EFFECTS ====================
 
@@ -108,6 +109,8 @@ export default function ChatPopupManager({ conversations = [], onCloseConversati
   const handleAcceptCall = () => {
     if (!incomingCall) return;
 
+    // Save remote user info from incoming call
+    setRemoteUser(incomingCall.caller || null);
     setCallOpen(true);
     setIsVideoCall(incomingCall?.isVideo ?? true);
     setIncomingOffer(incomingCall?.offer || null);
@@ -126,6 +129,13 @@ export default function ChatPopupManager({ conversations = [], onCloseConversati
   };
 
   const handleCallOpen = (conversationId) => {
+    // Find and save remote user info BEFORE opening call
+    const conversation = conversations.find(c => c._id === conversationId);
+    if (conversation && conversation.conversationType !== "group") {
+      setRemoteUser(conversation.otherParticipants?.[0]?.user || null);
+    } else {
+      setRemoteUser(null);
+    }
     setActiveConversationId(conversationId);
     setCallOpen(true);
   };
@@ -133,6 +143,7 @@ export default function ChatPopupManager({ conversations = [], onCloseConversati
   const handleCallClose = () => {
     setCallOpen(false);
     setActiveConversationId(null);
+    setRemoteUser(null); // Clear remote user when call ends
   };
 
   // ==================== RENDER ====================
@@ -172,11 +183,7 @@ export default function ChatPopupManager({ conversations = [], onCloseConversati
           open={callOpen}
           onClose={handleCallClose}
           isVideo={isVideoCall}
-          remoteUser={
-            conversations.find(c => c._id === activeConversationId)?.conversationType === "group"
-              ? null
-              : conversations.find(c => c._id === activeConversationId)?.otherParticipants?.[0]?.user
-          }
+          remoteUser={remoteUser}
           socket={socketService.socket}
           conversationId={activeConversationId}
           incomingOffer={incomingOffer}

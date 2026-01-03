@@ -44,9 +44,9 @@ export default function CallModal({
   const [callTimeout, setCallTimeout] = useState(null);
   const [fallbackTimeout, setFallbackTimeout] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false); // Fullscreen state for the video
-  const [networkStatus, setNetworkStatus] = useState({ 
-    online: isOnline(), 
-    quality: getConnectionQuality() 
+  const [networkStatus, setNetworkStatus] = useState({
+    online: isOnline(),
+    quality: getConnectionQuality()
   }); // Network status (online + quality)
 
   // Call duration timer
@@ -59,12 +59,12 @@ export default function CallModal({
     }
     return () => clearInterval(interval);
   }, [callState]);
-  
+
   // Monitor network status and react to changes
   useEffect(() => {
     const cleanupNetworkListener = listenToNetworkChanges((isOnline, quality) => {
       setNetworkStatus({ online: isOnline, quality });
-      
+
       // Show a notification if the connection is poor
       if (!isOnline) {
         setError("Mất kết nối mạng. Đang thử kết nối lại...");
@@ -74,7 +74,7 @@ export default function CallModal({
         setError(null);
       }
     });
-    
+
     return cleanupNetworkListener;
   }, [callState]);
 
@@ -104,7 +104,7 @@ export default function CallModal({
 
         // Setup peer connection, optimizing configuration based on network quality
         const connectionQuality = getConnectionQuality();
-        
+
         // Adjust configuration according to network quality
         const config = {
           iceServers: [
@@ -116,13 +116,13 @@ export default function CallModal({
           ],
           iceCandidatePoolSize: 10
         };
-        
+
         // Add mobile-optimized settings for poor connections
         if (connectionQuality === 'slow') {
           config.sdpSemantics = 'unified-plan';
           config.bundlePolicy = 'max-bundle';
         }
-        
+
         const peer = new RTCPeerConnection(config);
         peerRef.current = peer;
 
@@ -138,13 +138,13 @@ export default function CallModal({
                 // Giảm bitrate và độ phân giải cho kết nối chậm
                 params.encodings[0].maxBitrate = 250000; // 250kbps
                 params.encodings[0].scaleResolutionDownBy = 2.0; // Scale down resolution
-                sender.setParameters(params).catch(e => {});
+                sender.setParameters(params).catch(e => { });
               }
             } catch (e) {
               peer.addTrack(videoTrack, stream);
             }
           }
-          
+
           // Add audio track
           const audioTrack = stream.getAudioTracks()[0];
           if (audioTrack) {
@@ -450,10 +450,9 @@ export default function CallModal({
                 {/* Network status indicator */}
                 <span className="ml-2 inline-flex items-center">
                   {networkStatus.online ? (
-                    <Wifi className={`w-4 h-4 ${
-                      networkStatus.quality === 'slow' ? 'text-yellow-400' : 
-                      networkStatus.quality === 'medium' ? 'text-green-300' : 'text-green-400'
-                    }`} />
+                    <Wifi className={`w-4 h-4 ${networkStatus.quality === 'slow' ? 'text-yellow-400' :
+                        networkStatus.quality === 'medium' ? 'text-green-300' : 'text-green-400'
+                      }`} />
                   ) : (
                     <WifiOff className="w-4 h-4 text-red-400" />
                   )}
@@ -487,35 +486,33 @@ export default function CallModal({
       </div>
 
       {/* Local video - picture in picture */}
-      {(isVideo || !isVideo) && !isFullscreen && (
-        <div className="absolute top-24 right-6 z-20 w-32 h-44 rounded-2xl overflow-hidden border-2 border-white dark:border-gray-200 shadow-2xl bg-gray-800 dark:bg-neutral-950">
-          {isVideo ? (
-            <>
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : 'block'}`}
-              />
-              {isVideoOff && (
-                <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 dark:text-gray-400 gap-2">
-                  <VideoOff className="w-8 h-8" />
-                  <span className="text-xs">Camera tắt</span>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 dark:text-gray-400 gap-2">
-              <User className="w-8 h-8" />
-              <span className="text-xs">Bạn</span>
-            </div>
-          )}
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/60 dark:bg-black/70 px-2 py-1 rounded-full">
-            <span className="text-white text-xs font-medium">Bạn</span>
+      <div className={`absolute top-24 right-6 z-20 w-32 h-44 rounded-2xl overflow-hidden border-2 border-white dark:border-gray-200 shadow-2xl bg-gray-800 dark:bg-neutral-950 transition-opacity duration-200 ${isFullscreen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        {isVideo ? (
+          <>
+            <video
+              ref={localVideoRef}
+              autoPlay
+              muted
+              playsInline
+              className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : 'block'}`}
+            />
+            {isVideoOff && (
+              <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 dark:text-gray-400 gap-2">
+                <VideoOff className="w-8 h-8" />
+                <span className="text-xs">Camera tắt</span>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 dark:text-gray-400 gap-2">
+            <User className="w-8 h-8" />
+            <span className="text-xs">Bạn</span>
           </div>
+        )}
+        <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/60 dark:bg-black/70 px-2 py-1 rounded-full">
+          <span className="text-white text-xs font-medium">Bạn</span>
         </div>
-      )}
+      </div>
 
       {/* Controls - fixed bottom */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-8">
@@ -523,11 +520,10 @@ export default function CallModal({
           {/* Mute button */}
           <button
             onClick={toggleMute}
-            className={`group relative w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-              isMuted
+            className={`group relative w-14 h-14 rounded-full flex items-center justify-center transition-all ${isMuted
                 ? 'bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-700'
                 : 'bg-gray-800/50 dark:bg-neutral-800/50 hover:bg-gray-700/70 dark:hover:bg-gray-600/70 backdrop-blur-sm'
-            }`}
+              }`}
             title={isMuted ? "Bật tiếng" : "Tắt tiếng"}
           >
             {isMuted ? (
@@ -541,11 +537,10 @@ export default function CallModal({
           {isVideo && (
             <button
               onClick={toggleVideo}
-              className={`group relative w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                isVideoOff
+              className={`group relative w-14 h-14 rounded-full flex items-center justify-center transition-all ${isVideoOff
                   ? 'bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-700'
                   : 'bg-gray-800/50 dark:bg-neutral-800/50 hover:bg-gray-700/70 dark:hover:bg-gray-600/70 backdrop-blur-sm'
-              }`}
+                }`}
               title={isVideoOff ? "Bật camera" : "Tắt camera"}
             >
               {isVideoOff ? (

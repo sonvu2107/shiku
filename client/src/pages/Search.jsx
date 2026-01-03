@@ -173,7 +173,7 @@ export default function Search({ user }) {
               <button
                 type="button"
                 onClick={() => { setQuery(''); inputRef.current?.focus(); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full bg-gray-200 dark:bg-neutral-800 text-gray-500"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 dark:bg-neutral-800 text-gray-500"
               >
                 <X size={14} />
               </button>

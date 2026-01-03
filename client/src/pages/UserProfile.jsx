@@ -466,8 +466,28 @@ export default function UserProfile() {
     }
   };
 
-  const handleMessage = () => {
-    navigate(`/chat?user=${user._id}`);
+  const handleMessage = async () => {
+    try {
+      const { chatAPI } = await import("../chatAPI");
+
+      // Tạo hoặc lấy conversation với user này
+      try {
+        const checkRes = await chatAPI.checkPrivateConversation(user._id);
+        if (!checkRes.exists) {
+          // Tạo conversation mới nếu chưa có
+          await chatAPI.createPrivateConversation(user._id);
+        }
+      } catch (e) {
+        // Nếu check lỗi, thử tạo mới
+        await chatAPI.createPrivateConversation(user._id);
+      }
+
+      // Điều hướng đến trang chat
+      navigate('/chat');
+    } catch (error) {
+      showError("Không thể mở cuộc trò chuyện. Vui lòng thử lại.");
+      console.error("handleMessage error:", error);
+    }
   };
 
   const handleBlock = async () => {

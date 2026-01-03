@@ -273,7 +273,7 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-900">
-            Tải lên Media {USE_DIRECT_UPLOAD ? '(Direct)' : ''}
+            Tải lên ảnh/video {USE_DIRECT_UPLOAD ? '' : ''}
           </h2>
           <button
             onClick={onClose}
@@ -382,9 +382,10 @@ export default function MediaUpload({ onUploadSuccess, onClose }) {
               Hủy
             </button>
             <button
+              type="button"
               onClick={handleUpload}
               disabled={files.length === 0 || uploading}
-              className="flex-1 btn flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium transition-colors"
             >
               {uploading ? (
                 <>

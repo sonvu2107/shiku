@@ -10,7 +10,6 @@ import LeftSidebar from "../components/LeftSidebar";
 import RightSidebar from "../components/RightSidebar";
 import NotificationBell from "../components/NotificationBell";
 import ChatDropdown from "../components/ChatDropdown";
-import ChatPopupManager from "../components/ChatPopupManager";
 import UserName from "../components/UserName";
 import UserAvatar from "../components/UserAvatar";
 import Navbar from "../components/Navbar";
@@ -161,7 +160,7 @@ function Home({ user, setUser }) {
   const [searchHistory, setSearchHistory] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [historyEditing, setHistoryEditing] = useState(false);
-  const { openPopups, addChatPopup, closeChatPopup } = useChat();
+  const { addChatPopup } = useChat();
   const searchInputRef = useRef(null);
   const { showInfo } = useToast();
 
@@ -1124,14 +1123,7 @@ function Home({ user, setUser }) {
           <BackToTop />
         </main>
 
-        {/* Chat Popup Manager - Only for logged-in users */}
-        {user && (
-          <ChatPopupManager
-            conversations={openPopups}
-            onCloseConversation={closeChatPopup}
-            onShowInfo={showInfo}
-          />
-        )}
+
       </div>
     </div>
   );

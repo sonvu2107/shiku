@@ -14,7 +14,8 @@ import { PageLoader, LazyErrorBoundary } from "./components/PageLoader.jsx";
 import Loader from "./components/Loader.jsx";
 import OfflineScreen from "./components/OfflineScreen.jsx";
 import BottomNavBar from "./components/BottomNavBar.jsx";
-import { ChatProvider } from "./contexts/ChatContext.jsx";
+import ChatPopupManager from "./components/ChatPopupManager.jsx";
+import { ChatProvider, useChat } from "./contexts/ChatContext.jsx";
 import Home from "./pages/Home.jsx"; // Eager load Home for better LCP
 
 // LAZY IMPORT CÁC PAGES - Code Splitting
@@ -561,6 +562,11 @@ export default function App() {
 
             {/* Mobile Bottom Navigation Bar */}
             <BottomNavBar user={user} />
+
+            {/* Global Chat Popup Manager - hiển thị ở mọi trang trừ /chat và /cultivation */}
+            {user && location.pathname !== "/chat" && location.pathname !== "/cultivation" && (
+              <GlobalChatPopup />
+            )}
           </div>
         </ChatProvider>
       </ToastProvider>
@@ -572,4 +578,18 @@ export default function App() {
 function ToastContainerWrapper() {
   const { toasts, removeToast } = useToast();
   return <ToastContainer toasts={toasts} onRemove={removeToast} />;
+}
+
+// Global Chat Popup component - must be inside ChatProvider to use useChat
+function GlobalChatPopup() {
+  const { openPopups, closeChatPopup } = useChat();
+  const { showInfo } = useToast();
+
+  return (
+    <ChatPopupManager
+      conversations={openPopups}
+      onCloseConversation={closeChatPopup}
+      onShowInfo={showInfo}
+    />
+  );
 }

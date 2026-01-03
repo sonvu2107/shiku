@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Plus } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import ConversationList from "../components/chat/ConversationList";
 import ChatWindow from "../components/chat/ChatWindow";
 import Chatbot from "../components/Chatbot";
@@ -26,6 +26,7 @@ export default function Chat() {
   // ==================== ROUTER & LOCATION ====================
 
   const location = useLocation(); // To handle state passed from `MessageButton`
+  const [searchParams, setSearchParams] = useSearchParams(); // Track query params reactively
   const { showInfo, showError } = useToast();
   const { refreshUnreadCount } = useChat();
 
@@ -206,11 +207,13 @@ export default function Chat() {
 
   // Khôi phục conversation đã chọn sau khi load conversations
   // CHỈ chạy 1 lần khi load trang và user chưa chọn conversation nào
+  // KHÔNG khôi phục nếu có query param conversationId (đang navigate từ trang khác)
   useEffect(() => {
-    if (conversations.length > 0 && !selectedConversation && !userHasSelectedRef.current) {
+    const hasConversationIdParam = searchParams.get('conversationId');
+    if (conversations.length > 0 && !selectedConversation && !userHasSelectedRef.current && !hasConversationIdParam) {
       loadCurrentConversation();
     }
-  }, [conversations.length, selectedConversation]);
+  }, [conversations.length, selectedConversation, searchParams]);
 
   // Lưu conversation đã chọn vào database
   useEffect(() => {
@@ -351,9 +354,12 @@ export default function Chat() {
     }
   };
 
-  // Handle opening conversation from MessageButton
+  // Handle opening conversation from MessageButton or URL query param
   useEffect(() => {
-    if (location.state?.openConversation && conversations.length > 0) {
+    if (conversations.length === 0) return;
+
+    // Ưu tiên location.state trước
+    if (location.state?.openConversation) {
       const conversationId = location.state.openConversation;
       const conversationData = location.state.conversationData;
 
@@ -368,12 +374,55 @@ export default function Chat() {
 
       if (conversation) {
         setSelectedConversation(conversation);
+        setShowChatWindow(true); // Hiển thị chat window trên mobile
       }
 
       // Clear state để tránh re-trigger
       window.history.replaceState({}, document.title);
+      return;
     }
-  }, [location.state, conversations]);
+
+    // Xử lý query param conversationId (từ UserProfile, etc.)
+    const conversationIdFromUrl = searchParams.get('conversationId');
+
+    if (conversationIdFromUrl) {
+      let conversation = conversations.find(conv => conv._id === conversationIdFromUrl);
+
+      if (conversation) {
+        setSelectedConversation(conversation);
+        setShowChatWindow(true); // Hiển thị chat window trên mobile
+        userHasSelectedRef.current = true; // Mark as manually selected
+        // Clear query param để tránh re-trigger
+        setSearchParams({}, { replace: true });
+      } else {
+        // Conversation chưa có trong danh sách (mới tạo), fetch lại conversations
+        const fetchAndSelect = async () => {
+          try {
+            // Reload conversations để lấy conversation mới
+            const data = await chatAPI.getConversations();
+            const conversationsList = (data.conversations || []).filter(
+              conv => conv.conversationType !== 'chatbot'
+            );
+            setConversations(conversationsList);
+
+            // Tìm lại conversation sau khi reload
+            const newConversation = conversationsList.find(conv => conv._id === conversationIdFromUrl);
+            if (newConversation) {
+              setSelectedConversation(newConversation);
+              setShowChatWindow(true);
+              userHasSelectedRef.current = true;
+            }
+            // Clear query param
+            setSearchParams({}, { replace: true });
+          } catch (error) {
+            console.error('Error fetching conversation:', error);
+            setSearchParams({}, { replace: true });
+          }
+        };
+        fetchAndSelect();
+      }
+    }
+  }, [location.state, searchParams, conversations, setSearchParams]);
 
   useEffect(() => {
     const handleConversationChange = async () => {
