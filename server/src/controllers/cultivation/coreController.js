@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 import Cultivation, { CULTIVATION_REALMS, QUEST_TEMPLATES } from "../../models/Cultivation.js";
 import Equipment from "../../models/Equipment.js";
 import User from "../../models/User.js";
+import { getClient, isRedisConnected, redisConfig } from "../../services/redisClient.js";
+
+// ==================== CACHE CONFIG ====================
+const CULTIVATION_CACHE_TTL = 5; // 5 seconds - short TTL for frequently changing data
 
 /**
  * Merge equipment stats vào combat stats
@@ -209,23 +213,36 @@ export const formatCultivationResponse = async (cultivation) => {
 
 /**
  * GET / - Lấy thông tin tu tiên của user hiện tại
+ * Cached trong Redis 5s để giảm DB load
  */
 export const getCultivation = async (req, res, next) => {
     try {
         const userId = req.user.id;
+        const redis = getClient();
+        const cacheKey = `${redisConfig.keyPrefix}cultivation:${userId}`;
+
+        // Try cache first
+        if (redis && isRedisConnected()) {
+            try {
+                const cached = await redis.get(cacheKey);
+                if (cached) {
+                    return res.json(JSON.parse(cached));
+                }
+            } catch (cacheErr) {
+                // Cache miss or error, continue to DB
+            }
+        }
+
         const cultivation = await Cultivation.getOrCreate(userId);
 
-        try {
-            await User.findByIdAndUpdate(userId, {
-                $set: {
-                    'cultivationCache.realmLevel': cultivation.realmLevel,
-                    'cultivationCache.realmName': cultivation.realmName,
-                    'cultivationCache.exp': cultivation.exp
-                }
-            });
-        } catch (syncErr) {
-            console.error("[CULTIVATION] Error syncing cache:", syncErr);
-        }
+        // Sync user cache (async, don't block response)
+        User.findByIdAndUpdate(userId, {
+            $set: {
+                'cultivationCache.realmLevel': cultivation.realmLevel,
+                'cultivationCache.realmName': cultivation.realmName,
+                'cultivationCache.exp': cultivation.exp
+            }
+        }).catch(err => console.error("[CULTIVATION] Sync cache error:", err));
 
         let equipmentStats = null;
         try {
@@ -241,10 +258,34 @@ export const getCultivation = async (req, res, next) => {
             response.combatStats = mergeEquipmentStatsIntoCombatStats(response.combatStats, equipmentStats);
         }
 
-        res.json({ success: true, data: response });
+        const result = { success: true, data: response };
+
+        // Cache response
+        if (redis && isRedisConnected()) {
+            redis.set(cacheKey, JSON.stringify(result), 'EX', CULTIVATION_CACHE_TTL)
+                .catch(err => console.error("[CULTIVATION] Cache set error:", err));
+        }
+
+        res.json(result);
     } catch (error) {
         console.error("[CULTIVATION] Error getting cultivation:", error);
         next(error);
+    }
+};
+
+/**
+ * Invalidate cultivation cache cho user
+ * Gọi sau khi có mutation (addExp, equip, breakthrough, etc.)
+ */
+export const invalidateCultivationCache = async (userId) => {
+    const redis = getClient();
+    if (redis && isRedisConnected()) {
+        const cacheKey = `${redisConfig.keyPrefix}cultivation:${userId}`;
+        try {
+            await redis.del(cacheKey);
+        } catch (err) {
+            console.error("[CULTIVATION] Cache invalidate error:", err);
+        }
     }
 };
 

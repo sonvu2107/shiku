@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES, SHOP_ITEMS_MAP } from "../../models/Cultivation.js";
-import { formatCultivationResponse, mergeEquipmentStatsIntoCombatStats } from "./coreController.js";
+import { formatCultivationResponse, mergeEquipmentStatsIntoCombatStats, invalidateCultivationCache } from "./coreController.js";
 
 const hasAdminAccess = async (user) => {
     if (!user) return false;
@@ -169,12 +169,14 @@ export const breakthrough = async (req, res, next) => {
             cultivation.updateQuestProgress('realm', nextRealm.level);
 
             await cultivation.save();
+            invalidateCultivationCache(userId).catch(() => { });
             res.json({ success: true, breakthroughSuccess: true, message: `Chúc mừng! Đạt cảnh giới ${nextRealm.name}!`, data: { oldRealm: oldRealm.name, newRealm: nextRealm, successRate: currentSuccessRate, usedPill: usedPill ? { name: usedPill.name, bonus: breakthroughBonus } : null, cultivation: await formatCultivationResponse(cultivation) } });
         } else {
             cultivation.breakthroughFailureCount = (cultivation.breakthroughFailureCount || 0) + 1;
             cultivation.breakthroughCooldownUntil = new Date(now.getTime() + 3600000);
             cultivation.breakthroughSuccessRate = baseSuccessRate;
             await cultivation.save();
+            invalidateCultivationCache(userId).catch(() => { });
             const nextSuccessRate = Math.min(100, baseSuccessRate + cultivation.breakthroughFailureCount * bonus);
             res.json({ success: true, breakthroughSuccess: false, message: `Độ kiếp thất bại! Tỷ lệ lần sau: ${nextSuccessRate}%`, data: { currentRealm: currentRealm.name, targetRealm: nextRealm.name, failureCount: cultivation.breakthroughFailureCount, nextSuccessRate, usedPill: usedPill ? { name: usedPill.name, bonus: breakthroughBonus } : null, cooldownUntil: cultivation.breakthroughCooldownUntil, cooldownRemaining: 3600000, cultivation: await formatCultivationResponse(cultivation) } });
         }

@@ -1,5 +1,5 @@
 import Cultivation, { CULTIVATION_REALMS } from "../../models/Cultivation.js";
-import { formatCultivationResponse } from "./coreController.js";
+import { formatCultivationResponse, invalidateCultivationCache } from "./coreController.js";
 import { consumeExpCap, checkClickCooldown, getCapByRealm, getExpCapRemaining } from "../../services/expCapService.js";
 
 // Cache for leaderboard with automatic cleanup
@@ -248,6 +248,9 @@ export const addExp = async (req, res, next) => {
         if (!updatedCultivation) {
             return res.status(404).json({ success: false, message: 'Cultivation not found' });
         }
+
+        // Invalidate cache after mutation
+        invalidateCultivationCache(userId).catch(() => { });
 
         const potentialRealm = updatedCultivation.getRealmFromExp();
         const canBreakthrough = potentialRealm.level > updatedCultivation.realmLevel;

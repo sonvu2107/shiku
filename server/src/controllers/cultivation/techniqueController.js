@@ -4,7 +4,7 @@
  */
 
 import Cultivation from "../../models/Cultivation.js";
-import { formatCultivationResponse } from "./coreController.js";
+import { formatCultivationResponse, invalidateCultivationCache } from "./coreController.js";
 import {
     consumeExpCap,
     getCapByRealm,
@@ -29,9 +29,12 @@ export const listTechniques = async (req, res, next) => {
         const userId = req.user.id;
         const cultivation = await Cultivation.getOrCreate(userId);
 
-        // TODO: Lấy userProgress từ dungeon/quest nếu cần
+        // Lấy userProgress từ dungeon/quest
+        const dungeonProgressArray = cultivation.dungeonProgress || [];
+        const maxDungeonFloor = dungeonProgressArray.reduce((max, p) => Math.max(max, p.highestFloor || 0), 0);
+
         const userProgress = {
-            maxDungeonFloor: cultivation.dungeonProgress?.highestFloor || 0,
+            maxDungeonFloor,
             completedQuests: []
         };
 
@@ -103,8 +106,10 @@ export const learnTechnique = async (req, res, next) => {
         }
 
         // Check điều kiện unlock
+        const dungeonProgressArray = cultivation.dungeonProgress || [];
+        const maxDungeonFloor = dungeonProgressArray.reduce((max, p) => Math.max(max, p.highestFloor || 0), 0);
         const userProgress = {
-            maxDungeonFloor: cultivation.dungeonProgress?.highestFloor || 0,
+            maxDungeonFloor,
             completedQuests: []
         };
 
@@ -126,6 +131,9 @@ export const learnTechnique = async (req, res, next) => {
         });
 
         await cultivation.save();
+
+        // Invalidate cache
+        invalidateCultivationCache(userId).catch(() => { });
 
         res.json({
             success: true,
@@ -188,6 +196,9 @@ export const equipTechnique = async (req, res, next) => {
 
         cultivation.equippedEfficiencyTechnique = techniqueId;
         await cultivation.save();
+
+        // Invalidate cache
+        invalidateCultivationCache(userId).catch(() => { });
 
         res.json({
             success: true,
@@ -280,10 +291,17 @@ export const activateTechnique = async (req, res, next) => {
 
         await cultivation.save();
 
-        // Estimate EXP
-        const passivePerMin = getPassiveExpPerMin(cultivation.realmLevel);
+        // Estimate EXP: 1 giây = 1 click (dùng trung bình click EXP của cảnh giới)
+        const expRanges = {
+            1: { min: 1, max: 3 }, 2: { min: 3, max: 10 }, 3: { min: 10, max: 30 },
+            4: { min: 20, max: 60 }, 5: { min: 50, max: 150 }, 6: { min: 100, max: 200 },
+            7: { min: 100, max: 200 }, 8: { min: 100, max: 200 }, 9: { min: 100, max: 200 },
+            10: { min: 100, max: 200 }, 11: { min: 100, max: 200 }
+        };
+        const range = expRanges[cultivation.realmLevel] || expRanges[1];
+        const avgClickExp = Math.floor((range.min + range.max) / 2);
         const estimatedExp = Math.floor(
-            technique.durationSec * passivePerMin / 60 * technique.techniqueMultiplier
+            technique.durationSec * avgClickExp * technique.techniqueMultiplier
         );
 
         res.json({
@@ -359,7 +377,7 @@ export const claimTechnique = async (req, res, next) => {
             return res.status(400).json({ success: false, message: "Công pháp không hợp lệ" });
         }
 
-        // Tính EXP (continuous, floor elapsedSec)
+        // Tính EXP (continuous, floor elapsedSec): 1 giây = 1 click
         const now = Date.now();
         const startedAt = new Date(session.startedAt).getTime();
         const endsAt = new Date(session.endsAt).getTime();
@@ -368,8 +386,16 @@ export const claimTechnique = async (req, res, next) => {
             Math.floor((now - startedAt) / 1000)
         ));
 
-        const passivePerMin = getPassiveExpPerMin(session.realmAtStart);
-        const baseExp = Math.floor(elapsedSec * passivePerMin / 60);
+        // Dùng click EXP trung bình theo cảnh giới
+        const expRanges = {
+            1: { min: 1, max: 3 }, 2: { min: 3, max: 10 }, 3: { min: 10, max: 30 },
+            4: { min: 20, max: 60 }, 5: { min: 50, max: 150 }, 6: { min: 100, max: 200 },
+            7: { min: 100, max: 200 }, 8: { min: 100, max: 200 }, 9: { min: 100, max: 200 },
+            10: { min: 100, max: 200 }, 11: { min: 100, max: 200 }
+        };
+        const range = expRanges[session.realmAtStart] || expRanges[1];
+        const avgClickExp = Math.floor((range.min + range.max) / 2);
+        const baseExp = elapsedSec * avgClickExp;
 
         // Apply multipliers
         let multipliedExp = Math.floor(baseExp * technique.techniqueMultiplier);
@@ -427,6 +453,9 @@ export const claimTechnique = async (req, res, next) => {
         }
 
         await cultivation.save();
+
+        // Invalidate cache
+        invalidateCultivationCache(userId).catch(() => { });
 
         res.json({
             success: true,

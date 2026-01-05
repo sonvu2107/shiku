@@ -541,11 +541,17 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                   {/* Active session timer */}
                   {isActiveSession && sessionTimeLeft > 0 && (
                     <div className="mb-3 p-3 bg-cyan-900/20 rounded-lg border border-cyan-500/30">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-cyan-300">Thời gian còn lại</span>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-cyan-300">Đang nhập định...</span>
                         <span className="text-lg font-bold text-cyan-400 font-mono">{sessionTimeLeft}s</span>
                       </div>
-                      <div className="w-full bg-slate-900 rounded-full h-2 mt-2 overflow-hidden">
+                      {activeSession?.estimatedExp > 0 && (
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-amber-300/80">Tu vi dự kiến</span>
+                          <span className="text-sm font-bold text-amber-400">+{activeSession.estimatedExp} Tu Vi</span>
+                        </div>
+                      )}
+                      <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
                         <div
                           className="bg-gradient-to-r from-cyan-600 to-cyan-400 h-full transition-all duration-1000"
                           style={{ width: `${(sessionTimeLeft / tech.durationSec) * 100}%` }}
