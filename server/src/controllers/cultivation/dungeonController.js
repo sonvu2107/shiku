@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES, TECHNIQUES_MAP, SHOP_ITEMS_MAP } from "../../models/Cultivation.js";
+import { logDungeonEvent } from "./worldEventController.js";
 import {
     DUNGEON_TEMPLATES,
     DIFFICULTY_CONFIG,
@@ -690,6 +691,14 @@ export const battleMonster = async (req, res, next) => {
 
                 // Update quest progress cho nhiệm vụ hoàn thành bí cảnh
                 cultivation.updateQuestProgress('dungeon_clear', 1);
+
+                // Log Thiên Hạ Ký event (Dungeon Clear)
+                if (dungeon.difficulty !== 'easy') {
+                    const user = await mongoose.model('User').findById(req.user.id).select('name nickname').lean();
+                    const username = user?.name || user?.nickname || 'Tu sĩ ẩn danh';
+                    logDungeonEvent(req.user.id, username, dungeon.name, config.floors, cultivation.realmName)
+                        .catch(e => console.error('[WorldEvent] Dungeon battle log error:', e));
+                }
             }
 
             // Cập nhật quest progress cho nhiệm vụ thám hiểm bí cảnh
@@ -830,6 +839,14 @@ export const claimRewardsAndExit = async (req, res, next) => {
         progress.cooldownUntil = new Date(Date.now() + config.cooldownHours * 60 * 60 * 1000);
 
         await cultivation.save();
+
+        // Log Thiên Hạ Ký event
+        if (dungeon.difficulty !== 'easy') { // Chỉ log khó trở lên để tránh spam
+            const user = await mongoose.model('User').findById(req.user.id).select('name nickname').lean();
+            const username = user?.name || user?.nickname || 'Tu sĩ ẩn danh';
+            logDungeonEvent(req.user.id, username, dungeon.name, run.floorsCleared, cultivation.realmName)
+                .catch(e => console.error('[WorldEvent] Dungeon log error:', e));
+        }
 
         res.json({
             success: true,

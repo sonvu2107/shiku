@@ -2,6 +2,8 @@ import Cultivation, { CULTIVATION_REALMS } from "../../models/Cultivation.js";
 import { formatCultivationResponse, invalidateCultivationCache } from "./coreController.js";
 import { consumeExpCap, checkClickCooldown, getCapByRealm, getExpCapRemaining } from "../../services/expCapService.js";
 import { getClient, isRedisConnected, redisConfig } from "../../services/redisClient.js";
+import { logRareEncounterEvent } from "./worldEventController.js";
+import mongoose from "mongoose";
 
 // Cache TTL for passive exp status (seconds)
 const PASSIVE_STATUS_CACHE_TTL = 10;
@@ -108,6 +110,23 @@ export const collectPassiveExp = async (req, res, next) => {
 
         // Invalidate passive status cache after collect
         invalidatePassiveStatusCache(userId);
+
+        // Random Event: Kỳ Ngộ (5% chance)
+        if (Math.random() < 0.05) {
+            const encounters = [
+                "tình cờ phát hiện một hang động cổ xưa đầy linh khí",
+                "nhặt được một viên linh thạch thất lạc bên đường",
+                "ngộ ra một đạo lý mới trong lúc tĩnh tọa",
+                "được một cao nhân bí ẩn chỉ điểm vài chiêu",
+                "nhìn thấy phượng hoàng bay ngang qua bầu trời",
+                "cảm ngộ được sự vận chuyển của thiên địa linh khí"
+            ];
+            const description = encounters[Math.floor(Math.random() * encounters.length)];
+            const user = await mongoose.model('User').findById(userId).select('name nickname').lean();
+            const username = user?.name || user?.nickname || 'Tu sĩ ẩn danh';
+
+            logRareEncounterEvent(userId, username, description).catch(e => console.error('[WorldEvent] Encounter log error:', e));
+        }
 
         res.json({
             success: true,

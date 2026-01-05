@@ -6,6 +6,7 @@ import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import { authRequired } from "../middleware/auth.js";
 import { PK_BOTS, BOT_BATTLE_COOLDOWN, getBotsByRealmLevel, getBotById } from "../data/pkBots.js";
+import { logPKOverkillEvent } from "../controllers/cultivation/worldEventController.js";
 
 const router = express.Router();
 
@@ -524,6 +525,22 @@ router.post("/challenge", async (req, res, next) => {
         { user: challengerId },
         { $inc: { exp: rewards.loserExp, spiritStones: rewards.loserSpiritStones } }
       );
+    }
+
+    // Log Thiên Hạ Ký Event (PK Overkill - Vượt cấp chiến thắng)
+    if (!battleResult.isDraw) {
+      const winnerStats = battleResult.winner === 'challenger' ? challengerStats : opponentStats;
+      const loserStats = battleResult.winner === 'challenger' ? opponentStats : challengerStats;
+
+      // Nếu winner realm level nhỏ hơn loser realm level -> Overkill
+      if ((winnerStats.realmLevel || 0) < (loserStats.realmLevel || 0)) {
+        const winnerId = battleResult.winner === 'challenger' ? challengerId : opponentId;
+        const winnerName = battleResult.winner === 'challenger' ? challenger.name : opponent.name;
+        const opponentName = battleResult.winner === 'challenger' ? opponent.name : challenger.name;
+
+        logPKOverkillEvent(winnerId, winnerName, winnerStats.realmName, opponentName, loserStats.realmName)
+          .catch(e => console.error('[WorldEvent] PK log error:', e));
+      }
     }
 
     console.log(`[BATTLE] ${challenger.name} vs ${opponent.name} - Winner: ${battleResult.winner || 'Draw'}`);
@@ -1130,8 +1147,8 @@ router.post("/challenge/bot", async (req, res, next) => {
             description: technique.skill.description,
             cooldown: technique.skill.cooldown,
             manaCost,
-            damageMultiplier: 1.5,
-            level: 5 // Bots có skill level 5 mặc định
+            damageMultiplier: 1.2,
+            level: 1 // Bots có skill level 1 để tránh quá mạnh
           });
         }
       }

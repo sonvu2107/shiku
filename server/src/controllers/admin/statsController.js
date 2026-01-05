@@ -1,6 +1,7 @@
 import User from "../../models/User.js";
 import Post from "../../models/Post.js";
 import Comment from "../../models/Comment.js";
+import DailyActivity from "../../models/DailyActivity.js";
 import { withCache, withSWR } from "../../utils/hybridCache.js";
 
 // Cache keys for admin stats
@@ -395,19 +396,33 @@ async function fetchDailyStatsFromDB(days) {
             },
             { $sort: { _id: 1 } }
         ]),
-        // Daily active users based on lastSeen
-        User.aggregate([
-            { $match: { lastSeen: { $gte: startDateUTC } } },
-            {
-                $group: {
-                    _id: {
-                        $dateToString: { format: "%Y-%m-%d", date: "$lastSeen", timezone: vietnamTimezone }
-                    },
-                    count: { $sum: 1 }
-                }
-            },
-            { $sort: { _id: 1 } }
-        ])
+        // Daily active users from DailyActivity snapshot (cron job lưu 23:59 hàng ngày)
+        // Fallback về real-time query cho ngày hôm nay (chưa có snapshot)
+        (async () => {
+            const startDateStr = startDateInVietnam.toISOString().split('T')[0];
+            const todayStr = nowInVietnam.toISOString().split('T')[0];
+
+            // Lấy snapshot từ DailyActivity
+            const snapshots = await DailyActivity.find({
+                date: { $gte: startDateStr }
+            }).select('date count').lean();
+
+            // Chuyển thành format giống aggregate result
+            const result = snapshots.map(s => ({ _id: s.date, count: s.count }));
+
+            // Nếu chưa có snapshot cho ngày hôm nay, query realtime
+            const hasToday = result.some(r => r._id === todayStr);
+            if (!hasToday) {
+                const todayStart = new Date(`${todayStr}T00:00:00+07:00`);
+                const todayEnd = new Date(`${todayStr}T23:59:59+07:00`);
+                const todayActive = await User.countDocuments({
+                    lastSeen: { $gte: todayStart, $lte: todayEnd }
+                });
+                result.push({ _id: todayStr, count: todayActive });
+            }
+
+            return result.sort((a, b) => a._id.localeCompare(b._id));
+        })()
     ]);
 
     const postsMap = new Map(dailyPosts.map(d => [d._id, d]));
@@ -871,3 +886,90 @@ async function fetchInsightsFromDB() {
     };
 }
 
+/**
+ * POST /snapshot-daily-activity - Chạy snapshot daily activity thủ công
+ * Dùng để test hoặc chạy lại nếu cron job bị miss
+ */
+export const snapshotDailyActivity = async (req, res, next) => {
+    try {
+        const { date } = req.body; // Optional: specific date to snapshot, format: "YYYY-MM-DD"
+
+        const targetDate = date || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+        const startOfDay = new Date(`${targetDate}T00:00:00+07:00`);
+        const endOfDay = new Date(`${targetDate}T23:59:59+07:00`);
+
+        const activeUsers = await User.find({
+            lastSeen: { $gte: startOfDay, $lte: endOfDay }
+        }).select('_id').lean();
+
+        const result = await DailyActivity.findOneAndUpdate(
+            { date: targetDate },
+            {
+                date: targetDate,
+                activeUserIds: activeUsers.map(u => u._id),
+                count: activeUsers.length
+            },
+            { upsert: true, new: true }
+        );
+
+        res.json({
+            success: true,
+            message: `Đã lưu ${activeUsers.length} active users cho ngày ${targetDate}`,
+            data: {
+                date: result.date,
+                count: result.count
+            }
+        });
+    } catch (e) {
+        next(e);
+    }
+};
+
+/**
+ * POST /backfill-daily-activity - Backfill dữ liệu cho các ngày trước
+ * Chạy 1 lần để tạo dữ liệu lịch sử
+ */
+export const backfillDailyActivity = async (req, res, next) => {
+    try {
+        const { days = 30 } = req.body; // Số ngày cần backfill (mặc định 30)
+
+        const results = [];
+        const now = new Date();
+
+        for (let i = 0; i < days; i++) {
+            const date = new Date(now);
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+            // Kiểm tra đã có snapshot chưa
+            const existing = await DailyActivity.findOne({ date: dateStr }).lean();
+            if (existing) {
+                results.push({ date: dateStr, count: existing.count, status: 'existed' });
+                continue;
+            }
+
+            const startOfDay = new Date(`${dateStr}T00:00:00+07:00`);
+            const endOfDay = new Date(`${dateStr}T23:59:59+07:00`);
+
+            const activeUsers = await User.find({
+                lastSeen: { $gte: startOfDay, $lte: endOfDay }
+            }).select('_id').lean();
+
+            await DailyActivity.create({
+                date: dateStr,
+                activeUserIds: activeUsers.map(u => u._id),
+                count: activeUsers.length
+            });
+
+            results.push({ date: dateStr, count: activeUsers.length, status: 'created' });
+        }
+
+        res.json({
+            success: true,
+            message: `Đã backfill ${results.filter(r => r.status === 'created').length}/${days} ngày`,
+            data: results
+        });
+    } catch (e) {
+        next(e);
+    }
+};

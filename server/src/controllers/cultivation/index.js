@@ -8,3 +8,4 @@ export * from './expController.js';
 export * from './combatController.js';
 export * from './dungeonController.js';
 export * from './techniqueController.js';
+export * from './worldEventController.js';

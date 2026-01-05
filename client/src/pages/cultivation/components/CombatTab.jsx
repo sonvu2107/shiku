@@ -6,20 +6,18 @@ import { useState, memo } from 'react';
 import { motion } from 'framer-motion';
 import PKTab from './PKTab';
 import ArenaTab from './ArenaTab';
-import LeaderboardTab from './LeaderboardTab';
 
 const CombatTab = memo(function CombatTab({ onSwitchTab, isAdmin }) {
     const [activeSubTab, setActiveSubTab] = useState('pk');
 
     const subTabs = [
         { id: 'pk', label: 'Luận Võ' },
-        { id: 'arena', label: 'Võ Đài' },
-        { id: 'leaderboard', label: 'Xếp Hạng' }
+        { id: 'arena', label: 'Võ Đài' }
     ];
 
     // Handle internal sub-tab switching (for arena -> pk flow)
     const handleInternalSwitch = (tabId) => {
-        if (tabId === 'pk' || tabId === 'arena' || tabId === 'leaderboard') {
+        if (tabId === 'pk' || tabId === 'arena') {
             setActiveSubTab(tabId);
         } else if (onSwitchTab) {
             // If it's not a combat sub-tab, pass to parent
@@ -54,7 +52,6 @@ const CombatTab = memo(function CombatTab({ onSwitchTab, isAdmin }) {
             >
                 {activeSubTab === 'pk' && <PKTab onSwitchTab={handleInternalSwitch} />}
                 {activeSubTab === 'arena' && <ArenaTab onSwitchTab={handleInternalSwitch} />}
-                {activeSubTab === 'leaderboard' && <LeaderboardTab isAdmin={isAdmin} />}
             </motion.div>
         </div>
     );

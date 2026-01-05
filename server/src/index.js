@@ -65,6 +65,8 @@ import reportsRoutes from "./routes/reports.js"; // User reports routes
 import recapRoutes from "./routes/recap.js"; // Recap 2025 routes
 import vibecheckRoutes from "./routes/vibecheck.js"; // Vibe Check routes
 import sectRoutes from "./routes/sects.js"; // Tông Môn (Sect) routes
+import cron from 'node-cron'; // Scheduled tasks
+import DailyActivity from "./models/DailyActivity.js"; // Daily activity tracking
 
 // Tạo Express app và HTTP server
 const app = express();
@@ -1213,6 +1215,37 @@ if (process.env.DISABLE_SERVER_START === "true") {
     } catch (redisError) {
       console.warn('[WARN][SERVER] Redis initialization skipped:', redisError.message);
     }
+
+    // ==================== CRON JOBS ====================
+
+    // Snapshot daily active users at 23:59 Vietnam time
+    cron.schedule('59 23 * * *', async () => {
+      try {
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }); // "YYYY-MM-DD"
+        const startOfDay = new Date(`${today}T00:00:00+07:00`);
+        const endOfDay = new Date(`${today}T23:59:59+07:00`);
+
+        const activeUsers = await User.find({
+          lastSeen: { $gte: startOfDay, $lte: endOfDay }
+        }).select('_id').lean();
+
+        await DailyActivity.findOneAndUpdate(
+          { date: today },
+          {
+            date: today,
+            activeUserIds: activeUsers.map(u => u._id),
+            count: activeUsers.length
+          },
+          { upsert: true, new: true }
+        );
+
+        console.log(`[CRON] Saved ${activeUsers.length} active users for ${today}`);
+      } catch (error) {
+        console.error('[CRON] Error saving daily activity:', error.message);
+      }
+    }, { timezone: 'Asia/Ho_Chi_Minh' });
+
+    console.log('[INFO][SERVER] Daily activity cron job scheduled for 23:59 Vietnam time');
 
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`[INFO][SERVER] Server listening on http://localhost:${PORT}`);

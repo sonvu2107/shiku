@@ -7,7 +7,7 @@
 import { useState, useEffect, memo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, MoreHorizontal } from 'lucide-react';
 import { CultivationProvider, useCultivation } from '../hooks/useCultivation.jsx';
 import { CULTIVATION_REALMS } from '../services/cultivationAPI.js';
 import { api } from '../api';
@@ -22,7 +22,9 @@ import {
   DungeonTab,
   StorageTab,
   CombatTab,
-  SectTab
+  SectTab,
+  LeaderboardTab,
+  ThienHaKy
 } from './cultivation/components';
 import { LOG_MESSAGES } from './cultivation/utils/constants';
 
@@ -371,6 +373,8 @@ const CultivationContent = memo(function CultivationContent() {
     { id: 'dungeon', label: 'Bí Cảnh' },
     { id: 'combat', label: 'Chiến Đấu' },
     { id: 'sect', label: 'Tông Môn' },
+    { id: 'thienhaky', label: 'Thiên Hạ Ký' },
+    ...(isAdmin ? [{ id: 'leaderboard', label: 'Bảng Xếp Hạng' }] : []),
   ];
 
   return (
@@ -476,12 +480,13 @@ const CultivationContent = memo(function CultivationContent() {
             )}
           </AnimatePresence>
 
-          <div className="hidden sm:flex justify-center gap-2 md:gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0">
-            {tabs.map((tab) => (
+          {/* Desktop Tabs - Optimized with Dropdown */}
+          <div className="hidden sm:flex justify-center gap-2 md:gap-3 overflow-visible px-4 md:px-0 flex-wrap">
+            {tabs.slice(0, 7).map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2.5 md:px-5 md:py-3 rounded-xl text-xs md:text-sm font-bold uppercase tracking-wide transition-all whitespace-nowrap flex-shrink-0 snap-start ${activeTab === tab.id
+                className={`px-4 py-2.5 md:px-5 md:py-3 rounded-xl text-xs md:text-sm font-bold uppercase tracking-wide transition-all whitespace-nowrap ${activeTab === tab.id
                   ? 'bg-purple-900/50 text-purple-300 border border-purple-500/50'
                   : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300 hover:bg-slate-800/50'
                   }`}
@@ -489,6 +494,37 @@ const CultivationContent = memo(function CultivationContent() {
                 {tab.label}
               </button>
             ))}
+
+            {/* Dropdown for remaining tabs */}
+            {tabs.length > 7 && (
+              <div className="relative group">
+                <button
+                  className={`px-4 py-2.5 md:px-5 md:py-3 rounded-xl text-xs md:text-sm font-bold uppercase tracking-wide transition-all whitespace-nowrap flex items-center gap-2 ${tabs.slice(7).some(t => t.id === activeTab)
+                    ? 'bg-purple-900/50 text-purple-300 border border-purple-500/50'
+                    : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:text-slate-300 hover:bg-slate-800/50'
+                    }`}
+                >
+                  <span>Khác</span>
+                  <MoreHorizontal size={16} />
+                </button>
+
+                {/* Dropdown Menu */}
+                <div className="absolute right-0 top-full mt-2 w-40 bg-[#0f172a] border border-slate-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                  {tabs.slice(7).map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full text-center px-2 py-3 text-sm font-bold hover:bg-slate-800 transition-colors ${activeTab === tab.id
+                        ? 'text-amber-400 bg-amber-900/20'
+                        : 'text-slate-400'
+                        }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -523,6 +559,8 @@ const CultivationContent = memo(function CultivationContent() {
           {activeTab === 'dungeon' && <DungeonTab />}
           {activeTab === 'combat' && <CombatTab onSwitchTab={setActiveTab} isAdmin={isAdmin} />}
           {activeTab === 'sect' && <SectTab />}
+          {activeTab === 'leaderboard' && isAdmin && <LeaderboardTab isAdmin={isAdmin} />}
+          {activeTab === 'thienhaky' && <ThienHaKy />}
         </div>
       </div>
 

@@ -29,6 +29,8 @@ import {
   updateOfflineUsers,
   getDailyStats,
   getInsights,
+  snapshotDailyActivity,
+  backfillDailyActivity,
   // Audit
   getAuditLogs,
   getSuspiciousActivities,
@@ -142,6 +144,8 @@ router.get("/stats/insights", adminRateLimit, statsCache, authRequired, adminReq
 router.get("/online-users", adminRateLimit, noCache, authRequired, adminRequired, getOnlineUsers);
 router.get("/total-visitors", authRequired, adminRequired, getTotalVisitors);
 router.post("/update-offline-users", authRequired, adminRequired, updateOfflineUsers);
+router.post("/snapshot-daily-activity", strictAdminRateLimit, authRequired, adminRequired, snapshotDailyActivity);
+router.post("/backfill-daily-activity", strictAdminRateLimit, authRequired, adminRequired, backfillDailyActivity);
 
 // ============================================================
 // AUDIT ROUTES

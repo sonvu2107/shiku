@@ -50,8 +50,11 @@ import {
   learnTechnique,
   equipTechnique,
   activateTechnique,
-  claimTechnique
+  claimTechnique,
+  // World Events - Thiên Hạ Ký
+  getWorldEvents
 } from "../controllers/cultivation/index.js";
+
 
 const router = express.Router();
 
@@ -89,6 +92,10 @@ router.get("/realms", getRealms);
 router.get("/exp-log", getExpLog);
 router.post("/add-exp", cultivationLimiter, addExp);
 router.get("/stats", getStats);
+
+// ==================== THIÊN HẠ KÝ (WORLD EVENTS) ====================
+router.get("/world-events", getWorldEvents);
+
 
 // ==================== COMBAT & BREAKTHROUGH ====================
 router.get("/combat-stats", getCombatStats);
