@@ -19,6 +19,10 @@ import {
     getAvailableTechniques
 } from "../../data/cultivationTechniques.js";
 import crypto from "crypto";
+import { getClient, isRedisConnected, redisConfig } from "../../services/redisClient.js";
+
+// Cache TTL for techniques list (seconds)
+const TECHNIQUES_CACHE_TTL = 10;
 
 // ============================================================
 // GET /techniques - Danh sách công pháp
@@ -27,6 +31,21 @@ import crypto from "crypto";
 export const listTechniques = async (req, res, next) => {
     try {
         const userId = req.user.id;
+        const redis = getClient();
+        const cacheKey = `${redisConfig.keyPrefix}techniques:${userId}`;
+
+        // Try cache first
+        if (redis && isRedisConnected()) {
+            try {
+                const cached = await redis.get(cacheKey);
+                if (cached) {
+                    return res.json(JSON.parse(cached));
+                }
+            } catch (err) {
+                console.error('[REDIS] Techniques cache read error:', err.message);
+            }
+        }
+
         const cultivation = await Cultivation.getOrCreate(userId);
 
         // Lấy userProgress từ dungeon/quest
@@ -59,7 +78,7 @@ export const listTechniques = async (req, res, next) => {
             }
         }
 
-        res.json({
+        const result = {
             success: true,
             data: {
                 techniques,
@@ -67,7 +86,14 @@ export const listTechniques = async (req, res, next) => {
                 equippedEfficiency: cultivation.equippedEfficiencyTechnique,
                 activeSession
             }
-        });
+        };
+
+        // Cache result
+        if (redis && isRedisConnected()) {
+            redis.set(cacheKey, JSON.stringify(result), 'EX', TECHNIQUES_CACHE_TTL).catch(() => { });
+        }
+
+        res.json(result);
     } catch (error) {
         next(error);
     }
@@ -132,8 +158,12 @@ export const learnTechnique = async (req, res, next) => {
 
         await cultivation.save();
 
-        // Invalidate cache
+        // Invalidate both caches
         invalidateCultivationCache(userId).catch(() => { });
+        const redis = getClient();
+        if (redis && isRedisConnected()) {
+            redis.del(`${redisConfig.keyPrefix}techniques:${userId}`).catch(() => { });
+        }
 
         res.json({
             success: true,

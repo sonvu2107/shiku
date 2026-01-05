@@ -1,6 +1,19 @@
 import Cultivation, { CULTIVATION_REALMS } from "../../models/Cultivation.js";
 import { formatCultivationResponse, invalidateCultivationCache } from "./coreController.js";
 import { consumeExpCap, checkClickCooldown, getCapByRealm, getExpCapRemaining } from "../../services/expCapService.js";
+import { getClient, isRedisConnected, redisConfig } from "../../services/redisClient.js";
+
+// Cache TTL for passive exp status (seconds)
+const PASSIVE_STATUS_CACHE_TTL = 10;
+
+// Helper to invalidate passive status cache
+const invalidatePassiveStatusCache = (userId) => {
+    const redis = getClient();
+    if (redis && isRedisConnected()) {
+        const cacheKey = `${redisConfig.keyPrefix}passiveStatus:${userId}`;
+        redis.del(cacheKey).catch(err => console.error('[REDIS] Failed to invalidate passive status cache:', err.message));
+    }
+};
 
 // Cache for leaderboard with automatic cleanup
 const leaderboardCache = new Map();
@@ -92,6 +105,10 @@ export const collectPassiveExp = async (req, res, next) => {
         cultivation.updateQuestProgress('passive_collect', 1);
 
         await cultivation.save();
+
+        // Invalidate passive status cache after collect
+        invalidatePassiveStatusCache(userId);
+
         res.json({
             success: true,
             message: result.multiplier > 1 ? `Thu thập ${result.expEarned} tu vi (x${result.multiplier})!` : `Thu thập ${result.expEarned} tu vi!`,
@@ -103,6 +120,21 @@ export const collectPassiveExp = async (req, res, next) => {
 export const getPassiveExpStatus = async (req, res, next) => {
     try {
         const userId = req.user.id;
+        const redis = getClient();
+        const cacheKey = `${redisConfig.keyPrefix}passiveStatus:${userId}`;
+
+        // Try cache first
+        if (redis && isRedisConnected()) {
+            try {
+                const cached = await redis.get(cacheKey);
+                if (cached) {
+                    return res.json(JSON.parse(cached));
+                }
+            } catch (err) {
+                console.error('[REDIS] Passive status cache read error:', err.message);
+            }
+        }
+
         const cultivation = await Cultivation.getOrCreate(userId);
         const now = new Date();
         const lastCollected = cultivation.lastPassiveExpCollected || now;
@@ -115,7 +147,16 @@ export const getPassiveExpStatus = async (req, res, next) => {
         for (const boost of activeBoosts) {
             if (boost.type === 'exp' || boost.type === 'exp_boost') multiplier = Math.max(multiplier, boost.multiplier);
         }
-        res.json({ success: true, data: { pendingExp: Math.floor(baseExp * multiplier), baseExp, multiplier, expPerMinute: baseExpPerMinute, minutesElapsed: elapsedMinutes, lastCollected, realmLevel: cultivation.realmLevel, activeBoosts: activeBoosts.map(b => ({ type: b.type, multiplier: b.multiplier, expiresAt: b.expiresAt })) } });
+
+        const result = { success: true, data: { pendingExp: Math.floor(baseExp * multiplier), baseExp, multiplier, expPerMinute: baseExpPerMinute, minutesElapsed: elapsedMinutes, lastCollected, realmLevel: cultivation.realmLevel, activeBoosts: activeBoosts.map(b => ({ type: b.type, multiplier: b.multiplier, expiresAt: b.expiresAt })) } };
+
+        // Cache result
+        if (redis && isRedisConnected()) {
+            redis.set(cacheKey, JSON.stringify(result), 'EX', PASSIVE_STATUS_CACHE_TTL)
+                .catch(err => console.error('[REDIS] Passive status cache write error:', err.message));
+        }
+
+        res.json(result);
     } catch (error) { next(error); }
 };
 
@@ -251,6 +292,7 @@ export const addExp = async (req, res, next) => {
 
         // Invalidate cache after mutation
         invalidateCultivationCache(userId).catch(() => { });
+        invalidatePassiveStatusCache(userId);
 
         const potentialRealm = updatedCultivation.getRealmFromExp();
         const canBreakthrough = potentialRealm.level > updatedCultivation.realmLevel;
