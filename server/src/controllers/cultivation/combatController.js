@@ -16,6 +16,60 @@ const hasAdminAccess = async (user) => {
     return false;
 };
 
+// ==================== BREAKTHROUGH RATE LIMITING ====================
+// In-memory lock để ngăn race condition khi breakthrough
+const breakthroughLocks = new Map();
+const BREAKTHROUGH_LOCK_TIMEOUT = 10000; // 10 seconds max lock
+
+const acquireBreakthroughLock = (userId) => {
+    const existing = breakthroughLocks.get(userId);
+    const now = Date.now();
+
+    // Cleanup expired lock
+    if (existing && now - existing > BREAKTHROUGH_LOCK_TIMEOUT) {
+        breakthroughLocks.delete(userId);
+    }
+
+    if (breakthroughLocks.has(userId)) {
+        return false; // Already locked
+    }
+
+    breakthroughLocks.set(userId, now);
+    return true;
+};
+
+const releaseBreakthroughLock = (userId) => {
+    breakthroughLocks.delete(userId);
+};
+
+// ==================== CLEANUP WITH GRACEFUL SHUTDOWN ====================
+let breakthroughCleanupIntervalId = null;
+
+const startBreakthroughCleanup = () => {
+    if (breakthroughCleanupIntervalId) return; // Already running
+    breakthroughCleanupIntervalId = setInterval(() => {
+        const now = Date.now();
+        for (const [userId, timestamp] of breakthroughLocks.entries()) {
+            if (now - timestamp > BREAKTHROUGH_LOCK_TIMEOUT) {
+                breakthroughLocks.delete(userId);
+            }
+        }
+    }, 30000);
+};
+
+const stopBreakthroughCleanup = () => {
+    if (breakthroughCleanupIntervalId) {
+        clearInterval(breakthroughCleanupIntervalId);
+        breakthroughCleanupIntervalId = null;
+    }
+};
+
+// Start cleanup on module load
+startBreakthroughCleanup();
+
+// Export cleanup function for coordinated shutdown (called from main app)
+export { stopBreakthroughCleanup };
+
 export const getCombatStats = async (req, res, next) => {
     try {
         const cultivation = await Cultivation.getOrCreate(req.user.id);
@@ -49,13 +103,28 @@ export const practiceTechnique = async (req, res, next) => {
 };
 
 export const breakthrough = async (req, res, next) => {
+    const userId = req.user.id;
+
+    // Acquire lock để ngăn race condition
+    if (!acquireBreakthroughLock(userId)) {
+        return res.status(429).json({
+            success: false,
+            message: "Đang xử lý độ kiếp, vui lòng đợi...",
+            retryAfter: BREAKTHROUGH_LOCK_TIMEOUT
+        });
+    }
+
     try {
-        const cultivation = await Cultivation.getOrCreate(req.user.id);
+        const cultivation = await Cultivation.getOrCreate(userId);
         const currentRealm = CULTIVATION_REALMS.find(r => r.level === cultivation.realmLevel) || CULTIVATION_REALMS[0];
         const nextRealm = CULTIVATION_REALMS.find(r => r.level === currentRealm.level + 1);
 
-        if (!nextRealm) return res.status(400).json({ success: false, message: "Đã đạt cảnh giới tối đa!" });
-        if (cultivation.exp < nextRealm.minExp) return res.status(400).json({ success: false, message: `Cần ${nextRealm.minExp.toLocaleString()} Tu Vi để độ kiếp` });
+        if (!nextRealm) {
+            return res.status(400).json({ success: false, message: "Đã đạt cảnh giới tối đa!" });
+        }
+        if (cultivation.exp < nextRealm.minExp) {
+            return res.status(400).json({ success: false, message: `Cần ${nextRealm.minExp.toLocaleString()} Tu Vi để độ kiếp` });
+        }
 
         const now = new Date();
         if (cultivation.breakthroughCooldownUntil && cultivation.breakthroughCooldownUntil > now) {
@@ -73,7 +142,6 @@ export const breakthrough = async (req, res, next) => {
             item.type === ITEM_TYPES.BREAKTHROUGH_BOOST && !item.used && (!item.expiresAt || new Date(item.expiresAt) > now)
         );
         if (breakthroughPills.length > 0) {
-            // Use SHOP_ITEMS_MAP for O(1) lookups
             breakthroughPills.sort((a, b) => (SHOP_ITEMS_MAP.get(b.itemId)?.breakthroughBonus || 0) - (SHOP_ITEMS_MAP.get(a.itemId)?.breakthroughBonus || 0));
             usedPill = breakthroughPills[0];
             breakthroughBonus = SHOP_ITEMS_MAP.get(usedPill.itemId)?.breakthroughBonus || 0;
@@ -98,7 +166,6 @@ export const breakthrough = async (req, res, next) => {
             cultivation.breakthroughSuccessRate = baseRates[nextRealm.level] || 30;
             cultivation.breakthroughCooldownUntil = null;
 
-            // Cập nhật achievement realm
             cultivation.updateQuestProgress('realm', nextRealm.level);
 
             await cultivation.save();
@@ -111,7 +178,12 @@ export const breakthrough = async (req, res, next) => {
             const nextSuccessRate = Math.min(100, baseSuccessRate + cultivation.breakthroughFailureCount * bonus);
             res.json({ success: true, breakthroughSuccess: false, message: `Độ kiếp thất bại! Tỷ lệ lần sau: ${nextSuccessRate}%`, data: { currentRealm: currentRealm.name, targetRealm: nextRealm.name, failureCount: cultivation.breakthroughFailureCount, nextSuccessRate, usedPill: usedPill ? { name: usedPill.name, bonus: breakthroughBonus } : null, cooldownUntil: cultivation.breakthroughCooldownUntil, cooldownRemaining: 3600000, cultivation: await formatCultivationResponse(cultivation) } });
         }
-    } catch (error) { next(error); }
+    } catch (error) {
+        next(error);
+    } finally {
+        // Always release lock
+        releaseBreakthroughLock(userId);
+    }
 };
 
 export const fixRealms = async (req, res, next) => {

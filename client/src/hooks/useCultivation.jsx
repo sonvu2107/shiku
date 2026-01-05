@@ -232,10 +232,7 @@ export function CultivationProvider({ children }) {
           equipped: response.data.equipped,
           inventory: response.data.inventory
         }));
-
-        // Reload cultivation để cập nhật đầy đủ
-        await loadCultivation();
-
+        // Response đã chứa đủ thông tin, không cần reload
         return response.data;
       }
     } catch (err) {
@@ -247,7 +244,7 @@ export function CultivationProvider({ children }) {
       });
       throw err;
     }
-  }, [loadCultivation]);
+  }, []);
 
   /**
    * Bỏ trang bị
@@ -263,17 +260,14 @@ export function CultivationProvider({ children }) {
           equipped: response.data.equipped,
           inventory: response.data.inventory
         }));
-
-        // Reload cultivation để cập nhật đầy đủ
-        await loadCultivation();
-
+        // Response đã chứa đủ thông tin, không cần reload
         return response.data;
       }
     } catch (err) {
       setError(err.message);
       throw err;
     }
-  }, [loadCultivation]);
+  }, []);
 
   /**
    * Trang bị equipment (vũ khí, giáp, trang sức)
@@ -290,10 +284,7 @@ export function CultivationProvider({ children }) {
           inventory: response.data.inventory,
           combatStats: response.data.combatStats || prev.combatStats
         }));
-
-        // Reload cultivation để cập nhật combat stats
-        await loadCultivation();
-
+        // Response đã chứa combatStats, không cần reload
         return response.data;
       }
     } catch (err) {
@@ -305,7 +296,7 @@ export function CultivationProvider({ children }) {
       });
       throw err;
     }
-  }, [loadCultivation]);
+  }, []);
 
   /**
    * Bỏ trang bị equipment
@@ -322,10 +313,7 @@ export function CultivationProvider({ children }) {
           inventory: response.data.inventory,
           combatStats: response.data.combatStats || prev.combatStats
         }));
-
-        // Reload cultivation để cập nhật combat stats
-        await loadCultivation();
-
+        // Response đã chứa combatStats, không cần reload
         return response.data;
       }
     } catch (err) {
@@ -337,7 +325,7 @@ export function CultivationProvider({ children }) {
       });
       throw err;
     }
-  }, [loadCultivation]);
+  }, []);
 
   /**
    * Sử dụng vật phẩm tiêu hao (đan dược, consumable)

@@ -2,6 +2,95 @@ import mongoose from "mongoose";
 import Cultivation, { SHOP_ITEMS, SHOP_ITEMS_MAP, TECHNIQUES_MAP } from "../../models/Cultivation.js";
 import Equipment from "../../models/Equipment.js";
 import { getSectBuildingBonuses } from "../../services/sectBuildingBonusService.js";
+import { get as redisGet, set as redisSet, isRedisConnected } from "../../services/redisClient.js";
+
+// ==================== SECT BONUSES CACHE ====================
+// Redis for multi-instance consistency, fallback to in-memory for single instance
+const SECT_BONUSES_CACHE_TTL = 300; // 5 minutes in seconds
+const SECT_BONUSES_CACHE_KEY_PREFIX = 'sect_bonuses:';
+
+// In-memory fallback cache (used when Redis is not available)
+const sectBonusesFallbackCache = new Map();
+
+// Track in-flight requests to prevent duplicate DB calls
+const pendingSectBonusesRequests = new Map();
+
+async function getCachedSectBonuses(userId) {
+    const cacheKey = SECT_BONUSES_CACHE_KEY_PREFIX + userId;
+
+    // Try Redis first (shared across instances)
+    if (isRedisConnected()) {
+        try {
+            const cached = await redisGet(cacheKey);
+            if (cached) {
+                return JSON.parse(cached);
+            }
+
+            // Check if there's already a pending request for this user
+            if (pendingSectBonusesRequests.has(userId)) {
+                return pendingSectBonusesRequests.get(userId);
+            }
+
+            // Create and track the promise
+            const promise = (async () => {
+                const data = await getSectBuildingBonuses(userId);
+                await redisSet(cacheKey, JSON.stringify(data), SECT_BONUSES_CACHE_TTL);
+                return data;
+            })();
+
+            pendingSectBonusesRequests.set(userId, promise);
+
+            try {
+                return await promise;
+            } finally {
+                pendingSectBonusesRequests.delete(userId);
+            }
+        } catch (error) {
+            console.error('[SHOP CACHE] Redis error, falling back to memory:', error.message);
+            pendingSectBonusesRequests.delete(userId);
+        }
+    }
+
+    // Fallback to in-memory cache (single instance only)
+    const cached = sectBonusesFallbackCache.get(userId);
+    const now = Date.now();
+    if (cached && now - cached.timestamp < SECT_BONUSES_CACHE_TTL * 1000) {
+        return cached.data;
+    }
+
+    // Check pending request for fallback path
+    if (pendingSectBonusesRequests.has(userId)) {
+        return pendingSectBonusesRequests.get(userId);
+    }
+
+    const promise = (async () => {
+        const data = await getSectBuildingBonuses(userId);
+        sectBonusesFallbackCache.set(userId, { data, timestamp: Date.now() });
+
+        // Cleanup fallback cache if too large
+        if (sectBonusesFallbackCache.size > 100) {
+            const cutoff = Date.now() - SECT_BONUSES_CACHE_TTL * 1000;
+            for (const [key, value] of sectBonusesFallbackCache.entries()) {
+                if (value.timestamp < cutoff) {
+                    sectBonusesFallbackCache.delete(key);
+                }
+            }
+        }
+
+        return data;
+    })();
+
+    pendingSectBonusesRequests.set(userId, promise);
+
+    try {
+        return await promise;
+    } catch (error) {
+        console.error(`[SHOP CACHE] Error fetching sect bonuses for user ${userId}:`, error.message);
+        throw error;
+    } finally {
+        pendingSectBonusesRequests.delete(userId);
+    }
+}
 
 /**
  * GET /shop - Lấy danh sách vật phẩm trong shop
@@ -11,8 +100,8 @@ export const getShop = async (req, res, next) => {
         const userId = req.user.id;
         const cultivation = await Cultivation.getOrCreate(userId);
 
-        // Lấy bonus từ Tông Môn (nếu có)
-        const sectBonuses = await getSectBuildingBonuses(userId);
+        // Lấy bonus từ Tông Môn (cached - TTL 5 phút)
+        const sectBonuses = await getCachedSectBonuses(userId);
         const shopDiscount = sectBonuses.shopDiscount || 0; // Đan Phòng giảm giá
 
         // Lọc bỏ items độc quyền rank (price: 0 hoặc exclusive: true)
@@ -132,8 +221,8 @@ export const buyItem = async (req, res, next) => {
         const shopItem = SHOP_ITEMS_MAP.get(itemId);
 
         if (shopItem) {
-            // Lấy bonus giảm giá từ Tông Môn (Đan Phòng)
-            const sectBonuses = await getSectBuildingBonuses(userId);
+            // Lấy bonus giảm giá từ Tông Môn (cached - TTL 5 phút)
+            const sectBonuses = await getCachedSectBonuses(userId);
             const shopDiscount = sectBonuses.shopDiscount || 0;
 
             // Tính giá sau giảm (chỉ áp dụng cho đan dược)

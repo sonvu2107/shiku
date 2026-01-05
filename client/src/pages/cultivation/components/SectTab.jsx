@@ -291,7 +291,7 @@ const SectTab = memo(function SectTab({ user }) {
                 body: { attackType }
             });
             if (res.success) {
-                const { damage, isCrit, label, flavorEffect, hpRemaining, raidCompleted, log } = res.data;
+                const { damage, isCrit, label, flavorEffect, hpRemaining, raidCompleted, myReward, log } = res.data;
 
                 // Update cooldowns from response
                 if (res.data.cooldowns) {
@@ -306,6 +306,22 @@ const SectTab = memo(function SectTab({ user }) {
                 // Show toast with damage info
                 const critText = isCrit ? ' BÃO KÍCH!' : '';
                 showSuccess(`${label}: Gây ${damage.toLocaleString()} sát thương!${critText}`);
+
+                // Show raid completion notification with rewards
+                if (raidCompleted) {
+                    setTimeout(() => {
+                        let rewardText = '[ THẦN THÚ ĐÃ BỊ TIÊU DIỆT ]';
+                        if (myReward) {
+                            const parts = [];
+                            if (myReward.exp > 0) parts.push(`Tu Vi +${myReward.exp.toLocaleString()}`);
+                            if (myReward.spiritStones > 0) parts.push(`Linh Thạch +${myReward.spiritStones.toLocaleString()}`);
+                            if (parts.length > 0) {
+                                rewardText += ` | Phần thưởng: ${parts.join(', ')}`;
+                            }
+                        }
+                        showSuccess(rewardText);
+                    }, 500);
+                }
 
                 // Refresh sect data
                 fetchMySect();

@@ -357,10 +357,16 @@ const CultivationSchema = new mongoose.Schema({
 });
 
 // ==================== INDEXES ====================
+// Core sorting indexes
 CultivationSchema.index({ exp: -1 });
 CultivationSchema.index({ realmLevel: -1, exp: -1 });
 CultivationSchema.index({ spiritStones: -1 });
 CultivationSchema.index({ loginStreak: -1 });
+// Leaderboard indexes (NEW)
+CultivationSchema.index({ longestStreak: -1 });
+CultivationSchema.index({ totalSpiritStonesEarned: -1 });
+// Breakthrough cooldown lookup (NEW)
+CultivationSchema.index({ breakthroughCooldownUntil: 1 }, { sparse: true });
 // Dungeon progress optimization
 CultivationSchema.index({ 'dungeonProgress.dungeonId': 1 });
 // Quest lookups optimization

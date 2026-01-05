@@ -289,15 +289,22 @@ export const useItem = async (req, res, next) => {
                             });
                             message = `Chúc mừng! Bạn đã học được công pháp [${droppedItem.rarity.toUpperCase()}] ${droppedItem.name}!`;
                         } else {
-                            cultivation.inventory.push({
-                                itemId: droppedItem.id,
-                                name: droppedItem.name,
-                                type: droppedItem.type,
-                                quantity: 1,
-                                equipped: false,
-                                acquiredAt: new Date()
-                            });
-                            message = `Chúc mừng! Bạn đã nhận được [${droppedItem.rarity.toUpperCase()}] ${droppedItem.name}!`;
+                            // Check if item already exists in inventory (for stackable items)
+                            const existingItem = cultivation.inventory.find(i => i.itemId === droppedItem.id);
+                            if (existingItem) {
+                                existingItem.quantity = (existingItem.quantity || 1) + 1;
+                                message = `Chúc mừng! Bạn đã nhận được [${droppedItem.rarity.toUpperCase()}] ${droppedItem.name}! (x${existingItem.quantity})`;
+                            } else {
+                                cultivation.inventory.push({
+                                    itemId: droppedItem.id,
+                                    name: droppedItem.name,
+                                    type: droppedItem.type,
+                                    quantity: 1,
+                                    equipped: false,
+                                    acquiredAt: new Date()
+                                });
+                                message = `Chúc mừng! Bạn đã nhận được [${droppedItem.rarity.toUpperCase()}] ${droppedItem.name}!`;
+                            }
                         }
 
                         reward = { type: 'lootbox', droppedItem: droppedItem };

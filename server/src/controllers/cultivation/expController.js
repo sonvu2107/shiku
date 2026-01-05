@@ -1,9 +1,66 @@
 import Cultivation, { CULTIVATION_REALMS } from "../../models/Cultivation.js";
 import { formatCultivationResponse } from "./coreController.js";
 
-// Cache for leaderboard
+// Cache for leaderboard with automatic cleanup
 const leaderboardCache = new Map();
-const LEADERBOARD_CACHE_TTL = 30 * 1000;
+const LEADERBOARD_CACHE_TTL = 30 * 1000; // 30 seconds
+const MAX_CACHE_ENTRIES = 20; // Limit cache size
+
+// ==================== YINYANG CLICK RATE LIMITING ====================
+const yinyangClickLastRequest = new Map();
+const YINYANG_MIN_INTERVAL_MS = 200; // Minimum 200ms between requests
+
+// ==================== CLEANUP WITH GRACEFUL SHUTDOWN ====================
+let leaderboardCleanupIntervalId = null;
+let yinyangCleanupIntervalId = null;
+
+const startExpCleanup = () => {
+    // Leaderboard cache cleanup (every 60 seconds)
+    if (!leaderboardCleanupIntervalId) {
+        leaderboardCleanupIntervalId = setInterval(() => {
+            const now = Date.now();
+            let deleted = 0;
+            for (const [key, value] of leaderboardCache.entries()) {
+                if (now - value.timestamp > LEADERBOARD_CACHE_TTL) {
+                    leaderboardCache.delete(key);
+                    deleted++;
+                }
+            }
+            if (deleted > 0) {
+                console.log(`[LEADERBOARD CACHE] Cleaned up ${deleted} expired entries`);
+            }
+        }, 60000);
+    }
+
+    // Yinyang rate limit cleanup (every 60 seconds)
+    if (!yinyangCleanupIntervalId) {
+        yinyangCleanupIntervalId = setInterval(() => {
+            const cutoff = Date.now() - 60000;
+            for (const [userId, timestamp] of yinyangClickLastRequest.entries()) {
+                if (timestamp < cutoff) {
+                    yinyangClickLastRequest.delete(userId);
+                }
+            }
+        }, 60000);
+    }
+};
+
+const stopExpCleanup = () => {
+    if (leaderboardCleanupIntervalId) {
+        clearInterval(leaderboardCleanupIntervalId);
+        leaderboardCleanupIntervalId = null;
+    }
+    if (yinyangCleanupIntervalId) {
+        clearInterval(yinyangCleanupIntervalId);
+        yinyangCleanupIntervalId = null;
+    }
+};
+
+// Start cleanup on module load
+startExpCleanup();
+
+// Export cleanup function for coordinated shutdown (called from main app)
+export { stopExpCleanup };
 
 async function getCachedLeaderboard(type, limit) {
     const cacheKey = `${type}:${limit}`;
@@ -11,6 +68,13 @@ async function getCachedLeaderboard(type, limit) {
     if (cached && Date.now() - cached.timestamp < LEADERBOARD_CACHE_TTL) {
         return { data: cached.data, fromCache: true };
     }
+
+    // Limit cache size to prevent memory bloat
+    if (leaderboardCache.size >= MAX_CACHE_ENTRIES) {
+        const oldestKey = leaderboardCache.keys().next().value;
+        leaderboardCache.delete(oldestKey);
+    }
+
     const data = await Cultivation.getLeaderboard(type, limit);
     leaderboardCache.set(cacheKey, { data, timestamp: Date.now() });
     return { data, fromCache: false };
@@ -22,10 +86,10 @@ export const collectPassiveExp = async (req, res, next) => {
         const cultivation = await Cultivation.getOrCreate(userId);
         const result = cultivation.collectPassiveExp();
         if (!result.collected) return res.json({ success: true, data: result });
-        
+
         // Cập nhật quest progress cho nhiệm vụ tĩnh tọa tu luyện
         cultivation.updateQuestProgress('passive_collect', 1);
-        
+
         await cultivation.save();
         res.json({
             success: true,
@@ -86,21 +150,43 @@ export const getExpLog = async (req, res, next) => {
 
 export const addExp = async (req, res, next) => {
     try {
+        const userId = req.user.id;
         const { amount, source = 'activity' } = req.body;
-        const cultivation = await Cultivation.getOrCreate(req.user.id);
+
+        // In-memory rate limit check for yinyang_click (before any DB operations)
+        if (source === 'yinyang_click') {
+            const now = Date.now();
+            const lastRequest = yinyangClickLastRequest.get(userId);
+
+            if (lastRequest && (now - lastRequest) < YINYANG_MIN_INTERVAL_MS) {
+                return res.status(429).json({
+                    success: false,
+                    message: "Đang xử lý, vui lòng chậm hơn",
+                    retryAfter: YINYANG_MIN_INTERVAL_MS - (now - lastRequest)
+                });
+            }
+            yinyangClickLastRequest.set(userId, now);
+        }
+
+        const cultivation = await Cultivation.getOrCreate(userId);
         const realmLevel = cultivation.realmLevel || 1;
         const expRanges = { 1: { min: 1, max: 3 }, 2: { min: 3, max: 10 }, 3: { min: 10, max: 30 }, 4: { min: 20, max: 60 }, 5: { min: 50, max: 150 }, 6: { min: 100, max: 200 }, 7: { min: 100, max: 200 }, 8: { min: 100, max: 200 }, 9: { min: 100, max: 200 }, 10: { min: 100, max: 200 }, 11: { min: 100, max: 200 } };
         const range = expRanges[realmLevel] || expRanges[1];
-        if (!amount || typeof amount !== 'number' || amount < range.min || amount > range.max) return res.status(400).json({ success: false, message: `Số exp không hợp lệ (${range.min}-${range.max})` });
+
+        if (!amount || typeof amount !== 'number' || amount < range.min || amount > range.max) {
+            return res.status(400).json({ success: false, message: `Số exp không hợp lệ (${range.min}-${range.max})` });
+        }
+
         if (source === 'yinyang_click') {
             const fiveMinutesAgo = new Date(Date.now() - 300000);
             const recentExp = (cultivation.expLog || []).filter(l => l.source === 'yinyang_click' && new Date(l.createdAt) > fiveMinutesAgo).reduce((s, l) => s + l.amount, 0);
             const rateLimits = { 1: 100, 2: 300, 3: 1000, 4: 2500, 5: 5000, 6: 10000, 7: 10000, 8: 10000, 9: 10000, 10: 10000, 11: 10000 };
-            if (recentExp >= (rateLimits[realmLevel] || 100)) return res.status(429).json({ success: false, message: "Linh khí đã cạn kiệt" });
-            
-            // Cập nhật quest progress cho nhiệm vụ thu linh khí
+            if (recentExp >= (rateLimits[realmLevel] || 100)) {
+                return res.status(429).json({ success: false, message: "Linh khí đã cạn kiệt" });
+            }
             cultivation.updateQuestProgress('yinyang_click', 1);
         }
+
         cultivation.exp += amount;
         if (!cultivation.expLog) cultivation.expLog = [];
         cultivation.expLog.push({ amount, source, description: source === 'yinyang_click' ? 'Thu thập linh khí' : 'Hoạt động', createdAt: new Date() });

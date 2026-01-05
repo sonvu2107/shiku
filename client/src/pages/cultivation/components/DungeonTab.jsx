@@ -320,11 +320,11 @@ const InventoryModal = memo(({ inventory, onClose, onUseItem }) => {
 // Pixel Exploration View (The "Game" Part)
 const PixelExplorationView = memo(({ dungeon, monster, currentFloor, totalFloors, onStartBattle, onExit, onOpenInventory, loading, playerName, playerAvatar, isHandlingRewardsClose }) => {
     return (
-        <div className={`w-full max-w-4xl mx-auto bg-black ${pixelBorder} overflow-hidden relative aspect-video flex flex-col`}>
+        <div className={`w-full max-w-4xl mx-auto bg-black ${pixelBorder} overflow-hidden relative flex flex-col`}>
             <Scanlines />
 
             {/* --- GAME SCREEN --- */}
-            <div className="relative flex-1 bg-slate-900 overflow-hidden">
+            <div className="relative min-h-[180px] sm:min-h-[220px] md:min-h-[280px] bg-slate-900 overflow-hidden">
                 {/* Starfield Background */}
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
 
@@ -338,7 +338,7 @@ const PixelExplorationView = memo(({ dungeon, monster, currentFloor, totalFloors
                 </motion.div>
 
                 {/* Ground */}
-                <div className="absolute bottom-0 w-full h-12 bg-[#2d3748] border-t-4 border-[#1a202c] z-10">
+                <div className="absolute bottom-0 w-full h-10 sm:h-12 bg-[#2d3748] border-t-4 border-[#1a202c] z-10">
                     <motion.div
                         className="w-full h-full opacity-20"
                         style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 40px, #000 40px, #000 44px)' }}
@@ -349,26 +349,26 @@ const PixelExplorationView = memo(({ dungeon, monster, currentFloor, totalFloors
 
                 {/* Player Sprite */}
                 <motion.div
-                    className="absolute bottom-12 left-10 z-20 flex flex-col items-center"
+                    className="absolute bottom-10 sm:bottom-12 left-4 sm:left-10 z-20 flex flex-col items-center"
                     animate={{ y: [0, -4, 0] }}
                     transition={{ duration: 0.6, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]">
                         {playerAvatar ? (
                             <img src={playerAvatar} alt={playerName} className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full h-full bg-slate-700 flex items-center justify-center text-lg font-bold text-emerald-400">
+                            <div className="w-full h-full bg-slate-700 flex items-center justify-center text-base sm:text-lg font-bold text-emerald-400">
                                 {playerName?.charAt(0)?.toUpperCase() || '?'}
                             </div>
                         )}
                     </div>
-                    <div className="text-[8px] text-emerald-400 mt-1 font-bold truncate max-w-16">{playerName}</div>
-                    <div className="w-8 h-2 bg-black/50 rounded-full blur-sm mt-[-2px]"></div>
+                    <div className="text-[7px] sm:text-[8px] text-emerald-400 mt-1 font-bold truncate max-w-12 sm:max-w-16">{playerName}</div>
+                    <div className="w-6 sm:w-8 h-2 bg-black/50 rounded-full blur-sm mt-[-2px]"></div>
                 </motion.div>
 
                 {/* Monster Sprite */}
                 <motion.div
-                    className="absolute bottom-12 right-10 z-20 flex flex-col items-center"
+                    className="absolute bottom-10 sm:bottom-12 right-4 sm:right-10 z-20 flex flex-col items-center"
                     initial={{ x: 100, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 100, damping: 15 }}
@@ -382,50 +382,50 @@ const PixelExplorationView = memo(({ dungeon, monster, currentFloor, totalFloors
                             <img
                                 src={monster.image}
                                 alt={monster.name}
-                                className="w-16 h-16 object-cover rounded-full border-2 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] filter drop-shadow-md"
+                                className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-full border-2 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] filter drop-shadow-md"
                                 onError={(e) => { e.target.style.display = 'none'; }}
                             />
                         ) : (
-                            <div className="w-16 h-16 text-xl font-bold filter drop-shadow-md grayscale-[0.2] contrast-125 flex items-center justify-center rounded-full bg-slate-800 border-2 border-red-500 text-red-400">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 text-lg sm:text-xl font-bold filter drop-shadow-md grayscale-[0.2] contrast-125 flex items-center justify-center rounded-full bg-slate-800 border-2 border-red-500 text-red-400">
                                 {monster?.name?.charAt(0) || '?'}
                             </div>
                         )}
-                        {monster?.type === 'boss' && <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-red-500 animate-bounce"><GiAlarmClock size={24} /></div>}
+                        {monster?.type === 'boss' && <div className="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2 text-red-500 animate-bounce"><GiAlarmClock size={20} /></div>}
                     </motion.div>
-                    <div className="w-12 h-2 bg-black/50 rounded-full blur-sm mt-[-4px]"></div>
+                    <div className="w-10 sm:w-12 h-2 bg-black/50 rounded-full blur-sm mt-[-4px]"></div>
                 </motion.div>
 
                 {/* Floor Indicator */}
-                <div className="absolute top-4 right-4 bg-black/50 p-2 border-2 border-white/20 rounded z-30 font-mono text-[10px] text-white">
+                <div className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-black/50 p-1.5 sm:p-2 border-2 border-white/20 rounded z-30 font-mono text-[9px] sm:text-[10px] text-white">
                     TẦNG {currentFloor + 1}
-                    <div className="flex gap-1 mt-1">
+                    <div className="flex gap-0.5 sm:gap-1 mt-1">
                         {Array.from({ length: Math.min(10, totalFloors) }).map((_, i) => (
-                            <div key={i} className={`w-2 h-2 ${i <= currentFloor ? 'bg-emerald-500' : 'bg-slate-600'} ${i === currentFloor ? 'animate-pulse' : ''}`}></div>
+                            <div key={i} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 ${i <= currentFloor ? 'bg-emerald-500' : 'bg-slate-600'} ${i === currentFloor ? 'animate-pulse' : ''}`}></div>
                         ))}
                     </div>
                 </div>
 
                 {/* Dungeon Name */}
-                <div className="absolute top-4 left-4 bg-black/50 p-2 border-2 border-white/20 rounded z-30">
-                    <div className="font-mono text-xs text-amber-400 uppercase">{dungeon?.name}</div>
+                <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-black/50 p-1.5 sm:p-2 border-2 border-white/20 rounded z-30">
+                    <div className="font-mono text-[10px] sm:text-xs text-amber-400 uppercase">{dungeon?.name}</div>
                 </div>
             </div>
 
             {/* --- TEXT BOX / UI --- */}
-            <div className="bg-black border-t-4 border-slate-700 p-4 min-h-[140px] flex flex-col justify-between">
-                <div className="font-mono text-sm text-white mb-4">
+            <div className="bg-black border-t-4 border-slate-700 p-3 sm:p-4 flex flex-col justify-between">
+                <div className="font-mono text-xs sm:text-sm text-white mb-3 sm:mb-4">
                     <span className="text-red-400 uppercase font-bold">CẢNH BÁO!</span><br />
                     Một con <span className="text-yellow-400">{monster?.name}</span> ({getMonsterTypeConfig(monster?.type).label}) đã xuất hiện!
-                    <div className="mt-2 text-[10px] text-slate-400">
+                    <div className="mt-1.5 sm:mt-2 text-[9px] sm:text-[10px] text-slate-400">
                         TẤN CÔNG: {formatNumber(monster?.stats?.attack)} | PHÒNG THỦ: {formatNumber(monster?.stats?.defense)} | KHÍ HUYẾT: {formatNumber(monster?.stats?.qiBlood)}
                     </div>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex gap-2 sm:gap-4">
                     <button
                         onClick={onStartBattle}
                         disabled={loading || isHandlingRewardsClose}
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold font-mono py-3 px-4 border-2 border-white/50 active:translate-y-1 active:border-white/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold font-mono py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm border-2 border-white/50 active:translate-y-1 active:border-white/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
                     >
                         <span>CHIẾN ĐẤU</span>
                     </button>
@@ -435,13 +435,13 @@ const PixelExplorationView = memo(({ dungeon, monster, currentFloor, totalFloors
                                 onOpenInventory();
                             }
                         }}
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold font-mono py-3 px-4 border-2 border-white/50 active:translate-y-1 active:border-white/20 transition-all flex items-center justify-center gap-2"
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold font-mono py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm border-2 border-white/50 active:translate-y-1 active:border-white/20 transition-all flex items-center justify-center gap-2"
                     >
                         <span>TÚI ĐỒ</span>
                     </button>
                     <button
                         onClick={onExit}
-                        className="w-16 bg-red-900/50 hover:bg-red-900 text-red-200 font-bold font-mono border-2 border-red-800 flex items-center justify-center"
+                        className="w-14 sm:w-16 bg-red-900/50 hover:bg-red-900 text-red-200 font-bold font-mono text-xs sm:text-sm border-2 border-red-800 flex items-center justify-center"
                     >
                         <span>THOÁT</span>
                     </button>
@@ -512,74 +512,74 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
     }, [currentLogIndex, isAnimating, logs, onComplete, monster, battleResult]);
 
     return (
-        <div className={`w-full max-w-4xl mx-auto bg-[#202028] ${pixelBorder} overflow-hidden p-6 font-mono`}>
+        <div className={`w-full max-w-4xl mx-auto bg-[#202028] ${pixelBorder} overflow-hidden p-3 sm:p-6 font-mono`}>
             {/* Battle Scene */}
-            <div className="relative h-64 bg-slate-800 border-4 border-slate-900 mb-4 overflow-hidden">
+            <div className="relative h-48 sm:h-64 bg-slate-800 border-4 border-slate-900 mb-3 sm:mb-4 overflow-hidden">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#000 20%, transparent 20%)', backgroundSize: '8px 8px' }}></div>
 
                 {/* Monster (Top Right) */}
                 <motion.div
-                    className="absolute top-6 right-6 flex flex-col items-center"
+                    className="absolute top-3 sm:top-6 right-3 sm:right-6 flex flex-col items-center"
                     animate={hitEffect === 'monster' ? { x: [-5, 5, -5, 5, 0] } : {}}
                     transition={{ duration: 0.3, ease: 'easeInOut' }}
                 >
                     {monster?.image ? (
-                        <img src={monster.image} alt={monster.name} className="w-16 h-16 object-cover rounded-full border-2 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] filter drop-shadow-md" />
+                        <img src={monster.image} alt={monster.name} className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-full border-2 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] filter drop-shadow-md" />
                     ) : (
-                        <div className="w-16 h-16 text-xl font-bold filter grayscale-[0.2] drop-shadow-md flex items-center justify-center rounded-full bg-slate-800 border-2 border-red-500 text-red-400">{monster?.name?.charAt(0) || '?'}</div>
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 text-lg sm:text-xl font-bold filter grayscale-[0.2] drop-shadow-md flex items-center justify-center rounded-full bg-slate-800 border-2 border-red-500 text-red-400">{monster?.name?.charAt(0) || '?'}</div>
                     )}
-                    <div className="text-[10px] text-white mt-1 font-bold">{monster?.name}</div>
+                    <div className="text-[8px] sm:text-[10px] text-white mt-1 font-bold truncate max-w-16 sm:max-w-20">{monster?.name}</div>
                     {/* HP Bar */}
-                    <div className="w-20 bg-black h-2.5 mt-1 border border-white/20">
+                    <div className="w-16 sm:w-20 bg-black h-2 sm:h-2.5 mt-1 border border-white/20">
                         <motion.div
                             className="h-full bg-red-500"
                             animate={{ width: `${(monsterHp / battleResult?.maxMonsterHp) * 100}%` }}
                         />
                     </div>
-                    <div className="text-[7px] text-red-400">{formatNumber(Math.max(0, monsterHp))} KHÍ HUYẾT</div>
+                    <div className="text-[6px] sm:text-[7px] text-red-400">{formatNumber(Math.max(0, monsterHp))} HP</div>
                     {/* Mana Bar */}
-                    <div className="w-20 bg-black h-2 border border-white/20">
+                    <div className="w-16 sm:w-20 bg-black h-1.5 sm:h-2 border border-white/20">
                         <motion.div
                             className="h-full bg-blue-500"
                             animate={{ width: `${battleResult?.maxMonsterMana ? (monsterMana / battleResult.maxMonsterMana) * 100 : 0}%` }}
                         />
                     </div>
-                    <div className="text-[7px] text-blue-400">{formatNumber(Math.max(0, monsterMana))} CHÂN NGUYÊN</div>
+                    <div className="text-[6px] sm:text-[7px] text-blue-400">{formatNumber(Math.max(0, monsterMana))} MP</div>
                 </motion.div>
 
                 {/* Player (Bottom Left) */}
                 <motion.div
-                    className="absolute bottom-6 left-6 flex flex-col items-center"
+                    className="absolute bottom-3 sm:bottom-6 left-3 sm:left-6 flex flex-col items-center"
                     animate={hitEffect === 'player' ? { x: [5, -5, 5, -5, 0] } : {}}
                     transition={{ duration: 0.3, ease: 'easeInOut' }}
                 >
-                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]">
                         {playerAvatar ? (
                             <img src={playerAvatar} alt={playerName} className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full h-full bg-slate-700 flex items-center justify-center text-lg font-bold text-emerald-400">
+                            <div className="w-full h-full bg-slate-700 flex items-center justify-center text-base sm:text-lg font-bold text-emerald-400">
                                 {playerName?.charAt(0)?.toUpperCase() || '?'}
                             </div>
                         )}
                     </div>
-                    <div className="text-[10px] text-white mt-1 font-bold">{playerName || 'Tu Sĩ'}</div>
+                    <div className="text-[8px] sm:text-[10px] text-white mt-1 font-bold truncate max-w-12 sm:max-w-16">{playerName || 'Tu Sĩ'}</div>
                     {/* HP Bar */}
-                    <div className="w-20 bg-black h-2.5 mt-1 border border-white/20">
+                    <div className="w-16 sm:w-20 bg-black h-2 sm:h-2.5 mt-1 border border-white/20">
                         <motion.div
                             className="h-full bg-emerald-500"
                             animate={{ width: `${(playerHp / battleResult?.maxPlayerHp) * 100}%` }}
                         />
                     </div>
-                    <div className="text-[7px] text-emerald-400">{formatNumber(Math.max(0, playerHp))} KHÍ HUYẾT</div>
+                    <div className="text-[6px] sm:text-[7px] text-emerald-400">{formatNumber(Math.max(0, playerHp))} HP</div>
                     {/* Mana Bar */}
-                    <div className="w-20 bg-black h-2 border border-white/20">
+                    <div className="w-16 sm:w-20 bg-black h-1.5 sm:h-2 border border-white/20">
                         <motion.div
                             className="h-full bg-blue-500"
                             animate={{ width: `${battleResult?.maxPlayerMana ? (playerMana / battleResult.maxPlayerMana) * 100 : 0}%` }}
                         />
                     </div>
-                    <div className="text-[7px] text-blue-400">{formatNumber(Math.max(0, playerMana))} CHÂN NGUYÊN</div>
+                    <div className="text-[6px] sm:text-[7px] text-blue-400">{formatNumber(Math.max(0, playerMana))} MP</div>
                 </motion.div>
 
                 {/* Hit Effects */}
@@ -589,7 +589,7 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
                             key={currentLogIndex}
                             initial={{ scale: 0, rotate: 45 }}
                             animate={{ scale: 1.5, opacity: 0 }}
-                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-bold text-yellow-400 z-10"
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl sm:text-5xl font-bold text-yellow-400 z-10"
                         >
 
                         </motion.div>
@@ -598,8 +598,8 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
             </div>
 
             {/* Retro Text Box */}
-            <div className="bg-black border-4 border-white/80 p-4 min-h-[80px] text-white text-sm leading-relaxed">
-                <p className="mb-1 text-slate-400 text-[10px]">ROUND {Math.min(currentLogIndex + 1, logs.length)} / {logs.length}</p>
+            <div className="bg-black border-4 border-white/80 p-3 sm:p-4 min-h-[60px] sm:min-h-[80px] text-white text-xs sm:text-sm leading-relaxed">
+                <p className="mb-1 text-slate-400 text-[9px] sm:text-[10px]">ROUND {Math.min(currentLogIndex + 1, logs.length)} / {logs.length}</p>
                 <div className="animate-pulse">
                     {actionText}
                 </div>

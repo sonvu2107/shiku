@@ -974,6 +974,7 @@ router.post("/:id/raid/attack", authRequired, async (req, res) => {
     try {
         let out = null;
         let cooldownResponse = null;
+        let myReward = null; // Track phần thưởng của user hiện tại
 
         await session.withTransaction(async () => {
             // 1) Check membership
@@ -1071,6 +1072,11 @@ router.post("/:id/raid/attack", authRequired, async (req, res) => {
                         log.expRewarded = expReward;
                         log.stonesRewarded = stoneReward;
                         await log.save({ session });
+
+                        // Lưu reward của user hiện tại để trả về
+                        if (log.user.toString() === userId.toString()) {
+                            myReward = { exp: expReward, spiritStones: stoneReward };
+                        }
                     }
 
                     // Add sect energy reward
@@ -1096,6 +1102,7 @@ router.post("/:id/raid/attack", authRequired, async (req, res) => {
                 hpRemaining: raid.healthRemaining,
                 hpMax: raid.healthMax || raid.healthRemaining + raid.totalDamage,
                 raidCompleted,
+                myReward: raidCompleted ? myReward : null, // Phần thưởng của user này
                 cooldowns: {
                     basic: attackType === "basic" ? RAID_ATTACKS.basic.cooldownMs : getCooldownRemaining(raidLog.lastBasicAt, "basic"),
                     artifact: attackType === "artifact" ? RAID_ATTACKS.artifact.cooldownMs : getCooldownRemaining(raidLog.lastArtifactAt, "artifact"),

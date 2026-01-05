@@ -1096,12 +1096,16 @@ process.on('SIGTERM', async () => {
     const { cleanupAPIMonitoring } = await import('./routes/apiMonitoring.js');
     const { cleanupJWTSecurity } = await import('./middleware/jwtSecurity.js');
     const { cleanupSecurityLogging } = await import('./middleware/securityLogging.js');
+    const { stopBreakthroughCleanup } = await import('./controllers/cultivation/combatController.js');
+    const { stopExpCleanup } = await import('./controllers/cultivation/expController.js');
 
     // Run all cleanups in parallel with error handling
     await Promise.allSettled([
       cleanupAPIMonitoring(),
       Promise.resolve(cleanupJWTSecurity()),
-      Promise.resolve(cleanupSecurityLogging())
+      Promise.resolve(cleanupSecurityLogging()),
+      Promise.resolve(stopBreakthroughCleanup()),
+      Promise.resolve(stopExpCleanup())
     ]);
 
     console.log('[INFO][SERVER] All cleanup functions completed');
@@ -1130,11 +1134,15 @@ process.on('SIGINT', async () => {
     const { cleanupAPIMonitoring } = await import('./routes/apiMonitoring.js');
     const { cleanupJWTSecurity } = await import('./middleware/jwtSecurity.js');
     const { cleanupSecurityLogging } = await import('./middleware/securityLogging.js');
+    const { stopBreakthroughCleanup } = await import('./controllers/cultivation/combatController.js');
+    const { stopExpCleanup } = await import('./controllers/cultivation/expController.js');
 
     await Promise.allSettled([
       cleanupAPIMonitoring(),
       Promise.resolve(cleanupJWTSecurity()),
-      Promise.resolve(cleanupSecurityLogging())
+      Promise.resolve(cleanupSecurityLogging()),
+      Promise.resolve(stopBreakthroughCleanup()),
+      Promise.resolve(stopExpCleanup())
     ]);
 
     console.log('[INFO][SERVER] All cleanup functions completed');

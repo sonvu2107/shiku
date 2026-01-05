@@ -481,8 +481,10 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
             isSkill: isSkill
           });
 
-          // Tạo particles nổ ra với velocity
-          const particleCount = isCrit ? 30 : isSkill ? 20 : 12;
+          // Tạo particles nổ ra với velocity - giảm trên mobile
+          const particleCount = isMobile
+            ? (isCrit ? 8 : isSkill ? 6 : 4)
+            : (isCrit ? 30 : isSkill ? 20 : 12);
           const newParticles = Array.from({ length: particleCount }, (_, i) => ({
             id: Date.now() + i,
             x: isAttackerChallenger ? 75 : 25, // Vị trí nổ phía người bị đánh
@@ -896,20 +898,25 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
                   />
                 </>
               )}
-              {/* Simplified moon for mobile */}
-              {isMobile && (
-                <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-purple-500/30 rounded-full blur-[40px]" />
-              )}
+              {/* Mobile: No moon decoration - removed for cleaner look */}
 
-              {/* Stars - using memoized data */}
+              {/* Stars - static on mobile, animated on desktop */}
               {starsData.map((star, i) => (
-                <motion.div
-                  key={`star-${i}`}
-                  className="absolute w-0.5 h-0.5 bg-white rounded-full"
-                  style={{ top: `${star.top}%`, left: `${star.left}%`, opacity: star.opacity }}
-                  animate={{ opacity: [0.2, 1, 0.2] }}
-                  transition={{ duration: star.duration, repeat: Infinity, delay: star.delay }}
-                />
+                isMobile ? (
+                  <div
+                    key={`star-${i}`}
+                    className="absolute w-0.5 h-0.5 bg-white rounded-full"
+                    style={{ top: `${star.top}%`, left: `${star.left}%`, opacity: star.opacity * 0.7 }}
+                  />
+                ) : (
+                  <motion.div
+                    key={`star-${i}`}
+                    className="absolute w-0.5 h-0.5 bg-white rounded-full"
+                    style={{ top: `${star.top}%`, left: `${star.left}%`, opacity: star.opacity }}
+                    animate={{ opacity: [0.2, 1, 0.2] }}
+                    transition={{ duration: star.duration, repeat: Infinity, delay: star.delay }}
+                  />
+                )
               ))}
 
               {/* Parallax Mountains */}
@@ -956,8 +963,8 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
                 <div className="absolute bottom-0 left-0 right-0 h-[50%] bg-gradient-to-t from-[#0f0518] via-[#1e1b4b]/80 to-transparent" />
               )}
 
-              {/* Floating Rocks - using memoized data */}
-              {rocksData.map((rock, i) => (
+              {/* Floating Rocks - Desktop only (expensive animation) */}
+              {!isMobile && rocksData.map((rock, i) => (
                 <motion.div
                   key={`rock-${i}`}
                   className="absolute bg-slate-900/70 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
@@ -978,8 +985,8 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
                 />
               ))}
 
-              {/* Dust - using memoized data */}
-              {dustData.map((dust, i) => (
+              {/* Dust - Desktop only (60 animated particles is expensive) */}
+              {!isMobile && dustData.map((dust, i) => (
                 <motion.div
                   key={`dust-${i}`}
                   className="absolute w-0.5 h-0.5 bg-amber-200/60 rounded-full"
@@ -993,8 +1000,8 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
                 />
               ))}
 
-              {/* Spirit Particles - using memoized data */}
-              {spiritParticlesData.map((p, i) => (
+              {/* Spirit Particles - Desktop only (has blur + shadow) */}
+              {!isMobile && spiritParticlesData.map((p, i) => (
                 <motion.div
                   key={`spirit-${i}`}
                   className="absolute w-1 h-1 bg-amber-400/50 rounded-full blur-[1px] shadow-[0_0_5px_rgba(251,191,36,0.5)]"
@@ -1005,7 +1012,7 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
               ))}
             </div>
 
-            {/* Battle Particles - Enhanced with Velocity Physics */}
+            {/* Battle Particles - Simplified on mobile */}
             {particles.map(particle => (
               <motion.div
                 key={particle.id}
@@ -1016,21 +1023,26 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
                   backgroundColor: particle.color,
                   left: `${particle.x}%`,
                   top: `${particle.y}%`,
-                  boxShadow: particle.type === 'crit'
-                    ? `0 0 12px ${particle.color}, 0 0 24px ${particle.color}, 0 0 36px ${particle.color}`
-                    : particle.type === 'skill'
-                      ? `0 0 10px ${particle.color}, 0 0 20px ${particle.color}`
-                      : `0 0 6px ${particle.color}, 0 0 12px ${particle.color}`
+                  // Simpler shadow on mobile for performance
+                  boxShadow: isMobile
+                    ? `0 0 4px ${particle.color}`
+                    : particle.type === 'crit'
+                      ? `0 0 12px ${particle.color}, 0 0 24px ${particle.color}, 0 0 36px ${particle.color}`
+                      : particle.type === 'skill'
+                        ? `0 0 10px ${particle.color}, 0 0 20px ${particle.color}`
+                        : `0 0 6px ${particle.color}, 0 0 12px ${particle.color}`
                 }}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{
-                  x: particle.vx || (Math.random() - 0.5) * 200, // Use velocity if available
-                  y: particle.vy || (Math.random() - 0.5) * 200 - 100,
-                  scale: [0, particle.type === 'crit' ? 2.5 : particle.type === 'skill' ? 2 : 1.5, 0],
+                  x: particle.vx || (Math.random() - 0.5) * (isMobile ? 100 : 200),
+                  y: particle.vy || (Math.random() - 0.5) * (isMobile ? 100 : 200) - 50,
+                  scale: isMobile
+                    ? [0, 1.2, 0]
+                    : [0, particle.type === 'crit' ? 2.5 : particle.type === 'skill' ? 2 : 1.5, 0],
                   opacity: [1, 0.8, 0]
                 }}
                 transition={{
-                  duration: 0.6,
+                  duration: isMobile ? 0.4 : 0.6,
                   ease: "easeOut"
                 }}
               />
@@ -1053,28 +1065,32 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
                   transition={{ duration: hitEffect.type === 'crit' ? 0.6 : 0.5 }}
                   onAnimationComplete={() => setHitEffect(null)}
                 >
-                  {/* Core Energy Burst - Multiple Layers */}
+                  {/* Core Energy Burst - Simplified on mobile (no blur) */}
                   <motion.div
-                    className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 blur-xl ${hitEffect.type === 'crit'
+                    className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${!isMobile ? 'blur-xl' : ''} ${hitEffect.type === 'crit'
                       ? 'bg-gradient-radial from-yellow-300 via-yellow-500 to-yellow-700'
                       : hitEffect.type === 'skill'
                         ? 'bg-gradient-radial from-amber-300 via-amber-500 to-amber-700'
                         : 'bg-gradient-radial from-cyan-200 via-cyan-400 to-blue-500'
                       }`}
                     style={{
-                      width: hitEffect.type === 'crit' ? '120px' : hitEffect.type === 'skill' ? '100px' : '80px',
-                      height: hitEffect.type === 'crit' ? '120px' : hitEffect.type === 'skill' ? '100px' : '80px',
+                      width: isMobile
+                        ? (hitEffect.type === 'crit' ? '60px' : hitEffect.type === 'skill' ? '50px' : '40px')
+                        : (hitEffect.type === 'crit' ? '120px' : hitEffect.type === 'skill' ? '100px' : '80px'),
+                      height: isMobile
+                        ? (hitEffect.type === 'crit' ? '60px' : hitEffect.type === 'skill' ? '50px' : '40px')
+                        : (hitEffect.type === 'crit' ? '120px' : hitEffect.type === 'skill' ? '100px' : '80px'),
                       opacity: 0.9
                     }}
                     animate={{
                       scale: [1, 1.2, 1],
                       opacity: [0.9, 1, 0.7]
                     }}
-                    transition={{ duration: 0.3, repeat: 2 }}
+                    transition={{ duration: 0.3, repeat: isMobile ? 0 : 2 }}
                   />
 
-                  {/* Shockwave Rings - Multiple Expanding Rings */}
-                  {[1, 2, 3].map((ring, idx) => (
+                  {/* Shockwave Rings - Fewer on mobile */}
+                  {(isMobile ? [1] : [1, 2, 3]).map((ring, idx) => (
                     <motion.div
                       key={ring}
                       className={`rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border-2 ${hitEffect.type === 'crit'
@@ -1084,8 +1100,8 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
                           : 'border-cyan-300'
                         }`}
                       style={{
-                        width: `${80 + ring * 40}px`,
-                        height: `${80 + ring * 40}px`,
+                        width: `${(isMobile ? 60 : 80) + ring * 40}px`,
+                        height: `${(isMobile ? 60 : 80) + ring * 40}px`,
                         opacity: 0.7 - idx * 0.2
                       }}
                       initial={{ scale: 0, opacity: 0.7 - idx * 0.2 }}
@@ -1100,8 +1116,8 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
                     />
                   ))}
 
-                  {/* Energy Rays - Spiral Effect for Crit/Skill */}
-                  {(hitEffect.type === 'crit' || hitEffect.type === 'skill') && (
+                  {/* Energy Rays - Desktop only (blur is expensive) */}
+                  {!isMobile && (hitEffect.type === 'crit' || hitEffect.type === 'skill') && (
                     <>
                       {[...Array(8)].map((_, i) => (
                         <motion.div

@@ -16,9 +16,9 @@ export const SECT_RAIDS = {
             5: 23000,
         },
         rewards: {
-            exp: 500,
-            spiritStones: 200,
-            sectEnergy: 1000,
+            exp: 2000,
+            spiritStones: 800,
+            sectEnergy: 3000,
         },
     },
     ancient_tomb: {
@@ -34,9 +34,9 @@ export const SECT_RAIDS = {
             5: 60000,
         },
         rewards: {
-            exp: 2000,
-            spiritStones: 800,
-            sectEnergy: 5000,
+            exp: 8000,
+            spiritStones: 3000,
+            sectEnergy: 15000,
         },
     },
     demon_invasion: {
@@ -52,9 +52,9 @@ export const SECT_RAIDS = {
             5: 160000,
         },
         rewards: {
-            exp: 8000,
-            spiritStones: 3000,
-            sectEnergy: 20000,
+            exp: 30000,
+            spiritStones: 12000,
+            sectEnergy: 50000,
         },
     },
 };
