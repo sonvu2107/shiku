@@ -87,7 +87,12 @@ router.get("/my-sect", authRequired, async (req, res) => {
         res.json({
             success: true,
             data: {
-                sect: { ...sect.toObject(), raidTopDamage },
+                sect: {
+                    ...sect.toObject(),
+                    raidTopDamage,
+                    // Ẩn currentRaid nếu là tuần cũ
+                    currentRaid: sect.currentRaid?.weekKey === weekKey ? sect.currentRaid : null
+                },
                 membership: { role: member.role, joinedAt: member.joinedAt },
                 contribution: contribution ? {
                     totalEnergy: contribution.totalEnergy,
@@ -128,7 +133,15 @@ router.get("/:id", authOptional, async (req, res) => {
             }
         }
 
-        res.json({ success: true, data: { ...sect.toObject(), membership } });
+        // Ẩn currentRaid nếu là tuần cũ
+        const weekKey = toWeekKeyUTC(new Date());
+        const sectData = {
+            ...sect.toObject(),
+            membership,
+            currentRaid: sect.currentRaid?.weekKey === weekKey ? sect.currentRaid : null
+        };
+
+        res.json({ success: true, data: sectData });
     } catch (error) {
         console.error("[ERROR][SECTS] Error fetching sect:", error);
         res.status(500).json({ success: false, message: "Lỗi khi tải thông tin tông môn" });

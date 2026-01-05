@@ -44,7 +44,13 @@ import {
   battleMonster,
   claimRewardsAndExit,
   abandonDungeon,
-  getDungeonHistory
+  getDungeonHistory,
+  // Techniques
+  listTechniques,
+  learnTechnique,
+  equipTechnique,
+  activateTechnique,
+  claimTechnique
 } from "../controllers/cultivation/index.js";
 
 const router = express.Router();
@@ -101,5 +107,12 @@ router.get("/dungeons/history", getDungeonHistory);
 
 // ==================== ADMIN ====================
 router.post("/fix-realms", fixRealms);
+
+// ==================== CÔNG PHÁP (TECHNIQUES) ====================
+router.get("/techniques", listTechniques);
+router.post("/techniques/learn", learnTechnique);
+router.post("/techniques/equip", equipTechnique);
+router.post("/techniques/activate", activateTechnique);
+router.post("/techniques/claim", claimTechnique);
 
 export default router;

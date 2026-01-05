@@ -1,0 +1,453 @@
+/**
+ * Technique Controller - Quản lý công pháp tu luyện
+ * APIs: list, learn, equip, activate (semi-auto), claim
+ */
+
+import Cultivation from "../../models/Cultivation.js";
+import { formatCultivationResponse } from "./coreController.js";
+import {
+    consumeExpCap,
+    getCapByRealm,
+    getPassiveExpPerMin,
+    getExpCapRemaining
+} from "../../services/expCapService.js";
+import {
+    CULTIVATION_TECHNIQUES,
+    TECHNIQUE_TYPES,
+    getTechniqueById,
+    checkUnlockCondition,
+    getAvailableTechniques
+} from "../../data/cultivationTechniques.js";
+import crypto from "crypto";
+
+// ============================================================
+// GET /techniques - Danh sách công pháp
+// ============================================================
+
+export const listTechniques = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const cultivation = await Cultivation.getOrCreate(userId);
+
+        // TODO: Lấy userProgress từ dungeon/quest nếu cần
+        const userProgress = {
+            maxDungeonFloor: cultivation.dungeonProgress?.highestFloor || 0,
+            completedQuests: []
+        };
+
+        const techniques = getAvailableTechniques(cultivation, userProgress);
+
+        // Check active session còn hạn không
+        let activeSession = null;
+        if (cultivation.activeTechniqueSession?.sessionId) {
+            const session = cultivation.activeTechniqueSession;
+            const now = Date.now();
+            const endsAt = new Date(session.endsAt).getTime();
+
+            if (!session.claimedAt && now < endsAt + 60000) { // +60s grace period
+                activeSession = {
+                    sessionId: session.sessionId,
+                    techniqueId: session.techniqueId,
+                    startedAt: session.startedAt,
+                    endsAt: session.endsAt,
+                    realmAtStart: session.realmAtStart,
+                    timeRemaining: Math.max(0, endsAt - now)
+                };
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                techniques,
+                learned: cultivation.learnedTechniques || [],
+                equippedEfficiency: cultivation.equippedEfficiencyTechnique,
+                activeSession
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ============================================================
+// POST /techniques/learn - Học công pháp
+// ============================================================
+
+export const learnTechnique = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { techniqueId } = req.body;
+
+        if (!techniqueId) {
+            return res.status(400).json({ success: false, message: "Thiếu techniqueId" });
+        }
+
+        const technique = getTechniqueById(techniqueId);
+        if (!technique) {
+            return res.status(404).json({ success: false, message: "Công pháp không tồn tại" });
+        }
+
+        const cultivation = await Cultivation.getOrCreate(userId);
+
+        // Check đã học chưa (idempotent)
+        const alreadyLearned = (cultivation.learnedTechniques || [])
+            .some(t => t.techniqueId === techniqueId);
+
+        if (alreadyLearned) {
+            return res.json({
+                success: true,
+                message: "Đã lĩnh ngộ công pháp này",
+                alreadyLearned: true
+            });
+        }
+
+        // Check điều kiện unlock
+        const userProgress = {
+            maxDungeonFloor: cultivation.dungeonProgress?.highestFloor || 0,
+            completedQuests: []
+        };
+
+        const { canUnlock, reason } = checkUnlockCondition(technique, cultivation, userProgress);
+        if (!canUnlock) {
+            return res.status(400).json({
+                success: false,
+                message: reason || "Chưa đủ điều kiện lĩnh ngộ"
+            });
+        }
+
+        // Học công pháp
+        if (!cultivation.learnedTechniques) cultivation.learnedTechniques = [];
+        cultivation.learnedTechniques.push({
+            techniqueId,
+            level: 1,
+            exp: 0,
+            learnedAt: new Date()
+        });
+
+        await cultivation.save();
+
+        res.json({
+            success: true,
+            message: `Đã lĩnh ngộ ${technique.name}!`,
+            data: {
+                technique: {
+                    id: technique.id,
+                    name: technique.name,
+                    type: technique.type,
+                    description: technique.description
+                }
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ============================================================
+// POST /techniques/equip - Trang bị công pháp efficiency
+// ============================================================
+
+export const equipTechnique = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { techniqueId } = req.body;
+
+        // techniqueId = null để tháo công pháp
+        if (techniqueId === null || techniqueId === '') {
+            const cultivation = await Cultivation.getOrCreate(userId);
+            cultivation.equippedEfficiencyTechnique = null;
+            await cultivation.save();
+            return res.json({ success: true, message: "Đã tháo công pháp" });
+        }
+
+        const technique = getTechniqueById(techniqueId);
+        if (!technique) {
+            return res.status(404).json({ success: false, message: "Công pháp không tồn tại" });
+        }
+
+        if (technique.type !== TECHNIQUE_TYPES.EFFICIENCY) {
+            return res.status(400).json({
+                success: false,
+                message: "Chỉ có thể trang bị công pháp loại hiệu suất"
+            });
+        }
+
+        const cultivation = await Cultivation.getOrCreate(userId);
+
+        // Check đã học chưa
+        const learned = (cultivation.learnedTechniques || [])
+            .some(t => t.techniqueId === techniqueId);
+
+        if (!learned) {
+            return res.status(400).json({
+                success: false,
+                message: "Chưa lĩnh ngộ công pháp này"
+            });
+        }
+
+        cultivation.equippedEfficiencyTechnique = techniqueId;
+        await cultivation.save();
+
+        res.json({
+            success: true,
+            message: `Đã trang bị ${technique.name}`,
+            data: {
+                equipped: techniqueId,
+                bonusPercent: technique.bonusPercent
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ============================================================
+// POST /techniques/activate - Kích hoạt vận công (semi-auto)
+// ============================================================
+
+export const activateTechnique = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { techniqueId } = req.body;
+
+        if (!techniqueId) {
+            return res.status(400).json({ success: false, message: "Thiếu techniqueId" });
+        }
+
+        const technique = getTechniqueById(techniqueId);
+        if (!technique) {
+            return res.status(404).json({ success: false, message: "Công pháp không tồn tại" });
+        }
+
+        if (technique.type !== TECHNIQUE_TYPES.SEMI_AUTO) {
+            return res.status(400).json({
+                success: false,
+                message: "Công pháp này không phải loại vận công"
+            });
+        }
+
+        const cultivation = await Cultivation.getOrCreate(userId);
+
+        // Check đã học chưa
+        const learned = (cultivation.learnedTechniques || [])
+            .some(t => t.techniqueId === techniqueId);
+
+        if (!learned) {
+            return res.status(400).json({
+                success: false,
+                message: "Chưa lĩnh ngộ công pháp này"
+            });
+        }
+
+        // Check không có session đang active
+        const existingSession = cultivation.activeTechniqueSession;
+        if (existingSession?.sessionId && !existingSession.claimedAt) {
+            const endsAt = new Date(existingSession.endsAt).getTime();
+            if (Date.now() < endsAt + 60000) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Đang trong trạng thái vận công, vui lòng thu thập trước",
+                    activeSession: existingSession
+                });
+            }
+        }
+
+        // Check cap còn không (UX: chặn sớm nếu cap = 0)
+        const capLimit = getCapByRealm(cultivation.realmLevel);
+        const capRemaining = await getExpCapRemaining(userId, capLimit);
+        if (capRemaining <= 0) {
+            return res.status(429).json({
+                success: false,
+                message: "Linh khí đã cạn, vui lòng chờ hết chu kỳ 5 phút",
+                capRemaining: 0
+            });
+        }
+
+        // Tạo session mới
+        const now = new Date();
+        const sessionId = crypto.randomUUID();
+        const endsAt = new Date(now.getTime() + technique.durationSec * 1000);
+
+        cultivation.activeTechniqueSession = {
+            sessionId,
+            techniqueId,
+            startedAt: now,
+            endsAt,
+            realmAtStart: cultivation.realmLevel,
+            claimedAt: null
+        };
+
+        await cultivation.save();
+
+        // Estimate EXP
+        const passivePerMin = getPassiveExpPerMin(cultivation.realmLevel);
+        const estimatedExp = Math.floor(
+            technique.durationSec * passivePerMin / 60 * technique.techniqueMultiplier
+        );
+
+        res.json({
+            success: true,
+            message: `Bắt đầu ${technique.name}`,
+            data: {
+                sessionId,
+                techniqueId,
+                techniqueName: technique.name,
+                durationSec: technique.durationSec,
+                startedAt: now,
+                endsAt,
+                estimatedExp,
+                capRemaining
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ============================================================
+// POST /techniques/claim - Thu thập EXP vận công
+// ============================================================
+
+export const claimTechnique = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { sessionId } = req.body;
+
+        if (!sessionId) {
+            return res.status(400).json({ success: false, message: "Thiếu sessionId" });
+        }
+
+        const cultivation = await Cultivation.getOrCreate(userId);
+        const session = cultivation.activeTechniqueSession;
+
+        // Validate session
+        if (!session?.sessionId) {
+            return res.status(400).json({
+                success: false,
+                message: "Không có phiên vận công nào đang hoạt động"
+            });
+        }
+
+        if (session.sessionId !== sessionId) {
+            return res.status(400).json({
+                success: false,
+                message: "SessionId không hợp lệ"
+            });
+        }
+
+        // Check idempotent (đã claim rồi)
+        if (session.claimedAt) {
+            // Return cached result
+            const cached = cultivation.lastTechniqueClaim;
+            if (cached?.sessionId === sessionId) {
+                return res.json({
+                    success: true,
+                    alreadyClaimed: true,
+                    data: {
+                        allowedExp: cached.allowedExp,
+                        requestedExp: cached.requestedExp,
+                        claimedAt: cached.claimedAt
+                    }
+                });
+            }
+            return res.json({ success: true, alreadyClaimed: true });
+        }
+
+        const technique = getTechniqueById(session.techniqueId);
+        if (!technique) {
+            return res.status(400).json({ success: false, message: "Công pháp không hợp lệ" });
+        }
+
+        // Tính EXP (continuous, floor elapsedSec)
+        const now = Date.now();
+        const startedAt = new Date(session.startedAt).getTime();
+        const endsAt = new Date(session.endsAt).getTime();
+        const elapsedSec = Math.max(0, Math.min(
+            technique.durationSec,
+            Math.floor((now - startedAt) / 1000)
+        ));
+
+        const passivePerMin = getPassiveExpPerMin(session.realmAtStart);
+        const baseExp = Math.floor(elapsedSec * passivePerMin / 60);
+
+        // Apply multipliers
+        let multipliedExp = Math.floor(baseExp * technique.techniqueMultiplier);
+
+        // Get active boosts
+        const activeBoosts = (cultivation.activeBoosts || []).filter(b => b.expiresAt > new Date());
+        let boostMultiplier = 1;
+        for (const boost of activeBoosts) {
+            if (boost.type === 'exp' || boost.type === 'exp_boost') {
+                boostMultiplier = Math.max(boostMultiplier, boost.multiplier);
+            }
+        }
+
+        // Pet bonus
+        const petBonuses = cultivation.getPetBonuses?.() || { expBonus: 0 };
+        const petMultiplier = petBonuses.expBonus > 0 ? 1 + petBonuses.expBonus : 1;
+
+        multipliedExp = Math.floor(multipliedExp * boostMultiplier * petMultiplier);
+
+        // Atomic cap consume (dùng realmAtStart cho nhất quán)
+        const capLimit = getCapByRealm(session.realmAtStart);
+        const { allowedExp, capRemaining } = await consumeExpCap(userId, multipliedExp, capLimit);
+
+        // Add EXP
+        cultivation.exp += allowedExp;
+
+        // Log exp
+        if (!cultivation.expLog) cultivation.expLog = [];
+        cultivation.expLog.push({
+            amount: allowedExp,
+            source: 'technique_claim',
+            description: `${technique.name} (${elapsedSec}s)`,
+            createdAt: new Date()
+        });
+        if (cultivation.expLog.length > 100) cultivation.expLog = cultivation.expLog.slice(-100);
+
+        // Mark session claimed + save result
+        session.claimedAt = new Date();
+        cultivation.lastTechniqueClaim = {
+            sessionId,
+            techniqueId: session.techniqueId,
+            allowedExp,
+            requestedExp: multipliedExp,
+            claimedAt: session.claimedAt
+        };
+
+        // Clear active session
+        cultivation.activeTechniqueSession = null;
+
+        // Update technique lastPracticedAt
+        const learnedTechnique = (cultivation.learnedTechniques || [])
+            .find(t => t.techniqueId === session.techniqueId);
+        if (learnedTechnique) {
+            learnedTechnique.lastPracticedAt = new Date();
+        }
+
+        await cultivation.save();
+
+        res.json({
+            success: true,
+            message: allowedExp > 0 ? `+${allowedExp} Tu Vi` : "Linh khí đã cạn",
+            data: {
+                allowedExp,
+                requestedExp: multipliedExp,
+                elapsedSec,
+                capRemaining,
+                cultivation: await formatCultivationResponse(cultivation)
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export default {
+    listTechniques,
+    learnTechnique,
+    equipTechnique,
+    activateTechnique,
+    claimTechnique
+};

@@ -5,19 +5,29 @@ import { useState, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
+import { api } from '../../../api.js';
 import { RARITY_COLORS } from '../utils/constants.js';
 import { getItemIcon, IMAGE_COMPONENTS } from '../utils/iconHelpers.js';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
 import FlyingReward from './FlyingReward.jsx';
 
 const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
-  const { cultivation, shop, loadShop, loading } = useCultivation();
+  const { cultivation, shop, loadShop, loading, refresh } = useCultivation();
   const [practicing, setPracticing] = useState(null);
   const [expGain] = useState(10); // Exp mỗi lần luyện
   const [cooldowns, setCooldowns] = useState({}); // techniqueId -> remaining seconds
   const [filterRarity, setFilterRarity] = useState('all'); // 'all', 'common', 'uncommon', 'rare', 'epic', 'legendary'
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'learned', 'notLearned'
   const [rewardsAnimation, setRewardsAnimation] = useState([]);
+
+  // Cultivation techniques state
+  const [cultivationTechniques, setCultivationTechniques] = useState([]);
+  const [equippedEfficiency, setEquippedEfficiency] = useState(null);
+  const [loadingCultTech, setLoadingCultTech] = useState(false);
+  const [activeSession, setActiveSession] = useState(null);
+  const [sessionTimeLeft, setSessionTimeLeft] = useState(0);
+  const [activating, setActivating] = useState(false);
+  const [claiming, setClaiming] = useState(false);
 
   // Load shop data khi component mount nếu chưa có
   // Đảm bảo công pháp luôn hiển thị dù user vào tab này trước Cửa Hàng
@@ -26,6 +36,51 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
       loadShop();
     }
   }, [shop, loadShop]);
+
+  // Load cultivation techniques
+  const loadCultivationTechniques = async () => {
+    setLoadingCultTech(true);
+    try {
+      const data = await api('/api/cultivation/techniques');
+      if (data.success) {
+        setCultivationTechniques(data.data.techniques || []);
+        setEquippedEfficiency(data.data.equippedEfficiency);
+        if (data.data.activeSession) {
+          setActiveSession(data.data.activeSession);
+          const timeLeft = Math.max(0, Math.floor(data.data.activeSession.timeRemaining / 1000));
+          setSessionTimeLeft(timeLeft);
+        } else {
+          setActiveSession(null);
+          setSessionTimeLeft(0);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load cultivation techniques:', e);
+    } finally {
+      setLoadingCultTech(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCultivationTechniques();
+  }, []);
+
+  // Session countdown timer
+  useEffect(() => {
+    if (sessionTimeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setSessionTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [sessionTimeLeft > 0]);
 
   useEffect(() => {
     if (!Object.keys(cooldowns).length) return;
@@ -181,6 +236,96 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
 
   const getExpNeeded = (level) => level * 100;
 
+  // Handlers for cultivation techniques
+  const handleLearnCultTechnique = async (techniqueId) => {
+    try {
+      const res = await api('/api/cultivation/techniques/learn', {
+        method: 'POST',
+        body: JSON.stringify({ techniqueId })
+      });
+      if (res.success) {
+        await loadCultivationTechniques();
+        if (refresh) refresh();
+      }
+    } catch (e) {
+      console.error('Learn technique failed:', e);
+    }
+  };
+
+  const handleEquipCultTechnique = async (techniqueId) => {
+    try {
+      const res = await api('/api/cultivation/techniques/equip', {
+        method: 'POST',
+        body: JSON.stringify({ techniqueId })
+      });
+      if (res.success) {
+        setEquippedEfficiency(techniqueId);
+      }
+    } catch (e) {
+      console.error('Equip technique failed:', e);
+    }
+  };
+
+  const handleUnequipCultTechnique = async () => {
+    try {
+      const res = await api('/api/cultivation/techniques/equip', {
+        method: 'POST',
+        body: JSON.stringify({ techniqueId: null })
+      });
+      if (res.success) {
+        setEquippedEfficiency(null);
+      }
+    } catch (e) {
+      console.error('Unequip technique failed:', e);
+    }
+  };
+
+  // Activate semi-auto technique (vận công)
+  const handleActivateTechnique = async (techniqueId) => {
+    setActivating(true);
+    try {
+      const res = await api('/api/cultivation/techniques/activate', {
+        method: 'POST',
+        body: JSON.stringify({ techniqueId })
+      });
+      if (res.success) {
+        setActiveSession({
+          sessionId: res.data.sessionId,
+          techniqueId: res.data.techniqueId,
+          techniqueName: res.data.techniqueName,
+          endsAt: res.data.endsAt,
+          estimatedExp: res.data.estimatedExp
+        });
+        setSessionTimeLeft(res.data.durationSec);
+      }
+    } catch (e) {
+      console.error('Activate technique failed:', e);
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  // Claim vận công
+  const handleClaimTechnique = async () => {
+    if (!activeSession) return;
+    setClaiming(true);
+    try {
+      const res = await api('/api/cultivation/techniques/claim', {
+        method: 'POST',
+        body: JSON.stringify({ sessionId: activeSession.sessionId })
+      });
+      if (res.success) {
+        setActiveSession(null);
+        setSessionTimeLeft(0);
+        if (refresh) refresh();
+      }
+    } catch (e) {
+      console.error('Claim technique failed:', e);
+    } finally {
+      setClaiming(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-2">
       <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">LUYỆN CÔNG PHÁP</h3>
@@ -298,6 +443,188 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                       ))}
                     </div>
                   )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Công Pháp Tu Luyện */}
+      {cultivationTechniques.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-bold text-amber-400 font-title">CÔNG PHÁP TU LUYỆN</h4>
+            <span className="text-xs text-slate-500">
+              ({cultivationTechniques.filter(t => t.learned).length}/{cultivationTechniques.length})
+            </span>
+          </div>
+          <p className="text-xs text-slate-500">Tăng hiệu suất thu thập tu vi</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {cultivationTechniques.map((tech) => {
+              const isLearned = tech.learned;
+              const canUnlock = tech.canUnlock;
+              const isEquipped = equippedEfficiency === tech.id;
+              const isEfficiency = tech.type === 'efficiency';
+              const isActiveSession = activeSession?.techniqueId === tech.id;
+
+              return (
+                <div
+                  key={tech.id}
+                  className={`spirit-tablet rounded-xl p-4 ${isLearned
+                    ? 'bg-amber-900/20 border border-amber-500/30'
+                    : canUnlock
+                      ? 'bg-slate-800/50 border border-emerald-500/30'
+                      : 'bg-slate-900/50 border border-slate-700/30 opacity-60'}`}
+                >
+                  {/* Header */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isEfficiency ? 'bg-amber-900/50 border-2 border-amber-500/40' : 'bg-cyan-900/50 border-2 border-cyan-500/40'
+                      }`}>
+                      <span className={`text-lg font-title ${isEfficiency ? 'text-amber-300' : 'text-cyan-300'}`}>
+                        {isEfficiency ? '聚' : '功'}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <h5 className={`font-bold text-base ${isLearned ? 'text-amber-300' : 'text-slate-400'}`}>
+                          {tech.name}
+                        </h5>
+                        {isEquipped && (
+                          <span className="text-[10px] bg-emerald-900/50 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+                            Trang bị
+                          </span>
+                        )}
+                        {isActiveSession && (
+                          <span className="text-[10px] bg-cyan-900/50 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30 animate-pulse">
+                            Đang vận công
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-amber-400/80">{tech.shortDesc || tech.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Description & Lore */}
+                  <div className="mb-3 p-2 bg-black/30 rounded-lg border border-slate-700/30">
+                    <p className="text-[10px] text-slate-400 italic leading-relaxed">
+                      "{tech.lore}"
+                    </p>
+                  </div>
+
+                  {/* Stats badges */}
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {tech.bonusPercent && (
+                      <span className="text-[10px] bg-amber-900/40 text-amber-300 px-2 py-1 rounded border border-amber-500/20">
+                        +{tech.bonusPercent}% Tu Vi
+                      </span>
+                    )}
+                    {tech.durationSec && (
+                      <span className="text-[10px] bg-cyan-900/40 text-cyan-300 px-2 py-1 rounded border border-cyan-500/20">
+                        {tech.durationSec}s nhập định
+                      </span>
+                    )}
+                    {tech.techniqueMultiplier && tech.techniqueMultiplier !== 1 && (
+                      <span className="text-[10px] bg-purple-900/40 text-purple-300 px-2 py-1 rounded border border-purple-500/20">
+                        x{tech.techniqueMultiplier} hiệu quả
+                      </span>
+                    )}
+                    <span className={`text-[10px] px-2 py-1 rounded border ${tech.tier === 1 ? 'bg-slate-800/50 text-slate-400 border-slate-600/30' :
+                      tech.tier === 2 ? 'bg-blue-900/40 text-blue-300 border-blue-500/20' :
+                        'bg-purple-900/40 text-purple-300 border-purple-500/20'
+                      }`}>
+                      {tech.tier === 1 ? 'Phàm Phẩm' : tech.tier === 2 ? 'Hiếm Có' : 'Cực Phẩm'}
+                    </span>
+                  </div>
+
+                  {/* Active session timer */}
+                  {isActiveSession && sessionTimeLeft > 0 && (
+                    <div className="mb-3 p-3 bg-cyan-900/20 rounded-lg border border-cyan-500/30">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-cyan-300">Thời gian còn lại</span>
+                        <span className="text-lg font-bold text-cyan-400 font-mono">{sessionTimeLeft}s</span>
+                      </div>
+                      <div className="w-full bg-slate-900 rounded-full h-2 mt-2 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-cyan-600 to-cyan-400 h-full transition-all duration-1000"
+                          style={{ width: `${(sessionTimeLeft / tech.durationSec) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    {/* Chưa học + có thể unlock */}
+                    {!isLearned && canUnlock && (
+                      <button
+                        onClick={() => handleLearnCultTechnique(tech.id)}
+                        className="flex-1 py-2 rounded-lg text-xs font-bold uppercase bg-gradient-to-r from-emerald-700 to-emerald-900 text-emerald-100 border border-emerald-500/30 hover:from-emerald-600 hover:to-emerald-800 transition-all"
+                      >
+                        Lĩnh Ngộ Công Pháp
+                      </button>
+                    )}
+
+                    {/* Chưa học + chưa đủ điều kiện */}
+                    {!isLearned && !canUnlock && (
+                      <span className="flex-1 py-2 text-center text-xs text-slate-500 bg-slate-900/50 rounded-lg border border-slate-700/30">
+                        {tech.unlockReason || 'Chưa đủ tu vi'}
+                      </span>
+                    )}
+
+                    {/* Đã học + Efficiency + chưa equip */}
+                    {isLearned && isEfficiency && !isEquipped && (
+                      <button
+                        onClick={() => handleEquipCultTechnique(tech.id)}
+                        className="flex-1 py-2 rounded-lg text-xs font-bold uppercase bg-gradient-to-r from-amber-700 to-amber-900 text-amber-100 border border-amber-500/30 hover:from-amber-600 hover:to-amber-800 transition-all"
+                      >
+                        Trang Bị
+                      </button>
+                    )}
+
+                    {/* Đã học + Efficiency + đã equip */}
+                    {isLearned && isEfficiency && isEquipped && (
+                      <button
+                        onClick={handleUnequipCultTechnique}
+                        className="flex-1 py-2 rounded-lg text-xs font-bold uppercase bg-slate-800 text-slate-400 border border-slate-600 hover:bg-slate-700 transition-all"
+                      >
+                        Tháo Công Pháp
+                      </button>
+                    )}
+
+                    {/* Đã học + Semi-auto + chưa có session active */}
+                    {isLearned && !isEfficiency && !activeSession && (
+                      <button
+                        onClick={() => handleActivateTechnique(tech.id)}
+                        disabled={activating}
+                        className="flex-1 py-2 rounded-lg text-xs font-bold uppercase bg-gradient-to-r from-cyan-700 to-cyan-900 text-cyan-100 border border-cyan-500/30 hover:from-cyan-600 hover:to-cyan-800 disabled:opacity-50 transition-all"
+                      >
+                        {activating ? 'Đang kích hoạt...' : 'Nhập Định Vận Công'}
+                      </button>
+                    )}
+
+                    {/* Đã học + Semi-auto + có session active của technique này */}
+                    {isLearned && !isEfficiency && isActiveSession && (
+                      <button
+                        onClick={handleClaimTechnique}
+                        disabled={claiming || sessionTimeLeft > 0}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase transition-all ${sessionTimeLeft > 0
+                          ? 'bg-slate-800 text-slate-500 border border-slate-600 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-emerald-700 to-emerald-900 text-emerald-100 border border-emerald-500/30 hover:from-emerald-600 hover:to-emerald-800 animate-pulse'
+                          }`}
+                      >
+                        {claiming ? 'Đang thu...' : sessionTimeLeft > 0 ? `Chờ ${sessionTimeLeft}s` : 'Thu Hoạch Tu Vi'}
+                      </button>
+                    )}
+
+                    {/* Đã học + Semi-auto + có session active của technique khác */}
+                    {isLearned && !isEfficiency && activeSession && !isActiveSession && (
+                      <span className="flex-1 py-2 text-center text-xs text-slate-500 bg-slate-900/50 rounded-lg border border-slate-700/30">
+                        Đang vận công pháp khác
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}

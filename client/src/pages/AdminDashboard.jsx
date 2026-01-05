@@ -64,6 +64,7 @@ import {
 export default function AdminDashboard() {
    // ==================== CUSTOM HOOKS ====================
 
+   const toast = useToast();
    const {
       stats,
       users,
@@ -951,7 +952,17 @@ export default function AdminDashboard() {
                                     ({onlineUsers.length} {onlineUsers.length > 100 ? `(hiển thị 100 đầu tiên)` : ''})
                                  </span>
                               </h3>
-                              <button onClick={updateOfflineUsers} className="text-xs font-bold px-3 py-1.5 border border-orange-300 dark:border-orange-700/50 text-orange-600 dark:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:border-orange-400 dark:hover:border-orange-600 transition-all shadow-sm hover:shadow-md">Force Update</button>
+                              <button
+                                 onClick={async () => {
+                                    const result = await updateOfflineUsers();
+                                    if (result?.success) {
+                                       toast.showSuccess("Đã cập nhật trạng thái offline");
+                                    } else {
+                                       toast.showError(result?.error || "Lỗi cập nhật");
+                                    }
+                                 }}
+                                 className="text-xs font-bold px-3 py-1.5 border border-orange-300 dark:border-orange-700/50 text-orange-600 dark:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:border-orange-400 dark:hover:border-orange-600 transition-all shadow-sm hover:shadow-md"
+                              >Force Update</button>
                            </div>
                            <div className="space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar">
                               {onlineUsers.slice(0, 100).map(u => (

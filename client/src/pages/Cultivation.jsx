@@ -59,6 +59,7 @@ const CultivationContent = memo(function CultivationContent() {
   const [modalOpen, setModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [modalMsg, setModalMsg] = useState("");
+  const [equippedTechniqueData, setEquippedTechniqueData] = useState(null);
   const logEndRef = useRef(null);
 
   const addLog = useCallback((text, type = 'normal') => {
@@ -108,6 +109,43 @@ const CultivationContent = memo(function CultivationContent() {
     };
     checkAdmin();
   }, []);
+
+  // Fetch equipped technique and check for unlockable techniques
+  useEffect(() => {
+    const fetchEquippedTechnique = async () => {
+      try {
+        const data = await api('/api/cultivation/techniques');
+        if (data.success) {
+          // Set equipped technique
+          if (data.data?.equippedEfficiency) {
+            const equippedId = data.data.equippedEfficiency;
+            const technique = data.data.techniques?.find(t => t.id === equippedId);
+            if (technique) {
+              setEquippedTechniqueData({
+                id: technique.id,
+                name: technique.name,
+                bonusPercent: technique.bonusPercent
+              });
+            }
+          }
+
+          // Check for newly unlockable techniques (not learned + canUnlock)
+          const unlockable = data.data.techniques?.filter(t =>
+            !t.learned && t.canUnlock
+          ) || [];
+
+          if (unlockable.length > 0) {
+            // Show notification for first unlockable technique
+            const tech = unlockable[0];
+            addLog(`Có thể lĩnh ngộ công pháp mới: ${tech.name}!`, 'success');
+          }
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    };
+    if (cultivation) fetchEquippedTechnique();
+  }, [cultivation, addLog]);
 
   useEffect(() => {
     const fetchPassiveStatus = async () => {
@@ -208,10 +246,11 @@ const CultivationContent = memo(function CultivationContent() {
     // Level 4: 25% cơ hội, 5-15 linh thạch
     // Level 5+: 30% cơ hội, 10-30 linh thạch
     const stoneDropChance = Math.min(0.3, 0.1 + (realmLevel - 1) * 0.05);
+    let stoneDrop = 0;
     if (Math.random() < stoneDropChance) {
       const baseStoneMin = Math.max(1, Math.floor(realmLevel * 0.5));
       const baseStoneMax = Math.max(3, Math.floor(realmLevel * 3));
-      const stoneDrop = Math.floor(Math.random() * (baseStoneMax - baseStoneMin + 1)) + baseStoneMin;
+      stoneDrop = Math.floor(Math.random() * (baseStoneMax - baseStoneMin + 1)) + baseStoneMin;
       setTimeout(() => {
         spawnParticle(rect.left + rect.width / 2, rect.top - 30, `+${stoneDrop} Linh Thạch`, 'gold');
       }, 200);
@@ -219,7 +258,8 @@ const CultivationContent = memo(function CultivationContent() {
     }
 
     try {
-      await addExp(expGain, 'yinyang_click');
+      // Gửi cả expGain và stoneDrop lên server
+      await addExp(expGain, 'yinyang_click', stoneDrop);
       // Luôn hiển thị một log message tu tiên mỗi lần click
       const randomMessage = LOG_MESSAGES[Math.floor(Math.random() * LOG_MESSAGES.length)];
       addLog(randomMessage, 'normal');
@@ -472,6 +512,7 @@ const CultivationContent = memo(function CultivationContent() {
               logExpanded={logExpanded}
               setLogExpanded={setLogExpanded}
               logEndRef={logEndRef}
+              equippedTechnique={equippedTechniqueData}
             />
           )}
 

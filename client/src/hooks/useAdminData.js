@@ -178,8 +178,11 @@ export function useAdminData() {
     try {
       await api("/api/admin/update-offline-users", { method: "POST" });
       await loadOnlineUsers();
+      return { success: true };
     } catch (e) {
       // Silent handling
+      console.error("Error updating offline users:", e);
+      return { success: false, error: e.message };
     }
   }, [loadOnlineUsers]);
 
@@ -308,7 +311,7 @@ export function useAdminData() {
     // Security Alerts
     securityAlerts,
     dismissAlert: (id) => setSecurityAlerts(prev => prev.filter(a => a.id !== id)),
-    
+
     // Pagination
     userPagination,
     userFilters,

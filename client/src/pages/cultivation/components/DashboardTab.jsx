@@ -22,7 +22,8 @@ const DashboardTab = memo(function DashboardTab({
   logs,
   logExpanded,
   setLogExpanded,
-  logEndRef
+  logEndRef,
+  equippedTechnique // Công pháp đang trang bị
 }) {
   // Tính tỷ lệ thành công cho độ kiếp dựa trên cảnh giới
   const baseSuccessRatesByRealm = {
@@ -300,14 +301,36 @@ const DashboardTab = memo(function DashboardTab({
         </div>
       </div>
 
-      {/* Active Boosts */}
-      {cultivation.activeBoosts?.length > 0 && (
+      {/* Active Boosts & Equipped Technique */}
+      {(cultivation.activeBoosts?.length > 0 || equippedTechnique) && (
         <div className="spirit-tablet-jade rounded-xl p-5 lg:p-6">
           <h3 className="font-bold text-jade mb-4 font-title tracking-wide text-lg">
             BUFF ĐANG HOẠT ĐỘNG
           </h3>
           <div className="space-y-3">
-            {cultivation.activeBoosts.map((boost, idx) => {
+            {/* Công pháp equipped (permanent buff) */}
+            {equippedTechnique && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-amber-900/20 rounded-lg border border-amber-500/30">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg text-amber-400 font-title">法</span>
+                  <div>
+                    <span className="text-sm font-medium text-amber-300">{equippedTechnique.name}</span>
+                    <p className="text-[10px] text-amber-500/70">Công pháp tu luyện</p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end text-right">
+                  <span className="text-sm font-bold text-amber-400">
+                    +{equippedTechnique.bonusPercent}% Tu Vi
+                  </span>
+                  <span className="text-[10px] text-emerald-400">
+                    ∞ Vĩnh viễn
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Active boosts (temporary) */}
+            {cultivation.activeBoosts?.map((boost, idx) => {
               const expiresAt = new Date(boost.expiresAt);
               const now = new Date();
               const remainingMs = expiresAt - now;

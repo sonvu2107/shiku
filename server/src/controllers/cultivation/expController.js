@@ -1,5 +1,6 @@
 import Cultivation, { CULTIVATION_REALMS } from "../../models/Cultivation.js";
 import { formatCultivationResponse } from "./coreController.js";
+import { consumeExpCap, checkClickCooldown, getCapByRealm, getExpCapRemaining } from "../../services/expCapService.js";
 
 // Cache for leaderboard with automatic cleanup
 const leaderboardCache = new Map();
@@ -151,21 +152,19 @@ export const getExpLog = async (req, res, next) => {
 export const addExp = async (req, res, next) => {
     try {
         const userId = req.user.id;
-        const { amount, source = 'activity' } = req.body;
+        const { amount, source = 'activity', spiritStones = 0 } = req.body;
 
-        // In-memory rate limit check for yinyang_click (before any DB operations)
+        // ==================== REDIS COOLDOWN CHECK ====================
         if (source === 'yinyang_click') {
-            const now = Date.now();
-            const lastRequest = yinyangClickLastRequest.get(userId);
-
-            if (lastRequest && (now - lastRequest) < YINYANG_MIN_INTERVAL_MS) {
+            // Redis-based cooldown (fallback to in-memory if Redis unavailable)
+            const cooldownResult = await checkClickCooldown(userId, YINYANG_MIN_INTERVAL_MS);
+            if (!cooldownResult.allowed) {
                 return res.status(429).json({
                     success: false,
                     message: "Đang xử lý, vui lòng chậm hơn",
-                    retryAfter: YINYANG_MIN_INTERVAL_MS - (now - lastRequest)
+                    retryAfter: cooldownResult.waitMs
                 });
             }
-            yinyangClickLastRequest.set(userId, now);
         }
 
         const cultivation = await Cultivation.getOrCreate(userId);
@@ -177,24 +176,95 @@ export const addExp = async (req, res, next) => {
             return res.status(400).json({ success: false, message: `Số exp không hợp lệ (${range.min}-${range.max})` });
         }
 
+        // ==================== REDIS ATOMIC CAP CHECK ====================
+        let expEarned = amount;
+        let techniqueBonus = 0;
+
         if (source === 'yinyang_click') {
-            const fiveMinutesAgo = new Date(Date.now() - 300000);
-            const recentExp = (cultivation.expLog || []).filter(l => l.source === 'yinyang_click' && new Date(l.createdAt) > fiveMinutesAgo).reduce((s, l) => s + l.amount, 0);
-            const rateLimits = { 1: 100, 2: 300, 3: 1000, 4: 2500, 5: 5000, 6: 10000, 7: 10000, 8: 10000, 9: 10000, 10: 10000, 11: 10000 };
-            if (recentExp >= (rateLimits[realmLevel] || 100)) {
-                return res.status(429).json({ success: false, message: "Linh khí đã cạn kiệt" });
+            // Get efficiency technique bonus if equipped
+            const equippedTechniqueId = cultivation.equippedEfficiencyTechnique;
+            if (equippedTechniqueId) {
+                // Dynamic import to avoid circular dependency
+                const { getTechniqueById } = await import('../../data/cultivationTechniques.js');
+                const technique = getTechniqueById(equippedTechniqueId);
+                if (technique && technique.bonusPercent) {
+                    techniqueBonus = technique.bonusPercent / 100;
+                }
             }
+
+            // Apply technique bonus
+            const boostedAmount = Math.floor(amount * (1 + techniqueBonus));
+
+            const capLimit = getCapByRealm(realmLevel);
+            const { allowedExp, capRemaining } = await consumeExpCap(userId, boostedAmount, capLimit);
+
+            if (allowedExp === 0) {
+                return res.status(429).json({
+                    success: false,
+                    message: "Linh khí đã cạn kiệt",
+                    capRemaining: 0
+                });
+            }
+
+            expEarned = allowedExp;
             cultivation.updateQuestProgress('yinyang_click', 1);
+            await cultivation.save(); // Save quest progress separately
         }
 
-        cultivation.exp += amount;
-        if (!cultivation.expLog) cultivation.expLog = [];
-        cultivation.expLog.push({ amount, source, description: source === 'yinyang_click' ? 'Thu thập linh khí' : 'Hoạt động', createdAt: new Date() });
-        if (cultivation.expLog.length > 100) cultivation.expLog = cultivation.expLog.slice(-100);
-        const potentialRealm = cultivation.getRealmFromExp();
-        const canBreakthrough = potentialRealm.level > cultivation.realmLevel;
-        await cultivation.save();
-        res.json({ success: true, message: `+${amount} Tu Vi`, data: { expEarned: amount, totalExp: cultivation.exp, canBreakthrough, potentialRealm: canBreakthrough ? potentialRealm : null, cultivation: await formatCultivationResponse(cultivation) } });
+        // ==================== ATOMIC UPDATE CULTIVATION ====================
+        // Use findOneAndUpdate to avoid VersionError race condition
+        let stonesEarned = 0;
+        if (spiritStones > 0 && typeof spiritStones === 'number' && spiritStones <= 100) {
+            stonesEarned = spiritStones;
+        }
+
+        const updateOps = {
+            $inc: {
+                exp: expEarned,
+                ...(stonesEarned > 0 && {
+                    spiritStones: stonesEarned,
+                    totalSpiritStonesEarned: stonesEarned
+                })
+            },
+            $push: {
+                expLog: {
+                    $each: [{
+                        amount: expEarned,
+                        source,
+                        description: source === 'yinyang_click' ? 'Thu thập linh khí' : 'Hoạt động',
+                        createdAt: new Date()
+                    }],
+                    $slice: -100 // Keep only last 100 logs
+                }
+            }
+        };
+
+        const updatedCultivation = await Cultivation.findOneAndUpdate(
+            { user: userId },
+            updateOps,
+            { new: true }
+        );
+
+        if (!updatedCultivation) {
+            return res.status(404).json({ success: false, message: 'Cultivation not found' });
+        }
+
+        const potentialRealm = updatedCultivation.getRealmFromExp();
+        const canBreakthrough = potentialRealm.level > updatedCultivation.realmLevel;
+
+        res.json({
+            success: true,
+            message: stonesEarned > 0 ? `+${expEarned} Tu Vi, +${stonesEarned} Linh Thạch` : `+${expEarned} Tu Vi`,
+            data: {
+                expEarned,
+                stonesEarned,
+                totalExp: updatedCultivation.exp,
+                totalSpiritStones: updatedCultivation.spiritStones,
+                canBreakthrough,
+                potentialRealm: canBreakthrough ? potentialRealm : null,
+                cultivation: await formatCultivationResponse(updatedCultivation)
+            }
+        });
     } catch (error) { next(error); }
 };
 

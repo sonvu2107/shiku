@@ -431,10 +431,10 @@ export function CultivationProvider({ children }) {
   /**
    * Thêm exp từ hoạt động (yin-yang click)
    */
-  const addExp = useCallback(async (amount, source = 'activity') => {
+  const addExp = useCallback(async (amount, source = 'activity', spiritStones = 0) => {
     try {
       setError(null);
-      const response = await addExpFromActivity(amount, source);
+      const response = await addExpFromActivity(amount, source, spiritStones);
 
       if (response.success) {
         setCultivation(response.data.cultivation);

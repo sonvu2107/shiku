@@ -296,6 +296,28 @@ const CultivationSchema = new mongoose.Schema({
     lastPracticedAt: { type: Date }
   }],
 
+  // Công pháp efficiency đang trang bị (dùng cho YinYang click)
+  equippedEfficiencyTechnique: { type: String, default: null },
+
+  // Session vận công đang active (semi-auto technique)
+  activeTechniqueSession: {
+    sessionId: { type: String },
+    techniqueId: { type: String },
+    startedAt: { type: Date },
+    endsAt: { type: Date },
+    realmAtStart: { type: Number },
+    claimedAt: { type: Date, default: null }
+  },
+
+  // Kết quả claim gần nhất (cho retry idempotent)
+  lastTechniqueClaim: {
+    sessionId: { type: String },
+    techniqueId: { type: String },
+    allowedExp: { type: Number },
+    requestedExp: { type: Number },
+    claimedAt: { type: Date }
+  },
+
   // ==================== BUFF/BOOST ĐANG HOẠT ĐỘNG ====================
   activeBoosts: [{
     type: { type: String },
