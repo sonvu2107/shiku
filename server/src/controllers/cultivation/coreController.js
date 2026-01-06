@@ -80,7 +80,8 @@ export const formatCultivationResponse = async (cultivation) => {
                     energy_regen: eq.energy_regen,
                     lifesteal: eq.lifesteal,
                     true_damage: eq.true_damage,
-                    buff_duration: eq.buff_duration
+                    buff_duration: eq.buff_duration,
+                    durability: eq.durability
                 });
             });
         } catch (err) {
@@ -111,6 +112,7 @@ export const formatCultivationResponse = async (cultivation) => {
                         lifesteal: equipment.lifesteal,
                         true_damage: equipment.true_damage,
                         buff_duration: equipment.buff_duration,
+                        durability: equipment.durability,
                         img: equipment.img,
                         description: equipment.description
                     }

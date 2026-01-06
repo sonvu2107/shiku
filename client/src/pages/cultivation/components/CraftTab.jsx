@@ -265,6 +265,24 @@ const CraftTab = memo(function CraftTab() {
                                     ))}
                                 </div>
 
+                                {/* Durability */}
+                                {craftResult.equipment?.durability && (
+                                    <div className="bg-slate-900/50 rounded-lg p-3 mt-2">
+                                        <div className="flex justify-between items-center text-sm mb-1">
+                                            <span className="text-slate-400">Độ Bền</span>
+                                            <span className="text-emerald-400">
+                                                {craftResult.equipment.durability.current}/{craftResult.equipment.durability.max}
+                                            </span>
+                                        </div>
+                                        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                                            <div 
+                                                className="h-full bg-emerald-500 transition-all"
+                                                style={{ width: '100%' }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
                                 <button
                                     onClick={() => setCraftResult(null)}
                                     className="px-6 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold transition-colors"

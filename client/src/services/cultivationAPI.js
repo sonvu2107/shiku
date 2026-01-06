@@ -107,6 +107,13 @@ export async function unequipEquipment(slot) {
 }
 
 /**
+ * Tu bổ (sửa chữa) equipment - khôi phục độ bền
+ */
+export async function repairEquipment(equipmentId) {
+  return api(`/api/cultivation/equipment/${equipmentId}/repair`, { method: 'POST' });
+}
+
+/**
  * Sử dụng vật phẩm tiêu hao (đan dược, consumable)
  */
 export async function useItem(itemId) {

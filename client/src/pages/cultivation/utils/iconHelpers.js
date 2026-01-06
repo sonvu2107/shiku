@@ -6,7 +6,11 @@ import {
   GiMountainCave, GiLotusFlower, GiTwoCoins, GiSunRadiations, GiMoon, GiSparkles, GiCloudRing,
   GiTornado, GiGhost, GiCrown, GiSkullCrossedBones, GiRing, GiGems, GiScrollUnfurled,
   GiSwapBag, GiKey, GiFlyingDagger, GiCat, GiRabbit, GiPawPrint, GiMedal, GiPotionBall,
-  GiWizardStaff, GiTicket
+  GiWizardStaff, GiTicket,
+  // Equipment icons
+  GiSwordWound, GiCrossedSwords, GiSpearHook, GiBowArrow, GiHandheldFan, GiFlute, GiQuillInk,
+  GiAbdominalArmor, GiHelmet, GiChestArmor, GiShoulderArmor, GiGloves, GiBoots, GiBelt,
+  GiNecklace, GiEarrings, GiDiamondRing, GiCrystalBall, GiMagicLamp, GiCrystalGrowth
 } from 'react-icons/gi';
 
 import {
@@ -22,6 +26,46 @@ import {
 } from '../components/ImageComponents.jsx';
 
 import { TECHNIQUE_ICON_MAP } from './constants.js';
+
+// Icon map cho các loại equipment theo type và subtype
+export const EQUIPMENT_ICON_MAP = {
+  // Main types
+  equipment_weapon: GiBroadsword,
+  equipment_armor: GiAbdominalArmor,
+  equipment_accessory: GiRing,
+  equipment_magic_treasure: GiCrystalBall,
+  equipment_power_item: GiCrystalGrowth,
+  
+  // Weapon subtypes
+  sword: GiSwordWound,
+  saber: GiBroadsword,
+  spear: GiSpearHook,
+  bow: GiBowArrow,
+  fan: GiHandheldFan,
+  flute: GiFlute,
+  brush: GiQuillInk,
+  dual_sword: GiCrossedSwords,
+  flying_sword: GiFlyingDagger,
+  
+  // Armor subtypes
+  helmet: GiHelmet,
+  chest: GiChestArmor,
+  shoulder: GiShoulderArmor,
+  gloves: GiGloves,
+  boots: GiBoots,
+  belt: GiBelt,
+  
+  // Accessory subtypes
+  ring: GiDiamondRing,
+  necklace: GiNecklace,
+  earring: GiEarrings,
+  bracelet: GiRing,
+  
+  // Power Item subtypes
+  spirit_stone: GiGems,
+  spirit_pearl: GiCrystalBall,
+  spirit_seal: GiMagicLamp
+};
 
 export const SHOP_ICON_MAP = {
   // Titles & badges
@@ -51,19 +95,37 @@ export const IMAGE_COMPONENTS = [
 ];
 
 export const ITEM_TYPE_LABELS = {
-  title: { label: ' Danh Hiệu', color: 'text-amber-300' },
-  badge: { label: ' Huy Hiệu', color: 'text-cyan-300' },
-  avatar_frame: { label: ' Khung Avatar', color: 'text-purple-300' },
-  profile_effect: { label: ' Hiệu Ứng', color: 'text-pink-300' },
-  exp_boost: { label: ' Đan Dược', color: 'text-emerald-300' },
-  breakthrough_boost: { label: ' Độ Kiếp Đan', color: 'text-amber-400' },
-  consumable: { label: ' Vật Phẩm', color: 'text-blue-300' },
-  pet: { label: ' Linh Thú', color: 'text-orange-300' },
-  mount: { label: ' Tọa Kỵ', color: 'text-indigo-300' },
-  technique: { label: ' Công Pháp', color: 'text-yellow-300' }
+  title: { label: 'Danh Hiệu', color: 'text-amber-300' },
+  badge: { label: 'Huy Hiệu', color: 'text-cyan-300' },
+  avatar_frame: { label: 'Khung Avatar', color: 'text-purple-300' },
+  profile_effect: { label: 'Hiệu Ứng', color: 'text-pink-300' },
+  exp_boost: { label: 'Đan Dược', color: 'text-emerald-300' },
+  breakthrough_boost: { label: 'Độ Kiếp Đan', color: 'text-amber-400' },
+  consumable: { label: 'Vật Phẩm', color: 'text-blue-300' },
+  pet: { label: 'Linh Thú', color: 'text-orange-300' },
+  mount: { label: 'Tọa Kỵ', color: 'text-indigo-300' },
+  technique: { label: 'Công Pháp', color: 'text-yellow-300' },
+  // Equipment types
+  equipment_weapon: { label: 'Vũ Khí', color: 'text-red-300' },
+  equipment_armor: { label: 'Giáp', color: 'text-blue-300' },
+  equipment_accessory: { label: 'Trang Sức', color: 'text-yellow-300' },
+  equipment_magic_treasure: { label: 'Pháp Bảo', color: 'text-purple-300' },
+  equipment_power_item: { label: 'Linh Khí', color: 'text-cyan-300' }
 };
 
 export const getItemIcon = (item) => {
+  // Kiểm tra equipment trước - ưu tiên subtype để có icon chính xác nhất
+  if (item.type?.startsWith('equipment_')) {
+    const subtype = item.subtype || item.metadata?.subtype;
+    if (subtype && EQUIPMENT_ICON_MAP[subtype]) {
+      return EQUIPMENT_ICON_MAP[subtype];
+    }
+    // Fallback về equipment type
+    if (EQUIPMENT_ICON_MAP[item.type]) {
+      return EQUIPMENT_ICON_MAP[item.type];
+    }
+  }
+
   // Ưu tiên: Kiểm tra type trước để đảm bảo tất cả vật phẩm dùng icon ảnh theo danh mục
   if (item.type && SHOP_ICON_MAP[item.type]) {
     return SHOP_ICON_MAP[item.type];

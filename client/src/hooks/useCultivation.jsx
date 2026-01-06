@@ -13,6 +13,7 @@ import {
   unequipItem,
   equipEquipment as equipEquipmentAPI,
   unequipEquipment as unequipEquipmentAPI,
+  repairEquipment as repairEquipmentAPI,
   useItem as useItemAPI,
   getLeaderboard,
   getRealms,
@@ -321,6 +322,52 @@ export function CultivationProvider({ children }) {
       setNotification({
         type: 'error',
         title: 'Lỗi',
+        message: err.message
+      });
+      throw err;
+    }
+  }, []);
+
+  /**
+   * Tu bổ (sửa chữa) equipment - khôi phục độ bền
+   */
+  const repairEquipment = useCallback(async (equipmentId) => {
+    try {
+      setError(null);
+      const response = await repairEquipmentAPI(equipmentId);
+
+      if (response.success) {
+        // Cập nhật inventory với durability mới
+        setCultivation(prev => ({
+          ...prev,
+          spiritStones: response.data.spiritStones ?? prev.spiritStones,
+          inventory: prev.inventory.map(item => {
+            if (item.itemId === equipmentId || item.metadata?._id === equipmentId) {
+              return {
+                ...item,
+                metadata: {
+                  ...item.metadata,
+                  durability: response.data.equipment?.durability
+                }
+              };
+            }
+            return item;
+          })
+        }));
+        
+        setNotification({
+          type: 'success',
+          title: 'Tu Bổ Thành Công',
+          message: `Đã khôi phục độ bền ${response.data.equipment?.name || 'trang bị'}`
+        });
+        
+        return response.data;
+      }
+    } catch (err) {
+      setError(err.message);
+      setNotification({
+        type: 'error',
+        title: 'Lỗi Tu Bổ',
         message: err.message
       });
       throw err;
@@ -665,6 +712,7 @@ export function CultivationProvider({ children }) {
     unequip,
     equipEquipment,
     unequipEquipment,
+    repairEquipment,
     useItem,
     loadLeaderboard,
     loadRealms,

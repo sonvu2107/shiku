@@ -151,6 +151,33 @@ const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
               </span>
             )}
           </div>
+
+          {/* Độ bền (Durability) */}
+          {(item.metadata?.durability || item.durability) && (() => {
+            const durability = item.metadata?.durability || item.durability;
+            const current = durability.current ?? durability;
+            const max = durability.max ?? 100;
+            const percentage = Math.round((current / max) * 100);
+            const durabilityColor = percentage > 50 ? 'bg-emerald-500' : percentage > 20 ? 'bg-amber-500' : 'bg-red-500';
+            const durabilityTextColor = percentage > 50 ? 'text-emerald-400' : percentage > 20 ? 'text-amber-400' : 'text-red-400';
+            return (
+              <div className="mt-2 pt-2 border-t border-slate-700/50">
+                <div className="flex justify-between items-center text-[10px] mb-1">
+                  <span className="text-slate-400">Độ Bền</span>
+                  <span className={durabilityTextColor}>{current}/{max}</span>
+                </div>
+                <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${durabilityColor} transition-all duration-300`}
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+                {percentage <= 20 && (
+                  <p className="text-[9px] text-red-400 mt-1">Cần tu bổ!</p>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
 

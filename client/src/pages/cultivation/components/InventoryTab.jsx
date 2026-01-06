@@ -175,8 +175,9 @@ const LootboxResultModal = memo(({ result, onClose }) => {
 
 
 const InventoryTab = memo(function InventoryTab() {
-  const { cultivation, equip, unequip, equipEquipment, unequipEquipment, useItem, loading } = useCultivation();
+  const { cultivation, equip, unequip, equipEquipment, unequipEquipment, repairEquipment, useItem, loading } = useCultivation();
   const [equipping, setEquipping] = useState(null);
+  const [repairing, setRepairing] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeSubCategory, setActiveSubCategory] = useState('all');
   const [hoveredItem, setHoveredItem] = useState(null);
@@ -696,6 +697,33 @@ const InventoryTab = memo(function InventoryTab() {
                           </div>
                         );
                       })()}
+                      {/* Hiển thị độ bền cho equipment */}
+                      {item.type?.startsWith('equipment_') && (item.metadata?.durability || item.durability) && (() => {
+                        const durability = item.metadata?.durability || item.durability;
+                        const current = durability.current ?? durability;
+                        const max = durability.max ?? 100;
+                        const percentage = Math.round((current / max) * 100);
+                        const durabilityColor = percentage > 50 ? 'bg-emerald-500' : percentage > 20 ? 'bg-amber-500' : 'bg-red-500';
+                        const durabilityTextColor = percentage > 50 ? 'text-emerald-400' : percentage > 20 ? 'text-amber-400' : 'text-red-400';
+                        
+                        return (
+                          <div className="mt-1.5">
+                            <div className="flex justify-between items-center text-[10px] mb-0.5">
+                              <span className="text-slate-500">Độ Bền</span>
+                              <span className={durabilityTextColor}>{current}/{max}</span>
+                            </div>
+                            <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full ${durabilityColor} transition-all duration-300`}
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                            {percentage <= 20 && (
+                              <p className="text-[9px] text-red-400 mt-0.5">Cần tu bổ!</p>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {/* Hiển thị chi tiết cho đan dược và vật phẩm tiêu hao */}
                       {(item.type === 'exp_boost' || item.type === 'consumable' || item.type === 'breakthrough_boost') && (() => {
                         const metadata = item.metadata || {};
@@ -823,19 +851,53 @@ const InventoryTab = memo(function InventoryTab() {
                       <p className={`text-[10px] mt-1 ${typeInfo.color}`}>{typeInfo.label}</p>
                     </div>
                   </div>
-                  <motion.button
-                    onClick={(e) => consumable ? handleUse(item.itemId, e) : handleEquip(item, equipped)}
-                    disabled={!!equipping}
-                    className={`rounded-lg px-4 py-2 text-xs font-bold uppercase transition-all min-w-[70px] ${consumable
-                      ? 'bg-orange-900/30 hover:bg-orange-800/50 border border-orange-500/30 text-orange-300'
-                      : equipped
-                        ? 'bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 text-red-300'
-                        : 'bg-emerald-900/30 hover:bg-emerald-800/50 border border-emerald-500/30 text-emerald-300'
-                      }`}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {equipping === item.itemId ? '...' : consumable ? 'Dùng' : equipped ? 'Tháo' : 'Trang bị'}
-                  </motion.button>
+                  <div className="flex flex-col gap-1.5">
+                    <motion.button
+                      onClick={(e) => consumable ? handleUse(item.itemId, e) : handleEquip(item, equipped)}
+                      disabled={!!equipping || !!repairing}
+                      className={`rounded-lg px-4 py-2 text-xs font-bold uppercase transition-all min-w-[70px] ${consumable
+                        ? 'bg-orange-900/30 hover:bg-orange-800/50 border border-orange-500/30 text-orange-300'
+                        : equipped
+                          ? 'bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 text-red-300'
+                          : 'bg-emerald-900/30 hover:bg-emerald-800/50 border border-emerald-500/30 text-emerald-300'
+                        }`}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {equipping === item.itemId ? '...' : consumable ? 'Dùng' : equipped ? 'Tháo' : 'Trang bị'}
+                    </motion.button>
+                    {/* Nút Tu Bổ cho equipment có độ bền < 100% */}
+                    {item.type?.startsWith('equipment_') && (() => {
+                      const durability = item.metadata?.durability || item.durability;
+                      if (!durability) return null;
+                      const current = durability.current ?? durability;
+                      const max = durability.max ?? 100;
+                      if (current >= max) return null;
+                      
+                      const handleRepair = async (e) => {
+                        e.stopPropagation();
+                        const equipmentId = item.metadata?._id || item.itemId;
+                        setRepairing(equipmentId);
+                        try {
+                          await repairEquipment(equipmentId);
+                        } catch (err) {
+                          console.error('Repair failed:', err);
+                        } finally {
+                          setRepairing(null);
+                        }
+                      };
+                      
+                      return (
+                        <motion.button
+                          onClick={handleRepair}
+                          disabled={!!repairing || !!equipping}
+                          className="rounded-lg px-4 py-1.5 text-[10px] font-bold uppercase transition-all bg-amber-900/30 hover:bg-amber-800/50 border border-amber-500/30 text-amber-300"
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          {repairing === (item.metadata?._id || item.itemId) ? '...' : 'Tu Bổ'}
+                        </motion.button>
+                      );
+                    })()}
+                  </div>
                 </div>
               );
             })}
