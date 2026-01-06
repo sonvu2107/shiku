@@ -43,7 +43,7 @@ const characterVariants = {
 };
 
 const PKTab = memo(function PKTab({ onSwitchTab }) {
-  const { cultivation } = useCultivation();
+  const { cultivation, refresh } = useCultivation();
   const [activeView, setActiveView] = useState('opponents'); // 'opponents', 'history'
   const [opponents, setOpponents] = useState([]);
   const [bots, setBots] = useState([]);
@@ -126,7 +126,7 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
         setOpponents(response.data.opponents);
       }
     } catch (err) {
-      console.error('Load opponents error:', err);
+      // Silent error handling
     } finally {
       setLoading(false);
     }
@@ -141,7 +141,7 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
         setBots(response.data.bots);
       }
     } catch (err) {
-      console.error('Load bots error:', err);
+      // Silent error handling
     } finally {
       setLoading(false);
     }
@@ -157,7 +157,7 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
         setBattleStats(response.data.stats);
       }
     } catch (err) {
-      console.error('Load history error:', err);
+      // Silent error handling
     } finally {
       setLoading(false);
     }
@@ -247,7 +247,7 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
           setTimeout(() => setBattlePhase('fighting'), 1500);
         }
       } catch (e) {
-        console.error('Failed to parse ranked battle data:', e);
+        // Silent error handling
         sessionStorage.removeItem('rankedBattle');
       }
     }
@@ -414,6 +414,12 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
     setChallengerAction('idle');
     setOpponentAction('idle');
     setScreenFlash(null);
+
+    // Refresh cultivation data để cập nhật độ bền trang bị
+    if (refresh) {
+      refresh();
+    }
+
     // Reload history if on history tab
     if (activeView === 'history') {
       loadHistory();

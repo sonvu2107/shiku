@@ -637,8 +637,11 @@ export const battleMonster = async (req, res, next) => {
             // Get equipped items and calculate active modifiers
             let modifierBonuses = { rewards: { exp: rewards.exp, spiritStones: rewards.spiritStones }, bonuses: [] };
             try {
-                const equippedItems = cultivation.inventory.filter(i => i.equipped);
-                const equipmentIds = equippedItems.map(i => i.metadata?.equipmentId).filter(Boolean);
+                // Get equipment IDs from cultivation.equipped slots (new system)
+                const equipmentSlots = ['weapon', 'magicTreasure', 'helmet', 'chest', 'shoulder', 'gloves', 'boots', 'belt', 'ring', 'necklace', 'earring', 'bracelet', 'powerItem'];
+                const equipmentIds = equipmentSlots
+                    .map(slot => cultivation.equipped?.[slot])
+                    .filter(id => id != null);
 
                 if (equipmentIds.length > 0) {
                     const equipments = await Equipment.find({ _id: { $in: equipmentIds } });

@@ -291,7 +291,7 @@ const CultivationSchema = new mongoose.Schema({
     tier: { type: Number, min: 1, max: 14, required: true },
     rarity: { type: String, enum: ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'], required: true },
     element: { type: String, enum: ['metal', 'wood', 'water', 'fire', 'earth', null], default: null },
-    icon: { type: String, default: '📦' },
+    icon: { type: String, default: '' },
     qty: { type: Number, default: 1, min: 1 },
     acquiredAt: { type: Date, default: Date.now }
   }],

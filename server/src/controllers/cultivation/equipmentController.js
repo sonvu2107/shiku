@@ -168,13 +168,11 @@ export const getActiveModifiers = async (req, res, next) => {
             });
         }
 
-        // Get equipped items from inventory
-        const equippedItems = cultivation.inventory.filter(i => i.equipped);
-
-        // Get full equipment data
-        const equipmentIds = equippedItems
-            .map(i => i.metadata?.equipmentId)
-            .filter(Boolean);
+        // Get equipped items from cultivation.equipped slots (new system)
+        const equipmentSlots = ['weapon', 'magicTreasure', 'helmet', 'chest', 'shoulder', 'gloves', 'boots', 'belt', 'ring', 'necklace', 'earring', 'bracelet', 'powerItem'];
+        const equipmentIds = equipmentSlots
+            .map(slot => cultivation.equipped?.[slot])
+            .filter(id => id != null);
 
         const equipments = await Equipment.find({
             _id: { $in: equipmentIds }

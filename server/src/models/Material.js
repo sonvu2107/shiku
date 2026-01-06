@@ -7,20 +7,20 @@ import mongoose from "mongoose";
 
 // ==================== ENUMS ====================
 export const MATERIAL_TIERS = {
-    LUYEN_KHI: 1,    // Phàm Nhân
-    TRUC_CO: 2,      // Luyện Khí
-    KIM_DAN: 3,      // Trúc Cơ
-    NGUYEN_ANH: 4,   // Kim Đan
-    HOA_THAN: 5,     // Nguyên Anh
-    LUYEN_HU: 6,     // Hóa Thần
-    HOP_THE: 7,      // Luyện Hư
-    DAI_THUA: 8,     // Hợp Thể
-    CHAN_TIEN: 9,    // Đại Thừa
-    KIM_TIEN: 10,    // Chân Tiên
-    TIEN_VUONG: 11,  // Kim Tiên
-    TIEN_DE: 12,     // Tiên Vương
+    PHAM_NHAN: 1,    // Phàm Nhân
+    LUYEN_KHI: 2,    // Luyện Khí
+    TRUC_CO: 3,      // Trúc Cơ
+    KIM_DAN: 4,      // Kim Đan
+    NGUYEN_ANH: 5,   // Nguyên Anh
+    HOA_THAN: 6,     // Hóa Thần
+    LUYEN_HU: 7,     // Luyện Hư
+    HOP_THE: 8,      // Hợp Thể
+    DAI_THUA: 9,     // Đại Thừa
+    CHAN_TIEN: 10,   // Chân Tiên
+    KIM_TIEN: 11,    // Kim Tiên
+    TIEN_VUONG: 12,  // Tiên Vương
     THIEN_DE: 13,    // Tiên Đế
-    THIEN_DAO: 14    // Thiên Đế
+    THIEN_DAO: 14    // Thiên Đạo
 };
 
 export const MATERIAL_RARITY = {
@@ -32,7 +32,7 @@ export const MATERIAL_RARITY = {
     MYTHIC: 'mythic'
 };
 
-// Ngũ Hành elements (Wu Xing) for Tu Tiên theme
+// Ngũ Hành
 export const MATERIAL_ELEMENTS = {
     METAL: 'metal',   // Kim
     WOOD: 'wood',     // Mộc
@@ -118,7 +118,7 @@ const MaterialSchema = new mongoose.Schema({
 
     icon: {
         type: String,
-        default: '📦'
+        default: ''
     },
 
     description: {

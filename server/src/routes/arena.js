@@ -11,7 +11,9 @@ import Season, { SEASON_REWARDS } from '../models/Season.js';
 import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES, TECHNIQUES_MAP } from '../models/Cultivation.js';
 import Battle from '../models/Battle.js';
 import User from '../models/User.js';
+import Equipment from '../models/Equipment.js';
 import arenaService from '../services/arenaService.js';
+import { reduceDurability } from '../services/modifierService.js';
 
 const router = express.Router();
 
@@ -19,6 +21,24 @@ const router = express.Router();
 router.use(authRequired);
 
 // ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Reduce durability for all equipped items after battle
+ */
+async function reduceEquipmentDurability(cultivation) {
+    const equipmentSlots = ['weapon', 'magicTreasure', 'helmet', 'chest', 'shoulder', 'gloves', 'boots', 'belt', 'ring', 'necklace', 'earring', 'bracelet', 'powerItem'];
+    const equipmentIds = equipmentSlots
+        .map(slot => cultivation.equipped?.[slot])
+        .filter(id => id != null);
+
+    if (equipmentIds.length > 0) {
+        const equipments = await Equipment.find({ _id: { $in: equipmentIds } });
+        for (const eq of equipments) {
+            reduceDurability(eq, 1);
+            await eq.save();
+        }
+    }
+}
 
 /**
  * Merge equipment stats into combat stats (from battle.js)
@@ -524,6 +544,14 @@ router.post('/challenge', async (req, res, next) => {
 
         await battle.save();
 
+        // Giảm độ bền trang bị sau chiến đấu (PvP)
+        try {
+            await reduceEquipmentDurability(challengerCult);
+            await reduceEquipmentDurability(opponentCult);
+        } catch (durabilityError) {
+            console.error('[ARENA PvP] Durability reduction error:', durabilityError.message);
+        }
+
         // Process ranked match
         const rankedResult = await arenaService.processRankedMatch(
             challengerId,
@@ -664,6 +692,13 @@ router.post('/challenge-bot', async (req, res, next) => {
         });
 
         await battle.save();
+
+        // Giảm độ bền trang bị sau chiến đấu (vs Bot)
+        try {
+            await reduceEquipmentDurability(challengerCult);
+        } catch (durabilityError) {
+            console.error('[ARENA Bot] Durability reduction error:', durabilityError.message);
+        }
 
         // Process ranked match
         const rankedResult = await arenaService.processRankedMatch(

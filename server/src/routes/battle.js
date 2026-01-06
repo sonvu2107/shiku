@@ -8,6 +8,7 @@ import { authRequired } from "../middleware/auth.js";
 import { PK_BOTS, BOT_BATTLE_COOLDOWN, getBotsByRealmLevel, getBotById } from "../data/pkBots.js";
 import { logPKOverkillEvent } from "../controllers/cultivation/worldEventController.js";
 import { getTierBySubLevel, applyDebuffEffects } from "../data/tierConfig.js";
+import { reduceDurability } from "../services/modifierService.js";
 
 const router = express.Router();
 
@@ -15,6 +16,29 @@ const router = express.Router();
 router.use(authRequired);
 
 // ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Reduce durability for all equipped items after battle
+ */
+const reduceEquipmentDurability = async (cultivation) => {
+  const equipmentSlots = ['weapon', 'magicTreasure', 'helmet', 'chest', 'shoulder', 'gloves', 'boots', 'belt', 'ring', 'necklace', 'earring', 'bracelet', 'powerItem'];
+  const equipmentIds = equipmentSlots
+    .map(slot => cultivation.equipped?.[slot])
+    .filter(id => id != null);
+
+  console.log(`[DURABILITY] Found ${equipmentIds.length} equipped items:`, equipmentIds);
+
+  if (equipmentIds.length > 0) {
+    const equipments = await Equipment.find({ _id: { $in: equipmentIds } });
+    console.log(`[DURABILITY] Loaded ${equipments.length} equipment from DB`);
+    for (const eq of equipments) {
+      const oldDurability = eq.durability?.current || 'N/A';
+      reduceDurability(eq, 1);
+      console.log(`[DURABILITY] ${eq.name}: ${oldDurability} -> ${eq.durability?.current}`);
+      await eq.save();
+    }
+  }
+};
 
 /**
  * Tích hợp stats từ trang bị vào combat stats
@@ -635,6 +659,16 @@ router.post("/challenge", async (req, res, next) => {
     }
 
     console.log(`[BATTLE] ${challenger.name} vs ${opponent.name} - Winner: ${battleResult.winner || 'Draw'}${isNghichThien ? ' (Nghịch Thiên)' : ''}`);
+
+    // Giảm độ bền trang bị sau chiến đấu
+    try {
+      await reduceEquipmentDurability(challengerCultivation);
+      if (opponentCultivation && !String(opponentId).startsWith('bot_')) {
+        await reduceEquipmentDurability(opponentCultivation);
+      }
+    } catch (durabilityError) {
+      console.error('[BATTLE] Durability reduction error:', durabilityError.message);
+    }
 
     // Cập nhật quest progress cho PK 
     challengerCultivation.updateQuestProgress('pk_battle', 1);
@@ -1366,6 +1400,16 @@ router.post("/challenge/bot", async (req, res, next) => {
     });
 
     await battle.save();
+
+    // Giảm độ bền trang bị sau chiến đấu (vs Bot)
+    console.log('[BATTLE-BOT] Attempting to reduce equipment durability...');
+    console.log('[BATTLE-BOT] challengerCultivation.equipped:', JSON.stringify(challengerCultivation.equipped));
+    try {
+      await reduceEquipmentDurability(challengerCultivation);
+      console.log('[BATTLE-BOT] Durability reduction completed');
+    } catch (durabilityError) {
+      console.error('[BATTLE-BOT] Durability reduction error:', durabilityError.message);
+    }
 
     // ==================== DEBUFF HANDLING (BOT) ====================
     // Tiêu hao 1 lượt debuff sau mỗi trận

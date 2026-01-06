@@ -649,7 +649,7 @@ const BattleResultModal = memo(function BattleResultModal({ result, onClose }) {
 // ==================== MAIN COMPONENT ====================
 
 const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
-    const { cultivation } = useCultivation();
+    const { cultivation, refresh } = useCultivation();
     const [activeView, setActiveView] = useState('rank'); // 'rank', 'history', 'leaderboard'
     const [loading, setLoading] = useState(true);
     const [rankData, setRankData] = useState(null);
@@ -674,7 +674,7 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                 setRankData(response.data);
             }
         } catch (error) {
-            console.error('Failed to fetch rank data:', error);
+            // Silent error handling
         }
     }, []);
 
@@ -685,7 +685,7 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                 setSeasonData(response.data);
             }
         } catch (error) {
-            console.error('Failed to fetch season data:', error);
+            // Silent error handling
         }
     }, []);
 
@@ -696,7 +696,7 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                 setMatchHistory(response.data?.matches || []);
             }
         } catch (error) {
-            console.error('Failed to fetch match history:', error);
+            // Silent error handling
         }
     }, []);
 
@@ -708,7 +708,7 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                 setUserRank(response.data?.userRank);
             }
         } catch (error) {
-            console.error('Failed to fetch leaderboard:', error);
+            // Silent error handling
         }
     }, []);
 
@@ -768,6 +768,8 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                         // Refresh data after match
                         await fetchRankData();
                         await fetchMatchHistory();
+                        // Refresh cultivation data để cập nhật độ bền trang bị
+                        if (refresh) refresh();
                     }
                 } else if (response.suggestBot) {
                     // No opponent found - offer bot
@@ -775,7 +777,7 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                 }
             }
         } catch (error) {
-            console.error('Find match error:', error);
+            // Silent error handling
             if (error.response?.status === 429) {
                 // Cooldown - update rank data to get new cooldown
                 await fetchRankData();
@@ -807,9 +809,11 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                 }
                 await fetchRankData();
                 await fetchMatchHistory();
+                // Refresh cultivation data để cập nhật độ bền trang bị
+                if (refresh) refresh();
             }
         } catch (error) {
-            console.error('Challenge bot error:', error);
+            // Silent error handling
         } finally {
             setBotOffer(null);
         }
