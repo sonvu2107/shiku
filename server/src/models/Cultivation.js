@@ -284,6 +284,18 @@ const CultivationSchema = new mongoose.Schema({
   // ==================== KHO ĐỒ ====================
   inventory: [InventoryItemSchema],
 
+  // ==================== NGUYÊN LIỆU LUYỆN KHÍ ====================
+  materials: [{
+    templateId: { type: String, required: true },
+    name: { type: String, required: true },
+    tier: { type: Number, min: 1, max: 14, required: true },
+    rarity: { type: String, enum: ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'], required: true },
+    element: { type: String, enum: ['metal', 'wood', 'water', 'fire', 'earth', null], default: null },
+    icon: { type: String, default: '📦' },
+    qty: { type: Number, default: 1, min: 1 },
+    acquiredAt: { type: Date, default: Date.now }
+  }],
+
   // ==================== CÔNG PHÁP TÔNG MÔN ====================
   sectTechniques: [{
     id: { type: String, required: true },
@@ -342,6 +354,17 @@ const CultivationSchema = new mongoose.Schema({
     allowedExp: { type: Number },
     requestedExp: { type: Number },
     claimedAt: { type: Date }
+  },
+
+  // ==================== PHIÊN LUYỆN CÔNG PHÁP (NHẬP ĐỊNH 10 PHÚT) ====================
+  // Cho phép luyện TẤT CẢ công pháp cùng lúc, 1 click = 10 phút
+  activePracticeSession: {
+    sessionId: { type: String },
+    startedAt: { type: Date },
+    endsAt: { type: Date },
+    techniqueIds: [{ type: String }], // Danh sách công pháp đang luyện
+    expPerTechnique: { type: Number, default: 400 }, // ~40 lần luyện * 10 exp
+    claimedAt: { type: Date, default: null }
   },
 
   // ==================== BUFF/BOOST ĐANG HOẠT ĐỘNG ====================
@@ -689,7 +712,7 @@ CultivationSchema.methods.getRealmFromExp = function () {
  */
 CultivationSchema.methods.getExpToNextRealm = function () {
   const currentRealm = this.getRealmFromExp();
-  if (currentRealm.level >= 11) return 0;
+  if (currentRealm.level >= 14) return 0;
   return currentRealm.maxExp - this.exp + 1;
 };
 
@@ -700,7 +723,7 @@ CultivationSchema.methods.getExpToNextRealm = function () {
 CultivationSchema.methods.getRealmProgress = function () {
   // Dùng realmLevel hiện tại thay vì tính từ exp
   const currentRealm = CULTIVATION_REALMS.find(r => r.level === this.realmLevel) || CULTIVATION_REALMS[0];
-  if (currentRealm.level >= 11) return 100;
+  if (currentRealm.level >= 14) return 100;
 
   // Tính progress trong realm hiện tại
   const progressInRealm = this.exp - currentRealm.minExp;

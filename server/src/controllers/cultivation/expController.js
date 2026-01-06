@@ -268,10 +268,17 @@ export const addExp = async (req, res, next) => {
             const { allowedExp, capRemaining } = await consumeExpCap(userId, boostedAmount, capLimit);
 
             if (allowedExp === 0) {
+                // Tính thời gian còn lại đến khi cap reset (5 phút window)
+                const { getWindowInfo } = await import('../../services/expCapService.js');
+                const { windowEnd, now } = getWindowInfo(userId);
+                const retryAfterMs = windowEnd - now;
+                const retryAfterSeconds = Math.max(1, Math.ceil(retryAfterMs / 1000));
+
                 return res.status(429).json({
                     success: false,
-                    message: "Linh khí đã cạn kiệt",
-                    capRemaining: 0
+                    message: `Linh khí đã cạn kiệt, chờ ${retryAfterSeconds} giây`,
+                    capRemaining: 0,
+                    retryAfter: retryAfterSeconds
                 });
             }
 

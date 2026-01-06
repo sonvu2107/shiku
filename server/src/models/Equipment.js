@@ -183,6 +183,97 @@ const EquipmentSchema = new mongoose.Schema({
     default: 0 // Tăng thời gian buff (giây)
   },
 
+  // ==================== SUBTYPE & ELEMENT (Luyện Khí System) ====================
+  subtype: {
+    type: String,
+    required: false,
+    default: null // e.g., 'sword', 'helmet', 'ring'
+  },
+
+  slot: {
+    type: String,
+    required: false,
+    default: null // e.g., 'weapon', 'helmet', 'ring'
+  },
+
+  element: {
+    type: String,
+    enum: ['metal', 'wood', 'water', 'fire', 'earth', null],
+    default: null
+  },
+
+  tier: {
+    type: Number,
+    min: 1,
+    max: 14,
+    default: 1
+  },
+
+  // ==================== REALM-LOCK ====================
+  realm_required: {
+    type: Number,
+    min: 1,
+    max: 14,
+    default: 1,
+    index: true
+  },
+
+  // ==================== DURABILITY SYSTEM ====================
+  durability: {
+    current: { type: Number, default: 100 },
+    max: { type: Number, default: 100 }
+  },
+
+  // ==================== SPECIAL MODIFIERS ====================
+  // Modifiers là các hiệu ứng đặc biệt, không phải flat stats
+  modifiers: [{
+    // Type của modifier
+    type: {
+      type: String,
+      enum: [
+        // Combat modifiers
+        'crit_vs_higher_realm',    // +X% crit vs cảnh giới cao hơn
+        'damage_when_low_hp',      // +X% dmg khi HP < trigger%
+        'first_strike_bonus',      // +X% dmg đòn đầu
+        'last_hit_bonus',          // +X% dmg khi target < trigger% HP
+        'counter_attack',          // X% chance phản đòn
+        'dodge_after_hit',         // +X% dodge sau khi bị đánh
+        'lifesteal_on_crit',       // +X% lifesteal khi crit
+        'penetration_vs_armor',    // +X% xuyên giáp vs đối thủ có def cao
+        'speed_boost_combat',      // +X speed trong combat
+        'mana_regen_combat',       // +X mana/turn
+        // Defensive modifiers
+        'damage_reduction_percent', // -X% dmg nhận vào
+        'block_chance',            // X% chance block (giảm 50% dmg)
+        'reflect_damage',          // Phản X% dmg
+        'heal_on_kill',            // Hồi X% HP khi hạ gục
+        // Elemental modifiers
+        'element_damage_bonus',    // +X% dmg nguyên tố
+        'element_resist_bonus',    // +X% kháng nguyên tố
+        // Special
+        'exp_bonus',               // +X% EXP
+        'spirit_stone_bonus',      // +X% linh thạch
+        'item_drop_bonus'          // +X% drop rate
+      ],
+      required: true
+    },
+    value: { type: Number, required: true }, // Giá trị modifier
+    trigger: { type: Number }, // Điều kiện kích hoạt (optional)
+    element: { type: String }, // Nguyên tố liên quan (optional)
+    scope: {
+      type: String,
+      enum: ['pve', 'pvp', 'all'],
+      default: 'all'
+    }
+  }],
+
+  // ==================== ELEMENT SYNERGY ====================
+  // Lưu synergy bonus khi user trang bị đủ set
+  synergy_active: {
+    type: Boolean,
+    default: false
+  },
+
   // ==================== ADMIN & METADATA ====================
   created_by: {
     type: mongoose.Schema.Types.ObjectId,

@@ -908,7 +908,7 @@ router.get("/opponents/list", async (req, res, next) => {
       user: { $ne: userId },
       realmLevel: {
         $gte: Math.max(1, userRealmLevel - 2),
-        $lte: Math.min(11, userRealmLevel + 2)
+        $lte: Math.min(14, userRealmLevel + 2)
       }
     })
       .sort({ realmLevel: -1, exp: -1 })
@@ -921,7 +921,7 @@ router.get("/opponents/list", async (req, res, next) => {
       user: { $ne: userId },
       realmLevel: {
         $gte: Math.max(1, userRealmLevel - 2),
-        $lte: Math.min(11, userRealmLevel + 2)
+        $lte: Math.min(14, userRealmLevel + 2)
       }
     });
 

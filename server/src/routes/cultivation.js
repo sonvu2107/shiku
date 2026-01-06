@@ -36,6 +36,9 @@ import {
   getCombatStats,
   getUserCombatStats,
   practiceTechnique,
+  startPracticeSession,
+  claimPracticeSession,
+  getPracticeSessionStatus,
   breakthrough,
   fixRealms,
   // Dungeon
@@ -53,7 +56,21 @@ import {
   activateTechnique,
   claimTechnique,
   // World Events - Thiên Hạ Ký
-  getWorldEvents
+  getWorldEvents,
+  // Materials
+  getMaterialCatalog,
+  getUserMaterials,
+  getDropHistory,
+  // Crafting
+  getCraftableTypes,
+  previewCraftResult,
+  executeCrafting,
+  getCraftHistory,
+  // Equipment Management
+  getEquipmentDetails,
+  repairEquipment,
+  getActiveModifiers,
+  checkCanEquip
 } from "../controllers/cultivation/index.js";
 
 
@@ -105,6 +122,11 @@ router.get("/combat-stats/:userId", getUserCombatStats);
 router.post("/practice-technique", practiceTechnique);
 router.post("/breakthrough", breakthroughLimiter, breakthrough);
 
+// ==================== PHIÊN LUYỆN CÔNG PHÁP (NHẬP ĐỊNH 10 PHÚT) ====================
+router.get("/practice-session/status", getPracticeSessionStatus);
+router.post("/practice-session/start", startPracticeSession);
+router.post("/practice-session/claim", claimPracticeSession);
+
 // ==================== BÍ CẢNH (DUNGEON) ====================
 router.get("/dungeons", getDungeons);
 router.post("/dungeons/:dungeonId/enter", enterDungeon);
@@ -123,5 +145,22 @@ router.post("/techniques/learn", learnTechnique);
 router.post("/techniques/equip", equipTechnique);
 router.post("/techniques/activate", activateTechnique);
 router.post("/techniques/claim", claimTechnique);
+
+// ==================== NGUYÊN LIỆU LUYỆN KHÍ (MATERIALS) ====================
+router.get("/materials/catalog", getMaterialCatalog);
+router.get("/materials/inventory", getUserMaterials);
+router.get("/materials/drops/history", getDropHistory);
+
+// ==================== LUYỆN CHẾ TRANG BỊ (CRAFTING) ====================
+router.get("/craft/types", getCraftableTypes);
+router.post("/craft/preview", previewCraftResult);
+router.post("/craft/execute", executeCrafting);
+router.get("/craft/history", getCraftHistory);
+
+// ==================== QUẢN LÝ TRANG BỊ (EQUIPMENT) ====================
+router.get("/equipment/active-modifiers", getActiveModifiers);
+router.get("/equipment/:equipmentId", getEquipmentDetails);
+router.post("/equipment/:equipmentId/repair", repairEquipment);
+router.post("/equipment/:equipmentId/check-equip", checkCanEquip);
 
 export default router;

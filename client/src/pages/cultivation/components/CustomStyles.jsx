@@ -410,16 +410,23 @@ const CustomStyles = () => (
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+    .custom-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(168, 85, 247, 0.4) rgba(15, 23, 42, 0.6);
+    }
     .custom-scrollbar::-webkit-scrollbar {
-      width: 4px;
+      width: 6px;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 2px;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 3px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: rgba(168, 85, 247, 0.4);
-      border-radius: 2px;
+      background: rgba(168, 85, 247, 0.5);
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(168, 85, 247, 0.7);
     }
 
     /* Decorative Corner */

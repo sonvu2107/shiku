@@ -15,7 +15,7 @@ export const DIFFICULTY_CONFIG = {
     easy: {
         floors: 5,
         baseSpiritStoneCost: 30,
-        cooldownHours: 1,
+        cooldownHours: 0.33, // 20 phút (giảm 67% từ 1 giờ)
         expMultiplier: 1,
         rewardMultiplier: 1,
         monsterStatMultiplier: 0.6
@@ -23,7 +23,7 @@ export const DIFFICULTY_CONFIG = {
     normal: {
         floors: 7,
         baseSpiritStoneCost: 60,
-        cooldownHours: 2,
+        cooldownHours: 0.67, // 40 phút (giảm 67% từ 2 giờ)
         expMultiplier: 1.5,
         rewardMultiplier: 1.3,
         monsterStatMultiplier: 0.8
@@ -31,7 +31,7 @@ export const DIFFICULTY_CONFIG = {
     hard: {
         floors: 10,
         baseSpiritStoneCost: 100,
-        cooldownHours: 3,
+        cooldownHours: 1, // 1 giờ (giảm 67% từ 3 giờ)
         expMultiplier: 2,
         rewardMultiplier: 1.6,
         monsterStatMultiplier: 1.0
@@ -39,7 +39,7 @@ export const DIFFICULTY_CONFIG = {
     nightmare: {
         floors: 12,
         baseSpiritStoneCost: 150,
-        cooldownHours: 5,
+        cooldownHours: 1.5, // 1.5 giờ (giảm 70% từ 5 giờ)
         expMultiplier: 3,
         rewardMultiplier: 2,
         monsterStatMultiplier: 1.3
@@ -47,7 +47,7 @@ export const DIFFICULTY_CONFIG = {
     hell: {
         floors: 15,
         baseSpiritStoneCost: 250,
-        cooldownHours: 6,
+        cooldownHours: 2, // 2 giờ (giảm 67% từ 6 giờ)
         expMultiplier: 5,
         rewardMultiplier: 3,
         monsterStatMultiplier: 1.6
@@ -55,7 +55,7 @@ export const DIFFICULTY_CONFIG = {
     chaos: {
         floors: 20,
         baseSpiritStoneCost: 500,
-        cooldownHours: 8,
+        cooldownHours: 2.5, // 2.5 giờ (giảm 69% từ 8 giờ)
         expMultiplier: 10,
         rewardMultiplier: 5,
         monsterStatMultiplier: 2.0 // Will be overridden by player-based scaling
@@ -319,23 +319,23 @@ export const DUNGEON_MONSTERS = {
 
 // ==================== FLOOR REWARDS CONFIG ====================
 export const FLOOR_REWARDS = {
-    // Reward per normal floor
+    // Reward per normal floor (TĂNG 100%)
     normalFloor: {
-        baseExp: 50,
-        baseSpiritStones: 10,
-        itemDropRate: 0.15 // 15% chance to drop item
+        baseExp: 100,           // 50 → 100 (+100%)
+        baseSpiritStones: 20,   // 10 → 20 (+100%)
+        itemDropRate: 0.25      // 15% → 25% (+10%)
     },
     // Reward for elite monster
     eliteFloor: {
         expMultiplier: 2,
         spiritStoneMultiplier: 2,
-        itemDropRate: 0.4 // 40% chance
+        itemDropRate: 0.6       // 40% → 60% (+20%)
     },
     // Reward for boss
     bossFloor: {
         expMultiplier: 5,
         spiritStoneMultiplier: 5,
-        itemDropRate: 0.8, // 80% chance
+        itemDropRate: 1.0,      // 80% → 100% (đảm bảo có item)
         guaranteedReward: true
     }
 };
@@ -386,19 +386,22 @@ export const DUNGEON_ITEM_DROPS = {
 
 // ==================== HELPER FUNCTIONS ====================
 
-// Base stats by realm level (matching player stats for balanced combat)
+// Base stats by realm level (matching player stats for balanced combat) - 14 LEVELS
 const REALM_BASE_STATS = {
-    1: { attack: 10, defense: 5, qiBlood: 100 },      // Phàm Nhân
-    2: { attack: 25, defense: 12, qiBlood: 250 },     // Luyện Khí
-    3: { attack: 50, defense: 25, qiBlood: 500 },     // Trúc Cơ
-    4: { attack: 100, defense: 50, qiBlood: 1000 },   // Kim Đan
-    5: { attack: 200, defense: 100, qiBlood: 2000 },  // Nguyên Anh
-    6: { attack: 400, defense: 200, qiBlood: 4000 },  // Hóa Thần
-    7: { attack: 800, defense: 400, qiBlood: 8000 },  // Luyện Hư
-    8: { attack: 1600, defense: 800, qiBlood: 16000 }, // Đại Thừa
-    9: { attack: 3200, defense: 1600, qiBlood: 32000 }, // Độ Kiếp
-    10: { attack: 6400, defense: 3200, qiBlood: 64000 }, // Tiên Nhân
-    11: { attack: 12800, defense: 6400, qiBlood: 128000 } // Thiên Đế
+    1: { attack: 10, defense: 5, qiBlood: 100 },        // Phàm Nhân
+    2: { attack: 25, defense: 12, qiBlood: 250 },       // Luyện Khí
+    3: { attack: 50, defense: 25, qiBlood: 500 },       // Trúc Cơ
+    4: { attack: 100, defense: 50, qiBlood: 1000 },     // Kim Đan
+    5: { attack: 200, defense: 100, qiBlood: 2000 },    // Nguyên Anh
+    6: { attack: 400, defense: 200, qiBlood: 4000 },    // Hóa Thần
+    7: { attack: 800, defense: 400, qiBlood: 8000 },    // Luyện Hư
+    8: { attack: 1600, defense: 800, qiBlood: 16000 },  // Hợp Thể
+    9: { attack: 3200, defense: 1600, qiBlood: 32000 }, // Đại Thừa
+    10: { attack: 6400, defense: 3200, qiBlood: 64000 }, // Chân Tiên
+    11: { attack: 12800, defense: 6400, qiBlood: 128000 }, // Kim Tiên
+    12: { attack: 25600, defense: 12800, qiBlood: 256000 }, // Tiên Vương
+    13: { attack: 51200, defense: 25600, qiBlood: 512000 }, // Tiên Đế
+    14: { attack: 102400, defense: 51200, qiBlood: 1024000 } // Thiên Đế
 };
 
 // Get required realm for a dungeon
@@ -630,8 +633,8 @@ export const calculateFloorRewards = (difficulty, floor, monsterType) => {
         itemDropRate = FLOOR_REWARDS.bossFloor.itemDropRate;
     }
 
-    // Scale by floor number
-    const floorBonus = 1 + (floor - 1) * 0.1;
+    // Scale by floor number (TĂNG từ 10% → 15%/tầng)
+    const floorBonus = 1 + (floor - 1) * 0.15;
 
     return {
         exp: Math.floor(baseReward.baseExp * expMultiplier * floorBonus),

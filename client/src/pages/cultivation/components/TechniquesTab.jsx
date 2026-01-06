@@ -29,6 +29,12 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
   const [activating, setActivating] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
+  // Bulk Practice Session state (Nhập Định 10 Phút)
+  const [bulkPracticeSession, setBulkPracticeSession] = useState(null);
+  const [bulkPracticeTimeLeft, setBulkPracticeTimeLeft] = useState(0);
+  const [startingBulkPractice, setStartingBulkPractice] = useState(false);
+  const [claimingBulkPractice, setClaimingBulkPractice] = useState(false);
+
   // Load shop data khi component mount nếu chưa có
   // Đảm bảo công pháp luôn hiển thị dù user vào tab này trước Cửa Hàng
   useEffect(() => {
@@ -63,7 +69,25 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
 
   useEffect(() => {
     loadCultivationTechniques();
+    loadBulkPracticeStatus();
   }, []);
+
+  // Load bulk practice session status
+  const loadBulkPracticeStatus = async () => {
+    try {
+      const data = await api('/api/cultivation/practice-session/status');
+      if (data.success && data.data.hasActiveSession) {
+        setBulkPracticeSession(data.data);
+        const timeLeft = Math.max(0, Math.floor(data.data.remainingMs / 1000));
+        setBulkPracticeTimeLeft(timeLeft);
+      } else {
+        setBulkPracticeSession(null);
+        setBulkPracticeTimeLeft(0);
+      }
+    } catch (e) {
+      console.error('Failed to load bulk practice status:', e);
+    }
+  };
 
   // Session countdown timer
   useEffect(() => {
@@ -81,6 +105,23 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
 
     return () => clearInterval(timer);
   }, [sessionTimeLeft > 0]);
+
+  // Bulk practice countdown timer
+  useEffect(() => {
+    if (bulkPracticeTimeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setBulkPracticeTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [bulkPracticeTimeLeft > 0]);
 
   useEffect(() => {
     if (!Object.keys(cooldowns).length) return;
@@ -103,6 +144,55 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
 
     return () => clearInterval(timer);
   }, [cooldowns]);
+
+  // Handler: Start bulk practice session (Nhập Định 10 Phút)
+  const handleStartBulkPractice = async () => {
+    if (startingBulkPractice) return;
+    setStartingBulkPractice(true);
+    try {
+      const res = await api('/api/cultivation/practice-session/start', {
+        method: 'POST'
+      });
+      if (res.success) {
+        setBulkPracticeSession({
+          hasActiveSession: true,
+          ...res.data
+        });
+        setBulkPracticeTimeLeft(Math.floor(res.data.durationMs / 1000));
+      }
+    } catch (e) {
+      console.error('Start bulk practice failed:', e);
+    } finally {
+      setStartingBulkPractice(false);
+    }
+  };
+
+  // Handler: Claim bulk practice session
+  const handleClaimBulkPractice = async () => {
+    if (claimingBulkPractice) return;
+    setClaimingBulkPractice(true);
+    try {
+      const res = await api('/api/cultivation/practice-session/claim', {
+        method: 'POST'
+      });
+      if (res.success) {
+        setBulkPracticeSession(null);
+        setBulkPracticeTimeLeft(0);
+        if (refresh) refresh();
+      }
+    } catch (e) {
+      console.error('Claim bulk practice failed:', e);
+    } finally {
+      setClaimingBulkPractice(false);
+    }
+  };
+
+  // Format time for display
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   if (loading || !cultivation) {
     return <LoadingSkeleton />;
@@ -644,6 +734,68 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
           <div className="flex items-center justify-between">
             <h4 className="text-lg font-bold text-emerald-400 font-title">TU LUYỆN CÔNG PHÁP</h4>
             <span className="text-xs text-slate-500">({finalLearned.length} / {learned.length})</span>
+          </div>
+
+          {/* NHẬP ĐỊNH 10 PHÚT - Bulk Practice Panel */}
+          <div className="spirit-tablet rounded-xl p-4 bg-gradient-to-br from-purple-900/30 to-indigo-900/30 border border-purple-500/30">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg"></span>
+                  <h5 className="font-bold text-purple-300">Nhập Định 10 Phút</h5>
+                </div>
+                <p className="text-xs text-slate-400">
+                  {bulkPracticeSession?.hasActiveSession
+                    ? `Đang luyện ${bulkPracticeSession.techniqueCount || learned.filter(t => t.level < 10).length} công pháp...`
+                    : `Luyện tất cả ${learned.filter(t => t.level < 10).length} công pháp cùng lúc (+400 exp/công pháp)`
+                  }
+                </p>
+
+                {/* Progress bar when session active */}
+                {bulkPracticeSession?.hasActiveSession && (
+                  <div className="mt-3">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-blue-300">Tiến độ</span>
+                      <span className="text-blue-400 font-mono font-bold">{formatTime(bulkPracticeTimeLeft)}</span>
+                    </div>
+                    <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-blue-500/30">
+                      <div
+                        className="bg-gradient-to-r from-blue-600 to-violet-500 h-full transition-all duration-1000"
+                        style={{ width: `${((600 - bulkPracticeTimeLeft) / 600) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Dự kiến nhận: +{(bulkPracticeSession.totalEstimatedExp || learned.filter(t => t.level < 10).length * 400).toLocaleString()} điểm tu luyện
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Button */}
+              <div className="flex-shrink-0 w-full sm:w-auto">
+                {!bulkPracticeSession?.hasActiveSession ? (
+                  <button
+                    onClick={handleStartBulkPractice}
+                    disabled={startingBulkPractice || learned.filter(t => t.level < 10).length === 0}
+                    className="w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-bold uppercase bg-amber-700 text-amber-100 border border-amber-500/50 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_15px_rgba(217,119,6,0.3)]"
+                  >
+                    {startingBulkPractice ? 'Đang bắt đầu...' : 'Bắt Đầu Nhập Định'}
+                  </button>
+                ) : bulkPracticeTimeLeft <= 0 ? (
+                  <button
+                    onClick={handleClaimBulkPractice}
+                    disabled={claimingBulkPractice}
+                    className="w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-bold uppercase bg-gradient-to-r from-emerald-600 to-teal-600 text-white border border-emerald-400/50 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 transition-all animate-pulse shadow-[0_0_15px_rgba(52,211,153,0.4)]"
+                  >
+                    {claimingBulkPractice ? 'Đang thu...' : ' Thu Hoạch'}
+                  </button>
+                ) : (
+                  <div className="text-center px-6 py-3 rounded-lg bg-slate-800/50 border border-slate-600/50">
+                    <span className="text-slate-400 text-sm">Đang nhập định...</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Grid 2 cột trên desktop */}

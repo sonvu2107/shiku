@@ -22,7 +22,7 @@ import {
 } from '../utils/dungeonHelpers';
 import { RARITY_COLORS } from '../utils/constants.js';
 import { getItemIcon, ITEM_TYPE_LABELS, IMAGE_COMPONENTS } from '../utils/iconHelpers.js';
-import debug from '../../../utils/debug';
+import { debugError } from '../../../utils/debug';
 import { getUserAvatarUrl } from '../../../utils/avatarUtils.js';
 import { loadUser } from '../../../utils/userCache.js';
 
@@ -156,7 +156,7 @@ const DungeonCard = memo(({ dungeon, onEnter, disabled }) => {
                     <div className="text-sm font-bold text-amber-400">{dungeon.floors}</div>
                 </div>
                 <div className="text-center p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                    <div className="text-xs text-slate-500 mb-1">EXP</div>
+                    <div className="text-xs text-slate-500 mb-1">Tu vi</div>
                     <div className="text-sm font-bold text-emerald-400">×{dungeon.expMultiplier}</div>
                 </div>
                 <div className="text-center p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
@@ -214,9 +214,10 @@ const DungeonCard = memo(({ dungeon, onEnter, disabled }) => {
 });
 
 // Pixel Inventory Modal
-const InventoryModal = memo(({ inventory, onClose, onUseItem }) => {
+const InventoryModal = memo(({ inventory, materials, onClose, onUseItem }) => {
     const isClosingRef = useRef(false);
     const [usingItem, setUsingItem] = useState(null);
+    const [activeTab, setActiveTab] = useState('consumables'); // 'consumables' | 'materials'
 
     const handleClose = useCallback((e) => {
         if (e) {
@@ -265,44 +266,137 @@ const InventoryModal = memo(({ inventory, onClose, onUseItem }) => {
                         TÚI ĐỒ
                     </h2>
 
-                    {consumableItems.length === 0 ? (
-                        <div className="text-center py-8 text-slate-400">
-                            <p className="text-sm">Không có vật phẩm có thể sử dụng</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {consumableItems.map((item, index) => {
-                                const rarity = RARITY_COLORS[item.rarity] || RARITY_COLORS.common;
-                                const typeInfo = ITEM_TYPE_LABELS[item.type] || { label: 'Vật Phẩm', color: 'text-slate-300' };
-                                const ItemIcon = getItemIcon(item);
+                    {/* Tab Switcher */}
+                    <div className="flex gap-2 mb-4">
+                        <button
+                            onClick={() => setActiveTab('consumables')}
+                            className={`flex-1 py-2 px-3 text-xs font-bold uppercase transition-all border-2 ${
+                                activeTab === 'consumables'
+                                    ? 'bg-orange-600 border-orange-400 text-white'
+                                    : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
+                            }`}
+                        >
+                            Vật Phẩm ({consumableItems.length})
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('materials')}
+                            className={`flex-1 py-2 px-3 text-xs font-bold uppercase transition-all border-2 ${
+                                activeTab === 'materials'
+                                    ? 'bg-amber-600 border-amber-400 text-white'
+                                    : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
+                            }`}
+                        >
+                            <span className="flex items-center justify-center gap-1">
+                                <GiCutDiamond className="w-3 h-3" />
+                                Nguyên liệu ({materials?.length || 0})
+                            </span>
+                        </button>
+                    </div>
 
-                                return (
-                                    <div
-                                        key={item._id || `${item.itemId}-${index}`}
-                                        className="bg-black border-2 p-3 text-center"
-                                        style={{ borderColor: rarity.color }}
-                                    >
-                                        <div className="flex justify-center mb-2">
-                                            {ItemIcon && <ItemIcon className="w-8 h-8" style={{ color: rarity.color }} />}
-                                        </div>
-                                        <p className="text-xs font-bold mb-1 text-white truncate" style={{ color: rarity.color }}>
-                                            {item.name || item.itemId}
-                                        </p>
-                                        <p className="text-[10px] text-slate-400 mb-2">{typeInfo.label}</p>
-                                        {item.description && (
-                                            <p className="text-[9px] text-slate-500 mb-2 line-clamp-2">{item.description}</p>
-                                        )}
-                                        <button
-                                            onClick={() => handleUse(item.itemId)}
-                                            disabled={usingItem === item.itemId}
-                                            className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-3 text-xs uppercase transition-all disabled:opacity-50"
+                    {/* Consumables Tab */}
+                    {activeTab === 'consumables' && (
+                        consumableItems.length === 0 ? (
+                            <div className="text-center py-8 text-slate-400">
+                                <p className="text-sm">Không có vật phẩm có thể sử dụng</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                {consumableItems.map((item, index) => {
+                                    const rarity = RARITY_COLORS[item.rarity] || RARITY_COLORS.common;
+                                    const typeInfo = ITEM_TYPE_LABELS[item.type] || { label: 'Vật Phẩm', color: 'text-slate-300' };
+                                    const ItemIcon = getItemIcon(item);
+
+                                    return (
+                                        <div
+                                            key={item._id || `${item.itemId}-${index}`}
+                                            className="bg-black border-2 p-3 text-center"
+                                            style={{ borderColor: rarity.color }}
                                         >
-                                            {usingItem === item.itemId ? 'Đang dùng...' : 'Dùng'}
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                            <div className="flex justify-center mb-2">
+                                                {ItemIcon && <ItemIcon className="w-8 h-8" style={{ color: rarity.color }} />}
+                                            </div>
+                                            <p className="text-xs font-bold mb-1 text-white truncate" style={{ color: rarity.color }}>
+                                                {item.name || item.itemId}
+                                            </p>
+                                            <p className="text-[10px] text-slate-400 mb-2">{typeInfo.label}</p>
+                                            {item.description && (
+                                                <p className="text-[9px] text-slate-500 mb-2 line-clamp-2">{item.description}</p>
+                                            )}
+                                            <button
+                                                onClick={() => handleUse(item.itemId)}
+                                                disabled={usingItem === item.itemId}
+                                                className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-3 text-xs uppercase transition-all disabled:opacity-50"
+                                            >
+                                                {usingItem === item.itemId ? 'Đang dùng...' : 'Dùng'}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )
+                    )}
+
+                    {/* Materials Tab */}
+                    {activeTab === 'materials' && (
+                        !materials || materials.length === 0 ? (
+                            <div className="text-center py-8 text-slate-400">
+                                <p className="text-sm">Chưa có nguyên liệu luyện khí</p>
+                                <p className="text-xs text-slate-500 mt-2">Đánh bại Elite/Boss trong bí cảnh để thu thập</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-cultivation">
+                                {materials.map((mat, idx) => {
+                                    const matRarity = RARITY_COLORS[mat.rarity] || RARITY_COLORS.common;
+                                    const elementColors = {
+                                        metal: { color: '#fde047', name: 'Kim', bg: '#fde04720' },
+                                        wood: { color: '#4ade80', name: 'Mộc', bg: '#4ade8020' },
+                                        water: { color: '#22d3ee', name: 'Thủy', bg: '#22d3ee20' },
+                                        fire: { color: '#fb923c', name: 'Hỏa', bg: '#fb923c20' },
+                                        earth: { color: '#d97706', name: 'Thổ', bg: '#d9770620' }
+                                    };
+                                    const element = mat.element ? elementColors[mat.element] : null;
+
+                                    return (
+                                        <div
+                                            key={`${mat.templateId}-${mat.rarity}-${idx}`}
+                                            className="bg-black border-2 p-3 flex items-center justify-between"
+                                            style={{ borderColor: matRarity.color }}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                {/* Material Image */}
+                                                <div className="w-10 h-10 rounded overflow-hidden border border-slate-600">
+                                                    <img
+                                                        src={`/assets/materials/${mat.templateId}.jpg`}
+                                                        alt={mat.name}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => { e.target.src = '/assets/materials/mat_iron_ore.jpg'; }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold" style={{ color: matRarity.color }}>
+                                                        {mat.name}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        {element && (
+                                                            <span
+                                                                className="text-[10px] px-1.5 py-0.5 rounded"
+                                                                style={{ backgroundColor: element.bg, color: element.color }}
+                                                            >
+                                                                {element.name}
+                                                            </span>
+                                                        )}
+                                                        <span className="text-[10px] text-slate-500">Phẩm {mat.tier}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-lg font-bold text-cyan-400">×{mat.qty}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )
                     )}
 
                     <button
@@ -651,7 +745,7 @@ const RewardsModal = memo(({ rewards, isVictory, onClose, dungeonName, floorInfo
                         <div className="bg-black p-4 border-2 border-slate-700 my-4 text-left">
                             <p className="text-white mb-2 underline decoration-dashed text-xs">NHẬN ĐƯỢC:</p>
                             <div className="flex justify-between text-emerald-400 text-sm">
-                                <span>EXP:</span> <span>+{formatNumber(rewards?.exp || 0)}</span>
+                                <span>TU VI:</span> <span>+{formatNumber(rewards?.exp || 0)}</span>
                             </div>
                             <div className="flex justify-between text-yellow-400 text-sm">
                                 <span>LINH THẠCH:</span> <span>+{formatNumber(rewards?.spiritStones || 0)}</span>
@@ -673,6 +767,56 @@ const RewardsModal = memo(({ rewards, isVictory, onClose, dungeonName, floorInfo
                                     </div>
                                 );
                             })()}
+                            {/* Material Drops for Crafting */}
+                            {rewards?.materials && rewards.materials.length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-slate-800">
+                                    <p className="text-amber-400 text-xs mb-2 flex items-center gap-1">
+                                        <GiCutDiamond className="w-3 h-3" />
+                                        <span>NGUYÊN LIỆU LUYỆN KHÍ:</span>
+                                    </p>
+                                    <div className="space-y-1">
+                                        {rewards.materials.map((mat, idx) => {
+                                            const matRarity = RARITY_COLORS[mat.rarity] || RARITY_COLORS.common;
+                                            const elementColors = {
+                                                metal: '#fde047',
+                                                wood: '#4ade80',
+                                                water: '#22d3ee',
+                                                fire: '#fb923c',
+                                                earth: '#d97706'
+                                            };
+                                            const elementNames = {
+                                                metal: 'Kim',
+                                                wood: 'Mộc',
+                                                water: 'Thủy',
+                                                fire: 'Hỏa',
+                                                earth: 'Thổ'
+                                            };
+                                            return (
+                                                <div key={idx} className="flex items-center justify-between text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <span style={{ color: matRarity.color }} className="font-bold">
+                                                            {mat.name}
+                                                        </span>
+                                                        {mat.element && (
+                                                            <span 
+                                                                className="text-[10px] px-1 rounded"
+                                                                style={{ 
+                                                                    backgroundColor: `${elementColors[mat.element]}20`,
+                                                                    color: elementColors[mat.element]
+                                                                }}
+                                                            >
+                                                                {elementNames[mat.element]}
+                                                            </span>
+                                                        )}
+                                                        <span className="text-slate-500 text-xs">Phẩm {mat.tier}</span>
+                                                    </div>
+                                                    <span className="text-cyan-400">x{mat.qty}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -704,7 +848,7 @@ const DungeonTab = memo(function DungeonTab() {
                     setUser(userData);
                 }
             } catch (err) {
-                debug.error('[DungeonTab] Error loading user:', err);
+                debugError('[DungeonTab] Error loading user:', err);
             }
         };
         fetchUser();
@@ -734,6 +878,7 @@ const DungeonTab = memo(function DungeonTab() {
     const [showRewardsModal, setShowRewardsModal] = useState(false);
     const [showInventoryModal, setShowInventoryModal] = useState(false);
     const [rewardsAnimation, setRewardsAnimation] = useState([]); // Animation state
+    const [dungeonMaterials, setDungeonMaterials] = useState([]); // Local materials state for dungeon
 
     // Use refs to avoid stale closure issues in callbacks
     const nextMonsterRef = useRef(null);
@@ -753,7 +898,7 @@ const DungeonTab = memo(function DungeonTab() {
                 setPlayerSpiritStones(response.data.playerSpiritStones);
             }
         } catch (err) {
-            debug.error('[DungeonTab] Failed to load dungeons:', err);
+            debugError('[DungeonTab] Failed to load dungeons:', err);
             setError('Lỗi tải dữ liệu');
         } finally {
             setLoading(false);
@@ -779,7 +924,7 @@ const DungeonTab = memo(function DungeonTab() {
                 setView('exploring');
             }
         } catch (err) {
-            debug.error('[DungeonTab] Failed to enter dungeon:', err);
+            debugError('[DungeonTab] Failed to enter dungeon:', err);
             setError(err.message || 'Không thể vào bí cảnh');
         } finally {
             setLoading(false);
@@ -824,7 +969,7 @@ const DungeonTab = memo(function DungeonTab() {
                 nextMonsterRef.current = response.data.nextMonster || null;
             }
         } catch (err) {
-            debug.error('[DungeonTab] Battle failed:', err);
+            debugError('[DungeonTab] Battle failed:', err);
             setError(err.message || 'Lỗi khi chiến đấu');
         } finally {
             setLoading(false);
@@ -953,7 +1098,7 @@ const DungeonTab = memo(function DungeonTab() {
                         return;
                     }
                 } catch (err) {
-                    debug.error('[DungeonTab] Failed to fetch next monster:', err);
+                    debugError('[DungeonTab] Failed to fetch next monster:', err);
                 }
             }
             exitToList();
@@ -984,7 +1129,7 @@ const DungeonTab = memo(function DungeonTab() {
                         return;
                     }
                 } catch (err) {
-                    debug.error('[DungeonTab] Failed to fetch next monster as fallback:', err);
+                    debugError('[DungeonTab] Failed to fetch next monster as fallback:', err);
                 }
             }
             exitToList();
@@ -1024,7 +1169,7 @@ const DungeonTab = memo(function DungeonTab() {
         try {
             await api(`/api/cultivation/dungeons/${activeDungeon.id}/claim-exit`, { method: 'POST' });
         } catch (err) {
-            debug.error('[DungeonTab] Exit failed:', err);
+            debugError('[DungeonTab] Exit failed:', err);
         }
 
         setView('list');
@@ -1113,7 +1258,16 @@ const DungeonTab = memo(function DungeonTab() {
                                 totalFloors={totalFloors}
                                 onStartBattle={handleStartBattle}
                                 onExit={handleExitDungeon}
-                                onOpenInventory={() => {
+                                onOpenInventory={async () => {
+                                    // Fetch latest materials directly without causing full refresh
+                                    try {
+                                        const response = await api('/api/cultivation');
+                                        if (response.success && response.data?.materials) {
+                                            setDungeonMaterials(response.data.materials);
+                                        }
+                                    } catch (err) {
+                                        debugError('[DungeonTab] Failed to fetch materials:', err);
+                                    }
                                     setShowInventoryModal(true);
                                 }}
                                 loading={loading}
@@ -1164,6 +1318,7 @@ const DungeonTab = memo(function DungeonTab() {
                 {showInventoryModal && (
                     <InventoryModal
                         inventory={cultivation?.inventory || []}
+                        materials={dungeonMaterials.length > 0 ? dungeonMaterials : (cultivation?.materials || [])}
                         onClose={() => setShowInventoryModal(false)}
                         onUseItem={async (itemId) => {
                             if (useItem) {

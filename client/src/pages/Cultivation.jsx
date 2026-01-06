@@ -24,7 +24,8 @@ import {
   CombatTab,
   SectTab,
   LeaderboardTab,
-  ThienHaKy
+  ThienHaKy,
+  CraftTab
 } from './cultivation/components';
 import { LOG_MESSAGES } from './cultivation/utils/constants';
 
@@ -266,8 +267,22 @@ const CultivationContent = memo(function CultivationContent() {
       const randomMessage = LOG_MESSAGES[Math.floor(Math.random() * LOG_MESSAGES.length)];
       addLog(randomMessage, 'normal');
     } catch (err) {
-      if (err.message?.includes('cạn kiệt')) {
-        addLog(`Chân nguyên đã cạn kiệt, hãy chờ một lát...`, 'danger');
+      // Handle rate limit with retryAfter
+      if (err.retryAfter) {
+        const seconds = parseInt(err.retryAfter);
+        if (seconds >= 60) {
+          addLog(`Linh khí đã cạn kiệt! Chờ ${Math.ceil(seconds / 60)} phút`, 'danger');
+        } else {
+          addLog(`Linh khí đã cạn kiệt! Chờ ${seconds} giây`, 'danger');
+        }
+      } else if (err.message?.includes('cạn kiệt')) {
+        // Fallback: parse time from message if available
+        const timeMatch = err.message.match(/(\d+)\s*giây/);
+        if (timeMatch) {
+          addLog(`Linh khí đã cạn kiệt! Chờ ${timeMatch[1]} giây`, 'danger');
+        } else {
+          addLog(`Linh khí đã cạn kiệt, hãy chờ 5 phút...`, 'danger');
+        }
       } else {
         addLog(` ${err.message}`, 'danger');
       }
@@ -381,6 +396,7 @@ const CultivationContent = memo(function CultivationContent() {
     { id: 'dungeon', label: 'Bí Cảnh' },
     { id: 'combat', label: 'Chiến Đấu' },
     { id: 'sect', label: 'Tông Môn' },
+    { id: 'craft', label: 'Luyện Khí' },
     { id: 'thienhaky', label: 'Thiên Hạ Ký' },
     { id: 'leaderboard', label: 'Bảng Xếp Hạng' },
   ];
@@ -567,6 +583,7 @@ const CultivationContent = memo(function CultivationContent() {
           {activeTab === 'dungeon' && <DungeonTab />}
           {activeTab === 'combat' && <CombatTab onSwitchTab={setActiveTab} isAdmin={isAdmin} />}
           {activeTab === 'sect' && <SectTab />}
+          {activeTab === 'craft' && <CraftTab />}
           {activeTab === 'leaderboard' && <LeaderboardTab isAdmin={isAdmin} />}
           {activeTab === 'thienhaky' && <ThienHaKy />}
         </div>

@@ -9,3 +9,6 @@ export * from './combatController.js';
 export * from './dungeonController.js';
 export * from './techniqueController.js';
 export * from './worldEventController.js';
+export * from './materialController.js';
+export * from './craftController.js';
+export * from './equipmentController.js';

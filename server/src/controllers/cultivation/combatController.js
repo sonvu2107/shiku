@@ -103,6 +103,222 @@ export const practiceTechnique = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
+// ==================== PHIÊN LUYỆN CÔNG PHÁP BULK (NHẬP ĐỊNH 10 PHÚT) ====================
+const PRACTICE_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 phút
+const PRACTICE_SESSION_EXP_PER_TECHNIQUE = 400; // ~40 lần luyện * 10 exp
+
+/**
+ * Bắt đầu phiên luyện công pháp (Nhập Định 10 Phút)
+ * Luyện TẤT CẢ công pháp đã học cùng lúc
+ */
+export const startPracticeSession = async (req, res, next) => {
+    try {
+        const cultivation = await Cultivation.getOrCreate(req.user.id);
+
+        // Kiểm tra nếu đang có phiên luyện chưa kết thúc
+        if (cultivation.activePracticeSession?.sessionId && !cultivation.activePracticeSession?.claimedAt) {
+            const now = new Date();
+            const endsAt = new Date(cultivation.activePracticeSession.endsAt);
+
+            if (now < endsAt) {
+                // Phiên chưa kết thúc
+                const remainingMs = endsAt - now;
+                return res.status(400).json({
+                    success: false,
+                    message: `Đang nhập định, còn ${Math.ceil(remainingMs / 1000)} giây`,
+                    data: {
+                        inProgress: true,
+                        remainingMs,
+                        endsAt: cultivation.activePracticeSession.endsAt
+                    }
+                });
+            }
+
+            // Phiên đã kết thúc nhưng chưa claim -> buộc claim trước
+            return res.status(400).json({
+                success: false,
+                message: 'Phiên luyện trước đã hoàn thành, hãy thu hoạch trước khi bắt đầu phiên mới',
+                data: {
+                    canClaim: true,
+                    sessionId: cultivation.activePracticeSession.sessionId
+                }
+            });
+        }
+
+        // Lấy danh sách công pháp đã học (chưa max level)
+        const eligibleTechniques = (cultivation.learnedTechniques || [])
+            .filter(t => t.level < 10)
+            .map(t => t.techniqueId);
+
+        if (eligibleTechniques.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Không có công pháp nào để luyện (tất cả đã đạt cấp tối đa hoặc chưa học)'
+            });
+        }
+
+        // Tạo phiên luyện mới
+        const now = new Date();
+        const sessionId = `practice_${req.user.id}_${now.getTime()}`;
+
+        cultivation.activePracticeSession = {
+            sessionId,
+            startedAt: now,
+            endsAt: new Date(now.getTime() + PRACTICE_SESSION_DURATION_MS),
+            techniqueIds: eligibleTechniques,
+            expPerTechnique: PRACTICE_SESSION_EXP_PER_TECHNIQUE,
+            claimedAt: null
+        };
+
+        await cultivation.save();
+
+        res.json({
+            success: true,
+            message: `Bắt đầu nhập định luyện ${eligibleTechniques.length} công pháp!`,
+            data: {
+                sessionId,
+                techniqueCount: eligibleTechniques.length,
+                expPerTechnique: PRACTICE_SESSION_EXP_PER_TECHNIQUE,
+                totalEstimatedExp: eligibleTechniques.length * PRACTICE_SESSION_EXP_PER_TECHNIQUE,
+                durationMs: PRACTICE_SESSION_DURATION_MS,
+                endsAt: cultivation.activePracticeSession.endsAt
+            }
+        });
+    } catch (error) { next(error); }
+};
+
+/**
+ * Thu hoạch phiên luyện công pháp
+ */
+export const claimPracticeSession = async (req, res, next) => {
+    try {
+        const cultivation = await Cultivation.getOrCreate(req.user.id);
+
+        // Kiểm tra có phiên luyện không
+        if (!cultivation.activePracticeSession?.sessionId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Không có phiên luyện nào đang hoạt động'
+            });
+        }
+
+        // Kiểm tra đã claim chưa
+        if (cultivation.activePracticeSession.claimedAt) {
+            return res.status(400).json({
+                success: false,
+                message: 'Phiên luyện đã được thu hoạch'
+            });
+        }
+
+        const now = new Date();
+        const endsAt = new Date(cultivation.activePracticeSession.endsAt);
+
+        // Kiểm tra đã kết thúc chưa
+        if (now < endsAt) {
+            const remainingMs = endsAt - now;
+            return res.status(400).json({
+                success: false,
+                message: `Chưa hoàn thành! Còn ${Math.ceil(remainingMs / 1000)} giây`,
+                data: {
+                    inProgress: true,
+                    remainingMs,
+                    endsAt
+                }
+            });
+        }
+
+        // Thu hoạch exp cho từng công pháp
+        const techniqueIds = cultivation.activePracticeSession.techniqueIds || [];
+        const expPerTechnique = cultivation.activePracticeSession.expPerTechnique || PRACTICE_SESSION_EXP_PER_TECHNIQUE;
+
+        const results = [];
+        let totalLevelUps = 0;
+
+        for (const techniqueId of techniqueIds) {
+            try {
+                const result = cultivation.practiceTechnique(techniqueId, expPerTechnique);
+                results.push({
+                    techniqueId,
+                    ...result
+                });
+                if (result.leveledUp) totalLevelUps++;
+            } catch (e) {
+                // Bỏ qua lỗi (công pháp đã max hoặc không tồn tại)
+                results.push({
+                    techniqueId,
+                    error: e.message
+                });
+            }
+        }
+
+        // Đánh dấu đã claim
+        cultivation.activePracticeSession.claimedAt = now;
+
+        // Clear session để có thể bắt đầu phiên mới
+        cultivation.activePracticeSession = null;
+
+        await cultivation.save();
+
+        const totalExpEarned = techniqueIds.length * expPerTechnique;
+
+        res.json({
+            success: true,
+            message: totalLevelUps > 0
+                ? `Thu hoạch thành công! ${totalLevelUps} công pháp lên cấp!`
+                : `Thu hoạch thành công ${totalExpEarned} điểm tu luyện!`,
+            data: {
+                techniqueCount: techniqueIds.length,
+                expPerTechnique,
+                totalExpEarned,
+                totalLevelUps,
+                results
+            }
+        });
+    } catch (error) { next(error); }
+};
+
+/**
+ * Lấy trạng thái phiên luyện hiện tại
+ */
+export const getPracticeSessionStatus = async (req, res, next) => {
+    try {
+        const cultivation = await Cultivation.getOrCreate(req.user.id);
+
+        if (!cultivation.activePracticeSession?.sessionId || cultivation.activePracticeSession?.claimedAt) {
+            return res.json({
+                success: true,
+                data: {
+                    hasActiveSession: false
+                }
+            });
+        }
+
+        const now = new Date();
+        const endsAt = new Date(cultivation.activePracticeSession.endsAt);
+        const startedAt = new Date(cultivation.activePracticeSession.startedAt);
+        const isCompleted = now >= endsAt;
+        const remainingMs = isCompleted ? 0 : endsAt - now;
+        const elapsedMs = now - startedAt;
+
+        res.json({
+            success: true,
+            data: {
+                hasActiveSession: true,
+                sessionId: cultivation.activePracticeSession.sessionId,
+                techniqueCount: cultivation.activePracticeSession.techniqueIds?.length || 0,
+                expPerTechnique: cultivation.activePracticeSession.expPerTechnique,
+                totalEstimatedExp: (cultivation.activePracticeSession.techniqueIds?.length || 0) * cultivation.activePracticeSession.expPerTechnique,
+                startedAt,
+                endsAt,
+                remainingMs,
+                elapsedMs,
+                isCompleted,
+                canClaim: isCompleted
+            }
+        });
+    } catch (error) { next(error); }
+};
+
 export const breakthrough = async (req, res, next) => {
     const userId = req.user.id;
 

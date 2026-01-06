@@ -12,6 +12,18 @@ import {
     getMonsterSkills
 } from "../../models/Dungeon.js";
 import { formatCultivationResponse, mergeEquipmentStatsIntoCombatStats } from "./coreController.js";
+import { generateMaterialDrops } from "../../services/dropService.js";
+import { addMaterialsToInventory, logMaterialDrop } from "./materialController.js";
+import Equipment from "../../models/Equipment.js";
+import {
+    calculateActiveModifiers,
+    calculateElementSynergy,
+    calculateDamageModifiers,
+    calculateDefensiveModifiers,
+    calculateRewardModifiers,
+    reduceDurability
+} from "../../services/modifierService.js";
+
 
 /**
  * ==================== DUNGEON CONTROLLER ====================
@@ -621,10 +633,39 @@ export const battleMonster = async (req, res, next) => {
                 }
             }
 
-            // Add exp and spirit stones
-            cultivation.addExp(rewards.exp, 'dungeon', `Bí cảnh ${dungeon.name} - Tầng ${currentFloor}`);
-            cultivation.spiritStones += rewards.spiritStones;
-            cultivation.totalSpiritStonesEarned += rewards.spiritStones;
+            // ==================== APPLY MODIFIER BONUSES ====================
+            // Get equipped items and calculate active modifiers
+            let modifierBonuses = { rewards: { exp: rewards.exp, spiritStones: rewards.spiritStones }, bonuses: [] };
+            try {
+                const equippedItems = cultivation.inventory.filter(i => i.equipped);
+                const equipmentIds = equippedItems.map(i => i.metadata?.equipmentId).filter(Boolean);
+
+                if (equipmentIds.length > 0) {
+                    const equipments = await Equipment.find({ _id: { $in: equipmentIds } });
+                    const activeModifiers = calculateActiveModifiers(equipments);
+
+                    // Apply reward modifiers
+                    modifierBonuses = calculateRewardModifiers(
+                        { exp: rewards.exp, spiritStones: rewards.spiritStones },
+                        activeModifiers
+                    );
+
+                    // Reduce durability after combat
+                    for (const eq of equipments) {
+                        reduceDurability(eq, 1);
+                        await eq.save();
+                    }
+                }
+            } catch (modError) {
+                console.error('[Dungeon] Modifier calculation error:', modError.message);
+            }
+
+            // Add exp and spirit stones (with modifier bonuses)
+            const finalExp = modifierBonuses.rewards.exp;
+            const finalSpiritStones = modifierBonuses.rewards.spiritStones;
+            cultivation.addExp(finalExp, 'dungeon', `Bí cảnh ${dungeon.name} - Tầng ${currentFloor}`);
+            cultivation.spiritStones += finalSpiritStones;
+            cultivation.totalSpiritStonesEarned += finalSpiritStones;
 
             // Update dungeon stats
             if (!cultivation.dungeonStats) cultivation.dungeonStats = {};
@@ -634,6 +675,39 @@ export const battleMonster = async (req, res, next) => {
             if (monster.type === 'boss') {
                 cultivation.dungeonStats.totalBossesKilled = (cultivation.dungeonStats.totalBossesKilled || 0) + 1;
             }
+
+            // ==================== MATERIAL DROPS (Luyện Khí System) ====================
+            // Drop materials only from elite/boss monsters
+            let materialDrops = { drops: [], dropMeta: {} };
+            if (monster.type === 'elite' || monster.type === 'boss') {
+                // Calculate performance bonuses
+                const performance = {
+                    noDeath: battleResult.finalPlayerHp > 0, // Player still alive
+                    speedClear: battleResult.rounds <= 10, // Quick kill
+                    solo: true // Dungeon is always solo
+                };
+
+                // Generate drops based on difficulty and dungeon tier
+                materialDrops = generateMaterialDrops(
+                    dungeon.difficulty,
+                    dungeon.requiredRealm,
+                    performance
+                );
+
+                // Add materials to inventory
+                if (materialDrops.drops.length > 0) {
+                    await addMaterialsToInventory(req.user.id, materialDrops.drops);
+
+                    // Log for audit
+                    logMaterialDrop(
+                        req.user.id,
+                        dungeonId,
+                        materialDrops.drops,
+                        materialDrops.dropMeta
+                    ).catch(e => console.error('[Dungeon] Material log failed:', e.message));
+                }
+            }
+
 
             // Update progress
             progress.currentFloor = currentFloor;
@@ -726,9 +800,13 @@ export const battleMonster = async (req, res, next) => {
                         finalMonsterMana: battleResult.finalMonsterMana
                     },
                     rewards: {
-                        exp: rewards.exp,
-                        spiritStones: rewards.spiritStones,
-                        item: itemDropped ? SHOP_ITEMS_MAP.get(itemDropped) : null
+                        exp: finalExp,
+                        spiritStones: finalSpiritStones,
+                        baseExp: rewards.exp,
+                        baseSpiritStones: rewards.spiritStones,
+                        modifierBonuses: modifierBonuses.bonuses.length > 0 ? modifierBonuses.bonuses : null,
+                        item: itemDropped ? SHOP_ITEMS_MAP.get(itemDropped) : null,
+                        materials: materialDrops.drops.length > 0 ? materialDrops.drops : null
                     },
                     progress: {
                         currentFloor,

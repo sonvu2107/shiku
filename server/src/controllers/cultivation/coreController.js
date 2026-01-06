@@ -206,6 +206,7 @@ export const formatCultivationResponse = async (cultivation) => {
         breakthroughCooldownUntil: cultivation.breakthroughCooldownUntil,
         characterAppearance: cultivation.characterAppearance || 'Immortal_male',
         lastAppearanceChangeAt: cultivation.lastAppearanceChangeAt,
+        materials: cultivation.materials || [],
         createdAt: cultivation.createdAt,
         updatedAt: cultivation.updatedAt
     };

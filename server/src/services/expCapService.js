@@ -15,13 +15,15 @@ const isProduction = process.env.NODE_ENV === 'production';
 // EXP cap theo cảnh giới (5 phút)
 export const CAP_BY_REALM = {
     1: 100, 2: 300, 3: 1000, 4: 2500, 5: 5000,
-    6: 10000, 7: 10000, 8: 10000, 9: 10000, 10: 10000, 11: 10000
+    6: 10000, 7: 10000, 8: 10000, 9: 10000, 10: 10000,
+    11: 10000, 12: 10000, 13: 10000, 14: 10000
 };
 
 // Passive EXP per minute theo cảnh giới (dùng cho semi-auto)
 export const PASSIVE_EXP_PER_MIN = {
     1: 2, 2: 4, 3: 8, 4: 15, 5: 25,
-    6: 40, 7: 60, 8: 100, 9: 150, 10: 250
+    6: 40, 7: 60, 8: 100, 9: 150, 10: 250,
+    11: 400, 12: 600, 13: 900, 14: 1500
 };
 
 // ============================================================
@@ -83,16 +85,16 @@ export function getWindowInfo(userId) {
  * Lấy cap limit theo realm, có fallback
  */
 export function getCapByRealm(realm) {
-    const clampedRealm = Math.max(1, Math.min(11, realm || 1));
-    return CAP_BY_REALM[clampedRealm] ?? CAP_BY_REALM[10];
+    const clampedRealm = Math.max(1, Math.min(14, realm || 1));
+    return CAP_BY_REALM[clampedRealm] ?? CAP_BY_REALM[14];
 }
 
 /**
  * Lấy passive EXP per minute theo realm, có fallback
  */
 export function getPassiveExpPerMin(realm) {
-    const clampedRealm = Math.max(1, Math.min(10, realm || 1));
-    return PASSIVE_EXP_PER_MIN[clampedRealm] ?? PASSIVE_EXP_PER_MIN[10];
+    const clampedRealm = Math.max(1, Math.min(14, realm || 1));
+    return PASSIVE_EXP_PER_MIN[clampedRealm] ?? PASSIVE_EXP_PER_MIN[14];
 }
 
 // ============================================================
