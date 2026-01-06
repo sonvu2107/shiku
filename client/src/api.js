@@ -158,6 +158,9 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
         };
       }
 
+      // Spread all response data onto error for custom handling (e.g. requiresNghichThien)
+      Object.assign(error, data);
+
       throw error;
     }
 

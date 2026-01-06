@@ -1,6 +1,98 @@
+import mongoose from "mongoose";
 import Cultivation, { SHOP_ITEMS, SHOP_ITEMS_MAP } from "../../models/Cultivation.js";
+import Equipment from "../../models/Equipment.js";
 import User from "../../models/User.js";
 import { mergeEquipmentStatsIntoCombatStats } from "./coreController.js";
+
+/**
+ * Enrich inventory với equipment metadata (stats, rarity, etc.)
+ * Cần thiết để frontend có thể hiển thị đúng stats của equipment
+ */
+async function enrichInventoryWithEquipment(inventory) {
+    const equipmentIds = inventory
+        .filter(item => item.type?.startsWith('equipment_') && item.itemId)
+        .map(item => {
+            try {
+                return mongoose.Types.ObjectId.isValid(item.itemId) ? new mongoose.Types.ObjectId(item.itemId) : null;
+            } catch {
+                return null;
+            }
+        })
+        .filter(id => id !== null);
+
+    if (equipmentIds.length === 0) {
+        return inventory.map(item => item.toObject ? item.toObject() : item);
+    }
+
+    let equipmentMap = new Map();
+    try {
+        const equipments = await Equipment.find({ _id: { $in: equipmentIds } }).lean();
+        equipments.forEach(eq => {
+            let elementalDamage = {};
+            if (eq.stats?.elemental_damage) {
+                if (eq.stats.elemental_damage instanceof Map) {
+                    elementalDamage = Object.fromEntries(eq.stats.elemental_damage);
+                } else {
+                    elementalDamage = eq.stats.elemental_damage;
+                }
+            }
+
+            equipmentMap.set(eq._id.toString(), {
+                _id: eq._id,
+                name: eq.name,
+                type: eq.type,
+                subtype: eq.subtype,
+                rarity: eq.rarity,
+                level_required: eq.level_required,
+                img: eq.img,
+                description: eq.description,
+                stats: { ...eq.stats, elemental_damage: elementalDamage },
+                special_effect: eq.special_effect,
+                skill_bonus: eq.skill_bonus,
+                energy_regen: eq.energy_regen,
+                lifesteal: eq.lifesteal,
+                true_damage: eq.true_damage,
+                buff_duration: eq.buff_duration
+            });
+        });
+    } catch (err) {
+        console.error("[INVENTORY] Error loading equipment for inventory:", err);
+    }
+
+    return inventory.map(item => {
+        if (item.type?.startsWith('equipment_') && item.itemId) {
+            const equipmentIdStr = item.itemId.toString();
+            const equipment = equipmentMap.get(equipmentIdStr);
+
+            if (equipment) {
+                return {
+                    ...(item.toObject ? item.toObject() : item),
+                    name: equipment.name,
+                    rarity: equipment.rarity,
+                    img: equipment.img,
+                    metadata: {
+                        ...(item.metadata || {}),
+                        _id: equipment._id,
+                        equipmentType: equipment.type,
+                        subtype: equipment.subtype,
+                        rarity: equipment.rarity,
+                        level_required: equipment.level_required,
+                        stats: equipment.stats,
+                        special_effect: equipment.special_effect,
+                        skill_bonus: equipment.skill_bonus,
+                        energy_regen: equipment.energy_regen,
+                        lifesteal: equipment.lifesteal,
+                        true_damage: equipment.true_damage,
+                        buff_duration: equipment.buff_duration,
+                        img: equipment.img,
+                        description: equipment.description
+                    }
+                };
+            }
+        }
+        return item.toObject ? item.toObject() : item;
+    });
+}
 
 /**
  * POST /inventory/:itemId/equip - Trang bị vật phẩm
@@ -29,9 +121,12 @@ export const equipItem = async (req, res, next) => {
                 console.error("[CULTIVATION] Error syncing equipped cache:", syncErr);
             }
 
+            // Enrich inventory với equipment metadata để frontend hiển thị đúng stats
+            const enrichedInventory = await enrichInventoryWithEquipment(cultivation.inventory);
+
             res.json({
                 success: true,
-                data: { equipped: cultivation.equipped, inventory: cultivation.inventory }
+                data: { equipped: cultivation.equipped, inventory: enrichedInventory }
             });
         } catch (equipError) {
             return res.status(400).json({ success: false, message: equipError.message });
@@ -68,9 +163,12 @@ export const unequipItem = async (req, res, next) => {
                 console.error("[CULTIVATION] Error syncing equipped cache:", syncErr);
             }
 
+            // Enrich inventory với equipment metadata để frontend hiển thị đúng stats
+            const enrichedInventory = await enrichInventoryWithEquipment(cultivation.inventory);
+
             res.json({
                 success: true,
-                data: { equipped: cultivation.equipped, inventory: cultivation.inventory }
+                data: { equipped: cultivation.equipped, inventory: enrichedInventory }
             });
         } catch (unequipError) {
             return res.status(400).json({ success: false, message: unequipError.message });
@@ -99,12 +197,15 @@ export const equipEquipment = async (req, res, next) => {
             const equipmentStats = await cultivation.getEquipmentStats();
             combatStats = mergeEquipmentStatsIntoCombatStats(combatStats, equipmentStats);
 
+            // Enrich inventory với equipment metadata để frontend hiển thị đúng stats
+            const enrichedInventory = await enrichInventoryWithEquipment(cultivation.inventory);
+
             res.json({
                 success: true,
                 data: {
                     equipment,
                     equipped: cultivation.equipped,
-                    inventory: cultivation.inventory,
+                    inventory: enrichedInventory,
                     combatStats: combatStats
                 }
             });
@@ -134,11 +235,14 @@ export const unequipEquipment = async (req, res, next) => {
             const equipmentStats = await cultivation.getEquipmentStats();
             combatStats = mergeEquipmentStatsIntoCombatStats(combatStats, equipmentStats);
 
+            // Enrich inventory với equipment metadata để frontend hiển thị đúng stats
+            const enrichedInventory = await enrichInventoryWithEquipment(cultivation.inventory);
+
             res.json({
                 success: true,
                 data: {
                     equipped: cultivation.equipped,
-                    inventory: cultivation.inventory,
+                    inventory: enrichedInventory,
                     combatStats: combatStats
                 }
             });

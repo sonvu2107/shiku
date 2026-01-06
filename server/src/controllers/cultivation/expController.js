@@ -3,6 +3,7 @@ import { formatCultivationResponse, invalidateCultivationCache } from "./coreCon
 import { consumeExpCap, checkClickCooldown, getCapByRealm, getExpCapRemaining } from "../../services/expCapService.js";
 import { getClient, isRedisConnected, redisConfig } from "../../services/redisClient.js";
 import { logRareEncounterEvent } from "./worldEventController.js";
+import { getDisplayConfig, DEBUFF_TYPES } from "../../data/tierConfig.js";
 import mongoose from "mongoose";
 
 // Cache TTL for passive exp status (seconds)
@@ -158,7 +159,7 @@ export const getPassiveExpStatus = async (req, res, next) => {
         const now = new Date();
         const lastCollected = cultivation.lastPassiveExpCollected || now;
         const elapsedMinutes = Math.min(1440, Math.floor((now.getTime() - new Date(lastCollected).getTime()) / 60000));
-        const expPerMinuteByRealm = { 1: 2, 2: 4, 3: 8, 4: 15, 5: 25, 6: 40, 7: 60, 8: 100, 9: 150, 10: 250 };
+        const expPerMinuteByRealm = { 1: 2, 2: 4, 3: 8, 4: 15, 5: 25, 6: 40, 7: 60, 8: 100, 9: 150, 10: 250, 11: 400, 12: 600, 13: 800, 14: 1000 };
         const baseExpPerMinute = expPerMinuteByRealm[cultivation.realmLevel] || 2;
         const baseExp = elapsedMinutes * baseExpPerMinute;
         let multiplier = 1;
@@ -190,7 +191,15 @@ export const getLeaderboard = async (req, res, next) => {
             let countQuery = type === 'exp' ? { exp: { $gt: userCultivation.exp } } : type === 'realm' ? { $or: [{ realmLevel: { $gt: userCultivation.realmLevel } }, { realmLevel: userCultivation.realmLevel, exp: { $gt: userCultivation.exp } }] } : type === 'spiritStones' ? { totalSpiritStonesEarned: { $gt: userCultivation.totalSpiritStonesEarned } } : { longestStreak: { $gt: userCultivation.longestStreak } };
             userRank = (await Cultivation.countDocuments(countQuery)) + 1;
         }
-        res.json({ success: true, data: { type, leaderboard: leaderboard.map((e, i) => ({ rank: i + 1, user: e.user, exp: e.exp, realm: { level: e.realmLevel, name: e.realmName }, spiritStones: e.spiritStones, loginStreak: e.loginStreak, longestStreak: e.longestStreak, equipped: e.equipped, stats: e.stats, isCurrentUser: e.user?._id?.toString() === userId })), userRank } });
+        // Lookup realm from CULTIVATION_REALMS để luôn hiển thị tên mới nhất
+        res.json({
+            success: true, data: {
+                type, leaderboard: leaderboard.map((e, i) => {
+                    const realm = CULTIVATION_REALMS.find(r => r.level === e.realmLevel) || CULTIVATION_REALMS[0];
+                    return { rank: i + 1, user: e.user, exp: e.exp, realm: { level: e.realmLevel, name: realm.name, color: realm.color }, spiritStones: e.spiritStones, loginStreak: e.loginStreak, longestStreak: e.longestStreak, equipped: e.equipped, stats: e.stats, isCurrentUser: e.user?._id?.toString() === userId };
+                }), userRank
+            }
+        });
     } catch (error) { next(error); }
 };
 
@@ -341,5 +350,30 @@ export const getStats = async (req, res, next) => {
             Cultivation.aggregate([{ $group: { _id: null, totalExp: { $sum: "$exp" }, totalStones: { $sum: "$totalSpiritStonesEarned" } } }])
         ]);
         res.json({ success: true, data: { totalCultivators, realmDistribution: realmDistribution.map(r => ({ realm: CULTIVATION_REALMS.find(realm => realm.level === r._id), count: r.count })), topCultivators: topCultivators.map(c => ({ user: c.user, realm: { level: c.realmLevel, name: c.realmName }, exp: c.exp })), serverStats: { totalExp: totalExpResult[0]?.totalExp || 0, totalSpiritStones: totalExpResult[0]?.totalStones || 0 } } });
+    } catch (error) { next(error); }
+};
+
+/**
+ * GET /api/cultivation/tier-config
+ * Trả về tier display config cho client (server source of truth)
+ */
+export const getTierConfig = async (req, res, next) => {
+    try {
+        const displayConfig = getDisplayConfig();
+        const debuffTypes = Object.values(DEBUFF_TYPES).map(d => ({
+            id: d.id,
+            name: d.name,
+            description: d.description,
+            icon: d.icon,
+            effects: d.effects
+        }));
+
+        res.json({
+            success: true,
+            data: {
+                tiers: displayConfig,
+                debuffs: debuffTypes
+            }
+        });
     } catch (error) { next(error); }
 };

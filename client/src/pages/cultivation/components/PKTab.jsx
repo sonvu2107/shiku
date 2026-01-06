@@ -75,6 +75,9 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
   const [screenFlash, setScreenFlash] = useState(null); // 'white' | 'red' | 'dark' | null
   const [showSkillName, setShowSkillName] = useState(null); // { name: string, side: 'left' | 'right' } | null
 
+  // Nghịch Thiên Modal States
+  const [nghichThienModal, setNghichThienModal] = useState(null); // { opponentId, opponentName, canNghichThien, tierName, isBot }
+
   // --- MEMOIZED BACKGROUND DATA (Fix for jumping background) ---
   // Reduce particles on mobile for better performance
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
@@ -251,14 +254,14 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
   }, []);
 
   // Challenge opponent
-  const handleChallenge = async (opponentId, opponentName) => {
+  const handleChallenge = async (opponentId, opponentName, mode = 'normal') => {
     if (challenging) return;
 
     setChallenging(opponentId);
     try {
       const response = await api('/api/battle/challenge', {
         method: 'POST',
-        body: { opponentId }
+        body: { opponentId, mode }
       });
 
       if (response.success) {
@@ -276,21 +279,32 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
         setTimeout(() => setBattlePhase('fighting'), 1500);
       }
     } catch (err) {
-      alert(err.message || 'Thách đấu thất bại');
+      // Check if requires nghịch thiên
+      if (err.requiresNghichThien) {
+        setNghichThienModal({
+          opponentId,
+          opponentName,
+          canNghichThien: err.canNghichThien,
+          tierName: err.tierName,
+          isBot: false
+        });
+      } else {
+        alert(err.message || 'Thách đấu thất bại');
+      }
     } finally {
       setChallenging(null);
     }
   };
 
   // Challenge bot
-  const handleChallengeBot = async (botId, botName) => {
+  const handleChallengeBot = async (botId, botName, mode = 'normal') => {
     if (challenging) return;
 
     setChallenging(botId);
     try {
       const response = await api('/api/battle/challenge/bot', {
         method: 'POST',
-        body: { botId }
+        body: { botId, mode }
       });
 
       if (response.success) {
@@ -308,9 +322,32 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
         setTimeout(() => setBattlePhase('fighting'), 1500);
       }
     } catch (err) {
-      alert(err.message || 'Thách đấu thất bại');
+      // Check if requires nghịch thiên
+      if (err.requiresNghichThien) {
+        setNghichThienModal({
+          opponentId: botId,
+          opponentName: botName,
+          canNghichThien: err.canNghichThien,
+          tierName: err.tierName,
+          isBot: true
+        });
+      } else {
+        alert(err.message || 'Thách đấu thất bại');
+      }
     } finally {
       setChallenging(null);
+    }
+  };
+
+  // Confirm nghịch thiên and retry challenge
+  const confirmNghichThien = () => {
+    if (!nghichThienModal) return;
+    const { opponentId, opponentName, isBot } = nghichThienModal;
+    setNghichThienModal(null);
+    if (isBot) {
+      handleChallengeBot(opponentId, opponentName, 'nghich_thien');
+    } else {
+      handleChallenge(opponentId, opponentName, 'nghich_thien');
     }
   };
 
@@ -1712,6 +1749,84 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
           />
         ))
       }
+
+      {/* Nghịch Thiên Confirm Modal */}
+      <AnimatePresence>
+        {nghichThienModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4"
+            onClick={() => setNghichThienModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="spirit-tablet rounded-xl p-6 max-w-md w-full border border-purple-500/50"
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold text-purple-400 text-center mb-4 font-title">
+                NGHỊCH THIÊN
+              </h3>
+
+              <p className="text-slate-300 text-center mb-4">
+                Đối thủ <span className="text-amber-400 font-bold">{nghichThienModal.opponentName}</span> có cảnh giới cao hơn.
+              </p>
+
+              {nghichThienModal.canNghichThien ? (
+                <>
+                  <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-3 mb-4">
+                    <p className="text-red-300 text-sm text-center">
+                      <strong>Cảnh báo:</strong> Nếu thua, bạn sẽ bị trạng thái <span className="text-red-400 font-bold">Trọng Thương</span> (-20% tấn công) trong 3 trận tiếp theo!
+                    </p>
+                  </div>
+
+                  <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-lg p-3 mb-4">
+                    <p className="text-emerald-300 text-sm text-center">
+                      <strong>Bonus:</strong> +25% Bạo Kích, giảm 30% sát thương nhận, x1.2 phần thưởng
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setNghichThienModal(null)}
+                      className="flex-1 py-3 bg-slate-700 text-slate-300 rounded-lg font-bold hover:bg-slate-600 transition-all"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      onClick={confirmNghichThien}
+                      className="flex-1 py-3 bg-gradient-to-r from-red-700 to-red-600 text-white rounded-lg font-bold hover:from-red-600 hover:to-red-500 transition-all"
+                    >
+                      Nghịch Thiên!
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-slate-800/50 border border-slate-600/30 rounded-lg p-4 mb-4">
+                    <p className="text-slate-400 text-center">
+                      Cảnh giới hiện tại: <span className="text-slate-300 font-bold">{nghichThienModal.tierName}</span>
+                    </p>
+                    <p className="text-amber-400 text-center mt-2 text-sm">
+                      Cần đạt <span className="text-purple-400 font-bold">Đại Thành</span> mới có thể nghịch thiên!
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setNghichThienModal(null)}
+                    className="w-full py-3 bg-slate-700 text-slate-300 rounded-lg font-bold hover:bg-slate-600 transition-all"
+                  >
+                    Đã hiểu
+                  </button>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div >
   );
 });

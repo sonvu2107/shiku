@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { getTierBySubLevel, TIER_CONFIG, DEBUFF_TYPES, applyDebuffEffects } from '../data/tierConfig.js';
 
 /**
  * Cultivation Schema - Hệ Thống Tu Tiên
@@ -37,14 +38,14 @@ export const CULTIVATION_REALMS = [
     minExp: 5000,
     maxExp: 14999,
     description: "Ngưng tụ Kim Đan trong đan điền",
-    color: "#9a6b1aff",
+    color: "#9A6B1A",
   },
   {
     level: 5,
     name: "Nguyên Anh",
     minExp: 15000,
     maxExp: 39999,
-    description: "Nguyên Anh hình thành, thọ mệnh tăng mạnh",
+    description: "Nguyên Anh hình thành, thần hồn xuất khiếu",
     color: "#8B5CF6",
   },
   {
@@ -52,7 +53,7 @@ export const CULTIVATION_REALMS = [
     name: "Hóa Thần",
     minExp: 40000,
     maxExp: 99999,
-    description: "Thần thức mạnh mẽ, có thể xuất khiếu",
+    description: "Thần thức viên mãn, thân tâm hợp nhất",
     color: "#EC4899",
   },
   {
@@ -60,41 +61,66 @@ export const CULTIVATION_REALMS = [
     name: "Luyện Hư",
     minExp: 100000,
     maxExp: 249999,
-    description: "Luyện hóa hư không, gần đạt đến đạo",
+    description: "Luyện hóa hư không, bước vào tầng cao tu hành",
     color: "#14B8A6",
   },
   {
     level: 8,
-    name: "Đại Thừa",
+    name: "Hợp Thể",
     minExp: 250000,
     maxExp: 499999,
-    description: "Đại đạo viên mãn, chuẩn bị độ kiếp",
-    color: "#F97316",
+    description: "Nguyên thần và nhục thân hợp nhất",
+    color: "#22C55E",
   },
   {
     level: 9,
-    name: "Độ Kiếp",
+    name: "Đại Thừa",
     minExp: 500000,
     maxExp: 999999,
-    description: "Đối mặt thiên kiếp, vượt qua sẽ thành tiên",
-    color: "#EF4444",
+    description: "Đại đạo gần viên mãn, chuẩn bị nghịch thiên",
+    color: "#F97316",
   },
+
   {
     level: 10,
-    name: "Tiên Nhân",
+    name: "Chân Tiên",
     minExp: 1000000,
-    maxExp: 4999999,
-    description: "Đạt đến cảnh giới bất tử, siêu thoát luân hồi",
-    color: "#FFD700",
+    maxExp: 2999999,
+    description: "Vượt qua thiên kiếp, chính thức bước vào tiên đạo",
+    color: "#60A5FA",
   },
   {
     level: 11,
+    name: "Kim Tiên",
+    minExp: 3000000,
+    maxExp: 6999999,
+    description: "Tiên lực ngưng luyện, bất tử bất diệt",
+    color: "#FACC15",
+  },
+  {
+    level: 12,
+    name: "Tiên Vương",
+    minExp: 7000000,
+    maxExp: 14999999,
+    description: "Thống lĩnh một phương tiên giới",
+    color: "#A855F7",
+  },
+  {
+    level: 13,
+    name: "Tiên Đế",
+    minExp: 15000000,
+    maxExp: 29999999,
+    description: "Chấp chưởng đại đạo, hiệu lệnh tiên giới",
+    color: "#EF4444",
+  },
+  {
+    level: 14,
     name: "Thiên Đế",
-    minExp: 5000000,
+    minExp: 30000000,
     maxExp: Infinity,
-    description: "Cảnh giới tối cao, thống trị thiên địa, vạn vật quy phục",
+    description: "Cảnh giới chí cao, thiên địa đồng thọ",
     color: "#FF00FF",
-  }
+  },
 ];
 
 // ==================== NHIỆM VỤ MẪU ====================
@@ -209,7 +235,7 @@ const CultivationSchema = new mongoose.Schema({
 
   // ==================== TU VI & CẢNH GIỚI ====================
   exp: { type: Number, default: 0, min: 0 },
-  realmLevel: { type: Number, default: 1, min: 1, max: 11 },
+  realmLevel: { type: Number, default: 1, min: 1, max: 14 },
   realmName: { type: String, default: "Phàm Nhân" },
   subLevel: { type: Number, default: 1, min: 1, max: 10 },
 
@@ -373,7 +399,14 @@ const CultivationSchema = new mongoose.Schema({
 
   // ==================== GÓI MUA 1 LẦN ====================
   // Track các item oneTimePurchase đã mua (để chặn mua lại dù đã dùng)
-  purchasedOneTimeItems: [{ type: String }]
+  purchasedOneTimeItems: [{ type: String }],
+
+  // ==================== DEBUFFS (Nghịch Thiên) ====================
+  debuffs: [{
+    type: { type: String, required: true },
+    remainingBattles: { type: Number, default: 3 },
+    appliedAt: { type: Date, default: Date.now }
+  }]
 }, {
   timestamps: true
 });
@@ -410,7 +443,7 @@ CultivationSchema.methods.calculateCombatStats = function () {
     ? Math.min(1, Math.max(0, (currentExp - realm.minExp) / (realm.maxExp - realm.minExp)))
     : Math.min(1, (currentExp - realm.minExp) / 1000000);
 
-  // Base stats theo cảnh giới
+  // Base stats theo cảnh giới (14 levels)
   const baseStatsByRealm = {
     1: { attack: 10, defense: 5, qiBlood: 100, zhenYuan: 50, speed: 10, criticalRate: 5, criticalDamage: 150, accuracy: 80, dodge: 5, penetration: 0, resistance: 0, lifesteal: 0, regeneration: 0.5, luck: 5 },
     2: { attack: 25, defense: 12, qiBlood: 250, zhenYuan: 120, speed: 15, criticalRate: 8, criticalDamage: 160, accuracy: 85, dodge: 8, penetration: 2, resistance: 2, lifesteal: 1, regeneration: 1, luck: 8 },
@@ -421,13 +454,16 @@ CultivationSchema.methods.calculateCombatStats = function () {
     7: { attack: 800, defense: 400, qiBlood: 8000, zhenYuan: 4000, speed: 40, criticalRate: 20, criticalDamage: 210, accuracy: 96, dodge: 20, penetration: 18, resistance: 18, lifesteal: 10, regeneration: 5, luck: 20 },
     8: { attack: 1600, defense: 800, qiBlood: 16000, zhenYuan: 8000, speed: 45, criticalRate: 22, criticalDamage: 220, accuracy: 97, dodge: 22, penetration: 20, resistance: 20, lifesteal: 12, regeneration: 6, luck: 22 },
     9: { attack: 3200, defense: 1600, qiBlood: 32000, zhenYuan: 16000, speed: 50, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 7, luck: 25 },
-    10: { attack: 6400, defense: 3200, qiBlood: 64000, zhenYuan: 32000, speed: 60, criticalRate: 30, criticalDamage: 250, accuracy: 99, dodge: 30, penetration: 25, resistance: 25, lifesteal: 20, regeneration: 8, luck: 30 },
-    11: { attack: 12800, defense: 6400, qiBlood: 128000, zhenYuan: 64000, speed: 70, criticalRate: 35, criticalDamage: 300, accuracy: 100, dodge: 35, penetration: 30, resistance: 30, lifesteal: 25, regeneration: 10, luck: 35 }
+    10: { attack: 6400, defense: 3200, qiBlood: 64000, zhenYuan: 32000, speed: 55, criticalRate: 28, criticalDamage: 240, accuracy: 99, dodge: 28, penetration: 25, resistance: 25, lifesteal: 18, regeneration: 8, luck: 28 },
+    11: { attack: 12800, defense: 6400, qiBlood: 128000, zhenYuan: 64000, speed: 60, criticalRate: 30, criticalDamage: 250, accuracy: 99, dodge: 30, penetration: 28, resistance: 28, lifesteal: 20, regeneration: 9, luck: 30 },
+    12: { attack: 25600, defense: 12800, qiBlood: 256000, zhenYuan: 128000, speed: 65, criticalRate: 32, criticalDamage: 270, accuracy: 100, dodge: 32, penetration: 30, resistance: 30, lifesteal: 22, regeneration: 10, luck: 32 },
+    13: { attack: 51200, defense: 25600, qiBlood: 512000, zhenYuan: 256000, speed: 70, criticalRate: 35, criticalDamage: 290, accuracy: 100, dodge: 35, penetration: 32, resistance: 32, lifesteal: 25, regeneration: 12, luck: 35 },
+    14: { attack: 102400, defense: 51200, qiBlood: 1024000, zhenYuan: 512000, speed: 80, criticalRate: 40, criticalDamage: 350, accuracy: 100, dodge: 40, penetration: 35, resistance: 35, lifesteal: 30, regeneration: 15, luck: 40 }
   };
 
   const baseStats = baseStatsByRealm[realmLevel] || baseStatsByRealm[1];
 
-  // Exp bonus (tăng dần trong cảnh giới, 11 levels)
+  // Exp bonus (tăng dần trong cảnh giới, 14 levels)
   const expBonusMultiplier = {
     1: { attack: 0.5, defense: 0.25, qiBlood: 5, zhenYuan: 2.5 },
     2: { attack: 1.2, defense: 0.6, qiBlood: 12, zhenYuan: 6 },
@@ -439,7 +475,10 @@ CultivationSchema.methods.calculateCombatStats = function () {
     8: { attack: 80, defense: 40, qiBlood: 800, zhenYuan: 400 },
     9: { attack: 160, defense: 80, qiBlood: 1600, zhenYuan: 800 },
     10: { attack: 320, defense: 160, qiBlood: 3200, zhenYuan: 1600 },
-    11: { attack: 640, defense: 320, qiBlood: 6400, zhenYuan: 3200 }
+    11: { attack: 640, defense: 320, qiBlood: 6400, zhenYuan: 3200 },
+    12: { attack: 1280, defense: 640, qiBlood: 12800, zhenYuan: 6400 },
+    13: { attack: 2560, defense: 1280, qiBlood: 25600, zhenYuan: 12800 },
+    14: { attack: 5120, defense: 2560, qiBlood: 51200, zhenYuan: 25600 }
   };
 
   const bonus = expBonusMultiplier[realmLevel] || expBonusMultiplier[1];
@@ -670,6 +709,72 @@ CultivationSchema.methods.getRealmProgress = function () {
 };
 
 /**
+ * Lấy thông tin tier (Sơ/Trung/Đại Thành/Viên Mãn)
+ * @returns {Object} Tier info với key, name, privileges
+ */
+CultivationSchema.methods.getTierInfo = function () {
+  return getTierBySubLevel(this.subLevel || 1);
+};
+
+/**
+ * Lấy tên đầy đủ: "Kim Đan - Đại Thành"
+ * @returns {string} Full realm name với tier
+ */
+CultivationSchema.methods.getFullRealmName = function () {
+  const realm = CULTIVATION_REALMS.find(r => r.level === this.realmLevel);
+  const tier = this.getTierInfo();
+  return `${realm?.name || 'Phàm Nhân'} - ${tier.name}`;
+};
+
+/**
+ * Lấy danh sách debuffs đang active
+ * @returns {Array} Active debuffs
+ */
+CultivationSchema.methods.getActiveDebuffs = function () {
+  return (this.debuffs || []).filter(d => d.remainingBattles > 0);
+};
+
+/**
+ * Tiêu hao 1 lượt debuff sau mỗi trận đấu
+ * Xóa debuffs đã hết lượt
+ */
+CultivationSchema.methods.consumeDebuffBattle = function () {
+  if (this.debuffs && this.debuffs.length > 0) {
+    this.debuffs.forEach(d => {
+      if (d.remainingBattles > 0) d.remainingBattles--;
+    });
+    // Xóa các debuff đã hết lượt
+    this.debuffs = this.debuffs.filter(d => d.remainingBattles > 0);
+  }
+};
+
+/**
+ * Thêm hoặc reset debuff (không stack vô hạn)
+ * @param {string} debuffType - Loại debuff
+ * @param {number} duration - Số trận còn lại
+ */
+CultivationSchema.methods.applyDebuff = function (debuffType, duration) {
+  if (!this.debuffs) this.debuffs = [];
+
+  const existingIndex = this.debuffs.findIndex(d => d.type === debuffType);
+  if (existingIndex >= 0) {
+    // Reset duration (không stack)
+    this.debuffs[existingIndex].remainingBattles = Math.max(
+      this.debuffs[existingIndex].remainingBattles,
+      duration
+    );
+    this.debuffs[existingIndex].appliedAt = new Date();
+  } else {
+    // Thêm mới
+    this.debuffs.push({
+      type: debuffType,
+      remainingBattles: duration,
+      appliedAt: new Date()
+    });
+  }
+};
+
+/**
  * Lấy bonus từ pet đang trang bị
  * @returns {Object} { expBonus, spiritStoneBonus, questExpBonus }
  */
@@ -794,18 +899,22 @@ CultivationSchema.methods.collectPassiveExp = function () {
   // Đại Thừa (8): 100 exp/phút
   // Độ Kiếp (9): 150 exp/phút
   // Tiên Nhân (10): 250 exp/phút
+  // Exp per minute (14 levels)
   const expPerMinuteByRealm = {
-    1: 2,    // Phàm Nhân
-    2: 4,    // Luyện Khí
-    3: 8,    // Trúc Cơ
-    4: 15,   // Kim Đan
-    5: 25,   // Nguyên Anh
-    6: 40,   // Hóa Thần
-    7: 60,   // Luyện Hư
-    8: 100,  // Đại Thừa
-    9: 150,  // Độ Kiếp
-    10: 250, // Tiên Nhân
-    11: 500  // Thiên Đế
+    1: 2,     // Phàm Nhân
+    2: 4,     // Luyện Khí
+    3: 8,     // Trúc Cơ
+    4: 15,    // Kim Đan
+    5: 25,    // Nguyên Anh
+    6: 40,    // Hóa Thần
+    7: 60,    // Luyện Hư
+    8: 100,   // Hợp Thể
+    9: 150,   // Đại Thừa
+    10: 250,  // Chân Tiên
+    11: 400,  // Kim Tiên
+    12: 600,  // Tiên Vương
+    13: 800,  // Tiên Đế
+    14: 1000  // Thiên Đế
   };
 
   const baseExpPerMinute = expPerMinuteByRealm[this.realmLevel] || 2;

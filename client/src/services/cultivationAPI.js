@@ -211,20 +211,23 @@ export async function updateCharacterAppearance(characterAppearance) {
 // ==================== CONSTANTS ====================
 
 /**
- * Danh sách cảnh giới tu luyện 
+ * Danh sách cảnh giới tu luyện (v2 - 14 Cảnh Giới)
  */
 export const CULTIVATION_REALMS = [
-  { level: 1, name: "Phàm Nhân", minExp: 0, maxExp: 99, color: "#9CA3AF", icon: "" },
-  { level: 2, name: "Luyện Khí", minExp: 100, maxExp: 999, color: "#10B981", icon: "" },
-  { level: 3, name: "Trúc Cơ", minExp: 1000, maxExp: 4999, color: "#3B82F6", icon: "" },
-  { level: 4, name: "Kim Đan", minExp: 5000, maxExp: 14999, color: "#F59E0B", icon: "" },
-  { level: 5, name: "Nguyên Anh", minExp: 15000, maxExp: 39999, color: "#8B5CF6", icon: "" },
-  { level: 6, name: "Hóa Thần", minExp: 40000, maxExp: 99999, color: "#EC4899", icon: "" },
-  { level: 7, name: "Luyện Hư", minExp: 100000, maxExp: 249999, color: "#14B8A6", icon: "" },
-  { level: 8, name: "Đại Thừa", minExp: 250000, maxExp: 499999, color: "#F97316", icon: "" },
-  { level: 9, name: "Độ Kiếp", minExp: 500000, maxExp: 999999, color: "#EF4444", icon: "" },
-  { level: 10, name: "Tiên Nhân", minExp: 1000000, maxExp: 4999999, color: "#FFD700", icon: "" },
-  { level: 11, name: "Thiên Đế", minExp: 5000000, maxExp: Infinity, color: "#FF00FF", icon: "" }
+  { level: 1, name: "Phàm Nhân", minExp: 0, maxExp: 99, color: "#9CA3AF" },
+  { level: 2, name: "Luyện Khí", minExp: 100, maxExp: 999, color: "#10B981" },
+  { level: 3, name: "Trúc Cơ", minExp: 1000, maxExp: 4999, color: "#3B82F6" },
+  { level: 4, name: "Kim Đan", minExp: 5000, maxExp: 14999, color: "#9A6B1A" },
+  { level: 5, name: "Nguyên Anh", minExp: 15000, maxExp: 39999, color: "#8B5CF6" },
+  { level: 6, name: "Hóa Thần", minExp: 40000, maxExp: 99999, color: "#EC4899" },
+  { level: 7, name: "Luyện Hư", minExp: 100000, maxExp: 249999, color: "#14B8A6" },
+  { level: 8, name: "Hợp Thể", minExp: 250000, maxExp: 499999, color: "#22C55E" },
+  { level: 9, name: "Đại Thừa", minExp: 500000, maxExp: 999999, color: "#F97316" },
+  { level: 10, name: "Chân Tiên", minExp: 1000000, maxExp: 2999999, color: "#60A5FA" },
+  { level: 11, name: "Kim Tiên", minExp: 3000000, maxExp: 6999999, color: "#FACC15" },
+  { level: 12, name: "Tiên Vương", minExp: 7000000, maxExp: 14999999, color: "#A855F7" },
+  { level: 13, name: "Tiên Đế", minExp: 15000000, maxExp: 29999999, color: "#EF4444" },
+  { level: 14, name: "Thiên Đế", minExp: 30000000, maxExp: Infinity, color: "#FF00FF" }
 ];
 
 /**
@@ -245,4 +248,66 @@ export function formatNumber(num) {
     return (num / 1000).toFixed(1) + 'K';
   }
   return num.toString();
+}
+
+// ==================== TIER SYSTEM ====================
+
+/**
+ * Lưu cache tier config từ server
+ */
+let tierConfigCache = null;
+
+/**
+ * Fetch tier config từ server
+ */
+export async function fetchTierConfig() {
+  if (tierConfigCache) return tierConfigCache;
+  try {
+    const response = await api('/api/cultivation/tier-config');
+    if (response.success) {
+      tierConfigCache = response.data;
+      return response.data;
+    }
+  } catch (err) {
+    console.error('Failed to fetch tier config:', err);
+  }
+  // Fallback defaults
+  return {
+    tiers: [
+      { key: 'SO_THANH', name: 'Sơ Thành', color: '#94A3B8', range: [1, 3], canNghichThien: false },
+      { key: 'TRUNG_THANH', name: 'Trung Thành', color: '#3B82F6', range: [4, 6], canNghichThien: false },
+      { key: 'DAI_THANH', name: 'Đại Thành', color: '#8B5CF6', range: [7, 9], canNghichThien: true },
+      { key: 'VIEN_MAN', name: 'Viên Mãn', color: '#FFD700', range: [10, 10], canNghichThien: true }
+    ],
+    debuffs: []
+  };
+}
+
+/**
+ * Lấy tier từ subLevel (client-side với fallback)
+ */
+export function getTierBySubLevel(subLevel) {
+  const level = subLevel || 1;
+  const tiers = tierConfigCache?.tiers || [
+    { key: 'SO_THANH', name: 'Sơ Thành', color: '#94A3B8', range: [1, 3], canNghichThien: false },
+    { key: 'TRUNG_THANH', name: 'Trung Thành', color: '#3B82F6', range: [4, 6], canNghichThien: false },
+    { key: 'DAI_THANH', name: 'Đại Thành', color: '#8B5CF6', range: [7, 9], canNghichThien: true },
+    { key: 'VIEN_MAN', name: 'Viên Mãn', color: '#FFD700', range: [10, 10], canNghichThien: true }
+  ];
+
+  for (const tier of tiers) {
+    if (level >= tier.range[0] && level <= tier.range[1]) {
+      return tier;
+    }
+  }
+  return tiers[0];
+}
+
+/**
+ * Lấy tên đầy đủ: "Kim Đan - Đại Thành"
+ */
+export function getFullRealmName(realmLevel, subLevel) {
+  const realm = getRealmByLevel(realmLevel);
+  const tier = getTierBySubLevel(subLevel);
+  return `${realm.name} - ${tier.name}`;
 }

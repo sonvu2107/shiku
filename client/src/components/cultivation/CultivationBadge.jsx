@@ -10,17 +10,17 @@ import { CULTIVATION_REALMS, getRealmByLevel } from '../../services/cultivationA
 /**
  * Badge nhỏ hiển thị cạnh tên user
  */
-export const CultivationBadgeInline = memo(function CultivationBadgeInline({ 
-  realmLevel = 1, 
+export const CultivationBadgeInline = memo(function CultivationBadgeInline({
+  realmLevel = 1,
   realmName,
   showIcon = true,
   showName = false,
-  className = '' 
+  className = ''
 }) {
   const realm = getRealmByLevel(realmLevel);
-  
+
   return (
-    <span 
+    <span
       className={`inline-flex items-center gap-0.5 text-xs ${className}`}
       title={`${realm.name} - Cảnh giới ${realmLevel}`}
       style={{ color: realm.color }}
@@ -34,43 +34,43 @@ export const CultivationBadgeInline = memo(function CultivationBadgeInline({
 /**
  * Badge lớn với animation
  */
-export const CultivationBadgeLarge = memo(function CultivationBadgeLarge({ 
-  realmLevel = 1, 
+export const CultivationBadgeLarge = memo(function CultivationBadgeLarge({
+  realmLevel = 1,
   realmName,
   exp = 0,
   progress = 0,
   showProgress = true,
-  className = '' 
+  className = ''
 }) {
   const realm = getRealmByLevel(realmLevel);
-  
+
   return (
-    <motion.div 
+    <motion.div
       className={`relative inline-flex flex-col items-center ${className}`}
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
       {/* Icon with glow effect */}
-      <div 
+      <div
         className="relative text-4xl mb-1"
-        style={{ 
+        style={{
           filter: `drop-shadow(0 0 8px ${realm.color})`,
           textShadow: `0 0 20px ${realm.color}`
         }}
       >
         {realm.icon}
-        
+
         {/* Animated ring for high realms */}
         {realmLevel >= 5 && (
           <motion.div
             className="absolute inset-0 rounded-full border-2 opacity-50"
             style={{ borderColor: realm.color }}
-            animate={{ 
+            animate={{
               scale: [1, 1.2, 1],
               opacity: [0.5, 0.2, 0.5]
             }}
-            transition={{ 
+            transition={{
               duration: 2,
               repeat: Infinity,
               ease: "easeInOut"
@@ -78,15 +78,15 @@ export const CultivationBadgeLarge = memo(function CultivationBadgeLarge({
           />
         )}
       </div>
-      
+
       {/* Realm name */}
-      <div 
+      <div
         className="font-bold text-lg"
         style={{ color: realm.color }}
       >
         {realmName || realm.name}
       </div>
-      
+
       {/* Progress bar */}
       {showProgress && (
         <div className="w-full mt-2">
@@ -111,19 +111,19 @@ export const CultivationBadgeLarge = memo(function CultivationBadgeLarge({
 /**
  * Card hiển thị thông tin tu tiên đầy đủ
  */
-export const CultivationCard = memo(function CultivationCard({ 
+export const CultivationCard = memo(function CultivationCard({
   cultivation,
   compact = false,
-  className = '' 
+  className = ''
 }) {
   if (!cultivation) return null;
-  
+
   const realm = cultivation.realm || getRealmByLevel(cultivation.realmLevel || 1);
-  
+
   if (compact) {
     return (
       <div className={`flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 ${className}`}>
-        <span 
+        <span
           className="text-2xl"
           style={{ filter: `drop-shadow(0 0 4px ${realm.color})` }}
         >
@@ -131,7 +131,7 @@ export const CultivationCard = memo(function CultivationCard({
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span 
+            <span
               className="font-bold"
               style={{ color: realm.color }}
             >
@@ -154,13 +154,13 @@ export const CultivationCard = memo(function CultivationCard({
       </div>
     );
   }
-  
+
   return (
     <div className={`p-4 rounded-2xl bg-gradient-to-br from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 border border-neutral-200 dark:border-neutral-700 ${className}`}>
       <div className="flex items-start gap-4">
         {/* Realm icon */}
         <div className="flex-shrink-0">
-          <CultivationBadgeLarge 
+          <CultivationBadgeLarge
             realmLevel={realm.level}
             realmName={realm.name}
             exp={cultivation.exp}
@@ -168,32 +168,32 @@ export const CultivationCard = memo(function CultivationCard({
             showProgress={false}
           />
         </div>
-        
+
         {/* Stats */}
         <div className="flex-1 min-w-0">
           <div className="grid grid-cols-2 gap-3">
-            <StatItem 
-              icon="" 
-              label="Tu Vi" 
+            <StatItem
+              icon=""
+              label="Tu Vi"
               value={cultivation.exp?.toLocaleString() || 0}
             />
-            <StatItem 
-              icon="" 
-              label="Linh Thạch" 
+            <StatItem
+              icon=""
+              label="Linh Thạch"
               value={cultivation.spiritStones?.toLocaleString() || 0}
             />
-            <StatItem 
-              icon="" 
-              label="Streak" 
+            <StatItem
+              icon=""
+              label="Streak"
               value={`${cultivation.loginStreak || 0} ngày`}
             />
-            <StatItem 
-              icon="" 
-              label="Tiểu cấp" 
+            <StatItem
+              icon=""
+              label="Tiểu cấp"
               value={`Tầng ${cultivation.subLevel || 1}`}
             />
           </div>
-          
+
           {/* Progress bar */}
           <div className="mt-3">
             <div className="flex justify-between text-xs text-neutral-500 mb-1">
@@ -234,13 +234,13 @@ const StatItem = memo(function StatItem({ icon, label, value }) {
 /**
  * Level Up Notification Component
  */
-export const LevelUpNotification = memo(function LevelUpNotification({ 
-  realm, 
+export const LevelUpNotification = memo(function LevelUpNotification({
+  realm,
   onClose,
-  show = false 
+  show = false
 }) {
   if (!show || !realm) return null;
-  
+
   return (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
@@ -262,7 +262,7 @@ export const LevelUpNotification = memo(function LevelUpNotification({
             <motion.div
               key={i}
               className="absolute w-2 h-2 rounded-full"
-              style={{ 
+              style={{
                 backgroundColor: realm.color,
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`
@@ -280,12 +280,12 @@ export const LevelUpNotification = memo(function LevelUpNotification({
             />
           ))}
         </div>
-        
+
         {/* Content */}
         <div className="relative z-10">
           <motion.div
             className="text-6xl mb-4"
-            animate={{ 
+            animate={{
               scale: [1, 1.2, 1],
               rotate: [0, 5, -5, 0]
             }}
@@ -294,22 +294,22 @@ export const LevelUpNotification = memo(function LevelUpNotification({
           >
             {realm.icon}
           </motion.div>
-          
+
           <h2 className="text-2xl font-bold text-white mb-2">
-            🎉 Đột Phá Thành Công!
+            Đột Phá Thành Công!
           </h2>
-          
-          <p 
+
+          <p
             className="text-xl font-bold mb-2"
             style={{ color: realm.color }}
           >
             {realm.name}
           </p>
-          
+
           <p className="text-neutral-400 text-sm mb-4">
             {realm.description}
           </p>
-          
+
           <button
             onClick={onClose}
             className="px-6 py-2 rounded-full text-white font-medium transition-all hover:scale-105"

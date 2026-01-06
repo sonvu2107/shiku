@@ -311,7 +311,15 @@ const CultivationContent = memo(function CultivationContent() {
         addLog(`Chưa đủ thời gian. Chờ thêm ${result.nextCollectIn}s`, 'normal');
       }
     } catch (err) {
-      addLog(`Thu thập thất bại: ${err.message}`, 'danger');
+      // Try to extract cooldown time from error message
+      const cooldownMatch = err.message?.match(/(\d+)\s*(giây|s|phút|m)/i);
+      if (cooldownMatch) {
+        addLog(`Chưa đủ thời gian. Chờ thêm ${cooldownMatch[0]}`, 'normal');
+      } else if (err.message?.includes('chưa đủ') || err.message?.includes('rate')) {
+        addLog(`Chân nguyên chưa hồi phục, hãy chờ thêm ít phút nữa`, 'normal');
+      } else {
+        addLog(`Thu thập thất bại: ${err.message}`, 'danger');
+      }
     } finally {
       setCollectingPassiveExp(false);
     }
@@ -374,7 +382,7 @@ const CultivationContent = memo(function CultivationContent() {
     { id: 'combat', label: 'Chiến Đấu' },
     { id: 'sect', label: 'Tông Môn' },
     { id: 'thienhaky', label: 'Thiên Hạ Ký' },
-    ...(isAdmin ? [{ id: 'leaderboard', label: 'Bảng Xếp Hạng' }] : []),
+    { id: 'leaderboard', label: 'Bảng Xếp Hạng' },
   ];
 
   return (
@@ -559,7 +567,7 @@ const CultivationContent = memo(function CultivationContent() {
           {activeTab === 'dungeon' && <DungeonTab />}
           {activeTab === 'combat' && <CombatTab onSwitchTab={setActiveTab} isAdmin={isAdmin} />}
           {activeTab === 'sect' && <SectTab />}
-          {activeTab === 'leaderboard' && isAdmin && <LeaderboardTab isAdmin={isAdmin} />}
+          {activeTab === 'leaderboard' && <LeaderboardTab isAdmin={isAdmin} />}
           {activeTab === 'thienhaky' && <ThienHaKy />}
         </div>
       </div>

@@ -133,8 +133,8 @@ export const breakthrough = async (req, res, next) => {
             return res.status(400).json({ success: false, message: `Cần chờ ${Math.ceil(remainingMs / 60000)} phút`, cooldownRemaining: remainingMs });
         }
 
-        const baseRates = { 1: 90, 2: 80, 3: 70, 4: 60, 5: 50, 6: 40, 7: 30, 8: 20, 9: 15, 10: 10, 11: 5 };
-        const bonusPerFailure = { 1: 15, 2: 15, 3: 12, 4: 10, 5: 8, 6: 7, 7: 6, 8: 5, 9: 5, 10: 5, 11: 5 };
+        const baseRates = { 1: 95, 2: 90, 3: 85, 4: 75, 5: 65, 6: 55, 7: 45, 8: 35, 9: 25, 10: 20, 11: 15, 12: 10, 13: 5, 14: 1 };
+        const bonusPerFailure = { 1: 15, 2: 15, 3: 12, 4: 10, 5: 8, 6: 7, 7: 6, 8: 5, 9: 5, 10: 5, 11: 5, 12: 5, 13: 5, 14: 5 };
         const baseSuccessRate = baseRates[currentRealm.level] || 30;
         const bonus = bonusPerFailure[currentRealm.level] || 10;
 

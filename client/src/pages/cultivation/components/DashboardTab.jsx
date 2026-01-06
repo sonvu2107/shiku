@@ -3,7 +3,7 @@
  */
 import { useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CULTIVATION_REALMS } from '../../../services/cultivationAPI.js';
+import { CULTIVATION_REALMS, getTierBySubLevel } from '../../../services/cultivationAPI.js';
 
 const DashboardTab = memo(function DashboardTab({
   cultivation,
@@ -25,23 +25,26 @@ const DashboardTab = memo(function DashboardTab({
   logEndRef,
   equippedTechnique // Công pháp đang trang bị
 }) {
-  // Tính tỷ lệ thành công cho độ kiếp dựa trên cảnh giới
+  // Tính tỷ lệ thành công cho độ kiếp dựa trên cảnh giới (14 levels)
   const baseSuccessRatesByRealm = {
-    1: 90,  // Phàm Nhân -> Luyện Khí: 90%
-    2: 80,  // Luyện Khí -> Trúc Cơ: 80%
-    3: 70,  // Trúc Cơ -> Kim Đan: 70%
-    4: 60,  // Kim Đan -> Nguyên Anh: 60%
-    5: 50,  // Nguyên Anh -> Hóa Thần: 50%
-    6: 40,  // Hóa Thần -> Luyện Hư: 40%
-    7: 30,  // Luyện Hư -> Đại Thừa: 30%
-    8: 20,  // Đại Thừa -> Độ Kiếp: 20%
-    9: 15,  // Độ Kiếp -> Tiên Nhân: 15%
-    10: 10, // Tiên Nhân -> Thiên Đế: 10%
-    11: 5   // Thiên Đế (max level)
+    1: 95,  // Phàm Nhân -> Luyện Khí: 95%
+    2: 90,  // Luyện Khí -> Trúc Cơ: 90%
+    3: 85,  // Trúc Cơ -> Kim Đan: 85%
+    4: 75,  // Kim Đan -> Nguyên Anh: 75%
+    5: 65,  // Nguyên Anh -> Hóa Thần: 65%
+    6: 55,  // Hóa Thần -> Luyện Hư: 55%
+    7: 45,  // Luyện Hư -> Hợp Thể: 45%
+    8: 35,  // Hợp Thể -> Đại Thừa: 35%
+    9: 25,  // Đại Thừa -> Chân Tiên (ĐỘ KIẾP): 25%
+    10: 20, // Chân Tiên -> Kim Tiên: 20%
+    11: 15, // Kim Tiên -> Tiên Vương: 15%
+    12: 10, // Tiên Vương -> Tiên Đế: 10%
+    13: 5,  // Tiên Đế -> Thiên Đế: 5%
+    14: 1   // Thiên Đế (max level)
   };
 
   const bonusPerFailureByRealm = {
-    1: 15, 2: 15, 3: 12, 4: 10, 5: 8, 6: 7, 7: 6, 8: 5, 9: 5, 10: 5, 11: 5
+    1: 15, 2: 15, 3: 12, 4: 10, 5: 8, 6: 7, 7: 6, 8: 5, 9: 5, 10: 5, 11: 5, 12: 5, 13: 5, 14: 5
   };
 
   const realmLevel = cultivation?.realm?.level || 1;
@@ -122,6 +125,25 @@ const DashboardTab = memo(function DashboardTab({
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-title text-gold tracking-widest mb-3 realm-name-glow relative">
             {currentRealm.name.toUpperCase()}
           </h2>
+
+          {/* SubLevel / Tier Display */}
+          {cultivation?.subLevel && (
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span
+                className="text-sm font-bold px-3 py-1 rounded-full border"
+                style={{
+                  color: getTierBySubLevel(cultivation.subLevel).color,
+                  borderColor: `${getTierBySubLevel(cultivation.subLevel).color}50`,
+                  backgroundColor: `${getTierBySubLevel(cultivation.subLevel).color}15`
+                }}
+              >
+                {getTierBySubLevel(cultivation.subLevel).name}
+              </span>
+              <span className="text-xs text-slate-500">
+                Tầng {cultivation.subLevel}/10
+              </span>
+            </div>
+          )}
 
           <div className="h-[1px] w-32 sm:w-40 md:w-48 mx-auto bg-gradient-to-r from-transparent via-amber-500/50 to-transparent relative">
             {/* Animated dots on line */}
@@ -227,6 +249,11 @@ const DashboardTab = memo(function DashboardTab({
             {/* Background glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 via-violet-900/20 to-purple-900/20 rounded-full"></div>
 
+            {/* Tier markers (30%, 60%, 90%) */}
+            <div className="absolute top-0 left-[30%] w-px h-full bg-slate-600/50 z-10"></div>
+            <div className="absolute top-0 left-[60%] w-px h-full bg-slate-600/50 z-10"></div>
+            <div className="absolute top-0 left-[90%] w-px h-full bg-amber-500/50 z-10"></div>
+
             <motion.div
               className={`absolute top-0 left-0 h-full transition-all duration-500 ease-out relative ${isBreakthroughReady
                 ? 'bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-200 shadow-[0_0_15px_rgba(251,191,36,0.5)]'
@@ -246,6 +273,13 @@ const DashboardTab = memo(function DashboardTab({
             {isBreakthroughReady && (
               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-400/30 via-yellow-400/30 to-amber-400/30 animate-pulse"></div>
             )}
+          </div>
+          {/* Tier labels under progress bar */}
+          <div className="flex justify-between text-[10px] text-slate-600 mt-1 px-1">
+            <span>Sơ Thành</span>
+            <span style={{ marginLeft: '15%' }}>Trung Thành</span>
+            <span style={{ marginLeft: '15%' }}>Đại Thành</span>
+            <span className="text-amber-500">Viên Mãn</span>
           </div>
         </div>
 
@@ -438,6 +472,23 @@ const DashboardTab = memo(function DashboardTab({
                   <div className="text-xs text-slate-500">
                     {realm.minExp.toLocaleString()} Tu Vi
                   </div>
+                  {/* Show tier for current realm */}
+                  {isCurrent && cultivation?.subLevel && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span
+                        className="text-[10px] px-2 py-0.5 rounded-full"
+                        style={{
+                          color: getTierBySubLevel(cultivation.subLevel).color,
+                          backgroundColor: `${getTierBySubLevel(cultivation.subLevel).color}20`
+                        }}
+                      >
+                        {getTierBySubLevel(cultivation.subLevel).name}
+                      </span>
+                      <span className="text-[10px] text-slate-600">
+                        Tầng {cultivation.subLevel}/10
+                      </span>
+                    </div>
+                  )}
                 </div>
                 {isCurrent && (
                   <span className="text-xs bg-purple-500/30 text-purple-300 px-2 py-1 rounded-full border border-purple-500/30">

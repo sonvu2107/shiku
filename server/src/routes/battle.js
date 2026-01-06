@@ -7,6 +7,7 @@ import Notification from "../models/Notification.js";
 import { authRequired } from "../middleware/auth.js";
 import { PK_BOTS, BOT_BATTLE_COOLDOWN, getBotsByRealmLevel, getBotById } from "../data/pkBots.js";
 import { logPKOverkillEvent } from "../controllers/cultivation/worldEventController.js";
+import { getTierBySubLevel, applyDebuffEffects } from "../data/tierConfig.js";
 
 const router = express.Router();
 
@@ -113,9 +114,10 @@ const getLearnedSkills = (cultivation, maxMana = null) => {
  * @param {Object} opponentStats - Combat stats của đối thủ
  * @param {Array} challengerSkills - Skills của người thách đấu
  * @param {Array} opponentSkills - Skills của đối thủ
+ * @param {Object|null} nghichThienMeta - Nghịch thiên meta data (damageReduction)
  * @returns {Object} Kết quả trận đấu
  */
-const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], opponentSkills = []) => {
+const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], opponentSkills = [], nghichThienMeta = null) => {
   const MAX_TURNS = 50;
   const logs = [];
 
@@ -249,9 +251,14 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
       challengerHp = Math.min(challengerMaxHp, challengerHp + lifestealHealed + regenerationHealed);
       totalDamageByChallenger += damage;
     } else {
-      challengerHp = Math.max(0, challengerHp - damage);
+      // Khi opponent đánh challenger, apply damage reduction từ nghịch thiên
+      let incomingDamage = damage;
+      if (nghichThienMeta && nghichThienMeta.damageReduction > 0) {
+        incomingDamage = Math.floor(damage * (1 - nghichThienMeta.damageReduction));
+      }
+      challengerHp = Math.max(0, challengerHp - incomingDamage);
       opponentHp = Math.min(opponentMaxHp, opponentHp + lifestealHealed + regenerationHealed);
-      totalDamageByOpponent += damage;
+      totalDamageByOpponent += incomingDamage;
     }
 
     // Tạo mô tả
@@ -335,8 +342,12 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
 
 /**
  * Tính phần thưởng dựa trên kết quả trận đấu
+ * @param {Object} winnerStats - Combat stats của người thắng
+ * @param {Object} loserStats - Combat stats của người thua
+ * @param {boolean} isDraw - Có hòa không
+ * @param {number} tierMultiplier - Reward multiplier từ tier (default 1.0)
  */
-const calculateRewards = (winnerStats, loserStats, isDraw) => {
+const calculateRewards = (winnerStats, loserStats, isDraw, tierMultiplier = 1.0) => {
   if (isDraw) {
     return {
       winnerExp: 10,
@@ -354,9 +365,12 @@ const calculateRewards = (winnerStats, loserStats, isDraw) => {
   const levelDiff = (loserStats.realmLevel || 1) - (winnerStats.realmLevel || 1);
   const bonusMultiplier = Math.max(1, 1 + levelDiff * 0.2);
 
+  // Apply tier multiplier
+  const finalMultiplier = bonusMultiplier * tierMultiplier;
+
   return {
-    winnerExp: Math.floor(baseExp * bonusMultiplier),
-    winnerSpiritStones: Math.floor(baseStones * bonusMultiplier),
+    winnerExp: Math.floor(baseExp * finalMultiplier),
+    winnerSpiritStones: Math.floor(baseStones * finalMultiplier),
     loserExp: Math.floor(baseExp * 0.2),
     loserSpiritStones: 0
   };
@@ -432,9 +446,47 @@ router.post("/challenge", async (req, res, next) => {
       });
     }
 
+    // ==================== NGHỊCH THIÊN VALIDATION ====================
+    const realmDiff = opponentCultivation.realmLevel - challengerCultivation.realmLevel;
+    const { mode = 'normal' } = req.body; // mode: 'normal' | 'nghich_thien'
+
+    // Chặn cứng: không cho đánh vượt 2 cảnh giới trở lên
+    if (realmDiff >= 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Chỉ có thể nghịch thiên chiến đấu với đối thủ cao hơn 1 cảnh giới!',
+        requiresNghichThien: false
+      });
+    }
+
+    // Lấy tier info của challenger
+    const challengerTier = challengerCultivation.getTierInfo();
+    const isNghichThien = realmDiff === 1 && mode === 'nghich_thien';
+
+    // Nếu đối thủ cao hơn 1 cảnh giới nhưng không bật nghịch thiên mode
+    if (realmDiff === 1 && mode !== 'nghich_thien') {
+      return res.status(400).json({
+        success: false,
+        message: 'Đối thủ cao hơn 1 cảnh giới. Bật chế độ Nghịch Thiên để tiếp tục!',
+        requiresNghichThien: true,
+        canNghichThien: challengerTier.privileges.canNghichThien,
+        tierName: challengerTier.name
+      });
+    }
+
+    // Nếu bật nghịch thiên nhưng tier không đủ
+    if (isNghichThien && !challengerTier.privileges.canNghichThien) {
+      return res.status(400).json({
+        success: false,
+        message: `Cần đạt Đại Thành mới có thể nghịch thiên! Hiện tại: ${challengerTier.name}`,
+        requiresNghichThien: true,
+        canNghichThien: false
+      });
+    }
+
     // Tính combat stats (Base + Techniques)
-    const challengerStats = challengerCultivation.calculateCombatStats();
-    const opponentStats = opponentCultivation.calculateCombatStats();
+    let challengerStats = challengerCultivation.calculateCombatStats();
+    let opponentStats = opponentCultivation.calculateCombatStats();
 
     // Lấy và tích hợp stats từ trang bị
     const challengerEquipStats = await challengerCultivation.getEquipmentStats();
@@ -442,6 +494,22 @@ router.post("/challenge", async (req, res, next) => {
 
     mergeEquipmentStats(challengerStats, challengerEquipStats);
     mergeEquipmentStats(opponentStats, opponentEquipStats);
+
+    // ==================== APPLY DEBUFFS ====================
+    const activeDebuffs = challengerCultivation.getActiveDebuffs();
+    if (activeDebuffs.length > 0) {
+      challengerStats = applyDebuffEffects(challengerStats, activeDebuffs);
+    }
+
+    // ==================== NGHỊCH THIÊN BONUSES ====================
+    if (isNghichThien) {
+      // +Crit bonus với clamp max 100
+      const critBonus = challengerTier.privileges.critBonusVsHigher || 0;
+      challengerStats.criticalRate = Math.min(100, challengerStats.criticalRate + critBonus);
+
+      // Log cho debug
+      console.log(`[BATTLE] Nghịch Thiên mode: +${critBonus}% crit, tier: ${challengerTier.name}`);
+    }
 
     // Lấy realm info
     const challengerRealm = CULTIVATION_REALMS.find(r => r.level === challengerCultivation.realmLevel) || CULTIVATION_REALMS[0];
@@ -452,19 +520,29 @@ router.post("/challenge", async (req, res, next) => {
     opponentStats.realmLevel = opponentCultivation.realmLevel;
     opponentStats.realmName = opponentRealm.name;
 
+    // Pass damage reduction để simulateBattle sử dụng
+    const nghichThienMeta = isNghichThien ? {
+      damageReduction: challengerTier.privileges.damageReductionVsHigher || 0
+    } : null;
+
     // Lấy skills từ công pháp đã học (với max mana để tính mana cost chính xác)
     const challengerSkills = getLearnedSkills(challengerCultivation, challengerStats.zhenYuan);
     const opponentSkills = getLearnedSkills(opponentCultivation, opponentStats.zhenYuan);
 
-    // Thực hiện trận đấu
-    const battleResult = simulateBattle(challengerStats, opponentStats, challengerSkills, opponentSkills);
+    // Thực hiện trận đấu (truyền nghịch thiên meta để apply damage reduction)
+    const battleResult = simulateBattle(challengerStats, opponentStats, challengerSkills, opponentSkills, nghichThienMeta);
 
-    // Tính phần thưởng
+    // ==================== TÍNH PHẦN THƯỞNG ====================
+    // Tier multiplier chỉ apply khi nghịch thiên thắng
+    const tierMultiplier = (isNghichThien && battleResult.winner === 'challenger')
+      ? (challengerTier.privileges.rewardMultiplier || 1.0)
+      : 1.0;
+
     let rewards;
     if (battleResult.isDraw) {
       rewards = calculateRewards(challengerStats, opponentStats, true);
     } else if (battleResult.winner === 'challenger') {
-      rewards = calculateRewards(challengerStats, opponentStats, false);
+      rewards = calculateRewards(challengerStats, opponentStats, false, tierMultiplier);
     } else {
       rewards = calculateRewards(opponentStats, challengerStats, false);
       // Đổi vị trí winner/loser rewards
@@ -527,6 +605,19 @@ router.post("/challenge", async (req, res, next) => {
       );
     }
 
+    // ==================== DEBUFF HANDLING ====================
+    // Tiêu hao 1 lượt debuff sau mỗi trận
+    challengerCultivation.consumeDebuffBattle();
+
+    // Nếu thua nghịch thiên -> Áp dụng debuff "Trọng Thương"
+    if (isNghichThien && battleResult.winner !== 'challenger') {
+      const debuffConfig = challengerTier.privileges.debuffOnLose;
+      if (debuffConfig) {
+        challengerCultivation.applyDebuff(debuffConfig.type, debuffConfig.duration);
+        console.log(`[BATTLE] Nghịch thiên thất bại: áp dụng debuff ${debuffConfig.type} trong ${debuffConfig.duration} trận`);
+      }
+    }
+
     // Log Thiên Hạ Ký Event (PK Overkill - Vượt cấp chiến thắng)
     if (!battleResult.isDraw) {
       const winnerStats = battleResult.winner === 'challenger' ? challengerStats : opponentStats;
@@ -543,7 +634,7 @@ router.post("/challenge", async (req, res, next) => {
       }
     }
 
-    console.log(`[BATTLE] ${challenger.name} vs ${opponent.name} - Winner: ${battleResult.winner || 'Draw'}`);
+    console.log(`[BATTLE] ${challenger.name} vs ${opponent.name} - Winner: ${battleResult.winner || 'Draw'}${isNghichThien ? ' (Nghịch Thiên)' : ''}`);
 
     // Cập nhật quest progress cho PK 
     challengerCultivation.updateQuestProgress('pk_battle', 1);
@@ -1099,14 +1190,70 @@ router.post("/challenge/bot", async (req, res, next) => {
       });
     }
 
+    // ==================== NGHỊCH THIÊN VALIDATION (BOT) ====================
+    const realmDiff = bot.realmLevel - challengerCultivation.realmLevel;
+    const { mode = 'normal' } = req.body;
+
+    // Chặn cứng: không cho đánh vượt 2 cảnh giới trở lên
+    if (realmDiff >= 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Chỉ có thể nghịch thiên chiến đấu với đối thủ cao hơn 1 cảnh giới!',
+        requiresNghichThien: false
+      });
+    }
+
+    // Lấy tier info
+    const challengerTier = challengerCultivation.getTierInfo();
+    const isNghichThien = realmDiff === 1 && mode === 'nghich_thien';
+
+    // Nếu bot cao hơn 1 cảnh giới nhưng không bật nghịch thiên mode
+    if (realmDiff === 1 && mode !== 'nghich_thien') {
+      return res.status(400).json({
+        success: false,
+        message: 'Đối thủ cao hơn 1 cảnh giới. Bật chế độ Nghịch Thiên để tiếp tục!',
+        requiresNghichThien: true,
+        canNghichThien: challengerTier.privileges.canNghichThien,
+        tierName: challengerTier.name
+      });
+    }
+
+    // Nếu bật nghịch thiên nhưng tier không đủ
+    if (isNghichThien && !challengerTier.privileges.canNghichThien) {
+      return res.status(400).json({
+        success: false,
+        message: `Cần đạt Đại Thành mới có thể nghịch thiên! Hiện tại: ${challengerTier.name}`,
+        requiresNghichThien: true,
+        canNghichThien: false
+      });
+    }
+
     // Tính combat stats của người chơi
-    const challengerStats = challengerCultivation.calculateCombatStats();
+    let challengerStats = challengerCultivation.calculateCombatStats();
     const challengerEquipStats = await challengerCultivation.getEquipmentStats();
     mergeEquipmentStats(challengerStats, challengerEquipStats);
+
+    // Apply debuffs
+    const activeDebuffs = challengerCultivation.getActiveDebuffs();
+    if (activeDebuffs.length > 0) {
+      challengerStats = applyDebuffEffects(challengerStats, activeDebuffs);
+    }
+
+    // Apply nghịch thiên crit bonus
+    if (isNghichThien) {
+      const critBonus = challengerTier.privileges.critBonusVsHigher || 0;
+      challengerStats.criticalRate = Math.min(100, challengerStats.criticalRate + critBonus);
+      console.log(`[BATTLE-BOT] Nghịch Thiên mode: +${critBonus}% crit, tier: ${challengerTier.name}`);
+    }
 
     const challengerRealm = CULTIVATION_REALMS.find(r => r.level === challengerCultivation.realmLevel) || CULTIVATION_REALMS[0];
     challengerStats.realmLevel = challengerCultivation.realmLevel;
     challengerStats.realmName = challengerRealm.name;
+
+    // Nghịch thiên meta cho damage reduction
+    const nghichThienMeta = isNghichThien ? {
+      damageReduction: challengerTier.privileges.damageReductionVsHigher || 0
+    } : null;
 
     // Tính combat stats của bot (base stats * statMultiplier)
     const botRealm = CULTIVATION_REALMS.find(r => r.level === bot.realmLevel) || CULTIVATION_REALMS[0];
@@ -1120,8 +1267,11 @@ router.post("/challenge/bot", async (req, res, next) => {
       7: { attack: 800, defense: 400, qiBlood: 8000, zhenYuan: 4000, speed: 40, criticalRate: 20, criticalDamage: 210, accuracy: 96, dodge: 20, penetration: 18, resistance: 18, lifesteal: 10, regeneration: 5, luck: 20 },
       8: { attack: 1600, defense: 800, qiBlood: 16000, zhenYuan: 8000, speed: 45, criticalRate: 22, criticalDamage: 220, accuracy: 97, dodge: 22, penetration: 20, resistance: 20, lifesteal: 12, regeneration: 6, luck: 22 },
       9: { attack: 3200, defense: 1600, qiBlood: 32000, zhenYuan: 16000, speed: 50, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 7, luck: 25 },
-      10: { attack: 6400, defense: 3200, qiBlood: 64000, zhenYuan: 32000, speed: 60, criticalRate: 30, criticalDamage: 250, accuracy: 99, dodge: 30, penetration: 25, resistance: 25, lifesteal: 20, regeneration: 8, luck: 30 },
-      11: { attack: 12800, defense: 6400, qiBlood: 128000, zhenYuan: 64000, speed: 70, criticalRate: 35, criticalDamage: 300, accuracy: 100, dodge: 35, penetration: 30, resistance: 30, lifesteal: 25, regeneration: 10, luck: 35 }
+      10: { attack: 6400, defense: 3200, qiBlood: 64000, zhenYuan: 32000, speed: 55, criticalRate: 28, criticalDamage: 240, accuracy: 99, dodge: 28, penetration: 25, resistance: 25, lifesteal: 18, regeneration: 8, luck: 28 },
+      11: { attack: 12800, defense: 6400, qiBlood: 128000, zhenYuan: 64000, speed: 60, criticalRate: 30, criticalDamage: 250, accuracy: 99, dodge: 30, penetration: 28, resistance: 28, lifesteal: 20, regeneration: 9, luck: 30 },
+      12: { attack: 25600, defense: 12800, qiBlood: 256000, zhenYuan: 128000, speed: 65, criticalRate: 32, criticalDamage: 270, accuracy: 100, dodge: 32, penetration: 30, resistance: 30, lifesteal: 22, regeneration: 10, luck: 32 },
+      13: { attack: 51200, defense: 25600, qiBlood: 512000, zhenYuan: 256000, speed: 70, criticalRate: 35, criticalDamage: 290, accuracy: 100, dodge: 35, penetration: 32, resistance: 32, lifesteal: 25, regeneration: 12, luck: 35 },
+      14: { attack: 102400, defense: 51200, qiBlood: 1024000, zhenYuan: 512000, speed: 80, criticalRate: 40, criticalDamage: 350, accuracy: 100, dodge: 40, penetration: 35, resistance: 35, lifesteal: 30, regeneration: 15, luck: 40 }
     };
 
     const baseStats = baseStatsByRealm[bot.realmLevel] || baseStatsByRealm[1];
@@ -1157,10 +1307,15 @@ router.post("/challenge/bot", async (req, res, next) => {
     // Lấy skills của người chơi
     const challengerSkills = getLearnedSkills(challengerCultivation, challengerStats.zhenYuan);
 
-    // Thực hiện trận đấu
-    const battleResult = simulateBattle(challengerStats, opponentStats, challengerSkills, botSkills);
+    // Thực hiện trận đấu (với nghịch thiên meta)
+    const battleResult = simulateBattle(challengerStats, opponentStats, challengerSkills, botSkills, nghichThienMeta);
 
-    // Tính phần thưởng (với rewardMultiplier)
+    // Tier reward multiplier cho nghịch thiên thắng
+    const tierMultiplier = (isNghichThien && battleResult.winner === 'challenger')
+      ? (challengerTier.privileges.rewardMultiplier || 1.0)
+      : 1.0;
+
+    // Tính phần thưởng (với rewardMultiplier + tierMultiplier)
     let rewards;
     if (battleResult.isDraw) {
       rewards = {
@@ -1176,8 +1331,8 @@ router.post("/challenge/bot", async (req, res, next) => {
       const bonusMultiplier = Math.max(1, 1 + levelDiff * 0.2);
 
       rewards = {
-        winnerExp: Math.floor(baseExp * bonusMultiplier * bot.rewardMultiplier),
-        winnerSpiritStones: Math.floor(baseStones * bonusMultiplier * bot.rewardMultiplier),
+        winnerExp: Math.floor(baseExp * bonusMultiplier * bot.rewardMultiplier * tierMultiplier),
+        winnerSpiritStones: Math.floor(baseStones * bonusMultiplier * bot.rewardMultiplier * tierMultiplier),
         loserExp: 0,
         loserSpiritStones: 0
       };
@@ -1212,6 +1367,20 @@ router.post("/challenge/bot", async (req, res, next) => {
 
     await battle.save();
 
+    // ==================== DEBUFF HANDLING (BOT) ====================
+    // Tiêu hao 1 lượt debuff sau mỗi trận
+    challengerCultivation.consumeDebuffBattle();
+
+    // Nếu thua nghịch thiên -> Áp dụng debuff "Trọng Thương"
+    if (isNghichThien && battleResult.winner !== 'challenger') {
+      const debuffConfig = challengerTier.privileges.debuffOnLose;
+      if (debuffConfig) {
+        challengerCultivation.applyDebuff(debuffConfig.type, debuffConfig.duration);
+        console.log(`[BATTLE-BOT] Nghịch thiên thất bại: áp dụng debuff ${debuffConfig.type} trong ${debuffConfig.duration} trận`);
+      }
+    }
+    await challengerCultivation.save();
+
     // Cộng phần thưởng cho người chơi
     if (battleResult.isDraw) {
       await Cultivation.findOneAndUpdate(
@@ -1231,7 +1400,7 @@ router.post("/challenge/bot", async (req, res, next) => {
       );
     }
 
-    console.log(`[BATTLE/BOT] ${challenger.name} vs ${bot.name} - Winner: ${battleResult.winner || 'Draw'}`);
+    console.log(`[BATTLE/BOT] ${challenger.name} vs ${bot.name} - Winner: ${battleResult.winner || 'Draw'}${isNghichThien ? ' (Nghịch Thiên)' : ''}`);
 
     res.json({
       success: true,

@@ -31,6 +31,7 @@ import {
   getExpLog,
   addExp,
   getStats,
+  getTierConfig,
   // Combat
   getCombatStats,
   getUserCombatStats,
@@ -92,6 +93,7 @@ router.get("/realms", getRealms);
 router.get("/exp-log", getExpLog);
 router.post("/add-exp", cultivationLimiter, addExp);
 router.get("/stats", getStats);
+router.get("/tier-config", getTierConfig);
 
 // ==================== THIÊN HẠ KÝ (WORLD EVENTS) ====================
 router.get("/world-events", getWorldEvents);

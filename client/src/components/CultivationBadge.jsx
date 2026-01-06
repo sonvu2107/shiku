@@ -2,19 +2,23 @@ import React, { useState, useRef, memo } from "react";
 import { createPortal } from "react-dom";
 
 /**
- * Cảnh giới Tu Tiên với màu sắc và gradient tương ứng
+ * Cảnh giới Tu Tiên với màu sắc và gradient tương ứng (v2 - 14 levels)
  */
 const CULTIVATION_REALMS = [
   { level: 1, name: "Phàm Nhân", color: "#9CA3AF", gradient: "from-gray-400 to-gray-500", minExp: 0 },
   { level: 2, name: "Luyện Khí", color: "#10B981", gradient: "from-emerald-400 to-emerald-600", minExp: 100 },
   { level: 3, name: "Trúc Cơ", color: "#3B82F6", gradient: "from-blue-400 to-blue-600", minExp: 1000 },
-  { level: 4, name: "Kim Đan", color: "#F59E0B", gradient: "from-amber-400 to-amber-600", minExp: 5000 },
+  { level: 4, name: "Kim Đan", color: "#9A6B1A", gradient: "from-amber-500 to-amber-700", minExp: 5000 },
   { level: 5, name: "Nguyên Anh", color: "#8B5CF6", gradient: "from-violet-400 to-violet-600", minExp: 15000 },
   { level: 6, name: "Hóa Thần", color: "#EC4899", gradient: "from-pink-400 to-pink-600", minExp: 40000 },
   { level: 7, name: "Luyện Hư", color: "#14B8A6", gradient: "from-teal-400 to-teal-600", minExp: 100000 },
-  { level: 8, name: "Đại Thừa", color: "#F97316", gradient: "from-orange-400 to-orange-600", minExp: 250000 },
-  { level: 9, name: "Độ Kiếp", color: "#EF4444", gradient: "from-red-500 to-red-700", minExp: 500000 },
-  { level: 10, name: "Tiên Nhân", color: "#FFD700", gradient: "from-yellow-300 via-amber-400 to-yellow-500", minExp: 1000000 }
+  { level: 8, name: "Hợp Thể", color: "#22C55E", gradient: "from-green-400 to-green-600", minExp: 250000 },
+  { level: 9, name: "Đại Thừa", color: "#F97316", gradient: "from-orange-400 to-orange-600", minExp: 500000 },
+  { level: 10, name: "Chân Tiên", color: "#60A5FA", gradient: "from-sky-400 to-sky-600", minExp: 1000000 },
+  { level: 11, name: "Kim Tiên", color: "#FACC15", gradient: "from-yellow-300 via-amber-400 to-yellow-500", minExp: 3000000 },
+  { level: 12, name: "Tiên Vương", color: "#A855F7", gradient: "from-purple-400 to-purple-600", minExp: 7000000 },
+  { level: 13, name: "Tiên Đế", color: "#EF4444", gradient: "from-red-500 to-red-700", minExp: 15000000 },
+  { level: 14, name: "Thiên Đế", color: "#FF00FF", gradient: "from-fuchsia-400 via-purple-500 to-fuchsia-600", minExp: 30000000 }
 ];
 
 /**
@@ -38,24 +42,30 @@ const CultivationBadge = memo(function CultivationBadge({
   // Return null if no cultivation data
   if (!cultivation) return null;
 
-  // Lấy thông tin realm từ level hoặc từ exp
+  // Lấy thông tin realm từ level
+  // QUAN TRỌNG: Luôn ưu tiên realmLevel vì cảnh giới chỉ thay đổi khi độ kiếp (breakthrough)
+  // KHÔNG tính realm từ exp vì user có thể có đủ exp nhưng chưa độ kiếp lên cấp mới
   let realm;
-  if (cultivation.realmLevel) {
+  
+  // Ưu tiên 1: realmLevel trực tiếp (từ cultivationCache hoặc cultivation object)
+  if (cultivation.realmLevel && cultivation.realmLevel > 0) {
     realm = CULTIVATION_REALMS.find(r => r.level === cultivation.realmLevel);
-  } else if (cultivation.exp !== undefined) {
-    // Tính realm từ exp
-    realm = [...CULTIVATION_REALMS].reverse().find(r => cultivation.exp >= r.minExp);
-  } else if (cultivation.realm) {
-    // Từ object realm
+  } 
+  // Ưu tiên 2: realm.level (từ full cultivation object)
+  else if (cultivation.realm?.level) {
     realm = CULTIVATION_REALMS.find(r => r.level === cultivation.realm.level);
   }
-
+  // Fallback: Phàm Nhân (level 1)
+  // KHÔNG tính từ exp để tránh hiển thị sai cảnh giới
+  
   if (!realm) {
     realm = CULTIVATION_REALMS[0]; // Default: Phàm Nhân
   }
 
+  // Ưu tiên realmName từ data nếu có, nếu không thì dùng từ realm lookup
   const realmName = cultivation.realmName || realm.name;
-  const realmColor = cultivation.realm?.color || realm.color;
+  // Color lấy từ realm lookup (không dùng cultivation.realm?.color vì cultivationCache không có)
+  const realmColor = realm.color;
   const realmGradient = realm.gradient;
 
   // Handle mouse events

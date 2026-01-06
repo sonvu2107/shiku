@@ -5,6 +5,11 @@
  * - statMultiplier: Nhân chỉ số base của cảnh giới
  * - rewardMultiplier: Nhân phần thưởng khi thắng
  * - skills: Danh sách technique IDs bot sở hữu
+ * 
+ * 14 Cảnh Giới:
+ * 1-Phàm Nhân, 2-Luyện Khí, 3-Trúc Cơ, 4-Kim Đan, 5-Nguyên Anh,
+ * 6-Hóa Thần, 7-Luyện Hư, 8-Hợp Thể, 9-Đại Thừa, 10-Chân Tiên,
+ * 11-Kim Tiên, 12-Tiên Vương, 13-Tiên Đế, 14-Thiên Đế
  */
 
 export const PK_BOTS = [
@@ -176,12 +181,12 @@ export const PK_BOTS = [
         description: 'Chí tôn kiếm đạo, một kiếm phá vạn pháp.'
     },
 
-    // ==================== CẢNH GIỚI 8: ĐẠI THỪA ====================
+    // ==================== CẢNH GIỚI 8: HỢP THỂ ====================
     {
-        id: 'bot_dt_1',
+        id: 'bot_hth_1',
         name: 'Huyết Hải Ma Vương',
         realmLevel: 8,
-        realmName: 'Đại Thừa',
+        realmName: 'Hợp Thể',
         avatar: '/assets/tamma.jpg',
         statMultiplier: 1.35,
         rewardMultiplier: 8,
@@ -189,10 +194,10 @@ export const PK_BOTS = [
         description: 'Ma vương thống lĩnh huyết hải, giết người vô số.'
     },
     {
-        id: 'bot_dt_2',
+        id: 'bot_hth_2',
         name: 'Thái Cổ Tiên Tôn',
         realmLevel: 8,
-        realmName: 'Đại Thừa',
+        realmName: 'Hợp Thể',
         avatar: '/assets/tienthan.jpg',
         statMultiplier: 1.6,
         rewardMultiplier: 8,
@@ -200,12 +205,12 @@ export const PK_BOTS = [
         description: 'Tiên tôn từ thái cổ, tồn tại hàng vạn năm.'
     },
 
-    // ==================== CẢNH GIỚI 9: ĐỘ KIẾP ====================
+    // ==================== CẢNH GIỚI 9: ĐẠI THỪA ====================
     {
-        id: 'bot_dk_1',
+        id: 'bot_dth_1',
         name: 'Cửu Thiên Ma Tổ',
         realmLevel: 9,
-        realmName: 'Độ Kiếp',
+        realmName: 'Đại Thừa',
         avatar: '/assets/tamma.jpg',
         statMultiplier: 1.4,
         rewardMultiplier: 9,
@@ -213,10 +218,10 @@ export const PK_BOTS = [
         description: 'Ma tổ cửu thiên, từng đấu với Thiên Đạo.'
     },
     {
-        id: 'bot_dk_2',
+        id: 'bot_dth_2',
         name: 'Hư Không Đại Năng',
         realmLevel: 9,
-        realmName: 'Độ Kiếp',
+        realmName: 'Đại Thừa',
         avatar: '/assets/tienthan.jpg',
         statMultiplier: 1.7,
         rewardMultiplier: 10,
@@ -224,52 +229,124 @@ export const PK_BOTS = [
         description: 'Đại năng giả ngự trị hư không, pháp lực thông thiên.'
     },
 
-    // ==================== CẢNH GIỚI 10: TIÊN NHÂN ====================
+    // ==================== CẢNH GIỚI 10: CHÂN TIÊN ====================
     {
-        id: 'bot_tn_1',
+        id: 'bot_ct_1',
         name: 'Hắc Án Thiên Ma',
         realmLevel: 10,
-        realmName: 'Tiên Nhân',
+        realmName: 'Chân Tiên',
         avatar: '/assets/tamma.jpg',
         statMultiplier: 1.45,
         rewardMultiplier: 10,
         skills: ['technique_blood_drain', 'technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath'],
-        description: 'Thiên ma đến từ hắc ám, thống trị vạn ma.'
+        description: 'Thiên ma đến từ hắc ám, đã vượt qua thiên kiếp.'
     },
     {
-        id: 'bot_tn_2',
+        id: 'bot_ct_2',
         name: 'Thái Thượng Tiên Tổ',
         realmLevel: 10,
-        realmName: 'Tiên Nhân',
+        realmName: 'Chân Tiên',
         avatar: '/assets/tienthan.jpg',
         statMultiplier: 1.8,
         rewardMultiplier: 12,
         skills: ['technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath', 'technique_sword_heart'],
-        description: 'Tiên tổ thái thượng, cảnh giới tột đỉnh tiên đạo.'
+        description: 'Tiên tổ thái thượng, chính thức bước vào tiên đạo.'
     },
 
-    // ==================== CẢNH GIỚI 11: THIÊN ĐẾ ====================
+    // ==================== CẢNH GIỚI 11: KIM TIÊN ====================
     {
-        id: 'bot_td_1',
-        name: 'Hỗn Độn Ma Thần',
+        id: 'bot_kt_1',
+        name: 'Vô Tận Ma Tôn',
         realmLevel: 11,
-        realmName: 'Thiên Đế',
+        realmName: 'Kim Tiên',
         avatar: '/assets/tamma.jpg',
         statMultiplier: 1.5,
         rewardMultiplier: 12,
-        skills: ['technique_blood_drain', 'technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath', 'technique_sword_heart'],
-        description: 'Ma thần sinh ra từ hỗn độn, sức mạnh hủy diệt thiên địa.'
+        skills: ['technique_blood_drain', 'technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath'],
+        description: 'Ma tôn vô tận, tiên lực ngưng luyện, bất tử bất diệt.'
     },
     {
-        id: 'bot_td_2',
-        name: 'Thiên Đạo Hóa Thân',
+        id: 'bot_kt_2',
+        name: 'Kim Tiên Đạo Tổ',
         realmLevel: 11,
-        realmName: 'Thiên Đế',
+        realmName: 'Kim Tiên',
+        avatar: '/assets/tienthan.jpg',
+        statMultiplier: 1.9,
+        rewardMultiplier: 14,
+        skills: ['technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath', 'technique_sword_heart', 'technique_lightning_step'],
+        description: 'Đạo tổ Kim Tiên, tiên lực viên mãn.'
+    },
+
+    // ==================== CẢNH GIỚI 12: TIÊN VƯƠNG ====================
+    {
+        id: 'bot_tv_1',
+        name: 'Hắc Tiên Vương',
+        realmLevel: 12,
+        realmName: 'Tiên Vương',
+        avatar: '/assets/tamma.jpg',
+        statMultiplier: 1.6,
+        rewardMultiplier: 14,
+        skills: ['technique_blood_drain', 'technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath', 'technique_sword_heart'],
+        description: 'Tiên Vương từ hắc ám, thống lĩnh một phương tiên giới.'
+    },
+    {
+        id: 'bot_tv_2',
+        name: 'Đông Hoàng Tiên Vương',
+        realmLevel: 12,
+        realmName: 'Tiên Vương',
         avatar: '/assets/tienthan.jpg',
         statMultiplier: 2.0,
-        rewardMultiplier: 15,
+        rewardMultiplier: 16,
         skills: ['technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath', 'technique_sword_heart', 'technique_lightning_step'],
-        description: 'Hóa thân của Thiên Đạo, tối thượng cường giả.'
+        description: 'Đông Hoàng Tiên Vương, thống lĩnh Đông Thiên Tiên Giới.'
+    },
+
+    // ==================== CẢNH GIỚI 13: TIÊN ĐẾ ====================
+    {
+        id: 'bot_tde_1',
+        name: 'Hỗn Độn Ma Thần',
+        realmLevel: 13,
+        realmName: 'Tiên Đế',
+        avatar: '/assets/tamma.jpg',
+        statMultiplier: 1.7,
+        rewardMultiplier: 16,
+        skills: ['technique_blood_drain', 'technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath', 'technique_sword_heart'],
+        description: 'Ma thần sinh ra từ hỗn độn, chấp chưởng đại đạo.'
+    },
+    {
+        id: 'bot_tde_2',
+        name: 'Thái Cổ Tiên Đế',
+        realmLevel: 13,
+        realmName: 'Tiên Đế',
+        avatar: '/assets/tienthan.jpg',
+        statMultiplier: 2.2,
+        rewardMultiplier: 18,
+        skills: ['technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath', 'technique_sword_heart', 'technique_lightning_step'],
+        description: 'Tiên Đế thái cổ, hiệu lệnh tiên giới.'
+    },
+
+    // ==================== CẢNH GIỚI 14: THIÊN ĐẾ ====================
+    {
+        id: 'bot_thd_1',
+        name: 'Hắc Ám Thiên Đế',
+        realmLevel: 14,
+        realmName: 'Thiên Đế',
+        avatar: '/assets/tamma.jpg',
+        statMultiplier: 1.8,
+        rewardMultiplier: 18,
+        skills: ['technique_blood_drain', 'technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath', 'technique_sword_heart'],
+        description: 'Thiên Đế từ hắc ám, sức mạnh hủy diệt thiên địa.'
+    },
+    {
+        id: 'bot_thd_2',
+        name: 'Thiên Đạo Hóa Thân',
+        realmLevel: 14,
+        realmName: 'Thiên Đế',
+        avatar: '/assets/tienthan.jpg',
+        statMultiplier: 2.5,
+        rewardMultiplier: 20,
+        skills: ['technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath', 'technique_sword_heart', 'technique_lightning_step'],
+        description: 'Hóa thân của Thiên Đạo, thiên địa đồng thọ.'
     }
 ];
 
@@ -284,7 +361,7 @@ export const BOT_BATTLE_COOLDOWN = 30 * 1000; // 30 seconds in ms
 export const getBotsByRealmLevel = (realmLevel) => {
     return PK_BOTS.filter(bot =>
         bot.realmLevel >= Math.max(1, realmLevel - 1) &&
-        bot.realmLevel <= Math.min(11, realmLevel + 1)
+        bot.realmLevel <= Math.min(14, realmLevel + 1)
     );
 };
 
