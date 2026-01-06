@@ -52,7 +52,8 @@ async function enrichInventoryWithEquipment(inventory) {
                 energy_regen: eq.energy_regen,
                 lifesteal: eq.lifesteal,
                 true_damage: eq.true_damage,
-                buff_duration: eq.buff_duration
+                buff_duration: eq.buff_duration,
+                durability: eq.durability  // Include durability from Equipment collection
             });
         });
     } catch (err) {
@@ -65,13 +66,22 @@ async function enrichInventoryWithEquipment(inventory) {
             const equipment = equipmentMap.get(equipmentIdStr);
 
             if (equipment) {
+                // Preserve runtime durability if exists, otherwise use Equipment collection default, or fallback to full durability
+                const runtimeFields = {
+                    durability: item.metadata?.durability || equipment.durability || { current: 100, max: 100 },
+                    acquiredAt: item.metadata?.acquiredAt,
+                    lastUsedAt: item.metadata?.lastUsedAt
+                };
+
                 return {
                     ...(item.toObject ? item.toObject() : item),
                     name: equipment.name,
                     rarity: equipment.rarity,
                     img: equipment.img,
                     metadata: {
+                        // Spread existing metadata first
                         ...(item.metadata || {}),
+                        // Then add/update equipment template data
                         _id: equipment._id,
                         equipmentType: equipment.type,
                         subtype: equipment.subtype,
@@ -85,7 +95,11 @@ async function enrichInventoryWithEquipment(inventory) {
                         true_damage: equipment.true_damage,
                         buff_duration: equipment.buff_duration,
                         img: equipment.img,
-                        description: equipment.description
+                        description: equipment.description,
+                        // Override with runtime fields to ensure they're not lost
+                        ...Object.fromEntries(
+                            Object.entries(runtimeFields).filter(([_, v]) => v !== undefined)
+                        )
                     }
                 };
             }
@@ -330,9 +344,30 @@ export const useItem = async (req, res, next) => {
 
         switch (item.type) {
             case 'exp_boost':
-                const expiresAt = new Date(Date.now() + itemData.duration * 60 * 60 * 1000);
-                cultivation.activeBoosts.push({ type: 'exp', multiplier: itemData.multiplier, expiresAt });
-                message = `Đã kích hoạt ${item.name}! Tăng ${itemData.multiplier}x exp trong ${itemData.duration}h`;
+                const boostDurationMs = itemData.duration * 60 * 60 * 1000;
+
+                // Find existing boost of same type and multiplier
+                const existingBoostIndex = cultivation.activeBoosts.findIndex(
+                    b => b.type === 'exp' && b.multiplier === itemData.multiplier && new Date(b.expiresAt) > new Date()
+                );
+
+                if (existingBoostIndex !== -1) {
+                    // Stack duration: extend existing boost
+                    const existingBoost = cultivation.activeBoosts[existingBoostIndex];
+                    const currentExpiry = new Date(existingBoost.expiresAt);
+                    const newExpiry = new Date(currentExpiry.getTime() + boostDurationMs);
+                    cultivation.activeBoosts[existingBoostIndex].expiresAt = newExpiry;
+
+                    // Calculate remaining + new duration for message
+                    const remainingMs = currentExpiry.getTime() - Date.now();
+                    const totalHours = Math.round((remainingMs + boostDurationMs) / (60 * 60 * 1000));
+                    message = `Đã cộng dồn ${item.name}! Tổng thời gian còn: ${totalHours}h`;
+                } else {
+                    // Create new boost
+                    const expiresAt = new Date(Date.now() + boostDurationMs);
+                    cultivation.activeBoosts.push({ type: 'exp', multiplier: itemData.multiplier, expiresAt });
+                    message = `Đã kích hoạt ${item.name}! Tăng ${itemData.multiplier}x exp trong ${itemData.duration}h`;
+                }
                 reward = { type: 'boost', multiplier: itemData.multiplier, duration: itemData.duration };
                 break;
 

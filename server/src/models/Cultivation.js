@@ -254,7 +254,14 @@ const CultivationSchema = new mongoose.Schema({
   // ==================== STREAK ĐĂNG NHẬP ====================
   loginStreak: { type: Number, default: 0 },
   lastLoginDate: { type: Date },
+  lastLoginDayKey: { type: String, default: null },
+  lastDailyResetKey: { type: String, default: null },
+  lastWeeklyResetKey: { type: String, default: null },
   longestStreak: { type: Number, default: 0 },
+
+  // ==================== VERSIONING FOR CACHE INVALIDATION ====================
+  dataVersion: { type: Number, default: 0, min: 0 },
+  statsVersion: { type: Number, default: 0, min: 0 },
 
   // ==================== PASSIVE EXP ====================
   lastPassiveExpCollected: { type: Date, default: Date.now },
@@ -1708,7 +1715,23 @@ CultivationSchema.methods.getEquipmentStats = async function () {
     buff_duration: 0
   };
 
+  // Track các equipment bị hỏng để thông báo
+  const brokenEquipments = [];
+
   equipments.forEach(eq => {
+    // Kiểm tra equipment bị hỏng (durability = 0)
+    const isBroken = eq.durability && eq.durability.current <= 0;
+    if (isBroken) {
+      brokenEquipments.push({
+        id: eq._id,
+        name: eq.name,
+        type: eq.type,
+        subtype: eq.subtype
+      });
+      // Equipment bị hỏng không cộng stats
+      return;
+    }
+
     const stats = eq.getTotalStats();
     totalStats.attack += stats.attack || 0;
     totalStats.defense += stats.defense || 0;
@@ -1732,6 +1755,11 @@ CultivationSchema.methods.getEquipmentStats = async function () {
       });
     }
   });
+
+  // Thêm thông tin về equipment bị hỏng vào response
+  if (brokenEquipments.length > 0) {
+    totalStats.brokenEquipments = brokenEquipments;
+  }
 
   // Cap percentages at 1.0 (100%)
   totalStats.crit_rate = Math.min(totalStats.crit_rate, 1.0);
@@ -1975,6 +2003,75 @@ CultivationSchema.post('save', async function (doc) {
     console.error('[CULTIVATION] Error syncing cultivation cache to user:', error);
   }
 });
+
+// ==================== STATIC METHODS FOR ATOMIC QUEST RESETS ====================
+import { getDayKey, getWeekKey } from "../services/timeKeys.js";
+
+/**
+ * Ensure daily quests are reset if needed (atomic, timezone-aware)
+ * @param {ObjectId|string} userId - User ID
+ * @param {Date} now - Current date (default: new Date())
+ * @returns {Promise<boolean>} True if reset occurred
+ */
+CultivationSchema.statics.ensureDailyReset = async function (userId, now = new Date()) {
+  const dayKey = getDayKey(now);
+
+  // Reset dailyQuests only (achievements NOT reset)
+  const result = await this.updateOne(
+    { user: userId, lastDailyResetKey: { $ne: dayKey } },
+    {
+      $set: {
+        lastDailyResetKey: dayKey,
+        "dailyProgress.posts": 0,
+        "dailyProgress.comments": 0,
+        "dailyProgress.likes": 0,
+        "dailyProgress.upvotes": 0,
+        "dailyProgress.lastReset": now,
+
+        "dailyQuests.$[].progress": 0,
+        "dailyQuests.$[].completed": false,
+        "dailyQuests.$[].claimed": false,
+        "dailyQuests.$[].completedAt": null,
+        "dailyQuests.$[].claimedAt": null,
+      },
+      $inc: { dataVersion: 1 },
+    }
+  );
+
+  return result.modifiedCount > 0;
+};
+
+/**
+ * Ensure weekly quests are reset if needed (atomic, timezone-aware)
+ * @param {ObjectId|string} userId - User ID
+ * @param {Date} now - Current date (default: new Date())
+ * @returns {Promise<boolean>} True if reset occurred
+ */
+CultivationSchema.statics.ensureWeeklyReset = async function (userId, now = new Date()) {
+  const weekKey = getWeekKey(now);
+
+  const result = await this.updateOne(
+    { user: userId, lastWeeklyResetKey: { $ne: weekKey } },
+    {
+      $set: {
+        lastWeeklyResetKey: weekKey,
+        "weeklyProgress.posts": 0,
+        "weeklyProgress.friends": 0,
+        "weeklyProgress.events": 0,
+        "weeklyProgress.lastReset": now,
+
+        "weeklyQuests.$[].progress": 0,
+        "weeklyQuests.$[].completed": false,
+        "weeklyQuests.$[].claimed": false,
+        "weeklyQuests.$[].completedAt": null,
+        "weeklyQuests.$[].claimedAt": null,
+      },
+      $inc: { dataVersion: 1 },
+    }
+  );
+
+  return result.modifiedCount > 0;
+};
 
 const Cultivation = mongoose.model("Cultivation", CultivationSchema);
 

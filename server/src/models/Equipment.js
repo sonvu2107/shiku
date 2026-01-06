@@ -310,9 +310,39 @@ EquipmentSchema.index({ name: 'text', description: 'text' }); // Text search
 // ==================== METHODS ====================
 
 /**
+ * Kiểm tra equipment có bị hỏng không (durability = 0)
+ */
+EquipmentSchema.methods.isBroken = function () {
+  return this.durability && this.durability.current <= 0;
+};
+
+/**
  * Tính tổng stats của equipment
+ * Equipment bị hỏng (durability = 0) sẽ trả về stats = 0
  */
 EquipmentSchema.methods.getTotalStats = function () {
+  // Equipment bị hỏng không cung cấp stats
+  if (this.isBroken()) {
+    return {
+      attack: 0,
+      defense: 0,
+      hp: 0,
+      crit_rate: 0,
+      crit_damage: 0,
+      penetration: 0,
+      speed: 0,
+      evasion: 0,
+      hit_rate: 0,
+      elemental_damage: {},
+      skill_bonus: 0,
+      energy_regen: 0,
+      lifesteal: 0,
+      true_damage: 0,
+      buff_duration: 0,
+      isBroken: true
+    };
+  }
+
   const stats = this.stats || {};
   return {
     attack: stats.attack || 0,

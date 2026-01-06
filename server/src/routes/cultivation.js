@@ -1,6 +1,9 @@
 import express from "express";
 import { authRequired } from "../middleware/auth.js";
 import { breakthroughLimiter, cultivationLimiter } from "../middleware/rateLimit.js";
+import { getSummary } from "../controllers/cultivation/summaryController.js";
+import { getCombatStatsLean } from "../controllers/cultivation/combatStatsController.js";
+import { getInventoryPaginated } from "../controllers/cultivation/inventoryPaginatedController.js";
 
 // Import all controllers
 import {
@@ -69,6 +72,8 @@ import {
   // Equipment Management
   getEquipmentDetails,
   repairEquipment,
+  repairAllEquipment,
+  previewRepairAll,
   getActiveModifiers,
   checkCanEquip
 } from "../controllers/cultivation/index.js";
@@ -80,6 +85,10 @@ const router = express.Router();
 router.use(authRequired);
 
 // ==================== CORE ROUTES ====================
+// Lightweight summary endpoint (minimal data)
+router.get("/summary", getSummary);
+router.get("/inventory-paginated", getInventoryPaginated);  // Paginated inventory
+
 router.get("/", getCultivation);
 router.post("/sync-cache", syncCache);
 router.post("/batch", getBatch);
@@ -118,6 +127,7 @@ router.get("/world-events", getWorldEvents);
 
 // ==================== COMBAT & BREAKTHROUGH ====================
 router.get("/combat-stats", getCombatStats);
+router.get("/combat-stats-lean", getCombatStatsLean);  // New lightweight endpoint
 router.get("/combat-stats/:userId", getUserCombatStats);
 router.post("/practice-technique", practiceTechnique);
 router.post("/breakthrough", breakthroughLimiter, breakthrough);
@@ -159,6 +169,8 @@ router.get("/craft/history", getCraftHistory);
 
 // ==================== QUẢN LÝ TRANG BỊ (EQUIPMENT) ====================
 router.get("/equipment/active-modifiers", getActiveModifiers);
+router.get("/equipment/repair-all/preview", previewRepairAll);
+router.post("/equipment/repair-all", repairAllEquipment);
 router.get("/equipment/:equipmentId", getEquipmentDetails);
 router.post("/equipment/:equipmentId/repair", repairEquipment);
 router.post("/equipment/:equipmentId/check-equip", checkCanEquip);

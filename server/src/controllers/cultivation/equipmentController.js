@@ -14,13 +14,14 @@ import {
 } from '../../services/modifierService.js';
 
 // ==================== REPAIR COST CONFIG ====================
+// Chi phí sửa chữa (linh thạch/điểm độ bền) - đã giảm 60%
 const REPAIR_COST_PER_POINT = {
-    common: 1,
-    uncommon: 2,
-    rare: 5,
-    epic: 10,
-    legendary: 25,
-    mythic: 50
+    common: 1,      // Phàm
+    uncommon: 1,    // Thường (giảm từ 2)
+    rare: 2,        // Hiếm (giảm từ 5)
+    epic: 4,        // Sử Thi (giảm từ 10)
+    legendary: 10,  // Huyền Thoại (giảm từ 25)
+    mythic: 20      // Thần Thoại (giảm từ 50)
 };
 
 /**
@@ -153,6 +154,167 @@ export const repairEquipment = async (req, res, next) => {
 };
 
 /**
+ * POST /api/cultivation/equipment/repair-all
+ * Tu bổ tất cả equipment bị hư hỏng
+ */
+export const repairAllEquipment = async (req, res, next) => {
+    try {
+        const userId = req.user._id;
+
+        // Get user's cultivation
+        const cultivation = await Cultivation.findOne({ user: userId });
+        if (!cultivation) {
+            return res.status(404).json({
+                success: false,
+                message: 'Chưa bắt đầu tu tiên'
+            });
+        }
+
+        // Lấy tất cả equipment trong inventory cần repair
+        // Equipment được lưu với itemId là equipmentId, hoặc metadata._id
+        const equipmentItems = cultivation.inventory.filter(i => 
+            i.type?.startsWith('equipment_') && (i.itemId || i.metadata?._id)
+        );
+
+        if (equipmentItems.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Không có trang bị nào trong kho'
+            });
+        }
+
+        const equipmentIds = equipmentItems.map(i => i.metadata?._id || i.itemId);
+        const equipments = await Equipment.find({ _id: { $in: equipmentIds } });
+
+        // Tính tổng chi phí
+        let totalCost = 0;
+        let totalDurabilityToRepair = 0;
+        const repairDetails = [];
+
+        for (const eq of equipments) {
+            if (!eq.durability) {
+                eq.durability = { current: 100, max: 100 };
+            }
+            
+            const durabilityToRepair = eq.durability.max - eq.durability.current;
+            if (durabilityToRepair > 0) {
+                const costPerPoint = REPAIR_COST_PER_POINT[eq.rarity] || 5;
+                const cost = durabilityToRepair * costPerPoint;
+                totalCost += cost;
+                totalDurabilityToRepair += durabilityToRepair;
+                repairDetails.push({
+                    id: eq._id,
+                    name: eq.name,
+                    rarity: eq.rarity,
+                    durabilityToRepair,
+                    cost
+                });
+            }
+        }
+
+        if (totalDurabilityToRepair <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Tất cả trang bị đã có độ bền tối đa'
+            });
+        }
+
+        // Check linh thạch
+        if (cultivation.spiritStones < totalCost) {
+            return res.status(400).json({
+                success: false,
+                message: `Cần ${totalCost.toLocaleString()} linh thạch để tu bổ tất cả, bạn có ${cultivation.spiritStones.toLocaleString()}`
+            });
+        }
+
+        // Thực hiện repair
+        cultivation.spiritStones -= totalCost;
+        for (const eq of equipments) {
+            repairDurability(eq, 'full');
+            await eq.save();
+        }
+        await cultivation.save();
+
+        res.json({
+            success: true,
+            message: `Đã tu bổ ${repairDetails.length} trang bị với ${totalCost.toLocaleString()} linh thạch`,
+            data: {
+                repairedCount: repairDetails.length,
+                totalCost,
+                remainingSpiritStones: cultivation.spiritStones,
+                details: repairDetails
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * GET /api/cultivation/equipment/repair-all/preview
+ * Xem trước chi phí tu bổ tất cả
+ */
+export const previewRepairAll = async (req, res, next) => {
+    try {
+        const userId = req.user._id;
+
+        const cultivation = await Cultivation.findOne({ user: userId }).lean();
+        if (!cultivation) {
+            return res.status(404).json({
+                success: false,
+                message: 'Chưa bắt đầu tu tiên'
+            });
+        }
+
+        // Lấy tất cả equipment trong inventory
+        // Equipment được lưu với itemId là equipmentId, hoặc metadata._id
+        const equipmentItems = cultivation.inventory.filter(i => 
+            i.type?.startsWith('equipment_') && (i.itemId || i.metadata?._id)
+        );
+
+        const equipmentIds = equipmentItems.map(i => i.metadata?._id || i.itemId);
+        const equipments = await Equipment.find({ _id: { $in: equipmentIds } }).lean();
+
+        // Tính chi phí
+        let totalCost = 0;
+        const repairDetails = [];
+
+        for (const eq of equipments) {
+            const durability = eq.durability || { current: 100, max: 100 };
+            const durabilityToRepair = durability.max - durability.current;
+            
+            if (durabilityToRepair > 0) {
+                const costPerPoint = REPAIR_COST_PER_POINT[eq.rarity] || 5;
+                const cost = durabilityToRepair * costPerPoint;
+                totalCost += cost;
+                repairDetails.push({
+                    id: eq._id,
+                    name: eq.name,
+                    rarity: eq.rarity,
+                    currentDurability: durability.current,
+                    maxDurability: durability.max,
+                    durabilityToRepair,
+                    cost
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                needsRepair: repairDetails.length,
+                totalCost,
+                canAfford: cultivation.spiritStones >= totalCost,
+                currentSpiritStones: cultivation.spiritStones,
+                details: repairDetails
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * GET /api/cultivation/equipment/active-modifiers
  * Get all active modifiers from equipped items
  */
@@ -267,6 +429,8 @@ export const checkCanEquip = async (req, res, next) => {
 export default {
     getEquipmentDetails,
     repairEquipment,
+    repairAllEquipment,
+    previewRepairAll,
     getActiveModifiers,
     checkCanEquip
 };

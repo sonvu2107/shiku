@@ -5,6 +5,9 @@
 import React, { useState, useEffect, useCallback, useContext, createContext, useRef } from 'react';
 import {
   getCultivation,
+  getCultivationSummary,
+  getCombatStatsLean,
+  getInventoryPaginated,
   dailyLogin,
   claimQuestReward,
   getShop,
@@ -14,6 +17,8 @@ import {
   equipEquipment as equipEquipmentAPI,
   unequipEquipment as unequipEquipmentAPI,
   repairEquipment as repairEquipmentAPI,
+  previewRepairAll as previewRepairAllAPI,
+  repairAllEquipment as repairAllEquipmentAPI,
   useItem as useItemAPI,
   getLeaderboard,
   getRealms,
@@ -67,6 +72,40 @@ export function CultivationProvider({ children }) {
   }, []);
 
   /**
+   * Refresh chỉ combat stats (lightweight - không fetch full cultivation)
+   */
+  const refreshCombatStats = useCallback(async () => {
+    try {
+      const response = await getCombatStatsLean();
+      if (response.success) {
+        setCultivation(prev => prev ? {
+          ...prev,
+          combatStats: response.data.combatStats,
+          realmLevel: response.data.realmLevel
+        } : prev);
+      }
+      return response.data;
+    } catch (err) {
+      console.error('[Cultivation] Error refreshing combat stats:', err);
+    }
+  }, []);
+
+  /**
+   * Load inventory có phân trang (lightweight)
+   */
+  const loadInventoryPage = useCallback(async (page = 1, limit = 50, type = null) => {
+    try {
+      const response = await getInventoryPaginated(page, limit, type);
+      if (response.success) {
+        return response.data; // { items, pagination }
+      }
+    } catch (err) {
+      console.error('[Cultivation] Error loading inventory page:', err);
+    }
+    return null;
+  }, []);
+
+  /**
    * Điểm danh hàng ngày
    */
   const checkIn = useCallback(async () => {
@@ -82,17 +121,14 @@ export function CultivationProvider({ children }) {
             message: `Bạn đã điểm danh hôm nay rồi. Streak: ${response.data.streak} ngày`
           });
         } else {
-          setCultivation(response.data.cultivation);
+          // Refactored backend returns minimal response, refresh to get updated cultivation
+          await loadCultivation();
 
           // Show notification
           setNotification({
             type: 'success',
-            title: response.data.leveledUp ? 'Đột phá cảnh giới!' : 'Điểm danh thành công!',
-            message: response.data.leveledUp
-              ? `Chúc mừng! Bạn đã đột phá đến ${response.data.newRealm?.name}!`
-              : `+${response.data.expEarned} Tu Vi, +${response.data.stonesEarned} Linh Thạch. Streak: ${response.data.streak} ngày`,
-            levelUp: response.data.leveledUp,
-            newRealm: response.data.newRealm
+            title: 'Điểm danh thành công!',
+            message: `+${response.data.expEarned} Tu Vi, +${response.data.stonesEarned} Linh Thạch. Streak: ${response.data.streak} ngày`
           });
         }
 
@@ -118,16 +154,12 @@ export function CultivationProvider({ children }) {
       const response = await claimQuestReward(questId);
 
       if (response.success) {
-        setCultivation(response.data.cultivation);
+        await loadCultivation();
 
         setNotification({
           type: 'success',
-          title: response.data.leveledUp ? 'Đột phá cảnh giới!' : 'Nhận thưởng thành công!',
-          message: response.data.leveledUp
-            ? `Chúc mừng! Bạn đã đột phá đến ${response.data.newRealm?.name}!`
-            : `+${response.data.expEarned} Tu Vi, +${response.data.stonesEarned} Linh Thạch`,
-          levelUp: response.data.leveledUp,
-          newRealm: response.data.newRealm
+          title: 'Nhận thưởng thành công!',
+          message: `+${response.data.expEarned} Tu Vi, +${response.data.stonesEarned} Linh Thạch`
         });
 
         return response.data;
@@ -354,13 +386,58 @@ export function CultivationProvider({ children }) {
             return item;
           })
         }));
-        
+
         setNotification({
           type: 'success',
           title: 'Tu Bổ Thành Công',
-          message: `Đã khôi phục độ bền ${response.data.equipment?.name || 'trang bị'}`
+          message: response.message || `Đã khôi phục độ bền ${response.data.equipment?.name || 'trang bị'}`
         });
-        
+
+        return response.data;
+      }
+    } catch (err) {
+      setError(err.message);
+      setNotification({
+        type: 'error',
+        title: 'Lỗi Tu Bổ',
+        message: err.message
+      });
+      throw err;
+    }
+  }, []);
+
+  /**
+   * Xem trước chi phí tu bổ tất cả equipment
+   */
+  const previewRepairAll = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await previewRepairAllAPI();
+      return response.data;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }, []);
+
+  /**
+   * Tu bổ tất cả equipment
+   */
+  const repairAllEquipment = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await repairAllEquipmentAPI();
+
+      if (response.success) {
+        // Reload cultivation để cập nhật inventory và spiritStones
+        await fetchCultivation();
+
+        setNotification({
+          type: 'success',
+          title: 'Tu Bổ Thành Công',
+          message: response.message || `Đã tu bổ ${response.data.repairedCount} trang bị`
+        });
+
         return response.data;
       }
     } catch (err) {
@@ -563,7 +640,7 @@ export function CultivationProvider({ children }) {
       const response = await collectPassiveExpAPI();
 
       if (response.success && response.data.collected) {
-        setCultivation(response.data.cultivation);
+        await loadCultivation();
 
         // Show notification với thông tin chi tiết
         const { expEarned, multiplier, minutesElapsed, leveledUp, newRealm } = response.data;
@@ -704,6 +781,8 @@ export function CultivationProvider({ children }) {
 
     // Actions
     loadCultivation,
+    refreshCombatStats,
+    loadInventoryPage,
     checkIn,
     claimReward,
     loadShop,
@@ -713,6 +792,8 @@ export function CultivationProvider({ children }) {
     equipEquipment,
     unequipEquipment,
     repairEquipment,
+    previewRepairAll,
+    repairAllEquipment,
     useItem,
     loadLeaderboard,
     loadRealms,

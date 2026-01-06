@@ -97,22 +97,98 @@ async function getCachedLeaderboard(type, limit) {
     return { data, fromCache: false };
 }
 
+const expPerMinuteByRealm = {
+    1: 2, 2: 4, 3: 8, 4: 15, 5: 25, 6: 40, 7: 60,
+    8: 100, 9: 150, 10: 250, 11: 400, 12: 600, 13: 800, 14: 1000
+};
+
 export const collectPassiveExp = async (req, res, next) => {
     try {
         const userId = req.user.id;
-        const cultivation = await Cultivation.getOrCreate(userId);
-        const result = cultivation.collectPassiveExp();
-        if (!result.collected) return res.json({ success: true, data: result });
+        const now = new Date();
 
-        // Cập nhật quest progress cho nhiệm vụ tĩnh tọa tu luyện
-        cultivation.updateQuestProgress('passive_collect', 1);
+        // Minimal lean query (no getOrCreate)
+        const c = await Cultivation.findOne({ user: userId })
+            .select("exp realmLevel subLevel activeBoosts lastPassiveExpCollected dataVersion statsVersion")
+            .lean();
 
-        await cultivation.save();
+        if (!c) {
+            return res.status(409).json({ success: false, message: "Khởi tạo dữ liệu tu luyện, thử lại" });
+        }
 
-        // Invalidate passive status cache after collect
+        const lastCollected = c.lastPassiveExpCollected ? new Date(c.lastPassiveExpCollected) : now;
+        const elapsedMs = now.getTime() - lastCollected.getTime();
+        const elapsedMinutes = Math.floor(elapsedMs / 60000);
+        const effectiveMinutes = Math.min(elapsedMinutes, 1440);
+
+        if (effectiveMinutes < 1) {
+            return res.json({
+                success: true,
+                data: {
+                    collected: false,
+                    message: "Chưa đủ thời gian để thu thập tu vi",
+                    nextCollectIn: 60 - Math.floor((elapsedMs / 1000) % 60),
+                },
+            });
+        }
+
+        // Filter expired boosts
+        const boosts = Array.isArray(c.activeBoosts) ? c.activeBoosts : [];
+        const validBoosts = boosts.filter(b => b?.expiresAt && new Date(b.expiresAt) > now);
+
+        let multiplier = 1;
+        for (const b of validBoosts) {
+            if (b.type === "exp" || b.type === "exp_boost") {
+                multiplier = Math.max(multiplier, Number(b.multiplier) || 1);
+            }
+        }
+
+        const baseExpPerMinute = expPerMinuteByRealm[c.realmLevel] || 2;
+        const baseExp = effectiveMinutes * baseExpPerMinute;
+        const finalExp = Math.floor(baseExp * multiplier);
+
+        // Pure realm calculations
+        const { getRealmProgressPure, calculateSubLevelPure, canBreakthroughPure, getRealmFromExpPure } = await import("../../services/realmCalculations.js");
+
+        const newExp = (c.exp || 0) + finalExp;
+        const newProgress = getRealmProgressPure(newExp, c.realmLevel);
+        const newSubLevel = calculateSubLevelPure(newProgress);
+        const breakthrough = canBreakthroughPure(newExp, c.realmLevel);
+        const potentialRealm = breakthrough ? getRealmFromExpPure(newExp) : null;
+
+        const logEntry = {
+            amount: finalExp,
+            source: "passive",
+            description: multiplier > 1
+                ? `Tu luyện ${effectiveMinutes} phút (x${multiplier} đan dược)`
+                : `Tu luyện ${effectiveMinutes} phút`,
+            timestamp: now,
+        };
+
+        // Optimistic lock
+        const updateRes = await Cultivation.updateOne(
+            { user: userId, lastPassiveExpCollected: c.lastPassiveExpCollected || null },
+            {
+                $set: { lastPassiveExpCollected: now, activeBoosts: validBoosts, subLevel: newSubLevel },
+                $inc: { exp: finalExp, dataVersion: 1, statsVersion: 1 },
+                $push: { expLog: { $each: [logEntry], $slice: -100 } },
+            }
+        );
+
+        if (updateRes.modifiedCount === 0) {
+            return res.json({
+                success: true,
+                data: { collected: false, message: "Bạn vừa thu thập tu vi xong, thử lại sau" },
+            });
+        }
+
+        // Atomic quest progress
+        const { applyQuestProgressAtomic } = await import("../../services/questProgressAtomic.js");
+        await applyQuestProgressAtomic(userId, "passive_collect", 1, now);
+
         invalidatePassiveStatusCache(userId);
 
-        // Random Event: Kỳ Ngộ (5% chance)
+        // Random event (fire-and-forget)
         if (Math.random() < 0.05) {
             const encounters = [
                 "tình cờ phát hiện một hang động cổ xưa đầy linh khí",
@@ -123,16 +199,27 @@ export const collectPassiveExp = async (req, res, next) => {
                 "cảm ngộ được sự vận chuyển của thiên địa linh khí"
             ];
             const description = encounters[Math.floor(Math.random() * encounters.length)];
-            const user = await mongoose.model('User').findById(userId).select('name nickname').lean();
-            const username = user?.name || user?.nickname || 'Tu sĩ ẩn danh';
-
-            logRareEncounterEvent(userId, username, description).catch(e => console.error('[WorldEvent] Encounter log error:', e));
+            mongoose.model('User').findById(userId).select('name nickname').lean()
+                .then(user => {
+                    const username = user?.name || user?.nickname || 'Tu sĩ ẩn danh';
+                    logRareEncounterEvent(userId, username, description).catch(() => { });
+                }).catch(() => { });
         }
 
-        res.json({
+        return res.json({
             success: true,
-            message: result.multiplier > 1 ? `Thu thập ${result.expEarned} tu vi (x${result.multiplier})!` : `Thu thập ${result.expEarned} tu vi!`,
-            data: { ...result, cultivation: await formatCultivationResponse(cultivation) }
+            message: multiplier > 1 ? `Thu thập ${finalExp} tu vi (x${multiplier})!` : `Thu thập ${finalExp} tu vi!`,
+            data: {
+                collected: true,
+                expEarned: finalExp,
+                baseExp,
+                multiplier,
+                minutesElapsed: effectiveMinutes,
+                totalExp: newExp,
+                canBreakthrough: breakthrough,
+                potentialRealm: breakthrough ? { name: potentialRealm.name, level: potentialRealm.level } : null,
+                activeBoosts: validBoosts.map(b => ({ type: b.type, multiplier: b.multiplier, expiresAt: b.expiresAt })),
+            },
         });
     } catch (error) { next(error); }
 };

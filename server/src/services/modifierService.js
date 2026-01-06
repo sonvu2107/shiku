@@ -449,23 +449,32 @@ export function calculateRewardModifiers(baseRewards, activeModifiers) {
 
 /**
  * Reduce durability after combat
+ * Chỉ có 30% cơ hội giảm độ bền mỗi trận để tránh hao mòn quá nhanh
  * @param {Object} equipment - Equipment document
  * @param {number} amount - Durability loss
+ * @param {boolean} guaranteed - Nếu true, luôn giảm (không random)
  * @returns {Object} Updated durability info
  */
-export function reduceDurability(equipment, amount = 1) {
+export function reduceDurability(equipment, amount = 1, guaranteed = false) {
     if (!equipment.durability) {
         equipment.durability = { current: 100, max: 100 };
     }
 
     const oldCurrent = equipment.durability.current;
-    equipment.durability.current = Math.max(0, equipment.durability.current - amount);
+    
+    // Chỉ 30% cơ hội giảm độ bền (trừ khi guaranteed)
+    const shouldReduce = guaranteed || Math.random() < 0.3;
+    
+    if (shouldReduce) {
+        equipment.durability.current = Math.max(0, equipment.durability.current - amount);
+    }
 
     return {
         oldCurrent,
         newCurrent: equipment.durability.current,
         max: equipment.durability.max,
-        isBroken: equipment.durability.current <= 0
+        isBroken: equipment.durability.current <= 0,
+        reduced: shouldReduce
     };
 }
 

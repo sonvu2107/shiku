@@ -15,6 +15,32 @@ export async function getCultivation() {
 }
 
 /**
+ * Lấy summary nhẹ (cho homepage, dashboard)
+ */
+export async function getCultivationSummary() {
+  return api('/api/cultivation/summary');
+}
+
+/**
+ * Lấy combat stats nhẹ (optimized)
+ */
+export async function getCombatStatsLean() {
+  return api('/api/cultivation/combat-stats-lean');
+}
+
+/**
+ * Lấy inventory có phân trang
+ * @param {number} page - Trang (default 1)
+ * @param {number} limit - Số item/trang (default 50, max 100)
+ * @param {string} type - Filter theo type (optional)
+ */
+export async function getInventoryPaginated(page = 1, limit = 50, type = null) {
+  const params = new URLSearchParams({ page, limit });
+  if (type) params.append('type', type);
+  return api(`/api/cultivation/inventory-paginated?${params}`);
+}
+
+/**
  * Force sync cultivation cache cho user hiện tại
  */
 export async function syncCultivationCache() {
@@ -111,6 +137,20 @@ export async function unequipEquipment(slot) {
  */
 export async function repairEquipment(equipmentId) {
   return api(`/api/cultivation/equipment/${equipmentId}/repair`, { method: 'POST' });
+}
+
+/**
+ * Xem trước chi phí tu bổ tất cả equipment
+ */
+export async function previewRepairAll() {
+  return api('/api/cultivation/equipment/repair-all/preview');
+}
+
+/**
+ * Tu bổ tất cả equipment
+ */
+export async function repairAllEquipment() {
+  return api('/api/cultivation/equipment/repair-all', { method: 'POST' });
 }
 
 /**

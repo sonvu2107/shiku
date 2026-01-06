@@ -1,7 +1,7 @@
 /**
  * Inventory Tab - Display and manage inventory items
  */
-import { useState, memo, useRef } from 'react';
+import { useState, useEffect, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { RARITY_COLORS, SHOP_ITEM_DATA, EQUIPMENT_SUBTYPES } from '../utils/constants.js';
@@ -175,9 +175,11 @@ const LootboxResultModal = memo(({ result, onClose }) => {
 
 
 const InventoryTab = memo(function InventoryTab() {
-  const { cultivation, equip, unequip, equipEquipment, unequipEquipment, repairEquipment, useItem, loading } = useCultivation();
+  const { cultivation, equip, unequip, equipEquipment, unequipEquipment, repairEquipment, previewRepairAll, repairAllEquipment, useItem, loading } = useCultivation();
   const [equipping, setEquipping] = useState(null);
   const [repairing, setRepairing] = useState(null);
+  const [repairingAll, setRepairingAll] = useState(false);
+  const [repairAllPreview, setRepairAllPreview] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeSubCategory, setActiveSubCategory] = useState('all');
   const [hoveredItem, setHoveredItem] = useState(null);
@@ -185,8 +187,50 @@ const InventoryTab = memo(function InventoryTab() {
   const [lootboxResult, setLootboxResult] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [rewardsAnimation, setRewardsAnimation] = useState([]); // Animation state
+  const [equippedExpanded, setEquippedExpanded] = useState(false); // Collapsible equipped section
   const itemsPerPage = 12;
   const isProcessingRef = useRef(false); // Sync ref to prevent double-clicks
+
+  // Load preview chi phí tu bổ tất cả khi component mount
+  useEffect(() => {
+    const loadRepairPreview = async () => {
+      try {
+        const response = await previewRepairAll();
+        // API trả về { success, data: { needsRepair, totalCost, canAfford, ... } }
+        if (response?.success && response?.data) {
+          setRepairAllPreview(response.data);
+        } else if (response?.needsRepair !== undefined) {
+          // Fallback nếu response là data trực tiếp
+          setRepairAllPreview(response);
+        }
+      } catch (err) {
+        // Silently fail - nút sẽ không hiển thị
+      }
+    };
+    if (cultivation?.inventory?.length > 0) {
+      loadRepairPreview();
+    }
+  }, [cultivation?.inventory, previewRepairAll]);
+
+  // Handler tu bổ tất cả
+  const handleRepairAll = async () => {
+    if (repairingAll || !repairAllPreview?.needsRepair) return;
+    setRepairingAll(true);
+    try {
+      await repairAllEquipment();
+      // Refresh preview sau khi repair
+      const response = await previewRepairAll();
+      if (response?.success && response?.data) {
+        setRepairAllPreview(response.data);
+      } else if (response?.needsRepair !== undefined) {
+        setRepairAllPreview(response);
+      }
+    } catch (err) {
+      // Silently fail
+    } finally {
+      setRepairingAll(false);
+    }
+  };
 
   const handleMouseEnter = (item, e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -426,78 +470,132 @@ const InventoryTab = memo(function InventoryTab() {
 
   return (
     <div className="space-y-3 pb-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">TÚI ĐỒ</h3>
-        <span className="text-sm text-slate-400">
-          {inventory.length} vật phẩm
-        </span>
+        <div className="flex items-center gap-3">
+          {/* Nút Tu Bổ Tất Cả */}
+          {repairAllPreview && repairAllPreview.needsRepair > 0 && (
+            <motion.button
+              onClick={handleRepairAll}
+              disabled={repairingAll || !repairAllPreview.canAfford}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${repairAllPreview.canAfford
+                ? 'bg-amber-900/30 hover:bg-amber-800/50 border-amber-500/30 text-amber-300'
+                : 'bg-slate-800/50 border-slate-600/30 text-slate-500 cursor-not-allowed'
+                }`}
+              whileTap={repairAllPreview.canAfford ? { scale: 0.95 } : {}}
+              title={!repairAllPreview.canAfford ? `Cần ${repairAllPreview.totalCost.toLocaleString()} linh thạch` : ''}
+            >
+              {repairingAll ? (
+                <span className="animate-pulse">Đang tu bổ...</span>
+              ) : (
+                <>
+                  <span>Tu Bổ Tất Cả ({repairAllPreview.needsRepair})</span>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] ${repairAllPreview.canAfford ? 'bg-amber-800/50 text-amber-200' : 'bg-red-900/50 text-red-300'
+                    }`}>
+                    {repairAllPreview.totalCost.toLocaleString()} linh thạch
+                  </span>
+                </>
+              )}
+            </motion.button>
+          )}
+        </div>
       </div>
 
-      {/* Equipped Items Summary */}
+      {/* Equipped Items Summary - Collapsible */}
       {(equipped.title || equipped.badge || equipped.avatarFrame || equipped.profileEffect ||
         equipped.weapon || equipped.magicTreasure || equipped.helmet || equipped.chest ||
         equipped.shoulder || equipped.gloves || equipped.boots || equipped.belt ||
         equipped.ring || equipped.necklace || equipped.earring || equipped.bracelet || equipped.powerItem) && (
-          <div className="bg-gradient-to-r from-emerald-900/20 to-teal-900/20 border border-emerald-500/30 rounded-xl p-3">
-            <p className="text-xs text-emerald-400 mb-2 uppercase tracking-wider">Đang trang bị</p>
-            <div className="flex flex-wrap gap-2">
-              {equipped.title && (
-                <span className="px-2 py-1 bg-amber-900/30 border border-amber-500/30 rounded text-xs text-amber-300">
-                  {inventory.find(i => i.itemId === equipped.title)?.name || equipped.title}
-                </span>
+          <div className="bg-gradient-to-r from-emerald-900/20 to-teal-900/20 border border-emerald-500/30 rounded-xl overflow-hidden">
+            {/* Collapsible Header */}
+            <button
+              onClick={() => setEquippedExpanded(!equippedExpanded)}
+              className="w-full flex items-center justify-between px-3 py-2 hover:bg-emerald-900/20 transition-colors"
+            >
+              <span className="text-xs text-emerald-400 uppercase tracking-wider">
+                Đang trang bị
+              </span>
+              <svg
+                className={`w-4 h-4 text-emerald-400 transition-transform duration-200 ${equippedExpanded ? 'rotate-180' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {/* Collapsible Content */}
+            <AnimatePresence>
+              {equippedExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex flex-wrap gap-2 px-3 pb-3">
+                    {equipped.title && (
+                      <span className="px-2 py-1 bg-amber-900/30 border border-amber-500/30 rounded text-xs text-amber-300">
+                        {inventory.find(i => i.itemId === equipped.title)?.name || equipped.title}
+                      </span>
+                    )}
+                    {equipped.badge && (
+                      <span className="px-2 py-1 bg-cyan-900/30 border border-cyan-500/30 rounded text-xs text-cyan-300">
+                        {inventory.find(i => i.itemId === equipped.badge)?.name || equipped.badge}
+                      </span>
+                    )}
+                    {equipped.avatarFrame && (
+                      <span className="px-2 py-1 bg-purple-900/30 border border-purple-500/30 rounded text-xs text-purple-300">
+                        {inventory.find(i => i.itemId === equipped.avatarFrame)?.name || equipped.avatarFrame}
+                      </span>
+                    )}
+                    {equipped.profileEffect && (
+                      <span className="px-2 py-1 bg-pink-900/30 border border-pink-500/30 rounded text-xs text-pink-300">
+                        {inventory.find(i => i.itemId === equipped.profileEffect)?.name || equipped.profileEffect}
+                      </span>
+                    )}
+                    {/* Equipment items */}
+                    {equipped.weapon && (
+                      <span className="px-2 py-1 bg-red-900/30 border border-red-500/30 rounded text-xs text-red-300">
+                        {inventory.find(i => i.itemId === equipped.weapon?.toString())?.name || 'Vũ Khí'}
+                      </span>
+                    )}
+                    {equipped.magicTreasure && (
+                      <span className="px-2 py-1 bg-blue-900/30 border border-blue-500/30 rounded text-xs text-blue-300">
+                        {inventory.find(i => i.itemId === equipped.magicTreasure?.toString())?.name || 'Pháp Bảo'}
+                      </span>
+                    )}
+                    {equipped.helmet && (
+                      <span className="px-2 py-1 bg-slate-700/30 border border-slate-500/30 rounded text-xs text-slate-300">
+                        {inventory.find(i => i.itemId === equipped.helmet?.toString())?.name || 'Mũ'}
+                      </span>
+                    )}
+                    {equipped.chest && (
+                      <span className="px-2 py-1 bg-slate-700/30 border border-slate-500/30 rounded text-xs text-slate-300">
+                        {inventory.find(i => i.itemId === equipped.chest?.toString())?.name || 'Giáp Ngực'}
+                      </span>
+                    )}
+                    {equipped.ring && (
+                      <span className="px-2 py-1 bg-yellow-900/30 border border-yellow-500/30 rounded text-xs text-yellow-300">
+                        {inventory.find(i => i.itemId === equipped.ring?.toString())?.name || 'Nhẫn'}
+                      </span>
+                    )}
+                    {equipped.necklace && (
+                      <span className="px-2 py-1 bg-yellow-900/30 border border-yellow-500/30 rounded text-xs text-yellow-300">
+                        {inventory.find(i => i.itemId === equipped.necklace?.toString())?.name || 'Dây Chuyền'}
+                      </span>
+                    )}
+                    {equipped.powerItem && (
+                      <span className="px-2 py-1 bg-purple-900/30 border border-purple-500/30 rounded text-xs text-purple-300">
+                        {inventory.find(i => i.itemId === equipped.powerItem?.toString())?.name || 'Linh Khí'}
+                      </span>
+                    )}
+                  </div>
+                </motion.div>
               )}
-              {equipped.badge && (
-                <span className="px-2 py-1 bg-cyan-900/30 border border-cyan-500/30 rounded text-xs text-cyan-300">
-                  {inventory.find(i => i.itemId === equipped.badge)?.name || equipped.badge}
-                </span>
-              )}
-              {equipped.avatarFrame && (
-                <span className="px-2 py-1 bg-purple-900/30 border border-purple-500/30 rounded text-xs text-purple-300">
-                  {inventory.find(i => i.itemId === equipped.avatarFrame)?.name || equipped.avatarFrame}
-                </span>
-              )}
-              {equipped.profileEffect && (
-                <span className="px-2 py-1 bg-pink-900/30 border border-pink-500/30 rounded text-xs text-pink-300">
-                  {inventory.find(i => i.itemId === equipped.profileEffect)?.name || equipped.profileEffect}
-                </span>
-              )}
-              {/* Equipment items */}
-              {equipped.weapon && (
-                <span className="px-2 py-1 bg-red-900/30 border border-red-500/30 rounded text-xs text-red-300">
-                  {inventory.find(i => i.itemId === equipped.weapon?.toString())?.name || 'Vũ Khí'}
-                </span>
-              )}
-              {equipped.magicTreasure && (
-                <span className="px-2 py-1 bg-blue-900/30 border border-blue-500/30 rounded text-xs text-blue-300">
-                  {inventory.find(i => i.itemId === equipped.magicTreasure?.toString())?.name || 'Pháp Bảo'}
-                </span>
-              )}
-              {equipped.helmet && (
-                <span className="px-2 py-1 bg-slate-700/30 border border-slate-500/30 rounded text-xs text-slate-300">
-                  {inventory.find(i => i.itemId === equipped.helmet?.toString())?.name || 'Mũ'}
-                </span>
-              )}
-              {equipped.chest && (
-                <span className="px-2 py-1 bg-slate-700/30 border border-slate-500/30 rounded text-xs text-slate-300">
-                  {inventory.find(i => i.itemId === equipped.chest?.toString())?.name || 'Giáp Ngực'}
-                </span>
-              )}
-              {equipped.ring && (
-                <span className="px-2 py-1 bg-yellow-900/30 border border-yellow-500/30 rounded text-xs text-yellow-300">
-                  {inventory.find(i => i.itemId === equipped.ring?.toString())?.name || 'Nhẫn'}
-                </span>
-              )}
-              {equipped.necklace && (
-                <span className="px-2 py-1 bg-yellow-900/30 border border-yellow-500/30 rounded text-xs text-yellow-300">
-                  {inventory.find(i => i.itemId === equipped.necklace?.toString())?.name || 'Dây Chuyền'}
-                </span>
-              )}
-              {equipped.powerItem && (
-                <span className="px-2 py-1 bg-purple-900/30 border border-purple-500/30 rounded text-xs text-purple-300">
-                  {inventory.find(i => i.itemId === equipped.powerItem?.toString())?.name || 'Linh Khí'}
-                </span>
-              )}
-            </div>
+            </AnimatePresence>
           </div>
         )}
 
@@ -705,20 +803,24 @@ const InventoryTab = memo(function InventoryTab() {
                         const percentage = Math.round((current / max) * 100);
                         const durabilityColor = percentage > 50 ? 'bg-emerald-500' : percentage > 20 ? 'bg-amber-500' : 'bg-red-500';
                         const durabilityTextColor = percentage > 50 ? 'text-emerald-400' : percentage > 20 ? 'text-amber-400' : 'text-red-400';
-                        
+
+                        const isBroken = current <= 0;
+
                         return (
                           <div className="mt-1.5">
                             <div className="flex justify-between items-center text-[10px] mb-0.5">
                               <span className="text-slate-500">Độ Bền</span>
-                              <span className={durabilityTextColor}>{current}/{max}</span>
+                              <span className={isBroken ? 'text-red-500 font-bold' : durabilityTextColor}>{current}/{max}</span>
                             </div>
                             <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full ${durabilityColor} transition-all duration-300`}
+                              <div
+                                className={`h-full ${isBroken ? 'bg-red-600' : durabilityColor} transition-all duration-300`}
                                 style={{ width: `${percentage}%` }}
                               />
                             </div>
-                            {percentage <= 20 && (
+                            {isBroken ? (
+                              <p className="text-[9px] text-red-500 font-bold mt-0.5 animate-pulse">Đã hư hỏng! Chỉ số không được áp dụng</p>
+                            ) : percentage <= 20 && (
                               <p className="text-[9px] text-red-400 mt-0.5">Cần tu bổ!</p>
                             )}
                           </div>
@@ -872,28 +974,46 @@ const InventoryTab = memo(function InventoryTab() {
                       const current = durability.current ?? durability;
                       const max = durability.max ?? 100;
                       if (current >= max) return null;
-                      
+
+                      // Tính chi phí tu bổ (đã giảm 60%)
+                      const durabilityToRepair = max - current;
+                      const rarity = item.metadata?.rarity || 'common';
+                      const REPAIR_COST = { common: 1, uncommon: 1, rare: 2, epic: 4, legendary: 10, mythic: 20 };
+                      const costPerPoint = REPAIR_COST[rarity] || 2;
+                      const repairCost = durabilityToRepair * costPerPoint;
+                      const canAfford = (cultivation?.spiritStones || 0) >= repairCost;
+
                       const handleRepair = async (e) => {
                         e.stopPropagation();
                         const equipmentId = item.metadata?._id || item.itemId;
                         setRepairing(equipmentId);
                         try {
                           await repairEquipment(equipmentId);
+                          // Refresh preview sau khi repair
+                          const preview = await previewRepairAll();
+                          setRepairAllPreview(preview);
                         } catch (err) {
-                          console.error('Repair failed:', err);
+                          // Error handled by hook notification
                         } finally {
                           setRepairing(null);
                         }
                       };
-                      
+
                       return (
                         <motion.button
                           onClick={handleRepair}
-                          disabled={!!repairing || !!equipping}
-                          className="rounded-lg px-4 py-1.5 text-[10px] font-bold uppercase transition-all bg-amber-900/30 hover:bg-amber-800/50 border border-amber-500/30 text-amber-300"
-                          whileTap={{ scale: 0.95 }}
+                          disabled={!!repairing || !!equipping || !canAfford}
+                          className={`rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all border flex flex-col items-center gap-0.5 ${canAfford
+                            ? 'bg-amber-900/30 hover:bg-amber-800/50 border-amber-500/30 text-amber-300'
+                            : 'bg-slate-800/50 border-slate-600/30 text-slate-500 cursor-not-allowed'
+                            }`}
+                          whileTap={canAfford ? { scale: 0.95 } : {}}
+                          title={!canAfford ? `Cần ${repairCost.toLocaleString()} linh thạch` : ''}
                         >
-                          {repairing === (item.metadata?._id || item.itemId) ? '...' : 'Tu Bổ'}
+                          <span>{repairing === (item.metadata?._id || item.itemId) ? 'Đang tu bổ...' : 'Tu Bổ'}</span>
+                          <span className={`text-[9px] ${canAfford ? 'text-amber-400/70' : 'text-red-400/70'}`}>
+                            {repairCost.toLocaleString()} linh thạch
+                          </span>
                         </motion.button>
                       );
                     })()}
