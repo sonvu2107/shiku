@@ -270,21 +270,19 @@ const InventoryModal = memo(({ inventory, materials, onClose, onUseItem }) => {
                     <div className="flex gap-2 mb-4">
                         <button
                             onClick={() => setActiveTab('consumables')}
-                            className={`flex-1 py-2 px-3 text-xs font-bold uppercase transition-all border-2 ${
-                                activeTab === 'consumables'
+                            className={`flex-1 py-2 px-3 text-xs font-bold uppercase transition-all border-2 ${activeTab === 'consumables'
                                     ? 'bg-orange-600 border-orange-400 text-white'
                                     : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
-                            }`}
+                                }`}
                         >
                             Vật Phẩm ({consumableItems.length})
                         </button>
                         <button
                             onClick={() => setActiveTab('materials')}
-                            className={`flex-1 py-2 px-3 text-xs font-bold uppercase transition-all border-2 ${
-                                activeTab === 'materials'
+                            className={`flex-1 py-2 px-3 text-xs font-bold uppercase transition-all border-2 ${activeTab === 'materials'
                                     ? 'bg-amber-600 border-amber-400 text-white'
                                     : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
-                            }`}
+                                }`}
                         >
                             <span className="flex items-center justify-center gap-1">
                                 <GiCutDiamond className="w-3 h-3" />
@@ -798,9 +796,9 @@ const RewardsModal = memo(({ rewards, isVictory, onClose, dungeonName, floorInfo
                                                             {mat.name}
                                                         </span>
                                                         {mat.element && (
-                                                            <span 
+                                                            <span
                                                                 className="text-[10px] px-1 rounded"
-                                                                style={{ 
+                                                                style={{
                                                                     backgroundColor: `${elementColors[mat.element]}20`,
                                                                     color: elementColors[mat.element]
                                                                 }}
@@ -1047,7 +1045,7 @@ const DungeonTab = memo(function DungeonTab() {
             isHandlingRewardsCloseRef.current = false;
             setIsHandlingRewardsClose(false);
             loadDungeons();
-            refresh();
+            // Do NOT call refresh() here - it causes full page reload
         };
 
         // Validate progress exists
@@ -1175,8 +1173,8 @@ const DungeonTab = memo(function DungeonTab() {
         setView('list');
         setActiveDungeon(null);
         loadDungeons();
-        refresh();
-    }, [activeDungeon, loadDungeons, refresh]);
+        // Do NOT call refresh() here - it causes full page reload
+    }, [activeDungeon, loadDungeons]);
 
     // ==================== RENDER ====================
 

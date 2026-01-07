@@ -172,9 +172,9 @@ const CraftTab = memo(function CraftTab() {
             setSelectedMaterials([]);
             setPreview(null);
 
-            // Refresh data
+            // Refresh local data only
             await loadData();
-            refresh();
+            // Do NOT call refresh() here - it causes full page reload
         } catch (err) {
             console.error('[CraftTab] Craft error:', err);
             setError(err.message || 'Lỗi luyện chế');
@@ -275,7 +275,7 @@ const CraftTab = memo(function CraftTab() {
                                             </span>
                                         </div>
                                         <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                                            <div 
+                                            <div
                                                 className="h-full bg-emerald-500 transition-all"
                                                 style={{ width: '100%' }}
                                             />

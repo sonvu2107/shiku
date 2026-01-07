@@ -336,7 +336,7 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
       });
       if (res.success) {
         await loadCultivationTechniques();
-        if (refresh) refresh();
+        // Do NOT call refresh() here - it causes full page reload
       }
     } catch (e) {
       console.error('Learn technique failed:', e);
