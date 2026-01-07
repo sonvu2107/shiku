@@ -653,11 +653,30 @@ export const battleMonster = async (req, res, next) => {
                         activeModifiers
                     );
 
-                    // Reduce durability after combat
-                    for (const eq of equipments) {
-                        reduceDurability(eq, 1);
-                        await eq.save();
+                    // Reduce durability after combat - TRONG INVENTORY CỦA USER
+                    // Chỉ 20% cơ hội giảm độ bền
+                    for (const slot of equipmentSlots) {
+                        const equipmentId = cultivation.equipped?.[slot];
+                        if (!equipmentId) continue;
+                        
+                        // Chỉ 20% cơ hội giảm độ bền
+                        if (Math.random() > 0.2) continue;
+                        
+                        // Tìm item trong inventory
+                        const invItem = cultivation.inventory.find(i => 
+                            i.itemId?.toString() === equipmentId.toString() ||
+                            i.metadata?._id?.toString() === equipmentId.toString()
+                        );
+                        
+                        if (invItem) {
+                            if (!invItem.metadata) invItem.metadata = {};
+                            if (!invItem.metadata.durability) {
+                                invItem.metadata.durability = { current: 100, max: 100 };
+                            }
+                            invItem.metadata.durability.current = Math.max(0, invItem.metadata.durability.current - 1);
+                        }
                     }
+                    cultivation.markModified('inventory');
                 }
             } catch (modError) {
                 console.error('[Dungeon] Modifier calculation error:', modError.message);

@@ -244,6 +244,28 @@ export async function getPassiveExpStatus() {
   return api('/api/cultivation/passive-exp-status');
 }
 
+// ==================== GIFT CODE ====================
+
+/**
+ * Đổi mã quà tặng
+ * @param {string} code - Mã quà tặng
+ * @returns {Promise<Object>} { success, rewards, message }
+ */
+export async function redeemGiftCode(code) {
+  return api('/api/cultivation/giftcode/redeem', {
+    method: 'POST',
+    body: JSON.stringify({ code })
+  });
+}
+
+/**
+ * Lấy lịch sử đổi mã quà tặng
+ * @returns {Promise<Object>} { success, history }
+ */
+export async function getGiftCodeHistory() {
+  return api('/api/cultivation/giftcode/history');
+}
+
 /**
  * Cập nhật hình tượng nhân vật
  * @param {string} characterAppearance - Loại nhân vật: 'Immortal_male', 'Immortal_female', 'Demon_male', 'Demon_female'

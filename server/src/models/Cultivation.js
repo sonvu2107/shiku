@@ -1718,9 +1718,24 @@ CultivationSchema.methods.getEquipmentStats = async function () {
   // Track các equipment bị hỏng để thông báo
   const brokenEquipments = [];
 
+  // Tạo map để tra cứu nhanh durability từ inventory
+  const inventoryDurabilityMap = new Map();
+  this.inventory.forEach(item => {
+    if (item.type?.startsWith('equipment_')) {
+      const id = item.metadata?._id?.toString() || item.itemId?.toString();
+      if (id && item.metadata?.durability) {
+        inventoryDurabilityMap.set(id, item.metadata.durability);
+      }
+    }
+  });
+
   equipments.forEach(eq => {
+    // Lấy durability từ inventory (riêng cho user), không phải từ Equipment collection
+    const userDurability = inventoryDurabilityMap.get(eq._id.toString());
+    const durability = userDurability || eq.durability || { current: 100, max: 100 };
+    
     // Kiểm tra equipment bị hỏng (durability = 0)
-    const isBroken = eq.durability && eq.durability.current <= 0;
+    const isBroken = durability.current <= 0;
     if (isBroken) {
       brokenEquipments.push({
         id: eq._id,

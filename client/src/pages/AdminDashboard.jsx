@@ -13,6 +13,7 @@ import AdminInsightsTab from '../components/admin/AdminInsightsTab';
 import AdminCommentsTab from '../components/admin/AdminCommentsTab';
 import AdminReportsTab from '../components/admin/AdminReportsTab';
 import ActiveUsersChart from '../components/admin/ActiveUsersChart';
+import AdminGiftCodeTab from '../components/admin/AdminGiftCodeTab';
 import VerifiedBadge from "../components/VerifiedBadge";
 import Avatar from "../components/Avatar";
 import { getUserAvatarUrl, AVATAR_SIZES } from "../utils/avatarUtils";
@@ -54,7 +55,8 @@ import {
    X,
    Sword,
    Target,
-   Flag
+   Flag,
+   Gift
 } from "lucide-react";
 
 /**
@@ -314,6 +316,7 @@ export default function AdminDashboard() {
             { id: 'notifications', label: 'Thông báo', icon: Bell, permission: 'admin.sendNotifications' },
             { id: 'feedback', label: 'Phản hồi', icon: MessageCircle, permission: 'admin.viewFeedback' },
             { id: 'bot', label: 'Auto Bot', icon: Heart, permission: 'admin.manageUsers' },
+            { id: 'giftcode', label: 'Mã Quà Tặng', icon: Gift, permission: 'admin.manageUsers' },
             { id: 'equipment', label: 'Trang Bị', icon: Sword, external: true, path: '/admin/equipment', permission: 'admin.manageEquipment' },
             { id: 'api-monitoring', label: 'API Monitor', icon: Code, permission: 'admin.viewAPI' },
          ]
@@ -1183,6 +1186,12 @@ export default function AdminDashboard() {
                   {activeTab === "bot" && (
                      <motion.div key="bot" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                         <AutoLikeBot />
+                     </motion.div>
+                  )}
+
+                  {activeTab === "giftcode" && (
+                     <motion.div key="giftcode" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                        <AdminGiftCodeTab />
                      </motion.div>
                   )}
 

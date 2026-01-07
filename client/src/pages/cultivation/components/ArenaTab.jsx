@@ -768,8 +768,7 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                         // Refresh data after match
                         await fetchRankData();
                         await fetchMatchHistory();
-                        // Refresh cultivation data để cập nhật độ bền trang bị
-                        if (refresh) refresh();
+                        // Do NOT call refresh() here - it causes full page reload
                     }
                 } else if (response.suggestBot) {
                     // No opponent found - offer bot
@@ -809,8 +808,7 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                 }
                 await fetchRankData();
                 await fetchMatchHistory();
-                // Refresh cultivation data để cập nhật độ bền trang bị
-                if (refresh) refresh();
+                // Do NOT call refresh() here - it causes full page reload
             }
         } catch (error) {
             // Silent error handling

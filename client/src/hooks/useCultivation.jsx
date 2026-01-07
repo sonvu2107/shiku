@@ -28,7 +28,9 @@ import {
   getPassiveExpStatus,
   practiceTechnique as practiceTechniqueAPI,
   attemptBreakthrough as attemptBreakthroughAPI,
-  updateCharacterAppearance as updateCharacterAppearanceAPI
+  updateCharacterAppearance as updateCharacterAppearanceAPI,
+  redeemGiftCode as redeemGiftCodeAPI,
+  getGiftCodeHistory as getGiftCodeHistoryAPI
 } from '../services/cultivationAPI.js';
 
 // Context cho Cultivation
@@ -430,7 +432,7 @@ export function CultivationProvider({ children }) {
 
       if (response.success) {
         // Reload cultivation để cập nhật inventory và spiritStones
-        await fetchCultivation();
+        await loadCultivation();
 
         setNotification({
           type: 'success',
@@ -757,6 +759,51 @@ export function CultivationProvider({ children }) {
   }, []);
 
   /**
+   * Đổi mã quà tặng
+   */
+  const redeemGiftCode = useCallback(async (code) => {
+    try {
+      setError(null);
+      const response = await redeemGiftCodeAPI(code);
+
+      if (response.success) {
+        // Reload cultivation để cập nhật phần thưởng
+        await loadCultivation();
+
+        setNotification({
+          type: 'success',
+          title: 'Đổi Mã Thành Công!',
+          message: response.message || 'Đã nhận phần thưởng'
+        });
+
+        return response.data;
+      }
+    } catch (err) {
+      setError(err.message);
+      setNotification({
+        type: 'error',
+        title: 'Lỗi',
+        message: err.message
+      });
+      throw err;
+    }
+  }, []);
+
+  /**
+   * Lấy lịch sử đổi mã quà tặng
+   */
+  const loadGiftCodeHistory = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await getGiftCodeHistoryAPI();
+      return response.data;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }, []);
+
+  /**
    * Refresh all cultivation data
    */
   const refresh = useCallback(async () => {
@@ -805,7 +852,9 @@ export function CultivationProvider({ children }) {
     refresh,
     practiceTechnique,
     attemptBreakthrough,
-    updateCharacterAppearance
+    updateCharacterAppearance,
+    redeemGiftCode,
+    loadGiftCodeHistory
   };
 
   return (

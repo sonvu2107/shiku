@@ -467,6 +467,8 @@ export function reduceDurability(equipment, amount = 1, guaranteed = false) {
     
     if (shouldReduce) {
         equipment.durability.current = Math.max(0, equipment.durability.current - amount);
+        // LOGGING ĐỂ DEBUG BUG DURABILITY
+        console.log(`[DURABILITY DEBUG] Equipment "${equipment.name}" (ID: ${equipment._id}): ${oldCurrent} -> ${equipment.durability.current} (reduced: ${amount})`);
     }
 
     return {

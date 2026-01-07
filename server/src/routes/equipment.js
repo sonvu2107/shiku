@@ -460,10 +460,11 @@ router.delete("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, a
 /**
  * GET /api/equipment/admin/list
  * Lấy danh sách equipment (admin - bao gồm cả inactive)
+ * source: 'admin' | 'user' | '' (tất cả)
  */
 router.get("/admin/list", adminRateLimit, authRequired, adminRequired, async (req, res, next) => {
   try {
-    const { type, rarity, level_required, search, is_active, page = 1, limit = 50 } = req.query;
+    const { type, rarity, level_required, search, is_active, source, page = 1, limit = 50 } = req.query;
 
     const filters = {};
 
@@ -487,9 +488,29 @@ router.get("/admin/list", adminRateLimit, authRequired, adminRequired, async (re
       filters.is_active = is_active === 'true';
     }
 
+    // Source filter: admin = created by admin, user = crafted by player
+    if (source === 'admin') {
+      // Admin-created: created_by is an admin user
+      // We check by looking at users with admin role
+      const User = mongoose.model('User');
+      const adminUsers = await User.find({ role: 'admin' }).select('_id').lean();
+      const adminIds = adminUsers.map(u => u._id);
+      filters.created_by = { $in: adminIds };
+    } else if (source === 'user') {
+      // User-crafted: created_by is NOT an admin
+      const User = mongoose.model('User');
+      const adminUsers = await User.find({ role: 'admin' }).select('_id').lean();
+      const adminIds = adminUsers.map(u => u._id);
+      filters.$or = [
+        { created_by: { $nin: adminIds } },
+        { created_by: { $exists: true, $ne: null }, description: { $regex: /tế luyện|luyện chế/i } }
+      ];
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const equipments = await Equipment.find(filters)
+      .populate('created_by', 'username displayName')
       .sort({ created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit))

@@ -975,11 +975,11 @@ const InventoryTab = memo(function InventoryTab() {
                       const max = durability.max ?? 100;
                       if (current >= max) return null;
 
-                      // Tính chi phí tu bổ (đã giảm 60%)
+                      // Tính chi phí tu bổ (rất thấp)
                       const durabilityToRepair = max - current;
                       const rarity = item.metadata?.rarity || 'common';
-                      const REPAIR_COST = { common: 1, uncommon: 1, rare: 2, epic: 4, legendary: 10, mythic: 20 };
-                      const costPerPoint = REPAIR_COST[rarity] || 2;
+                      const REPAIR_COST = { common: 1, uncommon: 1, rare: 1, epic: 2, legendary: 5, mythic: 10 };
+                      const costPerPoint = REPAIR_COST[rarity] || 1;
                       const repairCost = durabilityToRepair * costPerPoint;
                       const canAfford = (cultivation?.spiritStones || 0) >= repairCost;
 

@@ -75,7 +75,14 @@ import {
   repairAllEquipment,
   previewRepairAll,
   getActiveModifiers,
-  checkCanEquip
+  checkCanEquip,
+  // Gift Code
+  redeemGiftCode,
+  getGiftCodeHistory,
+  createGiftCode,
+  listGiftCodes,
+  updateGiftCode,
+  deleteGiftCode
 } from "../controllers/cultivation/index.js";
 
 
@@ -174,5 +181,15 @@ router.post("/equipment/repair-all", repairAllEquipment);
 router.get("/equipment/:equipmentId", getEquipmentDetails);
 router.post("/equipment/:equipmentId/repair", repairEquipment);
 router.post("/equipment/:equipmentId/check-equip", checkCanEquip);
+
+// ==================== MÃ QUÀ TẶNG (GIFT CODE) ====================
+router.post("/giftcode/redeem", redeemGiftCode);
+router.get("/giftcode/history", getGiftCodeHistory);
+
+// ==================== ADMIN - MÃ QUÀ TẶNG ====================
+router.post("/giftcode/create", createGiftCode);
+router.get("/giftcode/list", listGiftCodes);
+router.put("/giftcode/:codeId", updateGiftCode);
+router.delete("/giftcode/:codeId", deleteGiftCode);
 
 export default router;

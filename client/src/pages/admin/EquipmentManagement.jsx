@@ -149,7 +149,8 @@ const EquipmentManagement = memo(function EquipmentManagement() {
     type: '',
     rarity: '',
     search: '',
-    is_active: 'true'
+    is_active: 'true',
+    source: ''  // '' = all, 'admin' = admin-created, 'user' = user-crafted
   });
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
 
@@ -648,6 +649,19 @@ const EquipmentManagement = memo(function EquipmentManagement() {
               <option value="">Tất cả</option>
             </select>
           </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Nguồn Gốc</label>
+            <select
+              value={filters.source}
+              onChange={(e) => setFilters(prev => ({ ...prev, source: e.target.value }))}
+              className="w-full px-4 py-2.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-neutral-100 outline-none focus:ring-2 focus:ring-neutral-400 transition-all cursor-pointer"
+            >
+              <option value="">Tất cả</option>
+              <option value="admin">Admin Tạo</option>
+              <option value="user">User Luyện Chế</option>
+            </select>
+          </div>
         </div>
 
         {/* Equipment List */}
@@ -688,6 +702,13 @@ const EquipmentManagement = memo(function EquipmentManagement() {
                       {eq.name}
                     </h3>
                     <p className="text-xs text-neutral-500">{EQUIPMENT_TYPES[eq.type]}</p>
+                    {/* Creator badge */}
+                    {eq.created_by && (
+                      <p className="text-[10px] text-amber-500 truncate">
+                        {eq.description?.includes('tế luyện') || eq.description?.includes('luyện chế') ? '⚒️ ' : '👑 '}
+                        {eq.created_by.displayName || eq.created_by.username || 'System'}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-1 ml-2">
                     <button

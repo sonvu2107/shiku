@@ -178,7 +178,8 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
       if (res.success) {
         setBulkPracticeSession(null);
         setBulkPracticeTimeLeft(0);
-        if (refresh) refresh();
+        // Do NOT call refresh() here - it causes full page reload
+        // User can immediately start new meditation session
       }
     } catch (e) {
       console.error('Claim bulk practice failed:', e);
@@ -407,7 +408,8 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
       if (res.success) {
         setActiveSession(null);
         setSessionTimeLeft(0);
-        if (refresh) refresh();
+        // Do NOT call refresh() here - it causes full page reload
+        // User can immediately start new meditation session
       }
     } catch (e) {
       console.error('Claim technique failed:', e);

@@ -25,7 +25,8 @@ import {
   SectTab,
   LeaderboardTab,
   ThienHaKy,
-  CraftTab
+  CraftTab,
+  GiftCodeTab
 } from './cultivation/components';
 import { LOG_MESSAGES } from './cultivation/utils/constants';
 
@@ -397,6 +398,7 @@ const CultivationContent = memo(function CultivationContent() {
     { id: 'combat', label: 'Chiến Đấu' },
     { id: 'sect', label: 'Tông Môn' },
     { id: 'craft', label: 'Luyện Khí' },
+    { id: 'giftcode', label: 'Nhập Mã' },
     { id: 'thienhaky', label: 'Thiên Hạ Ký' },
     { id: 'leaderboard', label: 'Bảng Xếp Hạng' },
   ];
@@ -584,6 +586,7 @@ const CultivationContent = memo(function CultivationContent() {
           {activeTab === 'combat' && <CombatTab onSwitchTab={setActiveTab} isAdmin={isAdmin} />}
           {activeTab === 'sect' && <SectTab />}
           {activeTab === 'craft' && <CraftTab />}
+          {activeTab === 'giftcode' && <GiftCodeTab />}
           {activeTab === 'leaderboard' && <LeaderboardTab isAdmin={isAdmin} />}
           {activeTab === 'thienhaky' && <ThienHaKy />}
         </div>

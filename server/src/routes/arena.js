@@ -24,19 +24,43 @@ router.use(authRequired);
 
 /**
  * Reduce durability for all equipped items after battle
+ * GIẢM ĐỘ BỀN TRONG INVENTORY CỦA USER, KHÔNG PHẢI EQUIPMENT COLLECTION
+ * Chỉ có 20% cơ hội giảm 1 độ bền mỗi trận
  */
 async function reduceEquipmentDurability(cultivation) {
     const equipmentSlots = ['weapon', 'magicTreasure', 'helmet', 'chest', 'shoulder', 'gloves', 'boots', 'belt', 'ring', 'necklace', 'earring', 'bracelet', 'powerItem'];
-    const equipmentIds = equipmentSlots
-        .map(slot => cultivation.equipped?.[slot])
-        .filter(id => id != null);
-
-    if (equipmentIds.length > 0) {
-        const equipments = await Equipment.find({ _id: { $in: equipmentIds } });
-        for (const eq of equipments) {
-            reduceDurability(eq, 1);
-            await eq.save();
+    
+    let hasChanges = false;
+    
+    for (const slot of equipmentSlots) {
+        const equipmentId = cultivation.equipped?.[slot];
+        if (!equipmentId) continue;
+        
+        // Chỉ 20% cơ hội giảm độ bền
+        if (Math.random() > 0.2) continue;
+        
+        // Tìm item trong inventory
+        const invItem = cultivation.inventory.find(i => 
+            i.itemId?.toString() === equipmentId.toString() ||
+            i.metadata?._id?.toString() === equipmentId.toString()
+        );
+        
+        if (invItem) {
+            // Khởi tạo durability nếu chưa có
+            if (!invItem.metadata) invItem.metadata = {};
+            if (!invItem.metadata.durability) {
+                invItem.metadata.durability = { current: 100, max: 100 };
+            }
+            
+            // Giảm 1 độ bền
+            invItem.metadata.durability.current = Math.max(0, invItem.metadata.durability.current - 1);
+            hasChanges = true;
         }
+    }
+    
+    // Đánh dấu inventory đã thay đổi để mongoose save
+    if (hasChanges) {
+        cultivation.markModified('inventory');
     }
 }
 

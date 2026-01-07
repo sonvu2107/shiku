@@ -415,20 +415,16 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
     setOpponentAction('idle');
     setScreenFlash(null);
 
-    // Refresh cultivation data để cập nhật độ bền trang bị
-    if (refresh) {
-      refresh();
-    }
+    // Do NOT call refresh() here - it causes full page reload
+    // Equipment durability will be updated on next page load
 
     // Reload history if on history tab
     if (activeView === 'history') {
       loadHistory();
     }
 
-    // Switch back to Arena tab if this was a ranked battle
-    if (wasRankedBattle && onSwitchTab) {
-      onSwitchTab('arena');
-    }
+    // Do NOT auto-redirect to arena tab - let user stay on current tab
+    // User can manually switch if they want to
   };
 
   // Auto-play battle logs with effects - ENHANCED WITH PHYSICS (Dash & Recoil)
