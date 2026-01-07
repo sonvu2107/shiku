@@ -101,6 +101,13 @@ export const formatCultivationResponse = async (cultivation) => {
                     ? userDurability
                     : equipment.durability || { current: 100, max: 100 };
 
+                // Merge lifesteal, energy_regen vào stats để frontend hiển thị đầy đủ
+                const mergedStats = {
+                    ...equipment.stats,
+                    lifesteal: equipment.lifesteal || equipment.stats?.lifesteal || 0,
+                    energy_regen: equipment.energy_regen || equipment.stats?.energy_regen || 0
+                };
+
                 return {
                     ...item.toObject ? item.toObject() : item,
                     name: equipment.name,
@@ -111,7 +118,7 @@ export const formatCultivationResponse = async (cultivation) => {
                         subtype: equipment.subtype,
                         rarity: equipment.rarity,
                         level_required: equipment.level_required,
-                        stats: equipment.stats,
+                        stats: mergedStats,
                         special_effect: equipment.special_effect,
                         skill_bonus: equipment.skill_bonus,
                         energy_regen: equipment.energy_regen,

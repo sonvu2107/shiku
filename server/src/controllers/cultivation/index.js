@@ -12,4 +12,5 @@ export * from './worldEventController.js';
 export * from './materialController.js';
 export * from './craftController.js';
 export * from './equipmentController.js';
+export * from './marketController.js';
 export * from './giftCodeController.js';

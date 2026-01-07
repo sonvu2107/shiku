@@ -3,7 +3,7 @@
  * APIs: list, learn, equip, activate (semi-auto), claim
  */
 
-import Cultivation from "../../models/Cultivation.js";
+import Cultivation, { CULTIVATION_REALMS } from "../../models/Cultivation.js";
 import { formatCultivationResponse, invalidateCultivationCache } from "./coreController.js";
 import {
     consumeExpCap,
@@ -18,6 +18,7 @@ import {
     checkUnlockCondition,
     getAvailableTechniques
 } from "../../data/cultivationTechniques.js";
+import { TECHNIQUES_MAP } from "../../data/shopItems.js";
 import crypto from "crypto";
 import { getClient, isRedisConnected, redisConfig } from "../../services/redisClient.js";
 
@@ -32,7 +33,7 @@ export const listTechniques = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const redis = getClient();
-        const cacheKey = `${redisConfig.keyPrefix}techniques:${userId}`;
+        const cacheKey = `${redisConfig.keyPrefix} techniques:${userId} `;
 
         // Try cache first
         if (redis && isRedisConnected()) {
@@ -162,12 +163,12 @@ export const learnTechnique = async (req, res, next) => {
         invalidateCultivationCache(userId).catch(() => { });
         const redis = getClient();
         if (redis && isRedisConnected()) {
-            redis.del(`${redisConfig.keyPrefix}techniques:${userId}`).catch(() => { });
+            redis.del(`${redisConfig.keyPrefix} techniques:${userId} `).catch(() => { });
         }
 
         res.json({
             success: true,
-            message: `Đã lĩnh ngộ ${technique.name}!`,
+            message: `Đã lĩnh ngộ ${technique.name} !`,
             data: {
                 technique: {
                     id: technique.id,
@@ -232,7 +233,7 @@ export const equipTechnique = async (req, res, next) => {
 
         res.json({
             success: true,
-            message: `Đã trang bị ${technique.name}`,
+            message: `Đã trang bị ${technique.name} `,
             data: {
                 equipped: techniqueId,
                 bonusPercent: technique.bonusPercent
@@ -336,7 +337,7 @@ export const activateTechnique = async (req, res, next) => {
 
         res.json({
             success: true,
-            message: `Bắt đầu ${technique.name}`,
+            message: `Bắt đầu ${technique.name} `,
             data: {
                 sessionId,
                 techniqueId,
@@ -489,7 +490,7 @@ export const claimTechnique = async (req, res, next) => {
 
         res.json({
             success: true,
-            message: allowedExp > 0 ? `+${allowedExp} Tu Vi` : "Linh khí đã cạn",
+            message: allowedExp > 0 ? `+ ${allowedExp} Tu Vi` : "Linh khí đã cạn",
             data: {
                 allowedExp,
                 requestedExp: multipliedExp,
@@ -503,10 +504,199 @@ export const claimTechnique = async (req, res, next) => {
     }
 };
 
+// ============================================================
+// GET /techniques/combat-slots - Lấy thông tin slots
+// ============================================================
+
+export const getCombatSlots = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const cultivation = await Cultivation.getOrCreate(userId);
+
+        const maxSlots = cultivation.getMaxCombatSlots();
+        const equippedSlots = cultivation.equippedCombatTechniques || [];
+
+        // Get available techniques (learned + có skill)
+        const availableTechniques = (cultivation.learnedTechniques || [])
+            .map(learned => {
+                const technique = TECHNIQUES_MAP.get(learned.techniqueId);
+                if (technique && technique.skill) {
+                    return {
+                        techniqueId: learned.techniqueId,
+                        name: technique.name,
+                        level: learned.level,
+                        rarity: technique.rarity,
+                        description: technique.description,
+                        skillName: technique.skill.name,
+                        skillDescription: technique.skill.description
+                    };
+                }
+                return null;
+            })
+            .filter(Boolean);
+
+        res.json({
+            success: true,
+            data: {
+                maxSlots,
+                currentRealmLevel: cultivation.realmLevel,
+                equippedSlots,
+                availableTechniques
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ============================================================
+// POST /techniques/equip-combat-slot - Trang bị công pháp vào slot
+// ============================================================
+
+export const equipCombatSlot = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { slotIndex, techniqueId } = req.body;
+
+        // Validate input
+        if (slotIndex === undefined || !techniqueId) {
+            return res.status(400).json({
+                success: false,
+                message: "Thiếu slotIndex hoặc techniqueId"
+            });
+        }
+
+        if (slotIndex < 0 || slotIndex > 4) {
+            return res.status(400).json({
+                success: false,
+                message: "Slot index phải từ 0-4"
+            });
+        }
+
+        const cultivation = await Cultivation.getOrCreate(userId);
+        const maxSlots = cultivation.getMaxCombatSlots();
+
+        // Check if slot is unlocked
+        if (slotIndex >= maxSlots) {
+            const requiredRealm = slotIndex <= 1 ? 1 : slotIndex <= 2 ? 3 : slotIndex <= 3 ? 5 : 7;
+            const realmName = CULTIVATION_REALMS.find(r => r.level === requiredRealm)?.name;
+            return res.status(400).json({
+                success: false,
+                message: `Slot ${slotIndex + 1} chưa mở khóa.Cần đạt ${realmName} `
+            });
+        }
+
+        // Check if technique is learned
+        const learned = cultivation.learnedTechniques?.find(t => t.techniqueId === techniqueId);
+        if (!learned) {
+            return res.status(400).json({
+                success: false,
+                message: "Chưa lĩnh ngộ công pháp này"
+            });
+        }
+
+        // Check if technique has skill
+        const technique = TECHNIQUES_MAP.get(techniqueId);
+        if (!technique || !technique.skill) {
+            return res.status(400).json({
+                success: false,
+                message: "Công pháp này không có kỹ năng chiến đấu"
+            });
+        }
+
+        // Initialize array if not exists
+        if (!cultivation.equippedCombatTechniques) {
+            cultivation.equippedCombatTechniques = [];
+        }
+
+        // Check if slot already has a technique
+        const existingSlotIndex = cultivation.equippedCombatTechniques.findIndex(s => s.slotIndex === slotIndex);
+        if (existingSlotIndex >= 0) {
+            // Replace existing
+            cultivation.equippedCombatTechniques[existingSlotIndex].techniqueId = techniqueId;
+        } else {
+            // Add new
+            cultivation.equippedCombatTechniques.push({
+                slotIndex,
+                techniqueId
+            });
+        }
+
+        await cultivation.save();
+
+        // Invalidate cache
+        invalidateCultivationCache(userId).catch(() => { });
+
+        res.json({
+            success: true,
+            message: `Đã trang bị ${technique.name} vào Slot ${slotIndex + 1} `,
+            data: {
+                slotIndex,
+                techniqueId,
+                techniqueName: technique.name
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ============================================================
+// POST /techniques/unequip-combat-slot - Tháo công pháp khỏi slot
+// ============================================================
+
+export const unequipCombatSlot = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { slotIndex } = req.body;
+
+        if (slotIndex === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: "Thiếu slotIndex"
+            });
+        }
+
+        const cultivation = await Cultivation.getOrCreate(userId);
+
+        if (!cultivation.equippedCombatTechniques || cultivation.equippedCombatTechniques.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Chưa có công pháp nào được trang bị"
+            });
+        }
+
+        // Find and remove
+        const slotIdx = cultivation.equippedCombatTechniques.findIndex(s => s.slotIndex === slotIndex);
+        if (slotIdx < 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Slot ${slotIndex + 1} đang trống`
+            });
+        }
+
+        cultivation.equippedCombatTechniques.splice(slotIdx, 1);
+        await cultivation.save();
+
+        // Invalidate cache
+        invalidateCultivationCache(userId).catch(() => { });
+
+        res.json({
+            success: true,
+            message: `Đã tháo công pháp khỏi Slot ${slotIndex + 1} `
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     listTechniques,
     learnTechnique,
     equipTechnique,
     activateTechnique,
-    claimTechnique
+    claimTechnique,
+    getCombatSlots,
+    equipCombatSlot,
+    unequipCombatSlot
 };

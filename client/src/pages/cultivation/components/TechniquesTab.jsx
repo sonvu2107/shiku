@@ -10,6 +10,7 @@ import { RARITY_COLORS } from '../utils/constants.js';
 import { getItemIcon, IMAGE_COMPONENTS } from '../utils/iconHelpers.js';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
 import FlyingReward from './FlyingReward.jsx';
+import CombatSlotsSection from './CombatSlotsSection.jsx';
 
 const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
   const { cultivation, shop, loadShop, loading, refresh } = useCultivation();
@@ -477,6 +478,9 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
         </div>
       </div>
 
+      {/* Combat Slots Section */}
+      <CombatSlotsSection cultivationTechniques={cultivationTechniques} />
+
       {/* Công Pháp Tông Môn */}
       {learnedSectTechniques.length > 0 && (
         <div className="space-y-3">
@@ -779,7 +783,7 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                   <button
                     onClick={handleStartBulkPractice}
                     disabled={startingBulkPractice || learned.filter(t => t.level < 10).length === 0}
-                    className="w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-bold uppercase bg-amber-700 text-amber-100 border border-amber-500/50 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_15px_rgba(217,119,6,0.3)]"
+                    className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-sm font-bold uppercase bg-amber-700 text-amber-100 border border-amber-500/50 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_15px_rgba(217,119,6,0.3)]"
                   >
                     {startingBulkPractice ? 'Đang bắt đầu...' : 'Bắt Đầu Nhập Định'}
                   </button>
@@ -787,12 +791,12 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                   <button
                     onClick={handleClaimBulkPractice}
                     disabled={claimingBulkPractice}
-                    className="w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-bold uppercase bg-gradient-to-r from-emerald-600 to-teal-600 text-white border border-emerald-400/50 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 transition-all animate-pulse shadow-[0_0_15px_rgba(52,211,153,0.4)]"
+                    className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-sm font-bold uppercase bg-gradient-to-r from-emerald-600 to-teal-600 text-white border border-emerald-400/50 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 transition-all animate-pulse shadow-[0_0_15px_rgba(52,211,153,0.4)]"
                   >
                     {claimingBulkPractice ? 'Đang thu...' : ' Thu Hoạch'}
                   </button>
                 ) : (
-                  <div className="text-center px-6 py-3 rounded-lg bg-slate-800/50 border border-slate-600/50">
+                  <div className="text-center px-4 py-2 sm:px-6 sm:py-3 rounded-lg bg-slate-800/50 border border-slate-600/50">
                     <span className="text-slate-400 text-sm">Đang nhập định...</span>
                   </div>
                 )}
@@ -802,7 +806,12 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
 
           {/* Grid 2 cột trên desktop */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {finalLearned.map((learnedItem) => {
+            {/* Sắp xếp: công pháp chưa max lên trước, đã max xuống cuối */}
+            {[...finalLearned].sort((a, b) => {
+              const aMaxed = a.level >= 10 ? 1 : 0;
+              const bMaxed = b.level >= 10 ? 1 : 0;
+              return aMaxed - bMaxed;
+            }).map((learnedItem) => {
               const { technique, level, exp } = learnedItem;
               const expNeeded = getExpNeeded(level);
               const progress = level >= 10 ? 100 : (exp / expNeeded) * 100;

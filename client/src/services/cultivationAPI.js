@@ -177,7 +177,48 @@ export async function attemptBreakthrough() {
   return api('/api/cultivation/breakthrough', { method: 'POST' });
 }
 
-// ==================== LEADERBOARD ====================
+// Sell Items
+export const sellItems = async (itemIds) => {
+  return api('/api/cultivation/inventory/sell', {
+    method: 'POST',
+    body: JSON.stringify({ itemIds })
+  });
+};
+
+// ==================== COMBAT TECHNIQUE SLOTS ====================
+
+/**
+ * Lấy thông tin các slot công pháp chiến đấu
+ * @returns {Promise<Object>} { maxSlots, equippedSlots, availableTechniques }
+ */
+export async function getCombatSlots() {
+  return api('/api/cultivation/techniques/combat-slots');
+}
+
+/**
+ * Trang bị công pháp vào slot
+ * @param {number} slotIndex - Slot index (0-4)
+ * @param {string} techniqueId - ID công pháp
+ */
+export async function equipCombatSlot(slotIndex, techniqueId) {
+  return api('/api/cultivation/techniques/equip-combat-slot', {
+    method: 'POST',
+    body: JSON.stringify({ slotIndex, techniqueId })
+  });
+}
+
+/**
+ * Tháo công pháp khỏi slot
+ * @param {number} slotIndex - Slot index (0-4)
+ */
+export async function unequipCombatSlot(slotIndex) {
+  return api('/api/cultivation/techniques/unequip-combat-slot', {
+    method: 'POST',
+    body: JSON.stringify({ slotIndex })
+  });
+}
+
+// ==================== EXP & LEADERBOARD ====================
 
 /**
  * Lấy bảng xếp hạng

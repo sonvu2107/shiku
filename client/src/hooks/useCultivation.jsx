@@ -30,7 +30,11 @@ import {
   attemptBreakthrough as attemptBreakthroughAPI,
   updateCharacterAppearance as updateCharacterAppearanceAPI,
   redeemGiftCode as redeemGiftCodeAPI,
-  getGiftCodeHistory as getGiftCodeHistoryAPI
+  getGiftCodeHistory as getGiftCodeHistoryAPI,
+  sellItems as sellItemsAPI,
+  getCombatSlots as getCombatSlotsAPI,
+  equipCombatSlot as equipCombatSlotAPI,
+  unequipCombatSlot as unequipCombatSlotAPI,
 } from '../services/cultivationAPI.js';
 
 // Context cho Cultivation
@@ -551,6 +555,40 @@ export function CultivationProvider({ children }) {
   }, []);
 
   /**
+   * Bán vật phẩm
+   */
+  const sellItems = useCallback(async (itemIds) => {
+    try {
+      setError(null);
+      const response = await sellItemsAPI(itemIds);
+
+      if (response.success) {
+        setCultivation(prev => ({
+          ...prev,
+          inventory: prev.inventory.filter(item => !itemIds.includes(item.itemId)),
+          spiritStones: (prev.spiritStones || 0) + response.data.totalValue
+        }));
+
+        setNotification({
+          type: 'success',
+          title: 'Bán thành công',
+          message: response.message
+        });
+
+        return response.data;
+      }
+    } catch (err) {
+      setError(err.message);
+      setNotification({
+        type: 'error',
+        title: 'Lỗi',
+        message: err.message
+      });
+      throw err;
+    }
+  }, []);
+
+  /**
    * Load leaderboard
    */
   const loadLeaderboard = useCallback(async (type = 'exp', limit = 50) => {
@@ -857,6 +895,89 @@ export function CultivationProvider({ children }) {
   }, []);
 
   /**
+   * Lấy thông tin combat slots
+   */
+  const loadCombatSlots = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await getCombatSlotsAPI();
+      return response.data;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }, []);
+
+  /**
+   * Trang bị công pháp vào combat slot
+   */
+  const equipCombatSlot = useCallback(async (slotIndex, techniqueId) => {
+    try {
+      setError(null);
+      const response = await equipCombatSlotAPI(slotIndex, techniqueId);
+
+      if (response.success) {
+        // Update local state với equipped slots
+        setCultivation(prev => ({
+          ...prev,
+          equippedCombatTechniques: response.data.equippedSlots || prev.equippedCombatTechniques
+        }));
+
+        setNotification({
+          type: 'success',
+          title: 'Trang bị thành công!',
+          message: response.message
+        });
+
+        return response.data;
+      }
+    } catch (err) {
+      setError(err.message);
+      setNotification({
+        type: 'error',
+        title: 'Lỗi',
+        message: err.message
+      });
+      throw err;
+    }
+  }, []);
+
+  /**
+   * Tháo công pháp khỏi combat slot
+   */
+  const unequipCombatSlot = useCallback(async (slotIndex) => {
+    try {
+      setError(null);
+      const response = await unequipCombatSlotAPI(slotIndex);
+
+      if (response.success) {
+        // Update local state
+        setCultivation(prev => ({
+          ...prev,
+          equippedCombatTechniques: (prev.equippedCombatTechniques || [])
+            .filter(slot => slot.slotIndex !== slotIndex)
+        }));
+
+        setNotification({
+          type: 'success',
+          title: 'Tháo thành công!',
+          message: response.message
+        });
+
+        return response.data;
+      }
+    } catch (err) {
+      setError(err.message);
+      setNotification({
+        type: 'error',
+        title: 'Lỗi',
+        message: err.message
+      });
+      throw err;
+    }
+  }, []);
+
+  /**
    * Refresh all cultivation data
    */
   const refresh = useCallback(async () => {
@@ -907,7 +1028,11 @@ export function CultivationProvider({ children }) {
     attemptBreakthrough,
     updateCharacterAppearance,
     redeemGiftCode,
-    loadGiftCodeHistory
+    sellItems,
+    loadGiftCodeHistory,
+    loadCombatSlots,
+    equipCombatSlot,
+    unequipCombatSlot
   };
 
   return (

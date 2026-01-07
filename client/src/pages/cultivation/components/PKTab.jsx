@@ -167,6 +167,7 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
   useEffect(() => {
     if (activeView === 'opponents') {
       loadOpponents();
+    } else if (activeView === 'bots') {
       loadBots();
     } else if (activeView === 'history') {
       loadHistory();
@@ -609,6 +610,7 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
       <div className="flex gap-2 mb-4 flex-wrap">
         {[
           { id: 'opponents', label: 'Đối Thủ' },
+          { id: 'bots', label: 'Tiên Ma' },
           { id: 'history', label: 'Lịch Sử' }
         ].map(({ id, label }) => (
           <button
@@ -704,9 +706,17 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
               </motion.div>
             ))
           )}
+        </div>
+      )}
 
-          {/* Tiên Ma Section */}
-          {bots.length > 0 && (
+      {/* Bots / Tiên Ma List */}
+      {!loading && activeView === 'bots' && (
+        <div className="space-y-3">
+          {bots.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              <p>Chưa phát hiện Tiên Ma nào dám lảng vảng gần đây...</p>
+            </div>
+          ) : (
             <>
               <h4 className="text-lg font-bold text-purple-400 mt-6 mb-3 font-title">TIÊN MA</h4>
               <div className="spirit-tablet rounded-xl p-3 border border-purple-500/30 mb-4">

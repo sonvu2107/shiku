@@ -58,6 +58,9 @@ import {
   equipTechnique,
   activateTechnique,
   claimTechnique,
+  getCombatSlots,
+  equipCombatSlot,
+  unequipCombatSlot,
   // World Events - Thiên Hạ Ký
   getWorldEvents,
   // Materials
@@ -82,7 +85,9 @@ import {
   createGiftCode,
   listGiftCodes,
   updateGiftCode,
-  deleteGiftCode
+  deleteGiftCode,
+  // Market
+  sellItems,
 } from "../controllers/cultivation/index.js";
 
 
@@ -117,6 +122,7 @@ router.post("/inventory/:itemId/use", useItem);
 router.post("/equipment/:equipmentId/equip", equipEquipment);
 router.post("/equipment/:slot/unequip", unequipEquipment);
 router.get("/equipment/stats", getEquipmentStats);
+router.post("/inventory/sell", sellItems);
 
 // ==================== EXP & LEADERBOARD ====================
 router.post("/collect-passive-exp", collectPassiveExp);
@@ -162,6 +168,11 @@ router.post("/techniques/learn", learnTechnique);
 router.post("/techniques/equip", equipTechnique);
 router.post("/techniques/activate", activateTechnique);
 router.post("/techniques/claim", claimTechnique);
+
+// Combat Technique Slots
+router.get("/techniques/combat-slots", getCombatSlots);
+router.post("/techniques/equip-combat-slot", equipCombatSlot);
+router.post("/techniques/unequip-combat-slot", unequipCombatSlot);
 
 // ==================== NGUYÊN LIỆU LUYỆN KHÍ (MATERIALS) ====================
 router.get("/materials/catalog", getMaterialCatalog);

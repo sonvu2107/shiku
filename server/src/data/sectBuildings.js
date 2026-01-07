@@ -70,12 +70,12 @@ export const SECT_LEVELS = [
  * upvote = 0 để chống farm
  */
 export const CONTRIBUTION_RATES = {
-    post: 10,
-    comment: 3,
-    upvote: 0, // Không tính (chống farm)
-    upvote_received: 2,
-    daily_checkin: 5,
-    raid_participation: 50,
+    post: 50,           // 20 → 50
+    comment: 10,        // 5 → 10
+    upvote: 0,          // Không tính (chống farm)
+    upvote_received: 8, // 4 → 8
+    daily_checkin: 20,  // 10 → 20
+    raid_participation: 100, // 80 → 100
 };
 
 /**

@@ -17,6 +17,7 @@ const SectTab = memo(function SectTab({ user }) {
     const [membership, setMembership] = useState(null);
     const [contribution, setContribution] = useState(null);
     const [view, setView] = useState('dashboard'); // 'dashboard', 'list', 'create'
+    const [sectDailyProgress, setSectDailyProgress] = useState(null); // Progress nhiệm vụ hàng ngày
     const [sectsList, setSectsList] = useState([]);
     const { showSuccess, showError } = useToast();
 
@@ -55,6 +56,8 @@ const SectTab = memo(function SectTab({ user }) {
                     setSect(res.data.sect);
                     setMembership(res.data.membership);
                     setContribution(res.data.contribution);
+                    setSectDailyProgress(res.data.sectDailyProgress);
+                    setCheckedIn(res.data.sectDailyProgress?.checkinDone || false); // Update checkin status from accurate source
                     setView('dashboard');
                 } else {
                     setSect(null);
@@ -509,7 +512,7 @@ const SectTab = memo(function SectTab({ user }) {
                         </p>
                     </div>
 
-                    <div className="flex flex-col items-end gap-1 text-right">
+                    <div className="flex flex-col items-end gap-1 text-right self-end md:self-auto">
                         <div className="text-xs text-slate-500 uppercase tracking-widest">Linh Khí Tông Môn</div>
                         <div className="text-2xl font-mono text-emerald-400 font-bold">
                             {sect.spiritEnergy?.toLocaleString()}
@@ -605,9 +608,10 @@ const SectTab = memo(function SectTab({ user }) {
                 />
             </div>
 
-            {/* 3. DAILY CHECK-IN */}
-            <div className="spirit-tablet p-5 rounded-xl border border-amber-900/20">
-                <div className="flex justify-between items-center">
+            {/* 3. DAILY CHECK-IN & MISSIONS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Check-in Card */}
+                <div className="spirit-tablet p-5 rounded-xl border border-amber-900/20 md:col-span-2 flex justify-between items-center">
                     <div>
                         <h4 className="text-lg font-title text-amber-300 mb-1">ĐIỂM DANH HÀNG NGÀY</h4>
                         <p className="text-xs text-slate-500">Nhận Linh Khí cho tông môn</p>
@@ -622,6 +626,73 @@ const SectTab = memo(function SectTab({ user }) {
                     >
                         {actionLoading === 'checkin' ? '...' : checkedIn ? 'Đã Điểm Danh' : 'Điểm Danh'}
                     </button>
+                </div>
+
+                {/* Daily Missions Table */}
+                <div className="spirit-tablet p-5 rounded-xl border border-cyan-900/20 md:col-span-2">
+                    <h4 className="text-lg font-title text-cyan-300 mb-4 flex items-center gap-2">
+                        HOẠT ĐỘNG TÔNG MÔN
+                    </h4>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-slate-500 uppercase bg-slate-800/50">
+                                <tr>
+                                    <th className="px-4 py-2 rounded-l-lg">Hoạt động</th>
+                                    <th className="px-4 py-2">Thưởng</th>
+                                    <th className="px-4 py-2 text-right rounded-r-lg">Tiến độ</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/50">
+                                <tr className="hover:bg-slate-800/30 transition-colors">
+                                    <td className="px-4 py-3 font-medium text-slate-300">Điểm danh</td>
+                                    <td className="px-4 py-3 text-emerald-400 font-mono">+20 Linh Khí</td>
+                                    <td className="px-4 py-3 text-right">
+                                        {sectDailyProgress?.checkinDone ? (
+                                            <span className="text-emerald-400 font-bold">Đã nhận</span>
+                                        ) : (
+                                            <span className="text-slate-500">Chưa nhận</span>
+                                        )}
+                                    </td>
+                                </tr>
+                                <tr className="hover:bg-slate-800/30 transition-colors">
+                                    <td className="px-4 py-3 font-medium text-slate-300">Đăng bài</td>
+                                    <td className="px-4 py-3 text-emerald-400 font-mono">+50 Linh Khí</td>
+                                    <td className="px-4 py-3 text-right">
+                                        <span className={sectDailyProgress?.posts >= 3 ? "text-emerald-400" : "text-amber-400"}>
+                                            {sectDailyProgress?.posts || 0}/3
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr className="hover:bg-slate-800/30 transition-colors">
+                                    <td className="px-4 py-3 font-medium text-slate-300">Bình luận</td>
+                                    <td className="px-4 py-3 text-emerald-400 font-mono">+10 Linh Khí</td>
+                                    <td className="px-4 py-3 text-right">
+                                        <span className={sectDailyProgress?.comments >= 10 ? "text-emerald-400" : "text-slate-400"}>
+                                            {sectDailyProgress?.comments || 0}
+                                        </span>
+                                        <span className="text-xs text-slate-600 ml-1">(Tối đa 10)</span>
+                                    </td>
+                                </tr>
+                                <tr className="hover:bg-slate-800/30 transition-colors">
+                                    <td className="px-4 py-3 font-medium text-slate-300">Nhận upvote</td>
+                                    <td className="px-4 py-3 text-emerald-400 font-mono">+8 Linh Khí</td>
+                                    <td className="px-4 py-3 text-right">
+                                        <span className={sectDailyProgress?.upvotesReceived >= 50 ? "text-emerald-400" : "text-slate-400"}>
+                                            {sectDailyProgress?.upvotesReceived || 0}
+                                        </span>
+                                        <span className="text-xs text-slate-600 ml-1">(Tối đa 50)</span>
+                                    </td>
+                                </tr>
+                                <tr className="hover:bg-slate-800/30 transition-colors">
+                                    <td className="px-4 py-3 font-medium text-slate-300">Khiêu chiến Thần Thú</td>
+                                    <td className="px-4 py-3 text-emerald-400 font-mono">+100 Linh Khí</td>
+                                    <td className="px-4 py-3 text-right">
+                                        <span className="text-slate-500">Tham gia</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 

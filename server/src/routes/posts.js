@@ -28,6 +28,7 @@ import WelcomeService from "../services/WelcomeService.js";
 import { sanitizeText, containsXSS, sanitizeUrl as sanitizeUrlXSS } from "../utils/xssSanitizer.js";
 import { postCreationLimiter, postInteractionLimiter } from "../middleware/rateLimit.js";
 import { getCachedRoles } from "../utils/rolesCache.js";
+import { applySectContribution, getUserSect } from "../services/sectContributionService.js";
 
 const PLAIN_SANITIZE_OPTIONS = { allowedTags: [], allowedAttributes: {} };
 const CONTENT_SANITIZE_OPTIONS = {
@@ -937,6 +938,23 @@ router.post("/", authRequired, checkBanStatus, postCreationLimiter, async (req, 
       console.error('[POSTS] Error adding exp:', expError);
     }
 
+    // Cộng linh khí tông môn nếu user thuộc tông môn (chỉ bài public, không phải group)
+    if (status === 'published' && !group) {
+      try {
+        const userSect = await getUserSect(req.user._id);
+        if (userSect) {
+          await applySectContribution({
+            userId: req.user._id,
+            sectId: userSect._id,
+            type: 'post',
+            meta: {}
+          });
+        }
+      } catch (sectError) {
+        console.error('[POSTS] Error adding sect contribution:', sectError);
+      }
+    }
+
     // Mark first post for new user onboarding
     try {
       await WelcomeService.markFirstPost(req.user._id, post._id);
@@ -1114,6 +1132,23 @@ router.post("/:id/upvote", authRequired, postInteractionLimiter, async (req, res
         }
       } catch (expError) {
         console.error('[POSTS] Error adding upvote exp:', expError);
+      }
+
+      // Cộng linh khí tông môn cho tác giả bài viết (nếu không phải self-upvote)
+      if (post.author.toString() !== userIdStr) {
+        try {
+          const authorSect = await getUserSect(post.author);
+          if (authorSect) {
+            await applySectContribution({
+              userId: post.author,
+              sectId: authorSect._id,
+              type: 'upvote_received',
+              meta: { fromUserId: userId }
+            });
+          }
+        } catch (sectError) {
+          console.error('[POSTS] Error adding sect contribution for upvote:', sectError);
+        }
       }
     }
 

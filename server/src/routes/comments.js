@@ -21,6 +21,7 @@ import NotificationService from "../services/NotificationService.js";
 import { uploadMultiple, uploadMultipleOptional, uploadToCloudinary, validateFile } from "../middleware/fileUpload.js";
 import multer from "multer";
 import { addExpForAction, addExpForReceiver } from "../services/cultivationService.js";
+import { applySectContribution, getUserSect } from "../services/sectContributionService.js";
 import { sanitizeText, containsXSS } from "../utils/xssSanitizer.js";
 import { commentCreationLimiter } from "../middleware/rateLimit.js";
 
@@ -340,6 +341,23 @@ router.post("/post/:postId", authRequired, checkBanStatus, commentCreationLimite
       }
     } catch (expError) {
       console.error('[COMMENTS] Error adding exp:', expError);
+    }
+
+    // Cộng linh khí tông môn nếu user thuộc tông môn (chỉ bài không trong group)
+    if (!post.group) {
+      try {
+        const userSect = await getUserSect(req.user._id);
+        if (userSect) {
+          await applySectContribution({
+            userId: req.user._id,
+            sectId: userSect._id,
+            type: 'comment',
+            meta: { content: sanitizedContent }
+          });
+        }
+      } catch (sectError) {
+        console.error('[COMMENTS] Error adding sect contribution:', sectError);
+      }
     }
 
     res.json({ comment: c });

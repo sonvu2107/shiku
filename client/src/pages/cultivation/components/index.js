@@ -26,6 +26,7 @@ export { default as SectTab } from './SectTab.jsx';
 export { default as ThienHaKy } from './ThienHaKy.jsx';
 export { default as CraftTab } from './CraftTab.jsx';
 export { default as GiftCodeTab } from './GiftCodeTab.jsx';
+export { default as MerchantTab } from './MerchantTab.jsx';
 
 export {
   TechniqueImage,

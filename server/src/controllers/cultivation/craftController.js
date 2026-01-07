@@ -251,13 +251,16 @@ export const executeCrafting = async (req, res, next) => {
             stats: {
                 attack: craftResult.equipment.stats.attack || 0,
                 defense: craftResult.equipment.stats.defense || 0,
-                hp: craftResult.equipment.stats.qiBlood || 0,
-                crit_rate: (craftResult.equipment.stats.criticalRate || 0) / 100,
-                crit_damage: (craftResult.equipment.stats.criticalDamage || 0) / 100,
+                hp: craftResult.equipment.stats.hp || 0, // Using standard 'hp' key
+                zhenYuan: craftResult.equipment.stats.zhenYuan || 0,
+                crit_rate: craftResult.equipment.stats.crit_rate || 0, // Already 0-1
+                crit_damage: craftResult.equipment.stats.crit_damage || 0, // Already 0-1
                 penetration: craftResult.equipment.stats.penetration || 0,
                 speed: craftResult.equipment.stats.speed || 0,
-                evasion: (craftResult.equipment.stats.dodge || 0) / 100,
-                hit_rate: (craftResult.equipment.stats.accuracy || 0) / 100
+                evasion: (craftResult.equipment.stats.dodge || 0) / 100, // Legacy key 'dodge' is 0-100, divide to get 0-1
+                hit_rate: (craftResult.equipment.stats.accuracy || 0) / 100, // Legacy key 'accuracy' is 0-100
+                resistance: craftResult.equipment.stats.resistance || 0,
+                lifesteal: (craftResult.equipment.stats.lifesteal || 0) / 100 // Legacy key 'lifesteal' is 0-100? No, check craftService
             },
             modifiers: craftResult.equipment.modifiers || [],
             durability: craftResult.equipment.durability,

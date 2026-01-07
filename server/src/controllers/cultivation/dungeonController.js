@@ -562,33 +562,53 @@ export const battleMonster = async (req, res, next) => {
         }
         const scaledMonster = calculateMonsterStats(monster, currentFloor, dungeon.difficulty, dungeonId, playerStatsForScaling);
 
-        // Get player skills from learned techniques
+        // ==================== GET PLAYER SKILLS FROM EQUIPPED SLOTS ====================
         const playerSkills = [];
-        if (cultivation.learnedTechniques && cultivation.learnedTechniques.length > 0) {
-            const combatStats = cultivation.calculateCombatStats();
-            const maxMana = combatStats.zhenYuan || 1000;
 
-            cultivation.learnedTechniques.forEach(learned => {
-                // Use TECHNIQUES_MAP for O(1) lookup
-                const technique = TECHNIQUES_MAP.get(learned.techniqueId);
-                if (technique && technique.skill) {
-                    // Calculate mana cost as percentage of max mana (matching PK system)
-                    const manaCostPercentMap = { 'common': 0.15, 'uncommon': 0.20, 'rare': 0.25, 'epic': 0.30, 'legendary': 0.35 };
-                    const costPercent = manaCostPercentMap[technique.rarity] || 0.15;
-                    const manaCost = Math.max(20, Math.min(Math.floor(maxMana * costPercent), Math.floor(maxMana * 0.4)));
+        // Lấy equipped slots và sắp xếp theo slotIndex
+        const equippedSlots = cultivation.equippedCombatTechniques || [];
 
-                    playerSkills.push({
-                        ...technique.skill,
-                        techniqueId: technique.id,
-                        techniqueName: technique.name,
-                        rarity: technique.rarity || 'common',
-                        level: learned.level,
-                        damageMultiplier: 1 + (learned.level - 1) * 0.15,
-                        manaCost
-                    });
-                }
+        // Backward compatibility: Auto-equip first technique if no slots
+        if (equippedSlots.length === 0 && cultivation.learnedTechniques?.length > 0) {
+            const firstTechnique = cultivation.learnedTechniques[0];
+            equippedSlots.push({
+                slotIndex: 0,
+                techniqueId: firstTechnique.techniqueId
             });
         }
+
+        // Get combat stats để tính mana cost
+        const combatStats = cultivation.calculateCombatStats();
+        const maxMana = combatStats.zhenYuan || 1000;
+
+        // Sắp xếp và build skills từ slots
+        const sortedSlots = equippedSlots.sort((a, b) => a.slotIndex - b.slotIndex);
+
+        sortedSlots.forEach(slot => {
+            // Tìm learned technique tương ứng
+            const learned = cultivation.learnedTechniques?.find(t => t.techniqueId === slot.techniqueId);
+            if (!learned) return; // Skip if not learned
+
+            // Use TECHNIQUES_MAP for O(1) lookup
+            const technique = TECHNIQUES_MAP.get(learned.techniqueId);
+            if (technique && technique.skill) {
+                // Calculate mana cost as percentage of max mana (matching PK system)
+                const manaCostPercentMap = { 'common': 0.15, 'uncommon': 0.20, 'rare': 0.25, 'epic': 0.30, 'legendary': 0.35 };
+                const costPercent = manaCostPercentMap[technique.rarity] || 0.15;
+                const manaCost = Math.max(20, Math.min(Math.floor(maxMana * costPercent), Math.floor(maxMana * 0.4)));
+
+                playerSkills.push({
+                    ...technique.skill,
+                    techniqueId: technique.id,
+                    techniqueName: technique.name,
+                    rarity: technique.rarity || 'common',
+                    level: learned.level,
+                    slotIndex: slot.slotIndex,
+                    damageMultiplier: 1 + (learned.level - 1) * 0.15,
+                    manaCost
+                });
+            }
+        });
 
         // Get monster skills based on dungeon and monster type
         const monsterSkills = getMonsterSkills(dungeonId, monster.type);
@@ -638,36 +658,90 @@ export const battleMonster = async (req, res, next) => {
             let modifierBonuses = { rewards: { exp: rewards.exp, spiritStones: rewards.spiritStones }, bonuses: [] };
             try {
                 // Get equipment IDs from cultivation.equipped slots (new system)
+                // Get equipment IDs from cultivation.equipped slots (new system)
                 const equipmentSlots = ['weapon', 'magicTreasure', 'helmet', 'chest', 'shoulder', 'gloves', 'boots', 'belt', 'ring', 'necklace', 'earring', 'bracelet', 'powerItem'];
                 const equipmentIds = equipmentSlots
                     .map(slot => cultivation.equipped?.[slot])
                     .filter(id => id != null);
 
-                if (equipmentIds.length > 0) {
-                    const equipments = await Equipment.find({ _id: { $in: equipmentIds } });
-                    const activeModifiers = calculateActiveModifiers(equipments);
+                let activeModifiers = {};
+                let equipments = [];
 
-                    // Apply reward modifiers
+                // 1. Get Equipment Modifiers
+                if (equipmentIds.length > 0) {
+                    equipments = await Equipment.find({ _id: { $in: equipmentIds } });
+                    activeModifiers = calculateActiveModifiers(equipments);
+                }
+
+                // 2. Add Active Boosts (Charms/Pills)
+                const now = new Date();
+                if (cultivation.activeBoosts && cultivation.activeBoosts.length > 0) {
+                    cultivation.activeBoosts.forEach(boost => {
+                        if (new Date(boost.expiresAt) > now) {
+                            if (boost.type === 'exp' || boost.type === 'exp_boost') {
+                                // Convert multiplier to percentage (e.g. 1.5x -> 50%)
+                                const val = Math.round((boost.multiplier - 1) * 100);
+                                if (val > 0) {
+                                    if (!activeModifiers['exp_bonus']) activeModifiers['exp_bonus'] = { totalValue: 0, sources: [] };
+                                    activeModifiers['exp_bonus'].totalValue += val;
+                                    activeModifiers['exp_bonus'].sources.push({ itemName: "Đan Dược/Bùa", value: val });
+                                }
+                            } else if (boost.type === 'spiritStones') {
+                                // multiplier (e.g. 1.2x -> 20%)
+                                const val = Math.round((boost.multiplier - 1) * 100);
+                                if (val > 0) {
+                                    if (!activeModifiers['spirit_stone_bonus']) activeModifiers['spirit_stone_bonus'] = { totalValue: 0, sources: [] };
+                                    activeModifiers['spirit_stone_bonus'].totalValue += val;
+                                    activeModifiers['spirit_stone_bonus'].sources.push({ itemName: "Bùa Linh Thạch", value: val });
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // 3. Add Pet Bonus
+                if (cultivation.equipped?.pet) {
+                    const petItem = SHOP_ITEMS_MAP.get(cultivation.equipped.pet);
+                    if (petItem) {
+                        if (petItem.expBonus) {
+                            const val = Math.round(petItem.expBonus * 100);
+                            if (!activeModifiers['exp_bonus']) activeModifiers['exp_bonus'] = { totalValue: 0, sources: [] };
+                            activeModifiers['exp_bonus'].totalValue += val;
+                            activeModifiers['exp_bonus'].sources.push({ itemName: `Linh Thú: ${petItem.name}`, value: val });
+                        }
+                        if (petItem.spiritStoneBonus) {
+                            const val = Math.round(petItem.spiritStoneBonus * 100);
+                            if (!activeModifiers['spirit_stone_bonus']) activeModifiers['spirit_stone_bonus'] = { totalValue: 0, sources: [] };
+                            activeModifiers['spirit_stone_bonus'].totalValue += val;
+                            activeModifiers['spirit_stone_bonus'].sources.push({ itemName: `Linh Thú: ${petItem.name}`, value: val });
+                        }
+                    }
+                }
+
+                // 4. Apply reward modifiers (if any)
+                if (Object.keys(activeModifiers).length > 0) {
                     modifierBonuses = calculateRewardModifiers(
                         { exp: rewards.exp, spiritStones: rewards.spiritStones },
                         activeModifiers
                     );
+                }
 
-                    // Reduce durability after combat - TRONG INVENTORY CỦA USER
+                // 5. Reduce durability after combat - ONLY IF EQUIPMENTS EXIST
+                if (equipments.length > 0) {
                     // Chỉ 20% cơ hội giảm độ bền
                     for (const slot of equipmentSlots) {
                         const equipmentId = cultivation.equipped?.[slot];
                         if (!equipmentId) continue;
-                        
+
                         // Chỉ 20% cơ hội giảm độ bền
                         if (Math.random() > 0.2) continue;
-                        
+
                         // Tìm item trong inventory
-                        const invItem = cultivation.inventory.find(i => 
+                        const invItem = cultivation.inventory.find(i =>
                             i.itemId?.toString() === equipmentId.toString() ||
                             i.metadata?._id?.toString() === equipmentId.toString()
                         );
-                        
+
                         if (invItem) {
                             if (!invItem.metadata) invItem.metadata = {};
                             if (!invItem.metadata.durability) {

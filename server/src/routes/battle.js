@@ -9,6 +9,7 @@ import { PK_BOTS, BOT_BATTLE_COOLDOWN, getBotsByRealmLevel, getBotById } from ".
 import { logPKOverkillEvent } from "../controllers/cultivation/worldEventController.js";
 import { getTierBySubLevel, applyDebuffEffects } from "../data/tierConfig.js";
 import { reduceDurability } from "../services/modifierService.js";
+import { executeSkill, applyStatusEffects } from "../services/combatSkillService.js";
 
 const router = express.Router();
 
@@ -24,35 +25,35 @@ router.use(authRequired);
  */
 const reduceEquipmentDurability = async (cultivation) => {
   const equipmentSlots = ['weapon', 'magicTreasure', 'helmet', 'chest', 'shoulder', 'gloves', 'boots', 'belt', 'ring', 'necklace', 'earring', 'bracelet', 'powerItem'];
-  
+
   let hasChanges = false;
-  
+
   for (const slot of equipmentSlots) {
     const equipmentId = cultivation.equipped?.[slot];
     if (!equipmentId) continue;
-    
+
     // Chỉ 20% cơ hội giảm độ bền
     if (Math.random() > 0.2) continue;
-    
+
     // Tìm item trong inventory
-    const invItem = cultivation.inventory.find(i => 
+    const invItem = cultivation.inventory.find(i =>
       i.itemId?.toString() === equipmentId.toString() ||
       i.metadata?._id?.toString() === equipmentId.toString()
     );
-    
+
     if (invItem) {
       // Khởi tạo durability nếu chưa có
       if (!invItem.metadata) invItem.metadata = {};
       if (!invItem.metadata.durability) {
         invItem.metadata.durability = { current: 100, max: 100 };
       }
-      
+
       // Giảm 1 độ bền
       invItem.metadata.durability.current = Math.max(0, invItem.metadata.durability.current - 1);
       hasChanges = true;
     }
   }
-  
+
   // Đánh dấu inventory đã thay đổi để mongoose save
   if (hasChanges) {
     cultivation.markModified('inventory');
@@ -108,9 +109,10 @@ const getManaCostByRarity = (rarity, maxMana = 1000) => {
 };
 
 /**
- * Lấy skills từ công pháp đã học
+ * Lấy skills từ công pháp đã trang bị trong combat slots
  * @param {Object} cultivation - Cultivation object
  * @param {number} maxMana - Lượng chân nguyên tối đa (optional, sẽ tính từ combatStats nếu không có)
+ * @returns {Array} Danh sách skills đã sắp xếp theo slot index
  */
 const getLearnedSkills = (cultivation, maxMana = null) => {
   const skills = [];
@@ -129,25 +131,45 @@ const getLearnedSkills = (cultivation, maxMana = null) => {
     }
   }
 
-  if (cultivation.learnedTechniques && cultivation.learnedTechniques.length > 0) {
-    cultivation.learnedTechniques.forEach(learned => {
-      // Use TECHNIQUES_MAP for O(1) lookup
-      const technique = TECHNIQUES_MAP.get(learned.techniqueId);
-      if (technique && technique.skill) {
-        skills.push({
-          ...technique.skill,
-          techniqueId: technique.id,
-          techniqueName: technique.name,
-          rarity: technique.rarity || 'common',
-          level: learned.level,
-          // Damage multiplier dựa trên level của công pháp
-          damageMultiplier: 1 + (learned.level - 1) * 0.15,
-          // Mana cost dựa trên rarity và max mana (scaled)
-          manaCost: getManaCostByRarity(technique.rarity || 'common', actualMaxMana)
-        });
-      }
+  // ==================== CHỈ LẤY SKILLS TỪ EQUIPPED SLOTS ====================
+  const equippedSlots = cultivation.equippedCombatTechniques || [];
+
+  // Backward compatibility: Nếu chưa có slots nhưng có learned techniques
+  // → Tự động equip công pháp đầu tiên vào slot 0
+  if (equippedSlots.length === 0 && cultivation.learnedTechniques?.length > 0) {
+    const firstTechnique = cultivation.learnedTechniques[0];
+    equippedSlots.push({
+      slotIndex: 0,
+      techniqueId: firstTechnique.techniqueId
     });
   }
+
+  // Sắp xếp theo slotIndex (0 → 4)
+  const sortedSlots = equippedSlots.sort((a, b) => a.slotIndex - b.slotIndex);
+
+  sortedSlots.forEach(slot => {
+    // Tìm learned technique tương ứng
+    const learned = cultivation.learnedTechniques?.find(t => t.techniqueId === slot.techniqueId);
+    if (!learned) return; // Skip nếu chưa học (shouldn't happen)
+
+    // Use TECHNIQUES_MAP for O(1) lookup
+    const technique = TECHNIQUES_MAP.get(learned.techniqueId);
+    if (technique && technique.skill) {
+      skills.push({
+        ...technique.skill,
+        techniqueId: technique.id,
+        techniqueName: technique.name,
+        rarity: technique.rarity || 'common',
+        level: learned.level,
+        slotIndex: slot.slotIndex, // Thêm slotIndex để tracking
+        // Damage multiplier dựa trên level của công pháp
+        damageMultiplier: 1 + (learned.level - 1) * 0.15,
+        // Mana cost dựa trên rarity và max mana (scaled)
+        manaCost: getManaCostByRarity(technique.rarity || 'common', actualMaxMana)
+      });
+    }
+  });
+
   return skills;
 };
 
@@ -217,21 +239,48 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
     // Check if can use skill (cần đủ mana và hết cooldown)
     let usedSkill = null;
     let skillDamageBonus = 0;
+    let skillResult = null; // Full skill effects from combatSkillService
     let manaConsumed = 0;
     for (const skill of attackerSkills) {
       if (attackerCooldowns[skill.techniqueId] <= 0 && attackerMana >= (skill.manaCost || 20)) {
         // Use this skill
         usedSkill = skill;
-        // Skill damage = attacker's ATTACK × damageMultiplier (scaled by skill level)
-        skillDamageBonus = Math.floor(attacker.attack * (skill.damageMultiplier || 1));
         manaConsumed = skill.manaCost || 20;
         attackerCooldowns[skill.techniqueId] = skill.cooldown || 3;
+
+        // Execute skill with full effects (healing, buffs, debuffs, etc.)
+        const attackerObj = { attack: attacker.attack, maxQiBlood: (currentAttacker === 'challenger' ? challengerMaxHp : opponentMaxHp), qiBlood: (currentAttacker === 'challenger' ? challengerHp : opponentHp), maxZhenYuan: (currentAttacker === 'challenger' ? challengerMaxMana : opponentMaxMana), zhenYuan: attackerMana };
+        const defenderObj = { maxQiBlood: (currentAttacker === 'challenger' ? opponentMaxHp : challengerMaxHp), qiBlood: defenderHp };
+        skillResult = executeSkill(skill, attackerObj, defenderObj);
+
+        // Skill damage (from executeSkill or fallback to old formula)
+        skillDamageBonus = skillResult.damage > 0 ? skillResult.damage : Math.floor(attacker.attack * (skill.damageMultiplier || 1));
+
         // Consume mana
         if (currentAttacker === 'challenger') {
           challengerMana = Math.max(0, challengerMana - manaConsumed);
         } else {
           opponentMana = Math.max(0, opponentMana - manaConsumed);
         }
+
+        // Apply mana restore
+        if (skillResult && skillResult.manaRestore > 0) {
+          if (currentAttacker === 'challenger') {
+            challengerMana = Math.min(challengerMaxMana, challengerMana + skillResult.manaRestore);
+          } else {
+            opponentMana = Math.min(opponentMaxMana, opponentMana + skillResult.manaRestore);
+          }
+        }
+
+        // Apply healing
+        if (skillResult && skillResult.healing > 0) {
+          if (currentAttacker === 'challenger') {
+            challengerHp = Math.min(challengerMaxHp, challengerHp + skillResult.healing);
+          } else {
+            opponentHp = Math.min(opponentMaxHp, opponentHp + skillResult.healing);
+          }
+        }
+
         break;
       }
     }
@@ -312,8 +361,12 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
     } else if (usedSkill) {
       description = `Sử dụng [${usedSkill.name}]! ${isCritical ? 'Chí mạng! ' : ''}Gây ${damage} sát thương`;
       if (manaConsumed > 0) description += ` (Tốn ${manaConsumed} chân nguyên)`;
+      // Skill effects
+      if (skillResult && skillResult.healing > 0) description += `, hồi ${skillResult.healing} HP`;
+      if (skillResult && skillResult.manaRestore > 0) description += `, +${skillResult.manaRestore} MP`;
+      if (skillResult && skillResult.effects && skillResult.effects.length > 0) description += ` [${skillResult.effects.join(', ')}]`;
       if (lifestealHealed > 0) description += `, hút ${lifestealHealed} máu`;
-      if (regenerationHealed > 0) description += `, hồi ${regenerationHealed} máu`;
+      if (regenerationHealed > 0) description += `, tái sinh ${regenerationHealed} máu`;
     } else if (isCritical) {
       description = `Chí mạng! Gây ${damage} sát thương`;
       if (lifestealHealed > 0) description += `, hút ${lifestealHealed} máu`;
@@ -550,8 +603,6 @@ router.post("/challenge", async (req, res, next) => {
       const critBonus = challengerTier.privileges.critBonusVsHigher || 0;
       challengerStats.criticalRate = Math.min(100, challengerStats.criticalRate + critBonus);
 
-      // Log cho debug
-      console.log(`[BATTLE] Nghịch Thiên mode: +${critBonus}% crit, tier: ${challengerTier.name}`);
     }
 
     // Lấy realm info
@@ -657,7 +708,6 @@ router.post("/challenge", async (req, res, next) => {
       const debuffConfig = challengerTier.privileges.debuffOnLose;
       if (debuffConfig) {
         challengerCultivation.applyDebuff(debuffConfig.type, debuffConfig.duration);
-        console.log(`[BATTLE] Nghịch thiên thất bại: áp dụng debuff ${debuffConfig.type} trong ${debuffConfig.duration} trận`);
       }
     }
 
@@ -676,8 +726,6 @@ router.post("/challenge", async (req, res, next) => {
           .catch(e => console.error('[WorldEvent] PK log error:', e));
       }
     }
-
-    console.log(`[BATTLE] ${challenger.name} vs ${opponent.name} - Winner: ${battleResult.winner || 'Draw'}${isNghichThien ? ' (Nghịch Thiên)' : ''}`);
 
     // Giảm độ bền trang bị sau chiến đấu
     try {
@@ -1296,7 +1344,6 @@ router.post("/challenge/bot", async (req, res, next) => {
     if (isNghichThien) {
       const critBonus = challengerTier.privileges.critBonusVsHigher || 0;
       challengerStats.criticalRate = Math.min(100, challengerStats.criticalRate + critBonus);
-      console.log(`[BATTLE-BOT] Nghịch Thiên mode: +${critBonus}% crit, tier: ${challengerTier.name}`);
     }
 
     const challengerRealm = CULTIVATION_REALMS.find(r => r.level === challengerCultivation.realmLevel) || CULTIVATION_REALMS[0];
@@ -1421,11 +1468,8 @@ router.post("/challenge/bot", async (req, res, next) => {
     await battle.save();
 
     // Giảm độ bền trang bị sau chiến đấu (vs Bot)
-    console.log('[BATTLE-BOT] Attempting to reduce equipment durability...');
-    console.log('[BATTLE-BOT] challengerCultivation.equipped:', JSON.stringify(challengerCultivation.equipped));
     try {
       await reduceEquipmentDurability(challengerCultivation);
-      console.log('[BATTLE-BOT] Durability reduction completed');
     } catch (durabilityError) {
       console.error('[BATTLE-BOT] Durability reduction error:', durabilityError.message);
     }
@@ -1439,7 +1483,6 @@ router.post("/challenge/bot", async (req, res, next) => {
       const debuffConfig = challengerTier.privileges.debuffOnLose;
       if (debuffConfig) {
         challengerCultivation.applyDebuff(debuffConfig.type, debuffConfig.duration);
-        console.log(`[BATTLE-BOT] Nghịch thiên thất bại: áp dụng debuff ${debuffConfig.type} trong ${debuffConfig.duration} trận`);
       }
     }
     await challengerCultivation.save();
@@ -1462,8 +1505,6 @@ router.post("/challenge/bot", async (req, res, next) => {
         { $inc: { exp: rewards.loserExp } }
       );
     }
-
-    console.log(`[BATTLE/BOT] ${challenger.name} vs ${bot.name} - Winner: ${battleResult.winner || 'Draw'}${isNghichThien ? ' (Nghịch Thiên)' : ''}`);
 
     res.json({
       success: true,

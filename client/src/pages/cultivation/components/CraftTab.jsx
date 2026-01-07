@@ -41,17 +41,27 @@ const getMaterialImage = (templateId) => {
 
 // Việt hóa tên stats
 const STAT_LABELS = {
-    attack: 'Công kích',
-    defense: 'Phòng thủ',
-    hp: 'Khí huyết',
-    crit_rate: 'Tỷ lệ chí mạng',
-    crit_damage: 'Sát thương chí mạng',
-    penetration: 'Xuyên thấu',
-    speed: 'Tốc độ',
-    evasion: 'Né tránh',
-    hit_rate: 'Độ chính xác',
-    lifesteal: 'Hấp huyết',
-    energy_regen: 'Hồi phục'
+    attack: 'Công Kích',
+    defense: 'Phòng Thủ',
+    hp: 'Khí Huyết',
+    qiBlood: 'Khí Huyết',
+    zhenYuan: 'Chân Nguyên',
+    crit_rate: 'Chí Mạng',
+    criticalRate: 'Chí Mạng',
+    crit_damage: 'Sát Thương Chí Mạng',
+    criticalDamage: 'Sát Thương Chí Mạng',
+    penetration: 'Xuyên Thấu',
+    speed: 'Tốc Độ',
+    evasion: 'Né Tránh',
+    dodge: 'Né Tránh',
+    hit_rate: 'Chính Xác',
+    accuracy: 'Chính Xác',
+    lifesteal: 'Hấp Huyết',
+    energy_regen: 'Hồi Linh Lực',
+    regeneration: 'Hồi Phục',
+    resistance: 'Kháng Cự',
+    luck: 'Vận Khí',
+    true_damage: 'Sát Thương Chuẩn'
 };
 
 const CraftTab = memo(function CraftTab() {
@@ -172,9 +182,8 @@ const CraftTab = memo(function CraftTab() {
             setSelectedMaterials([]);
             setPreview(null);
 
-            // Refresh local data only
+            // Chỉ refresh local materials ngay, còn cultivation context sẽ refresh khi đóng dialog
             await loadData();
-            // Do NOT call refresh() here - it causes full page reload
         } catch (err) {
             console.error('[CraftTab] Craft error:', err);
             setError(err.message || 'Lỗi luyện chế');
@@ -255,14 +264,25 @@ const CraftTab = memo(function CraftTab() {
 
                                 {/* Stats */}
                                 <div className="grid grid-cols-2 gap-2 text-sm text-left bg-slate-900/50 rounded-lg p-3">
-                                    {Object.entries(craftResult.equipment?.stats || {}).map(([key, value]) => (
-                                        value > 0 && (
-                                            <div key={key} className="flex justify-between">
-                                                <span className="text-slate-400">{STAT_LABELS[key] || key}</span>
-                                                <span className="text-emerald-400">+{value}</span>
+                                    {Object.entries(craftResult.equipment?.stats || {}).map(([key, value]) => {
+                                        // Filter out ignored keys and legacy duplicates
+                                        // regeneration is valid (MP Regen), penetration is valid (Flat Def Pen)
+                                        const IGNORED = ['price', 'qiBlood', 'criticalRate', 'criticalDamage', 'dodge', 'accuracy'];
+                                        if (IGNORED.includes(key) || value === 0) return null;
+
+                                        // Format Percentages
+                                        // Penetration is Flat in battle.js (Defense reduction)
+                                        const PERCENT_STATS = ['crit_rate', 'crit_damage', 'evasion', 'hit_rate', 'lifesteal', 'resistance'];
+                                        const isPercent = PERCENT_STATS.includes(key);
+                                        const formattedValue = isPercent ? `${(value * 100).toFixed(2)}%` : Math.floor(value);
+
+                                        return (
+                                            <div key={key} className="flex justify-between items-center">
+                                                <span className="text-slate-400 capitalize">{STAT_LABELS[key] || key}</span>
+                                                <span className="text-emerald-400 font-medium">+{formattedValue}</span>
                                             </div>
-                                        )
-                                    ))}
+                                        );
+                                    })}
                                 </div>
 
                                 {/* Durability */}
@@ -284,7 +304,11 @@ const CraftTab = memo(function CraftTab() {
                                 )}
 
                                 <button
-                                    onClick={() => setCraftResult(null)}
+                                    onClick={async () => {
+                                        setCraftResult(null);
+                                        // Refresh cultivation context sau khi đóng dialog để inventory cập nhật
+                                        await refresh();
+                                    }}
                                     className="px-6 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold transition-colors"
                                 >
                                     Đóng
@@ -351,7 +375,7 @@ const CraftTab = memo(function CraftTab() {
                                             whileTap={{ scale: 0.95 }}
                                             onClick={() => toggleMaterial(mat)}
                                             disabled={mat.qty <= 0}
-                                            className={`relative p-3 rounded-xl border transition-all flex flex-col items-center min-h-[110px] ${rarity.bg} ${rarity.border} ${isSelected ? 'ring-2 ring-amber-400 shadow-lg shadow-amber-500/20' : ''} ${mat.qty <= 0 ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'}`}
+                                            className={`relative p-2 sm:p-3 rounded-xl border transition-all flex flex-col items-center min-h-[90px] sm:min-h-[110px] ${rarity.bg} ${rarity.border} ${isSelected ? 'ring-2 ring-amber-400 shadow-lg shadow-amber-500/20' : ''} ${mat.qty <= 0 ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'}`}
                                         >
                                             {/* Element badge */}
                                             {element && (
@@ -366,7 +390,7 @@ const CraftTab = memo(function CraftTab() {
                                             </span>
 
                                             {/* Material image */}
-                                            <div className="w-12 h-12 mb-2 rounded-lg overflow-hidden shrink-0 shadow-sm mt-1">
+                                            <div className="w-10 h-10 sm:w-12 sm:h-12 mb-2 rounded-lg overflow-hidden shrink-0 shadow-sm mt-1">
                                                 <img
                                                     src={getMaterialImage(mat.templateId)}
                                                     alt={mat.name}
@@ -474,12 +498,12 @@ const CraftTab = memo(function CraftTab() {
                                                                     setSelectedType(type);
                                                                     setSelectedSubtype(sub.subtype);
                                                                 }}
-                                                                className={`p-3 rounded-xl border text-sm transition-all flex flex-col justify-center min-h-[70px] ${selectedType === type && selectedSubtype === sub.subtype
+                                                                className={`p-2 sm:p-3 rounded-xl border text-sm transition-all flex flex-col justify-center min-h-[60px] sm:min-h-[70px] ${selectedType === type && selectedSubtype === sub.subtype
                                                                     ? 'bg-amber-600 border-amber-400 text-white shadow-lg shadow-amber-900/50'
                                                                     : 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500'
                                                                     }`}
                                                             >
-                                                                <div className="font-bold mb-1 text-base">{sub.name}</div>
+                                                                <div className="font-bold mb-1 text-sm sm:text-base">{sub.name}</div>
                                                                 <div className={`text-[11px] leading-tight ${selectedType === type && selectedSubtype === sub.subtype ? 'text-amber-100' : 'text-slate-400'}`}>{sub.description}</div>
                                                             </button>
                                                         ))}
@@ -547,7 +571,7 @@ const CraftTab = memo(function CraftTab() {
                     <button
                         onClick={executeCraft}
                         disabled={crafting || selectedMaterials.length < 3 || !selectedType || !selectedSubtype}
-                        className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${crafting || selectedMaterials.length < 3 || !selectedType || !selectedSubtype
+                        className={`w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 transition-all ${crafting || selectedMaterials.length < 3 || !selectedType || !selectedSubtype
                             ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
                             : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-lg shadow-amber-500/30 hover:shadow-amber-500/50'
                             }`}

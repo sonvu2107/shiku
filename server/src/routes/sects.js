@@ -84,6 +84,26 @@ router.get("/my-sect", authRequired, async (req, res) => {
             .limit(5)
             .populate("user", "name avatarUrl");
 
+        // Lay thong tin cultivation chung (optional fallback)
+        const cultivation = await Cultivation.findOne({ user: userId }).select("dailyProgress activePracticeSession");
+
+        // Lay thong tin dong gop trong ngay hien tai (checkin, bai viet da dang cho tong mon...)
+        const { toDateKeyUTC } = await import("../services/sectTime.js");
+        const SectDailyStat = (await import("../models/SectDailyStat.js")).default;
+
+        const dateKey = toDateKeyUTC(new Date());
+        let dailyStat = await SectDailyStat.findOne({ sect: member.sect, user: userId, dateKey });
+
+        // Neu chua co record ngay hom nay, tra ve default object (chua checkin, 0 contributions)
+        if (!dailyStat) {
+            dailyStat = {
+                checkinDone: false,
+                posts: 0,
+                comments: 0,
+                upvotesReceived: 0
+            };
+        }
+
         res.json({
             success: true,
             data: {
@@ -98,7 +118,14 @@ router.get("/my-sect", authRequired, async (req, res) => {
                     totalEnergy: contribution.totalEnergy,
                     weeklyEnergy: contribution.weekly?.energy || 0,
                     weekKey: contribution.weekly?.weekKey
-                } : null
+                } : null,
+                dailyProgress: cultivation ? cultivation.dailyProgress : null,
+                sectDailyProgress: {
+                    checkinDone: dailyStat.checkinDone,
+                    posts: dailyStat.posts || 0,
+                    comments: dailyStat.comments || 0,
+                    upvotesReceived: dailyStat.upvotesReceived || 0
+                }
             }
         });
     } catch (error) {

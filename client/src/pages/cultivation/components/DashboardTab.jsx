@@ -290,7 +290,7 @@ const DashboardTab = memo(function DashboardTab({
               <motion.button
                 onClick={onBreakthrough}
                 disabled={isBreakingThrough || isOnCooldown}
-                className={`flex flex-col items-center justify-center gap-1 py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wide transition-transform ${isOnCooldown
+                className={`flex flex-col items-center justify-center gap-1 py-1.5 sm:py-4 px-3 sm:px-6 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wide transition-transform ${isOnCooldown
                   ? 'bg-slate-900/50 border border-slate-800 text-slate-600 cursor-not-allowed'
                   : 'bg-gradient-to-br from-amber-700 to-amber-900 border border-amber-500/50 text-amber-100 shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse hover:scale-[1.02] active:scale-95'
                   }`}
@@ -424,7 +424,7 @@ const DashboardTab = memo(function DashboardTab({
         <motion.button
           onClick={onCollectPassiveExp}
           disabled={collectingPassiveExp || (passiveExpStatus?.pendingExp || 0) < 1}
-          className={`w-full py-3 px-4 rounded-xl font-bold uppercase tracking-wide transition-all ${(passiveExpStatus?.pendingExp || 0) >= 1
+          className={`w-full py-2 sm:py-3 px-4 rounded-xl font-bold uppercase tracking-wide transition-all ${(passiveExpStatus?.pendingExp || 0) >= 1
             ? 'bg-gradient-to-r from-emerald-700 to-emerald-900 text-emerald-100 border border-emerald-500/30 hover:from-emerald-600 hover:to-emerald-800 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
             : 'bg-slate-900/50 text-slate-600 border border-slate-800 cursor-not-allowed'
             }`}

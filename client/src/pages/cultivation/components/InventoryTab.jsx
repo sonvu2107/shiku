@@ -175,7 +175,7 @@ const LootboxResultModal = memo(({ result, onClose }) => {
 
 
 const InventoryTab = memo(function InventoryTab() {
-  const { cultivation, equip, unequip, equipEquipment, unequipEquipment, repairEquipment, previewRepairAll, repairAllEquipment, useItem, loading } = useCultivation();
+  const { cultivation, equip, unequip, equipEquipment, unequipEquipment, repairEquipment, previewRepairAll, repairAllEquipment, useItem, sellItems, loading } = useCultivation();
   const [equipping, setEquipping] = useState(null);
   const [repairing, setRepairing] = useState(null);
   const [repairingAll, setRepairingAll] = useState(false);
@@ -188,6 +188,8 @@ const InventoryTab = memo(function InventoryTab() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rewardsAnimation, setRewardsAnimation] = useState([]); // Animation state
   const [equippedExpanded, setEquippedExpanded] = useState(false); // Collapsible equipped section
+  const [selectedItems, setSelectedItems] = useState(new Set()); // Items selected for sale
+  const [selling, setSelling] = useState(false);
   const itemsPerPage = 12;
   const isProcessingRef = useRef(false); // Sync ref to prevent double-clicks
 
@@ -402,6 +404,7 @@ const InventoryTab = memo(function InventoryTab() {
     if (category === 'decoration') return ['title', 'badge', 'avatar_frame', 'profile_effect'].includes(item.type);
     if (category === 'consumable_group') return ['exp_boost', 'breakthrough_boost', 'consumable'].includes(item.type);
     if (category === 'companion') return ['pet', 'mount'].includes(item.type);
+    if (category === 'merchant') return !item.equipped; // Merchant show all unequipped items
     // Direct type match
     return item.type === category;
   };
@@ -415,7 +418,64 @@ const InventoryTab = memo(function InventoryTab() {
       return item.type === activeSubCategory;
     }
     return true;
+    return true;
   });
+
+  // Calculate sell price
+  const getSellPrice = (item) => {
+    if (item.type?.startsWith('equipment_')) {
+      const rarity = item.rarity || item.metadata?.rarity || 'common';
+      const level = item.level || item.metadata?.level || 1;
+      const multipliers = { common: 1, uncommon: 2, rare: 5, epic: 10, legendary: 50, mythic: 100 };
+      const multiplier = multipliers[rarity] || 1;
+      return Math.floor(level * multiplier * 10);
+    }
+    // Consumables typically low value
+    if (['exp_boost', 'consumable', 'material'].includes(item.type)) return 10;
+    return 0; // Unsellable
+  };
+
+  // Handle item selection logic
+  const toggleSelection = (itemId) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.add(itemId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  // Handle sell action
+  const handleSellSelected = async () => {
+    if (selectedItems.size === 0 || selling) return;
+
+    // Confirm dialog (simple alert for now or custom modal)
+    // Calculate total value
+    let totalValue = 0;
+    inventory.forEach(item => {
+      if (selectedItems.has(item.itemId)) {
+        totalValue += getSellPrice(item);
+      }
+    });
+
+    if (!window.confirm(`Bạn có chắc muốn bán ${selectedItems.size} món đồ với giá ${totalValue.toLocaleString()} Linh Thạch?`)) {
+      return;
+    }
+
+    setSelling(true);
+    try {
+      await sellItems(Array.from(selectedItems));
+      setSelectedItems(new Set()); // Clear selection
+    } finally {
+      setSelling(false);
+    }
+  };
+
+  // Reset selection when changing category
+  useEffect(() => {
+    setSelectedItems(new Set());
+  }, [activeCategory]);
 
   // Check if item is equipped
   const isItemEquipped = (item) => {
@@ -680,7 +740,8 @@ const InventoryTab = memo(function InventoryTab() {
               return (
                 <div
                   key={item._id || `${item.itemId}-${index}`}
-                  className={`relative rounded-xl p-4 flex justify-between items-center transition-all border ${rarity.bg} ${rarity.border} ${equipped ? 'ring-2 ring-emerald-500/50' : ''} hover:scale-[1.02] hover:z-50`}
+                  className={`relative rounded-xl p-2.5 sm:p-4 flex justify-between items-center transition-all border ${rarity.bg} ${rarity.border} ${equipped ? 'ring-2 ring-emerald-500/50' : ''} hover:scale-[1.02] hover:z-50`}
+                  onClick={null}
                   onMouseEnter={(e) => handleMouseEnter(item, e)}
                   onMouseLeave={handleMouseLeave}
                   onMouseMove={(e) => {
@@ -695,8 +756,9 @@ const InventoryTab = memo(function InventoryTab() {
                     });
                   }}
                 >
+
                   <div className="flex items-start gap-3 flex-1 mr-3">
-                    <div className="relative w-10 h-10 rounded-full bg-black border border-amber-500/40 flex items-center justify-center shadow-[0_0_8px_rgba(245,158,11,0.25)] overflow-hidden">
+                    <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black border border-amber-500/40 flex items-center justify-center shadow-[0_0_8px_rgba(245,158,11,0.25)] overflow-hidden">
                       {(item.metadata?.img || item.img) ? (
                         <img
                           src={item.metadata?.img || item.img}
@@ -720,7 +782,7 @@ const InventoryTab = memo(function InventoryTab() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h4 className={`font-bold text-sm ${rarity.text}`}>
+                        <h4 className={`font-bold text-xs sm:text-sm ${rarity.text}`}>
                           {item.name}
                         </h4>
                         <span className="bg-slate-700/50 text-slate-300 text-[10px] px-1.5 py-0.5 rounded font-mono">
@@ -754,12 +816,18 @@ const InventoryTab = memo(function InventoryTab() {
                           crit_rate: { label: 'Chí Mạng', color: 'text-yellow-400' },
                           criticalRate: { label: 'Chí Mạng', color: 'text-yellow-400' },
                           crit_damage: { label: 'Sát Thương Chí Mạng', color: 'text-yellow-300' },
+                          criticalDamage: { label: 'Sát Thương Chí Mạng', color: 'text-yellow-300' },
                           dodge: { label: 'Né Tránh', color: 'text-green-400' },
                           evasion: { label: 'Né Tránh', color: 'text-green-400' },
                           penetration: { label: 'Xuyên Thấu', color: 'text-orange-400' },
                           hit_rate: { label: 'Chính Xác', color: 'text-blue-300' },
+                          accuracy: { label: 'Chính Xác', color: 'text-blue-300' },
                           resistance: { label: 'Kháng Cự', color: 'text-teal-400' },
-                          luck: { label: 'Vận Khí', color: 'text-indigo-400' }
+                          luck: { label: 'Vận Khí', color: 'text-indigo-400' },
+                          lifesteal: { label: 'Hấp Huyết', color: 'text-red-300' },
+                          energy_regen: { label: 'Hồi Linh Lực', color: 'text-purple-300' },
+                          regeneration: { label: 'Hồi Phục', color: 'text-teal-300' },
+                          true_damage: { label: 'Sát Thương Chuẩn', color: 'text-red-200' }
                         };
 
                         const statsToShow = Object.entries(stats)
@@ -773,7 +841,7 @@ const InventoryTab = memo(function InventoryTab() {
                               !isNaN(value) &&
                               isFinite(value);
                           })
-                          .slice(0, 5); // Hiển thị tối đa 5 stats đầu tiên
+                          .slice(0, 8); // Hiển thị tối đa 8 stats
 
                         if (statsToShow.length === 0) return null;
 
@@ -1024,34 +1092,26 @@ const InventoryTab = memo(function InventoryTab() {
               );
             })}
           </div>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(filteredItems.length / itemsPerPage)}
-            onPageChange={setCurrentPage}
-            itemsPerPage={itemsPerPage}
-            totalItems={filteredItems.length}
-          />
         </>
       )}
 
-      {/* Tooltip Portal */}
-      {hoveredItem && (
-        <ItemTooltip
-          item={hoveredItem}
-          stats={hoveredItem.metadata?.stats || hoveredItem.stats}
-          position={tooltipPosition}
+      {/* Pagination */}
+      {filteredItems.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredItems.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
         />
       )}
 
-      {/* Rewards Animation */}
-      {rewardsAnimation.map(anim => (
-        <FlyingReward
-          key={anim.id}
-          startPos={anim.startPos}
-          rewards={anim.rewards}
-          onComplete={() => setRewardsAnimation(prev => prev.filter(p => p.id !== anim.id))}
+      {/* Tooltip */}
+      {hoveredItem && activeCategory !== 'merchant' && (
+        <ItemTooltip
+          item={hoveredItem}
+          position={tooltipPosition}
         />
-      ))}
+      )}
 
       {/* Loot Box Result Modal */}
       <AnimatePresence>
@@ -1067,4 +1127,3 @@ const InventoryTab = memo(function InventoryTab() {
 });
 
 export default InventoryTab;
-

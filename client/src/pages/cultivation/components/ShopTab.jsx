@@ -225,7 +225,7 @@ const ShopTab = memo(function ShopTab() {
             return (
               <div
                 key={item.id}
-                className={`relative rounded-xl p-4 flex justify-between items-center group transition-all border ${rarity.bg} ${rarity.border} hover:scale-[1.02] hover:z-50`}
+                className={`relative rounded-xl p-2.5 sm:p-4 flex justify-between items-center group transition-all border ${rarity.bg} ${rarity.border} hover:scale-[1.02] hover:z-50`}
                 onMouseEnter={(e) => handleMouseEnter(item, e)}
                 onMouseLeave={handleMouseLeave}
                 onMouseMove={(e) => {
@@ -241,7 +241,7 @@ const ShopTab = memo(function ShopTab() {
                 }}
               >
                 <div className="flex items-start gap-3 flex-1 mr-3">
-                  <div className="w-10 h-10 rounded-full bg-black border border-amber-500/40 flex items-center justify-center shadow-[0_0_10px_rgba(245,158,11,0.3)] overflow-hidden relative">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black border border-amber-500/40 flex items-center justify-center shadow-[0_0_10px_rgba(245,158,11,0.3)] overflow-hidden relative">
                     {item.img ? (
                       <img
                         src={item.img}
@@ -267,7 +267,7 @@ const ShopTab = memo(function ShopTab() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h4 className={`font-bold text-sm group-hover:text-amber-400 transition-colors ${rarity.text}`}>
+                      <h4 className={`font-bold text-xs sm:text-sm group-hover:text-amber-400 transition-colors ${rarity.text}`}>
                         {item.name}
                       </h4>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded ${rarity.bg} ${rarity.text} border ${rarity.border}`}>

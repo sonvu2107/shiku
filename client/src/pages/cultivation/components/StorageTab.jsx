@@ -6,13 +6,15 @@ import { useState, memo } from 'react';
 import { motion } from 'framer-motion';
 import ShopTab from './ShopTab';
 import InventoryTab from './InventoryTab';
+import MerchantTab from './MerchantTab';
 
 const StorageTab = memo(function StorageTab() {
     const [activeSubTab, setActiveSubTab] = useState('shop');
 
     const subTabs = [
         { id: 'shop', label: 'Cửa Hàng' },
-        { id: 'inventory', label: 'Túi Đồ' }
+        { id: 'inventory', label: 'Túi Đồ' },
+        { id: 'merchant', label: 'Thương Nhân' }
     ];
 
     return (
@@ -23,7 +25,7 @@ const StorageTab = memo(function StorageTab() {
                     <button
                         key={tab.id}
                         onClick={() => setActiveSubTab(tab.id)}
-                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${activeSubTab === tab.id
+                        className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${activeSubTab === tab.id
                             ? 'bg-amber-600 text-amber-100 shadow-lg shadow-amber-900/40 border border-amber-400/50'
                             : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                             }`}
@@ -42,6 +44,7 @@ const StorageTab = memo(function StorageTab() {
             >
                 {activeSubTab === 'shop' && <ShopTab />}
                 {activeSubTab === 'inventory' && <InventoryTab />}
+                {activeSubTab === 'merchant' && <MerchantTab />}
             </motion.div>
         </div>
     );

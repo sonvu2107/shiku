@@ -101,7 +101,15 @@ const ItemTooltip = memo(function ItemTooltip({ item, stats, position }) {
   const rarity = RARITY_COLORS[rarityKey] || RARITY_COLORS.common;
 
   const fallbackStats = (SHOP_ITEM_DATA[item.itemId]) ? SHOP_ITEM_DATA[item.itemId].stats : {};
-  const itemStats = stats || item.metadata?.stats || item.stats || fallbackStats;
+  // Merge lifesteal, energy_regen vào stats nếu chúng nằm ngoài stats object
+  const baseStats = stats || item.metadata?.stats || item.stats || fallbackStats;
+  const itemStats = {
+    ...baseStats,
+    ...(item.metadata?.lifesteal && { lifesteal: item.metadata.lifesteal }),
+    ...(item.metadata?.energy_regen && { energy_regen: item.metadata.energy_regen }),
+    ...(item.lifesteal && { lifesteal: item.lifesteal }),
+    ...(item.energy_regen && { energy_regen: item.energy_regen })
+  };
 
   return createPortal(
     <div

@@ -341,6 +341,13 @@ const CultivationSchema = new mongoose.Schema({
     lastPracticedAt: { type: Date }
   }],
 
+  // ==================== CÔNG PHÁP CHIẾN ĐẤU TRANG BỊ ====================
+  // Chỉ các công pháp trong slot mới được dùng trong PK/Dungeon
+  equippedCombatTechniques: [{
+    slotIndex: { type: Number, required: true, min: 0, max: 4 },
+    techniqueId: { type: String, required: true }
+  }],
+
   // Công pháp efficiency đang trang bị (dùng cho YinYang click)
   equippedEfficiencyTechnique: { type: String, default: null },
 
@@ -802,6 +809,19 @@ CultivationSchema.methods.applyDebuff = function (debuffType, duration) {
       appliedAt: new Date()
     });
   }
+};
+
+/**
+ * Tính số slot công pháp chiến đấu tối đa dựa trên realm level
+ * @returns {number} Số slot (2-5)
+ */
+CultivationSchema.methods.getMaxCombatSlots = function () {
+  const realmLevel = this.realmLevel || 1;
+
+  if (realmLevel <= 2) return 2; // Phàm Nhân, Luyện Khí
+  if (realmLevel <= 4) return 3; // Trúc Cơ, Kim Đan
+  if (realmLevel <= 6) return 4; // Nguyên Anh, Hóa Thần
+  return 5; // Luyện Hư trở lên
 };
 
 /**
@@ -1733,7 +1753,7 @@ CultivationSchema.methods.getEquipmentStats = async function () {
     // Lấy durability từ inventory (riêng cho user), không phải từ Equipment collection
     const userDurability = inventoryDurabilityMap.get(eq._id.toString());
     const durability = userDurability || eq.durability || { current: 100, max: 100 };
-    
+
     // Kiểm tra equipment bị hỏng (durability = 0)
     const isBroken = durability.current <= 0;
     if (isBroken) {

@@ -1,4 +1,4 @@
-import Cultivation, { CULTIVATION_REALMS } from "../../models/Cultivation.js";
+import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS_MAP } from "../../models/Cultivation.js";
 import { formatCultivationResponse, invalidateCultivationCache } from "./coreController.js";
 import { consumeExpCap, checkClickCooldown, getCapByRealm, getExpCapRemaining } from "../../services/expCapService.js";
 import { getClient, isRedisConnected, redisConfig } from "../../services/redisClient.js";
@@ -109,7 +109,7 @@ export const collectPassiveExp = async (req, res, next) => {
 
         // Minimal lean query (no getOrCreate)
         const c = await Cultivation.findOne({ user: userId })
-            .select("exp realmLevel subLevel activeBoosts lastPassiveExpCollected dataVersion statsVersion")
+            .select("exp realmLevel subLevel activeBoosts lastPassiveExpCollected dataVersion statsVersion equipped")
             .lean();
 
         if (!c) {
@@ -137,11 +137,25 @@ export const collectPassiveExp = async (req, res, next) => {
         const validBoosts = boosts.filter(b => b?.expiresAt && new Date(b.expiresAt) > now);
 
         let multiplier = 1;
+
+        // 1. Calculate Active Boosts (Additive)
         for (const b of validBoosts) {
             if (b.type === "exp" || b.type === "exp_boost") {
-                multiplier = Math.max(multiplier, Number(b.multiplier) || 1);
+                // Additive stacking: 1.5x + 1.2x = 1 + 0.5 + 0.2 = 1.7x
+                multiplier += (Number(b.multiplier) || 1) - 1;
             }
         }
+
+        // 2. Calculate Pet Bonus
+        if (c.equipped?.pet) {
+            const petItem = SHOP_ITEMS_MAP.get(c.equipped.pet);
+            if (petItem && petItem.expBonus) {
+                multiplier += petItem.expBonus;
+            }
+        }
+
+        // Fix floating point precision issues if any (e.g. 1.700000000002 -> 1.7)
+        multiplier = Math.round(multiplier * 100) / 100;
 
         const baseExpPerMinute = expPerMinuteByRealm[c.realmLevel] || 2;
         const baseExp = effectiveMinutes * baseExpPerMinute;
@@ -160,7 +174,7 @@ export const collectPassiveExp = async (req, res, next) => {
             amount: finalExp,
             source: "passive",
             description: multiplier > 1
-                ? `Tu luyện ${effectiveMinutes} phút (x${multiplier} đan dược)`
+                ? `Tu luyện ${effectiveMinutes} phút (x${multiplier} buff)`
                 : `Tu luyện ${effectiveMinutes} phút`,
             timestamp: now,
         };
@@ -251,9 +265,24 @@ export const getPassiveExpStatus = async (req, res, next) => {
         const baseExp = elapsedMinutes * baseExpPerMinute;
         let multiplier = 1;
         const activeBoosts = cultivation.activeBoosts.filter(b => b.expiresAt > now);
+
+        // 1. Calculate Active Boosts (Additive)
         for (const boost of activeBoosts) {
-            if (boost.type === 'exp' || boost.type === 'exp_boost') multiplier = Math.max(multiplier, boost.multiplier);
+            if (boost.type === 'exp' || boost.type === 'exp_boost') {
+                multiplier += (boost.multiplier - 1);
+            }
         }
+
+        // 2. Calculate Pet Bonus
+        if (cultivation.equipped?.pet) {
+            const petItem = SHOP_ITEMS_MAP.get(cultivation.equipped.pet);
+            if (petItem && petItem.expBonus) {
+                multiplier += petItem.expBonus;
+            }
+        }
+
+        // Fix floating point precision
+        multiplier = Math.round(multiplier * 100) / 100;
 
         const result = { success: true, data: { pendingExp: Math.floor(baseExp * multiplier), baseExp, multiplier, expPerMinute: baseExpPerMinute, minutesElapsed: elapsedMinutes, lastCollected, realmLevel: cultivation.realmLevel, activeBoosts: activeBoosts.map(b => ({ type: b.type, multiplier: b.multiplier, expiresAt: b.expiresAt })) } };
 
