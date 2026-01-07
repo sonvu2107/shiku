@@ -186,7 +186,7 @@ const GiftCodeTab = memo(function GiftCodeTab() {
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">{result.success ? '🎉' : '❌'}</span>
+                    <span className="text-2xl">{result.success ? '' : ''}</span>
                     <span className={`font-medium ${result.success ? 'text-green-400' : 'text-red-400'}`}>
                       {result.message}
                     </span>

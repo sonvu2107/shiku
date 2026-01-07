@@ -68,6 +68,8 @@ export const repairEquipment = async (req, res, next) => {
         const { equipmentId } = req.params;
         const { amount = 'full' } = req.body; // 'full' or number
 
+        console.log('[Repair] Request for equipmentId:', equipmentId);
+
         // Get user's cultivation
         const cultivation = await Cultivation.findOne({ user: userId });
         if (!cultivation) {
@@ -77,11 +79,19 @@ export const repairEquipment = async (req, res, next) => {
             });
         }
 
-        // Find equipment in inventory
-        const invItem = cultivation.inventory.find(i =>
-            i.metadata?._id?.toString() === equipmentId ||
-            i.itemId?.toString() === equipmentId
-        );
+        // Find equipment in inventory - tìm cả bằng metadata._id và itemId
+        const invItem = cultivation.inventory.find(i => {
+            const metadataId = i.metadata?._id?.toString();
+            const itemId = i.itemId?.toString();
+            return metadataId === equipmentId || itemId === equipmentId;
+        });
+
+        console.log('[Repair] Found invItem:', invItem ? {
+            itemId: invItem.itemId,
+            type: invItem.type,
+            metadataId: invItem.metadata?._id,
+            durability: invItem.metadata?.durability
+        } : null);
 
         if (!invItem) {
             return res.status(404).json({
@@ -90,22 +100,37 @@ export const repairEquipment = async (req, res, next) => {
             });
         }
 
-        // Get equipment from DB để lấy thông tin (name, rarity)
-        const equipment = await Equipment.findById(equipmentId);
+        // Lấy equipment ID từ inventory item (ưu tiên metadata._id)
+        const actualEquipmentId = invItem.metadata?._id || invItem.itemId;
+
+        // Get equipment from DB để lấy thông tin (name, rarity, durability gốc)
+        const equipment = await Equipment.findById(actualEquipmentId);
         if (!equipment) {
             return res.status(404).json({
                 success: false,
-                message: 'Trang bị không tồn tại'
+                message: 'Trang bị không tồn tại trong hệ thống'
             });
         }
 
-        // Khởi tạo durability nếu chưa có (trong inventory của user)
+        // Khởi tạo durability trong inventory nếu chưa có
+        // Ưu tiên: inventory > Equipment collection > default 100
         if (!invItem.metadata) invItem.metadata = {};
-        if (!invItem.metadata.durability) {
-            invItem.metadata.durability = { current: 100, max: 100 };
+        if (!invItem.metadata.durability || typeof invItem.metadata.durability.current !== 'number') {
+            // Lấy từ Equipment collection nếu có
+            const equipDurability = equipment.durability || { current: 100, max: 100 };
+            invItem.metadata.durability = {
+                current: equipDurability.current ?? 100,
+                max: equipDurability.max ?? 100
+            };
+            console.log('[Repair] Initialized durability from Equipment:', invItem.metadata.durability);
         }
 
         const userDurability = invItem.metadata.durability;
+        // Đảm bảo max tồn tại
+        if (typeof userDurability.max !== 'number') {
+            userDurability.max = 100;
+        }
+        
         const durabilityToRepair = amount === 'full'
             ? userDurability.max - userDurability.current
             : Math.min(amount, userDurability.max - userDurability.current);
@@ -113,7 +138,7 @@ export const repairEquipment = async (req, res, next) => {
         if (durabilityToRepair <= 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Trang bị không cần sửa chữa'
+                message: 'Trang bị đã đầy độ bền, không cần sửa chữa'
             });
         }
 

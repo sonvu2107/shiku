@@ -985,7 +985,9 @@ const InventoryTab = memo(function InventoryTab() {
 
                       const handleRepair = async (e) => {
                         e.stopPropagation();
-                        const equipmentId = item.metadata?._id || item.itemId;
+                        // Đảm bảo equipmentId là string
+                        const rawId = item.metadata?._id || item.itemId;
+                        const equipmentId = typeof rawId === 'object' ? rawId.toString() : String(rawId);
                         setRepairing(equipmentId);
                         try {
                           await repairEquipment(equipmentId);

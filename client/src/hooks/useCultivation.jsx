@@ -123,8 +123,17 @@ export function CultivationProvider({ children }) {
             message: `Bạn đã điểm danh hôm nay rồi. Streak: ${response.data.streak} ngày`
           });
         } else {
-          // Refactored backend returns minimal response, refresh to get updated cultivation
-          await loadCultivation();
+          // Update local state instead of full reload
+          const { expEarned, stonesEarned } = response.data;
+          setCultivation(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              exp: prev.exp + (expEarned || 0),
+              totalExp: prev.totalExp + (expEarned || 0),
+              spiritStones: prev.spiritStones + (stonesEarned || 0)
+            };
+          });
 
           // Show notification
           setNotification({
@@ -156,7 +165,42 @@ export function CultivationProvider({ children }) {
       const response = await claimQuestReward(questId);
 
       if (response.success) {
-        await loadCultivation();
+        // Update local state instead of full reload
+        const { expEarned, stonesEarned } = response.data;
+        setCultivation(prev => {
+          if (!prev) return prev;
+
+          // Update exp and stones
+          const updated = {
+            ...prev,
+            exp: prev.exp + (expEarned || 0),
+            totalExp: prev.totalExp + (expEarned || 0),
+            spiritStones: prev.spiritStones + (stonesEarned || 0)
+          };
+
+          // Mark quest as claimed in dailyQuests
+          if (prev.dailyQuests) {
+            updated.dailyQuests = prev.dailyQuests.map(q =>
+              q.questId === questId ? { ...q, claimed: true } : q
+            );
+          }
+
+          // Mark quest as claimed in weeklyQuests
+          if (prev.weeklyQuests) {
+            updated.weeklyQuests = prev.weeklyQuests.map(q =>
+              q.questId === questId ? { ...q, claimed: true } : q
+            );
+          }
+
+          // Mark quest as claimed in achievements
+          if (prev.achievements) {
+            updated.achievements = prev.achievements.map(q =>
+              q.questId === questId ? { ...q, claimed: true } : q
+            );
+          }
+
+          return updated;
+        });
 
         setNotification({
           type: 'success',
@@ -642,11 +686,20 @@ export function CultivationProvider({ children }) {
       const response = await collectPassiveExpAPI();
 
       if (response.success && response.data.collected) {
-        await loadCultivation();
+        // Update local state instead of full reload
+        const { expEarned, multiplier, minutesElapsed, leveledUp, newRealm, newExp, newTotalExp } = response.data;
+
+        setCultivation(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            exp: newExp !== undefined ? newExp : (prev.exp + expEarned),
+            totalExp: newTotalExp !== undefined ? newTotalExp : (prev.totalExp + expEarned),
+            realm: newRealm || prev.realm
+          };
+        });
 
         // Show notification với thông tin chi tiết
-        const { expEarned, multiplier, minutesElapsed, leveledUp, newRealm } = response.data;
-
         setNotification({
           type: leveledUp ? 'success' : 'info',
           title: leveledUp ? 'Đột phá cảnh giới!' : 'Thu thập tu vi',

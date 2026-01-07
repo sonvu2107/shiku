@@ -95,6 +95,12 @@ export const formatCultivationResponse = async (cultivation) => {
             const equipment = equipmentMap.get(equipmentIdStr);
 
             if (equipment) {
+                // Ưu tiên durability từ inventory của user, fallback về Equipment collection
+                const userDurability = item.metadata?.durability;
+                const finalDurability = userDurability && typeof userDurability.current === 'number'
+                    ? userDurability
+                    : equipment.durability || { current: 100, max: 100 };
+
                 return {
                     ...item.toObject ? item.toObject() : item,
                     name: equipment.name,
@@ -112,7 +118,7 @@ export const formatCultivationResponse = async (cultivation) => {
                         lifesteal: equipment.lifesteal,
                         true_damage: equipment.true_damage,
                         buff_duration: equipment.buff_duration,
-                        durability: equipment.durability,
+                        durability: finalDurability,
                         img: equipment.img,
                         description: equipment.description
                     }
