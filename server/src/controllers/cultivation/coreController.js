@@ -3,6 +3,7 @@ import Cultivation, { CULTIVATION_REALMS, QUEST_TEMPLATES } from "../../models/C
 import Equipment from "../../models/Equipment.js";
 import User from "../../models/User.js";
 import { getClient, isRedisConnected, redisConfig } from "../../services/redisClient.js";
+import { saveWithRetry } from "../../utils/dbUtils.js";
 
 // ==================== CACHE CONFIG ====================
 const CULTIVATION_CACHE_TTL = 5; // 5 seconds - short TTL for frequently changing data
@@ -24,6 +25,7 @@ export const mergeEquipmentStatsIntoCombatStats = (combatStats, equipmentStats) 
     combatStats.penetration = (combatStats.penetration || 0) + (equipmentStats.penetration || 0);
     combatStats.lifesteal = (combatStats.lifesteal || 0) + ((equipmentStats.lifesteal || 0) * 100);
     combatStats.regeneration = (combatStats.regeneration || 0) + (equipmentStats.energy_regen || 0);
+    combatStats.zhenYuan = (combatStats.zhenYuan || 0) + (equipmentStats.zhenYuan || equipmentStats.mp || 0);
 
     return combatStats;
 };
@@ -459,7 +461,7 @@ export const updateCharacterAppearance = async (req, res, next) => {
         // Update appearance
         cultivation.characterAppearance = characterAppearance;
         cultivation.lastAppearanceChangeAt = now;
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         // Get appearance label for response
         const appearanceLabels = {

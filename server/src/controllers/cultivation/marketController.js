@@ -1,5 +1,6 @@
 import Cultivation from "../../models/Cultivation.js";
 import { RARITY } from "../../models/Equipment.js";
+import { saveWithRetry } from "../../utils/dbUtils.js";
 
 // Multiplier giá bán dựa trên độ hiếm
 const SELL_RARITY_MULTIPLIERS = {
@@ -109,7 +110,7 @@ export const sellItems = async (req, res) => {
         cultivation.spiritStones += totalValue;
         cultivation.totalSpiritStonesEarned = (cultivation.totalSpiritStonesEarned || 0) + totalValue;
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         res.json({
             success: true,

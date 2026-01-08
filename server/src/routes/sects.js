@@ -341,19 +341,44 @@ router.post("/:id/leave", authRequired, async (req, res) => {
             const member = await SectMember.findOne({ sect: sectId, user: userId, isActive: true }).session(session);
             if (!member) throw new Error("NOT_MEMBER");
 
-            if (member.role === "owner") throw new Error("OWNER_CANNOT_LEAVE");
+            // If owner, check if they're the only member
+            if (member.role === "owner") {
+                // Count other active members (excluding owner)
+                const otherMembersCount = await SectMember.countDocuments({
+                    sect: sectId,
+                    isActive: true,
+                    user: { $ne: userId }
+                }).session(session);
 
-            member.isActive = false;
-            await member.save({ session });
+                if (otherMembersCount > 0) {
+                    // Still has other members, cannot leave without transfer
+                    throw new Error("OWNER_MUST_TRANSFER");
+                }
 
-            await Sect.updateOne({ _id: sectId }, { $inc: { memberCount: -1 } }).session(session);
+                // Solo owner - allow disband
+                // Deactivate the sect
+                await Sect.updateOne(
+                    { _id: sectId },
+                    { isActive: false, memberCount: 0 }
+                ).session(session);
+
+                // Deactivate owner membership
+                member.isActive = false;
+                await member.save({ session });
+            } else {
+                // Regular member can leave normally
+                member.isActive = false;
+                await member.save({ session });
+
+                await Sect.updateOne({ _id: sectId }, { $inc: { memberCount: -1 } }).session(session);
+            }
         });
 
         res.json({ success: true, message: "Rời tông môn thành công" });
     } catch (e) {
         const msg = String(e?.message || "");
         if (msg === "NOT_MEMBER") return res.status(404).json({ success: false, message: "Bạn không phải thành viên" });
-        if (msg === "OWNER_CANNOT_LEAVE") return res.status(403).json({ success: false, message: "Môn chủ không thể rời tông môn" });
+        if (msg === "OWNER_MUST_TRANSFER") return res.status(403).json({ success: false, message: "Môn chủ phải chuyển quyền cho thành viên khác trước khi rời đi" });
         console.error("[ERROR][SECTS] Error leaving sect:", e);
         return res.status(500).json({ success: false, message: "Lỗi khi rời tông môn" });
     } finally {
@@ -475,35 +500,7 @@ router.get("/:id/contributions", authOptional, async (req, res) => {
 
 // ==================== MEMBER MANAGEMENT ====================
 
-/**
- * POST /api/sects/:id/leave
- * Rời khỏi tông môn
- */
-router.post("/:id/leave", authRequired, async (req, res) => {
-    const userId = req.user._id;
-    const sectId = req.params.id;
 
-    try {
-        const member = await SectMember.findOne({ sect: sectId, user: userId, isActive: true });
-        if (!member) {
-            return res.status(404).json({ success: false, message: "Bạn không phải thành viên tông môn này" });
-        }
-
-        // Owner cannot leave without transferring ownership
-        if (member.role === "owner") {
-            return res.status(400).json({ success: false, message: "Chưởng Môn phải chuyển quyền trước khi rời đi" });
-        }
-
-        member.isActive = false;
-        member.leftAt = new Date();
-        await member.save();
-
-        res.json({ success: true, message: "Đã rời khỏi tông môn" });
-    } catch (error) {
-        console.error("[ERROR][SECTS] Error leaving sect:", error);
-        res.status(500).json({ success: false, message: "Lỗi khi rời tông môn" });
-    }
-});
 
 /**
  * POST /api/sects/:id/kick/:userId

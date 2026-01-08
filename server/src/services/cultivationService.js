@@ -4,6 +4,7 @@
  */
 
 import Cultivation from "../models/Cultivation.js";
+import { saveWithRetry } from "../utils/dbUtils.js";
 
 /**
  * Cộng exp cho user khi thực hiện action
@@ -17,7 +18,7 @@ export async function addExpForAction(userId, action, options = {}) {
 
   try {
     const cultivation = await Cultivation.getOrCreate(userId);
-    
+
     // Định nghĩa exp cho mỗi action
     const expRewards = {
       post: 30,           // Đăng bài viết
@@ -54,8 +55,8 @@ export async function addExpForAction(userId, action, options = {}) {
 
     // Cộng exp
     const expResult = cultivation.addExp(
-      expAmount, 
-      action, 
+      expAmount,
+      action,
       options.description || `Thực hiện: ${action}`
     );
 
@@ -67,7 +68,7 @@ export async function addExpForAction(userId, action, options = {}) {
     // Cập nhật quest progress
     const questResults = cultivation.updateQuestProgress(action, 1);
 
-    await cultivation.save();
+    await saveWithRetry(cultivation);
 
     return {
       expAdded: expResult.addedExp,
@@ -142,8 +143,8 @@ export async function getCultivationBatch(userIds) {
     const cultivations = await Cultivation.find({
       user: { $in: userIds }
     })
-    .select('user exp realmLevel realmName subLevel equipped')
-    .lean();
+      .select('user exp realmLevel realmName subLevel equipped')
+      .lean();
 
     // Convert to map
     const result = {};

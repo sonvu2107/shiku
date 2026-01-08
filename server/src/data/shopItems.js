@@ -141,7 +141,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp cơ bản, tăng 5% Tấn Công và Phòng Thủ",
         rarity: "common",
         stats: { attack: 0.05, defense: 0.05 },
-        skill: { name: "Tụ Khí", description: "Tăng 10% Khí Huyết trong 5 giây", cooldown: 30 }
+        skill: { name: "Tụ Khí", description: "Tăng 10% Khí Huyết trong 5 giây", cooldown: 3, manaCost: 5 }
     },
     {
         id: "technique_sword_heart",
@@ -151,7 +151,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp kiếm thuật, tăng 10% Tấn Công và 5% Chí Mạng",
         rarity: "uncommon",
         stats: { attack: 0.10, criticalRate: 0.05 },
-        skill: { name: "Kiếm Khí", description: "Gây sát thương bằng 150% Tấn Công", cooldown: 20 }
+        skill: { name: "Kiếm Khí", description: "Gây sát thương bằng 150% Tấn Công", cooldown: 2 }
     },
     {
         id: "technique_iron_body",
@@ -161,7 +161,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp luyện thể, tăng 10% Phòng Thủ và 5% Khí Huyết",
         rarity: "uncommon",
         stats: { defense: 0.10, qiBlood: 0.05 },
-        skill: { name: "Thiết Bốc", description: "Giảm 30% sát thương nhận trong 5 giây", cooldown: 25 }
+        skill: { name: "Thiết Bốc", description: "Giảm 30% sát thương nhận trong 5 giây", cooldown: 4 }
     },
     {
         id: "technique_lightning_step",
@@ -171,7 +171,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp thân pháp, tăng 15% Tốc Độ và 10% Né Tránh",
         rarity: "rare",
         stats: { speed: 0.15, dodge: 0.10 },
-        skill: { name: "Lôi Điện", description: "Tăng 50% Tốc Độ trong 8 giây", cooldown: 40 }
+        skill: { name: "Lôi Điện", description: "Tăng 50% Tốc Độ trong 8 giây", cooldown: 5 }
     },
     {
         id: "technique_dragon_breath",
@@ -181,7 +181,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp hô hấp, tăng 10% Chân Nguyên và 5% Hồi Phục",
         rarity: "rare",
         stats: { zhenYuan: 0.10, regeneration: 0.05 },
-        skill: { name: "Long Tức", description: "Hồi 20% Chân Nguyên", cooldown: 30 }
+        skill: { name: "Long Tức", description: "Hồi 20% Chân Nguyên", cooldown: 4 }
     },
     {
         id: "technique_phoenix_rebirth",
@@ -191,7 +191,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp huyền thoại, tăng 15% tất cả thông số",
         rarity: "legendary",
         stats: { attack: 0.15, defense: 0.15, qiBlood: 0.15, zhenYuan: 0.15, speed: 0.15, criticalRate: 0.15 },
-        skill: { name: "Tái Sinh", description: "Hồi 50% Khí Huyết và Chân Nguyên", cooldown: 60 }
+        skill: { name: "Tái Sinh", description: "Hồi 50% Khí Huyết và Chân Nguyên", cooldown: 10 }
     },
     {
         id: "technique_void_walk",
@@ -201,7 +201,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp không gian, tăng 20% Xuyên Thấu và Kháng Cự",
         rarity: "epic",
         stats: { penetration: 0.20, resistance: 0.20 },
-        skill: { name: "Hư Không", description: "Miễn dịch sát thương trong 2 giây", cooldown: 45 }
+        skill: { name: "Hư Không", description: "Miễn dịch sát thương trong 2 giây", cooldown: 6 }
     },
     {
         id: "technique_blood_drain",
@@ -211,7 +211,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp tà đạo, tăng 15% Hấp Huyết",
         rarity: "epic",
         stats: { lifesteal: 0.15 },
-        skill: { name: "Hấp Huyết", description: "Gây sát thương và hồi 30% sát thương gây ra", cooldown: 35 }
+        skill: { name: "Hấp Huyết", description: "Gây sát thương và hồi 30% sát thương gây ra", cooldown: 5 }
     },
     {
         id: "technique_ice_soul",
@@ -221,7 +221,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp băng giá, tăng 10% Phòng Thủ và 10% Kháng Cự",
         rarity: "rare",
         stats: { defense: 0.10, resistance: 0.10 },
-        skill: { name: "Băng Phong", description: "Gây sát thương băng bằng 180% Tấn Công", cooldown: 25 }
+        skill: { name: "Băng Phong", description: "Gây sát thương băng bằng 180% Tấn Công", cooldown: 3 }
     },
     {
         id: "technique_flame_emperor",
@@ -231,7 +231,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp lửa mạnh mẽ, tăng 15% Tấn Công và 10% Xuyên Thấu",
         rarity: "epic",
         stats: { attack: 0.15, penetration: 0.10 },
-        skill: { name: "Viêm Hoàng Nộ", description: "Gây sát thương lửa bằng 220% Tấn Công", cooldown: 30 }
+        skill: { name: "Viêm Hoàng Nộ", description: "Gây sát thương lửa bằng 220% Tấn Công", cooldown: 4 }
     },
     {
         id: "technique_shadow_step",
@@ -241,7 +241,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp ám sát, tăng 12% Né Tránh và 8% Chí Mạng",
         rarity: "rare",
         stats: { dodge: 0.12, criticalRate: 0.08 },
-        skill: { name: "Bóng Ma", description: "Tăng 100% Chí Mạng cho đòn tiếp theo", cooldown: 35 }
+        skill: { name: "Bóng Ma", description: "Tăng 100% Chí Mạng cho đòn tiếp theo", cooldown: 5 }
     },
     {
         id: "technique_wind_blade",
@@ -251,7 +251,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp gió, tăng 12% Tốc Độ và 8% Tấn Công",
         rarity: "rare",
         stats: { speed: 0.12, attack: 0.08 },
-        skill: { name: "Cuồng Phong Trảm", description: "Gây 2 đòn liên tiếp, mỗi đòn 100% Tấn Công", cooldown: 28 }
+        skill: { name: "Cuồng Phong Trảm", description: "Gây 2 đòn liên tiếp, mỗi đòn 100% Tấn Công", cooldown: 3 }
     },
     {
         id: "technique_earth_shield",
@@ -261,7 +261,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp phòng thủ, tăng 15% Phòng Thủ và 10% Khí Huyết",
         rarity: "uncommon",
         stats: { defense: 0.15, qiBlood: 0.10 },
-        skill: { name: "Đại Địa Hộ", description: "Giảm 50% sát thương nhận trong 3 giây", cooldown: 40 }
+        skill: { name: "Đại Địa Hộ", description: "Giảm 50% sát thương nhận trong 3 giây", cooldown: 6 }
     },
     {
         id: "technique_thunder_god",
@@ -271,7 +271,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp sấm sét tối cao, tăng 20% Tấn Công và 15% Chí Mạng",
         rarity: "legendary",
         stats: { attack: 0.20, criticalRate: 0.15 },
-        skill: { name: "Thiên Lôi", description: "Gây sát thương sấm bằng 280% Tấn Công", cooldown: 45 }
+        skill: { name: "Thiên Lôi", description: "Gây sát thương sấm bằng 280% Tấn Công", cooldown: 5 }
     },
     {
         id: "technique_healing_spring",
@@ -281,7 +281,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp hồi phục, tăng 10% Hồi Phục và 10% Chân Nguyên",
         rarity: "rare",
         stats: { regeneration: 0.10, zhenYuan: 0.10 },
-        skill: { name: "Tuyền Nguyên", description: "Hồi 30% Khí Huyết tối đa", cooldown: 50 }
+        skill: { name: "Tuyền Nguyên", description: "Hồi 30% Khí Huyết tối đa", cooldown: 8 }
     },
     {
         id: "technique_armor_break",
@@ -291,7 +291,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp phá phòng, tăng 18% Xuyên Thấu",
         rarity: "epic",
         stats: { penetration: 0.18 },
-        skill: { name: "Phá Giáp", description: "Bỏ qua 50% Phòng Thủ của đối thủ trong 5 giây", cooldown: 35 }
+        skill: { name: "Phá Giáp", description: "Bỏ qua 50% Phòng Thủ của đối thủ trong 5 giây", cooldown: 5 }
     },
     {
         id: "technique_counter_stance",
@@ -301,7 +301,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp phản đòn, tăng 10% Phòng Thủ và 10% Tấn Công",
         rarity: "epic",
         stats: { defense: 0.10, attack: 0.10 },
-        skill: { name: "Phản Đòn", description: "Phản 40% sát thương nhận về đối thủ", cooldown: 40 }
+        skill: { name: "Phản Đòn", description: "Phản 40% sát thương nhận về đối thủ", cooldown: 5 }
     },
     {
         id: "technique_chaos_origin",
@@ -311,7 +311,180 @@ export const SHOP_ITEMS = [
         description: "Công pháp thượng cổ, tăng 20% tất cả chỉ số chiến đấu",
         rarity: "legendary",
         stats: { attack: 0.20, defense: 0.20, qiBlood: 0.20, zhenYuan: 0.20, speed: 0.20, criticalRate: 0.10, dodge: 0.10 },
-        skill: { name: "Hỗn Độn Nhất Kích", description: "Gây sát thương bằng 350% Tấn Công, bỏ qua kháng cự", cooldown: 60 }
+        skill: { name: "Hỗn Độn Nhất Kích", description: "Gây sát thương bằng 350% Tấn Công, bỏ qua kháng cự", cooldown: 8 }
+    },
+
+    // ==================== MYTHIC TIER (New - Ultra Powerful) ====================
+    {
+        id: "technique_myriad_return",
+        name: "Vạn Pháp Qui Tông",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp tối thượng, tăng 25% mọi chỉ số, bùng nổ 500% Tấn Công + hồi 50% sát thương",
+        rarity: "mythic",
+        stats: { attack: 0.25, defense: 0.25, qiBlood: 0.25, zhenYuan: 0.25, speed: 0.25, criticalRate: 0.20 },
+        skill: { name: "Quy Tông", description: "Bùng nổ 500% Tấn Công, hồi 50% sát thương gây ra", cooldown: 12 },
+        unlockCondition: { type: "realm", minLevel: 8 }
+    },
+    {
+        id: "technique_immortal_demon",
+        name: "Bất Diệt Ma Công",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Ma công tối cường, tăng 30% Khí Huyết + 20% Hút Máu + 15% Phòng Thủ, bất tử 4 giây",
+        rarity: "mythic",
+        stats: { qiBlood: 0.30, lifesteal: 0.20, defense: 0.15, regeneration: 0.10 },
+        skill: { name: "Ma Hoá", description: "Miễn dịch mọi sát thương 4 giây, hồi 5% Khí Huyết mỗi giây", cooldown: 15 },
+        unlockCondition: { type: "dungeon", minFloor: 12 }
+    },
+    {
+        id: "technique_poison_sovereign",
+        name: "Thiên Địch Độc Tôn",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Độc công tuyệt đỉnh, tăng 35% Tấn Công + 30% Xuyên Thấu, độc tố 10% Khí Huyết tối đa",
+        rarity: "mythic",
+        stats: { attack: 0.35, penetration: 0.30, criticalRate: 0.15 },
+        skill: { name: "Độc Sát", description: "400% Tấn Công + độc tố (10% Khí Huyết tối đa trong 10 giây)", cooldown: 8 },
+        unlockCondition: { type: "realm", minLevel: 9 }
+    },
+
+    // ==================== LEGENDARY TIER (New - Endgame) ====================
+    {
+        id: "technique_taiji_profound",
+        name: "Thái Cực Huyền Công",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Âm dương hòa hợp, tăng 18% mọi chỉ số chiến đấu, phạm vi 250% Tấn Công + hồi 30% sát thương",
+        rarity: "legendary",
+        stats: { attack: 0.18, defense: 0.18, qiBlood: 0.18, speed: 0.18, criticalRate: 0.12 },
+        skill: { name: "Âm Dương Hóa", description: "Sát thương phạm vi 250% Tấn Công, hồi 30% sát thương gây ra", cooldown: 7 },
+        unlockCondition: { type: "realm", minLevel: 6 }
+    },
+    {
+        id: "technique_blade_mastery",
+        name: "Bạt Đao Thuật",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Đao pháp tuyệt học, tăng 25% Tấn Công + 15% Sát Thương Chí Mạng, 3 chém liên hoàn",
+        rarity: "legendary",
+        stats: { attack: 0.25, criticalDamage: 15, criticalRate: 0.10 },
+        skill: { name: "Bạt Đao", description: "3 đòn liên tiếp, mỗi đòn 120% Tấn Công", cooldown: 5 },
+        unlockCondition: { type: "dungeon", minFloor: 8 }
+    },
+    {
+        id: "technique_diamond_body",
+        name: "Kim Cang Bất Hoại",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Phòng thủ tuyệt đối, tăng 25% Phòng Thủ + 20% Khí Huyết + 15% Kháng Cự, lá chắn 40% Khí Huyết tối đa",
+        rarity: "legendary",
+        stats: { defense: 0.25, qiBlood: 0.20, resistance: 0.15 },
+        skill: { name: "Kim Cang", description: "Lá chắn 40% Khí Huyết tối đa trong 8 giây", cooldown: 9 },
+        unlockCondition: { type: "realm", minLevel: 7 }
+    },
+    {
+        id: "technique_demon_disintegration",
+        name: "Thiên Ma Giải Thể",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Bạo tẩu hóa ma, tăng 20% Tấn Công + 20% Tốc Độ, đánh đổi -15% Phòng Thủ, chế độ cuồng nộ",
+        rarity: "legendary",
+        stats: { attack: 0.20, speed: 0.20, defense: -0.15 },
+        skill: { name: "Bạo Tẩu", description: "+100% Tấn Công, -50% Phòng Thủ trong 10 giây", cooldown: 8 },
+        unlockCondition: { type: "dungeon", minFloor: 9 }
+    },
+    {
+        id: "technique_peerless_healing",
+        name: "Vô Song Trị Liệu",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Y đạo tối cao, tăng 15% Hồi Phục + 15% Chân Nguyên + 10% mọi chỉ số, hồi phục phạm vi 50% Khí Huyết",
+        rarity: "legendary",
+        stats: { regeneration: 0.15, zhenYuan: 0.15, attack: 0.10, defense: 0.10, qiBlood: 0.10 },
+        skill: { name: "Hồi Linh", description: "Hồi 50% Khí Huyết tối đa (phạm vi đồng minh)", cooldown: 10 },
+        unlockCondition: { type: "realm", minLevel: 6 }
+    },
+
+    // ==================== EPIC TIER (New - Specialized) ====================
+    {
+        id: "technique_phantom_step",
+        name: "Quỷ Mị Bộ Pháp",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Thân pháp tuyệt diệu, tăng 20% Né Tránh + 15% Tốc Độ, né tránh toàn bộ trong 2 giây",
+        rarity: "epic",
+        stats: { dodge: 0.20, speed: 0.15, criticalRate: 0.10 },
+        skill: { name: "Mị Ảnh", description: "Né tránh hoàn toàn mọi đòn tấn công trong 2 giây", cooldown: 8 },
+        unlockCondition: { type: "dungeon", minFloor: 6 }
+    },
+    {
+        id: "technique_heaven_breaker",
+        name: "Hỗn Thiên Thủ",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Phá giáp tuyệt kỹ, tăng 20% Xuyên Thấu + 10% Tỷ Lệ Chí Mạng, bỏ qua toàn bộ giáp",
+        rarity: "epic",
+        stats: { penetration: 0.20, criticalRate: 0.10, attack: 0.12 },
+        skill: { name: "Thủ Phá", description: "Bỏ qua mọi giáp trong một đòn tấn công", cooldown: 6 },
+        unlockCondition: { type: "realm", minLevel: 5 }
+    },
+    {
+        id: "technique_blood_burning",
+        name: "Nhiên Huyết Quyết",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Đốt máu tăng sức, tăng 20% Hút Máu + 10% Tấn Công, đánh đổi 20% Khí Huyết lấy +60% Tấn Công",
+        rarity: "epic",
+        stats: { lifesteal: 0.20, attack: 0.10, criticalRate: 0.08 },
+        skill: { name: "Nhiên Huyết", description: "Đốt 20% Khí Huyết → +60% Tấn Công trong 15 giây", cooldown: 7 },
+        unlockCondition: { type: "dungeon", minFloor: 7 }
+    },
+    {
+        id: "technique_frost_domain",
+        name: "Băng Phong Lĩnh Vực",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Lĩnh vực băng giá, tăng 15% Phòng Thủ + 15% Kháng Cự, phạm vi giảm 50% Tốc Độ + 30% Tấn Công",
+        rarity: "epic",
+        stats: { defense: 0.15, resistance: 0.15, qiBlood: 0.10 },
+        skill: { name: "Băng Vực", description: "Phạm vi giảm 50% Tốc Độ + 30% Tấn Công trong 8 giây", cooldown: 7 },
+        unlockCondition: { type: "realm", minLevel: 5 }
+    },
+
+    // ==================== RARE TIER (New - Mid-game) ====================
+    {
+        id: "technique_sword_dance",
+        name: "Kiếm Vũ",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 1800,
+        description: "Kiếm múa loạn vũ, tăng 15% Tấn Công + 10% Tốc Độ, 4 chém nhanh liên tiếp",
+        rarity: "rare",
+        stats: { attack: 0.15, speed: 0.10, criticalRate: 0.08 },
+        skill: { name: "Kiếm Trận", description: "4 đòn liên tiếp, mỗi đòn 80% Tấn Công", cooldown: 4 },
+        unlockCondition: { type: "dungeon", minFloor: 4 }
+    },
+    {
+        id: "technique_guardian_bell",
+        name: "Hộ Tâm Chung",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 2000,
+        description: "Hộ mệnh kỳ bảo, tăng 15% Khí Huyết + 10% Hồi Phục, tái sinh khi chết",
+        rarity: "rare",
+        stats: { qiBlood: 0.15, regeneration: 0.10, defense: 0.08 },
+        skill: { name: "Chung Hộ", description: "Chặn đòn chí mạng, hồi về 30% Khí Huyết (1 lần)", cooldown: 12 },
+        unlockCondition: { type: "realm", minLevel: 4 }
+    },
+    {
+        id: "technique_void_palm",
+        name: "Phá Không Chưởng",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 1600,
+        description: "Chưởng pháp hư không, tăng 12% Tấn Công + 12% Tỷ Lệ Chí Mạng, gây choáng 2 giây",
+        rarity: "rare",
+        stats: { attack: 0.12, criticalRate: 0.12, penetration: 0.08 },
+        skill: { name: "Không Chưởng", description: "200% Tấn Công + choáng 2 giây", cooldown: 5 },
+        unlockCondition: { type: "dungeon", minFloor: 5 }
     }
 ];
 

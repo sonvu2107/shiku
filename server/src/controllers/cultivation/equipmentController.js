@@ -11,6 +11,7 @@ import {
     calculateElementSynergy,
     MODIFIER_TYPES
 } from '../../services/modifierService.js';
+import { saveWithRetry } from '../../utils/dbUtils.js';
 
 // ==================== REPAIR COST CONFIG ====================
 // Chi phí sửa chữa (linh thạch/điểm độ bền) - rất thấp
@@ -130,7 +131,7 @@ export const repairEquipment = async (req, res, next) => {
         if (typeof userDurability.max !== 'number') {
             userDurability.max = 100;
         }
-        
+
         const durabilityToRepair = amount === 'full'
             ? userDurability.max - userDurability.current
             : Math.min(amount, userDurability.max - userDurability.current);
@@ -157,9 +158,9 @@ export const repairEquipment = async (req, res, next) => {
         // Deduct cost and repair - TRONG INVENTORY CỦA USER
         cultivation.spiritStones -= totalCost;
         userDurability.current = Math.min(userDurability.max, userDurability.current + durabilityToRepair);
-        
+
         cultivation.markModified('inventory');
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         res.json({
             success: true,
@@ -197,7 +198,7 @@ export const repairAllEquipment = async (req, res, next) => {
         }
 
         // Lấy tất cả equipment trong inventory cần repair
-        const equipmentItems = cultivation.inventory.filter(i => 
+        const equipmentItems = cultivation.inventory.filter(i =>
             i.type?.startsWith('equipment_') && (i.itemId || i.metadata?._id)
         );
 
@@ -210,7 +211,7 @@ export const repairAllEquipment = async (req, res, next) => {
 
         const equipmentIds = equipmentItems.map(i => i.metadata?._id || i.itemId);
         const equipments = await Equipment.find({ _id: { $in: equipmentIds } });
-        
+
         // Tạo map để tra cứu nhanh equipment info
         const equipmentMap = new Map();
         equipments.forEach(eq => equipmentMap.set(eq._id.toString(), eq));
@@ -225,11 +226,11 @@ export const repairAllEquipment = async (req, res, next) => {
             const eqId = (invItem.metadata?._id || invItem.itemId)?.toString();
             const equipment = equipmentMap.get(eqId);
             if (!equipment) continue;
-            
+
             // Lấy durability từ inventory của user
             const userDurability = invItem.metadata?.durability || { current: 100, max: 100 };
             const durabilityToRepair = userDurability.max - userDurability.current;
-            
+
             if (durabilityToRepair > 0) {
                 const costPerPoint = REPAIR_COST_PER_POINT[equipment.rarity] || 1;
                 const cost = durabilityToRepair * costPerPoint;
@@ -270,9 +271,9 @@ export const repairAllEquipment = async (req, res, next) => {
             }
             invItem.metadata.durability.current = invItem.metadata.durability.max;
         }
-        
+
         cultivation.markModified('inventory');
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         res.json({
             success: true,
@@ -306,13 +307,13 @@ export const previewRepairAll = async (req, res, next) => {
         }
 
         // Lấy tất cả equipment trong inventory
-        const equipmentItems = cultivation.inventory.filter(i => 
+        const equipmentItems = cultivation.inventory.filter(i =>
             i.type?.startsWith('equipment_') && (i.itemId || i.metadata?._id)
         );
 
         const equipmentIds = equipmentItems.map(i => i.metadata?._id || i.itemId);
         const equipments = await Equipment.find({ _id: { $in: equipmentIds } }).lean();
-        
+
         // Tạo map để tra cứu nhanh equipment info
         const equipmentMap = new Map();
         equipments.forEach(eq => equipmentMap.set(eq._id.toString(), eq));
@@ -325,11 +326,11 @@ export const previewRepairAll = async (req, res, next) => {
             const eqId = (invItem.metadata?._id || invItem.itemId)?.toString();
             const equipment = equipmentMap.get(eqId);
             if (!equipment) continue;
-            
+
             // Lấy durability từ inventory của user
             const userDurability = invItem.metadata?.durability || { current: 100, max: 100 };
             const durabilityToRepair = userDurability.max - userDurability.current;
-            
+
             if (durabilityToRepair > 0) {
                 const costPerPoint = REPAIR_COST_PER_POINT[equipment.rarity] || 1;
                 const cost = durabilityToRepair * costPerPoint;

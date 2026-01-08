@@ -4,6 +4,7 @@
 
 import GiftCode from '../../models/GiftCode.js';
 import Cultivation from '../../models/Cultivation.js';
+import { saveWithRetry } from '../../utils/dbUtils.js';
 
 /**
  * POST /api/cultivation/giftcode/redeem
@@ -107,7 +108,7 @@ export const redeemGiftCode = async (req, res, next) => {
         // Lưu
         await giftCode.save();
         cultivation.markModified('inventory');
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         res.json({
             success: true,

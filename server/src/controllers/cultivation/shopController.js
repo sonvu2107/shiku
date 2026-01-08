@@ -3,6 +3,7 @@ import Cultivation, { SHOP_ITEMS, SHOP_ITEMS_MAP, TECHNIQUES_MAP } from "../../m
 import Equipment from "../../models/Equipment.js";
 import { getSectBuildingBonuses } from "../../services/sectBuildingBonusService.js";
 import { get as redisGet, set as redisSet, isRedisConnected } from "../../services/redisClient.js";
+import { saveWithRetry } from "../../utils/dbUtils.js";
 
 // ==================== SECT BONUSES CACHE ====================
 // Redis for multi-instance consistency, fallback to in-memory for single instance
@@ -234,7 +235,7 @@ export const buyItem = async (req, res, next) => {
             // Normal item purchase với giá đã giảm
             try {
                 const result = cultivation.buyItem(itemId, discountedPrice);
-                await cultivation.save();
+                await saveWithRetry(cultivation);
 
                 const responseData = { spiritStones: cultivation.spiritStones, inventory: cultivation.inventory };
 
@@ -351,7 +352,7 @@ export const buyItem = async (req, res, next) => {
             };
 
             cultivation.inventory.push(inventoryItem);
-            await cultivation.save();
+            await saveWithRetry(cultivation);
 
             return res.json({
                 success: true,

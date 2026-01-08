@@ -16,7 +16,7 @@ const config = {
   headerName: 'x-csrf-token',         // Header to check for token
   tokenExpiry: 60 * 60 * 1000,        // Token expiry (1 hour)
   ignoreMethods: ['GET', 'HEAD', 'OPTIONS'], // Methods to skip
-  ignorePaths: ['/api/auth/refresh']  // Paths to skip CSRF check
+  ignorePaths: ['/api/auth/refresh', '/api/battle/training']  // Paths to skip CSRF check
 };
 
 // Cache signing secret (evaluated once at startup)
@@ -50,7 +50,7 @@ function createToken(secret) {
     .update(data)
     .digest('hex')
     .slice(0, 16);
-  
+
   return `${timestamp}.${signature}`;
 }
 
@@ -62,17 +62,17 @@ function createToken(secret) {
  */
 function verifyToken(secret, token) {
   if (!secret || !token) return false;
-  
+
   try {
     const [timestamp, signature] = token.split('.');
     if (!timestamp || !signature) return false;
-    
+
     // Check expiry
     const tokenTime = parseInt(timestamp, 36);
     if (Date.now() - tokenTime > config.tokenExpiry) {
       return false;
     }
-    
+
     // Verify signature
     const data = `${secret}.${timestamp}`;
     const expectedSignature = crypto
@@ -80,7 +80,7 @@ function verifyToken(secret, token) {
       .update(data)
       .digest('hex')
       .slice(0, 16);
-    
+
     // Constant-time comparison to prevent timing attacks
     return crypto.timingSafeEqual(
       Buffer.from(signature),
@@ -97,7 +97,7 @@ function verifyToken(secret, token) {
  */
 function buildCookieOptions(additionalOptions = {}) {
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   return {
     httpOnly: true,
     secure: isProduction,
@@ -128,21 +128,21 @@ export function csrfProtection(req, res, next) {
   if (config.ignoreMethods.includes(req.method)) {
     return setupCsrfToken(req, res, next);
   }
-  
+
   // Skip ignored paths
   if (config.ignorePaths.some(path => req.path.startsWith(path))) {
     return setupCsrfToken(req, res, next);
   }
-  
+
   // Get secret from cookie
   const secret = req.cookies?.[config.cookieName];
-  
+
   // Get token from header or body
-  const token = req.get(config.headerName) || 
-                req.get('X-CSRF-Token') ||
-                req.body?._csrf ||
-                req.query?._csrf;
-  
+  const token = req.get(config.headerName) ||
+    req.get('X-CSRF-Token') ||
+    req.body?._csrf ||
+    req.query?._csrf;
+
   // Verify token
   if (!verifyToken(secret, token)) {
     const error = new Error('Invalid CSRF token');
@@ -150,7 +150,7 @@ export function csrfProtection(req, res, next) {
     error.status = 403;
     return next(error);
   }
-  
+
   setupCsrfToken(req, res, next);
 }
 
@@ -160,15 +160,15 @@ export function csrfProtection(req, res, next) {
 function setupCsrfToken(req, res, next) {
   // Get or create secret
   let secret = req.cookies?.[config.cookieName];
-  
+
   if (!secret) {
     secret = generateSecret();
     res.cookie(config.cookieName, secret, buildCookieOptions());
   }
-  
+
   // Attach csrfToken method to request
   req.csrfToken = () => createToken(secret);
-  
+
   next();
 }
 
@@ -194,33 +194,33 @@ export function doubleSubmitCsrf(req, res, next) {
   if (config.ignoreMethods.includes(req.method)) {
     return setupDoubleSubmitToken(req, res, next);
   }
-  
+
   // Skip ignored paths
   if (config.ignorePaths.some(path => req.path.startsWith(path))) {
     return setupDoubleSubmitToken(req, res, next);
   }
-  
+
   const cookieToken = req.cookies?.[config.cookieName];
   const headerToken = req.get(config.headerName) || req.get('X-CSRF-Token');
-  
+
   if (!cookieToken || !headerToken || cookieToken !== headerToken) {
     const error = new Error('Invalid CSRF token');
     error.code = 'EBADCSRFTOKEN';
     error.status = 403;
     return next(error);
   }
-  
+
   setupDoubleSubmitToken(req, res, next);
 }
 
 function setupDoubleSubmitToken(req, res, next) {
   let token = req.cookies?.[config.cookieName];
-  
+
   if (!token) {
     token = generateSecret();
     res.cookie(config.cookieName, token, buildCookieOptions({ httpOnly: false }));
   }
-  
+
   req.csrfToken = () => token;
   next();
 }

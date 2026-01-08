@@ -155,6 +155,15 @@ const Library = ({ sect, membership, onUpgrade, actionLoading }) => {
                                 </div>
                                 <p className="text-[10px] text-slate-400 mb-2">{tech.description}</p>
 
+                                {/* Lock Status */}
+                                {tech.isUnlocked === false && tech.unlockRequirement && (
+                                    <div className="mb-2 px-2 py-1 bg-red-900/20 border border-red-500/30 rounded">
+                                        <div className="text-[10px] text-red-400">
+                                            {tech.unlockRequirement}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {tech.stats && (
                                     <div className="flex flex-wrap gap-1 mb-2">
                                         {Object.entries(tech.stats).map(([stat, val]) => (
@@ -174,10 +183,10 @@ const Library = ({ sect, membership, onUpgrade, actionLoading }) => {
                                     ) : (
                                         <button
                                             onClick={() => handleLearnTechnique(tech.id)}
-                                            disabled={!tech.canAfford || learningId === tech.id}
+                                            disabled={!tech.canAfford || learningId === tech.id || tech.isUnlocked === false}
                                             className="text-[10px] bg-blue-800/50 hover:bg-blue-700 text-blue-200 px-2 py-1 rounded border border-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            {learningId === tech.id ? '...' : 'Học'}
+                                            {learningId === tech.id ? '...' : tech.isUnlocked === false ? 'Khóa' : 'Học'}
                                         </button>
                                     )}
                                 </div>

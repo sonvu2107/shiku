@@ -31,6 +31,40 @@ const ShopTab = memo(function ShopTab() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
+  // Info mapping for pill/boost effects
+  const EFFECT_INFO = {
+    exp_boost: {
+      title: 'Đan Dược Tu Luyện',
+      affects: [
+        'Thu thập tu vi thụ động (Passive)',
+        'Phần thưởng Bí Cảnh (Dungeon) - EXP',
+        'Phiên luyện công pháp (Practice Session)'
+      ],
+      notes: [
+        'Không áp dụng cho Âm Dương click trực tiếp'
+      ]
+    },
+    breakthrough_boost: {
+      title: 'Đan Dược Độ Kiếp',
+      affects: [
+        'Tăng tỷ lệ thành công Độ Kiếp khi bấm Độ Kiếp'
+      ],
+      notes: [
+        'Không tăng EXP hay Linh Thạch'
+      ]
+    },
+    spirit_stones: {
+      title: 'Bùa/Linh Thạch (Lucky Charm)',
+      affects: [
+        'Phần thưởng Bí Cảnh (Dungeon) - Linh Thạch'
+      ],
+      notes: [
+        'Không áp dụng cho Luận Võ Tiên-Ma (Arena PvP)',
+        'Không áp dụng cho thưởng nhiệm vụ hay EXP thụ động'
+      ]
+    }
+  };
+
   useEffect(() => {
     loadShop();
   }, [loadShop]);
@@ -212,6 +246,60 @@ const ShopTab = memo(function ShopTab() {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Effects Mapping Info Panel */}
+      {(activeCategory === 'consumable_group') && (
+        <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+          {/* EXP Boost */}
+          {(['all','exp_boost'].includes(subCategory)) && (
+            <div className="rounded-xl p-3 border border-amber-500/30 bg-slate-800/40">
+              <div className="text-xs font-semibold text-amber-300 mb-1">{EFFECT_INFO.exp_boost.title}</div>
+              <ul className="text-[11px] text-slate-300 space-y-1">
+                {EFFECT_INFO.exp_boost.affects.map((line, idx) => (
+                  <li key={`exp-${idx}`} className="flex items-start gap-1"><span className="text-amber-400">•</span><span>{line}</span></li>
+                ))}
+              </ul>
+              <div className="text-[11px] text-slate-400 mt-2">
+                {EFFECT_INFO.exp_boost.notes.map((line, idx) => (
+                  <div key={`exp-note-${idx}`}>• {line}</div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Breakthrough Boost */}
+          {(['all','breakthrough_boost'].includes(subCategory)) && (
+            <div className="rounded-xl p-3 border border-purple-500/30 bg-slate-800/40">
+              <div className="text-xs font-semibold text-purple-300 mb-1">{EFFECT_INFO.breakthrough_boost.title}</div>
+              <ul className="text-[11px] text-slate-300 space-y-1">
+                {EFFECT_INFO.breakthrough_boost.affects.map((line, idx) => (
+                  <li key={`bt-${idx}`} className="flex items-start gap-1"><span className="text-purple-400">•</span><span>{line}</span></li>
+                ))}
+              </ul>
+              <div className="text-[11px] text-slate-400 mt-2">
+                {EFFECT_INFO.breakthrough_boost.notes.map((line, idx) => (
+                  <div key={`bt-note-${idx}`}>• {line}</div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Spirit Stones Charm */}
+          {(['all','consumable'].includes(subCategory)) && (shop.items || []).some(i => i.id === 'lucky_charm') && (
+            <div className="rounded-xl p-3 border border-cyan-500/30 bg-slate-800/40">
+              <div className="text-xs font-semibold text-cyan-300 mb-1">{EFFECT_INFO.spirit_stones.title}</div>
+              <ul className="text-[11px] text-slate-300 space-y-1">
+                {EFFECT_INFO.spirit_stones.affects.map((line, idx) => (
+                  <li key={`ss-${idx}`} className="flex items-start gap-1"><span className="text-cyan-400">•</span><span>{line}</span></li>
+                ))}
+              </ul>
+              <div className="text-[11px] text-slate-400 mt-2">
+                {EFFECT_INFO.spirit_stones.notes.map((line, idx) => (
+                  <div key={`ss-note-${idx}`}>• {line}</div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

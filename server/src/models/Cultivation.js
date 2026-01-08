@@ -443,7 +443,15 @@ const CultivationSchema = new mongoose.Schema({
     type: { type: String, required: true },
     remainingBattles: { type: Number, default: 3 },
     appliedAt: { type: Date, default: Date.now }
-  }]
+  }],
+
+  // ==================== BATTLE IDEMPOTENCY (DB-level backup) ====================
+  // Store recent battle requestIds to prevent double reward when Redis unavailable
+  recentBattleRequestIds: {
+    type: [String],
+    default: [],
+    select: false // Don't include in normal queries
+  }
 }, {
   timestamps: true
 });
@@ -539,27 +547,37 @@ CultivationSchema.methods.calculateCombatStats = function () {
     luck: baseStats.luck
   };
 
-  // Thêm bonus từ công pháp đã học
+  // Tích lũy bonus dạng phần trăm và dạng cộng thẳng
+  const percentBonuses = {
+    attack: 0, defense: 0, qiBlood: 0, zhenYuan: 0,
+    speed: 0, criticalRate: 0, criticalDamage: 0,
+    accuracy: 0, dodge: 0, penetration: 0, resistance: 0,
+    lifesteal: 0, regeneration: 0, luck: 0
+  };
+
+  const flatBonuses = {
+    attack: 0, defense: 0, qiBlood: 0, zhenYuan: 0,
+    speed: 0, criticalRate: 0, criticalDamage: 0,
+    accuracy: 0, dodge: 0, penetration: 0, resistance: 0,
+    lifesteal: 0, regeneration: 0, luck: 0
+  };
+
+  // 1. Bonus từ công pháp đã học (Learned Techniques)
   if (this.learnedTechniques && this.learnedTechniques.length > 0) {
     this.learnedTechniques.forEach(learned => {
-      // Use TECHNIQUES_MAP for O(1) lookup instead of O(n) array search
       const technique = TECHNIQUES_MAP.get(learned.techniqueId);
       if (technique && technique.stats) {
-        // Bonus tăng theo cấp độ công pháp (level 1 = 100%, level 10 = 200%)
         const levelMultiplier = 1 + (learned.level - 1) * 0.1;
-
         Object.keys(technique.stats).forEach(statKey => {
-          const bonusPercent = technique.stats[statKey];
+          const bonusValue = technique.stats[statKey];
           if (finalStats[statKey] !== undefined) {
-            if (statKey === 'attack' || statKey === 'defense' || statKey === 'qiBlood' || statKey === 'zhenYuan') {
-              // Tăng theo phần trăm của giá trị hiện tại
-              finalStats[statKey] = Math.floor(finalStats[statKey] * (1 + bonusPercent * levelMultiplier));
-            } else if (statKey === 'speed' || statKey === 'penetration' || statKey === 'resistance' || statKey === 'luck') {
-              // Tăng cộng dồn
-              finalStats[statKey] = Math.floor(finalStats[statKey] + (baseStats[statKey] * bonusPercent * levelMultiplier));
+            if (['attack', 'defense', 'qiBlood', 'zhenYuan'].includes(statKey)) {
+              percentBonuses[statKey] += (bonusValue * levelMultiplier);
+            } else if (['speed', 'penetration', 'resistance', 'luck'].includes(statKey)) {
+              flatBonuses[statKey] += (baseStats[statKey] * bonusValue * levelMultiplier);
             } else {
-              // Tăng theo phần trăm (criticalRate, dodge, accuracy, lifesteal, regeneration)
-              finalStats[statKey] = Math.min(100, finalStats[statKey] + (bonusPercent * 100 * levelMultiplier));
+              // crit, dodge, etc (percentage stats represented as 0-100)
+              flatBonuses[statKey] += (bonusValue * 100 * levelMultiplier);
             }
           }
         });
@@ -567,22 +585,20 @@ CultivationSchema.methods.calculateCombatStats = function () {
     });
   }
 
-  // Thêm bonus từ công pháp tông môn (sect techniques)
+  // 2. Bonus từ công pháp tông môn (Sect Techniques)
   if (this.sectTechniques && this.sectTechniques.length > 0) {
     this.sectTechniques.forEach(learned => {
       const technique = SECT_TECHNIQUES_MAP.get(learned.id);
       if (technique && technique.stats) {
-        // Công pháp tông môn không có level, áp dụng 100% stats
         Object.keys(technique.stats).forEach(statKey => {
-          const bonusPercent = technique.stats[statKey];
+          const bonusValue = technique.stats[statKey];
           if (finalStats[statKey] !== undefined) {
-            if (statKey === 'attack' || statKey === 'defense' || statKey === 'qiBlood' || statKey === 'zhenYuan') {
-              finalStats[statKey] = Math.floor(finalStats[statKey] * (1 + bonusPercent));
-            } else if (statKey === 'speed' || statKey === 'penetration' || statKey === 'resistance' || statKey === 'luck') {
-              finalStats[statKey] = Math.floor(finalStats[statKey] + (baseStats[statKey] * bonusPercent));
+            if (['attack', 'defense', 'qiBlood', 'zhenYuan'].includes(statKey)) {
+              percentBonuses[statKey] += bonusValue;
+            } else if (['speed', 'penetration', 'resistance', 'luck'].includes(statKey)) {
+              flatBonuses[statKey] += (baseStats[statKey] * bonusValue);
             } else {
-              // criticalRate, dodge, accuracy, lifesteal, regeneration
-              finalStats[statKey] = Math.min(100, finalStats[statKey] + (bonusPercent * 100));
+              flatBonuses[statKey] += (bonusValue * 100);
             }
           }
         });
@@ -590,48 +606,60 @@ CultivationSchema.methods.calculateCombatStats = function () {
     });
   }
 
-  // Thêm bonus từ linh thú (pet) đang trang bị
+  // 3. Bonus từ Vật phẩm kích hoạt (Active Boosts - Pills/Charms)
+  if (this.activeBoosts && this.activeBoosts.length > 0) {
+    const now = new Date();
+    this.activeBoosts.forEach(boost => {
+      if (new Date(boost.expiresAt) > now) {
+        // Map boost types to stats
+        // Hiện tại shopItems chỉ có EXP/SStone boost, nhưng ta chuẩn bị sẵn cho ATK/DEF boost
+        if (boost.type === 'attack_boost') percentBonuses.attack += (boost.multiplier - 1);
+        if (boost.type === 'defense_boost') percentBonuses.defense += (boost.multiplier - 1);
+        // Example: Lucky Charm increases Spirit Stones, maybe gives Luck?
+        if (boost.itemId === 'lucky_charm') flatBonuses.luck += 5;
+      }
+    });
+  }
+
+  // 4. Bonus từ Linh Thú (Pet)
   if (this.equipped?.pet) {
-    // Use SHOP_ITEMS_MAP for O(1) lookup
     const pet = SHOP_ITEMS_MAP.get(this.equipped.pet);
     if (pet && pet.type === ITEM_TYPES.PET) {
-      // Pets thường tăng stats nhỏ dựa trên loại
-      if (pet.expBonus) {
-        // Pet tăng exp sẽ tăng luck để tăng cơ hội nhận bonus
-        finalStats.luck = Math.floor(finalStats.luck + (pet.expBonus * 100));
-      }
-      if (pet.spiritStoneBonus) {
-        finalStats.luck = Math.floor(finalStats.luck + (pet.spiritStoneBonus * 100));
-      }
-      if (pet.questExpBonus) {
-        finalStats.luck = Math.floor(finalStats.luck + (pet.questExpBonus * 100));
-      }
+      if (pet.expBonus) flatBonuses.luck += (pet.expBonus * 100);
+      if (pet.spiritStoneBonus) flatBonuses.luck += (pet.spiritStoneBonus * 100);
+      if (pet.questExpBonus) flatBonuses.luck += (pet.questExpBonus * 100);
     }
   }
 
-  // Thêm bonus từ tọa kỵ (mount) đang trang bị
+  // 5. Bonus từ Tọa Kỵ (Mount)
   if (this.equipped?.mount) {
-    // Use SHOP_ITEMS_MAP for O(1) lookup
     const mount = SHOP_ITEMS_MAP.get(this.equipped.mount);
     if (mount && mount.type === ITEM_TYPES.MOUNT && mount.stats) {
-      // Áp dụng stats bonus từ mount
       Object.keys(mount.stats).forEach(statKey => {
-        const bonusPercent = mount.stats[statKey];
+        const bonusValue = mount.stats[statKey];
         if (finalStats[statKey] !== undefined) {
-          if (statKey === 'attack' || statKey === 'defense' || statKey === 'qiBlood' || statKey === 'zhenYuan' || statKey === 'speed') {
-            // Tăng theo phần trăm của giá trị hiện tại
-            finalStats[statKey] = Math.floor(finalStats[statKey] * (1 + bonusPercent));
-          } else if (statKey === 'penetration' || statKey === 'resistance') {
-            // Tăng cộng dồn
-            finalStats[statKey] = Math.floor(finalStats[statKey] + (bonusPercent * 100));
+          if (['attack', 'defense', 'qiBlood', 'zhenYuan', 'speed'].includes(statKey)) {
+            percentBonuses[statKey] += bonusValue;
+          } else if (['penetration', 'resistance'].includes(statKey)) {
+            flatBonuses[statKey] += (bonusValue * 100);
           } else {
-            // Tăng theo phần trăm (criticalRate, dodge, lifesteal, regeneration)
-            finalStats[statKey] = Math.min(100, finalStats[statKey] + (bonusPercent * 100));
+            flatBonuses[statKey] += (bonusValue * 100);
           }
         }
       });
     }
   }
+
+  // Apply Totals (Additive Calculation)
+  // Formula: Base * (1 + PercentSum) + FlatSum
+  Object.keys(finalStats).forEach(key => {
+    if (['attack', 'defense', 'qiBlood', 'zhenYuan', 'speed'].includes(key)) {
+      finalStats[key] = Math.floor(finalStats[key] * (1 + (percentBonuses[key] || 0))) + (flatBonuses[key] || 0);
+    } else {
+      // Crit, Dodge, etc. are additive only (Base is already %)
+      finalStats[key] = finalStats[key] + (flatBonuses[key] || 0) + (percentBonuses[key] || 0);
+    }
+  });
   // Tích hợp equipment stats (async - sẽ được gọi riêng nếu cần)
   // Equipment stats sẽ được tính riêng qua getEquipmentStats() và merge ở route level
 
@@ -1941,7 +1969,23 @@ CultivationSchema.statics.getOrCreate = async function (userId) {
   }
 
   if (needsSave) {
-    await cultivation.save();
+    // Handle VersionError with retry
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await cultivation.save();
+        break;
+      } catch (error) {
+        if (error.name === 'VersionError' && retries > 1) {
+          // Reload document and retry
+          cultivation = await this.findOne({ user: userId });
+          if (!cultivation) break;
+          retries--;
+          continue;
+        }
+        throw error;
+      }
+    }
   } else {
     try {
       const User = mongoose.model('User');

@@ -271,8 +271,8 @@ const InventoryModal = memo(({ inventory, materials, onClose, onUseItem }) => {
                         <button
                             onClick={() => setActiveTab('consumables')}
                             className={`flex-1 py-2 px-3 text-xs font-bold uppercase transition-all border-2 ${activeTab === 'consumables'
-                                    ? 'bg-orange-600 border-orange-400 text-white'
-                                    : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
+                                ? 'bg-orange-600 border-orange-400 text-white'
+                                : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
                                 }`}
                         >
                             Vật Phẩm ({consumableItems.length})
@@ -280,8 +280,8 @@ const InventoryModal = memo(({ inventory, materials, onClose, onUseItem }) => {
                         <button
                             onClick={() => setActiveTab('materials')}
                             className={`flex-1 py-2 px-3 text-xs font-bold uppercase transition-all border-2 ${activeTab === 'materials'
-                                    ? 'bg-amber-600 border-amber-400 text-white'
-                                    : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
+                                ? 'bg-amber-600 border-amber-400 text-white'
+                                : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
                                 }`}
                         >
                             <span className="flex items-center justify-center gap-1">
@@ -929,10 +929,12 @@ const DungeonTab = memo(function DungeonTab() {
         }
     }, [playerSpiritStones]);
 
-    // Start battle
+    // Start battle with debounce protection
+    const [isBattleDebounced, setIsBattleDebounced] = useState(false);
+
     const handleStartBattle = useCallback(async () => {
-        // Guard: Prevent battle if we're still handling rewards close or already loading
-        if (isHandlingRewardsCloseRef.current || isHandlingRewardsClose) {
+        // Guard: Prevent battle if we're still handling rewards close or already loading or debounced
+        if (isHandlingRewardsCloseRef.current || isHandlingRewardsClose || isBattleDebounced) {
             return;
         }
 
@@ -940,9 +942,54 @@ const DungeonTab = memo(function DungeonTab() {
             return;
         }
 
+        // Debounce: Disable button for 500ms to prevent spam clicks
+        setIsBattleDebounced(true);
+        setTimeout(() => setIsBattleDebounced(false), 500);
+
         try {
             setLoading(true);
-            const response = await api(`/api/cultivation/dungeons/${activeDungeon.id}/battle`, { method: 'POST' });
+
+            // Generate requestId for idempotency (server will cache response)
+            const requestId = crypto.randomUUID();
+
+            const response = await api(`/api/cultivation/dungeons/${activeDungeon.id}/battle`, {
+                method: 'POST',
+                body: JSON.stringify({ requestId })
+            });
+
+            // Handle "busy" status - retry once with new requestId
+            if (response.status === 'busy') {
+                const retryDelay = response.retryAfterMs || 300;
+                setTimeout(async () => {
+                    try {
+                        const retryRequestId = crypto.randomUUID();
+                        const retryResponse = await api(`/api/cultivation/dungeons/${activeDungeon.id}/battle`, {
+                            method: 'POST',
+                            body: JSON.stringify({ requestId: retryRequestId })
+                        });
+
+                        if (retryResponse.success && retryResponse.data) {
+                            setBattleResult(retryResponse.data.battleResult);
+                            battleResultRef.current = retryResponse.data.battleResult;
+                            setRewards(retryResponse.data.rewards);
+                            setIsAnimating(true);
+                            setView('battle');
+
+                            if (retryResponse.data.progress) {
+                                setCurrentFloor(retryResponse.data.progress.currentFloor);
+                                setTotalFloors(retryResponse.data.progress.totalFloors);
+                                battleProgressRef.current = retryResponse.data.progress;
+                            }
+                            nextMonsterRef.current = retryResponse.data.nextMonster || null;
+                        }
+                    } catch (retryErr) {
+                        debugError('[DungeonTab] Retry failed:', retryErr);
+                    } finally {
+                        setLoading(false);
+                    }
+                }, retryDelay);
+                return; // Exit, retry will handle the rest
+            }
 
             if (response.success) {
                 setBattleResult(response.data.battleResult);
@@ -972,7 +1019,7 @@ const DungeonTab = memo(function DungeonTab() {
         } finally {
             setLoading(false);
         }
-    }, [activeDungeon, isHandlingRewardsClose]);
+    }, [activeDungeon, isHandlingRewardsClose, isBattleDebounced]);
 
     // Handle battle complete
     const handleBattleComplete = useCallback(() => {

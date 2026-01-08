@@ -15,6 +15,8 @@ import { formatCultivationResponse, mergeEquipmentStatsIntoCombatStats } from ".
 import { generateMaterialDrops } from "../../services/dropService.js";
 import { addMaterialsToInventory, logMaterialDrop } from "./materialController.js";
 import Equipment from "../../models/Equipment.js";
+import { executeSkill, applyStatusEffects } from "../../services/combatSkillService.js";
+import { simulateBattle } from "../../services/battleEngine.js";
 import {
     calculateActiveModifiers,
     calculateElementSynergy,
@@ -23,7 +25,150 @@ import {
     calculateRewardModifiers,
     reduceDurability
 } from "../../services/modifierService.js";
+import { getClient, isRedisConnected } from "../../services/redisClient.js";
+import { saveWithRetry } from "../../utils/dbUtils.js";
+import crypto from "crypto";
 
+
+// ==================== REDIS LOCK HELPERS (Production-grade) ====================
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Acquire Redis lock with backoff wait (max 2s)
+ * No busy-loop, uses exponential backoff with jitter
+ */
+async function acquireLockWithWait(lockKey, ttlMs = 8000, maxWaitMs = 2000) {
+    const redis = getClient();
+    if (!redis || !isRedisConnected()) {
+        // Fallback: skip lock if Redis unavailable (still use atomic update)
+        return { token: crypto.randomUUID(), acquired: true, fallback: true };
+    }
+
+    const token = crypto.randomUUID();
+    const start = Date.now();
+    let delay = 40;
+
+    while (Date.now() - start < maxWaitMs) {
+        try {
+            const ok = await redis.set(lockKey, token, 'NX', 'PX', ttlMs);
+            if (ok) return { token, acquired: true };
+        } catch (err) {
+            console.error('[Lock] Redis error:', err.message);
+            return { token, acquired: true, fallback: true };
+        }
+
+        // Backoff with jitter
+        const jitter = Math.floor(Math.random() * 20);
+        await sleep(delay + jitter);
+        delay = Math.min(delay + 40, 200);
+    }
+
+    return { token: null, acquired: false };
+}
+
+/**
+ * Release Redis lock safely with token verification
+ */
+async function releaseLock(lockKey, token) {
+    const redis = getClient();
+    if (!redis || !isRedisConnected() || !token) return;
+
+    try {
+        const lua = `
+            if redis.call("get", KEYS[1]) == ARGV[1]
+            then return redis.call("del", KEYS[1])
+            else return 0 end
+        `;
+        await redis.eval(lua, 1, lockKey, token);
+    } catch (err) {
+        console.error('[Lock] Release error:', err.message);
+    }
+}
+
+// ==================== IDEMPOTENCY HELPERS ====================
+
+function respKey(userId, requestId) {
+    return `battle:resp:${userId}:${requestId}`;
+}
+
+async function getCachedResponse(userId, requestId) {
+    if (!requestId) return null;
+    const redis = getClient();
+    if (!redis || !isRedisConnected()) return null;
+
+    try {
+        const cached = await redis.get(respKey(userId, requestId));
+        return cached ? JSON.parse(cached) : null;
+    } catch {
+        return null;
+    }
+}
+
+async function cacheResponse(userId, requestId, response, ttlSec = 30) {
+    if (!requestId) return;
+
+    // Only cache terminal responses - don't cache busy/transient errors
+    const cacheableStatuses = ['applied', 'already_updated'];
+    if (!response.success && !cacheableStatuses.includes(response.status)) {
+        return; // Skip caching busy, transient_error, etc.
+    }
+
+    const redis = getClient();
+    if (!redis || !isRedisConnected()) return;
+
+    try {
+        await redis.set(respKey(userId, requestId), JSON.stringify(response), 'EX', ttlSec);
+    } catch (err) {
+        console.error('[Idempotency] Cache error:', err.message);
+    }
+}
+
+// ==================== ATOMIC BATTLE UPDATE ====================
+
+/**
+ * Apply battle results atomically with floor guard + DB-level idempotency
+ * Returns true if update applied, false if state already changed or duplicate request
+ */
+async function applyBattleAtomic({
+    userId, dungeonId, currentFloor, nextFloor,
+    finalExp, spiritStones, expEntry, isBoss, now, requestId
+}) {
+    const filter = {
+        user: userId,
+        "dungeonProgress.dungeonId": dungeonId,
+        "dungeonProgress.currentFloor": currentFloor, // Guard: only update if floor matches
+    };
+
+    // Add DB-level idempotency guard if requestId provided
+    if (requestId) {
+        filter.recentBattleRequestIds = { $nin: [requestId] };
+    }
+
+    const update = {
+        $inc: {
+            exp: finalExp,
+            spiritStones: spiritStones,
+            totalSpiritStonesEarned: spiritStones,
+            "dungeonStats.totalMonstersKilled": 1,
+            "dungeonStats.totalDungeonExpEarned": finalExp,
+            "dungeonStats.totalDungeonSpiritStonesEarned": spiritStones,
+            ...(isBoss && { "dungeonStats.totalBossesKilled": 1 }),
+        },
+        $set: {
+            "dungeonProgress.$.currentFloor": nextFloor,
+            updatedAt: now,
+        },
+        $push: {
+            expLog: { $each: [expEntry], $slice: -200 },
+            // Store requestId for DB-level idempotency (keep last 50)
+            ...(requestId && { recentBattleRequestIds: { $each: [requestId], $slice: -50 } }),
+        },
+    };
+
+    const result = await Cultivation.updateOne(filter, update);
+    return result.modifiedCount === 1;
+}
 
 /**
  * ==================== DUNGEON CONTROLLER ====================
@@ -92,208 +237,57 @@ const simulateDungeonBattle = async (cultivation, monster, playerSkills = [], mo
 
     const monsterStats = monster.stats;
 
-    // Initialize HP
-    let playerHp = playerStats.qiBlood;
-    let monsterHp = monsterStats.qiBlood;
-    const maxPlayerHp = playerStats.qiBlood;
-    const maxMonsterHp = monsterStats.qiBlood;
+    // Simulate battle using shared engine
+    const battleResult = simulateBattle(playerStats, monsterStats, playerSkills, monsterSkills, { isDungeon: true });
 
-    // Initialize Mana (Chân Nguyên)
-    let playerMana = playerStats.zhenYuan || 1000;
-    let monsterMana = Math.floor((monsterStats.qiBlood || 1000) * 0.5); // Monster mana = 50% of HP
-    const maxPlayerMana = playerMana;
-    const maxMonsterMana = monsterMana;
+    // Map logs to preserve compatibility with Dungeon UI
+    const logs = battleResult.logs.map(log => ({
+        round: log.turn,
+        attacker: log.attacker === 'challenger' ? 'player' : 'monster',
+        action: log.skillUsed ? 'skill' : 'attack',
+        skillUsed: log.skillUsed,
+        damage: log.damage,
+        isCritical: log.isCritical,
+        isDodged: log.isDodged,
+        lifesteal: log.lifestealHealed,
+        // Map HP/Mana
+        playerHpAfter: log.challengerHp,
+        monsterHpAfter: log.opponentHp,
+        playerMana: log.challengerMana,
+        monsterMana: log.opponentMana,
+        manaConsumed: log.manaConsumed,
+        description: log.description
+    }));
 
-    const logs = [];
-    let round = 0;
-    const maxRounds = 50;
-
-    // Skill cooldowns tracking
-    const playerSkillCooldowns = {};
-    const monsterSkillCooldowns = {};
-    playerSkills.forEach(s => playerSkillCooldowns[s.name || s.techniqueId] = 0);
-    monsterSkills.forEach(s => monsterSkillCooldowns[s.name] = 0);
-
-    // Determine who attacks first based on speed
-    let playerFirst = playerStats.speed >= monsterStats.speed;
-
-    while (playerHp > 0 && monsterHp > 0 && round < maxRounds) {
-        round++;
-
-        const attackOrder = playerFirst ? ['player', 'monster'] : ['monster', 'player'];
-
-        for (const attacker of attackOrder) {
-            if (playerHp <= 0 || monsterHp <= 0) break;
-
-            // Reduce cooldowns at start of each action
-            const cooldowns = attacker === 'player' ? playerSkillCooldowns : monsterSkillCooldowns;
-            Object.keys(cooldowns).forEach(key => {
-                if (cooldowns[key] > 0) cooldowns[key]--;
-            });
-
-            // Mana regeneration (5% per turn)
-            if (attacker === 'player') {
-                playerMana = Math.min(maxPlayerMana, playerMana + Math.floor(maxPlayerMana * 0.05));
-            } else {
-                monsterMana = Math.min(maxMonsterMana, monsterMana + Math.floor(maxMonsterMana * 0.05));
-            }
-
-            if (attacker === 'player') {
-                // Player attacks monster
-                const currentMana = playerMana;
-
-                // Check for available skill
-                let usedSkill = null;
-                let skillDamageBonus = 0;
-                let manaConsumed = 0;
-
-                for (const skill of playerSkills) {
-                    const skillKey = skill.name || skill.techniqueId;
-                    const manaCost = skill.manaCost || 20;
-                    if (playerSkillCooldowns[skillKey] <= 0 && currentMana >= manaCost) {
-                        usedSkill = skill;
-                        // Skill damage = base damage + (attack × damageMultiplier)
-                        skillDamageBonus = (skill.damage || 0) + Math.floor(playerStats.attack * (skill.damageMultiplier || 0.5));
-                        manaConsumed = manaCost;
-                        playerSkillCooldowns[skillKey] = skill.cooldown || 3;
-                        playerMana = Math.max(0, playerMana - manaConsumed);
-                        break;
-                    }
-                }
-
-                const isCrit = Math.random() * 100 < playerStats.criticalRate;
-                const isDodged = Math.random() * 100 < monsterStats.dodge;
-
-                if (isDodged) {
-                    logs.push({
-                        round,
-                        attacker: 'player',
-                        action: usedSkill ? 'skill' : 'attack',
-                        skillUsed: usedSkill?.name || usedSkill?.techniqueName || null,
-                        isDodged: true,
-                        damage: 0,
-                        playerMana,
-                        monsterMana,
-                        manaConsumed: manaConsumed > 0 ? manaConsumed : undefined
-                    });
-                } else {
-                    let damage = Math.max(1, playerStats.attack - monsterStats.defense * 0.5);
-
-                    // Add skill damage bonus
-                    if (skillDamageBonus > 0) {
-                        damage += skillDamageBonus;
-                    }
-
-                    if (isCrit) damage = Math.floor(damage * (playerStats.criticalDamage / 100));
-                    damage = Math.floor(damage * (0.9 + Math.random() * 0.2)); // 90-110% variance
-
-                    monsterHp = Math.max(0, monsterHp - damage);
-
-                    // Lifesteal
-                    const lifesteal = Math.floor(damage * (playerStats.lifesteal / 100));
-                    playerHp = Math.min(maxPlayerHp, playerHp + lifesteal);
-
-                    logs.push({
-                        round,
-                        attacker: 'player',
-                        action: usedSkill ? 'skill' : 'attack',
-                        skillUsed: usedSkill?.name || usedSkill?.techniqueName || null,
-                        damage,
-                        isCritical: isCrit,
-                        lifesteal,
-                        monsterHpAfter: monsterHp,
-                        playerHpAfter: playerHp,
-                        playerMana,
-                        monsterMana,
-                        manaConsumed: manaConsumed > 0 ? manaConsumed : undefined
-                    });
-                }
-            } else {
-                // Monster attacks player
-                const currentMana = monsterMana;
-
-                // Check for available skill
-                let usedSkill = null;
-                let skillDamageBonus = 0;
-                let manaConsumed = 0;
-
-                for (const skill of monsterSkills) {
-                    const manaCost = skill.manaCost || 20;
-                    if (monsterSkillCooldowns[skill.name] <= 0 && currentMana >= manaCost) {
-                        usedSkill = skill;
-                        // Monster skill damage = attack × damageMultiplier
-                        skillDamageBonus = Math.floor(monsterStats.attack * (skill.damageMultiplier || 0.5));
-                        manaConsumed = manaCost;
-                        monsterSkillCooldowns[skill.name] = skill.cooldown || 3;
-                        monsterMana = Math.max(0, monsterMana - manaConsumed);
-                        break;
-                    }
-                }
-
-                const isCrit = Math.random() * 100 < (monsterStats.criticalRate || 10);
-                const isDodged = Math.random() * 100 < playerStats.dodge;
-
-                if (isDodged) {
-                    logs.push({
-                        round,
-                        attacker: 'monster',
-                        action: usedSkill ? 'skill' : 'attack',
-                        skillUsed: usedSkill?.name || null,
-                        isDodged: true,
-                        damage: 0,
-                        playerMana,
-                        monsterMana,
-                        manaConsumed: manaConsumed > 0 ? manaConsumed : undefined
-                    });
-                } else {
-                    let damage = Math.max(1, monsterStats.attack - playerStats.defense * 0.5);
-
-                    // Add skill damage bonus
-                    if (skillDamageBonus > 0) {
-                        damage += skillDamageBonus;
-                    }
-
-                    if (isCrit) damage = Math.floor(damage * ((monsterStats.criticalDamage || 150) / 100));
-                    damage = Math.floor(damage * (0.9 + Math.random() * 0.2));
-
-                    playerHp = Math.max(0, playerHp - damage);
-
-                    logs.push({
-                        round,
-                        attacker: 'monster',
-                        action: usedSkill ? 'skill' : 'attack',
-                        skillUsed: usedSkill?.name || null,
-                        damage,
-                        isCritical: isCrit,
-                        playerHpAfter: playerHp,
-                        monsterHpAfter: monsterHp,
-                        playerMana,
-                        monsterMana,
-                        manaConsumed: manaConsumed > 0 ? manaConsumed : undefined
-                    });
-                }
-            }
-        }
-    }
-
-    const playerWon = monsterHp <= 0;
+    // Compute summary fields expected by dungeon UI/controller
+    const maxPlayerHp = playerStats.maxQiBlood || playerStats.qiBlood || 0;
+    const maxMonsterHp = monsterStats.maxQiBlood || monsterStats.qiBlood || 0;
+    const maxPlayerMana = playerStats.maxZhenYuan || playerStats.zhenYuan || 0;
+    const maxMonsterMana = monsterStats.maxZhenYuan || monsterStats.zhenYuan || 0;
+    const finalPlayerHp = battleResult.finalChallengerHp;
+    const finalMonsterHp = battleResult.finalOpponentHp;
+    const lastLog = battleResult.logs[battleResult.logs.length - 1] || {};
+    const finalPlayerMana = lastLog.challengerMana ?? maxPlayerMana;
+    const finalMonsterMana = lastLog.opponentMana ?? maxMonsterMana;
 
     return {
-        won: playerWon,
-        rounds: round,
+        isWin: battleResult.winner === 'challenger',
         logs,
-        finalPlayerHp: playerHp,
-        finalMonsterHp: monsterHp,
+        rounds: battleResult.totalTurns,
+        // Legacy fields expected downstream
+        playerStats,
+        monsterStats,
         maxPlayerHp,
         maxMonsterHp,
-        finalPlayerMana: playerMana,
-        finalMonsterMana: monsterMana,
+        finalPlayerHp,
+        finalMonsterHp,
         maxPlayerMana,
         maxMonsterMana,
-        playerStats,
-        monsterStats
+        finalPlayerMana,
+        finalMonsterMana
     };
 };
+
 
 // ==================== CONTROLLER METHODS ====================
 
@@ -440,7 +434,7 @@ export const enterDungeon = async (req, res, next) => {
             progress.currentRunId = newRun._id;
         }
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         // Get first floor monster
         const firstMonster = selectMonsterForFloor(dungeonId, 1, config.floors);
@@ -534,9 +528,33 @@ export const getCurrentFloor = async (req, res, next) => {
  * Chiến đấu với quái vật tầng hiện tại
  */
 export const battleMonster = async (req, res, next) => {
+    const userId = req.user.id;
+    const { dungeonId } = req.params;
+    const requestId = req.body?.requestId; // Client-generated UUID for idempotency
+    const lockKey = `lock:battle:${userId}`;
+    let lockToken = null;
+
+    // ==================== IDEMPOTENCY FAST-PATH ====================
+    const cachedResp = await getCachedResponse(userId, requestId);
+    if (cachedResp) {
+        return res.json(cachedResp);
+    }
+
+    // ==================== REDIS LOCK WITH BACKOFF (max 2s wait) ====================
+    const { token, acquired } = await acquireLockWithWait(lockKey, 8000, 2000);
+    if (!acquired) {
+        // Không trả lỗi cứng, trả 200 với status busy
+        return res.json({
+            success: false,
+            status: "busy",
+            message: "Đang giao chiến, vui lòng đợi...",
+            retryAfterMs: 300
+        });
+    }
+    lockToken = token;
+
     try {
-        const { dungeonId } = req.params;
-        const cultivation = await Cultivation.getOrCreate(req.user.id);
+        const cultivation = await Cultivation.getOrCreate(userId);
 
         const progress = cultivation.dungeonProgress?.find(p => p.dungeonId === dungeonId);
         if (!progress?.inProgress) {
@@ -593,9 +611,10 @@ export const battleMonster = async (req, res, next) => {
             const technique = TECHNIQUES_MAP.get(learned.techniqueId);
             if (technique && technique.skill) {
                 // Calculate mana cost as percentage of max mana (matching PK system)
-                const manaCostPercentMap = { 'common': 0.15, 'uncommon': 0.20, 'rare': 0.25, 'epic': 0.30, 'legendary': 0.35 };
-                const costPercent = manaCostPercentMap[technique.rarity] || 0.15;
-                const manaCost = Math.max(20, Math.min(Math.floor(maxMana * costPercent), Math.floor(maxMana * 0.4)));
+                // Increase dungeon skill mana cost to reduce burst frequency
+                const manaCostPercentMap = { 'common': 0.10, 'uncommon': 0.12, 'rare': 0.15, 'epic': 0.18, 'legendary': 0.22, 'mythic': 0.25 };
+                const costPercent = manaCostPercentMap[technique.rarity] || 0.10;
+                const manaCost = Math.max(15, Math.min(Math.floor(maxMana * costPercent), Math.floor(maxMana * 0.4)));
 
                 playerSkills.push({
                     ...technique.skill,
@@ -622,7 +641,7 @@ export const battleMonster = async (req, res, next) => {
             return res.status(400).json({ success: false, message: "Không tìm thấy phiên khám phá" });
         }
 
-        if (battleResult.won) {
+        if (battleResult.isWin) {
             // Calculate rewards
             const rewards = calculateFloorRewards(dungeon.difficulty, currentFloor, monster.type);
             let itemDropped = null;
@@ -875,9 +894,10 @@ export const battleMonster = async (req, res, next) => {
             cultivation.updateQuestProgress('dungeon_floor', 1);
 
             await run.save();
-            await cultivation.save();
+            await saveWithRetry(cultivation);
 
-            res.json({
+            // Build response
+            const response = {
                 success: true,
                 data: {
                     won: true,
@@ -918,7 +938,12 @@ export const battleMonster = async (req, res, next) => {
                     },
                     nextMonster // Include next monster for seamless floor transition
                 }
-            });
+            };
+
+            // Cache response for idempotency (30s TTL)
+            await cacheResponse(userId, requestId, response, 30);
+
+            res.json(response);
         } else {
             // Player lost - dungeon failed
             progress.inProgress = false;
@@ -939,7 +964,7 @@ export const battleMonster = async (req, res, next) => {
             });
 
             await run.save();
-            await cultivation.save();
+            await saveWithRetry(cultivation);
 
             res.json({
                 success: true,
@@ -976,6 +1001,9 @@ export const battleMonster = async (req, res, next) => {
         }
     } catch (error) {
         next(error);
+    } finally {
+        // Release Redis lock
+        await releaseLock(lockKey, lockToken);
     }
 };
 
@@ -1012,7 +1040,7 @@ export const claimRewardsAndExit = async (req, res, next) => {
         // Full cooldown on voluntary exit
         progress.cooldownUntil = new Date(Date.now() + config.cooldownHours * 60 * 60 * 1000);
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         // Log Thiên Hạ Ký event
         if (dungeon.difficulty !== 'easy') { // Chỉ log khó trở lên để tránh spam
@@ -1070,7 +1098,7 @@ export const abandonDungeon = async (req, res, next) => {
         progress.currentRunId = null;
         progress.cooldownUntil = new Date(Date.now() + (config.cooldownHours * 30 * 60 * 1000)); // Half cooldown
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         res.json({
             success: true,

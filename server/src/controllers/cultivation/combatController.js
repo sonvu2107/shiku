@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES, SHOP_ITEMS_MAP } from "../../models/Cultivation.js";
 import { formatCultivationResponse, mergeEquipmentStatsIntoCombatStats, invalidateCultivationCache } from "./coreController.js";
 import { logBreakthroughEvent } from "./worldEventController.js";
+import { saveWithRetry } from "../../utils/dbUtils.js";
 
 const hasAdminAccess = async (user) => {
     if (!user) return false;
@@ -98,7 +99,7 @@ export const practiceTechnique = async (req, res, next) => {
         if (!techniqueId) return res.status(400).json({ success: false, message: 'Vui lòng chọn công pháp' });
         const cultivation = await Cultivation.getOrCreate(req.user.id);
         const result = cultivation.practiceTechnique(techniqueId, expGain || 10);
-        await cultivation.save();
+        await saveWithRetry(cultivation);
         res.json({ success: true, message: result.leveledUp ? `Công pháp lên cấp ${result.newLevel}!` : `Luyện thành công!`, data: result });
     } catch (error) { next(error); }
 };
@@ -170,7 +171,7 @@ export const startPracticeSession = async (req, res, next) => {
             claimedAt: null
         };
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         res.json({
             success: true,
@@ -257,7 +258,7 @@ export const claimPracticeSession = async (req, res, next) => {
         // Clear session để có thể bắt đầu phiên mới
         cultivation.activePracticeSession = null;
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         const totalExpEarned = techniqueIds.length * expPerTechnique;
 
@@ -385,7 +386,7 @@ export const breakthrough = async (req, res, next) => {
 
             cultivation.updateQuestProgress('realm', nextRealm.level);
 
-            await cultivation.save();
+            await saveWithRetry(cultivation);
             invalidateCultivationCache(userId).catch(() => { });
 
             // Log Thiên Hạ Ký event
@@ -398,7 +399,7 @@ export const breakthrough = async (req, res, next) => {
             cultivation.breakthroughFailureCount = (cultivation.breakthroughFailureCount || 0) + 1;
             cultivation.breakthroughCooldownUntil = new Date(now.getTime() + 3600000);
             cultivation.breakthroughSuccessRate = baseSuccessRate;
-            await cultivation.save();
+            await saveWithRetry(cultivation);
             invalidateCultivationCache(userId).catch(() => { });
 
             // Log Thiên Hạ Ký event (chỉ log fail ở cảnh giới cao)

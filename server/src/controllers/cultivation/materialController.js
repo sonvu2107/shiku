@@ -5,6 +5,7 @@
 
 import Cultivation from '../../models/Cultivation.js';
 import { DropLog, MATERIAL_TEMPLATES, MATERIAL_TEMPLATES_MAP } from '../../models/Material.js';
+import { saveWithRetry } from '../../utils/dbUtils.js';
 
 /**
  * GET /api/cultivation/materials/catalog
@@ -170,7 +171,7 @@ export const addMaterialsToInventory = async (userId, drops) => {
         }
     }
 
-    await cultivation.save();
+    await saveWithRetry(cultivation);
 
     return {
         added: addedMaterials.length,

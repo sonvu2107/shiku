@@ -4,6 +4,7 @@ import { consumeExpCap, checkClickCooldown, getCapByRealm, getExpCapRemaining } 
 import { getClient, isRedisConnected, redisConfig } from "../../services/redisClient.js";
 import { logRareEncounterEvent } from "./worldEventController.js";
 import { getDisplayConfig, DEBUFF_TYPES } from "../../data/tierConfig.js";
+import { saveWithRetry } from "../../utils/dbUtils.js";
 import mongoose from "mongoose";
 
 // Cache TTL for passive exp status (seconds)
@@ -400,7 +401,7 @@ export const addExp = async (req, res, next) => {
 
             expEarned = allowedExp;
             cultivation.updateQuestProgress('yinyang_click', 1);
-            await cultivation.save(); // Save quest progress separately
+            await saveWithRetry(cultivation); // Save quest progress separately
         }
 
         // ==================== ATOMIC UPDATE CULTIVATION ====================

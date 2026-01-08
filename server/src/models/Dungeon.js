@@ -421,7 +421,7 @@ const getDungeonRequiredRealm = (dungeonId) => {
  */
 export const calculateMonsterStats = (monster, floor, difficulty, dungeonId = null, playerStats = null) => {
     const config = DIFFICULTY_CONFIG[difficulty];
-    const floorMultiplier = 1 + (floor - 1) * 0.12; // +12% per floor
+    const floorMultiplier = 1 + (floor - 1) * 0.08; // REDUCED: +8% per floor (was +12%)
 
     // Special handling for chaos realm - THE HARDEST DUNGEON
     // Monsters scale based on player stats, ALWAYS stronger than player
@@ -460,6 +460,8 @@ export const calculateMonsterStats = (monster, floor, difficulty, dungeonId = nu
                 defense: Math.floor(baseDefense * randomMultiplier * typeMultiplier * floorScale * defenseReduction),
                 qiBlood: Math.floor(baseQiBlood * randomMultiplier * typeMultiplier * floorScale * hpReduction),
                 maxQiBlood: Math.floor(baseQiBlood * randomMultiplier * typeMultiplier * floorScale * hpReduction),
+                zhenYuan: Math.floor(baseQiBlood * randomMultiplier * typeMultiplier * floorScale * 0.5),
+                maxZhenYuan: Math.floor(baseQiBlood * randomMultiplier * typeMultiplier * floorScale * 0.5),
                 // Speed: 85-105% of player - sometimes monster attacks first!
                 speed: Math.floor((playerStats.speed || 50) * (0.85 + Math.random() * 0.2)),
                 // Higher crit rate than before, but still capped below typical player crit
@@ -489,21 +491,23 @@ export const calculateMonsterStats = (monster, floor, difficulty, dungeonId = nu
     const monsterBaseStats = monster.baseStats;
 
     // Monster stats = realm base * monster type multiplier * floor * difficulty
-    // Normal mob: 80-100% of realm stats
-    // Elite mob: 120-150% of realm stats  
-    // Boss: 200-300% of realm stats
+    // REDUCED SCALING for better balance:
+    // Normal mob: 70-90% of realm stats
+    // Elite mob: 100-120% of realm stats  
+    // Boss: 150-180% of realm stats
     let typeMultiplier = 1.0;
     if (monster.isElite || monster.type === 'elite') {
-        typeMultiplier = 1.4;
+        typeMultiplier = 1.25; // Reduced from 1.4
     } else if (monster.isBoss || monster.type === 'boss') {
-        typeMultiplier = 2.5;
+        typeMultiplier = 2.0; // Reduced from 2.5
     }
 
     // Calculate final stats using realm base with monster-specific variance
+    // REDUCED VARIANCE divisors for lower multipliers
     const monsterVariance = {
-        attack: monsterBaseStats.attack / 10, // Use baseStats as variance factor
-        defense: monsterBaseStats.defense / 5,
-        qiBlood: monsterBaseStats.qiBlood / 100
+        attack: monsterBaseStats.attack / 15, // Changed from /10 (lower attack)
+        defense: monsterBaseStats.defense / 8, // Changed from /5 (lower defense)
+        qiBlood: monsterBaseStats.qiBlood / 150 // Changed from /100 (lower HP)
     };
 
     return {
@@ -513,10 +517,12 @@ export const calculateMonsterStats = (monster, floor, difficulty, dungeonId = nu
             defense: Math.floor(realmStats.defense * monsterVariance.defense * typeMultiplier * floorMultiplier * difficultyMultiplier),
             qiBlood: Math.floor(realmStats.qiBlood * monsterVariance.qiBlood * typeMultiplier * floorMultiplier * difficultyMultiplier),
             maxQiBlood: Math.floor(realmStats.qiBlood * monsterVariance.qiBlood * typeMultiplier * floorMultiplier * difficultyMultiplier),
-            speed: 10 + realmLevel * 3 + floor * 2,
-            criticalRate: 5 + realmLevel + floor,
-            criticalDamage: 150 + realmLevel * 10 + floor * 5,
-            dodge: 5 + realmLevel + Math.floor(floor / 2)
+            zhenYuan: Math.floor(realmStats.qiBlood * monsterVariance.qiBlood * typeMultiplier * floorMultiplier * difficultyMultiplier * 0.5),
+            maxZhenYuan: Math.floor(realmStats.qiBlood * monsterVariance.qiBlood * typeMultiplier * floorMultiplier * difficultyMultiplier * 0.5),
+            speed: 10 + realmLevel * 2 + floor, // Reduced speed scaling
+            criticalRate: 3 + realmLevel + Math.floor(floor / 2), // Reduced crit
+            criticalDamage: 130 + realmLevel * 8 + floor * 3, // Reduced crit damage
+            dodge: 3 + Math.floor(realmLevel / 2) + Math.floor(floor / 3) // Reduced dodge
         }
     };
 };

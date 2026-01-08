@@ -11,6 +11,7 @@ import {
     previewCraft,
     CRAFTABLE_EQUIPMENT_TYPES
 } from '../../services/craftService.js';
+import { saveWithRetry } from '../../utils/dbUtils.js';
 
 // ==================== CRAFT LOG SCHEMA ====================
 const CraftLogSchema = new mongoose.Schema({
@@ -293,7 +294,7 @@ export const executeCrafting = async (req, res, next) => {
             }
         });
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         // Log craft
         try {

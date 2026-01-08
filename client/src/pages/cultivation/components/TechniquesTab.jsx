@@ -659,7 +659,7 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                   {/* Action buttons */}
                   <div className="flex gap-2">
                     {/* Chưa học + có thể unlock */}
-                    {!isLearned && canUnlock && (
+                    {!isLearned && (tech.isUnlocked !== false ? canUnlock : tech.isUnlocked) && (
                       <button
                         onClick={() => handleLearnCultTechnique(tech.id)}
                         className="flex-1 py-2 rounded-lg text-xs font-bold uppercase bg-gradient-to-r from-emerald-700 to-emerald-900 text-emerald-100 border border-emerald-500/30 hover:from-emerald-600 hover:to-emerald-800 transition-all"
@@ -669,9 +669,9 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                     )}
 
                     {/* Chưa học + chưa đủ điều kiện */}
-                    {!isLearned && !canUnlock && (
-                      <span className="flex-1 py-2 text-center text-xs text-slate-500 bg-slate-900/50 rounded-lg border border-slate-700/30">
-                        {tech.unlockReason || 'Chưa đủ tu vi'}
+                    {!isLearned && !(tech.isUnlocked !== false ? canUnlock : tech.isUnlocked) && (
+                      <span className="flex-1 py-2 text-center text-xs text-red-400 bg-red-900/20 rounded-lg border border-red-500/30">
+                        {tech.unlockRequirement || tech.unlockReason || 'Chưa đủ tu vi'}
                       </span>
                     )}
 

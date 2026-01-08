@@ -804,6 +804,15 @@ const SectTab = memo(function SectTab({ user }) {
                                                             Giáng
                                                         </button>
                                                     )}
+                                                    {membership?.role === 'owner' && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleMemberAction('transfer', m.user?._id, m.user?.name); }}
+                                                            disabled={actionLoading?.startsWith('transfer-')}
+                                                            className="px-2 py-1 text-[10px] bg-amber-900/50 hover:bg-amber-800 text-amber-200 rounded border border-amber-500/30 disabled:opacity-50"
+                                                        >
+                                                            Chuyển quyền
+                                                        </button>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

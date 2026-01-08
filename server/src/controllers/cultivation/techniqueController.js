@@ -19,8 +19,10 @@ import {
     getAvailableTechniques
 } from "../../data/cultivationTechniques.js";
 import { TECHNIQUES_MAP } from "../../data/shopItems.js";
+import { isTechniqueUnlocked, getUnlockRequirementText } from "../../services/techniqueUnlockService.js";
 import crypto from "crypto";
 import { getClient, isRedisConnected, redisConfig } from "../../services/redisClient.js";
+import { saveWithRetry } from "../../utils/dbUtils.js";
 
 // Cache TTL for techniques list (seconds)
 const TECHNIQUES_CACHE_TTL = 10;
@@ -60,6 +62,19 @@ export const listTechniques = async (req, res, next) => {
 
         const techniques = getAvailableTechniques(cultivation, userProgress);
 
+        // Add unlock status for techniques from TECHNIQUES_MAP (new system)
+        const enrichedTechniques = techniques.map(tech => {
+            const shopTech = TECHNIQUES_MAP.get(tech.id);
+            if (shopTech && shopTech.unlockCondition) {
+                return {
+                    ...tech,
+                    isUnlocked: isTechniqueUnlocked(shopTech, cultivation),
+                    unlockRequirement: getUnlockRequirementText(shopTech.unlockCondition)
+                };
+            }
+            return { ...tech, isUnlocked: true }; // Legacy techniques always unlocked if available
+        });
+
         // Check active session còn hạn không
         let activeSession = null;
         if (cultivation.activeTechniqueSession?.sessionId) {
@@ -82,7 +97,7 @@ export const listTechniques = async (req, res, next) => {
         const result = {
             success: true,
             data: {
-                techniques,
+                techniques: enrichedTechniques,
                 learned: cultivation.learnedTechniques || [],
                 equippedEfficiency: cultivation.equippedEfficiencyTechnique,
                 activeSession
@@ -132,20 +147,34 @@ export const learnTechnique = async (req, res, next) => {
             });
         }
 
-        // Check điều kiện unlock
-        const dungeonProgressArray = cultivation.dungeonProgress || [];
-        const maxDungeonFloor = dungeonProgressArray.reduce((max, p) => Math.max(max, p.highestFloor || 0), 0);
-        const userProgress = {
-            maxDungeonFloor,
-            completedQuests: []
-        };
+        // Check điều kiện unlock - Try new system first (for shopItems techniques)
+        const shopTechnique = TECHNIQUES_MAP.get(techniqueId);
+        if (shopTechnique && shopTechnique.unlockCondition) {
+            // New unlock system for techniques from shopItems.js
+            const isUnlocked = isTechniqueUnlocked(shopTechnique, cultivation);
+            if (!isUnlocked) {
+                const requirement = getUnlockRequirementText(shopTechnique.unlockCondition);
+                return res.status(403).json({
+                    success: false,
+                    message: requirement || "Chưa đủ điều kiện lĩnh ngộ"
+                });
+            }
+        } else {
+            // Old unlock system for legacy techniques
+            const dungeonProgressArray = cultivation.dungeonProgress || [];
+            const maxDungeonFloor = dungeonProgressArray.reduce((max, p) => Math.max(max, p.highestFloor || 0), 0);
+            const userProgress = {
+                maxDungeonFloor,
+                completedQuests: []
+            };
 
-        const { canUnlock, reason } = checkUnlockCondition(technique, cultivation, userProgress);
-        if (!canUnlock) {
-            return res.status(400).json({
-                success: false,
-                message: reason || "Chưa đủ điều kiện lĩnh ngộ"
-            });
+            const { canUnlock, reason } = checkUnlockCondition(technique, cultivation, userProgress);
+            if (!canUnlock) {
+                return res.status(400).json({
+                    success: false,
+                    message: reason || "Chưa đủ điều kiện lĩnh ngộ"
+                });
+            }
         }
 
         // Học công pháp
@@ -157,7 +186,7 @@ export const learnTechnique = async (req, res, next) => {
             learnedAt: new Date()
         });
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         // Invalidate both caches
         invalidateCultivationCache(userId).catch(() => { });
@@ -196,7 +225,7 @@ export const equipTechnique = async (req, res, next) => {
         if (techniqueId === null || techniqueId === '') {
             const cultivation = await Cultivation.getOrCreate(userId);
             cultivation.equippedEfficiencyTechnique = null;
-            await cultivation.save();
+            await saveWithRetry(cultivation);
             return res.json({ success: true, message: "Đã tháo công pháp" });
         }
 
@@ -226,7 +255,7 @@ export const equipTechnique = async (req, res, next) => {
         }
 
         cultivation.equippedEfficiencyTechnique = techniqueId;
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         // Invalidate cache
         invalidateCultivationCache(userId).catch(() => { });
@@ -320,7 +349,7 @@ export const activateTechnique = async (req, res, next) => {
             claimedAt: null
         };
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         // Estimate EXP: 1 giây = 1 click (dùng trung bình click EXP của cảnh giới)
         const expRanges = {
@@ -483,7 +512,7 @@ export const claimTechnique = async (req, res, next) => {
             learnedTechnique.lastPracticedAt = new Date();
         }
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         // Invalidate cache
         invalidateCultivationCache(userId).catch(() => { });
@@ -622,7 +651,7 @@ export const equipCombatSlot = async (req, res, next) => {
             });
         }
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         // Invalidate cache
         invalidateCultivationCache(userId).catch(() => { });
@@ -676,7 +705,7 @@ export const unequipCombatSlot = async (req, res, next) => {
         }
 
         cultivation.equippedCombatTechniques.splice(slotIdx, 1);
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         // Invalidate cache
         invalidateCultivationCache(userId).catch(() => { });

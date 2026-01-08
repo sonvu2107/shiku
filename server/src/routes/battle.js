@@ -94,18 +94,19 @@ const getManaCostByRarity = (rarity, maxMana = 1000) => {
   // Mana cost as percentage of max mana based on rarity
   // Higher rarity = higher cost but more powerful skill
   const manaCostPercentMap = {
-    'common': 0.15,      // 15% max mana
-    'uncommon': 0.20,    // 20% max mana
-    'rare': 0.25,        // 25% max mana
-    'epic': 0.30,        // 30% max mana
-    'legendary': 0.35    // 35% max mana
+    'common': 0.05,      // 5% max mana
+    'uncommon': 0.08,    // 8% max mana
+    'rare': 0.10,        // 10% max mana
+    'epic': 0.12,        // 12% max mana
+    'legendary': 0.15,   // 15% max mana
+    'mythic': 0.20       // 20% max mana
   };
 
-  const costPercent = manaCostPercentMap[rarity] || 0.15;
+  const costPercent = manaCostPercentMap[rarity] || 0.05;
   const manaCost = Math.floor(maxMana * costPercent);
 
-  // Minimum cost is 20, maximum is 40% of max mana
-  return Math.max(20, Math.min(manaCost, Math.floor(maxMana * 0.4)));
+  // Minimum cost is 5, maximum is 40% of max mana
+  return Math.max(5, Math.min(manaCost, Math.floor(maxMana * 0.4)));
 };
 
 /**
@@ -210,6 +211,12 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
   challengerSkills.forEach(s => challengerSkillCooldowns[s.techniqueId] = 0);
   opponentSkills.forEach(s => opponentSkillCooldowns[s.techniqueId] = 0);
 
+  // Buff/Debuff tracking
+  let challengerBuffs = [];
+  let challengerDebuffs = [];
+  let opponentBuffs = [];
+  let opponentDebuffs = [];
+
   // Ai nhanh hơn sẽ đánh trước
   let currentAttacker = challengerStats.speed >= opponentStats.speed ? 'challenger' : 'opponent';
 
@@ -242,10 +249,12 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
     let skillResult = null; // Full skill effects from combatSkillService
     let manaConsumed = 0;
     for (const skill of attackerSkills) {
-      if (attackerCooldowns[skill.techniqueId] <= 0 && attackerMana >= (skill.manaCost || 20)) {
+
+
+      if (attackerCooldowns[skill.techniqueId] <= 0 && attackerMana >= (skill.manaCost !== undefined ? skill.manaCost : 10)) {
         // Use this skill
         usedSkill = skill;
-        manaConsumed = skill.manaCost || 20;
+        manaConsumed = skill.manaCost !== undefined ? skill.manaCost : 10;
         attackerCooldowns[skill.techniqueId] = skill.cooldown || 3;
 
         // Execute skill with full effects (healing, buffs, debuffs, etc.)
@@ -281,15 +290,53 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
           }
         }
 
+        // Collect buffs for attacker
+        if (skillResult && skillResult.buffs && skillResult.buffs.length > 0) {
+          if (currentAttacker === 'challenger') {
+            challengerBuffs.push(...skillResult.buffs);
+          } else {
+            opponentBuffs.push(...skillResult.buffs);
+          }
+        }
+
+        // Collect debuffs for defender
+        if (skillResult && skillResult.debuffs && skillResult.debuffs.length > 0) {
+          if (currentAttacker === 'challenger') {
+            opponentDebuffs.push(...skillResult.debuffs);
+          } else {
+            challengerDebuffs.push(...skillResult.debuffs);
+          }
+        }
+
         break;
+      }
+    }
+
+    // Apply active buffs/debuffs to stats before attack
+    let effectiveAttacker = { ...attacker };
+    let effectiveDefender = { ...defender };
+
+    if (currentAttacker === 'challenger') {
+      if (challengerBuffs.length > 0) {
+        effectiveAttacker = applyStatusEffects(effectiveAttacker, challengerBuffs);
+      }
+      if (opponentDebuffs.length > 0) {
+        effectiveDefender = applyStatusEffects(effectiveDefender, opponentDebuffs);
+      }
+    } else {
+      if (opponentBuffs.length > 0) {
+        effectiveAttacker = applyStatusEffects(effectiveAttacker, opponentBuffs);
+      }
+      if (challengerDebuffs.length > 0) {
+        effectiveDefender = applyStatusEffects(effectiveDefender, challengerDebuffs);
       }
     }
 
     // Tính toán né tránh (improved formula)
     // OLD: hitChance = (accuracy - dodge) / 100 -> 100 accuracy vs 50 dodge = 50% hit (too low!)
     // NEW: Use multiplicative formula - accuracy reduces dodge effectiveness
-    const accuracyFactor = Math.min((attacker.accuracy || 100) / 100, 1.5);
-    const dodgeReduction = (defender.dodge || 0) / ((defender.dodge || 0) + (attacker.accuracy || 100));
+    const accuracyFactor = Math.min((effectiveAttacker.accuracy || 100) / 100, 1.5);
+    const dodgeReduction = (effectiveDefender.dodge || 0) / ((effectiveDefender.dodge || 0) + (effectiveAttacker.accuracy || 100));
     const hitChance = accuracyFactor * (1 - dodgeReduction);
     const isDodged = Math.random() > Math.max(0.3, Math.min(hitChance, 0.95));
 
@@ -302,16 +349,43 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
 
     // Regeneration: Hồi máu nhẹ mỗi turn (không quá imba)
     // Giới hạn max 5% HP/turn để tránh trận đấu kéo dài vô tận
-    if (attacker.regeneration > 0) {
+    if ((attacker.regeneration || 0) > 0) {
       const maxHp = currentAttacker === 'challenger' ? challengerMaxHp : opponentMaxHp;
-      const regenRate = Math.min(attacker.regeneration, 5); // Max 5%
+      const regenRate = Math.min(attacker.regeneration || 0, 5); // Max 5%
       regenerationHealed = Math.floor(maxHp * regenRate / 100);
     }
 
-    if (!isDodged) {
+
+    // Kiểm tra Stun (trước khi đánh)
+    if (effectiveAttacker.stunned) {
+      logs.push({
+        turn,
+        attacker: currentAttacker,
+        description: `Bị choáng! Không thể hành động!`,
+        isStunned: true,
+        challengerHp: Math.floor(challengerHp),
+        opponentHp: Math.floor(opponentHp),
+        challengerMana: Math.floor(challengerMana),
+        opponentMana: Math.floor(opponentMana),
+        skillUsed: null
+      });
+      // Skip turn nhưng vẫn tính regeneration/poison cuối turn nếu muốn...
+      // Ở đây logic đơn giản là skip phase tấn công
+    }
+
+    if (!isDodged && !effectiveAttacker.stunned) {
       // Tính sát thương cơ bản: Attack - (Defense * (1 - Penetration/100))
-      const effectiveDefense = defender.defense * (1 - Math.min(attacker.penetration, 80) / 100);
-      damage = Math.max(1, attacker.attack - effectiveDefense * 0.5);
+      // Handle Ignore Defense
+      let effectiveDefense = defender.defense || 0;
+      if (effectiveAttacker.ignoreDef) {
+        effectiveDefense = 0;
+      } else {
+        const penetration = attacker.penetration || 0;
+        effectiveDefense = effectiveDefense * (1 - Math.min(penetration, 80) / 100);
+      }
+
+      // Improved defense scaling: DEF now reduces 70% of its value from damage
+      damage = Math.max(1, (attacker.attack || 0) - effectiveDefense * 0.7);
 
       // Thêm skill damage bonus
       if (skillDamageBonus > 0) {
@@ -319,64 +393,161 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
       }
 
       // Giảm sát thương theo kháng tính
-      damage = damage * (1 - Math.min(defender.resistance, 50) / 100);
+      const resistance = defender.resistance || 0;
+      damage = damage * (1 - Math.min(resistance, 50) / 100);
 
-      // Critical hit
-      if (Math.random() * 100 < attacker.criticalRate) {
-        isCritical = true;
-        damage = damage * (attacker.criticalDamage / 100);
+      // Handle Invulnerable
+      if (effectiveDefender.invulnerable) {
+        damage = 0;
+        description += " [Bất Tử - Ngăn chặn sát thương!]";
       }
 
-      // Thêm random 10%
-      damage = Math.floor(damage * (0.9 + Math.random() * 0.2));
-      damage = Math.max(1, damage);
+      // Critical hit (chỉ check nếu damage > 0)
+      if (damage > 0) {
+        const critRate = attacker.criticalRate || 0;
+        const critDamage = attacker.criticalDamage || 150; // Default 150%
+        if (Math.random() * 100 < critRate) {
+          isCritical = true;
+          damage = damage * (critDamage / 100);
+        }
 
-      // Lifesteal (chỉ hoạt động khi tấn công thành công)
-      if (attacker.lifesteal > 0) {
-        lifestealHealed = Math.floor(damage * attacker.lifesteal / 100);
+        // Thêm random 10%
+        damage = Math.floor(damage * (0.9 + Math.random() * 0.2));
+        damage = Math.max(1, damage);
+
+        // ========== FINAL DAMAGE CAP (Prevent 1-hit kills) ==========
+        // Cap damage at 20% of defender's max HP per hit AFTER all multipliers
+        const defenderMaxHpForCap = currentAttacker === 'challenger' ? opponentMaxHp : challengerMaxHp;
+        const maxDamagePerHit = Math.floor(defenderMaxHpForCap * 0.20);
+        if (damage > maxDamagePerHit) {
+          damage = maxDamagePerHit;
+          description += " [Damage Capped]";
+        }
+
+        // Handle Shield (Absorb damage)
+        if (effectiveDefender.shield > 0) {
+          const absorbed = Math.min(damage, effectiveDefender.shield);
+          damage -= absorbed;
+          description += ` [Lá chắn chặn ${absorbed}]`;
+        }
+      }
+
+      // Lifesteal (chỉ hoạt động khi tấn công thành công và gây damage > 0)
+      if (damage > 0 && (attacker.lifesteal || 0) > 0) {
+        lifestealHealed = Math.floor(damage * (attacker.lifesteal || 0) / 100);
       }
     }
 
     // Áp dụng sát thương và hồi máu
-    if (currentAttacker === 'challenger') {
-      opponentHp = Math.max(0, opponentHp - damage);
-      challengerHp = Math.min(challengerMaxHp, challengerHp + lifestealHealed + regenerationHealed);
-      totalDamageByChallenger += damage;
-    } else {
-      // Khi opponent đánh challenger, apply damage reduction từ nghịch thiên
-      let incomingDamage = damage;
-      if (nghichThienMeta && nghichThienMeta.damageReduction > 0) {
-        incomingDamage = Math.floor(damage * (1 - nghichThienMeta.damageReduction));
+    let actualDamageDealt = 0;
+    if (!effectiveAttacker.stunned) {
+      if (currentAttacker === 'challenger') {
+        // Apply Defender's Damage Reduction Buff (Thiết Bốc, Đại Địa Hộ, etc.)
+        let incomingDamage = damage;
+        if ((effectiveDefender.damageReduction || 0) > 0) {
+          const reduction = Math.min(effectiveDefender.damageReduction, 0.75);
+          incomingDamage = Math.floor(incomingDamage * (1 - reduction));
+        }
+        opponentHp = Math.max(0, opponentHp - incomingDamage);
+        actualDamageDealt = incomingDamage;
+        challengerHp = Math.min(challengerMaxHp, challengerHp + lifestealHealed + regenerationHealed);
+        totalDamageByChallenger += incomingDamage;
+      } else {
+        // Khi opponent đánh challenger, apply damage reduction từ buff và nghịch thiên
+        let incomingDamage = damage;
+        // Apply Defender's Damage Reduction Buff
+        if ((effectiveDefender.damageReduction || 0) > 0) {
+          const reduction = Math.min(effectiveDefender.damageReduction, 0.75);
+          incomingDamage = Math.floor(incomingDamage * (1 - reduction));
+        }
+        // Special Nghịch Thiên reduction
+        if (nghichThienMeta && nghichThienMeta.damageReduction > 0) {
+          incomingDamage = Math.floor(incomingDamage * (1 - nghichThienMeta.damageReduction));
+        }
+        challengerHp = Math.max(0, challengerHp - incomingDamage);
+        actualDamageDealt = incomingDamage;
+        opponentHp = Math.min(opponentMaxHp, opponentHp + lifestealHealed + regenerationHealed);
+        totalDamageByOpponent += incomingDamage;
       }
-      challengerHp = Math.max(0, challengerHp - incomingDamage);
-      opponentHp = Math.min(opponentMaxHp, opponentHp + lifestealHealed + regenerationHealed);
-      totalDamageByOpponent += incomingDamage;
+    } else {
+      // Stunned: Regen only
+      if (currentAttacker === 'challenger') {
+        challengerHp = Math.min(challengerMaxHp, challengerHp + regenerationHealed);
+      } else {
+        opponentHp = Math.min(opponentMaxHp, opponentHp + regenerationHealed);
+      }
+    }
+
+    // Handle Reflect Damage (Phản Đòn)
+    if (!isDodged && !effectiveAttacker.stunned && actualDamageDealt > 0 && effectiveDefender.reflectDamage > 0) {
+      const reflected = Math.floor(actualDamageDealt * effectiveDefender.reflectDamage);
+      if (currentAttacker === 'challenger') {
+        challengerHp = Math.max(0, challengerHp - reflected);
+        description += ` [Bị phản ${reflected} sát thương!]`;
+      } else {
+        opponentHp = Math.max(0, opponentHp - reflected);
+        description += ` [Bị phản ${reflected} sát thương!]`;
+      }
+    }
+
+    // Handle Poison (DOT) - Check opponent debuffs for 'poison'
+    // opponentDebuffs if attacker is challenger, etc.
+    // logic: "At end of turn, current attacker/defender takes poison dmg?"
+    // Usually Poison ticks on Victim's turn start or end.
+    // Let's implement: Both sides check poison at end of turn.
+    let poisonDamage = 0;
+    // Check poison on Challenger
+    challengerDebuffs.forEach(d => {
+      if (d.type === 'poison') {
+        // 1% per tick of MAX HP? Or value stored?
+        // Service: damagePerTick: 0.01 (1%)
+        const pDmg = Math.floor(challengerMaxHp * (d.damagePerTick || 0.01));
+        challengerHp = Math.max(0, challengerHp - pDmg);
+        poisonDamage += pDmg;
+      }
+    });
+    // Check poison on Opponent
+    opponentDebuffs.forEach(d => {
+      if (d.type === 'poison') {
+        const pDmg = Math.floor(opponentMaxHp * (d.damagePerTick || 0.01));
+        opponentHp = Math.max(0, opponentHp - pDmg);
+        poisonDamage += pDmg; // Accumulate or log separately?
+      }
+    });
+    if (poisonDamage > 0) {
+      // description += ` [Độc sát: -${poisonDamage}]`;
+      // Hard to attribute description to specific log entry since log is per turn (attacker centered).
+      // Maybe just let HP update reflect it.
     }
 
     // Tạo mô tả
-    if (isDodged) {
-      description = `Đòn đánh bị né tránh!`;
-      // Hiển thị regeneration nếu có
-      if (regenerationHealed > 0) description += ` Hồi ${regenerationHealed} máu`;
-    } else if (usedSkill) {
-      description = `Sử dụng [${usedSkill.name}]! ${isCritical ? 'Chí mạng! ' : ''}Gây ${damage} sát thương`;
-      if (manaConsumed > 0) description += ` (Tốn ${manaConsumed} chân nguyên)`;
-      // Skill effects
-      if (skillResult && skillResult.healing > 0) description += `, hồi ${skillResult.healing} HP`;
-      if (skillResult && skillResult.manaRestore > 0) description += `, +${skillResult.manaRestore} MP`;
-      if (skillResult && skillResult.effects && skillResult.effects.length > 0) description += ` [${skillResult.effects.join(', ')}]`;
-      if (lifestealHealed > 0) description += `, hút ${lifestealHealed} máu`;
-      if (regenerationHealed > 0) description += `, tái sinh ${regenerationHealed} máu`;
-    } else if (isCritical) {
-      description = `Chí mạng! Gây ${damage} sát thương`;
-      if (lifestealHealed > 0) description += `, hút ${lifestealHealed} máu`;
-      if (regenerationHealed > 0) description += `, hồi ${regenerationHealed} máu`;
+    if (!effectiveAttacker.stunned) {
+      if (isDodged) {
+        description = `Đòn đánh bị né tránh!`;
+        // Hiển thị regeneration nếu có
+        if (regenerationHealed > 0) description += ` Hồi ${regenerationHealed} máu`;
+      } else if (usedSkill) {
+        description = `Sử dụng [${usedSkill.name}]! ${isCritical ? 'Chí mạng! ' : ''}Gây ${damage} sát thương`;
+        if (manaConsumed > 0) description += ` (Tốn ${manaConsumed} chân nguyên)`;
+        // Skill effects
+        if (skillResult && skillResult.healing > 0) description += `, hồi ${skillResult.healing} HP`;
+        if (skillResult && skillResult.manaRestore > 0) description += `, +${skillResult.manaRestore} MP`;
+        if (skillResult && skillResult.effects && skillResult.effects.length > 0) description += ` [${skillResult.effects.join(', ')}]`;
+        if (lifestealHealed > 0) description += `, hút ${lifestealHealed} máu`;
+        if (regenerationHealed > 0) description += `, tái sinh ${regenerationHealed} máu`;
+      } else if (isCritical) {
+        description = `Chí mạng! Gây ${damage} sát thương`;
+        if (lifestealHealed > 0) description += `, hút ${lifestealHealed} máu`;
+        if (regenerationHealed > 0) description += `, hồi ${regenerationHealed} máu`;
+      } else {
+        description = `Gây ${damage} sát thương`;
+        if (lifestealHealed > 0) description += `, hút ${lifestealHealed} máu`;
+        if (regenerationHealed > 0) description += `, hồi ${regenerationHealed} máu`;
+      }
     } else {
-      description = `Gây ${damage} sát thương`;
-      if (lifestealHealed > 0) description += `, hút ${lifestealHealed} máu`;
-      if (regenerationHealed > 0) description += `, hồi ${regenerationHealed} máu`;
+      // Stunned description already set
+      if (regenerationHealed > 0) description += ` (Hồi phục ${regenerationHealed})`;
     }
-
     logs.push({
       turn,
       attacker: currentAttacker,
@@ -398,6 +569,12 @@ const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], o
     if (challengerHp <= 0 || opponentHp <= 0) {
       break; // Dừng trận đấu ngay khi có người hết máu
     }
+
+    // End of turn: Decrement buff/debuff durations and remove expired
+    challengerBuffs = challengerBuffs.map(b => ({ ...b, duration: b.duration - 1 })).filter(b => b.duration > 0);
+    challengerDebuffs = challengerDebuffs.map(b => ({ ...b, duration: b.duration - 1 })).filter(b => b.duration > 0);
+    opponentBuffs = opponentBuffs.map(b => ({ ...b, duration: b.duration - 1 })).filter(b => b.duration > 0);
+    opponentDebuffs = opponentDebuffs.map(b => ({ ...b, duration: b.duration - 1 })).filter(b => b.duration > 0);
 
     // Chuyển lượt
     currentAttacker = currentAttacker === 'challenger' ? 'opponent' : 'challenger';
@@ -473,6 +650,97 @@ const calculateRewards = (winnerStats, loserStats, isDraw, tierMultiplier = 1.0)
 };
 
 // ==================== ROUTES ====================
+
+/**
+ * POST /api/battle/training
+ * Chế độ tập luyện: Test skill rotation với Stats tùy chỉnh hoặc Dummy Target
+ * Body: {
+ *   playerStats: { qiBlood: 1000, zhenYuan: 1000, speed: 100, ... }, // Optional override
+ *   dummyStats: { qiBlood: 10000000, speed: 0, ... } // Optional override
+ * }
+ */
+router.post("/training", async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { playerStats: customPlayerStats, dummyStats: customDummyStats } = req.body;
+
+    const cultivation = await Cultivation.findOne({ user: userId }).lean();
+    if (!cultivation) {
+      return res.status(400).json({ success: false, message: "Chưa bắt đầu tu tiên" });
+    }
+
+    // 1. Setup Player Stats
+    let playerStats;
+    if (customPlayerStats) {
+      // Use custom stats if provided
+      playerStats = {
+        attack: 100,
+        defense: 10,
+        qiBlood: 1000,
+        zhenYuan: 1000,
+        speed: 100,
+        critRate: 0,
+        critDamage: 1.5,
+        ...customPlayerStats
+      };
+    } else {
+      // Use real stats
+      const cultivationDoc = await Cultivation.findOne({ user: userId });
+      playerStats = cultivationDoc.calculateCombatStats();
+      const equipStats = await cultivationDoc.getEquipmentStats();
+      mergeEquipmentStats(playerStats, equipStats);
+    }
+
+    // 2. Setup Skills
+    const cultivationDoc = await Cultivation.findOne({ user: userId });
+    const playerSkills = getLearnedSkills(cultivationDoc, playerStats.zhenYuan);
+
+    // TRAINING MODE SPECIAL: Set mana cost to 0 (Infinite Mana)
+    // Giúp user test thoải mái rotation mà không lo hết mana
+    playerSkills.forEach(skill => skill.manaCost = 0);
+
+    // 3. Setup Dummy Stats
+    const dummyStats = {
+      name: "Mộc Nhân Trang",
+      attack: 0,
+      defense: 0,
+      qiBlood: 10000000, // 10M HP for long testing
+      zhenYuan: 0,
+      speed: 0, // Player always goes first
+      critRate: 0,
+      critDamage: 1.5,
+      ...customDummyStats
+    };
+
+    const dummySkills = []; // Dummy has no skills
+
+    // 4. Run Simulation
+    const battleResult = simulateBattle(playerStats, dummyStats, playerSkills, dummySkills);
+
+    // 5. Return detailed logs
+    res.json({
+      success: true,
+      data: {
+        playerStats: {
+          hp: playerStats.qiBlood,
+          atk: playerStats.attack,
+          spd: playerStats.speed
+        },
+        dummyStats: {
+          hp: dummyStats.qiBlood,
+          def: dummyStats.defense
+        },
+        skillsEquipped: playerSkills.map(s => s.name),
+        totalTurns: battleResult.totalTurns,
+        totalDamage: battleResult.totalDamageByChallenger,
+        logs: battleResult.logs
+      }
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * POST /api/battle/challenge
@@ -624,7 +892,7 @@ router.post("/challenge", async (req, res, next) => {
     const opponentSkills = getLearnedSkills(opponentCultivation, opponentStats.zhenYuan);
 
     // Thực hiện trận đấu (truyền nghịch thiên meta để apply damage reduction)
-    const battleResult = simulateBattle(challengerStats, opponentStats, challengerSkills, opponentSkills, nghichThienMeta);
+    const battleResult = simulateBattle(challengerStats, opponentStats, challengerSkills, opponentSkills, { nghichThienMeta });
 
     // ==================== TÍNH PHẦN THƯỞNG ====================
     // Tier multiplier chỉ apply khi nghịch thiên thắng
@@ -1408,7 +1676,7 @@ router.post("/challenge/bot", async (req, res, next) => {
     const challengerSkills = getLearnedSkills(challengerCultivation, challengerStats.zhenYuan);
 
     // Thực hiện trận đấu (với nghịch thiên meta)
-    const battleResult = simulateBattle(challengerStats, opponentStats, challengerSkills, botSkills, nghichThienMeta);
+    const battleResult = simulateBattle(challengerStats, opponentStats, challengerSkills, botSkills, { nghichThienMeta });
 
     // Tier reward multiplier cho nghịch thiên thắng
     const tierMultiplier = (isNghichThien && battleResult.winner === 'challenger')

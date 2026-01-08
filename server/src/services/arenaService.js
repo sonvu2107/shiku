@@ -7,6 +7,7 @@ import Rank, { RANK_TIERS, RANKED_BOTS } from '../models/Rank.js';
 import RankedMatch from '../models/RankedMatch.js';
 import Season, { SEASON_REWARDS } from '../models/Season.js';
 import Cultivation from '../models/Cultivation.js';
+import { saveWithRetry } from '../utils/dbUtils.js';
 import { getSectBuildingBonuses } from './sectBuildingBonusService.js';
 
 // ==================== MMR CALCULATION ====================
@@ -393,7 +394,7 @@ export async function claimSeasonRewards(userId) {
             cultivation.inventory.push(petItem);
         }
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
     }
 
     // Mark as claimed

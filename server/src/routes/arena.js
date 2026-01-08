@@ -14,6 +14,7 @@ import User from '../models/User.js';
 import Equipment from '../models/Equipment.js';
 import arenaService from '../services/arenaService.js';
 import { reduceDurability } from '../services/modifierService.js';
+import { simulateBattle } from '../services/battleEngine.js';
 
 const router = express.Router();
 
@@ -29,35 +30,35 @@ router.use(authRequired);
  */
 async function reduceEquipmentDurability(cultivation) {
     const equipmentSlots = ['weapon', 'magicTreasure', 'helmet', 'chest', 'shoulder', 'gloves', 'boots', 'belt', 'ring', 'necklace', 'earring', 'bracelet', 'powerItem'];
-    
+
     let hasChanges = false;
-    
+
     for (const slot of equipmentSlots) {
         const equipmentId = cultivation.equipped?.[slot];
         if (!equipmentId) continue;
-        
+
         // Chỉ 20% cơ hội giảm độ bền
         if (Math.random() > 0.2) continue;
-        
+
         // Tìm item trong inventory
-        const invItem = cultivation.inventory.find(i => 
+        const invItem = cultivation.inventory.find(i =>
             i.itemId?.toString() === equipmentId.toString() ||
             i.metadata?._id?.toString() === equipmentId.toString()
         );
-        
+
         if (invItem) {
             // Khởi tạo durability nếu chưa có
             if (!invItem.metadata) invItem.metadata = {};
             if (!invItem.metadata.durability) {
                 invItem.metadata.durability = { current: 100, max: 100 };
             }
-            
+
             // Giảm 1 độ bền
             invItem.metadata.durability.current = Math.max(0, invItem.metadata.durability.current - 1);
             hasChanges = true;
         }
     }
-    
+
     // Đánh dấu inventory đã thay đổi để mongoose save
     if (hasChanges) {
         cultivation.markModified('inventory');
@@ -133,190 +134,7 @@ function getLearnedSkills(cultivation, maxMana = null) {
     return skills;
 }
 
-/**
- * Simulate battle with full stats (synced from battle.js)
- * Includes: skills, accuracy, resistance, regeneration, mana system
- */
-function simulateBattle(challengerStats, opponentStats, challengerSkills = [], opponentSkills = []) {
-    const MAX_TURNS = 50;
-    const logs = [];
 
-    let challengerHp = challengerStats.qiBlood;
-    let opponentHp = opponentStats.qiBlood;
-    const challengerMaxHp = challengerStats.qiBlood;
-    const opponentMaxHp = opponentStats.qiBlood;
-
-    let challengerMana = challengerStats.zhenYuan || challengerMaxHp * 0.5;
-    let opponentMana = opponentStats.zhenYuan || opponentMaxHp * 0.5;
-    const challengerMaxMana = challengerMana;
-    const opponentMaxMana = opponentMana;
-
-    let turn = 0;
-    let totalDamageByChallenger = 0;
-    let totalDamageByOpponent = 0;
-
-    // Skill cooldowns tracking
-    const challengerSkillCooldowns = {};
-    const opponentSkillCooldowns = {};
-    challengerSkills.forEach(s => challengerSkillCooldowns[s.techniqueId] = 0);
-    opponentSkills.forEach(s => opponentSkillCooldowns[s.techniqueId] = 0);
-
-    let currentAttacker = challengerStats.speed >= opponentStats.speed ? 'challenger' : 'opponent';
-
-    while (challengerHp > 0 && opponentHp > 0 && turn < MAX_TURNS) {
-        turn++;
-
-        const attacker = currentAttacker === 'challenger' ? challengerStats : opponentStats;
-        const defender = currentAttacker === 'challenger' ? opponentStats : challengerStats;
-        const attackerSkills = currentAttacker === 'challenger' ? challengerSkills : opponentSkills;
-        const attackerCooldowns = currentAttacker === 'challenger' ? challengerSkillCooldowns : opponentSkillCooldowns;
-        const attackerMana = currentAttacker === 'challenger' ? challengerMana : opponentMana;
-
-        // Reduce cooldowns
-        Object.keys(attackerCooldowns).forEach(key => {
-            if (attackerCooldowns[key] > 0) attackerCooldowns[key]--;
-        });
-
-        // Mana regeneration (5% per turn)
-        const manaRegen = Math.floor((currentAttacker === 'challenger' ? challengerMaxMana : opponentMaxMana) * 0.05);
-        if (currentAttacker === 'challenger') {
-            challengerMana = Math.min(challengerMaxMana, challengerMana + manaRegen);
-        } else {
-            opponentMana = Math.min(opponentMaxMana, opponentMana + manaRegen);
-        }
-
-        // Check skill usage
-        let usedSkill = null;
-        let skillDamageBonus = 0;
-        let manaConsumed = 0;
-        for (const skill of attackerSkills) {
-            if (attackerCooldowns[skill.techniqueId] <= 0 && attackerMana >= (skill.manaCost || 20)) {
-                usedSkill = skill;
-                skillDamageBonus = Math.floor(attacker.attack * (skill.damageMultiplier || 1));
-                manaConsumed = skill.manaCost || 20;
-                attackerCooldowns[skill.techniqueId] = skill.cooldown || 3;
-                if (currentAttacker === 'challenger') {
-                    challengerMana = Math.max(0, challengerMana - manaConsumed);
-                } else {
-                    opponentMana = Math.max(0, opponentMana - manaConsumed);
-                }
-                break;
-            }
-        }
-
-        // Calculate dodge (using accuracy vs dodge)
-        // OLD: hitChance = (accuracy - dodge) / 100 -> 100 accuracy vs 50 dodge = 50% hit (too low!)
-        // NEW: Use multiplicative formula - accuracy reduces dodge effectiveness
-        // accuracy 100 vs dodge 50 -> hitChance = 1.0 * (1 - 50/(50+100)) = 1.0 * 0.67 = 67%
-        // accuracy 100 vs dodge 25 -> hitChance = 1.0 * (1 - 25/(25+100)) = 1.0 * 0.80 = 80%
-        const accuracyFactor = Math.min((attacker.accuracy || 100) / 100, 1.5); // Cap at 150%
-        const dodgeReduction = (defender.dodge || 0) / ((defender.dodge || 0) + (attacker.accuracy || 100));
-        const hitChance = accuracyFactor * (1 - dodgeReduction);
-        const isDodged = Math.random() > Math.max(0.3, Math.min(hitChance, 0.95)); // Min 30% hit, max 95% hit
-
-        let damage = 0;
-        let isCritical = false;
-        let lifestealHealed = 0;
-        let regenerationHealed = 0;
-        let skillUsed = usedSkill ? usedSkill.name : null;
-
-        // Regeneration
-        if (attacker.regeneration > 0) {
-            const maxHp = currentAttacker === 'challenger' ? challengerMaxHp : opponentMaxHp;
-            const regenRate = Math.min(attacker.regeneration, 5);
-            regenerationHealed = Math.floor(maxHp * regenRate / 100);
-        }
-
-        if (!isDodged) {
-            // Calculate damage with penetration
-            const effectiveDefense = defender.defense * (1 - Math.min(attacker.penetration || 0, 80) / 100);
-            damage = Math.max(1, attacker.attack - effectiveDefense * 0.5);
-
-            // Skill damage bonus
-            if (skillDamageBonus > 0) {
-                damage += skillDamageBonus;
-            }
-
-            // Resistance reduces damage (max 50%)
-            damage = damage * (1 - Math.min(defender.resistance || 0, 50) / 100);
-
-            // Critical hit
-            if (Math.random() * 100 < (attacker.criticalRate || 0)) {
-                isCritical = true;
-                damage = damage * ((attacker.criticalDamage || 150) / 100);
-            }
-
-            // Random variance 10%
-            damage = Math.floor(damage * (0.9 + Math.random() * 0.2));
-            damage = Math.max(1, damage);
-
-            // Lifesteal
-            if (attacker.lifesteal > 0) {
-                lifestealHealed = Math.floor(damage * attacker.lifesteal / 100);
-            }
-        }
-
-        // Apply damage and healing
-        if (currentAttacker === 'challenger') {
-            opponentHp = Math.max(0, opponentHp - damage);
-            challengerHp = Math.min(challengerMaxHp, challengerHp + lifestealHealed + regenerationHealed);
-            totalDamageByChallenger += damage;
-        } else {
-            challengerHp = Math.max(0, challengerHp - damage);
-            opponentHp = Math.min(opponentMaxHp, opponentHp + lifestealHealed + regenerationHealed);
-            totalDamageByOpponent += damage;
-        }
-
-        logs.push({
-            turn,
-            attacker: currentAttacker,
-            damage,
-            isCritical,
-            isDodged,
-            lifestealHealed,
-            regenerationHealed,
-            challengerHp: Math.floor(challengerHp),
-            opponentHp: Math.floor(opponentHp),
-            challengerMana: Math.floor(challengerMana),
-            opponentMana: Math.floor(opponentMana),
-            manaConsumed: manaConsumed > 0 ? manaConsumed : undefined,
-            skillUsed
-        });
-
-        if (challengerHp <= 0 || opponentHp <= 0) break;
-        currentAttacker = currentAttacker === 'challenger' ? 'opponent' : 'challenger';
-    }
-
-    let winner = null;
-    let isDraw = false;
-
-    if (challengerHp <= 0 && opponentHp <= 0) {
-        isDraw = true;
-    } else if (opponentHp <= 0) {
-        winner = 'challenger';
-    } else if (challengerHp <= 0) {
-        winner = 'opponent';
-    } else {
-        if (challengerHp > opponentHp) {
-            winner = 'challenger';
-        } else if (opponentHp > challengerHp) {
-            winner = 'opponent';
-        } else {
-            isDraw = true;
-        }
-    }
-
-    return {
-        winner,
-        isDraw,
-        logs,
-        totalTurns: turn,
-        totalDamageByChallenger,
-        totalDamageByOpponent,
-        finalChallengerHp: Math.floor(challengerHp),
-        finalOpponentHp: Math.floor(opponentHp)
-    };
-}
 
 // ==================== ROUTES ====================
 

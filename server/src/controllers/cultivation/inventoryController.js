@@ -3,6 +3,7 @@ import Cultivation, { SHOP_ITEMS, SHOP_ITEMS_MAP } from "../../models/Cultivatio
 import Equipment from "../../models/Equipment.js";
 import User from "../../models/User.js";
 import { mergeEquipmentStatsIntoCombatStats } from "./coreController.js";
+import { saveWithRetry } from "../../utils/dbUtils.js";
 
 /**
  * Enrich inventory với equipment metadata (stats, rarity, etc.)
@@ -120,7 +121,7 @@ export const equipItem = async (req, res, next) => {
 
         try {
             cultivation.equipItem(itemId);
-            await cultivation.save();
+            await saveWithRetry(cultivation);
 
             try {
                 await User.findByIdAndUpdate(userId, {
@@ -162,7 +163,7 @@ export const unequipItem = async (req, res, next) => {
 
         try {
             cultivation.unequipItem(itemId);
-            await cultivation.save();
+            await saveWithRetry(cultivation);
 
             try {
                 await User.findByIdAndUpdate(userId, {
@@ -205,7 +206,7 @@ export const equipEquipment = async (req, res, next) => {
 
         try {
             const equipment = await cultivation.equipEquipment(equipmentId, slot);
-            await cultivation.save();
+            await saveWithRetry(cultivation);
 
             let combatStats = cultivation.calculateCombatStats();
             const equipmentStats = await cultivation.getEquipmentStats();
@@ -243,7 +244,7 @@ export const unequipEquipment = async (req, res, next) => {
 
         try {
             cultivation.unequipEquipment(slot);
-            await cultivation.save();
+            await saveWithRetry(cultivation);
 
             let combatStats = cultivation.calculateCombatStats();
             const equipmentStats = await cultivation.getEquipmentStats();
@@ -513,7 +514,7 @@ export const useItem = async (req, res, next) => {
             cultivation.inventory.splice(itemIndex, 1);
         }
 
-        await cultivation.save();
+        await saveWithRetry(cultivation);
 
         res.json({
             success: true,
