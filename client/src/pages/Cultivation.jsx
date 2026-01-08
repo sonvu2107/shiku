@@ -220,22 +220,25 @@ const CultivationContent = memo(function CultivationContent() {
     // Level 3: cần 4000 exp -> 10-30 exp/lần (133-400 lần)
     // Level 4: cần 10000 exp -> 20-60 exp/lần (167-500 lần)
     // Level 5: cần 25000 exp -> 50-150 exp/lần (167-500 lần)
-    // Level 6+: cần rất nhiều -> 100-200 exp/lần
+    // Level 6+: cần rất nhiều -> exp tăng theo realm
     const expRanges = {
-      1: { min: 1, max: 3 },      // Phàm Nhân: 1-3 exp
-      2: { min: 3, max: 10 },     // Luyện Khí: 3-10 exp
-      3: { min: 10, max: 30 },    // Trúc Cơ: 10-30 exp
-      4: { min: 20, max: 60 },    // Kim Đan: 20-60 exp
-      5: { min: 50, max: 150 },   // Nguyên Anh: 50-150 exp
-      6: { min: 100, max: 200 },  // Hóa Thần: 100-200 exp
-      7: { min: 100, max: 200 },  // Luyện Hư: 100-200 exp
-      8: { min: 100, max: 200 },  // Đại Thừa: 100-200 exp
-      9: { min: 100, max: 200 },  // Độ Kiếp: 100-200 exp
-      10: { min: 100, max: 200 }, // Tiên Nhân: 100-200 exp
-      11: { min: 100, max: 200 }  // Thiên Đế: 100-200 exp
+      1: { min: 1, max: 3 },         // Phàm Nhân: 1-3 exp
+      2: { min: 3, max: 10 },        // Luyện Khí: 3-10 exp
+      3: { min: 10, max: 30 },       // Trúc Cơ: 10-30 exp
+      4: { min: 20, max: 60 },       // Kim Đan: 20-60 exp
+      5: { min: 50, max: 150 },      // Nguyên Anh: 50-150 exp
+      6: { min: 100, max: 200 },     // Hóa Thần: 100-200 exp
+      7: { min: 150, max: 300 },     // Luyện Hư: 150-300 exp
+      8: { min: 200, max: 400 },     // Hợp Thể: 200-400 exp
+      9: { min: 300, max: 600 },     // Đại Thừa: 300-600 exp
+      10: { min: 400, max: 800 },    // Chân Tiên: 400-800 exp
+      11: { min: 500, max: 1000 },   // Kim Tiên: 500-1000 exp
+      12: { min: 600, max: 1200 },   // Tiên Vương: 600-1200 exp
+      13: { min: 800, max: 1600 },   // Tiên Đế: 800-1600 exp
+      14: { min: 1000, max: 2000 }   // Thiên Đế: 1000-2000 exp
     };
 
-    const range = expRanges[realmLevel] || expRanges[1];
+    const range = expRanges[realmLevel] || expRanges[14];
     const baseExpMin = range.min;
     const baseExpMax = Math.min(maxExpAllowed, range.max);
     const expGain = Math.floor(Math.random() * (baseExpMax - baseExpMin + 1)) + baseExpMin;
