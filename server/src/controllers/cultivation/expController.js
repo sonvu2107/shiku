@@ -355,8 +355,24 @@ export const addExp = async (req, res, next) => {
 
         const cultivation = await Cultivation.getOrCreate(userId);
         const realmLevel = cultivation.realmLevel || 1;
-        const expRanges = { 1: { min: 1, max: 3 }, 2: { min: 3, max: 10 }, 3: { min: 10, max: 30 }, 4: { min: 20, max: 60 }, 5: { min: 50, max: 150 }, 6: { min: 100, max: 200 }, 7: { min: 100, max: 200 }, 8: { min: 100, max: 200 }, 9: { min: 100, max: 200 }, 10: { min: 100, max: 200 }, 11: { min: 100, max: 200 } };
-        const range = expRanges[realmLevel] || expRanges[1];
+        // Extended exp ranges for all 14 realms
+        const expRanges = {
+            1: { min: 1, max: 3 },
+            2: { min: 3, max: 10 },
+            3: { min: 10, max: 30 },
+            4: { min: 20, max: 60 },
+            5: { min: 50, max: 150 },
+            6: { min: 100, max: 200 },
+            7: { min: 150, max: 300 },
+            8: { min: 200, max: 400 },
+            9: { min: 300, max: 600 },
+            10: { min: 400, max: 800 },
+            11: { min: 500, max: 1000 },
+            12: { min: 600, max: 1200 },
+            13: { min: 800, max: 1600 },
+            14: { min: 1000, max: 2000 }
+        };
+        const range = expRanges[realmLevel] || expRanges[14]; // Fallback to max realm, not min
 
         if (!amount || typeof amount !== 'number' || amount < range.min || amount > range.max) {
             return res.status(400).json({ success: false, message: `Số exp không hợp lệ (${range.min}-${range.max})` });

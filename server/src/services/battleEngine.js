@@ -285,7 +285,8 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
 
             // Special PK Damage Reduction (Nghich Thien)
             if (currentAttacker !== 'challenger' && nghichThienMeta?.damageReduction > 0) {
-                incomingDamage = Math.floor(incomingDamage * (1 - nghichThienMeta.damageReduction));
+                incomingDamage = Math.floor(incomingDamage
+                    * (1 - nghichThienMeta.damageReduction));
             }
 
             if (currentAttacker === 'challenger') {
