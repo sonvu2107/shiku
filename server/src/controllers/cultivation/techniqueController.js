@@ -55,6 +55,12 @@ export const listTechniques = async (req, res, next) => {
         const dungeonProgressArray = cultivation.dungeonProgress || [];
         const maxDungeonFloor = dungeonProgressArray.reduce((max, p) => Math.max(max, p.highestFloor || 0), 0);
 
+        console.log(`[Techniques] User ${userId} MaxFloor: ${maxDungeonFloor}`);
+        // Log details if maxFloor is 0 but array is not empty
+        if (maxDungeonFloor === 0 && dungeonProgressArray.length > 0) {
+            console.log('[Techniques] Dungeon Progress Details:', JSON.stringify(dungeonProgressArray, null, 2));
+        }
+
         const userProgress = {
             maxDungeonFloor,
             completedQuests: []
@@ -495,11 +501,13 @@ export const claimTechnique = async (req, res, next) => {
 
         multipliedExp = Math.floor(multipliedExp * boostMultiplier * petMultiplier);
 
-        // Atomic cap consume (dùng realmAtStart cho nhất quán)
-        const capLimit = getCapByRealm(session.realmAtStart);
-        const { allowedExp, capRemaining } = await consumeExpCap(userId, multipliedExp, capLimit);
+        // ==================== NO CAP FOR TECHNIQUE CLAIMS ====================
+        // Semi-auto techniques require time investment (30-60s meditation)
+        // Unlike spam clicking, this is a deliberate action with cooldown
+        // Therefore, we don't apply yinyang exp cap here
+        const allowedExp = multipliedExp;
 
-        // Add EXP
+        // Add EXP (full amount, no cap)
         cultivation.exp += allowedExp;
 
         // Log exp
@@ -539,12 +547,11 @@ export const claimTechnique = async (req, res, next) => {
 
         res.json({
             success: true,
-            message: allowedExp > 0 ? `+ ${allowedExp} Tu Vi` : "Linh khí đã cạn",
+            message: allowedExp > 0 ? `+ ${allowedExp} Tu Vi` : "Không nhận được tu vi",
             data: {
                 allowedExp,
                 requestedExp: multipliedExp,
                 elapsedSec,
-                capRemaining,
                 cultivation: await formatCultivationResponse(cultivation)
             }
         });

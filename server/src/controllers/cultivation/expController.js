@@ -391,11 +391,24 @@ export const addExp = async (req, res, next) => {
                 const technique = getTechniqueById(equippedTechniqueId);
                 if (technique && technique.bonusPercent) {
                     techniqueBonus = technique.bonusPercent / 100;
+                    console.log(`[Efficiency] User ${userId} - Technique: ${technique.name}, Bonus: ${technique.bonusPercent}%`);
                 }
+            } else {
+                console.log(`[Efficiency] User ${userId} - No technique equipped`);
             }
 
             // Apply technique bonus
-            const boostedAmount = Math.floor(amount * (1 + techniqueBonus));
+            let boostedAmount = Math.floor(amount * (1 + techniqueBonus));
+
+            // Apply active boosts (Pills)
+            const activeBoosts = (cultivation.activeBoosts || []).filter(b => b.expiresAt > new Date());
+            let boostMultiplier = 1;
+            for (const boost of activeBoosts) {
+                if (boost.type === 'exp' || boost.type === 'exp_boost') {
+                    boostMultiplier = Math.max(boostMultiplier, boost.multiplier);
+                }
+            }
+            boostedAmount = Math.floor(boostedAmount * boostMultiplier);
 
             const capLimit = getCapByRealm(realmLevel);
             const { allowedExp, capRemaining } = await consumeExpCap(userId, boostedAmount, capLimit);
@@ -420,10 +433,9 @@ export const addExp = async (req, res, next) => {
             await saveWithRetry(cultivation); // Save quest progress separately
         }
 
-        // ==================== ATOMIC UPDATE CULTIVATION ====================
-        // Use findOneAndUpdate to avoid VersionError race condition
+        // Validate spirit stones (allow up to 10000 for dungeon/quest rewards)
         let stonesEarned = 0;
-        if (spiritStones > 0 && typeof spiritStones === 'number' && spiritStones <= 100) {
+        if (spiritStones > 0 && typeof spiritStones === 'number' && spiritStones <= 10000) {
             stonesEarned = spiritStones;
         }
 

@@ -491,23 +491,23 @@ export const calculateMonsterStats = (monster, floor, difficulty, dungeonId = nu
     const monsterBaseStats = monster.baseStats;
 
     // Monster stats = realm base * monster type multiplier * floor * difficulty
-    // REDUCED SCALING for better balance:
-    // Normal mob: 70-90% of realm stats
-    // Elite mob: 100-120% of realm stats  
-    // Boss: 150-180% of realm stats
+    // New balance: clamp variance so bosses/elites không vượt xa người chơi cùng cảnh giới
+    // Normal ≈ 0.8-1.8x, Elite ≈ 1.0-2.2x, Boss ≈ 1.2-2.7x realm base
     let typeMultiplier = 1.0;
     if (monster.isElite || monster.type === 'elite') {
-        typeMultiplier = 1.25; // Reduced from 1.4
+        typeMultiplier = 1.25;
     } else if (monster.isBoss || monster.type === 'boss') {
-        typeMultiplier = 2.0; // Reduced from 2.5
+        typeMultiplier = 1.5;
     }
 
-    // Calculate final stats using realm base with monster-specific variance
-    // REDUCED VARIANCE divisors for lower multipliers
+    // Clamp helper to keep variance within a sane range
+    const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+
+    // Variance derived from template stats but clamped to avoid runaway values
     const monsterVariance = {
-        attack: monsterBaseStats.attack / 15, // Changed from /10 (lower attack)
-        defense: monsterBaseStats.defense / 8, // Changed from /5 (lower defense)
-        qiBlood: monsterBaseStats.qiBlood / 150 // Changed from /100 (lower HP)
+        attack: clamp(monsterBaseStats.attack / 200, 0.7, 1.8),
+        defense: clamp(monsterBaseStats.defense / 150, 0.7, 1.8),
+        qiBlood: clamp(monsterBaseStats.qiBlood / 5000, 0.8, 2.5)
     };
 
     return {

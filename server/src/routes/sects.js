@@ -563,7 +563,8 @@ router.post("/:id/promote/:userId", authRequired, async (req, res) => {
             return res.status(404).json({ success: false, message: "Không tìm thấy thành viên" });
         }
 
-        if (target.role !== "member") {
+        // Chỉ thăng Đệ Tử (disciple) lên Trưởng Lão
+        if (target.role !== "disciple") {
             return res.status(400).json({ success: false, message: "Chỉ có thể thăng chức Đệ Tử" });
         }
 

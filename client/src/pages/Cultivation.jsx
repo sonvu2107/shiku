@@ -232,10 +232,37 @@ const CultivationContent = memo(function CultivationContent() {
     const range = expRanges[realmLevel] || expRanges[14];
     const baseExpMin = range.min;
     const baseExpMax = range.max;
-    const expGain = Math.floor(Math.random() * (baseExpMax - baseExpMin + 1)) + baseExpMin;
+    const baseExpGain = Math.floor(Math.random() * (baseExpMax - baseExpMin + 1)) + baseExpMin;
+
+    // Calculate display exp with efficiency bonus (Visual only - Server calculates actual gain)
+    let displayExp = baseExpGain;
+
+    // 1. Technique Bonus
+    const equippedTechnique = cultivation?.equippedEfficiencyTechnique;
+    // Handle both string ID (unpopulated) and object (populated)
+    const techId = (typeof equippedTechnique === 'object' && equippedTechnique !== null)
+      ? equippedTechnique.id
+      : equippedTechnique;
+
+    // console.log('[YinYang] Equipped Tech:', equippedTechnique, '-> ID:', techId);
+
+    if (techId === 'tu_linh_quyet') {
+      displayExp = Math.floor(displayExp * 1.3); // +30% bonus
+    }
+
+    // 2. Active Boosts (Pills)
+    const activeBoosts = cultivation?.activeBoosts || [];
+    let boostMultiplier = 1;
+    activeBoosts.forEach(boost => {
+      if ((boost.type === 'exp' || boost.type === 'exp_boost') && new Date(boost.expiresAt) > new Date()) {
+        boostMultiplier = Math.max(boostMultiplier, boost.multiplier);
+      }
+    });
+    displayExp = Math.floor(displayExp * boostMultiplier);
+
+    const expGain = baseExpGain; // Send base amount to server
 
     const rect = e.currentTarget.getBoundingClientRect();
-    spawnParticle(rect.left + rect.width / 2, rect.top, `+${expGain} Tu Vi`, 'cyan');
 
     // Linh thạch cũng tăng theo cảnh giới, nhưng tỷ lệ rơi cao hơn ở cảnh giới cao
     // Level 1: 10% cơ hội, 1-3 linh thạch
@@ -249,15 +276,27 @@ const CultivationContent = memo(function CultivationContent() {
       const baseStoneMin = Math.max(1, Math.floor(realmLevel * 0.5));
       const baseStoneMax = Math.max(3, Math.floor(realmLevel * 3));
       stoneDrop = Math.floor(Math.random() * (baseStoneMax - baseStoneMin + 1)) + baseStoneMin;
-      setTimeout(() => {
-        spawnParticle(rect.left + rect.width / 2, rect.top - 30, `+${stoneDrop} Linh Thạch`, 'gold');
-      }, 200);
-      addLog(`Nhặt được ${stoneDrop} Linh Thạch!`, 'gain');
     }
 
     try {
       // Gửi cả expGain và stoneDrop lên server
-      await addExp(expGain, 'yinyang_click', stoneDrop);
+      const result = await addExp(expGain, 'yinyang_click', stoneDrop);
+
+      const expEarned = result?.expEarned ?? displayExp;
+      const stonesEarned = result?.stonesEarned ?? stoneDrop;
+
+      spawnParticle(rect.left + rect.width / 2, rect.top, `+${expEarned} Tu Vi`, 'cyan');
+      if (stonesEarned > 0) {
+        setTimeout(() => {
+          spawnParticle(rect.left + rect.width / 2, rect.top - 30, `+${stonesEarned} Linh Thạch`, 'gold');
+        }, 200);
+        addLog(`Nhặt được ${stonesEarned} Linh Thạch!`, 'gain');
+      }
+
+      if (expEarned < displayExp) {
+        addLog(`Giới hạn linh khí: chỉ nhận ${expEarned}/${displayExp} Tu Vi`, 'normal');
+      }
+
       // Luôn hiển thị một log message tu tiên mỗi lần click
       const randomMessage = LOG_MESSAGES[Math.floor(Math.random() * LOG_MESSAGES.length)];
       addLog(randomMessage, 'normal');
