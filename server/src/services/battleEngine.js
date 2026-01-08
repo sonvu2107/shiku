@@ -209,8 +209,12 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
                     effectiveDefense = effectiveDefense * (1 - Math.min(penetration, 80) / 100);
                 }
 
-                // Improved defense scaling: DEF now reduces 70% of its value from damage
-                damage = Math.max(1, (effectiveAttacker.attack || 0) - effectiveDefense * 0.7);
+                // Percentage-based defense reduction (cap at 75%)
+                // Formula: damage = attack * (1 - min(def/(def+atk), 0.75))
+                // Ensures defense never reduces damage below 25% of attack
+                const baseAttack = effectiveAttacker.attack || 0;
+                const defenseRatio = Math.min(effectiveDefense / (effectiveDefense + baseAttack + 1), 0.75);
+                damage = Math.max(1, baseAttack * (1 - defenseRatio));
 
                 // Add Skill Damage (before other multipliers)
                 if (skillDamageBonus > 0) damage += skillDamageBonus;
@@ -239,13 +243,54 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
                     damage = Math.max(1, damage);
 
                     // ========== FINAL DAMAGE CAP (Prevent 1-hit kills) ==========
-                    // Cap damage at 20% of defender's max HP per hit AFTER all multipliers
-                    // This ensures battles last at least 5+ turns regardless of power gap
+                    // Dynamic cap based on monster type:
+                    // - Normal mobs: NO CAP (fast clear)
+                    // - Elite mobs: 35% cap (~3 turns)
+                    // - Boss: 30% cap (~4-5 turns)
+                    // 
+                    // EXCEPTION: Disable cap if player >> monster (power gap >= 3x)
                     const defenderMaxHp = currentAttacker === 'challenger' ? opponentMaxHp : challengerMaxHp;
-                    const maxDamagePerHit = Math.floor(defenderMaxHp * 0.20);
-                    if (damage > maxDamagePerHit) {
-                        damage = maxDamagePerHit;
-                        description += " [Damage Capped]";
+
+                    // Check power gap - disable cap if player is overpowered
+                    let shouldCapDamage = true;
+                    if (isDungeon && currentAttacker === 'challenger') {
+                        // Compare player attack vs monster max HP
+                        const playerAttack = effectiveAttacker.attack || 0;
+                        const monsterMaxHp = defenderMaxHp;
+                        const powerGap = playerAttack / Math.max(1, monsterMaxHp);
+
+                        // If player attack >= 3x monster HP, disable cap (one-shot allowed)
+                        if (powerGap >= 3.0) {
+                            shouldCapDamage = false;
+                        }
+                    }
+
+                    if (shouldCapDamage) {
+                        // Determine cap percentage based on context
+                        let capPercentage = 0.20; // Default for PvP/Arena
+
+                        if (isDungeon && currentAttacker === 'challenger') {
+                            // Player attacking monster - adjust based on monster HP scaling
+                            // Heuristic: higher HP monsters are likely elite/boss
+                            const avgHpForFloor = 5000; // Adjusted baseline for production stats
+                            const hpRatio = defenderMaxHp / avgHpForFloor;
+
+                            if (hpRatio < 3) {
+                                capPercentage = null; // Normal mob - NO CAP
+                            } else if (hpRatio < 10) {
+                                capPercentage = 0.35; // Elite mob (35% cap)
+                            } else {
+                                capPercentage = 0.30; // Boss mob (30% cap)
+                            }
+                        }
+
+                        // Apply cap if percentage is set
+                        if (capPercentage !== null) {
+                            const maxDamagePerHit = Math.floor(defenderMaxHp * capPercentage);
+                            if (damage > maxDamagePerHit) {
+                                damage = maxDamagePerHit;
+                            }
+                        }
                     }
 
                     // 6. Handle Shield (Absorb)

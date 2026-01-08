@@ -29,15 +29,13 @@ export const isTechniqueUnlocked = (technique, cultivation) => {
     // Dungeon floor-based unlock
     if (type === 'dungeon') {
         // Get max floor cleared across ALL dungeons
-        const dungeonProgress = cultivation.dungeonProgress || {};
+        const dungeonProgress = cultivation.dungeonProgress || [];
 
+        // dungeonProgress is an array of objects with structure:
+        // { dungeonId, currentFloor, highestFloor, totalClears, ... }
         const maxFloorCleared = Math.max(
-            dungeonProgress.mist_valley?.maxFloorCleared || 0,
-            dungeonProgress.fire_cave?.maxFloorCleared || 0,
-            dungeonProgress.frost_peak?.maxFloorCleared || 0,
-            dungeonProgress.dark_abyss?.maxFloorCleared || 0,
-            dungeonProgress.dragon_nest?.maxFloorCleared || 0,
-            dungeonProgress.chaos_realm?.maxFloorCleared || 0
+            ...dungeonProgress.map(p => p.highestFloor || 0),
+            0
         );
 
         return maxFloorCleared >= minFloor;

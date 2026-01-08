@@ -668,6 +668,8 @@ export const battleMonster = async (req, res, next) => {
                                 metadata: { ...shopItem }
                             });
                         }
+                        // Mark inventory as modified for Mongoose to save changes
+                        cultivation.markModified('inventory');
                     }
                 }
             }

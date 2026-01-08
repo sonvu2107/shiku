@@ -353,12 +353,22 @@ export const activateTechnique = async (req, res, next) => {
 
         // Estimate EXP: 1 giây = 1 click (dùng trung bình click EXP của cảnh giới)
         const expRanges = {
-            1: { min: 1, max: 3 }, 2: { min: 3, max: 10 }, 3: { min: 10, max: 30 },
-            4: { min: 20, max: 60 }, 5: { min: 50, max: 150 }, 6: { min: 100, max: 200 },
-            7: { min: 100, max: 200 }, 8: { min: 100, max: 200 }, 9: { min: 100, max: 200 },
-            10: { min: 100, max: 200 }, 11: { min: 100, max: 200 }
+            1: { min: 1, max: 3 },
+            2: { min: 3, max: 10 },
+            3: { min: 10, max: 30 },
+            4: { min: 20, max: 60 },
+            5: { min: 50, max: 150 },
+            6: { min: 100, max: 200 },
+            7: { min: 150, max: 300 },
+            8: { min: 200, max: 400 },
+            9: { min: 300, max: 600 },
+            10: { min: 400, max: 800 },
+            11: { min: 500, max: 1000 },
+            12: { min: 600, max: 1200 },
+            13: { min: 800, max: 1600 },
+            14: { min: 1000, max: 2000 }
         };
-        const range = expRanges[cultivation.realmLevel] || expRanges[1];
+        const range = expRanges[cultivation.realmLevel] || expRanges[14];
         const avgClickExp = Math.floor((range.min + range.max) / 2);
         const estimatedExp = Math.floor(
             technique.durationSec * avgClickExp * technique.techniqueMultiplier
@@ -448,12 +458,22 @@ export const claimTechnique = async (req, res, next) => {
 
         // Dùng click EXP trung bình theo cảnh giới
         const expRanges = {
-            1: { min: 1, max: 3 }, 2: { min: 3, max: 10 }, 3: { min: 10, max: 30 },
-            4: { min: 20, max: 60 }, 5: { min: 50, max: 150 }, 6: { min: 100, max: 200 },
-            7: { min: 100, max: 200 }, 8: { min: 100, max: 200 }, 9: { min: 100, max: 200 },
-            10: { min: 100, max: 200 }, 11: { min: 100, max: 200 }
+            1: { min: 1, max: 3 },
+            2: { min: 3, max: 10 },
+            3: { min: 10, max: 30 },
+            4: { min: 20, max: 60 },
+            5: { min: 50, max: 150 },
+            6: { min: 100, max: 200 },
+            7: { min: 150, max: 300 },
+            8: { min: 200, max: 400 },
+            9: { min: 300, max: 600 },
+            10: { min: 400, max: 800 },
+            11: { min: 500, max: 1000 },
+            12: { min: 600, max: 1200 },
+            13: { min: 800, max: 1600 },
+            14: { min: 1000, max: 2000 }
         };
-        const range = expRanges[session.realmAtStart] || expRanges[1];
+        const range = expRanges[session.realmAtStart] || expRanges[14];
         const avgClickExp = Math.floor((range.min + range.max) / 2);
         const baseExp = elapsedSec * avgClickExp;
 

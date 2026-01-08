@@ -106,7 +106,12 @@ export const practiceTechnique = async (req, res, next) => {
 
 // ==================== PHIÊN LUYỆN CÔNG PHÁP BULK (NHẬP ĐỊNH 10 PHÚT) ====================
 const PRACTICE_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 phút
-const PRACTICE_SESSION_EXP_PER_TECHNIQUE = 400; // ~40 lần luyện * 10 exp
+const PRACTICE_SESSION_BASE_EXP = 400; // ~40 lần luyện * 10 exp ở cảnh giới thấp
+
+const getPracticeExpPerTechnique = (realmLevel = 1) => {
+    const multiplier = 1 + 0.2 * Math.max(0, realmLevel - 1); // +20% mỗi cảnh giới
+    return Math.floor(PRACTICE_SESSION_BASE_EXP * multiplier);
+};
 
 /**
  * Bắt đầu phiên luyện công pháp (Nhập Định 10 Phút)
@@ -162,12 +167,14 @@ export const startPracticeSession = async (req, res, next) => {
         const now = new Date();
         const sessionId = `practice_${req.user.id}_${now.getTime()}`;
 
+        const expPerTechnique = getPracticeExpPerTechnique(cultivation.realmLevel || 1);
+
         cultivation.activePracticeSession = {
             sessionId,
             startedAt: now,
             endsAt: new Date(now.getTime() + PRACTICE_SESSION_DURATION_MS),
             techniqueIds: eligibleTechniques,
-            expPerTechnique: PRACTICE_SESSION_EXP_PER_TECHNIQUE,
+            expPerTechnique,
             claimedAt: null
         };
 
@@ -179,8 +186,8 @@ export const startPracticeSession = async (req, res, next) => {
             data: {
                 sessionId,
                 techniqueCount: eligibleTechniques.length,
-                expPerTechnique: PRACTICE_SESSION_EXP_PER_TECHNIQUE,
-                totalEstimatedExp: eligibleTechniques.length * PRACTICE_SESSION_EXP_PER_TECHNIQUE,
+                expPerTechnique,
+                totalEstimatedExp: eligibleTechniques.length * expPerTechnique,
                 durationMs: PRACTICE_SESSION_DURATION_MS,
                 endsAt: cultivation.activePracticeSession.endsAt
             }
@@ -230,7 +237,8 @@ export const claimPracticeSession = async (req, res, next) => {
 
         // Thu hoạch exp cho từng công pháp
         const techniqueIds = cultivation.activePracticeSession.techniqueIds || [];
-        const expPerTechnique = cultivation.activePracticeSession.expPerTechnique || PRACTICE_SESSION_EXP_PER_TECHNIQUE;
+        const expPerTechnique = cultivation.activePracticeSession.expPerTechnique
+            || getPracticeExpPerTechnique(cultivation.realmLevel || 1);
 
         const results = [];
         let totalLevelUps = 0;
