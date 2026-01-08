@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 const TrainingGrounds = ({ sect, membership, onUpgrade, actionLoading }) => {
     const buildingId = 'training_grounds';
-    const level = sect?.buildings?.[buildingId]?.level || 0;
+    const level = (sect?.buildings || []).find((b) => b.buildingId === buildingId)?.level || 0;
     const maxLevel = 3;
 
     const EFFECTS = {

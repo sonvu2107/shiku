@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 const AlchemyRoom = ({ sect, membership, onUpgrade, actionLoading }) => {
     const buildingId = 'alchemy_room';
-    const level = sect?.buildings?.[buildingId]?.level || 0;
+    const level = (sect?.buildings || []).find((b) => b.buildingId === buildingId)?.level || 0;
     const maxLevel = 3;
 
     const EFFECTS = {

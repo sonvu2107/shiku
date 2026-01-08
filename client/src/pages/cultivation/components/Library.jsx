@@ -8,7 +8,7 @@ import { RARITY_COLORS } from '../utils/constants.js';
 const Library = ({ sect, membership, onUpgrade, actionLoading }) => {
     const { showSuccess, showError } = useToast();
     const buildingId = 'library';
-    const level = sect?.buildings?.[buildingId]?.level || 0;
+    const level = (sect?.buildings || []).find((b) => b.buildingId === buildingId)?.level || 0;
     const maxLevel = 3;
 
     const [showTechniques, setShowTechniques] = useState(false);
