@@ -210,17 +210,8 @@ const CultivationContent = memo(function CultivationContent() {
     // Tính toán exp và linh thạch dựa trên cảnh giới
     const realmLevel = cultivation?.realm?.level || 1;
 
-    // Backend cho phép: level 1 = 10, level 2 = 20, level 3 = 50, level 4 = 100, level 5+ = 200
-    const maxExpAllowed = Math.min(200, Math.max(10, realmLevel * 20));
-
     // Tính toán exp dựa trên exp yêu cầu cho mỗi cảnh giới
     // Mục tiêu: khoảng 50-200 lần bấm để lên cảnh giới tiếp theo
-    // Level 1: cần 100 exp -> 1-3 exp/lần (33-100 lần)
-    // Level 2: cần 900 exp -> 3-10 exp/lần (90-300 lần)
-    // Level 3: cần 4000 exp -> 10-30 exp/lần (133-400 lần)
-    // Level 4: cần 10000 exp -> 20-60 exp/lần (167-500 lần)
-    // Level 5: cần 25000 exp -> 50-150 exp/lần (167-500 lần)
-    // Level 6+: cần rất nhiều -> exp tăng theo realm
     const expRanges = {
       1: { min: 1, max: 3 },         // Phàm Nhân: 1-3 exp
       2: { min: 3, max: 10 },        // Luyện Khí: 3-10 exp
@@ -240,7 +231,7 @@ const CultivationContent = memo(function CultivationContent() {
 
     const range = expRanges[realmLevel] || expRanges[14];
     const baseExpMin = range.min;
-    const baseExpMax = Math.min(maxExpAllowed, range.max);
+    const baseExpMax = range.max;
     const expGain = Math.floor(Math.random() * (baseExpMax - baseExpMin + 1)) + baseExpMin;
 
     const rect = e.currentTarget.getBoundingClientRect();
