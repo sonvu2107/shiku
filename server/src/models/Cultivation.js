@@ -571,6 +571,9 @@ CultivationSchema.methods.calculateCombatStats = function () {
       const technique = TECHNIQUES_MAP.get(learned.techniqueId);
       if (technique && technique.stats) {
         const levelMultiplier = 1 + (learned.level - 1) * 0.1;
+        // DEBUG: Log stats calculation
+        // console.log(`[Stats Debug] Tech: ${technique.name}, Level: ${learned.level}, Multiplier: ${levelMultiplier}`);
+
         Object.keys(technique.stats).forEach(statKey => {
           const bonusValue = technique.stats[statKey];
           if (finalStats[statKey] !== undefined) {

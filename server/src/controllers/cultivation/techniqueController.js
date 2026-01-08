@@ -337,11 +337,13 @@ export const activateTechnique = async (req, res, next) => {
         const existingSession = cultivation.activeTechniqueSession;
         if (existingSession?.sessionId && !existingSession.claimedAt) {
             const endsAt = new Date(existingSession.endsAt).getTime();
-            if (now < endsAt + 60000) {
+            // Allow claim if session has ended (no strict time limit)
+            if (now < endsAt) {
                 return res.status(400).json({
                     success: false,
-                    message: "Đang trong trạng thái vận công, vui lòng thu thập trước",
-                    activeSession: existingSession
+                    message: "Đang trong trạng thái vận công, vui lòng đợi phiên kết thúc",
+                    activeSession: existingSession,
+                    timeRemaining: Math.ceil((endsAt - now) / 1000)
                 });
             }
         }
@@ -548,7 +550,11 @@ export const claimTechnique = async (req, res, next) => {
 
         // Clear active session + set cooldown timestamp
         cultivation.activeTechniqueSession = null;
-        cultivation.lastTechniqueClaimTime = new Date();
+        // Set cooldown from SESSION END TIME, not claim time (prevents spam)
+        // This ensures user must wait 15s after session ENDS before starting new one
+        const sessionEndTime = new Date(session.endsAt).getTime();
+        const cooldownEndTime = sessionEndTime + TECHNIQUE_SESSION_COOLDOWN_MS;
+        cultivation.lastTechniqueClaimTime = new Date(Math.max(Date.now(), cooldownEndTime));
 
         // Update technique lastPracticedAt
         const learnedTechnique = (cultivation.learnedTechniques || [])
@@ -578,6 +584,45 @@ export const claimTechnique = async (req, res, next) => {
 };
 
 // ============================================================
+// Helper function to Vietnamese-ize stat names
+// ============================================================
+const vietnamizeStats = (text) => {
+    if (!text) return text;
+    
+    const statMap = {
+        'ATK': 'Tấn Công',
+        'DEF': 'Phòng Thủ',
+        'HP': 'Sinh Mệnh',
+        'Speed': 'Tốc Độ',
+        'Crit Rate': 'Tỷ Lệ Chí Mạng',
+        'Crit Dmg': 'Sát Thương Chí Mạng',
+        'Penetration': 'Xuyên Thấu',
+        'Lifesteal': 'Hồi Máu',
+        'Resist': 'Kháng Tính',
+        'ZhenYuan': 'Chân Nguyên',
+        'qiBlood': 'Khí Huyết',
+        'Regen': 'Hồi Phục',
+        'Dodge': 'Né Tránh',
+        'heal': 'Hồi Máu',
+        'AOE': 'Diện Tích',
+        'Stun': 'Choáng Váng',
+        'Evade': 'Né Tránh',
+        'Berserk': 'Cuồng Nộ',
+        'DOT': 'Sát Thương Suốt Thời Gian',
+        'burst': 'Nổ Tung',
+        'poison': 'Độc'
+    };
+    
+    let result = text;
+    Object.entries(statMap).forEach(([eng, vn]) => {
+        const regex = new RegExp(`\\b${eng}\\b`, 'gi');
+        result = result.replace(regex, vn);
+    });
+    
+    return result;
+};
+
+// ============================================================
 // GET /techniques/combat-slots - Lấy thông tin slots
 // ============================================================
 
@@ -589,24 +634,38 @@ export const getCombatSlots = async (req, res, next) => {
         const maxSlots = cultivation.getMaxCombatSlots();
         const equippedSlots = cultivation.equippedCombatTechniques || [];
 
-        // Get available techniques (learned + có skill)
-        const availableTechniques = (cultivation.learnedTechniques || [])
-            .map(learned => {
-                const technique = TECHNIQUES_MAP.get(learned.techniqueId);
-                if (technique && technique.skill) {
-                    return {
-                        techniqueId: learned.techniqueId,
-                        name: technique.name,
-                        level: learned.level,
-                        rarity: technique.rarity,
-                        description: technique.description,
-                        skillName: technique.skill.name,
-                        skillDescription: technique.skill.description
-                    };
+        // Get available techniques (learned + có skill) - deduplicate by techniqueId
+        const techniqueMap = new Map();
+        (cultivation.learnedTechniques || []).forEach(learned => {
+            const technique = TECHNIQUES_MAP.get(learned.techniqueId);
+            // Include techniques that have skill OR are combat techniques
+            if (technique && (technique.skill || technique.type === 'combat') && !techniqueMap.has(learned.techniqueId)) {
+                // Map tier to rarity for combat techniques
+                let displayRarity = technique.rarity;
+                if (technique.type === 'combat' && !displayRarity) {
+                    const tier = technique.tier || 0;
+                    if (tier >= 9) displayRarity = 'legendary';
+                    else if (tier >= 7) displayRarity = 'epic';
+                    else if (tier >= 5) displayRarity = 'rare';
+                    else if (tier >= 3) displayRarity = 'uncommon';
+                    else displayRarity = 'common';
                 }
-                return null;
-            })
-            .filter(Boolean);
+                
+                // Only add the first instance to avoid duplicates
+                techniqueMap.set(learned.techniqueId, {
+                    techniqueId: learned.techniqueId,
+                    name: technique.name,
+                    level: learned.level,
+                    type: technique.type,
+                    rarity: displayRarity,
+                    description: vietnamizeStats(technique.description),
+                    skillName: technique.skill?.name || technique.name,
+                    skillDescription: vietnamizeStats(technique.skill?.description || technique.description)
+                });
+            }
+        });
+
+        const availableTechniques = Array.from(techniqueMap.values());
 
         res.json({
             success: true,
@@ -629,10 +688,11 @@ export const getCombatSlots = async (req, res, next) => {
 export const equipCombatSlot = async (req, res, next) => {
     try {
         const userId = req.user.id;
-        const { slotIndex, techniqueId } = req.body;
+        let { slotIndex, techniqueId } = req.body;
 
-        // Validate input
-        if (slotIndex === undefined || !techniqueId) {
+        // Validate input - Convert to number to handle string "0" case
+        slotIndex = parseInt(slotIndex, 10);
+        if (isNaN(slotIndex) || slotIndex === undefined || !techniqueId) {
             return res.status(400).json({
                 success: false,
                 message: "Thiếu slotIndex hoặc techniqueId"
@@ -721,9 +781,11 @@ export const equipCombatSlot = async (req, res, next) => {
 export const unequipCombatSlot = async (req, res, next) => {
     try {
         const userId = req.user.id;
-        const { slotIndex } = req.body;
+        let { slotIndex } = req.body;
 
-        if (slotIndex === undefined) {
+        // Validate input - Convert to number to handle string "0" case
+        slotIndex = parseInt(slotIndex, 10);
+        if (isNaN(slotIndex) || slotIndex === undefined) {
             return res.status(400).json({
                 success: false,
                 message: "Thiếu slotIndex"

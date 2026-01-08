@@ -202,42 +202,69 @@ const CombatSlotsSection = ({ cultivationTechniques = [] }) => {
                         <div className="p-4 overflow-y-auto flex-1">
                             {availableTechniques && availableTechniques.length > 0 ? (
                                 <div className="grid grid-cols-1 gap-2">
-                                    {availableTechniques.map(tech => {
-                                        const rarity = RARITY_COLORS[tech.rarity] || RARITY_COLORS.common;
-                                        const alreadyEquipped = equippedSlots?.some(s => s.techniqueId === tech.techniqueId);
+                                    {availableTechniques
+                                        .sort((a, b) => {
+                                            // Sort by tier/rarity highest first
+                                            const rarityOrder = { legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 };
+                                            const aRarityVal = rarityOrder[a.rarity] || 0;
+                                            const bRarityVal = rarityOrder[b.rarity] || 0;
+                                            
+                                            if (aRarityVal !== bRarityVal) {
+                                                return bRarityVal - aRarityVal;
+                                            }
+                                            
+                                            // Then sort by tier (combat techniques)
+                                            const aTier = a.level || 0;
+                                            const bTier = b.level || 0;
+                                            if (aTier !== bTier) {
+                                                return bTier - aTier;
+                                            }
+                                            
+                                            // Finally by name
+                                            return a.name.localeCompare(b.name, 'vi');
+                                        })
+                                        .map(tech => {
+                                            const rarity = RARITY_COLORS[tech.rarity] || RARITY_COLORS.common;
+                                            const alreadyEquipped = equippedSlots?.some(s => s.techniqueId === tech.techniqueId);
+                                            const isCombat = tech.type === 'combat';
 
-                                        return (
-                                            <div
-                                                key={tech.techniqueId}
-                                                className={`p-3 rounded-lg border ${rarity.bg} ${rarity.border}`}
-                                            >
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <div className="flex-1 min-w-0">
-                                                        <h5 className={`font-bold text-sm ${rarity.text} truncate`}>
-                                                            {tech.name}
-                                                        </h5>
-                                                        {tech.skillName && (
-                                                            <p className="text-[10px] text-cyan-400 mt-1">
-                                                                {tech.skillName}
-                                                            </p>
-                                                        )}
-                                                        {tech.skillDescription && (
-                                                            <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">
-                                                                {tech.skillDescription}
-                                                            </p>
-                                                        )}
+                                            return (
+                                                <div
+                                                    key={tech.techniqueId}
+                                                    className={`p-3 rounded-lg border ${rarity.bg} ${rarity.border}`}
+                                                >
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <h5 className={`font-bold text-sm ${rarity.text} truncate flex-1`}>
+                                                                    {tech.name}
+                                                                </h5>
+                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${isCombat ? 'bg-rose-900/30 text-rose-400 border border-rose-600/50' : rarity.bg + ' ' + rarity.text} whitespace-nowrap`}>
+                                                                    {isCombat ? 'Sát Pháp' : (rarity.label || 'Công Pháp')}
+                                                                </span>
+                                                            </div>
+                                                            {tech.skillName && (
+                                                                <p className="text-[10px] text-cyan-400 mt-1">
+                                                                    {tech.skillName}
+                                                                </p>
+                                                            )}
+                                                            {tech.skillDescription && (
+                                                                <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">
+                                                                    {tech.skillDescription}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleEquipToSlot(selectedSlot, tech.techniqueId)}
+                                                            disabled={actionLoading || alreadyEquipped}
+                                                            className="px-3 py-1.5 rounded text-xs font-bold uppercase bg-red-700 text-red-100 border border-red-500/50 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
+                                                        >
+                                                            {alreadyEquipped ? 'Đã trang bị' : actionLoading ? 'Đang...' : 'Trang bị'}
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        onClick={() => handleEquipToSlot(selectedSlot, tech.techniqueId)}
-                                                        disabled={actionLoading || alreadyEquipped}
-                                                        className="px-3 py-1.5 rounded text-xs font-bold uppercase bg-red-700 text-red-100 border border-red-500/50 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
-                                                    >
-                                                        {alreadyEquipped ? 'Đã trang bị' : actionLoading ? 'Đang...' : 'Trang bị'}
-                                                    </button>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
                                 </div>
                             ) : (
                                 <p className="text-center text-slate-500 text-sm py-8">
