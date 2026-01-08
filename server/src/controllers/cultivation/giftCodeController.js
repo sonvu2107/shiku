@@ -49,6 +49,42 @@ export const redeemGiftCode = async (req, res, next) => {
             });
         }
 
+        // **FIX RACE CONDITION**: Dùng atomic update để thêm user vào usedBy
+        // Ngăn 2 request cùng lúc bypass check
+        const updatedGiftCode = await GiftCode.findByIdAndUpdate(
+            giftCode._id,
+            {
+                $push: {
+                    usedBy: {
+                        userId: userId,
+                        usedAt: new Date(),
+                        username: req.user.username || req.user.name
+                    }
+                },
+                $inc: { usedCount: 1 }
+            },
+            { new: true, runValidators: false } // Lấy version mới
+        );
+
+        // **RECHECK**: Kiểm tra lại xem usedCount đã vượt maxUses chưa
+        // Cho cả 'one_time' (maxUses=1) và 'limited'
+        if ((updatedGiftCode.type === 'one_time' || updatedGiftCode.type === 'limited') && 
+            updatedGiftCode.usedCount > updatedGiftCode.maxUses) {
+            // Rollback - xóa user vừa thêm
+            await GiftCode.findByIdAndUpdate(
+                giftCode._id,
+                {
+                    $pull: { usedBy: { userId: userId } },
+                    $inc: { usedCount: -1 }
+                }
+            );
+            
+            return res.status(400).json({
+                success: false,
+                message: 'Mã đã hết lượt sử dụng'
+            });
+        }
+
         // Áp dụng phần thưởng
         const rewards = giftCode.rewards;
         const appliedRewards = {
@@ -97,16 +133,7 @@ export const redeemGiftCode = async (req, res, next) => {
             }
         }
 
-        // Đánh dấu user đã dùng code
-        giftCode.usedBy.push({
-            userId: userId,
-            usedAt: new Date(),
-            username: req.user.username || req.user.name
-        });
-        giftCode.usedCount += 1;
-
-        // Lưu
-        await giftCode.save();
+        // Lưu cultivation
         cultivation.markModified('inventory');
         await saveWithRetry(cultivation);
 

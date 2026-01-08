@@ -379,7 +379,14 @@ export const breakthrough = async (req, res, next) => {
 
         if (usedPill) {
             const pillIndex = cultivation.inventory.findIndex(i => i.itemId === usedPill.itemId && i._id?.toString() === usedPill._id?.toString());
-            if (pillIndex !== -1) cultivation.inventory.splice(pillIndex, 1);
+            if (pillIndex !== -1) {
+                // Decrement quantity instead of removing the entire item
+                if (cultivation.inventory[pillIndex].quantity > 1) {
+                    cultivation.inventory[pillIndex].quantity -= 1;
+                } else {
+                    cultivation.inventory.splice(pillIndex, 1);
+                }
+            }
         }
 
         cultivation.lastBreakthroughAttempt = now;

@@ -132,8 +132,9 @@ GiftCodeSchema.methods.isValid = function() {
         return { valid: false, reason: 'Mã đã hết hạn' };
     }
     
-    // Kiểm tra số lần dùng
-    if (this.type === 'limited' && this.usedCount >= this.maxUses) {
+    // Kiểm tra số lần dùng (cho 'one_time' và 'limited')
+    // 'unlimited' không cần check giới hạn
+    if ((this.type === 'one_time' || this.type === 'limited') && this.usedCount >= this.maxUses) {
         return { valid: false, reason: 'Mã đã hết lượt sử dụng' };
     }
     
