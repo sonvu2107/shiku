@@ -55,24 +55,28 @@ export const CRAFTABLE_EQUIPMENT_TYPES = [
 ];
 
 // ==================== BALANCED STATS CONFIG (FROM ADMIN DASHBOARD) ====================
+// 🎯 BALANCE NOTE: Tất cả equipment phải có ATK, HP, DEF để scale đúng với realm
+// - Weapon: ATK focus (60-70), DEF thấp (5-15), HP moderate (30-50)
+// - Armor: DEF focus (25-60), HP cao (80-250), ATK thấp (0-10)
+// - Accessory: Balanced ATK/DEF/HP (10-20 / 10-20 / 30-80), crit bonuses
 const SUBTYPE_STATS = {
     // === VŨ KHÍ ===
-    sword: { attack: 50, defense: 5, hp: 0, crit_rate: 0.03, crit_damage: 0.12, speed: 5, price: 500 },
-    saber: { attack: 65, defense: 0, hp: 0, crit_rate: 0.02, crit_damage: 0.15, speed: 3, price: 550 },
-    spear: { attack: 55, defense: 0, hp: 0, crit_rate: 0.02, crit_damage: 0.10, speed: 6, price: 480 },
-    bow: { attack: 45, defense: 0, hp: 0, crit_rate: 0.06, crit_damage: 0.20, speed: 4, price: 520 },
+    sword: { attack: 50, defense: 5, hp: 30, crit_rate: 0.03, crit_damage: 0.12, speed: 5, price: 500 },
+    saber: { attack: 65, defense: 8, hp: 25, crit_rate: 0.02, crit_damage: 0.15, speed: 3, price: 550 },
+    spear: { attack: 55, defense: 10, hp: 35, crit_rate: 0.02, crit_damage: 0.10, speed: 6, price: 480 },
+    bow: { attack: 45, defense: 5, hp: 20, crit_rate: 0.06, crit_damage: 0.20, speed: 4, price: 520 },
     fan: { attack: 35, defense: 10, hp: 50, crit_rate: 0.04, crit_damage: 0.15, speed: 7, price: 600 },
     flute: { attack: 30, defense: 5, hp: 80, crit_rate: 0.03, crit_damage: 0.12, speed: 8, price: 650 },
     brush: { attack: 40, defense: 15, hp: 60, crit_rate: 0.04, crit_damage: 0.18, speed: 5, price: 700 },
-    dual_sword: { attack: 70, defense: 0, hp: 0, crit_rate: 0.05, crit_damage: 0.18, speed: 8, price: 650 },
-    flying_sword: { attack: 60, defense: 0, hp: 0, crit_rate: 0.04, crit_damage: 0.15, speed: 10, price: 800 },
+    dual_sword: { attack: 70, defense: 12, hp: 40, crit_rate: 0.05, crit_damage: 0.18, speed: 8, price: 650 },
+    flying_sword: { attack: 60, defense: 10, hp: 35, crit_rate: 0.04, crit_damage: 0.15, speed: 10, price: 800 },
 
     // === GIÁP ===
-    helmet: { attack: 0, defense: 25, hp: 150, crit_rate: 0, crit_damage: 0, speed: 0, price: 400 },
-    chest: { attack: 0, defense: 60, hp: 250, crit_rate: 0, crit_damage: 0, speed: 0, price: 700 },
+    helmet: { attack: 5, defense: 25, hp: 150, crit_rate: 0, crit_damage: 0, speed: 0, price: 400 },
+    chest: { attack: 10, defense: 60, hp: 250, crit_rate: 0, crit_damage: 0, speed: 0, price: 700 },
     shoulder: { attack: 5, defense: 35, hp: 100, crit_rate: 0, crit_damage: 0, speed: 2, price: 500 },
     gloves: { attack: 10, defense: 20, hp: 50, crit_rate: 0.02, crit_damage: 0.08, speed: 3, price: 450 },
-    boots: { attack: 0, defense: 30, hp: 80, crit_rate: 0, crit_damage: 0, speed: 8, price: 550 },
+    boots: { attack: 8, defense: 30, hp: 80, crit_rate: 0, crit_damage: 0, speed: 8, price: 550 },
     belt: { attack: 5, defense: 25, hp: 120, crit_rate: 0.01, crit_damage: 0.05, speed: 2, price: 400 },
 
     // === TRANG SỨC ===
@@ -88,8 +92,8 @@ const SUBTYPE_STATS = {
 
 // Also support Type fallback for legacy/general purposes
 const BASE_STATS_BY_TYPE = {
-    weapon: { attack: 50, defense: 0, hp: 0, crit_rate: 0.02, crit_damage: 0.1, speed: 5, price: 500 },
-    armor: { attack: 0, defense: 40, hp: 200, crit_rate: 0, crit_damage: 0, speed: 0, price: 600 },
+    weapon: { attack: 50, defense: 8, hp: 35, crit_rate: 0.02, crit_damage: 0.1, speed: 5, price: 500 },
+    armor: { attack: 8, defense: 40, hp: 200, crit_rate: 0, crit_damage: 0, speed: 0, price: 600 },
     accessory: { attack: 15, defense: 15, hp: 50, crit_rate: 0.05, crit_damage: 0.2, speed: 3, price: 400 },
     magic_treasure: { attack: 30, defense: 10, hp: 100, crit_rate: 0.03, crit_damage: 0.15, speed: 0, price: 800 }
 };
@@ -115,8 +119,24 @@ const CRIT_RATE_BONUS = {
     mythic: 0.05
 };
 
-// Tier multiplier
-const TIER_STAT_MULTIPLIER = 0.2; // +20% per tier (additive to base 1) -> Multiplier = 1 + (Tier-1)*0.2
+// TIER SCALING - Exponential để theo kịp realm + techniques/skills scaling
+// Equipment phải đủ mạnh so với tổng stats (base + buffs), không chỉ base
+//
+// Target: Equipment = 40-100% of realm base ATK
+// (Khi player có techniques/skills tăng ~3x base, equipment = 15-30% tổng)
+//
+// Formula: 2^(tier-1) * 0.05
+// Tier 1:  2^0  * 0.05 = 0.05x   → ~50% base (~12% tổng)
+// Tier 5:  2^4  * 0.05 = 0.8x    → ~80% base (~20% tổng)
+// Tier 10: 2^9  * 0.05 = 25.6x   → ~80% base (~20% tổng)
+// Tier 14: 2^13 * 0.05 = 409.6x  → ~110% base (~28% tổng)
+const TIER_SCALING_BASE = 2.0;
+const TIER_SCALING_MULTIPLIER = 0.05;
+
+const getTierMultiplier = (tier) => {
+    if (tier <= 1) return TIER_SCALING_MULTIPLIER;
+    return Math.pow(TIER_SCALING_BASE, tier - 1) * TIER_SCALING_MULTIPLIER;
+};
 
 // Element bonuses
 const ELEMENT_STAT_BONUSES = {
@@ -193,7 +213,10 @@ export function getDominantElement(materials) {
             dominant = element;
         }
     }
-    return maxCount >= 2 ? dominant : null;
+    // Allow single element (return most common), or null if no elements
+    // Changed from: maxCount >= 2 (required 2+ same element)
+    // To: maxCount >= 1 (allow any element, pick most common)
+    return maxCount >= 1 ? dominant : null;
 }
 
 /**
@@ -219,7 +242,7 @@ export function generateEquipmentStats(equipmentType, rarity, tier, element = nu
 
     // 2. Multipliers
     const rarityMult = RARITY_STAT_MULTIPLIERS[rarity] || 1;
-    const tierMult = 1 + (tier - 1) * TIER_STAT_MULTIPLIER;
+    const tierMult = getTierMultiplier(tier);
     const critBonus = CRIT_RATE_BONUS[rarity] || 0;
 
     // Variance: 0.9 to 1.1 (±10% random factor)
@@ -416,6 +439,66 @@ export function previewCraft(materials) {
         dominantElement: getDominantElement(materials),
         inputCount: materials.length,
         inputRarities: countByRarity(materials)
+    };
+}
+
+/**
+ * Execute craft with pre-rolled rarity (BPS pity system)
+ * PRODUCTION-GRADE: Includes all validations + guards
+ */
+export function executeCraftWithRarity(
+    materials,
+    targetType,
+    targetSubtype,
+    tier,
+    resultRarity,
+    dominantElement = null,
+    tableKey = null
+) {
+    // Validations
+    if (materials.length < 3) return { success: false, error: 'Linh vật bất túc, tối thiểu 3' };
+    if (materials.length > 5) return { success: false, error: 'Linh khí quá thịnh, tối đa 5' };
+    const tiers = [...new Set(materials.map(m => m.tier))];
+    if (tiers.length > 1) return { success: false, error: 'Nguyên liệu không đồng cấp' };
+    const valid = CRAFTABLE_EQUIPMENT_TYPES.find(t => t.type === targetType && t.subtype === targetSubtype);
+    if (!valid) return { success: false, error: 'Công thức không hợp lệ' };
+    
+    // GUARD: Rarity whitelist
+    const RARITY_KEYS = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+    if (!RARITY_KEYS.includes(resultRarity)) {
+        return { success: false, error: `Rarity không hợp lệ: ${resultRarity}` };
+    }
+    
+    // GUARD: Element required
+    const element = dominantElement ?? getDominantElement(materials);
+    if (!element) {
+        return { success: false, error: 'Không xác định được hệ nguyên tố' };
+    }
+    
+    const probTableUsed = tableKey ?? getProbabilityTable(materials);
+    
+    // Generate item (uses internal helpers)
+    const stats = generateEquipmentStats(targetType, resultRarity, tier, element, targetSubtype);
+    const name = generateEquipmentName(targetType, resultRarity, tier, element, targetSubtype);
+    const modifiers = rollModifiers(resultRarity, element);
+    const durabilityMax = { 
+        common: 80, uncommon: 100, rare: 120, 
+        epic: 150, legendary: 200, mythic: 300 
+    }[resultRarity] || 100;
+    
+    return {
+        success: true,
+        equipment: {
+            name, type: targetType, subtype: targetSubtype, slot: valid.slot,
+            rarity: resultRarity, tier, realmRequired: tier, element,
+            stats, modifiers, 
+            durability: { current: durabilityMax, max: durabilityMax },
+            craftMeta: { 
+                materialsUsed: materials.length, 
+                highestInputRarity: getHighestRarity(materials) 
+            }
+        },
+        craftInfo: { probTableUsed, resultRarity }
     };
 }
 

@@ -271,8 +271,10 @@ export function generateMaterialDrops(difficulty, dungeonTier, performance = {})
         // Pick rarity
         const rarity = weightedPickRarity(config.rarityWeights, rarityCap);
 
-        // Pick tier within range, but locked to dungeonTier
-        const tier = dungeonTier;
+        // Pick tier within range defined by difficulty config
+        const minTier = config.tierRange[0];
+        const maxTier = config.tierRange[1];
+        const tier = Math.floor(Math.random() * (maxTier - minTier + 1)) + minTier;
 
         // Pick element randomly
         const element = pickRandomElement();

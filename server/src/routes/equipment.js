@@ -4,6 +4,7 @@ import { authRequired } from "../middleware/auth.js";
 import { adminRateLimit, strictAdminRateLimit } from "../middleware/adminSecurity.js";
 import AuditLog from "../models/AuditLog.js";
 import { getClientAgent } from "../utils/clientAgent.js";
+import { invalidateShopCache } from "../services/shopCacheService.js";
 
 import mongoose from "mongoose";
 
@@ -222,6 +223,9 @@ router.post("/admin/create", strictAdminRateLimit, authRequired, adminRequired, 
 
     await equipment.save();
 
+    // Invalidate shop cache
+    invalidateShopCache().catch(err => console.error('[SHOP CACHE] Invalidation failed:', err));
+
     await AuditLog.logAction(req.user._id, 'create_equipment', {
       targetId: equipment._id,
       targetType: 'equipment',
@@ -333,6 +337,9 @@ router.put("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, asyn
     equipment.updated_at = new Date();
     await equipment.save();
 
+    // Invalidate shop cache
+    invalidateShopCache().catch(err => console.error('[SHOP CACHE] Invalidation failed:', err));
+
     await AuditLog.logAction(req.user._id, 'update_equipment', {
       targetId: equipment._id,
       targetType: 'equipment',
@@ -425,6 +432,9 @@ router.delete("/admin/:id", strictAdminRateLimit, authRequired, adminRequired, a
       { $or: equipmentSlots.map(slot => ({ [`equipped.${slot}`]: equipmentId })) },
       { $set: unequipUpdate }
     );
+
+    // Invalidate shop cache
+    invalidateShopCache().catch(err => console.error('[SHOP CACHE] Invalidation failed:', err));
 
     await AuditLog.logAction(req.user._id, 'delete_equipment', {
       targetId: equipment._id,

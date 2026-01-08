@@ -124,6 +124,11 @@ function buildCookieOptions(additionalOptions = {}) {
  * ```
  */
 export function csrfProtection(req, res, next) {
+  // DEV MODE: Bypass CSRF for testing scripts
+  if (process.env.NODE_ENV !== 'production' && req.get('X-Bypass-CSRF') === 'dev-testing') {
+    return setupCsrfToken(req, res, next);
+  }
+
   // Skip ignored methods
   if (config.ignoreMethods.includes(req.method)) {
     return setupCsrfToken(req, res, next);

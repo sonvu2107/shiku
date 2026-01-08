@@ -4,7 +4,7 @@
  */
 
 import Cultivation, { CULTIVATION_REALMS } from "../../models/Cultivation.js";
-import { formatCultivationResponse, invalidateCultivationCache } from "./coreController.js";
+import { formatCultivationResponse, formatLightweightCultivationPatch, invalidateCultivationCache } from "./coreController.js";
 import {
     consumeExpCap,
     getCapByRealm,
@@ -536,63 +536,94 @@ export const claimTechnique = async (req, res, next) => {
 
         console.log(`[ClaimTechnique] FINAL allowedExp=${allowedExp}, expBefore=${cultivation.exp}`);
 
-        // Add EXP (full amount, no cap)
-        cultivation.exp += allowedExp;
-
-        console.log(`[ClaimTechnique] expAfter=${cultivation.exp}, added=${allowedExp}`);
-
-        // Log exp
-        if (!cultivation.expLog) cultivation.expLog = [];
-        cultivation.expLog.push({
-            amount: allowedExp,
-            source: 'technique_claim',
-            description: `${technique.name} (${elapsedSec}s)`,
-            createdAt: new Date()
-        });
-        if (cultivation.expLog.length > 100) cultivation.expLog = cultivation.expLog.slice(-100);
-
-        // Mark session claimed + save result
-        session.claimedAt = new Date();
-        cultivation.lastTechniqueClaim = {
-            sessionId,
-            techniqueId: session.techniqueId,
-            allowedExp,
-            requestedExp: multipliedExp,
-            claimedAt: session.claimedAt
-        };
-
-        // Clear active session + set cooldown timestamp
-        cultivation.activeTechniqueSession = null;
-        
-        // Set cooldown from SESSION END TIME, not claim time (prevents spam)
-        // This ensures user must wait 15s after session ENDS before starting new one
+        // Calculate cooldown end time (session end + 15s cooldown)
         const endsAtTimestamp = session.endsAt ? new Date(session.endsAt).getTime() : Date.now();
         const cooldownEndTime = endsAtTimestamp + TECHNIQUE_SESSION_COOLDOWN_MS;
-        
+
         console.log(`[ClaimTechnique] Setting cooldown: endsAt=${session.endsAt}, cooldownEnd=${new Date(cooldownEndTime)}`);
-        
-        cultivation.lastTechniqueClaimTime = new Date(cooldownEndTime);
+
+        // Atomic update with dataVersion increment
+        const updateOps = {
+            $inc: {
+                exp: allowedExp,
+                dataVersion: 1
+            },
+            $push: {
+                expLog: {
+                    $each: [{
+                        amount: allowedExp,
+                        source: 'technique_claim',
+                        description: `${technique.name} (${elapsedSec}s)`,
+                        createdAt: new Date()
+                    }],
+                    $slice: -100
+                }
+            },
+            $set: {
+                lastTechniqueClaim: {
+                    sessionId,
+                    techniqueId: session.techniqueId,
+                    allowedExp,
+                    requestedExp: multipliedExp,
+                    claimedAt: new Date()
+                },
+                // Set cooldown from SESSION END TIME
+                lastTechniqueClaimTime: new Date(cooldownEndTime)
+            },
+            $unset: {
+                activeTechniqueSession: ''
+            }
+        };
+
+        const updatedCultivation = await Cultivation.findOneAndUpdate(
+            { user: userId },
+            updateOps,
+            { new: true }
+        );
+
+        if (!updatedCultivation) {
+            return res.status(404).json({ success: false, message: 'Cultivation not found' });
+        }
 
         // Update technique lastPracticedAt
-        const learnedTechnique = (cultivation.learnedTechniques || [])
+        const learnedTechnique = (updatedCultivation.learnedTechniques || [])
             .find(t => t.techniqueId === session.techniqueId);
         if (learnedTechnique) {
             learnedTechnique.lastPracticedAt = new Date();
+            await saveWithRetry(updatedCultivation);
         }
-
-        await saveWithRetry(cultivation);
 
         // Invalidate cache
         invalidateCultivationCache(userId).catch(() => { });
 
+        // Check if client requested patch mode
+        const isPatchMode = req.query.mode === 'patch';
+
+        if (isPatchMode) {
+            // Lightweight patch response
+            return res.json({
+                success: true,
+                mode: 'patch',
+                dataVersion: updatedCultivation.dataVersion,
+                message: allowedExp > 0 ? `+${allowedExp} Tu Vi` : "Không nhận được tu vi",
+                data: {
+                    allowedExp,
+                    requestedExp: multipliedExp,
+                    elapsedSec
+                },
+                patch: formatLightweightCultivationPatch(updatedCultivation)
+            });
+        }
+
+        // Legacy full response
         res.json({
             success: true,
-            message: allowedExp > 0 ? `+ ${allowedExp} Tu Vi` : "Không nhận được tu vi",
+            message: allowedExp > 0 ? `+${allowedExp} Tu Vi` : "Không nhận được tu vi",
             data: {
                 allowedExp,
                 requestedExp: multipliedExp,
                 elapsedSec,
-                cultivation: await formatCultivationResponse(cultivation)
+                cultivation: await formatCultivationResponse(updatedCultivation)
             }
         });
     } catch (error) {
@@ -605,7 +636,7 @@ export const claimTechnique = async (req, res, next) => {
 // ============================================================
 const vietnamizeStats = (text) => {
     if (!text) return text;
-    
+
     const statMap = {
         'ATK': 'Tấn Công',
         'DEF': 'Phòng Thủ',
@@ -629,13 +660,13 @@ const vietnamizeStats = (text) => {
         'burst': 'Nổ Tung',
         'poison': 'Độc'
     };
-    
+
     let result = text;
     Object.entries(statMap).forEach(([eng, vn]) => {
         const regex = new RegExp(`\\b${eng}\\b`, 'gi');
         result = result.replace(regex, vn);
     });
-    
+
     return result;
 };
 
@@ -667,7 +698,7 @@ export const getCombatSlots = async (req, res, next) => {
                     else if (tier >= 3) displayRarity = 'uncommon';
                     else displayRarity = 'common';
                 }
-                
+
                 // Only add the first instance to avoid duplicates
                 techniqueMap.set(learned.techniqueId, {
                     techniqueId: learned.techniqueId,

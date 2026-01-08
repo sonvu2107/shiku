@@ -32,6 +32,65 @@ export const mergeEquipmentStatsIntoCombatStats = (combatStats, equipmentStats) 
 };
 
 /**
+ * Format lightweight cultivation patch for high-frequency requests (addExp)
+ * PURE COMPUTE ONLY - NO DATABASE QUERIES
+ */
+export const formatLightweightCultivationPatch = (cultivation) => {
+    const currentRealm = CULTIVATION_REALMS.find(r => r.level === cultivation.realmLevel) || CULTIVATION_REALMS[0];
+    const nextRealm = CULTIVATION_REALMS.find(r => r.level === currentRealm.level + 1);
+    const expToNext = nextRealm ? Math.max(0, nextRealm.minExp - cultivation.exp) : 0;
+
+    // Calculate progress between current and next realm
+    const progress = nextRealm
+        ? Math.min(((cultivation.exp - currentRealm.minExp) / (nextRealm.minExp - currentRealm.minExp)) * 100, 100)
+        : 100;
+
+    // Filter active boosts (server-side Date.now())
+    const now = new Date();
+    const activeBoosts = (cultivation.activeBoosts || [])
+        .filter(b => b.expiresAt && new Date(b.expiresAt) > now)
+        .map(b => ({
+            multiplier: b.multiplier,
+            expiresAt: b.expiresAt
+        }));
+
+    const patch = {
+        exp: cultivation.exp,
+        spiritStones: cultivation.spiritStones,
+        totalSpiritStonesEarned: cultivation.totalSpiritStonesEarned,
+        realmLevel: cultivation.realmLevel,
+        subLevel: cultivation.subLevel,
+        // Realm info (calculated in-memory)
+        realm: {
+            level: currentRealm.level,
+            name: currentRealm.name,
+            description: currentRealm.description,
+            color: currentRealm.color,
+            icon: currentRealm.icon
+        },
+        expToNextRealm: expToNext,
+        progress,
+        canBreakthrough: nextRealm && cultivation.exp >= nextRealm.minExp,
+        breakthroughFailureCount: cultivation.breakthroughFailureCount || 0,
+        breakthroughCooldownUntil: cultivation.breakthroughCooldownUntil,
+        activeBoosts
+    };
+
+    // Development assertion: ensure no heavy fields leaked into patch
+    if (process.env.NODE_ENV !== 'production') {
+        const forbiddenKeys = ['inventory', 'equipment', 'equipped', 'learnedTechniques', 'combatStats', 'equipmentStats'];
+        for (const key of forbiddenKeys) {
+            if (key in patch) {
+                console.error(`[PATCH SAFETY] Heavy field "${key}" found in patch response!`);
+                throw new Error(`Patch response must not include heavy field: ${key}`);
+            }
+        }
+    }
+
+    return patch;
+};
+
+/**
  * Format cultivation data cho response
  */
 export const formatCultivationResponse = async (cultivation) => {
@@ -241,6 +300,7 @@ export const formatCultivationResponse = async (cultivation) => {
             } : null;
         }).filter(Boolean),
         materials: cultivation.materials || [],
+        craftPity: cultivation.craftPity || { epic: 0, legendary: 0 }, // BPS Pity System
         createdAt: cultivation.createdAt,
         updatedAt: cultivation.updatedAt
     };

@@ -444,13 +444,18 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
     if (!activeSession) return;
     setClaiming(true);
     try {
-      const res = await api('/api/cultivation/techniques/claim', {
+      // Request patch mode for lightweight response
+      const res = await api('/api/cultivation/techniques/claim?mode=patch', {
         method: 'POST',
         body: JSON.stringify({ sessionId: activeSession.sessionId })
       });
-      if (res.success) {
+
+      // api() already unwraps axios response, so res is the payload
+      const payload = res;
+
+      if (payload.success) {
         // Show success toast with formatted message
-        const expGained = res.data?.allowedExp || 0;
+        const expGained = payload.data?.allowedExp || 0;
         showSuccess(`Đã thu hoạch ${expGained.toLocaleString()} tu vi nhập định`);
 
         // Calculate remaining cooldown from session END time + 15s
@@ -464,12 +469,33 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
         // Continue countdown from where session left off
         setActivationCooldown(remainingCooldownSec);
 
-        // Update cultivation từ response thay vì reload (tránh full page refresh)
-        if (res.data?.cultivation && setCultivation) {
-          setCultivation(res.data.cultivation);
+        // Handle patch response with safe merging
+        if (payload.mode === 'patch' && payload.patch && setCultivation) {
+          setCultivation(prev => {
+            if (!prev) return prev;
+
+            const incomingVer = payload.dataVersion;
+            const prevVer = prev.dataVersion ?? 0;
+
+            // Out-of-order check: ignore if incoming is older OR equal
+            if (incomingVer != null && incomingVer <= prevVer) {
+              console.warn('[TechniquesTab] Ignoring out-of-order claim response', { incomingVer, prevVer });
+              return prev;
+            }
+
+            // Safe merge: apply patch fields while preserving heavy state
+            return {
+              ...prev,
+              ...payload.patch,
+              dataVersion: (typeof incomingVer === 'number' ? incomingVer : prevVer),
+            };
+          });
+        } else if (payload.data?.cultivation && setCultivation) {
+          // Legacy full response handling
+          setCultivation(payload.data.cultivation);
         }
       } else {
-        showError(res.message || 'Thu hoạch thất bại');
+        showError(payload.message || 'Thu hoạch thất bại');
       }
     } catch (e) {
       console.error('Claim technique failed:', e);

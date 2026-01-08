@@ -1,5 +1,5 @@
 import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS_MAP } from "../../models/Cultivation.js";
-import { formatCultivationResponse, invalidateCultivationCache } from "./coreController.js";
+import { formatCultivationResponse, formatLightweightCultivationPatch, invalidateCultivationCache } from "./coreController.js";
 import { consumeExpCap, checkClickCooldown, getCapByRealm, getExpCapRemaining } from "../../services/expCapService.js";
 import { getClient, isRedisConnected, redisConfig } from "../../services/redisClient.js";
 import { logRareEncounterEvent } from "./worldEventController.js";
@@ -442,6 +442,7 @@ export const addExp = async (req, res, next) => {
         const updateOps = {
             $inc: {
                 exp: expEarned,
+                dataVersion: 1,
                 ...(stonesEarned > 0 && {
                     spiritStones: stonesEarned,
                     totalSpiritStonesEarned: stonesEarned
@@ -477,6 +478,21 @@ export const addExp = async (req, res, next) => {
         const potentialRealm = updatedCultivation.getRealmFromExp();
         const canBreakthrough = potentialRealm.level > updatedCultivation.realmLevel;
 
+        // Check if client requested patch mode (lightweight response)
+        const isPatchMode = req.query.mode === 'patch';
+
+        if (isPatchMode) {
+            // Lightweight patch response for high-frequency requests
+            return res.json({
+                success: true,
+                mode: 'patch',
+                dataVersion: updatedCultivation.dataVersion,
+                message: stonesEarned > 0 ? `+${expEarned} Tu Vi, +${stonesEarned} Linh Thạch` : `+${expEarned} Tu Vi`,
+                patch: formatLightweightCultivationPatch(updatedCultivation)
+            });
+        }
+
+        // Legacy full response
         res.json({
             success: true,
             message: stonesEarned > 0 ? `+${expEarned} Tu Vi, +${stonesEarned} Linh Thạch` : `+${expEarned} Tu Vi`,

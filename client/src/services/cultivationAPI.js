@@ -270,9 +270,11 @@ export async function getExpLog() {
  * @param {number} amount - Số exp thêm (1-10)
  * @param {string} source - Nguồn exp: 'yinyang_click', 'activity'
  * @param {number} spiritStones - Số linh thạch nhặt được (optional)
+ * @param {Object} options - Options { mode: 'patch' } for lightweight response
  */
-export async function addExpFromActivity(amount, source = 'activity', spiritStones = 0) {
-  return api('/api/cultivation/add-exp', {
+export async function addExpFromActivity(amount, source = 'activity', spiritStones = 0, options = {}) {
+  const url = options.mode ? `/api/cultivation/add-exp?mode=${options.mode}` : '/api/cultivation/add-exp';
+  return api(url, {
     method: 'POST',
     body: JSON.stringify({ amount, source, spiritStones })
   });

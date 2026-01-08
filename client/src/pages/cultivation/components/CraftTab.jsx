@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { api } from '../../../api';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
+import Furnace from './Furnace.jsx';
 
 // ==================== RARITY CONFIG ====================
 const RARITY_COLORS = {
@@ -41,7 +42,7 @@ const getMaterialImage = (templateId) => {
 
 // Việt hóa tên stats
 const STAT_LABELS = {
-    attack: 'Công Kích',
+    attack: 'Tấn Công',
     defense: 'Phòng Thủ',
     hp: 'Khí Huyết',
     qiBlood: 'Khí Huyết',
@@ -198,9 +199,9 @@ const CraftTab = memo(function CraftTab() {
     }
 
     return (
-        <div className="space-y-6 pb-4">
-            <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl">
-                LUYỆN KHÍ - TRANG BỊ
+        <div className="space-y-4 pb-4">
+            <h3 className="font-bold text-gold font-title tracking-wide text-xl lg:text-2xl text-center mb-6">
+                LUYỆN KHÍ ĐÀI
             </h3>
 
             {/* Error Message */}
@@ -210,23 +211,24 @@ const CraftTab = memo(function CraftTab() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="bg-red-900/30 border border-red-500/50 rounded-lg p-3 text-red-300"
+                        className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-900/90 border border-red-500/50 rounded-lg p-3 text-red-300 shadow-xl backdrop-blur-md"
                     >
                         {error}
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Craft Result Modal */}
+            {/* Craft Result Modal - Keep existing logic */}
             <AnimatePresence>
                 {craftResult && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
                         onClick={() => setCraftResult(null)}
                     >
+                        {/* ... Existing Result Modal Content ... */}
                         <motion.div
                             initial={{ y: 50 }}
                             animate={{ y: 0 }}
@@ -239,7 +241,7 @@ const CraftTab = memo(function CraftTab() {
                                     transition={{ duration: 0.5 }}
                                     className={`text-4xl font-bold mx-auto ${RARITY_COLORS[craftResult.equipment?.rarity]?.text}`}
                                 >
-                                    +
+                                    ✦
                                 </motion.div>
 
                                 <h4 className="text-xl font-bold text-gold font-title">LUYỆN CHẾ THÀNH CÔNG!</h4>
@@ -263,15 +265,11 @@ const CraftTab = memo(function CraftTab() {
                                 </div>
 
                                 {/* Stats */}
-                                <div className="grid grid-cols-2 gap-2 text-sm text-left bg-slate-900/50 rounded-lg p-3">
+                                <div className="grid grid-cols-2 gap-2 text-sm text-left bg-black/40 rounded-lg p-3 border border-white/5">
                                     {Object.entries(craftResult.equipment?.stats || {}).map(([key, value]) => {
-                                        // Filter out ignored keys and legacy duplicates
-                                        // regeneration is valid (MP Regen), penetration is valid (Flat Def Pen)
                                         const IGNORED = ['price', 'qiBlood', 'criticalRate', 'criticalDamage', 'dodge', 'accuracy'];
                                         if (IGNORED.includes(key) || value === 0) return null;
 
-                                        // Format Percentages
-                                        // Penetration is Flat in battle.js (Defense reduction)
                                         const PERCENT_STATS = ['crit_rate', 'crit_damage', 'evasion', 'hit_rate', 'lifesteal', 'resistance'];
                                         const isPercent = PERCENT_STATS.includes(key);
                                         const formattedValue = isPercent ? `${(value * 100).toFixed(2)}%` : Math.floor(value);
@@ -287,14 +285,14 @@ const CraftTab = memo(function CraftTab() {
 
                                 {/* Durability */}
                                 {craftResult.equipment?.durability && (
-                                    <div className="bg-slate-900/50 rounded-lg p-3 mt-2">
+                                    <div className="bg-black/40 rounded-lg p-3 mt-2 border border-white/5">
                                         <div className="flex justify-between items-center text-sm mb-1">
                                             <span className="text-slate-400">Độ Bền</span>
                                             <span className="text-emerald-400">
                                                 {craftResult.equipment.durability.current}/{craftResult.equipment.durability.max}
                                             </span>
                                         </div>
-                                        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                                        <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
                                             <div
                                                 className="h-full bg-emerald-500 transition-all"
                                                 style={{ width: '100%' }}
@@ -306,12 +304,11 @@ const CraftTab = memo(function CraftTab() {
                                 <button
                                     onClick={async () => {
                                         setCraftResult(null);
-                                        // Refresh cultivation context sau khi đóng dialog để inventory cập nhật
                                         await refresh();
                                     }}
-                                    className="px-6 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold transition-colors"
+                                    className="w-full px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-amber-900/30"
                                 >
-                                    Đóng
+                                    Thu Nhận
                                 </button>
                             </div>
                         </motion.div>
@@ -319,167 +316,86 @@ const CraftTab = memo(function CraftTab() {
                 )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left: Materials Selection */}
-                <div className="space-y-4">
-                    <div className="spirit-tablet rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <h4 className="font-bold text-blue-400">
-                                KHO THIÊN TÀI ĐỊA BẢO
-                            </h4>
-                            <span className="text-xs text-slate-500">{materials.length} loại</span>
-                        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-                        {/* Filters */}
-                        <div className="grid grid-cols-2 gap-3 mb-4">
-                            <select
-                                value={filterTier}
-                                onChange={e => setFilterTier(e.target.value)}
-                                className="w-full px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-300 focus:outline-none focus:border-amber-500 hover:border-slate-500 transition-colors cursor-pointer"
-                            >
-                                <option value="all">Phẩm chất: Tất cả</option>
-                                {uniqueTiers.map(t => (
-                                    <option key={t} value={t}>Phẩm {t}</option>
-                                ))}
-                            </select>
+                {/* CENTER AREA: FURNACE (Mobile: Top, Desktop: Left-Center) */}
+                <div className="lg:col-span-4 order-1 lg:order-2 flex flex-col">
+                    <div className="bg-black/40 rounded-2xl p-4 border border-white/5 shadow-xl relative overflow-hidden min-h-[400px] flex items-center justify-center">
+                        {/* Decorative Background */}
+                        <div className="absolute inset-0 bg-[url('/assets/bg_pattern.png')] opacity-5"></div>
 
-                            <select
-                                value={filterElement}
-                                onChange={e => setFilterElement(e.target.value)}
-                                className="w-full px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-300 focus:outline-none focus:border-amber-500 hover:border-slate-500 transition-colors cursor-pointer"
-                            >
-                                <option value="all">Ngũ hành: Tất cả</option>
-                                {uniqueElements.map(el => (
-                                    <option key={el} value={el}>{ELEMENT_COLORS[el]?.name || el}</option>
-                                ))}
-                            </select>
-                        </div>
+                        <Furnace
+                            selectedMaterials={selectedMaterials}
+                            onRemoveMaterial={(m) => toggleMaterial(m)}
+                            crafting={crafting}
+                        />
 
-                        {/* Materials Grid */}
-                        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
-                            {filteredMaterials.length === 0 ? (
-                                <div className="col-span-full text-center text-slate-500 py-8">
-                                    Không có thiên tài địa bảo
-                                </div>
+                        {/* Quick Action Hint */}
+                        {selectedMaterials.length === 0 && (
+                            <div className="absolute bottom-4 text-center w-full text-slate-500 text-sm animate-pulse">
+                                Chọn nguyên liệu từ túi bên dưới
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Craft Button Area */}
+                    <div className="mt-4">
+                        <button
+                            onClick={executeCraft}
+                            disabled={crafting || selectedMaterials.length < 3 || !selectedType || !selectedSubtype}
+                            className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all relative overflow-hidden group ${crafting || selectedMaterials.length < 3 || !selectedType || !selectedSubtype
+                                ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                                : 'bg-gradient-to-r from-amber-700 via-orange-600 to-red-700 text-white shadow-lg shadow-orange-900/40 hover:brightness-110 active:scale-95'
+                                }`}
+                        >
+                            {crafting ? (
+                                <>
+                                    <motion.span
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                        className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                                    />
+                                    Đang Vận Công...
+                                </>
                             ) : (
-                                filteredMaterials.map((mat, idx) => {
-                                    const matId = `${mat.templateId}_${mat.rarity}`;
-                                    const isSelected = selectedMaterials.find(sm => sm.id === matId);
-                                    const rarity = RARITY_COLORS[mat.rarity] || RARITY_COLORS.common;
-                                    const element = ELEMENT_COLORS[mat.element];
-
-                                    return (
-                                        <motion.button
-                                            key={`${matId}-${idx}`}
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={() => toggleMaterial(mat)}
-                                            disabled={mat.qty <= 0}
-                                            className={`relative p-2 sm:p-3 rounded-xl border transition-all flex flex-col items-center min-h-[90px] sm:min-h-[110px] ${rarity.bg} ${rarity.border} ${isSelected ? 'ring-2 ring-amber-400 shadow-lg shadow-amber-500/20' : ''} ${mat.qty <= 0 ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'}`}
-                                        >
-                                            {/* Element badge */}
-                                            {element && (
-                                                <span className={`absolute top-1 left-1 text-[8px] px-1 rounded ${element.bg} ${element.text}`}>
-                                                    {element.name}
-                                                </span>
-                                            )}
-
-                                            {/* Phẩm chất badge */}
-                                            <span className="absolute top-1 right-1 text-[10px] bg-slate-900/80 px-1 rounded">
-                                                P{mat.tier}
-                                            </span>
-
-                                            {/* Material image */}
-                                            <div className="w-10 h-10 sm:w-12 sm:h-12 mb-2 rounded-lg overflow-hidden shrink-0 shadow-sm mt-1">
-                                                <img
-                                                    src={getMaterialImage(mat.templateId)}
-                                                    alt={mat.name}
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => { e.target.src = '/assets/materials/mat_iron_ore.jpg'; }}
-                                                />
-                                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[9px] text-center text-white py-0.5 backdrop-blur-[1px]">
-                                                    {rarity.label}
-                                                </div>
-                                            </div>
-
-                                            <div className={`text-xs font-medium truncate w-full text-center text-ellipsis ${rarity.text}`}>
-                                                {mat.name}
-                                            </div>
-
-                                            {/* Quantity */}
-                                            <div className="text-xs text-amber-400 font-bold">
-                                                x{mat.qty}
-                                            </div>
-
-                                            {/* Selected indicator */}
-                                            {isSelected && (
-                                                <motion.div
-                                                    initial={{ scale: 0 }}
-                                                    animate={{ scale: 1 }}
-                                                    className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center text-xs text-white font-bold"
-                                                >
-                                                    +
-                                                </motion.div>
-                                            )}
-                                        </motion.button>
-                                    );
-                                })
+                                <>
+                                    <span className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
+                                    KHAI LÒ LUYỆN KHÍ
+                                </>
                             )}
-                        </div>
-
-                        {/* Selected Materials */}
-                        {selectedMaterials.length > 0 && (
-                            <div className="mt-4 pt-4 border-t border-slate-700">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm text-slate-400">Đã chọn ({selectedMaterials.length}/5)</span>
-                                    <button
-                                        onClick={() => setSelectedMaterials([])}
-                                        className="text-xs text-red-400 hover:text-red-300"
-                                    >
-                                        Xóa tất cả
-                                    </button>
-                                </div>
-                                <div className="flex gap-2 flex-wrap">
-                                    {selectedMaterials.map(mat => (
-                                        <span
-                                            key={mat.id}
-                                            className={`px-2 py-1 rounded text-xs ${RARITY_COLORS[mat.rarity]?.bg} ${RARITY_COLORS[mat.rarity]?.text} cursor-pointer hover:line-through`}
-                                            onClick={() => toggleMaterial(mat)}
-                                        >
-                                            {mat.name}
-                                        </span>
-                                    ))}
-                                </div>
+                        </button>
+                        {selectedMaterials.length < 3 && !crafting && (
+                            <div className="text-center text-xs text-slate-500 mt-2">
+                                Cần tối thiểu 3 nguyên liệu
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Right: Crafting Panel */}
-                <div className="space-y-4">
-                    {/* Equipment Type Selection */}
-                    <div className="spirit-tablet rounded-xl p-4">
-                        <h4 className="font-bold text-purple-400 mb-4">
-                            CHỌN LOẠI TRANG BỊ
+                {/* LEFT SIDE: CONTROLS (Desktop: Left) */}
+                <div className="lg:col-span-3 order-2 lg:order-1 space-y-4">
+                    <div className="spirit-tablet rounded-xl p-4 h-full max-h-[600px] overflow-y-auto custom-scrollbar">
+                        <h4 className="font-bold text-purple-400 mb-4 border-b border-white/10 pb-2">
+                            CÔNG THỨC
                         </h4>
 
                         <div className="space-y-2">
                             {Object.entries(groupedTypes).map(([type, subtypes]) => {
                                 const isExpanded = expandedType === type;
+                                const hasSelection = selectedType === type;
 
                                 return (
-                                    <div key={type} className="border border-slate-700 rounded-xl overflow-hidden mb-2">
+                                    <div key={type} className={`border rounded-xl overflow-hidden transition-all ${hasSelection ? 'border-amber-500/50 bg-amber-900/10' : 'border-slate-700 bg-slate-800/30'}`}>
                                         <button
                                             onClick={() => setExpandedType(isExpanded ? null : type)}
-                                            className="w-full flex items-center justify-between p-4 bg-slate-800/80 hover:bg-slate-700/80 transition-all active:bg-slate-700"
+                                            className="w-full flex items-center justify-between p-3 hover:bg-white/5 transition-colors"
                                         >
                                             <div className="flex items-center gap-2">
-                                                <span className="font-bold text-slate-200">
+                                                <span className={`font-bold ${hasSelection ? 'text-amber-400' : 'text-slate-300'}`}>
                                                     {TYPE_NAMES[type] || type}
                                                 </span>
-                                                <span className="text-xs text-slate-500">({subtypes.length})</span>
                                             </div>
-                                            <span>{isExpanded ? '▼' : '▶'}</span>
+                                            <span className="text-xs text-slate-500">{isExpanded ? '▼' : '▶'}</span>
                                         </button>
 
                                         <AnimatePresence>
@@ -490,7 +406,7 @@ const CraftTab = memo(function CraftTab() {
                                                     exit={{ height: 0 }}
                                                     className="overflow-hidden"
                                                 >
-                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-slate-900/50 border-t border-slate-700/50">
+                                                    <div className="grid grid-cols-1 gap-1 p-2 bg-black/20">
                                                         {subtypes.map(sub => (
                                                             <button
                                                                 key={sub.subtype}
@@ -498,13 +414,15 @@ const CraftTab = memo(function CraftTab() {
                                                                     setSelectedType(type);
                                                                     setSelectedSubtype(sub.subtype);
                                                                 }}
-                                                                className={`p-2 sm:p-3 rounded-xl border text-sm transition-all flex flex-col justify-center min-h-[60px] sm:min-h-[70px] ${selectedType === type && selectedSubtype === sub.subtype
-                                                                    ? 'bg-amber-600 border-amber-400 text-white shadow-lg shadow-amber-900/50'
-                                                                    : 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500'
+                                                                className={`p-2 rounded-lg text-left text-sm transition-all flex items-center justify-between ${selectedType === type && selectedSubtype === sub.subtype
+                                                                    ? 'bg-amber-600 text-white shadow-md'
+                                                                    : 'text-slate-400 hover:bg-white/10 hover:text-slate-200'
                                                                     }`}
                                                             >
-                                                                <div className="font-bold mb-1 text-sm sm:text-base">{sub.name}</div>
-                                                                <div className={`text-[11px] leading-tight ${selectedType === type && selectedSubtype === sub.subtype ? 'text-amber-100' : 'text-slate-400'}`}>{sub.description}</div>
+                                                                <span>{sub.name}</span>
+                                                                {selectedType === type && selectedSubtype === sub.subtype && (
+                                                                    <span className="text-[10px] opacity-80">Đã chọn</span>
+                                                                )}
                                                             </button>
                                                         ))}
                                                     </div>
@@ -516,82 +434,197 @@ const CraftTab = memo(function CraftTab() {
                             })}
                         </div>
                     </div>
+                </div>
 
+                {/* RIGHT SIDE: PREVIEW & INFO (Desktop: Right) */}
+                <div className="lg:col-span-5 order-3 space-y-4">
                     {/* Preview Panel */}
-                    {preview && preview.valid && (
+                    {preview && preview.valid ? (
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="spirit-tablet rounded-xl p-4 bg-gradient-to-br from-purple-900/30 to-slate-900/50"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="spirit-tablet rounded-xl p-5 bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700/50"
                         >
-                            <h4 className="font-bold text-emerald-400 mb-3">
-                                XEM TRƯỚC
+                            <h4 className="font-bold text-emerald-400 mb-4 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                DỰ ĐOÁN KẾT QUẢ
                             </h4>
 
-                            <div className="space-y-3">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-400">Phẩm chất kết quả:</span>
-                                    <span className="text-amber-400 font-bold">Phẩm {preview.tier}</span>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center bg-black/20 p-3 rounded-lg">
+                                    <span className="text-slate-400 text-sm">Phẩm chất dự kiến</span>
+                                    <span className={`font-bold ${RARITY_COLORS[preview.probabilityTable]?.text} text-lg`}>
+                                        {RARITY_COLORS[preview.probabilityTable]?.label || 'Không xác định'}
+                                    </span>
                                 </div>
 
                                 {preview.dominantElement && (
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-400">Nguyên tố:</span>
-                                        <span className={ELEMENT_COLORS[preview.dominantElement]?.text}>
+                                    <div className="flex justify-between items-center bg-black/20 p-3 rounded-lg">
+                                        <span className="text-slate-400 text-sm">Hệ chủ đạo (Buff)</span>
+                                        <span className={`px-2 py-0.5 rounded text-sm ${ELEMENT_COLORS[preview.dominantElement]?.bg} ${ELEMENT_COLORS[preview.dominantElement]?.text}`}>
                                             {ELEMENT_COLORS[preview.dominantElement]?.name}
                                         </span>
                                     </div>
                                 )}
 
-                                <div className="border-t border-slate-700 pt-3">
-                                    <span className="text-xs text-slate-500 uppercase">Tỷ lệ kết quả</span>
-                                    <div className="mt-2 space-y-1">
+                                <div className="pt-2">
+                                    <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">Tỷ lệ thành công</span>
+                                    <div className="mt-3 space-y-2">
                                         {Object.entries(preview.probabilities || {})
                                             .filter(([_, pct]) => pct > 0)
                                             .map(([rarity, pct]) => (
-                                                <div key={rarity} className="flex items-center gap-2">
-                                                    <div className="w-20 h-2 bg-slate-700 rounded overflow-hidden">
+                                                <div key={rarity} className="space-y-1">
+                                                    <div className="flex justify-between text-xs">
+                                                        <span className={RARITY_COLORS[rarity]?.text}>{RARITY_COLORS[rarity]?.label}</span>
+                                                        <span className="text-slate-400">{pct}%</span>
+                                                    </div>
+                                                    <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
                                                         <div
-                                                            className={`h-full ${rarity === 'mythic' ? 'bg-rose-500' : rarity === 'legendary' ? 'bg-amber-500' : rarity === 'epic' ? 'bg-purple-500' : rarity === 'rare' ? 'bg-blue-500' : rarity === 'uncommon' ? 'bg-emerald-500' : 'bg-slate-500'}`}
+                                                            className={`h-full opacity-80 ${rarity === 'mythic' ? 'bg-rose-500' : rarity === 'legendary' ? 'bg-amber-500' : rarity === 'epic' ? 'bg-purple-500' : rarity === 'rare' ? 'bg-blue-500' : rarity === 'uncommon' ? 'bg-emerald-500' : 'bg-slate-500'}`}
                                                             style={{ width: `${pct}%` }}
                                                         />
                                                     </div>
-                                                    <span className={`text-xs ${RARITY_COLORS[rarity]?.text}`}>
-                                                        {RARITY_COLORS[rarity]?.label}: {pct}%
-                                                    </span>
                                                 </div>
                                             ))}
                                     </div>
                                 </div>
                             </div>
                         </motion.div>
+                    ) : (
+                        <div className="spirit-tablet rounded-xl p-6 text-center h-full flex flex-col items-center justify-center text-slate-500 border-dashed border-2 border-slate-700/50 bg-transparent min-h-[200px]">
+                            <div className="text-4xl mb-3 opacity-20">?</div>
+                            <p>Hãy chọn ít nhất 3 nguyên liệu<br />để xem dự đoán kết quả</p>
+                        </div>
+                    )}
+                </div>
+
+            </div>
+
+            {/* BOTTOM: INVENTORY (Spans full width) */}
+            <div className="mt-6">
+                <div className="spirit-tablet rounded-xl p-4 bg-slate-900/80 border border-slate-700/50">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
+                        <div className="flex items-center gap-3">
+                            <h4 className="font-bold text-blue-400">TÚI CÀN KHÔN</h4>
+                            <span className="text-xs px-2 py-0.5 bg-slate-800 rounded-full text-slate-400">{filteredMaterials.length} vật phẩm</span>
+                        </div>
+
+                        {/* Filters */}
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <select
+                                value={filterTier}
+                                onChange={e => setFilterTier(e.target.value)}
+                                className="flex-1 sm:w-32 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-xs text-slate-300 focus:outline-none focus:border-amber-500"
+                            >
+                                <option value="all">Tất cả phẩm</option>
+                                {uniqueTiers.map(t => (
+                                    <option key={t} value={t}>Phẩm {t}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={filterElement}
+                                onChange={e => setFilterElement(e.target.value)}
+                                className="flex-1 sm:w-32 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-xs text-slate-300 focus:outline-none focus:border-amber-500"
+                            >
+                                <option value="all">Tất cả hệ</option>
+                                {uniqueElements.map(el => (
+                                    <option key={el} value={el}>{ELEMENT_COLORS[el]?.name || el}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Check if full */}
+                    {selectedMaterials.length >= 5 && (
+                        <div className="mb-2 text-center text-xs text-orange-400 animate-pulse">
+                            Lò luyện đã đầy (Tối đa 5)
+                        </div>
                     )}
 
-                    {/* Craft Button */}
-                    <button
-                        onClick={executeCraft}
-                        disabled={crafting || selectedMaterials.length < 3 || !selectedType || !selectedSubtype}
-                        className={`w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 transition-all ${crafting || selectedMaterials.length < 3 || !selectedType || !selectedSubtype
-                            ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-lg shadow-amber-500/30 hover:shadow-amber-500/50'
-                            }`}
-                    >
-                        {crafting ? (
-                            <>
-                                <motion.span
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                                    className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                                />
-                                Đang luyện chế...
-                            </>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                        {filteredMaterials.length === 0 ? (
+                            <div className="col-span-full text-center text-slate-500 py-8 text-sm">
+                                Không có nguyên liệu phù hợp
+                            </div>
                         ) : (
-                            <>
-                                LUYỆN CHẾ
-                                {selectedMaterials.length < 3 && <span className="text-sm font-normal ml-2">(Cần {3 - selectedMaterials.length} nguyên liệu nữa)</span>}
-                            </>
+                            filteredMaterials.map((mat, idx) => {
+                                const matId = `${mat.templateId}_${mat.rarity}`;
+                                const isSelected = selectedMaterials.find(sm => sm.id === matId);
+                                const rarity = RARITY_COLORS[mat.rarity] || RARITY_COLORS.common;
+                                const element = ELEMENT_COLORS[mat.element];
+                                const isFull = selectedMaterials.length >= 5;
+
+                                return (
+                                    <motion.button
+                                        key={`${matId}-${idx}`}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => toggleMaterial(mat)}
+                                        disabled={mat.qty <= 0 || (isFull && !isSelected)}
+                                        className={`relative p-2 rounded-xl border transition-all flex flex-col items-center min-h-[100px]
+                                            ${rarity.bg} ${rarity.border} 
+                                            ${isSelected
+                                                ? 'ring-2 ring-amber-400 shadow-lg shadow-amber-500/20'
+                                                : isFull
+                                                    ? 'opacity-50 cursor-not-allowed'
+                                                    : 'hover:brightness-110 cursor-pointer'
+                                            }
+                                            ${mat.qty <= 0 ? 'opacity-50 cursor-not-allowed' : ''}
+                                        `}
+                                    >
+                                        {/* Element badge */}
+                                        {element && (
+                                            <span className={`absolute top-1 left-1 text-[8px] px-1 rounded ${element.bg} ${element.text}`}>
+                                                {element.name}
+                                            </span>
+                                        )}
+
+                                        {/* Tier badge */}
+                                        <span className="absolute top-1 right-1 text-[10px] bg-slate-900/80 px-1 rounded text-white">
+                                            P{mat.tier}
+                                        </span>
+
+                                        {/* Material image with rarity overlay */}
+                                        <div className="w-12 h-12 mb-1 rounded-lg overflow-hidden relative shadow-sm">
+                                            <img
+                                                src={getMaterialImage(mat.templateId)}
+                                                alt={mat.name}
+                                                className="w-full h-full object-cover"
+                                                loading="lazy"
+                                                onError={(e) => { e.target.src = '/assets/materials/mat_iron_ore.jpg'; }}
+                                            />
+                                            {/* Rarity label overlay */}
+                                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-center text-white py-0.5 backdrop-blur-[1px]">
+                                                {rarity.label}
+                                            </div>
+                                        </div>
+
+                                        {/* Material name */}
+                                        <div className={`text-xs font-medium truncate w-full text-center ${rarity.text}`}>
+                                            {mat.name}
+                                        </div>
+
+                                        {/* Quantity */}
+                                        <div className="text-xs text-amber-400 font-bold">
+                                            x{mat.qty}
+                                        </div>
+
+                                        {/* Selected indicator */}
+                                        {isSelected && (
+                                            <motion.div
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center text-xs text-white font-bold"
+                                            >
+                                                ✓
+                                            </motion.div>
+                                        )}
+                                    </motion.button>
+                                );
+                            })
                         )}
-                    </button>
+                    </div>
                 </div>
             </div>
         </div >

@@ -18,6 +18,7 @@ import mongoose from "mongoose"; // MongoDB ODM
 
 // Import config và middleware
 import { connectDB } from "./config/db.js";
+import { validateAllTables } from "./services/craftService_bps.js";
 import { apiLimiter, authLimiter, authStatusLimiter, uploadLimiter, messageLimiter, postsLimiter, postCreationLimiter, commentCreationLimiter, groupCreationLimiter, eventCreationLimiter, friendRequestLimiter, pollCreationLimiter, postInteractionLimiter } from "./middleware/rateLimit.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { requestTimeout } from "./middleware/timeout.js";
@@ -1177,6 +1178,15 @@ if (process.env.DISABLE_SERVER_START === "true") {
   }
 
   connectDB(process.env.MONGODB_URI).then(async () => {
+
+    // Validate BPS probability tables before server start
+    try {
+      validateAllTables();
+      console.log('[INFO][SERVER] BPS probability tables validated');
+    } catch (bpsError) {
+      console.error('[ERROR][SERVER] BPS validation failed:', bpsError.message);
+      process.exit(1); // CRITICAL: Do not start with invalid tables
+    }
 
     // Setup database monitoring
     try {

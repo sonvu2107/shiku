@@ -646,12 +646,44 @@ export function CultivationProvider({ children }) {
   const addExp = useCallback(async (amount, source = 'activity', spiritStones = 0) => {
     try {
       setError(null);
-      const response = await addExpFromActivity(amount, source, spiritStones);
+      // Request patch mode for high-frequency actions
+      const response = await addExpFromActivity(amount, source, spiritStones, { mode: 'patch' });
 
       if (response.success) {
-        setCultivation(response.data.cultivation);
+        // Handle patch response
+        if (response.mode === 'patch' && response.patch) {
+          setCultivation(prev => {
+            if (!prev) return prev;
 
-        if (response.data.leveledUp) {
+            const incomingVer = response.dataVersion;
+            const prevVer = prev.dataVersion ?? 0;
+
+            // Out-of-order check: ignore if incoming is older OR equal
+            if (incomingVer != null && incomingVer <= prevVer) {
+              console.warn('[Cultivation] Ignoring out-of-order patch response', { incomingVer, prevVer });
+              return prev;
+            }
+
+            // Safe merge: apply patch fields while preserving heavy state
+            return {
+              ...prev,
+              ...response.patch,
+              // Explicitly set dataVersion if valid number
+              dataVersion: (typeof incomingVer === 'number' ? incomingVer : prevVer),
+            };
+          });
+        } else {
+          // Legacy full response handling
+          const fullCultivation = response.data?.cultivation || response.cultivation;
+          if (fullCultivation) {
+            setCultivation(fullCultivation);
+          } else {
+            console.warn('[Cultivation] Unexpected response structure:', response);
+          }
+        }
+
+        // Handle level-up notification (legacy field)
+        if (response.data?.leveledUp) {
           setNotification({
             type: 'success',
             title: 'Đột phá cảnh giới!',
@@ -661,7 +693,7 @@ export function CultivationProvider({ children }) {
           });
         }
 
-        return response.data;
+        return response.data || response;
       }
     } catch (err) {
       setError(err.message);

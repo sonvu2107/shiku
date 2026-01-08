@@ -2,13 +2,17 @@ import mongoose from "mongoose";
 import Cultivation, { SHOP_ITEMS, SHOP_ITEMS_MAP, TECHNIQUES_MAP } from "../../models/Cultivation.js";
 import Equipment from "../../models/Equipment.js";
 import { getSectBuildingBonuses } from "../../services/sectBuildingBonusService.js";
-import { get as redisGet, set as redisSet, isRedisConnected } from "../../services/redisClient.js";
+import { get as redisGet, set as redisSet, getClient, isRedisConnected } from "../../services/redisClient.js";
 import { saveWithRetry } from "../../utils/dbUtils.js";
+import { getShopCacheKey } from "../../services/shopCacheService.js";
 
 // ==================== SECT BONUSES CACHE ====================
 // Redis for multi-instance consistency, fallback to in-memory for single instance
 const SECT_BONUSES_CACHE_TTL = 300; // 5 minutes in seconds
 const SECT_BONUSES_CACHE_KEY_PREFIX = 'sect_bonuses:';
+
+// ==================== SHOP EQUIPMENT CACHE ====================
+const SHOP_CACHE_TTL = 1800; // 30 minutes in seconds
 
 // In-memory fallback cache (used when Redis is not available)
 const sectBonusesFallbackCache = new Map();
@@ -99,6 +103,69 @@ async function getCachedSectBonuses(userId) {
 export const getShop = async (req, res, next) => {
     try {
         const userId = req.user.id;
+        const redis = getClient();
+        const shopCacheKey = getShopCacheKey();
+
+        // Try equipment cache first (shared for all users)
+        let equipmentItems = null;
+        if (redis && isRedisConnected()) {
+            try {
+                const cached = await redis.get(shopCacheKey);
+                if (cached) {
+                    equipmentItems = JSON.parse(cached);
+                    console.log('[SHOP CACHE] Hit - using cached equipment');
+                }
+            } catch (error) {
+                console.error('[SHOP CACHE] Redis read error:', error.message);
+            }
+        }
+
+        // Cache miss - query DB
+        if (!equipmentItems) {
+            const availableEquipment = await Equipment.find({
+                is_active: true,
+                price: { $gt: 0 }
+            }).lean();
+
+            equipmentItems = availableEquipment.map(eq => {
+                let elementalDamage = {};
+                if (eq.stats?.elemental_damage instanceof Map) {
+                    elementalDamage = Object.fromEntries(eq.stats.elemental_damage);
+                } else if (eq.stats?.elemental_damage) {
+                    elementalDamage = eq.stats.elemental_damage;
+                }
+
+                const eqId = eq._id.toString();
+
+                return {
+                    id: eqId,
+                    name: eq.name,
+                    type: `equipment_${eq.type}`,
+                    equipmentType: eq.type,
+                    subtype: eq.subtype || null,
+                    rarity: eq.rarity,
+                    price: eq.price,
+                    img: eq.img,
+                    description: eq.description,
+                    level_required: eq.level_required,
+                    stats: { ...eq.stats, elemental_damage: elementalDamage },
+                    special_effect: eq.special_effect,
+                    skill_bonus: eq.skill_bonus,
+                    energy_regen: eq.energy_regen,
+                    lifesteal: eq.lifesteal,
+                    true_damage: eq.true_damage,
+                    buff_duration: eq.buff_duration
+                };
+            });
+
+            // Save to cache
+            if (redis && isRedisConnected()) {
+                redis.set(shopCacheKey, JSON.stringify(equipmentItems), 'EX', SHOP_CACHE_TTL)
+                    .catch(err => console.error('[SHOP CACHE] Write error:', err.message));
+            }
+        }
+
+        // Get user-specific data (cultivation + ownership)
         const cultivation = await Cultivation.getOrCreate(userId);
 
         // Lấy bonus từ Tông Môn (cached - TTL 5 phút)
@@ -147,20 +214,9 @@ export const getShop = async (req, res, next) => {
                 };
             });
 
-        const availableEquipment = await Equipment.find({
-            is_active: true,
-            price: { $gt: 0 }
-        }).lean();
-
-        const equipmentItems = availableEquipment.map(eq => {
-            let elementalDamage = {};
-            if (eq.stats?.elemental_damage instanceof Map) {
-                elementalDamage = Object.fromEntries(eq.stats.elemental_damage);
-            } else if (eq.stats?.elemental_damage) {
-                elementalDamage = eq.stats.elemental_damage;
-            }
-
-            const eqId = eq._id.toString();
+        // Add ownership and affordability to equipment items
+        const enrichedEquipmentItems = equipmentItems.map(eq => {
+            const eqId = eq.id;
             const isOwned = cultivation.inventory.some(i => {
                 if (i.itemId && i.itemId.toString() === eqId) return true;
                 if (i.metadata?._id) {
@@ -172,30 +228,14 @@ export const getShop = async (req, res, next) => {
             });
 
             return {
-                id: eqId,
-                name: eq.name,
-                type: `equipment_${eq.type}`,
-                equipmentType: eq.type,
-                subtype: eq.subtype || null,
-                rarity: eq.rarity,
-                price: eq.price,
-                img: eq.img,
-                description: eq.description,
-                level_required: eq.level_required,
-                stats: { ...eq.stats, elemental_damage: elementalDamage },
-                special_effect: eq.special_effect,
-                skill_bonus: eq.skill_bonus,
-                energy_regen: eq.energy_regen,
-                lifesteal: eq.lifesteal,
-                true_damage: eq.true_damage,
-                buff_duration: eq.buff_duration,
+                ...eq,
                 owned: isOwned,
                 canAfford: cultivation.spiritStones >= eq.price,
                 canUse: cultivation.realmLevel >= eq.level_required
             };
         });
 
-        const allItems = [...shopItems, ...equipmentItems];
+        const allItems = [...shopItems, ...enrichedEquipmentItems];
 
         res.json({
             success: true,

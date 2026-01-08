@@ -373,6 +373,13 @@ const CultivationSchema = new mongoose.Schema({
   // Timestamp lần claim cuối (cho cooldown 15s)
   lastTechniqueClaimTime: { type: Date, default: null },
 
+  // ==================== LUYỆN KHÍ PITY SYSTEM ====================
+  craftPity: {
+    _id: false, // Prevent Mongoose subdoc ID pollution
+    epic: { type: Number, default: 0, min: 0 },
+    legendary: { type: Number, default: 0, min: 0 }
+  },
+
   // ==================== PHIÊN LUYỆN CÔNG PHÁP (NHẬP ĐỊNH 10 PHÚT) ====================
   // Cho phép luyện TẤT CẢ công pháp cùng lúc, 1 click = 10 phút
   activePracticeSession: {

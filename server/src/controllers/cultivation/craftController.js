@@ -7,11 +7,21 @@ import mongoose from 'mongoose';
 import Cultivation from '../../models/Cultivation.js';
 import Equipment from '../../models/Equipment.js';
 import {
-    executeCraft,
     previewCraft,
-    CRAFTABLE_EQUIPMENT_TYPES
+    CRAFTABLE_EQUIPMENT_TYPES,
+    getProbabilityTable,
+    getDominantElement,
+    executeCraftWithRarity
 } from '../../services/craftService.js';
 import { saveWithRetry } from '../../utils/dbUtils.js';
+import { invalidateCultivationCache } from './coreController.js';
+import {
+    CRAFT_PROBABILITIES_BPS,
+    rollRarityBPS,
+    applyPityBPS,
+    getPityConfig,
+    validateBPSTable
+} from '../../services/craftService_bps.js';
 
 // ==================== CRAFT LOG SCHEMA ====================
 const CraftLogSchema = new mongoose.Schema({
@@ -220,14 +230,122 @@ export const executeCrafting = async (req, res, next) => {
         // Get tier from materials
         const tier = selectedMaterials[0].tier;
 
-        // Execute craft logic with subtype
-        const craftResult = executeCraft(selectedMaterials, targetType, targetSubtype, tier);
+        // GUARD: Ensure Mongoose document (not lean/cache)
+        if (!cultivation || typeof cultivation.get !== 'function' || typeof cultivation.set !== 'function') {
+            return res.status(500).json({
+                success: false,
+                message: 'Hệ thống lỗi: cultivation document không hợp lệ'
+            });
+        }
 
-        if (!craftResult.success) {
+        // === BPS PITY SYSTEM ===
+        // Whitelist: only epic and legendary have pity
+        const PITY_KEYS = new Set(['epic', 'legendary']);
+
+        // Initialize craftPity if not exists (for old users before migration)
+        if (!cultivation.craftPity) {
+            cultivation.craftPity = { epic: 0, legendary: 0 };
+        }
+
+        // 1. Get probability table
+        const tableKey = getProbabilityTable(selectedMaterials);
+        const baseTable = CRAFT_PROBABILITIES_BPS[tableKey];
+        if (!baseTable) {
+            return res.status(500).json({
+                success: false,
+                message: `Hệ thống lỗi: bảng xác suất không hợp lệ (${tableKey})`
+            });
+        }
+
+        // Dev-only validation with try/catch
+        if (process.env.NODE_ENV !== 'production') {
+            try {
+                validateBPSTable(baseTable, tableKey);
+            } catch (e) {
+                return res.status(500).json({
+                    success: false,
+                    message: `BPS table invalid: ${e.message}`
+                });
+            }
+        }
+
+        let bpsTable = baseTable;
+
+        // 2. Apply pity (if applicable)
+        const pityConfig = getPityConfig(tableKey);
+        let currentPity = 0;
+        if (pityConfig && PITY_KEYS.has(tableKey)) {
+            const pityPath = `craftPity.${tableKey}`;
+            const currentPityRaw = cultivation.get(pityPath) ?? 0;
+            currentPity = Math.max(0, currentPityRaw); // Clamp negative
+
+            const bonusBPS = Math.min(
+                currentPity * pityConfig.incrementPerFail,
+                pityConfig.maxBonus
+            );
+
+            if (bonusBPS > 0) {
+                bpsTable = applyPityBPS(
+                    bpsTable,
+                    pityConfig.targetRarity,
+                    bonusBPS,
+                    pityConfig.takeFrom
+                );
+
+                if (process.env.NODE_ENV !== 'production') {
+                    console.log(`[Craft] ${userId.toString().slice(-6)} pity: ${tableKey} ${currentPity} -> +${bonusBPS}bps`);
+                }
+            }
+        }
+
+        // 3. Roll rarity
+        const resultRarity = rollRarityBPS(bpsTable);
+
+        // 4. Validate element before craft
+        const dominantElement = getDominantElement(selectedMaterials);
+        if (!dominantElement) {
             return res.status(400).json({
                 success: false,
-                message: craftResult.error
+                message: 'Không xác định được hệ nguyên tố từ nguyên liệu'
             });
+        }
+
+        // 5. Execute craft with BPS rarity
+        const craftResult = executeCraftWithRarity(
+            selectedMaterials,
+            targetType,
+            targetSubtype,
+            tier,
+            resultRarity,
+            dominantElement,
+            tableKey
+        );
+
+        // CRITICAL: Only proceed if craft succeeded
+        if (!craftResult?.success) {
+            return res.status(400).json({
+                success: false,
+                message: craftResult?.error || 'Luyện khí thất bại'
+            });
+        }
+
+        // 6. Update pity ONLY after craft success
+        if (pityConfig && PITY_KEYS.has(tableKey)) {
+            const pityPath = `craftPity.${tableKey}`;
+
+            if (resultRarity === pityConfig.targetRarity) {
+                cultivation.set(pityPath, 0);
+                cultivation.markModified('craftPity'); // Force Mongoose to track change
+                if (process.env.NODE_ENV !== 'production') {
+                    console.log(`[Craft] ${userId.toString().slice(-6)} pity RESET: ${tableKey}`);
+                }
+            } else {
+                cultivation.set(pityPath, currentPity + 1);
+                cultivation.markModified('craftPity'); // Force Mongoose to track change
+                if (process.env.NODE_ENV !== 'production') {
+                    console.log(`[Craft] ${userId.toString().slice(-6)} pity UP: ${tableKey} ${currentPity} -> ${currentPity + 1}`);
+                }
+            }
         }
 
         // Consume materials
@@ -295,6 +413,9 @@ export const executeCrafting = async (req, res, next) => {
         });
 
         await saveWithRetry(cultivation);
+
+        // Invalidate cache so next GET returns fresh data with updated pity
+        await invalidateCultivationCache(userId);
 
         // Log craft
         try {
