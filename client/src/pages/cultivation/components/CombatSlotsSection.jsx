@@ -127,17 +127,13 @@ const CombatSlotsSection = ({ cultivationTechniques = [] }) => {
                                 <span className="text-xs text-slate-500 font-bold">Vị trí {slotIndex + 1}</span>
                             </div>
 
-                            {/* Locked Slot */}
                             {!isUnlocked && (
                                 <div className="flex-1 flex flex-col items-center justify-center text-center">
-                                    <div className="w-8 h-8 rounded-full bg-slate-800/50 border border-slate-600 flex items-center justify-center mb-2">
-                                        <span className="text-slate-500 text-lg">🔒</span>
-                                    </div>
-                                    <p className="text-[10px] text-slate-500">
-                                        Cần đạt
+                                    <p className="text-xs text-slate-500 mb-1">
+                                        Chưa mở khóa
                                     </p>
-                                    <p className="text-xs text-slate-400 font-bold">
-                                        {requirement.name}
+                                    <p className="text-sm text-amber-400 font-bold">
+                                        Cần đạt {requirement.name}
                                     </p>
                                 </div>
                             )}

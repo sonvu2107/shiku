@@ -317,11 +317,27 @@ export const activateTechnique = async (req, res, next) => {
             });
         }
 
+        // ==================== COOLDOWN CHECK (15s between sessions) ====================
+        const TECHNIQUE_SESSION_COOLDOWN_MS = 15000; // 15 seconds
+        const lastClaimTime = cultivation.lastTechniqueClaimTime ? new Date(cultivation.lastTechniqueClaimTime).getTime() : 0;
+        const now = Date.now();
+        const timeSinceLastClaim = now - lastClaimTime;
+
+        if (timeSinceLastClaim < TECHNIQUE_SESSION_COOLDOWN_MS) {
+            const waitMs = TECHNIQUE_SESSION_COOLDOWN_MS - timeSinceLastClaim;
+            const waitSec = Math.ceil(waitMs / 1000);
+            return res.status(429).json({
+                success: false,
+                message: `Chưa hết cooldown, chờ ${waitSec}s để vận công tiếp`,
+                cooldownRemaining: waitSec
+            });
+        }
+
         // Check không có session đang active
         const existingSession = cultivation.activeTechniqueSession;
         if (existingSession?.sessionId && !existingSession.claimedAt) {
             const endsAt = new Date(existingSession.endsAt).getTime();
-            if (Date.now() < endsAt + 60000) {
+            if (now < endsAt + 60000) {
                 return res.status(400).json({
                     success: false,
                     message: "Đang trong trạng thái vận công, vui lòng thu thập trước",
@@ -342,14 +358,14 @@ export const activateTechnique = async (req, res, next) => {
         }
 
         // Tạo session mới
-        const now = new Date();
+        const sessionStart = new Date();
         const sessionId = crypto.randomUUID();
-        const endsAt = new Date(now.getTime() + technique.durationSec * 1000);
+        const endsAt = new Date(sessionStart.getTime() + technique.durationSec * 1000);
 
         cultivation.activeTechniqueSession = {
             sessionId,
             techniqueId,
-            startedAt: now,
+            startedAt: sessionStart,
             endsAt,
             realmAtStart: cultivation.realmLevel,
             claimedAt: null
@@ -388,7 +404,7 @@ export const activateTechnique = async (req, res, next) => {
                 techniqueId,
                 techniqueName: technique.name,
                 durationSec: technique.durationSec,
-                startedAt: now,
+                startedAt: sessionStart,
                 endsAt,
                 estimatedExp,
                 capRemaining
@@ -530,8 +546,9 @@ export const claimTechnique = async (req, res, next) => {
             claimedAt: session.claimedAt
         };
 
-        // Clear active session
+        // Clear active session + set cooldown timestamp
         cultivation.activeTechniqueSession = null;
+        cultivation.lastTechniqueClaimTime = new Date();
 
         // Update technique lastPracticedAt
         const learnedTechnique = (cultivation.learnedTechniques || [])

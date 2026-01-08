@@ -614,7 +614,7 @@ const CultivationContent = memo(function CultivationContent() {
           {activeTab === 'stats' && <StatsTab />}
           {activeTab === 'quests' && <QuestsTab onCheckIn={handleCheckIn} checkingIn={checkingIn} />}
           {activeTab === 'storage' && <StorageTab />}
-          {activeTab === 'techniques' && <TechniquesTab practiceTechnique={practiceTechnique} />}
+          {activeTab === 'techniques' && <TechniquesTab practiceTechnique={practiceTechnique} notification={notification} clearNotification={clearNotification} />}
           {activeTab === 'dungeon' && <DungeonTab />}
           {activeTab === 'combat' && <CombatTab onSwitchTab={setActiveTab} isAdmin={isAdmin} />}
           {activeTab === 'sect' && <SectTab />}

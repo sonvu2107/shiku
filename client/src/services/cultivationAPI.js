@@ -94,10 +94,16 @@ export async function getShop() {
 
 /**
  * Mua vật phẩm
+ * @param {string} itemId - ID vật phẩm
+ * @param {number} quantity - Số lượng cần mua (default: 1)
  */
-export async function buyItem(itemId) {
-  return api(`/api/cultivation/shop/buy/${itemId}`, { method: 'POST' });
+export async function buyItem(itemId, quantity = 1) {
+  return api(`/api/cultivation/shop/buy/${itemId}`, {
+    method: 'POST',
+    body: JSON.stringify({ quantity })
+  });
 }
+
 
 // ==================== INVENTORY ====================
 
@@ -155,9 +161,14 @@ export async function repairAllEquipment() {
 
 /**
  * Sử dụng vật phẩm tiêu hao (đan dược, consumable)
+ * @param {string} itemId - ID vật phẩm
+ * @param {number} quantity - Số lượng muốn dùng (default: 1)
  */
-export async function useItem(itemId) {
-  return api(`/api/cultivation/inventory/${itemId}/use`, { method: 'POST' });
+export async function useItem(itemId, quantity = 1) {
+  return api(`/api/cultivation/inventory/${itemId}/use`, {
+    method: 'POST',
+    body: JSON.stringify({ quantity })
+  });
 }
 
 /**

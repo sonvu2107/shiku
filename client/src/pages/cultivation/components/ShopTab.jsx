@@ -31,6 +31,26 @@ const ShopTab = memo(function ShopTab() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
+  // Modal state for bulk purchase
+  const [purchaseModal, setPurchaseModal] = useState(null); // { item, quantity }
+
+  // Helper to check if item supports bulk purchase
+  const isBulkPurchasable = (item) => {
+    return ['exp_boost', 'breakthrough_boost', 'consumable'].includes(item.type) && !item.oneTimePurchase;
+  };
+
+  // Open purchase modal for bulk-purchasable items
+  const openPurchaseModal = (item) => {
+    setPurchaseModal({ item, quantity: 1 });
+  };
+
+  // Update quantity in modal
+  const setModalQuantity = (value) => {
+    const qty = Math.max(1, Math.min(99, Math.floor(Number(value)) || 1));
+    setPurchaseModal(prev => prev ? { ...prev, quantity: qty } : null);
+  };
+
+
   // Info mapping for pill/boost effects
   const EFFECT_INFO = {
     exp_boost: {
@@ -86,14 +106,33 @@ const ShopTab = memo(function ShopTab() {
     setHoveredItem(null);
   };
 
-  const handleBuy = async (itemId) => {
+  // Handle click on buy button - open modal for bulk items, direct buy for others
+  const handleItemClick = (item) => {
+    if (isBulkPurchasable(item) && !item.owned) {
+      openPurchaseModal(item);
+    } else {
+      handleBuy(item.id, 1);
+    }
+  };
+
+  // Handle direct buy (for non-bulk items or from modal)
+  const handleBuy = async (itemId, quantity = 1) => {
     setBuying(itemId);
     try {
-      await purchaseItem(itemId);
+      await purchaseItem(itemId, quantity);
+      setPurchaseModal(null); // Close modal after successful purchase
     } finally {
       setBuying(null);
     }
   };
+
+  // Handle buy from modal
+  const handleModalBuy = () => {
+    if (purchaseModal) {
+      handleBuy(purchaseModal.item.id, purchaseModal.quantity);
+    }
+  };
+
 
   const toggleSortOrder = () => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -253,7 +292,7 @@ const ShopTab = memo(function ShopTab() {
       {(activeCategory === 'consumable_group') && (
         <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
           {/* EXP Boost */}
-          {(['all','exp_boost'].includes(subCategory)) && (
+          {(['all', 'exp_boost'].includes(subCategory)) && (
             <div className="rounded-xl p-3 border border-amber-500/30 bg-slate-800/40">
               <div className="text-xs font-semibold text-amber-300 mb-1">{EFFECT_INFO.exp_boost.title}</div>
               <ul className="text-[11px] text-slate-300 space-y-1">
@@ -269,7 +308,7 @@ const ShopTab = memo(function ShopTab() {
             </div>
           )}
           {/* Breakthrough Boost */}
-          {(['all','breakthrough_boost'].includes(subCategory)) && (
+          {(['all', 'breakthrough_boost'].includes(subCategory)) && (
             <div className="rounded-xl p-3 border border-purple-500/30 bg-slate-800/40">
               <div className="text-xs font-semibold text-purple-300 mb-1">{EFFECT_INFO.breakthrough_boost.title}</div>
               <ul className="text-[11px] text-slate-300 space-y-1">
@@ -285,7 +324,7 @@ const ShopTab = memo(function ShopTab() {
             </div>
           )}
           {/* Spirit Stones Charm */}
-          {(['all','consumable'].includes(subCategory)) && (shop.items || []).some(i => i.id === 'lucky_charm') && (
+          {(['all', 'consumable'].includes(subCategory)) && (shop.items || []).some(i => i.id === 'lucky_charm') && (
             <div className="rounded-xl p-3 border border-cyan-500/30 bg-slate-800/40">
               <div className="text-xs font-semibold text-cyan-300 mb-1">{EFFECT_INFO.spirit_stones.title}</div>
               <ul className="text-[11px] text-slate-300 space-y-1">
@@ -399,8 +438,10 @@ const ShopTab = memo(function ShopTab() {
                     )}
                   </div>
                 </div>
+
+                {/* Buy button */}
                 <button
-                  onClick={() => handleBuy(item.id)}
+                  onClick={() => handleItemClick(item)}
                   disabled={buying === item.id || !item.canAfford || item.owned}
                   className={`flex flex-col items-center justify-center border rounded-lg px-4 py-2 min-w-[85px] transition-all ${item.owned
                     ? 'bg-slate-800 border-slate-600 text-slate-500 cursor-not-allowed'
@@ -410,7 +451,7 @@ const ShopTab = memo(function ShopTab() {
                     }`}
                 >
                   <span className="text-amber-400 font-mono text-sm font-bold flex items-center gap-1">
-                    <GiCutDiamond size={14} /> {item.price}
+                    <GiCutDiamond size={14} /> {item.price.toLocaleString()}
                   </span>
                   <span className="text-[10px] text-slate-300 uppercase mt-1">
                     {item.owned ? 'Đã sở hữu' : buying === item.id ? '...' : 'Mua'}
@@ -442,6 +483,116 @@ const ShopTab = memo(function ShopTab() {
           stats={hoveredItem.stats || hoveredItem.metadata?.stats}
           position={tooltipPosition}
         />
+      )}
+
+      {/* Purchase Modal for bulk items */}
+      {purchaseModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setPurchaseModal(null)}
+          />
+
+          {/* Modal Content */}
+          <div className="relative z-10 w-full max-w-sm mx-4 bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl border border-amber-500/30 shadow-2xl shadow-amber-500/10 animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-4 border-b border-slate-700/50">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-black border border-amber-500/40 flex items-center justify-center overflow-hidden">
+                  {purchaseModal.item.img ? (
+                    <img src={purchaseModal.item.img} alt={purchaseModal.item.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <GiCutDiamond size={24} className="text-amber-400" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-bold text-amber-300">{purchaseModal.item.name}</h3>
+                  <p className="text-xs text-slate-400">{purchaseModal.item.description?.slice(0, 50)}...</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 space-y-4">
+              {/* Quantity selector */}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-300 text-sm">Số lượng:</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setModalQuantity(purchaseModal.quantity - 1)}
+                    disabled={purchaseModal.quantity <= 1}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed text-lg font-bold transition-colors"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max="99"
+                    value={purchaseModal.quantity}
+                    onChange={(e) => setModalQuantity(e.target.value)}
+                    className="w-14 h-8 text-center bg-slate-800 border border-slate-600 rounded-lg text-amber-300 text-sm font-mono focus:outline-none focus:border-amber-500"
+                  />
+                  <button
+                    onClick={() => setModalQuantity(purchaseModal.quantity + 1)}
+                    disabled={purchaseModal.quantity >= 99}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed text-lg font-bold transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick quantity buttons */}
+              <div className="flex gap-2 justify-center">
+                {[5, 10, 20, 50].map(qty => (
+                  <button
+                    key={qty}
+                    onClick={() => setModalQuantity(qty)}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-all ${purchaseModal.quantity === qty
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                  >
+                    x{qty}
+                  </button>
+                ))}
+              </div>
+
+              {/* Total price */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                <span className="text-slate-300">Tổng cộng:</span>
+                <span className="flex items-center gap-2 text-amber-400 font-bold text-lg">
+                  <GiCutDiamond size={18} />
+                  {(purchaseModal.item.price * purchaseModal.quantity).toLocaleString()}
+                </span>
+              </div>
+
+              {/* Balance check */}
+              {(cultivation?.spiritStones || 0) < (purchaseModal.item.price * purchaseModal.quantity) && (
+                <p className="text-xs text-red-400 text-center">Không đủ linh thạch!</p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-700/50 flex gap-3">
+              <button
+                onClick={() => setPurchaseModal(null)}
+                className="flex-1 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleModalBuy}
+                disabled={buying || (cultivation?.spiritStones || 0) < (purchaseModal.item.price * purchaseModal.quantity)}
+                className="flex-1 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {buying ? '...' : `Mua x${purchaseModal.quantity}`}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

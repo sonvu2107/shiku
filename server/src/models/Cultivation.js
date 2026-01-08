@@ -370,6 +370,9 @@ const CultivationSchema = new mongoose.Schema({
     claimedAt: { type: Date }
   },
 
+  // Timestamp lần claim cuối (cho cooldown 15s)
+  lastTechniqueClaimTime: { type: Date, default: null },
+
   // ==================== PHIÊN LUYỆN CÔNG PHÁP (NHẬP ĐỊNH 10 PHÚT) ====================
   // Cho phép luyện TẤT CẢ công pháp cùng lúc, 1 click = 10 phút
   activePracticeSession: {
@@ -1447,17 +1450,27 @@ CultivationSchema.methods.claimQuestReward = function (questId) {
 /**
  * Mua vật phẩm
  * @param {string} itemId - ID vật phẩm
- * @param {number} overridePrice - Giá đã được giảm từ Đan Phòng (optional)
+ * @param {number} overridePrice - Giá đã được giảm từ Đan Phòng (optional) - là TỔNG GIÁ (đã nhân quantity)
+ * @param {number} quantity - Số lượng mua (default: 1)
  */
-CultivationSchema.methods.buyItem = function (itemId, overridePrice = null) {
+CultivationSchema.methods.buyItem = function (itemId, overridePrice = null, quantity = 1) {
   // Use SHOP_ITEMS_MAP for O(1) lookup
   const item = SHOP_ITEMS_MAP.get(itemId);
   if (!item) {
     throw new Error("Vật phẩm không tồn tại");
   }
 
-  // Xử lý items chỉ mua 1 lần (starter pack)
+  // Validate quantity
+  const qty = Math.floor(Number(quantity)) || 1;
+  if (qty < 1 || qty > 99) {
+    throw new Error("Số lượng không hợp lệ (1-99)");
+  }
+
+  // Xử lý items chỉ mua 1 lần (starter pack) - không cho phép mua nhiều
   if (item.oneTimePurchase) {
+    if (qty > 1) {
+      throw new Error("Vật phẩm này chỉ có thể mua 1 cái");
+    }
     // Kiểm tra đã mua chưa (dùng purchasedOneTimeItems để track vĩnh viễn)
     if (!this.purchasedOneTimeItems) {
       this.purchasedOneTimeItems = [];
@@ -1501,8 +1514,10 @@ CultivationSchema.methods.buyItem = function (itemId, overridePrice = null) {
     };
   }
 
-  // Kiểm tra đã có chưa (trừ consumable items và exp boost)
-  if (item.type !== ITEM_TYPES.EXP_BOOST && item.type !== ITEM_TYPES.CONSUMABLE) {
+  // Kiểm tra đã có chưa (trừ consumable items và exp boost - có thể mua nhiều)
+  const isStackable = item.type === ITEM_TYPES.EXP_BOOST || item.type === ITEM_TYPES.CONSUMABLE || item.type === 'breakthrough_boost';
+
+  if (!isStackable) {
     // Với công pháp, kiểm tra đã học chưa
     if (item.type === ITEM_TYPES.TECHNIQUE) {
       const alreadyLearned = this.learnedTechniques?.some(t => t.techniqueId === itemId);
@@ -1517,11 +1532,11 @@ CultivationSchema.methods.buyItem = function (itemId, overridePrice = null) {
     }
   }
 
-  // Trừ linh thạch (dùng giá đã giảm nếu có)
-  const finalPrice = overridePrice !== null ? overridePrice : item.price;
+  // Trừ linh thạch (dùng giá đã giảm nếu có - đây là TỔNG GIÁ đã nhân quantity)
+  const finalPrice = overridePrice !== null ? overridePrice : (item.price * qty);
   this.spendSpiritStones(finalPrice);
 
-  // Xử lý công pháp: tự động học khi mua
+  // Xử lý công pháp: tự động học khi mua (không cho phép mua nhiều)
   if (item.type === ITEM_TYPES.TECHNIQUE) {
     if (!this.learnedTechniques) {
       this.learnedTechniques = [];
@@ -1537,12 +1552,24 @@ CultivationSchema.methods.buyItem = function (itemId, overridePrice = null) {
     return { type: 'technique', learnedTechnique, name: item.name }; // Trả về thông tin công pháp đã học
   }
 
-  // Thêm vào inventory
+  // Xử lý items có thể stack (exp_boost, breakthrough_boost, consumable)
+  if (isStackable) {
+    // Tìm item cùng loại đã có trong inventory
+    const existingItem = this.inventory.find(i => i.itemId === itemId);
+
+    if (existingItem) {
+      // Stack lên item đã có
+      existingItem.quantity = (existingItem.quantity || 1) + qty;
+      return { ...existingItem, addedQuantity: qty };
+    }
+  }
+
+  // Thêm mới vào inventory
   const inventoryItem = {
     itemId: item.id,
     name: item.name,
     type: item.type,
-    quantity: 1,
+    quantity: qty,
     equipped: false,
     acquiredAt: new Date(),
     metadata: { ...item }
@@ -1551,7 +1578,7 @@ CultivationSchema.methods.buyItem = function (itemId, overridePrice = null) {
   // Xử lý item có thời hạn
   // NOTE: Không tự động kích hoạt boost khi mua - user phải bấm "Dùng" thủ công
   // Đã bỏ auto-activation vì gây double buff
-  if (item.type === ITEM_TYPES.EXP_BOOST) {
+  if (item.type === ITEM_TYPES.EXP_BOOST || item.type === 'breakthrough_boost') {
     // Lưu thông tin duration vào metadata để sử dụng khi user click "Dùng"
     inventoryItem.metadata.duration = item.duration;
     inventoryItem.metadata.multiplier = item.multiplier;

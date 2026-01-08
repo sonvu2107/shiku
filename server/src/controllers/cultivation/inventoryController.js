@@ -292,11 +292,22 @@ const USE_ITEM_COOLDOWN_MS = 3000;
 
 /**
  * POST /inventory/:itemId/use - Sử dụng vật phẩm tiêu hao
+ * @body {number} quantity - Số lượng muốn sử dụng (default: 1, max: 99)
  */
 export const useItem = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const { itemId } = req.params;
+        const { quantity = 1 } = req.body;
+
+        // Validate quantity
+        const qty = Math.floor(Number(quantity)) || 1;
+        if (qty < 1 || qty > 99) {
+            return res.status(400).json({
+                success: false,
+                message: "Số lượng không hợp lệ (1-99)"
+            });
+        }
 
         // Rate limiting: Check if same user/item was used recently
         const cacheKey = `${userId}:${itemId}`;
@@ -340,12 +351,29 @@ export const useItem = async (req, res, next) => {
             return res.status(400).json({ success: false, message: "Vật phẩm này không thể sử dụng trực tiếp" });
         }
 
+        // Check if user has enough quantity
+        const availableQty = item.quantity || 1;
+        if (qty > availableQty) {
+            return res.status(400).json({
+                success: false,
+                message: `Không đủ số lượng. Bạn có ${availableQty} ${item.name}`
+            });
+        }
+
+        // Loot boxes and one-time items can only be used 1 at a time
+        if ((itemData.isLootBox || itemData.oneTimePurchase) && qty > 1) {
+            return res.status(400).json({
+                success: false,
+                message: "Vật phẩm này chỉ có thể dùng từng cái một"
+            });
+        }
+
         let message = '';
         let reward = {};
 
         switch (item.type) {
             case 'exp_boost':
-                const boostDurationMs = itemData.duration * 60 * 60 * 1000;
+                const boostDurationMs = itemData.duration * 60 * 60 * 1000 * qty; // Multiply by quantity
 
                 // Find existing boost of same type and multiplier
                 const existingBoostIndex = cultivation.activeBoosts.findIndex(
@@ -362,18 +390,23 @@ export const useItem = async (req, res, next) => {
                     // Calculate remaining + new duration for message
                     const remainingMs = currentExpiry.getTime() - Date.now();
                     const totalHours = Math.round((remainingMs + boostDurationMs) / (60 * 60 * 1000));
-                    message = `Đã cộng dồn ${item.name}! Tổng thời gian còn: ${totalHours}h`;
+                    message = qty > 1
+                        ? `Đã dùng ${qty}x ${item.name}! Tổng thời gian: ${totalHours}h`
+                        : `Đã cộng dồn ${item.name}! Tổng thời gian còn: ${totalHours}h`;
                 } else {
                     // Create new boost
                     const expiresAt = new Date(Date.now() + boostDurationMs);
                     cultivation.activeBoosts.push({ type: 'exp', multiplier: itemData.multiplier, expiresAt });
-                    message = `Đã kích hoạt ${item.name}! Tăng ${itemData.multiplier}x exp trong ${itemData.duration}h`;
+                    const totalHours = itemData.duration * qty;
+                    message = qty > 1
+                        ? `Đã dùng ${qty}x ${item.name}! Tăng ${itemData.multiplier}x exp trong ${totalHours}h`
+                        : `Đã kích hoạt ${item.name}! Tăng ${itemData.multiplier}x exp trong ${itemData.duration}h`;
                 }
-                reward = { type: 'boost', multiplier: itemData.multiplier, duration: itemData.duration };
+                reward = { type: 'boost', multiplier: itemData.multiplier, duration: itemData.duration * qty, quantity: qty };
                 break;
 
             case 'consumable':
-                // Handle loot box items
+                // Handle loot box items (only 1 at a time - already validated above)
                 if (itemData.isLootBox) {
                     const config = itemData.lootBoxConfig;
                     const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
@@ -450,21 +483,31 @@ export const useItem = async (req, res, next) => {
                         reward = { type: 'lootbox', droppedItem: droppedItem };
                     }
                 } else if (itemData.expReward) {
-                    cultivation.exp += itemData.expReward;
-                    message = `Đã sử dụng ${item.name}! Nhận được ${itemData.expReward} tu vi`;
-                    reward = { type: 'exp', amount: itemData.expReward };
+                    const totalExp = itemData.expReward * qty;
+                    cultivation.exp += totalExp;
+                    message = qty > 1
+                        ? `Đã dùng ${qty}x ${item.name}! Nhận được ${totalExp.toLocaleString()} tu vi`
+                        : `Đã sử dụng ${item.name}! Nhận được ${itemData.expReward} tu vi`;
+                    reward = { type: 'exp', amount: totalExp, quantity: qty };
                 } else if (itemData.spiritStoneReward) {
-                    cultivation.spiritStones += itemData.spiritStoneReward;
-                    cultivation.totalSpiritStonesEarned += itemData.spiritStoneReward;
-                    message = `Đã sử dụng ${item.name}! Nhận được ${itemData.spiritStoneReward} linh thạch`;
-                    reward = { type: 'spiritStones', amount: itemData.spiritStoneReward };
+                    const totalStones = itemData.spiritStoneReward * qty;
+                    cultivation.spiritStones += totalStones;
+                    cultivation.totalSpiritStonesEarned += totalStones;
+                    message = qty > 1
+                        ? `Đã dùng ${qty}x ${item.name}! Nhận được ${totalStones.toLocaleString()} linh thạch`
+                        : `Đã sử dụng ${item.name}! Nhận được ${itemData.spiritStoneReward} linh thạch`;
+                    reward = { type: 'spiritStones', amount: totalStones, quantity: qty };
                 } else if (itemData.spiritStoneBonus) {
-                    const expiresAt = new Date(Date.now() + itemData.duration * 60 * 60 * 1000);
+                    // Duration boosts stack by extending time
+                    const totalDuration = itemData.duration * qty;
+                    const expiresAt = new Date(Date.now() + totalDuration * 60 * 60 * 1000);
                     cultivation.activeBoosts.push({ type: 'spiritStones', multiplier: 1 + itemData.spiritStoneBonus, expiresAt });
-                    message = `Đã kích hoạt ${item.name}! Tăng ${Math.round(itemData.spiritStoneBonus * 100)}% linh thạch trong ${itemData.duration}h`;
-                    reward = { type: 'boost', bonus: itemData.spiritStoneBonus, duration: itemData.duration };
+                    message = qty > 1
+                        ? `Đã dùng ${qty}x ${item.name}! Tăng ${Math.round(itemData.spiritStoneBonus * 100)}% linh thạch trong ${totalDuration}h`
+                        : `Đã kích hoạt ${item.name}! Tăng ${Math.round(itemData.spiritStoneBonus * 100)}% linh thạch trong ${itemData.duration}h`;
+                    reward = { type: 'boost', bonus: itemData.spiritStoneBonus, duration: totalDuration, quantity: qty };
                 } else if (itemData.oneTimePurchase && itemData.rewards) {
-                    // Xử lý starter pack / gói quà 1 lần
+                    // Xử lý starter pack / gói quà 1 lần (only 1 at a time)
                     const rewards = itemData.rewards;
                     let spiritStonesGained = 0;
                     const itemsGained = [];
@@ -500,7 +543,7 @@ export const useItem = async (req, res, next) => {
                     message = `Đã mở ${item.name}! Nhận được ${spiritStonesGained} linh thạch và ${itemsStr}`;
                     reward = { type: 'starter_pack', spiritStones: spiritStonesGained, items: itemsGained };
                 } else {
-                    message = `Đã sử dụng ${item.name}!`;
+                    message = qty > 1 ? `Đã dùng ${qty}x ${item.name}!` : `Đã sử dụng ${item.name}!`;
                 }
                 break;
 
@@ -508,8 +551,9 @@ export const useItem = async (req, res, next) => {
                 return res.status(400).json({ success: false, message: "Không thể sử dụng vật phẩm này" });
         }
 
-        if (item.quantity > 1) {
-            cultivation.inventory[itemIndex].quantity -= 1;
+        // Deduct quantity from inventory
+        if (item.quantity > qty) {
+            cultivation.inventory[itemIndex].quantity -= qty;
         } else {
             cultivation.inventory.splice(itemIndex, 1);
         }

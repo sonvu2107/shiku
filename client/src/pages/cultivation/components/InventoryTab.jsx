@@ -190,6 +190,7 @@ const InventoryTab = memo(function InventoryTab() {
   const [equippedExpanded, setEquippedExpanded] = useState(false); // Collapsible equipped section
   const [selectedItems, setSelectedItems] = useState(new Set()); // Items selected for sale
   const [selling, setSelling] = useState(false);
+  const [useModal, setUseModal] = useState(null); // Modal for bulk item usage: { item, quantity }
   const itemsPerPage = 12;
   const isProcessingRef = useRef(false); // Sync ref to prevent double-clicks
 
@@ -304,10 +305,50 @@ const InventoryTab = memo(function InventoryTab() {
     }
   };
 
-  const handleUse = async (itemId, e) => {
+  // Check if item supports bulk usage (stackable consumables, not lootbox)
+  const isBulkUsable = (item) => {
+    if (!['exp_boost', 'consumable'].includes(item.type)) return false;
+    // Check if item is lootbox (from SHOP_ITEM_DATA or metadata)
+    const shopItem = SHOP_ITEM_DATA[item.itemId];
+    if (shopItem?.isLootBox || item.metadata?.isLootBox) return false;
+    if (shopItem?.oneTimePurchase || item.metadata?.oneTimePurchase) return false;
+    return (item.quantity || 1) > 1; // Only show modal if has more than 1
+  };
+
+  // Open use modal for bulk items
+  const openUseModal = (item) => {
+    setUseModal({ item, quantity: 1 });
+  };
+
+  // Update quantity in modal
+  const setModalQuantity = (value) => {
+    const maxQty = useModal?.item?.quantity || 1;
+    const qty = Math.max(1, Math.min(99, Math.min(maxQty, Math.floor(Number(value)) || 1)));
+    setUseModal(prev => prev ? { ...prev, quantity: qty } : null);
+  };
+
+  // Click handler - open modal for bulk items, direct use for single items
+  const handleItemUseClick = (item, e) => {
     e?.preventDefault();
     e?.stopPropagation();
+    if (isBulkUsable(item)) {
+      openUseModal(item);
+    } else {
+      handleUse(item.itemId, 1, e);
+    }
+  };
 
+  // Handle use from modal
+  const handleModalUse = async () => {
+    if (useModal) {
+      const item = useModal.item;
+      const qty = useModal.quantity;
+      setUseModal(null);
+      await handleUse(item.itemId, qty);
+    }
+  };
+
+  const handleUse = async (itemId, quantity = 1, e = null) => {
     // Capture click position before async op
     let startPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     if (e && e.currentTarget) {
@@ -321,7 +362,7 @@ const InventoryTab = memo(function InventoryTab() {
     setEquipping(itemId);
     try {
       if (useItem) {
-        const result = await useItem(itemId);
+        const result = await useItem(itemId, quantity);
 
         // Trigger FlyingReward if there is a direct reward (exp/money)
         if (result?.reward) {
@@ -1023,7 +1064,7 @@ const InventoryTab = memo(function InventoryTab() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <motion.button
-                      onClick={(e) => consumable ? handleUse(item.itemId, e) : handleEquip(item, equipped)}
+                      onClick={(e) => consumable ? handleItemUseClick(item, e) : handleEquip(item, equipped)}
                       disabled={!!equipping || !!repairing}
                       className={`rounded-lg px-4 py-2 text-xs font-bold uppercase transition-all min-w-[70px] ${consumable
                         ? 'bg-orange-900/30 hover:bg-orange-800/50 border border-orange-500/30 text-orange-300'
@@ -1122,6 +1163,115 @@ const InventoryTab = memo(function InventoryTab() {
           />
         )}
       </AnimatePresence>
+
+      {/* Bulk Use Modal */}
+      {useModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setUseModal(null)}
+          />
+
+          {/* Modal Content */}
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="relative z-10 w-full max-w-sm mx-4 bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl border border-orange-500/30 shadow-2xl shadow-orange-500/10"
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-slate-700/50">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-black border border-orange-500/40 flex items-center justify-center overflow-hidden">
+                  {(useModal.item.metadata?.img || useModal.item.img) ? (
+                    <img src={useModal.item.metadata?.img || useModal.item.img} alt={useModal.item.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl">💊</span>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-bold text-orange-300">{useModal.item.name}</h3>
+                  <p className="text-xs text-slate-400">Có {useModal.item.quantity || 1} trong kho</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 space-y-4">
+              {/* Quantity selector */}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-300 text-sm">Số lượng:</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setModalQuantity(useModal.quantity - 1)}
+                    disabled={useModal.quantity <= 1}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed text-lg font-bold transition-colors"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max={useModal.item.quantity || 1}
+                    value={useModal.quantity}
+                    onChange={(e) => setModalQuantity(e.target.value)}
+                    className="w-14 h-8 text-center bg-slate-800 border border-slate-600 rounded-lg text-orange-300 text-sm font-mono focus:outline-none focus:border-orange-500"
+                  />
+                  <button
+                    onClick={() => setModalQuantity(useModal.quantity + 1)}
+                    disabled={useModal.quantity >= (useModal.item.quantity || 1)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed text-lg font-bold transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick quantity buttons */}
+              <div className="flex gap-2 justify-center flex-wrap">
+                {[5, 10, 20].filter(q => q <= (useModal.item.quantity || 1)).map(qty => (
+                  <button
+                    key={qty}
+                    onClick={() => setModalQuantity(qty)}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-all ${useModal.quantity === qty
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                  >
+                    x{qty}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setModalQuantity(useModal.item.quantity || 1)}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-all ${useModal.quantity === (useModal.item.quantity || 1)
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                >
+                  Tất cả
+                </button>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-700/50 flex gap-3">
+              <button
+                onClick={() => setUseModal(null)}
+                className="flex-1 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleModalUse}
+                disabled={!!equipping}
+                className="flex-1 py-2 rounded-xl bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-500 hover:to-orange-600 text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {equipping ? '...' : `Dùng x${useModal.quantity}`}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 });

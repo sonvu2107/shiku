@@ -296,9 +296,17 @@ export function checkUnlockCondition(technique, cultivation, userProgress = {}) 
             if (cultivation.realmLevel >= unlockCondition.minLevel) {
                 return { canUnlock: true };
             }
+            // Map realm level to name
+            const realmNames = {
+                1: 'Phàm Nhân', 2: 'Luyện Khí', 3: 'Trúc Cơ', 4: 'Kim Đan',
+                5: 'Nguyên Anh', 6: 'Hóa Thần', 7: 'Luyện Hư', 8: 'Hợp Thể',
+                9: 'Đại Thừa', 10: 'Chân Tiên', 11: 'Kim Tiên', 12: 'Tiên Vương',
+                13: 'Tiên Đế', 14: 'Thiên Đế'
+            };
+            const realmName = realmNames[unlockCondition.minLevel] || `Cảnh Giới ${unlockCondition.minLevel}`;
             return {
                 canUnlock: false,
-                reason: `Cần đạt cảnh giới ${unlockCondition.minLevel}`
+                reason: `Cần đạt ${realmName}`
             };
 
         case UNLOCK_TYPES.QUEST:
@@ -316,9 +324,25 @@ export function checkUnlockCondition(technique, cultivation, userProgress = {}) 
             if (maxFloor >= unlockCondition.minFloor) {
                 return { canUnlock: true };
             }
+            // Map floor to dungeon name
+            let dungeonName = 'Bí Cảnh';
+            const minFloor = unlockCondition.minFloor;
+            if (minFloor <= 5) {
+                dungeonName = 'Vân Vũ Cốc';
+            } else if (minFloor <= 7) {
+                dungeonName = 'Hỏa Diễm Động';
+            } else if (minFloor <= 10) {
+                dungeonName = 'Hàn Băng Phong';
+            } else if (minFloor <= 12) {
+                dungeonName = 'U Minh Thâm Uyên';
+            } else if (minFloor <= 15) {
+                dungeonName = 'Long Huyệt Cấm Địa';
+            } else {
+                dungeonName = 'Hỗn Độn Vực';
+            }
             return {
                 canUnlock: false,
-                reason: `Cần vượt qua bí cảnh tầng ${unlockCondition.minFloor}`
+                reason: `Cần vượt qua ${dungeonName} tầng ${minFloor}`
             };
 
         default:

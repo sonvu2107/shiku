@@ -209,11 +209,22 @@ export const getShop = async (req, res, next) => {
 
 /**
  * POST /shop/buy/:itemId - Mua vật phẩm
+ * @body {number} quantity - Số lượng muốn mua (default: 1, max: 99)
  */
 export const buyItem = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const { itemId } = req.params;
+        const { quantity = 1 } = req.body;
+
+        // Validate quantity
+        const qty = Math.floor(Number(quantity));
+        if (isNaN(qty) || qty < 1 || qty > 99) {
+            return res.status(400).json({
+                success: false,
+                message: "Số lượng không hợp lệ (1-99)"
+            });
+        }
 
         const cultivation = await Cultivation.getOrCreate(userId);
 
@@ -222,19 +233,31 @@ export const buyItem = async (req, res, next) => {
         const shopItem = SHOP_ITEMS_MAP.get(itemId);
 
         if (shopItem) {
+            // Chỉ cho phép mua nhiều với items tiêu hao (exp_boost, breakthrough_boost, consumable)
+            const isConsumableType = ['exp_boost', 'breakthrough_boost', 'consumable'].includes(shopItem.type);
+            if (qty > 1 && !isConsumableType) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Vật phẩm này chỉ có thể mua 1 cái"
+                });
+            }
+
             // Lấy bonus giảm giá từ Tông Môn (cached - TTL 5 phút)
             const sectBonuses = await getCachedSectBonuses(userId);
             const shopDiscount = sectBonuses.shopDiscount || 0;
 
             // Tính giá sau giảm (chỉ áp dụng cho đan dược)
             const isAlchemyItem = shopItem.type === 'exp_boost' || shopItem.type === 'breakthrough_boost' || shopItem.type === 'consumable';
-            const discountedPrice = isAlchemyItem
+            const unitPrice = isAlchemyItem
                 ? Math.floor(shopItem.price * (1 - shopDiscount))
                 : shopItem.price;
 
-            // Normal item purchase với giá đã giảm
+            // Tính tổng giá cho số lượng
+            const totalPrice = unitPrice * qty;
+
+            // Normal item purchase với giá đã giảm và số lượng
             try {
-                const result = cultivation.buyItem(itemId, discountedPrice);
+                const result = cultivation.buyItem(itemId, totalPrice, qty);
                 await saveWithRetry(cultivation);
 
                 const responseData = { spiritStones: cultivation.spiritStones, inventory: cultivation.inventory };
@@ -269,11 +292,13 @@ export const buyItem = async (req, res, next) => {
                     responseData.item = result;
                 }
 
+                // Message hiển thị số lượng nếu > 1
+                const quantityText = qty > 1 ? ` x${qty}` : '';
                 res.json({
                     success: true,
                     message: result && result.type === 'technique'
                         ? `Đã học công pháp ${result.name}!`
-                        : `Đã mua ${result?.name || 'vật phẩm'}!`,
+                        : `Đã mua ${result?.name || 'vật phẩm'}${quantityText}!`,
                     data: responseData
                 });
                 return; // Kết thúc sau khi xử lý thành công
@@ -281,6 +306,7 @@ export const buyItem = async (req, res, next) => {
                 return res.status(400).json({ success: false, message: buyError.message });
             }
         }
+
 
         // 2. Check if equipment (valid ObjectId and NOT in SHOP_ITEMS)
         if (mongoose.Types.ObjectId.isValid(itemId)) {

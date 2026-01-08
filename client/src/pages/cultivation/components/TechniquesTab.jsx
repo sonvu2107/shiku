@@ -12,7 +12,7 @@ import LoadingSkeleton from './LoadingSkeleton.jsx';
 import FlyingReward from './FlyingReward.jsx';
 import CombatSlotsSection from './CombatSlotsSection.jsx';
 
-const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
+const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notification, clearNotification }) {
   const { cultivation, shop, loadShop, loading, refresh } = useCultivation();
   const realmLevel = cultivation?.realm?.level || 1;
   const getPracticeExpPerTechnique = (level = 1) => {
@@ -20,9 +20,11 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
     return Math.floor(400 * multiplier);
   };
   const practiceExpPerTechnique = getPracticeExpPerTechnique(realmLevel);
+  const TECHNIQUE_SESSION_COOLDOWN_SEC = 15;
   const [practicing, setPracticing] = useState(null);
   const [expGain] = useState(10); // Exp mỗi lần luyện
   const [cooldowns, setCooldowns] = useState({}); // techniqueId -> remaining seconds
+  const [activationCooldown, setActivationCooldown] = useState(0); // cooldown giữa các phiên nhập định
   const [filterRarity, setFilterRarity] = useState('all'); // 'all', 'common', 'uncommon', 'rare', 'epic', 'legendary'
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'learned', 'notLearned'
   const [rewardsAnimation, setRewardsAnimation] = useState([]);
@@ -154,6 +156,17 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
 
     return () => clearInterval(timer);
   }, [cooldowns]);
+
+  // Cooldown sau khi thu hoạch nhập định (ngăn spam kích hoạt tiếp)
+  useEffect(() => {
+    if (activationCooldown <= 0) return;
+
+    const timer = setInterval(() => {
+      setActivationCooldown(prev => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [activationCooldown]);
 
   // Handler: Start bulk practice session (Nhập Định 10 Phút)
   const handleStartBulkPractice = async () => {
@@ -398,9 +411,17 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
           estimatedExp: res.data.estimatedExp
         });
         setSessionTimeLeft(res.data.durationSec);
+        setActivationCooldown(0);
+      } else if (res.cooldownRemaining) {
+        // Cooldown error - show remaining wait time
+        showNotification(`Chưa hết cooldown, chờ ${res.cooldownRemaining}s để vận công tiếp`, 'error');
+        setActivationCooldown(res.cooldownRemaining);
+      } else {
+        showNotification(res.message || 'Kích hoạt công pháp thất bại', 'error');
       }
     } catch (e) {
       console.error('Activate technique failed:', e);
+      showNotification('Lỗi kích hoạt công pháp', 'error');
     } finally {
       setActivating(false);
     }
@@ -418,6 +439,7 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
       if (res.success) {
         setActiveSession(null);
         setSessionTimeLeft(0);
+        setActivationCooldown(TECHNIQUE_SESSION_COOLDOWN_SEC);
         // Do NOT call refresh() here - it causes full page reload
         // User can immediately start new meditation session
       }
@@ -425,6 +447,21 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
       console.error('Claim technique failed:', e);
     } finally {
       setClaiming(false);
+    }
+  };
+
+  // Handle click on locked technique (waiting for other session to finish)
+  const handleLockedTechniqueClick = (techName) => {
+    const activeTechName = cultivationTechniques.find(t => t.id === activeSession?.techniqueId)?.name || 'công pháp';
+    const remaining = sessionTimeLeft > 0 ? sessionTimeLeft : activationCooldown;
+    const msg = `Đang vận công ${activeTechName}\nVui lòng đợi ${remaining}s để đổi công pháp`;
+    if (notification) {
+      // Clear previous and show new
+      if (notification.message) clearNotification?.();
+      // Use alert for now - could integrate toast later
+      alert(msg);
+    } else {
+      alert(msg);
     }
   };
 
@@ -929,10 +966,10 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                       {isLearned && isSemiAuto && !activeSession && (
                         <button
                           onClick={() => handleActivateTechnique(tech.id)}
-                          disabled={activating}
+                          disabled={activating || activationCooldown > 0}
                           className="flex-1 py-2 rounded-lg text-xs font-bold uppercase bg-gradient-to-r from-cyan-700 to-cyan-900 text-cyan-100 border border-cyan-500/30 hover:from-cyan-600 hover:to-cyan-800 disabled:opacity-50 transition-all"
                         >
-                          {activating ? 'Đang kích hoạt...' : 'Nhập Định Vận Công'}
+                          {activationCooldown > 0 ? `Chờ ${activationCooldown}s` : activating ? 'Đang kích hoạt...' : 'Nhập Định Vận Công'}
                         </button>
                       )}
 
@@ -959,9 +996,13 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
 
                       {/* Đã học + Semi-auto + có session active của technique khác */}
                       {isLearned && isSemiAuto && activeSession && !isActiveSession && (
-                        <span className="flex-1 py-2 text-center text-xs text-slate-500 bg-slate-900/50 rounded-lg border border-slate-700/30">
-                          Đang vận công pháp khác
-                        </span>
+                        <button
+                          onClick={() => handleLockedTechniqueClick(tech.name)}
+                          disabled={true}
+                          className="flex-1 py-2 text-center text-xs text-slate-500 bg-slate-900/50 rounded-lg border border-slate-700/30 cursor-not-allowed opacity-60 hover:opacity-70 transition-opacity"
+                        >
+                          Đợi {(sessionTimeLeft > 0 ? sessionTimeLeft : activationCooldown)}s để đổi
+                        </button>
                       )}
                     </div>
                   </div>

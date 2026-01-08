@@ -243,11 +243,13 @@ export function CultivationProvider({ children }) {
 
   /**
    * Mua vật phẩm
+   * @param {string} itemId - ID vật phẩm
+   * @param {number} quantity - Số lượng mua (default: 1)
    */
-  const purchaseItem = useCallback(async (itemId) => {
+  const purchaseItem = useCallback(async (itemId, quantity = 1) => {
     try {
       setError(null);
-      const response = await buyItem(itemId);
+      const response = await buyItem(itemId, quantity);
 
       // Xử lý trường hợp đã mua starter pack rồi
       if (response.alreadyPurchased) {
@@ -503,8 +505,10 @@ export function CultivationProvider({ children }) {
 
   /**
    * Sử dụng vật phẩm tiêu hao (đan dược, consumable)
+   * @param {string} itemId - ID vật phẩm
+   * @param {number} quantity - Số lượng muốn dùng (default: 1)
    */
-  const useItem = useCallback(async (itemId) => {
+  const useItem = useCallback(async (itemId, quantity = 1) => {
     // Synchronous check to prevent double API calls
     if (isUsingItemRef.current) {
       console.warn('[Cultivation] Blocked duplicate useItem call');
@@ -514,7 +518,7 @@ export function CultivationProvider({ children }) {
 
     try {
       setError(null);
-      const response = await useItemAPI(itemId);
+      const response = await useItemAPI(itemId, quantity);
 
       if (response.success) {
         // Update cultivation state với thông tin mới
