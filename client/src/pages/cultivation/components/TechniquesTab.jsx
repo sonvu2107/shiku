@@ -644,9 +644,16 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                   </div>
                 </div>
 
-                {/* Learned techniques grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {finalLearned.map(({ techniqueId, level, exp, technique }) => {
+                {/* Learned techniques grid (max-level pushed to bottom) */}
+                {(() => {
+                  const sortedFinalLearned = [...finalLearned].sort((a, b) => {
+                    const aMax = a.level >= 10 ? 1 : 0;
+                    const bMax = b.level >= 10 ? 1 : 0;
+                    return aMax - bMax;
+                  });
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {sortedFinalLearned.map(({ techniqueId, level, exp, technique }) => {
                     if (!technique) return null;
                     const expNeeded = level * 100;
                     const progress = Math.min((exp / expNeeded) * 100, 100);
@@ -740,7 +747,9 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                       </div>
                     );
                   })}
-                </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -971,7 +980,7 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                 ({cultivationTechniques.filter(t => t.type === 'combat' && t.learned).length}/{cultivationTechniques.filter(t => t.type === 'combat').length})
               </span>
             </div>
-            <p className="text-xs text-slate-500">Tuyệt kỹ chiến đấu, trang bị tại Võ Kỹ Đài</p>
+            <p className="text-xs text-slate-500">Tuyệt kỹ chiến đấu</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {cultivationTechniques.filter(t => t.type === 'combat').map((tech) => {
@@ -1043,7 +1052,7 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
                       )}
                       {isLearned && (
                         <span className="flex-1 py-2 text-center text-xs text-purple-400 bg-purple-900/30 rounded-lg border border-purple-500/30">
-                          Trang bị tại Võ Kỹ Đài
+                          CÓ THỂ TRANG BỊ
                         </span>
                       )}
                     </div>
@@ -1055,269 +1064,6 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique }) {
         )}
       </div>
 
-      {/* NHẬP ĐỊNH 10 PHÚT - Bulk Practice Panel */}
-      <div className="spirit-tablet rounded-xl p-4 bg-gradient-to-br from-purple-900/30 to-indigo-900/30 border border-purple-500/30">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg"></span>
-              <h5 className="font-bold text-purple-300">Nhập Định 10 Phút</h5>
-            </div>
-            <p className="text-xs text-slate-400">
-              {bulkPracticeSession?.hasActiveSession
-                ? `Đang luyện ${bulkPracticeSession.techniqueCount || learned.filter(t => t.level < 10).length} công pháp...`
-                : `Luyện tất cả ${learned.filter(t => t.level < 10).length} công pháp cùng lúc (+${practiceExpPerTechnique} exp/công pháp)`
-              }
-            </p>
-
-            {/* Progress bar when session active */}
-            {bulkPracticeSession?.hasActiveSession && (
-              <div className="mt-3">
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-blue-300">Tiến độ</span>
-                  <span className="text-blue-400 font-mono font-bold">{formatTime(bulkPracticeTimeLeft)}</span>
-                </div>
-                <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-blue-500/30">
-                  <div
-                    className="bg-gradient-to-r from-blue-600 to-violet-500 h-full transition-all duration-1000"
-                    style={{ width: `${((600 - bulkPracticeTimeLeft) / 600) * 100}%` }}
-                  />
-                </div>
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Dự kiến nhận: +{(bulkPracticeSession.totalEstimatedExp || learned.filter(t => t.level < 10).length * practiceExpPerTechnique).toLocaleString()} điểm tu luyện
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Action Button */}
-          <div className="flex-shrink-0 w-full sm:w-auto">
-            {!bulkPracticeSession?.hasActiveSession ? (
-              <button
-                onClick={handleStartBulkPractice}
-                disabled={startingBulkPractice || learned.filter(t => t.level < 10).length === 0}
-                className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-sm font-bold uppercase bg-amber-700 text-amber-100 border border-amber-500/50 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_15px_rgba(217,119,6,0.3)]"
-              >
-                {startingBulkPractice ? 'Đang bắt đầu...' : 'Bắt Đầu Nhập Định'}
-              </button>
-            ) : bulkPracticeTimeLeft <= 0 ? (
-              <button
-                onClick={handleClaimBulkPractice}
-                disabled={claimingBulkPractice}
-                className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-sm font-bold uppercase bg-gradient-to-r from-emerald-600 to-teal-600 text-white border border-emerald-400/50 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 transition-all animate-pulse shadow-[0_0_15px_rgba(52,211,153,0.4)]"
-              >
-                {claimingBulkPractice ? 'Đang thu...' : ' Thu Hoạch'}
-              </button>
-            ) : (
-              <div className="text-center px-4 py-2 sm:px-6 sm:py-3 rounded-lg bg-slate-800/50 border border-slate-600/50">
-                <span className="text-slate-400 text-sm">Đang nhập định...</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Grid 2 cột trên desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Sắp xếp: công pháp chưa max lên trước, đã max xuống cuối */}
-        {[...finalLearned].sort((a, b) => {
-          const aMaxed = a.level >= 10 ? 1 : 0;
-          const bMaxed = b.level >= 10 ? 1 : 0;
-          return aMaxed - bMaxed;
-        }).map((learnedItem) => {
-          const { technique, level, exp } = learnedItem;
-          const expNeeded = getExpNeeded(level);
-          const progress = level >= 10 ? 100 : (exp / expNeeded) * 100;
-          const rarity = RARITY_COLORS[technique.rarity] || RARITY_COLORS.common;
-          const TechniqueIcon = getItemIcon(technique);
-          const remainingCd = cooldowns[learnedItem.techniqueId] || 0;
-          const isMaxLevel = level >= 10;
-
-          return (
-            <div
-              key={learnedItem.techniqueId}
-              className={`spirit-tablet rounded-xl p-3 ${rarity.bg} ${rarity.border} hover:scale-[1.01] transition-transform`}
-            >
-              {/* Header row: Icon + Name + Level */}
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-full bg-black border border-amber-500/40 flex items-center justify-center flex-shrink-0">
-                  {IMAGE_COMPONENTS.includes(TechniqueIcon) ? (
-                    <TechniqueIcon size={24} />
-                  ) : (
-                    <TechniqueIcon size={18} className="text-amber-300" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <h5 className={`font-bold text-base truncate ${rarity.text}`}>{technique.name}</h5>
-                    <span className="text-xs bg-amber-900/30 text-amber-400 px-2 py-0.5 rounded font-bold flex-shrink-0">
-                      Lv.{level}/10
-                    </span>
-                  </div>
-                  {/* Stats inline */}
-                  {technique.stats && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {Object.entries(technique.stats).slice(0, 3).map(([stat, value]) => {
-                        const statLabels = {
-                          attack: 'Tấn Công',
-                          defense: 'Phòng Thủ',
-                          qiBlood: 'Khí Huyết',
-                          zhenYuan: 'Chân Nguyên',
-                          speed: 'Tốc Độ',
-                          criticalRate: 'Chí Mạng',
-                          dodge: 'Né Tránh',
-                          penetration: 'Xuyên Thấu',
-                          resistance: 'Kháng Cự',
-                          lifesteal: 'Hấp Huyết',
-                          regeneration: 'Hồi Phục',
-                          luck: 'Vận Khí'
-                        };
-                        const actualBonus = value * (1 + (level - 1) * 0.1) * 100;
-                        return (
-                          <span key={stat} className="text-[10px] bg-slate-800/50 text-emerald-300 px-1.5 py-0.5 rounded">
-                            {statLabels[stat]}: +{actualBonus.toFixed(0)}%
-                          </span>
-                        );
-                      })}
-                      {Object.keys(technique.stats).length > 3 && (
-                        <span className="text-[10px] text-slate-500">+{Object.keys(technique.stats).length - 3}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Progress + Button row */}
-              <div className="flex items-center gap-2">
-                {/* Progress bar */}
-                {!isMaxLevel ? (
-                  <div className="flex-1">
-                    <div className="flex justify-between text-xs text-slate-500 mb-0.5">
-                      <span>{exp}/{expNeeded}</span>
-                      <span>{Math.floor(progress)}%</span>
-                    </div>
-                    <div className="w-full bg-slate-900/80 rounded-full h-2 border border-slate-700/50 overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-purple-600 to-violet-400 h-full transition-all duration-300"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex-1 text-xs text-amber-400/70 text-center">ĐÃ ĐẠT CẤP CAO NHẤT</div>
-                )}
-
-                {/* Practice button */}
-                <button
-                  onClick={(e) => handlePractice(learnedItem.techniqueId, technique, e)}
-                  type="button"
-                  disabled={practicing === learnedItem.techniqueId || isMaxLevel || remainingCd > 0}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex-shrink-0 ${isMaxLevel
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                    : remainingCd > 0
-                      ? 'bg-slate-800 text-slate-400 cursor-not-allowed'
-                      : practicing === learnedItem.techniqueId
-                        ? 'bg-amber-800 text-amber-300'
-                        : 'bg-gradient-to-r from-amber-700 to-amber-900 text-amber-100 hover:from-amber-600 hover:to-amber-800'
-                    }`}
-                >
-                  {isMaxLevel
-                    ? 'Max'
-                    : remainingCd > 0
-                      ? `${remainingCd}s`
-                      : practicing === learnedItem.techniqueId
-                        ? '...'
-                        : 'Luyện'}
-                </button>
-              </div>
-
-              {/* Local Rewards Animation */}
-              {rewardsAnimation.filter(a => a.techniqueId === learnedItem.techniqueId).map(anim => (
-                <FlyingReward
-                  key={anim.id}
-                  inline={true}
-                  startPos={anim.startPos}
-                  targetPos={anim.targetPos}
-                  rewards={anim.rewards}
-                  onComplete={() => setRewardsAnimation(prev => prev.filter(p => p.id !== anim.id))}
-                />
-              ))}
-
-              {/* Skill info - compact */}
-              {technique.skill && (
-                <div className="mt-2 pt-2 border-t border-purple-500/20 text-xs">
-                  <span className="text-purple-300 font-bold">{technique.skill.name}</span>
-                  <span className="text-slate-500 ml-1">• CD: {technique.skill.cooldown}s</span>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Công Pháp Chưa Học */}
-      {finalNotLearned.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-lg font-bold text-slate-400 font-title">CÔNG PHÁP CHƯA HỌC</h4>
-            <span className="text-xs text-slate-500">({finalNotLearned.length} / {notLearned.length})</span>
-          </div>
-          <p className="text-xs text-slate-500 mb-3">Mua công pháp trong cửa hàng để bắt đầu luyện</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {finalNotLearned.map((technique) => {
-              const rarity = RARITY_COLORS[technique.rarity] || RARITY_COLORS.common;
-              const TechniqueIcon = getItemIcon(technique);
-              return (
-                <div
-                  key={technique.id}
-                  className={`spirit-tablet rounded-xl p-4 opacity-60 ${rarity.bg} ${rarity.border}`}
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-black border border-amber-500/40 flex items-center justify-center">
-                      {IMAGE_COMPONENTS.includes(TechniqueIcon) ? (
-                        <TechniqueIcon size={28} />
-                      ) : (
-                        <TechniqueIcon size={20} className="text-amber-300" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h5 className={`font-bold ${rarity.text}`}>{technique.name}</h5>
-                      <p className="text-xs text-slate-500">{technique.price} Linh Thạch</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-400 mb-2">{technique.description}</p>
-                  {technique.stats && (
-                    <div className="text-xs text-slate-500">
-                      Bonus: {Object.keys(technique.stats).length} thông số
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {finalLearned.length === 0 && finalNotLearned.length === 0 && (
-        <div className="text-center text-slate-500 py-10">
-          <p className="text-sm">
-            {filterRarity !== 'all' || filterStatus !== 'all'
-              ? 'Không tìm thấy công pháp phù hợp'
-              : 'Chưa có công pháp nào'}
-          </p>
-          {(filterRarity !== 'all' || filterStatus !== 'all') && (
-            <button
-              onClick={() => {
-                setFilterRarity('all');
-                setFilterStatus('all');
-              }}
-              className="mt-3 text-xs text-amber-400 hover:text-amber-300 underline"
-            >
-              Xóa bộ lọc
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 });

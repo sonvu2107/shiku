@@ -1637,9 +1637,9 @@ router.post("/challenge/bot", async (req, res, next) => {
       9: { attack: 3200, defense: 1600, qiBlood: 32000, zhenYuan: 16000, speed: 50, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 7, luck: 25 },
       10: { attack: 6400, defense: 3200, qiBlood: 64000, zhenYuan: 32000, speed: 55, criticalRate: 28, criticalDamage: 240, accuracy: 99, dodge: 28, penetration: 25, resistance: 25, lifesteal: 18, regeneration: 8, luck: 28 },
       11: { attack: 12800, defense: 6400, qiBlood: 128000, zhenYuan: 64000, speed: 60, criticalRate: 30, criticalDamage: 250, accuracy: 99, dodge: 30, penetration: 28, resistance: 28, lifesteal: 20, regeneration: 9, luck: 30 },
-      12: { attack: 25600, defense: 12800, qiBlood: 256000, zhenYuan: 128000, speed: 65, criticalRate: 32, criticalDamage: 270, accuracy: 100, dodge: 32, penetration: 30, resistance: 30, lifesteal: 22, regeneration: 10, luck: 32 },
-      13: { attack: 51200, defense: 25600, qiBlood: 512000, zhenYuan: 256000, speed: 70, criticalRate: 35, criticalDamage: 290, accuracy: 100, dodge: 35, penetration: 32, resistance: 32, lifesteal: 25, regeneration: 12, luck: 35 },
-      14: { attack: 102400, defense: 51200, qiBlood: 1024000, zhenYuan: 512000, speed: 80, criticalRate: 40, criticalDamage: 350, accuracy: 100, dodge: 40, penetration: 35, resistance: 35, lifesteal: 30, regeneration: 15, luck: 40 }
+      12: { attack: 25600, defense: 12800, qiBlood: 256000, zhenYuan: 128000, speed: 65, criticalRate: 32, criticalDamage: 270, accuracy: 100, dodge: 32, penetration: 30, resistance: 30, lifesteal: 10, regeneration: 2, luck: 32 },
+      13: { attack: 51200, defense: 25600, qiBlood: 512000, zhenYuan: 256000, speed: 70, criticalRate: 35, criticalDamage: 290, accuracy: 100, dodge: 35, penetration: 32, resistance: 32, lifesteal: 12, regeneration: 2, luck: 35 },
+      14: { attack: 102400, defense: 51200, qiBlood: 1024000, zhenYuan: 512000, speed: 80, criticalRate: 40, criticalDamage: 350, accuracy: 100, dodge: 40, penetration: 35, resistance: 35, lifesteal: 15, regeneration: 2, luck: 40 }
     };
 
     const baseStats = baseStatsByRealm[bot.realmLevel] || baseStatsByRealm[1];
@@ -1676,7 +1676,34 @@ router.post("/challenge/bot", async (req, res, next) => {
     const challengerSkills = getLearnedSkills(challengerCultivation, challengerStats.zhenYuan);
 
     // Thực hiện trận đấu (với nghịch thiên meta)
+    console.log('[BATTLE-DEBUG] Challenger Stats:', JSON.stringify({
+      attack: challengerStats.attack,
+      defense: challengerStats.defense,
+      qiBlood: challengerStats.qiBlood,
+      criticalRate: challengerStats.criticalRate,
+      lifesteal: challengerStats.lifesteal,
+      regeneration: challengerStats.regeneration
+    }));
+    console.log('[BATTLE-DEBUG] Bot Stats:', JSON.stringify({
+      attack: opponentStats.attack,
+      defense: opponentStats.defense,
+      qiBlood: opponentStats.qiBlood,
+      criticalRate: opponentStats.criticalRate,
+      lifesteal: opponentStats.lifesteal,
+      regeneration: opponentStats.regeneration
+    }));
+    console.log('[BATTLE-DEBUG] Challenger Skills:', challengerSkills.map(s => s.name));
+    console.log('[BATTLE-DEBUG] Bot Skills:', botSkills.map(s => s.name));
     const battleResult = simulateBattle(challengerStats, opponentStats, challengerSkills, botSkills, { nghichThienMeta });
+    console.log('[BATTLE-DEBUG] RESULT:', JSON.stringify({
+      winner: battleResult.winner,
+      isDraw: battleResult.isDraw,
+      totalTurns: battleResult.totalTurns,
+      finalChallengerHp: battleResult.finalChallengerHp,
+      finalOpponentHp: battleResult.finalOpponentHp,
+      totalDmgByChallenger: battleResult.totalDamageByChallenger,
+      totalDmgByOpponent: battleResult.totalDamageByOpponent
+    }));
 
     // Tier reward multiplier cho nghịch thiên thắng
     const tierMultiplier = (isNghichThien && battleResult.winner === 'challenger')

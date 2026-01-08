@@ -575,8 +575,8 @@ CultivationSchema.methods.calculateCombatStats = function () {
               percentBonuses[statKey] += (bonusValue * levelMultiplier);
             } else if (['speed', 'penetration', 'resistance', 'luck'].includes(statKey)) {
               flatBonuses[statKey] += (baseStats[statKey] * bonusValue * levelMultiplier);
-            } else {
-              // crit, dodge, etc (percentage stats represented as 0-100)
+            } else if (['criticalRate', 'dodge', 'lifesteal', 'regeneration', 'criticalDamage', 'accuracy'].includes(statKey)) {
+              // percentage stats represented as 0-100
               flatBonuses[statKey] += (bonusValue * 100 * levelMultiplier);
             }
           }
@@ -597,7 +597,8 @@ CultivationSchema.methods.calculateCombatStats = function () {
               percentBonuses[statKey] += bonusValue;
             } else if (['speed', 'penetration', 'resistance', 'luck'].includes(statKey)) {
               flatBonuses[statKey] += (baseStats[statKey] * bonusValue);
-            } else {
+            } else if (['criticalRate', 'dodge', 'lifesteal', 'regeneration', 'criticalDamage', 'accuracy'].includes(statKey)) {
+              // percentage stats represented as 0-100
               flatBonuses[statKey] += (bonusValue * 100);
             }
           }

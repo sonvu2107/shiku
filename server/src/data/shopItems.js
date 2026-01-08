@@ -201,7 +201,7 @@ export const SHOP_ITEMS = [
         description: "Công pháp không gian, tăng 20% Xuyên Thấu và Kháng Cự",
         rarity: "epic",
         stats: { penetration: 0.20, resistance: 0.20 },
-        skill: { name: "Hư Không", description: "Miễn dịch sát thương trong 2 giây", cooldown: 6 }
+        skill: { name: "Hư Không", description: "Miễn dịch sát thương trong 2 giây", cooldown: 10 }
     },
     {
         id: "technique_blood_drain",

@@ -5,7 +5,7 @@ import SectMember from "../models/SectMember.js";
 import SectContribution from "../models/SectContribution.js";
 import SectDailyStat from "../models/SectDailyStat.js";
 import { toDateKeyUTC, toWeekKeyUTC } from "./sectTime.js";
-import { CONTRIBUTION_RATES, CONTRIBUTION_CAPS, SECT_BUILDINGS } from "../data/sectBuildings.js";
+import { CONTRIBUTION_RATES, CONTRIBUTION_CAPS, SECT_BUILDINGS, SECT_LEVELS } from "../data/sectBuildings.js";
 
 /**
  * Minimal hash function cho anti-spam
@@ -51,6 +51,23 @@ export async function applySectContribution({
     const session = await mongoose.startSession();
     try {
         let result = null;
+
+        // Helper: cập nhật cấp độ Tông Môn theo tổng năng lượng tích lũy
+        function updateSectLevelIfNeeded(sectDoc) {
+            try {
+                const total = Number(sectDoc.totalEnergyEarned || 0);
+                // Tìm cấp cao nhất có requiredEnergy <= total
+                let targetLevel = 1;
+                for (const lvl of SECT_LEVELS) {
+                    if (total >= lvl.requiredEnergy) targetLevel = Math.max(targetLevel, lvl.level);
+                }
+                if ((sectDoc.level || 1) < targetLevel) {
+                    sectDoc.level = targetLevel;
+                }
+            } catch (_) {
+                // noop
+            }
+        }
 
         await session.withTransaction(async () => {
             // 1) Verify active sect
@@ -148,6 +165,7 @@ export async function applySectContribution({
                 sect.spiritEnergy += delta;
                 sect.totalEnergyEarned += delta;
 
+                updateSectLevelIfNeeded(sect);
                 await Promise.all([
                     daily.save({ session }),
                     contrib.save({ session }),
@@ -172,6 +190,7 @@ export async function applySectContribution({
                 sect.spiritEnergy += delta;
                 sect.totalEnergyEarned += delta;
 
+                updateSectLevelIfNeeded(sect);
                 await Promise.all([
                     daily.save({ session }),
                     contrib.save({ session }),
@@ -204,6 +223,7 @@ export async function applySectContribution({
                 sect.spiritEnergy += delta;
                 sect.totalEnergyEarned += delta;
 
+                updateSectLevelIfNeeded(sect);
                 await Promise.all([
                     daily.save({ session }),
                     contrib.save({ session }),
@@ -225,7 +245,7 @@ export async function applySectContribution({
 
                 // Cộng thêm bonus từ Linh Điền (spirit_field)
                 let buildingBonus = 0;
-                const spiritFieldLevel = sect.buildings?.spirit_field?.level || 0;
+                const spiritFieldLevel = (sect.buildings || []).find(b => b.buildingId === 'spirit_field')?.level || 0;
                 if (spiritFieldLevel > 0) {
                     const spiritFieldDef = SECT_BUILDINGS.spirit_field;
                     buildingBonus = spiritFieldDef?.effects?.[spiritFieldLevel]?.dailyBonusEnergy || 0;
@@ -240,6 +260,7 @@ export async function applySectContribution({
                 sect.spiritEnergy += delta;
                 sect.totalEnergyEarned += delta;
 
+                updateSectLevelIfNeeded(sect);
                 await Promise.all([
                     daily.save({ session }),
                     contrib.save({ session }),
@@ -267,6 +288,7 @@ export async function applySectContribution({
                 sect.spiritEnergy += delta;
                 sect.totalEnergyEarned += delta;
 
+                updateSectLevelIfNeeded(sect);
                 await Promise.all([
                     contrib.save({ session }),
                     sect.save({ session })

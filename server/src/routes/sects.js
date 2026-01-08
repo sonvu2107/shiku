@@ -816,7 +816,7 @@ router.get("/:id/library/techniques", authRequired, async (req, res) => {
             return res.status(404).json({ success: false, message: "Không tìm thấy tông môn" });
         }
 
-        const libraryLevel = sect.buildings?.library?.level || 0;
+        const libraryLevel = (sect.buildings || []).find(b => b.buildingId === "library")?.level || 0;
         const availableTechniques = getTechniquesForLibraryLevel(libraryLevel);
 
         // Get user's cultivation to check which techniques they already have
@@ -828,10 +828,14 @@ router.get("/:id/library/techniques", authRequired, async (req, res) => {
         const contribution = await SectContribution.findOne({ sect: sectId, user: userId });
         const weeklyContribution = contribution?.weekly?.weekKey === weekKey ? contribution.weekly.energy : 0;
 
+        // Tính số slot công pháp theo cấp Tàng Kinh Các
+        const techniqueSlots = SECT_BUILDINGS.library?.effects?.[libraryLevel]?.techniqueSlots || 0;
+
         res.json({
             success: true,
             data: {
                 libraryLevel,
+                techniqueSlots,
                 techniques: availableTechniques.map(t => ({
                     ...t,
                     learned: learnedIds.includes(t.id),
@@ -871,7 +875,7 @@ router.post("/:id/library/learn/:techniqueId", authRequired, async (req, res) =>
             if (!technique) throw new Error("TECHNIQUE_NOT_FOUND");
 
             // Check library level
-            const libraryLevel = sect.buildings?.library?.level || 0;
+            const libraryLevel = (sect.buildings || []).find(b => b.buildingId === "library")?.level || 0;
             if (technique.requiredLibraryLevel > libraryLevel) {
                 throw new Error("LIBRARY_LEVEL_TOO_LOW");
             }
@@ -891,6 +895,12 @@ router.post("/:id/library/learn/:techniqueId", authRequired, async (req, res) =>
 
             const alreadyLearned = cultivation.sectTechniques?.some(t => t.id === techniqueId);
             if (alreadyLearned) throw new Error("ALREADY_LEARNED");
+
+            // Check slot limit based on library level
+            const techniqueSlots = SECT_BUILDINGS.library?.effects?.[libraryLevel]?.techniqueSlots || 0;
+            const learnedCount = cultivation.sectTechniques?.length || 0;
+            if (techniqueSlots <= 0) throw new Error("NO_TECHNIQUE_SLOTS");
+            if (learnedCount >= techniqueSlots) throw new Error("TECHNIQUE_SLOTS_FULL");
 
             // Deduct contribution and add technique
             contribution.weekly.energy -= technique.contributionCost;
@@ -916,6 +926,8 @@ router.post("/:id/library/learn/:techniqueId", authRequired, async (req, res) =>
         if (msg === "NOT_ENOUGH_CONTRIBUTION") return res.status(400).json({ success: false, message: "Không đủ điểm đóng góp tuần" });
         if (msg === "NO_CULTIVATION") return res.status(400).json({ success: false, message: "Bạn chưa có dữ liệu tu luyện" });
         if (msg === "ALREADY_LEARNED") return res.status(400).json({ success: false, message: "Bạn đã học công pháp này rồi" });
+        if (msg === "NO_TECHNIQUE_SLOTS") return res.status(400).json({ success: false, message: "Tàng Kinh Các chưa cung cấp công pháp" });
+        if (msg === "TECHNIQUE_SLOTS_FULL") return res.status(400).json({ success: false, message: "Đã đạt giới hạn số công pháp tông môn có thể học" });
         console.error("[ERROR][SECTS] Error learning technique:", e);
         res.status(500).json({ success: false, message: "Lỗi khi học công pháp" });
     } finally {
@@ -1117,9 +1129,11 @@ router.post("/:id/raid/attack", authRequired, async (req, res) => {
                         }
                     }
 
-                    // Add sect energy reward
+                    // Add sect energy reward (use correct fields)
                     if (raidDef.rewards.sectEnergy) {
-                        sect.energy = (sect.energy || 0) + raidDef.rewards.sectEnergy;
+                        const gain = raidDef.rewards.sectEnergy;
+                        sect.spiritEnergy = (sect.spiritEnergy || 0) + gain;
+                        sect.totalEnergyEarned = (sect.totalEnergyEarned || 0) + gain;
                     }
                 }
             }
@@ -1156,6 +1170,16 @@ router.post("/:id/raid/attack", authRequired, async (req, res) => {
                 }
             };
         });
+
+        // Grant contribution for participation (outside raid transaction to avoid nested sessions)
+        try {
+            const contribResult = await applySectContribution({ userId, sectId, type: "raid_participation" });
+            if (contribResult?.applied) {
+                out = { ...out, contributionDelta: contribResult.delta };
+            }
+        } catch (_) {
+            // ignore contribution errors
+        }
 
         res.json({ success: true, message: "Tấn công thành công", data: out });
     } catch (e) {

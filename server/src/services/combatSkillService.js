@@ -75,11 +75,11 @@ export function executeSkill(skill, attacker, defender, battleState = {}) {
             break;
 
         case 'Tái Sinh':
-            // Hồi 50% Khí Huyết và Chân Nguyên
+            // Hồi 20% Khí Huyết và Chân Nguyên (nerfed from 50%)
             const maxHp = attacker.maxQiBlood || attacker.qiBlood || 1000;
             const maxMp = attacker.maxZhenYuan || attacker.zhenYuan || 1000;
-            result.healing = Math.floor(maxHp * 0.50);
-            result.manaRestore = Math.floor(maxMp * 0.50);
+            result.healing = Math.floor(maxHp * 0.20);
+            result.manaRestore = Math.floor(maxMp * 0.20);
             result.effects.push('Phượng Hoàng tái sinh!');
             break;
 
@@ -407,7 +407,10 @@ export function applyStatusEffects(fighter, effects) {
                 modifiedStats.speed = (modifiedStats.speed || 100) * (1 + effect.value);
                 break;
             case 'criticalRate':
-                modifiedStats.criticalRate = Math.min(1.0, (modifiedStats.criticalRate || 0) + effect.value);
+                // FIXED: criticalRate is now 0-100% scale (not 0-1)
+                // Skill values like 1.0 mean +100% crit rate
+                const critAdd = effect.value >= 1 ? effect.value : effect.value * 100;
+                modifiedStats.criticalRate = Math.min(100, (modifiedStats.criticalRate || 0) + critAdd);
                 break;
             case 'damageReduction':
                 modifiedStats.damageReduction = (modifiedStats.damageReduction || 0) + effect.value;
@@ -425,10 +428,44 @@ export function applyStatusEffects(fighter, effects) {
                 modifiedStats.ignoreDef = true;
                 break;
             case 'shield':
-                modifiedStats.shield = (modifiedStats.shield || 0) + effect.value;
+                // NOTE: Shield pool is now managed by battleEngine (event-based)
+                // Do NOT modify stats.shield here to prevent double-count
                 break;
             case 'stun':
                 modifiedStats.stunned = true;
+                break;
+            // === NEW EFFECT TYPES ===
+            case 'attack': {
+                // Normalize: value < 1 treated as fraction (0.6 = 60%), else percent
+                const addPct = effect.value < 1 ? effect.value * 100 : effect.value;
+                modifiedStats.attack = (modifiedStats.attack || 0) * (1 + addPct / 100);
+                break;
+            }
+            case 'regeneration': {
+                // Regeneration is 0-100% scale in engine
+                const regenAdd = effect.value < 1 ? effect.value * 100 : effect.value;
+                modifiedStats.regeneration = (modifiedStats.regeneration || 0) + regenAdd;
+                break;
+            }
+            case 'slow': {
+                // Normalize: value < 1 treated as fraction
+                const subPct = Math.min(Math.max(effect.value < 1 ? effect.value * 100 : effect.value, 0), 95);
+                modifiedStats.speed = (modifiedStats.speed || 100) * (1 - subPct / 100);
+                break;
+            }
+            case 'attackReduction': {
+                // Normalize: value < 1 treated as fraction
+                const subPct = Math.min(Math.max(effect.value < 1 ? effect.value * 100 : effect.value, 0), 95);
+                modifiedStats.attack = (modifiedStats.attack || 0) * (1 - subPct / 100);
+                break;
+            }
+            case 'fatalProtection':
+                // Revive when HP reaches 0 (value = HP% to revive to)
+                modifiedStats.fatalProtection = effect.value;
+                modifiedStats.fatalProtectionOneTime = !!effect.oneTime;
+                break;
+            case 'poison':
+                // Poison is handled by battleEngine DOT logic, keep for duration tracking
                 break;
         }
     });

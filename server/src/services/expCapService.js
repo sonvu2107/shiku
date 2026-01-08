@@ -14,9 +14,9 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // EXP cap theo cảnh giới (5 phút)
 export const CAP_BY_REALM = {
-    1: 100, 2: 300, 3: 1000, 4: 2500, 5: 5000,
-    6: 10000, 7: 10000, 8: 10000, 9: 10000, 10: 10000,
-    11: 10000, 12: 10000, 13: 10000, 14: 10000
+    1: 1000, 2: 3000, 3: 10000, 4: 25000, 5: 50000,
+    6: 100000, 7: 100000, 8: 100000, 9: 100000, 10: 100000,
+    11: 100000, 12: 100000, 13: 100000, 14: 100000
 };
 
 // Passive EXP per minute theo cảnh giới (dùng cho semi-auto)

@@ -162,9 +162,6 @@ const CombatSlotsSection = ({ cultivationTechniques = [] }) => {
                                         <p className="text-sm font-bold text-red-300 truncate" title={techniqueInfo.name}>
                                             {techniqueInfo.name}
                                         </p>
-                                        <p className="text-[10px] text-slate-400 mt-0.5">
-                                            Cấp {techniqueInfo.level}/10
-                                        </p>
                                         {techniqueInfo.skillName && (
                                             <p className="text-[10px] text-cyan-400 mt-1 truncate" title={techniqueInfo.skillName}>
                                                 {techniqueInfo.skillName}
@@ -223,9 +220,6 @@ const CombatSlotsSection = ({ cultivationTechniques = [] }) => {
                                                         <h5 className={`font-bold text-sm ${rarity.text} truncate`}>
                                                             {tech.name}
                                                         </h5>
-                                                        <p className="text-[10px] text-slate-400">
-                                                            Cấp {tech.level}/10
-                                                        </p>
                                                         {tech.skillName && (
                                                             <p className="text-[10px] text-cyan-400 mt-1">
                                                                 {tech.skillName}

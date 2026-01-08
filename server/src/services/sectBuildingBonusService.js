@@ -27,26 +27,29 @@ export async function getSectBuildingBonuses(userId) {
         const sect = await Sect.findById(member.sect);
         if (!sect || !sect.buildings) return bonuses;
 
+        // Helper: lấy level theo buildingId từ mảng buildings
+        const getLevel = (id) => (sect.buildings || []).find(b => b.buildingId === id)?.level || 0;
+
         // Linh Điền - Bonus Linh Khí điểm danh
-        const spiritFieldLevel = sect.buildings.spirit_field?.level || 0;
+        const spiritFieldLevel = getLevel('spirit_field');
         if (spiritFieldLevel > 0) {
             bonuses.dailyBonusEnergy = SECT_BUILDINGS.spirit_field?.effects?.[spiritFieldLevel]?.dailyBonusEnergy || 0;
         }
 
         // Tàng Kinh Các - Số slot công pháp
-        const libraryLevel = sect.buildings.library?.level || 0;
+        const libraryLevel = getLevel('library');
         if (libraryLevel > 0) {
             bonuses.techniqueSlots = SECT_BUILDINGS.library?.effects?.[libraryLevel]?.techniqueSlots || 0;
         }
 
         // Đan Phòng - Giảm giá shop
-        const alchemyRoomLevel = sect.buildings.alchemy_room?.level || 0;
+        const alchemyRoomLevel = getLevel('alchemy_room');
         if (alchemyRoomLevel > 0) {
             bonuses.shopDiscount = SECT_BUILDINGS.alchemy_room?.effects?.[alchemyRoomLevel]?.shopDiscount || 0;
         }
 
         // Luyện Công Trường - Bonus Arena
-        const trainingGroundsLevel = sect.buildings.training_grounds?.level || 0;
+        const trainingGroundsLevel = getLevel('training_grounds');
         if (trainingGroundsLevel > 0) {
             bonuses.arenaBonus = SECT_BUILDINGS.training_grounds?.effects?.[trainingGroundsLevel]?.arenaBonus || 0;
         }

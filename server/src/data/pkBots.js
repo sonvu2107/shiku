@@ -332,7 +332,7 @@ export const PK_BOTS = [
         realmLevel: 14,
         realmName: 'Thiên Đế',
         avatar: '/assets/tamma.jpg',
-        statMultiplier: 1.8,
+        statMultiplier: 1.5,
         rewardMultiplier: 18,
         skills: ['technique_blood_drain', 'technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath', 'technique_sword_heart'],
         description: 'Thiên Đế từ hắc ám, sức mạnh hủy diệt thiên địa.'
@@ -343,7 +343,7 @@ export const PK_BOTS = [
         realmLevel: 14,
         realmName: 'Thiên Đế',
         avatar: '/assets/tienthan.jpg',
-        statMultiplier: 2.5,
+        statMultiplier: 1.8,
         rewardMultiplier: 20,
         skills: ['technique_phoenix_rebirth', 'technique_void_walk', 'technique_dragon_breath', 'technique_sword_heart', 'technique_lightning_step'],
         description: 'Hóa thân của Thiên Đạo, thiên địa đồng thọ.'
