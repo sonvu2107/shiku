@@ -274,7 +274,7 @@ export const claimPracticeSession = async (req, res, next) => {
             success: true,
             message: totalLevelUps > 0
                 ? `Thu hoạch thành công! ${totalLevelUps} công pháp lên cấp!`
-                : `Thu hoạch thành công ${totalExpEarned} điểm tu luyện!`,
+                : `Thu hoạch thành công ${totalExpEarned} điểm tu luyện công pháp!`,
             data: {
                 techniqueCount: techniqueIds.length,
                 expPerTechnique,

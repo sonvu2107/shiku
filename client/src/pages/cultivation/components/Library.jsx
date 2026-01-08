@@ -166,11 +166,27 @@ const Library = ({ sect, membership, onUpgrade, actionLoading }) => {
 
                                 {tech.stats && (
                                     <div className="flex flex-wrap gap-1 mb-2">
-                                        {Object.entries(tech.stats).map(([stat, val]) => (
-                                            <span key={stat} className="text-[9px] bg-black/30 px-1.5 py-0.5 rounded">
-                                                {stat}: +{Math.round(val * 100)}%
-                                            </span>
-                                        ))}
+                                        {Object.entries(tech.stats).map(([stat, val]) => {
+                                            const statLabels = {
+                                                attack: 'Tấn Công',
+                                                defense: 'Phòng Thủ',
+                                                qiBlood: 'Khí Huyết',
+                                                zhenYuan: 'Chân Nguyên',
+                                                speed: 'Tốc Độ',
+                                                criticalRate: 'Chí Mạng',
+                                                dodge: 'Né Tránh',
+                                                penetration: 'Xuyên Thấu',
+                                                resistance: 'Kháng Cự',
+                                                lifesteal: 'Hấp Huyết',
+                                                regeneration: 'Hồi Phục',
+                                                luck: 'Vận Khí'
+                                            };
+                                            return (
+                                                <span key={stat} className="text-[9px] bg-black/30 px-1.5 py-0.5 rounded">
+                                                    {statLabels[stat] || stat}: +{Math.round(val * 100)}%
+                                                </span>
+                                            );
+                                        })}
                                     </div>
                                 )}
 

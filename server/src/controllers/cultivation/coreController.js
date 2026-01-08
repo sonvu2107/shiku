@@ -4,6 +4,7 @@ import Equipment from "../../models/Equipment.js";
 import User from "../../models/User.js";
 import { getClient, isRedisConnected, redisConfig } from "../../services/redisClient.js";
 import { saveWithRetry } from "../../utils/dbUtils.js";
+import { SECT_TECHNIQUES_MAP } from "../../data/sectTechniques.js";
 
 // ==================== CACHE CONFIG ====================
 const CULTIVATION_CACHE_TTL = 5; // 5 seconds - short TTL for frequently changing data
@@ -187,6 +188,14 @@ export const formatCultivationResponse = async (cultivation) => {
         equipped: cultivation.equipped,
         activeBoosts: cultivation.activeBoosts.filter(b => new Date(b.expiresAt) > new Date()),
         learnedTechniques: cultivation.learnedTechniques || [],
+        sectTechniques: (cultivation.sectTechniques || []).map(learned => {
+            const technique = SECT_TECHNIQUES_MAP.get(learned.id);
+            return technique ? {
+                id: learned.id,
+                learnedAt: learned.learnedAt,
+                technique: technique
+            } : null;
+        }).filter(Boolean),
         skills: cultivation.getSkills(),
         stats: (() => {
             // Merge legacy likes vào upvotes nếu upvotes = 0 hoặc chưa có
@@ -223,6 +232,14 @@ export const formatCultivationResponse = async (cultivation) => {
         breakthroughCooldownUntil: cultivation.breakthroughCooldownUntil,
         characterAppearance: cultivation.characterAppearance || 'Immortal_male',
         lastAppearanceChangeAt: cultivation.lastAppearanceChangeAt,
+        sectTechniques: (cultivation.sectTechniques || []).map(learned => {
+            const technique = SECT_TECHNIQUES_MAP.get(learned.id);
+            return technique ? {
+                id: learned.id,
+                learnedAt: learned.learnedAt,
+                technique: technique
+            } : null;
+        }).filter(Boolean),
         materials: cultivation.materials || [],
         createdAt: cultivation.createdAt,
         updatedAt: cultivation.updatedAt

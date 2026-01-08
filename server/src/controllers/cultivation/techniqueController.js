@@ -27,6 +27,9 @@ import { saveWithRetry } from "../../utils/dbUtils.js";
 // Cache TTL for techniques list (seconds)
 const TECHNIQUES_CACHE_TTL = 10;
 
+// Cooldown between technique sessions (15 seconds)
+const TECHNIQUE_SESSION_COOLDOWN_MS = 15000;
+
 // ============================================================
 // GET /techniques - Danh sách công pháp
 // ============================================================
@@ -318,7 +321,6 @@ export const activateTechnique = async (req, res, next) => {
         }
 
         // ==================== COOLDOWN CHECK (15s between sessions) ====================
-        const TECHNIQUE_SESSION_COOLDOWN_MS = 15000; // 15 seconds
         const lastClaimTime = cultivation.lastTechniqueClaimTime ? new Date(cultivation.lastTechniqueClaimTime).getTime() : 0;
         const now = Date.now();
         const timeSinceLastClaim = now - lastClaimTime;
@@ -472,13 +474,16 @@ export const claimTechnique = async (req, res, next) => {
         }
 
         // Tính EXP (continuous, floor elapsedSec): 1 giây = 1 click
+        // Đảm bảo tối thiểu 1 giây để tránh 0 exp khi claim sớm
         const now = Date.now();
         const startedAt = new Date(session.startedAt).getTime();
         const endsAt = new Date(session.endsAt).getTime();
-        const elapsedSec = Math.max(0, Math.min(
+        const elapsedSec = Math.max(1, Math.min(
             technique.durationSec,
             Math.floor((now - startedAt) / 1000)
         ));
+
+        console.log(`[ClaimTechnique] userId=${userId}, technique=${technique.name}, elapsedSec=${elapsedSec}, duration=${technique.durationSec}, realmAtStart=${session.realmAtStart}`);
 
         // Dùng click EXP trung bình theo cảnh giới
         const expRanges = {
@@ -501,6 +506,8 @@ export const claimTechnique = async (req, res, next) => {
         const avgClickExp = Math.floor((range.min + range.max) / 2);
         const baseExp = elapsedSec * avgClickExp;
 
+        console.log(`[ClaimTechnique] range=${JSON.stringify(range)}, avgClickExp=${avgClickExp}, baseExp=${baseExp}`);
+
         // Apply multipliers
         let multipliedExp = Math.floor(baseExp * technique.techniqueMultiplier);
 
@@ -519,14 +526,20 @@ export const claimTechnique = async (req, res, next) => {
 
         multipliedExp = Math.floor(multipliedExp * boostMultiplier * petMultiplier);
 
+        console.log(`[ClaimTechnique] multiplier=${technique.techniqueMultiplier}, boostMult=${boostMultiplier}, petMult=${petMultiplier}, multipliedExp=${multipliedExp}`);
+
         // ==================== NO CAP FOR TECHNIQUE CLAIMS ====================
         // Semi-auto techniques require time investment (30-60s meditation)
         // Unlike spam clicking, this is a deliberate action with cooldown
         // Therefore, we don't apply yinyang exp cap here
         const allowedExp = multipliedExp;
 
+        console.log(`[ClaimTechnique] FINAL allowedExp=${allowedExp}, expBefore=${cultivation.exp}`);
+
         // Add EXP (full amount, no cap)
         cultivation.exp += allowedExp;
+
+        console.log(`[ClaimTechnique] expAfter=${cultivation.exp}, added=${allowedExp}`);
 
         // Log exp
         if (!cultivation.expLog) cultivation.expLog = [];
@@ -550,11 +563,15 @@ export const claimTechnique = async (req, res, next) => {
 
         // Clear active session + set cooldown timestamp
         cultivation.activeTechniqueSession = null;
+        
         // Set cooldown from SESSION END TIME, not claim time (prevents spam)
         // This ensures user must wait 15s after session ENDS before starting new one
-        const sessionEndTime = new Date(session.endsAt).getTime();
-        const cooldownEndTime = sessionEndTime + TECHNIQUE_SESSION_COOLDOWN_MS;
-        cultivation.lastTechniqueClaimTime = new Date(Math.max(Date.now(), cooldownEndTime));
+        const endsAtTimestamp = session.endsAt ? new Date(session.endsAt).getTime() : Date.now();
+        const cooldownEndTime = endsAtTimestamp + TECHNIQUE_SESSION_COOLDOWN_MS;
+        
+        console.log(`[ClaimTechnique] Setting cooldown: endsAt=${session.endsAt}, cooldownEnd=${new Date(cooldownEndTime)}`);
+        
+        cultivation.lastTechniqueClaimTime = new Date(cooldownEndTime);
 
         // Update technique lastPracticedAt
         const learnedTechnique = (cultivation.learnedTechniques || [])

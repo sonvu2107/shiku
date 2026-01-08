@@ -5,6 +5,7 @@ import { useState, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
+import { useToast } from '../../../contexts/ToastContext';
 import { api } from '../../../api.js';
 import { RARITY_COLORS } from '../utils/constants.js';
 import { getItemIcon, IMAGE_COMPONENTS } from '../utils/iconHelpers.js';
@@ -13,7 +14,8 @@ import FlyingReward from './FlyingReward.jsx';
 import CombatSlotsSection from './CombatSlotsSection.jsx';
 
 const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notification, clearNotification }) {
-  const { cultivation, shop, loadShop, loading, refresh } = useCultivation();
+  const { cultivation, shop, loadShop, loading, refresh, setCultivation } = useCultivation();
+  const { showSuccess, showError } = useToast();
   const realmLevel = cultivation?.realm?.level || 1;
   const getPracticeExpPerTechnique = (level = 1) => {
     const multiplier = 1 + 0.2 * Math.max(0, level - 1); // +20% mỗi cảnh giới
@@ -158,15 +160,16 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
   }, [cooldowns]);
 
   // Cooldown sau khi thu hoạch nhập định (ngăn spam kích hoạt tiếp)
+  // CHỈ đếm khi KHÔNG CÓ active session
   useEffect(() => {
-    if (activationCooldown <= 0) return;
+    if (activationCooldown <= 0 || activeSession) return;
 
     const timer = setInterval(() => {
       setActivationCooldown(prev => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activationCooldown]);
+  }, [activationCooldown, activeSession]);
 
   // Handler: Start bulk practice session (Nhập Định 10 Phút)
   const handleStartBulkPractice = async () => {
@@ -227,22 +230,9 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
   const learnedTechniques = cultivation.learnedTechniques || [];
   const skills = cultivation.skills || [];
 
-  // Công pháp tông môn đã học
+  // Công pháp tông môn đã học (populated from backend)
   const sectTechniquesData = cultivation.sectTechniques || [];
-  const SECT_TECHNIQUES_INFO = {
-    sect_basic_qi: { name: 'Tông Môn Thổ Nạp Pháp', description: 'Tăng 8% Tấn Công và Phòng Thủ', rarity: 'common', stats: { attack: 0.08, defense: 0.08 } },
-    sect_spirit_gathering: { name: 'Linh Khí Quy Tụ Pháp', description: 'Tăng 10% Chân Nguyên và 5% Hồi Phục', rarity: 'uncommon', stats: { zhenYuan: 0.10, regeneration: 0.05 } },
-    sect_unity_strike: { name: 'Đồng Tâm Quyết', description: 'Tăng 12% Tấn Công và 8% Chí Mạng', rarity: 'rare', stats: { attack: 0.12, criticalRate: 0.08 } },
-    sect_guardian_aura: { name: 'Hộ Tông Thần Công', description: 'Tăng 15% Phòng Thủ và 10% Kháng Cự', rarity: 'rare', stats: { defense: 0.15, resistance: 0.10 } },
-    sect_swift_formation: { name: 'Tốc Chiến Trận Pháp', description: 'Tăng 15% Tốc Độ và 12% Né Tránh', rarity: 'rare', stats: { speed: 0.15, dodge: 0.12 } },
-    sect_hegemon_art: { name: 'Bá Vương Tông Pháp', description: 'Tăng 18% Tấn Công, 12% Chí Mạng và 10% Xuyên Thấu', rarity: 'epic', stats: { attack: 0.18, criticalRate: 0.12, penetration: 0.10 } },
-    sect_immortal_body: { name: 'Bất Tử Tông Thể', description: 'Tăng 20% Khí Huyết và 15% Hồi Phục', rarity: 'epic', stats: { qiBlood: 0.20, regeneration: 0.15 } },
-    sect_ancestral_legacy: { name: 'Tổ Sư Di Huấn', description: 'Tăng 15% tất cả chỉ số chiến đấu', rarity: 'legendary', stats: { attack: 0.15, defense: 0.15, qiBlood: 0.15, zhenYuan: 0.15, speed: 0.15, criticalRate: 0.10 } },
-  };
-  const learnedSectTechniques = sectTechniquesData.map(st => ({
-    ...st,
-    technique: SECT_TECHNIQUES_INFO[st.id] || null
-  })).filter(st => st.technique);
+  const learnedSectTechniques = sectTechniquesData.filter(st => st.technique);
 
   // Tách công pháp đã học và chưa học
   const learned = learnedTechniques.map(learned => {
@@ -411,17 +401,39 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
           estimatedExp: res.data.estimatedExp
         });
         setSessionTimeLeft(res.data.durationSec);
-        setActivationCooldown(0);
+
+        // Set FULL cooldown (session duration + 15s) to show total wait time
+        const fullCooldown = res.data.durationSec + TECHNIQUE_SESSION_COOLDOWN_SEC;
+        setActivationCooldown(fullCooldown);
       } else if (res.cooldownRemaining) {
         // Cooldown error - show remaining wait time
-        showNotification(`Chưa hết cooldown, chờ ${res.cooldownRemaining}s để vận công tiếp`, 'error');
+        const msg = `Chưa hết cooldown, chờ ${res.cooldownRemaining}s để vận công tiếp`;
+        if (notification) {
+          // Don't spam notification - just set cooldown
+        } else {
+          // Only alert once, not on every click
+        }
         setActivationCooldown(res.cooldownRemaining);
       } else {
-        showNotification(res.message || 'Kích hoạt công pháp thất bại', 'error');
+        const msg = res.message || 'Kích hoạt công pháp thất bại';
+        if (notification) {
+          // Show notification if available
+        } else {
+          alert(msg);
+        }
       }
     } catch (e) {
       console.error('Activate technique failed:', e);
-      showNotification('Lỗi kích hoạt công pháp', 'error');
+
+      // Parse cooldown from error message: "Chưa hết cooldown, chờ 27s để vận công tiếp"
+      const errorMsg = e.message || '';
+      const cooldownMatch = errorMsg.match(/chờ (\d+)s/i);
+      if (cooldownMatch) {
+        const remainingSec = parseInt(cooldownMatch[1]);
+        setActivationCooldown(remainingSec);
+      }
+
+      // Don't show alert/notification - cooldown display is enough
     } finally {
       setActivating(false);
     }
@@ -437,14 +449,31 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
         body: JSON.stringify({ sessionId: activeSession.sessionId })
       });
       if (res.success) {
+        // Show success toast with formatted message
+        const expGained = res.data?.allowedExp || 0;
+        showSuccess(`Đã thu hoạch ${expGained.toLocaleString()} tu vi nhập định`);
+
+        // Calculate remaining cooldown from session END time + 15s
+        const sessionEndTime = activeSession?.endsAt ? new Date(activeSession.endsAt).getTime() : Date.now();
+        const cooldownEndTime = sessionEndTime + (TECHNIQUE_SESSION_COOLDOWN_SEC * 1000);
+        const remainingCooldownMs = Math.max(0, cooldownEndTime - Date.now());
+        const remainingCooldownSec = Math.ceil(remainingCooldownMs / 1000);
+
         setActiveSession(null);
         setSessionTimeLeft(0);
-        setActivationCooldown(TECHNIQUE_SESSION_COOLDOWN_SEC);
-        // Do NOT call refresh() here - it causes full page reload
-        // User can immediately start new meditation session
+        // Continue countdown from where session left off
+        setActivationCooldown(remainingCooldownSec);
+
+        // Update cultivation từ response thay vì reload (tránh full page refresh)
+        if (res.data?.cultivation && setCultivation) {
+          setCultivation(res.data.cultivation);
+        }
+      } else {
+        showError(res.message || 'Thu hoạch thất bại');
       }
     } catch (e) {
       console.error('Claim technique failed:', e);
+      showError('Lỗi thu hoạch công pháp');
     } finally {
       setClaiming(false);
     }
@@ -691,99 +720,99 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
                   return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {sortedFinalLearned.map(({ techniqueId, level, exp, technique }) => {
-                    if (!technique) return null;
-                    const expNeeded = level * 100;
-                    const progress = Math.min((exp / expNeeded) * 100, 100);
-                    const isMaxLevel = level >= 10;
-                    const remainingCd = cooldowns[techniqueId] || 0;
+                        if (!technique) return null;
+                        const expNeeded = level * 100;
+                        const progress = Math.min((exp / expNeeded) * 100, 100);
+                        const isMaxLevel = level >= 10;
+                        const remainingCd = cooldowns[techniqueId] || 0;
 
-                    return (
-                      <div
-                        key={techniqueId}
-                        className="spirit-tablet rounded-xl p-3 bg-slate-900/50 border border-emerald-500/20 hover:border-emerald-500/40 transition-all relative overflow-hidden"
-                      >
-                        {/* Compact Header */}
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${RARITY_COLORS[technique.rarity]?.gradient || 'from-slate-700 to-slate-800'} border border-slate-600/50`}>
-                            <img src="/assets/congphap.jpg" alt="" className="w-full h-full object-cover rounded-full" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h5 className={`text-sm font-bold truncate ${RARITY_COLORS[technique.rarity]?.text || 'text-slate-300'}`}>
-                                {technique.name}
-                              </h5>
-                              <span className="text-[10px] px-1.5 py-0.5 bg-amber-800/50 text-amber-300 rounded font-bold">
-                                Lv.{level}/10
-                              </span>
+                        return (
+                          <div
+                            key={techniqueId}
+                            className="spirit-tablet rounded-xl p-3 bg-slate-900/50 border border-emerald-500/20 hover:border-emerald-500/40 transition-all relative overflow-hidden"
+                          >
+                            {/* Compact Header */}
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${RARITY_COLORS[technique.rarity]?.gradient || 'from-slate-700 to-slate-800'} border border-slate-600/50`}>
+                                <img src="/assets/congphap.jpg" alt="" className="w-full h-full object-cover rounded-full" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <h5 className={`text-sm font-bold truncate ${RARITY_COLORS[technique.rarity]?.text || 'text-slate-300'}`}>
+                                    {technique.name}
+                                  </h5>
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-amber-800/50 text-amber-300 rounded font-bold">
+                                    Lv.{level}/10
+                                  </span>
+                                </div>
+                                {technique.stats && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {Object.entries(technique.stats).slice(0, 3).map(([stat, value]) => {
+                                      const statLabels = {
+                                        attack: 'Tấn Công', defense: 'Phòng Thủ', qiBlood: 'Khí Huyết',
+                                        zhenYuan: 'Chân Nguyên', speed: 'Tốc Độ', criticalRate: 'Chí Mạng',
+                                        dodge: 'Né Tránh', penetration: 'Xuyên Thấu', resistance: 'Kháng Cự',
+                                        lifesteal: 'Hấp Huyết', regeneration: 'Hồi Phục', luck: 'Vận Khí'
+                                      };
+                                      const actualBonus = value * (1 + (level - 1) * 0.1) * 100;
+                                      return (
+                                        <span key={stat} className="text-[10px] bg-slate-800/50 text-emerald-300 px-1.5 py-0.5 rounded">
+                                          {statLabels[stat]}: +{actualBonus.toFixed(0)}%
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            {technique.stats && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {Object.entries(technique.stats).slice(0, 3).map(([stat, value]) => {
-                                  const statLabels = {
-                                    attack: 'Tấn Công', defense: 'Phòng Thủ', qiBlood: 'Khí Huyết',
-                                    zhenYuan: 'Chân Nguyên', speed: 'Tốc Độ', criticalRate: 'Chí Mạng',
-                                    dodge: 'Né Tránh', penetration: 'Xuyên Thấu', resistance: 'Kháng Cự',
-                                    lifesteal: 'Hấp Huyết', regeneration: 'Hồi Phục', luck: 'Vận Khí'
-                                  };
-                                  const actualBonus = value * (1 + (level - 1) * 0.1) * 100;
-                                  return (
-                                    <span key={stat} className="text-[10px] bg-slate-800/50 text-emerald-300 px-1.5 py-0.5 rounded">
-                                      {statLabels[stat]}: +{actualBonus.toFixed(0)}%
-                                    </span>
-                                  );
-                                })}
+
+                            {/* Progress + Button row */}
+                            <div className="flex items-center gap-2">
+                              {!isMaxLevel ? (
+                                <div className="flex-1">
+                                  <div className="flex justify-between text-xs text-slate-500 mb-0.5">
+                                    <span>{exp}/{expNeeded}</span>
+                                    <span>{Math.floor(progress)}%</span>
+                                  </div>
+                                  <div className="w-full bg-slate-900/80 rounded-full h-2 border border-slate-700/50 overflow-hidden">
+                                    <div
+                                      className="bg-gradient-to-r from-purple-600 to-violet-400 h-full transition-all duration-300"
+                                      style={{ width: `${progress}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex-1 text-xs text-amber-400/70 text-center">ĐÃ ĐẠT CẤP CAO NHẤT</div>
+                              )}
+
+                              {/* Practice button */}
+                              <button
+                                onClick={(e) => handlePractice(techniqueId, technique, e)}
+                                type="button"
+                                disabled={practicing === techniqueId || isMaxLevel || remainingCd > 0}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex-shrink-0 ${isMaxLevel
+                                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                  : remainingCd > 0
+                                    ? 'bg-slate-800 text-slate-400 cursor-not-allowed'
+                                    : practicing === techniqueId
+                                      ? 'bg-amber-800 text-amber-300'
+                                      : 'bg-gradient-to-r from-amber-700 to-amber-900 text-amber-100 hover:from-amber-600 hover:to-amber-800'
+                                  }`}
+                              >
+                                {isMaxLevel ? 'Max' : remainingCd > 0 ? `${remainingCd}s` : practicing === techniqueId ? '...' : 'Luyện'}
+                              </button>
+                            </div>
+
+                            {/* Skill info */}
+                            {technique.skill && (
+                              <div className="mt-2 pt-2 border-t border-purple-500/20 text-xs">
+                                <span className="text-purple-300 font-bold">{technique.skill.name}</span>
+                                <span className="text-slate-500 ml-1">• CD: {technique.skill.cooldown}s</span>
                               </div>
                             )}
                           </div>
-                        </div>
-
-                        {/* Progress + Button row */}
-                        <div className="flex items-center gap-2">
-                          {!isMaxLevel ? (
-                            <div className="flex-1">
-                              <div className="flex justify-between text-xs text-slate-500 mb-0.5">
-                                <span>{exp}/{expNeeded}</span>
-                                <span>{Math.floor(progress)}%</span>
-                              </div>
-                              <div className="w-full bg-slate-900/80 rounded-full h-2 border border-slate-700/50 overflow-hidden">
-                                <div
-                                  className="bg-gradient-to-r from-purple-600 to-violet-400 h-full transition-all duration-300"
-                                  style={{ width: `${progress}%` }}
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex-1 text-xs text-amber-400/70 text-center">ĐÃ ĐẠT CẤP CAO NHẤT</div>
-                          )}
-
-                          {/* Practice button */}
-                          <button
-                            onClick={(e) => handlePractice(techniqueId, technique, e)}
-                            type="button"
-                            disabled={practicing === techniqueId || isMaxLevel || remainingCd > 0}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex-shrink-0 ${isMaxLevel
-                              ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                              : remainingCd > 0
-                                ? 'bg-slate-800 text-slate-400 cursor-not-allowed'
-                                : practicing === techniqueId
-                                  ? 'bg-amber-800 text-amber-300'
-                                  : 'bg-gradient-to-r from-amber-700 to-amber-900 text-amber-100 hover:from-amber-600 hover:to-amber-800'
-                              }`}
-                          >
-                            {isMaxLevel ? 'Max' : remainingCd > 0 ? `${remainingCd}s` : practicing === techniqueId ? '...' : 'Luyện'}
-                          </button>
-                        </div>
-
-                        {/* Skill info */}
-                        {technique.skill && (
-                          <div className="mt-2 pt-2 border-t border-purple-500/20 text-xs">
-                            <span className="text-purple-300 font-bold">{technique.skill.name}</span>
-                            <span className="text-slate-500 ml-1">• CD: {technique.skill.cooldown}s</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
                     </div>
                   );
                 })()}
@@ -1069,11 +1098,19 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
                       <span className="text-[10px] bg-red-900/40 text-red-300 px-2 py-1 rounded border border-red-500/20">
                         Sát Pháp
                       </span>
-                      {tech.stats && Object.entries(tech.stats).slice(0, 2).map(([stat, value]) => (
-                        <span key={stat} className="text-[10px] bg-slate-800/50 text-emerald-300 px-1.5 py-0.5 rounded">
-                          +{Math.round(value * 100)}%
-                        </span>
-                      ))}
+                      {tech.stats && Object.entries(tech.stats).slice(0, 2).map(([stat, value]) => {
+                        const statLabels = {
+                          attack: 'Tấn Công', defense: 'Phòng Thủ', qiBlood: 'Khí Huyết',
+                          zhenYuan: 'Chân Nguyên', speed: 'Tốc Độ', criticalRate: 'Chí Mạng',
+                          dodge: 'Né Tránh', penetration: 'Xuyên Thấu', resistance: 'Kháng Cự',
+                          lifesteal: 'Hấp Huyết', regeneration: 'Hồi Phục', luck: 'Vận Khí'
+                        };
+                        return (
+                          <span key={stat} className="text-[10px] bg-slate-800/50 text-emerald-300 px-1.5 py-0.5 rounded">
+                            {statLabels[stat] || stat}: +{Math.round(value * 100)}%
+                          </span>
+                        );
+                      })}
                     </div>
 
                     {/* Action buttons */}

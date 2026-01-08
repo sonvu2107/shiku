@@ -996,6 +996,7 @@ export function CultivationProvider({ children }) {
   const value = {
     // State
     cultivation,
+    setCultivation,
     loading,
     error,
     shop,
