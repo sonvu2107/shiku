@@ -293,7 +293,10 @@ export async function consumeExpCap(userId, requestedExp, capLimit) {
     const { multiplier, lore } = calculateDiminish(accumulatedMs);
 
     // STEP 2: Tính effective requested EXP sau diminish
-    const effectiveRequested = Math.floor(safeRequested * multiplier);
+    // Clamp tối thiểu 1 khi safeRequested > 0 để tránh "click rỗng" do làm tròn
+    const effectiveRequested = safeRequested > 0
+        ? Math.max(1, Math.floor(safeRequested * multiplier))
+        : 0;
 
     // STEP 3: Consume cap với effective amount
     const { key, windowEnd } = getWindowInfo(userId);
@@ -348,7 +351,8 @@ export async function consumeExpCap(userId, requestedExp, capLimit) {
  * @returns {Promise<{capRemaining: number, effectiveRemaining: number, diminishMultiplier: number, diminishLore: string|null}>}
  */
 export async function getExpCapRemaining(userId, capLimit) {
-    const safeCap = Math.max(0, Math.floor(capLimit || 100));
+    // Đồng bộ với consumeExpCap: default realm 1 cap, không phải 100
+    const safeCap = Number.isFinite(capLimit) ? Math.max(0, Math.floor(capLimit)) : CAP_BY_REALM[1];
 
     const redis = getClient();
     if (!redis || !isRedisConnected()) {
@@ -422,8 +426,8 @@ export async function checkClickCooldown(userId, cooldownMs = 200) {
         return { allowed: true, waitMs: 0 };
     } catch (error) {
         console.error('[ExpCapService] Cooldown check error:', error.message);
-        // Fail open trong dev, fail closed trong prod
-        return { allowed: !isProduction, waitMs: 0 };
+        // Fail open trong dev, fail closed trong prod với backoff hợp lý
+        return { allowed: !isProduction, waitMs: isProduction ? cooldownMs : 0 };
     }
 }
 
