@@ -147,49 +147,49 @@ export const SHOP_ITEM_DATA = {
     id: "technique_basic_qi", name: "Cơ Bản Tụ Khí Pháp", type: "technique", price: 500,
     description: "Công pháp cơ bản, tăng 5% Tấn Công và Phòng Thủ", rarity: "common",
     stats: { attack: 0.05, defense: 0.05 },
-    skill: { name: "Tụ Khí", description: "Tăng 10% Khí Huyết trong 5 giây", cooldown: 30 }
+    skill: { name: "Tụ Khí", description: "Tăng 10% Khí Huyết trong 5 giây", cooldown: 3, manaCost: 5 }
   },
   technique_sword_heart: {
     id: "technique_sword_heart", name: "Kiếm Tâm Quyết", type: "technique", price: 1000,
     description: "Công pháp kiếm thuật, tăng 10% Tấn Công và 5% Chí Mạng", rarity: "uncommon",
     stats: { attack: 0.10, criticalRate: 0.05 },
-    skill: { name: "Kiếm Khí", description: "Gây sát thương bằng 150% Tấn Công", cooldown: 20 }
+    skill: { name: "Kiếm Khí", description: "Gây sát thương bằng 150% Tấn Công", cooldown: 2 }
   },
   technique_iron_body: {
     id: "technique_iron_body", name: "Thiết Bốc Công", type: "technique", price: 1000,
     description: "Công pháp luyện thể, tăng 10% Phòng Thủ và 5% Khí Huyết", rarity: "uncommon",
     stats: { defense: 0.10, qiBlood: 0.05 },
-    skill: { name: "Thiết Bốc", description: "Giảm 30% sát thương nhận trong 5 giây", cooldown: 25 }
+    skill: { name: "Thiết Bốc", description: "Giảm 30% sát thương nhận trong 5 giây", cooldown: 4 }
   },
   technique_lightning_step: {
     id: "technique_lightning_step", name: "Lôi Điện Bộ", type: "technique", price: 1500,
     description: "Công pháp thân pháp, tăng 15% Tốc Độ và 10% Né Tránh", rarity: "rare",
     stats: { speed: 0.15, dodge: 0.10 },
-    skill: { name: "Lôi Điện", description: "Tăng 50% Tốc Độ trong 8 giây", cooldown: 40 }
+    skill: { name: "Lôi Điện", description: "Tăng 50% Tốc Độ trong 8 giây", cooldown: 5 }
   },
   technique_dragon_breath: {
     id: "technique_dragon_breath", name: "Long Tức Công", type: "technique", price: 2000,
     description: "Công pháp hô hấp, tăng 10% Chân Nguyên và 5% Hồi Phục", rarity: "rare",
     stats: { zhenYuan: 0.10, regeneration: 0.05 },
-    skill: { name: "Long Tức", description: "Hồi 20% Chân Nguyên", cooldown: 30 }
+    skill: { name: "Long Tức", description: "Hồi 20% Chân Nguyên", cooldown: 4 }
   },
   technique_phoenix_rebirth: {
     id: "technique_phoenix_rebirth", name: "Phượng Hoàng Tái Sinh", type: "technique", price: 3000,
     description: "Công pháp huyền thoại, tăng 15% tất cả thông số", rarity: "legendary",
     stats: { attack: 0.15, defense: 0.15, qiBlood: 0.15, zhenYuan: 0.15, speed: 0.15, criticalRate: 0.15 },
-    skill: { name: "Tái Sinh", description: "Hồi 50% Khí Huyết và Chân Nguyên", cooldown: 60 }
+    skill: { name: "Tái Sinh", description: "Hồi 20% Khí Huyết và Chân Nguyên", cooldown: 10 }
   },
   technique_void_walk: {
     id: "technique_void_walk", name: "Hư Không Bộ", type: "technique", price: 2500,
     description: "Công pháp không gian, tăng 20% Xuyên Thấu và Kháng Cự", rarity: "epic",
     stats: { penetration: 0.20, resistance: 0.20 },
-    skill: { name: "Hư Không", description: "Miễn dịch sát thương trong 2 giây", cooldown: 45 }
+    skill: { name: "Hư Không", description: "Miễn dịch sát thương trong 2 giây", cooldown: 10 }
   },
   technique_blood_drain: {
     id: "technique_blood_drain", name: "Hấp Huyết Đại Pháp", type: "technique", price: 1800,
     description: "Công pháp tà đạo, tăng 15% Hấp Huyết", rarity: "epic",
     stats: { lifesteal: 0.15 },
-    skill: { name: "Hấp Huyết", description: "Gây sát thương và hồi 30% sát thương gây ra", cooldown: 35 }
+    skill: { name: "Hấp Huyết", description: "Gây sát thương và hồi 30% sát thương gây ra", cooldown: 5 }
   }
 };
 
